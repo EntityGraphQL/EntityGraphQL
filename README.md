@@ -1,18 +1,20 @@
 # Entity Query Language
-EQL is a simple language allowing you to easily build .NET expressions for execution against a given context object as well as a GraphQL inspired data query language. This allows you to quickly build data backends for your applications and allow powerful runtime configuration.
+EQL is a powerful data querying language which lets you quickly build an API backend for your applications. Application and consumers of the API then have control over what data they query using a GraphQL inspired syntax. It is built on top of a simple language allowing you to easily build .NET expressions for execution against a given context object which can also be used for powerful runtime configuration.
+
+_Note EQL is in early stages of development_
 
 ## How do I use this?
-Lets look at an example.
-You have a screen in your application listing properties. Instead of having a bunch of checkboxes you can change to get the correct result for each customer, you could just have one simple EQL statement.
+Lets look at an example. You have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
 ```js
-    (type.id = 2 or type.id = 3) and type.name startswith 'Region'
+  // This might be a configured EQL statement for filtering the results. It has a context of Property
+  (type.id = 2 or type.id = 3) and type.name startswith 'Region'
 ```
-This can be compile and checked for correctness at configuration time. Even as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
+This can be compile and checked for correctness at configuration time and as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
 ```csharp
 var compiler = new EqlCompiler();
 // we create a schema provider (more on this later) to compile the statement against our Property type
-var schemaProvider = ObjectSchemaProvider(typeof(Property));
-var compiledResult = compiler.Compile(myConfigurationEqlStatement, schemaProvider)
+var schemaProvider = new ObjectSchemaProvider(typeof(Property));
+var compiledResult = compiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
 var thingsToShow = myProperties.Where(compiledResult.Expression);
 ```
@@ -156,3 +158,4 @@ Some things still on the list to complete. Pull request are very welcome.
 - A way to "plug-in" business logic - examples
 - Auto generate schema documentation page
 - better paging
+- Wiki page on writing EQL
