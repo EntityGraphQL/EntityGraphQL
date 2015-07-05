@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from EntityQueryLanguage/EqlGrammer.g4 by ANTLR 4.5-SNAPSHOT
+// Generated from src/EntityQueryLanguage/Grammer/EqlGrammer.g4 by ANTLR 4.5-SNAPSHOT
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -17,7 +17,7 @@
 // Missing XML comment for publicly visible type or member '...'
 #pragma warning disable 1591
 
-namespace EntityQueryLanguage.Generated {
+namespace EntityQueryLanguage.Grammer {
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using IToken = Antlr4.Runtime.IToken;
@@ -169,6 +169,13 @@ public interface IEqlGrammerVisitor<Result> : IParseTreeVisitor<Result> {
 	Result VisitField([NotNull] EqlGrammerParser.FieldContext context);
 
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.alias"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAlias([NotNull] EqlGrammerParser.AliasContext context);
+
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.entityQuery"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -182,4 +189,4 @@ public interface IEqlGrammerVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitDataQuery([NotNull] EqlGrammerParser.DataQueryContext context);
 }
-} // namespace EntityQueryLanguage.Generated
+} // namespace EntityQueryLanguage.Grammer

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from EntityQueryLanguage/EqlGrammer.g4 by ANTLR 4.5-SNAPSHOT
+// Generated from src/EntityQueryLanguage/Grammer/EqlGrammer.g4 by ANTLR 4.5-SNAPSHOT
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -17,7 +17,7 @@
 // Missing XML comment for publicly visible type or member '...'
 #pragma warning disable 1591
 
-namespace EntityQueryLanguage.Generated {
+namespace EntityQueryLanguage.Grammer {
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using IToken = Antlr4.Runtime.IToken;
@@ -241,6 +241,17 @@ public partial class EqlGrammerBaseVisitor<Result> : AbstractParseTreeVisitor<Re
 	public virtual Result VisitField([NotNull] EqlGrammerParser.FieldContext context) { return VisitChildren(context); }
 
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.alias"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitAlias([NotNull] EqlGrammerParser.AliasContext context) { return VisitChildren(context); }
+
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.entityQuery"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
@@ -262,4 +273,4 @@ public partial class EqlGrammerBaseVisitor<Result> : AbstractParseTreeVisitor<Re
 	/// <return>The visitor result.</return>
 	public virtual Result VisitDataQuery([NotNull] EqlGrammerParser.DataQueryContext context) { return VisitChildren(context); }
 }
-} // namespace EntityQueryLanguage.Generated
+} // namespace EntityQueryLanguage.Grammer

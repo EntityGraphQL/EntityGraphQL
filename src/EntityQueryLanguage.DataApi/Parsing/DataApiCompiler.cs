@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityQueryLanguage.Generated;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using EntityQueryLanguage.Extensions;
+using EntityQueryLanguage.Grammer;
 
 namespace EntityQueryLanguage.DataApi.Parsing {
   internal class DataApiCompiler {

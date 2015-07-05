@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityQueryLanguage.Generated;
 using Antlr4.Runtime;
 using EntityQueryLanguage.Extensions;
+using EntityQueryLanguage.Grammer;
 
 namespace EntityQueryLanguage
 {
