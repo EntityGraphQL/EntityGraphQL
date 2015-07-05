@@ -19,7 +19,7 @@ var compiledResult = compiler.Compile(myConfigurationEqlStatement, schemaProvide
 var thingsToShow = myProperties.Where(compiledResult.Expression);
 ```
 Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
-```cssharp
+```csharp
 // You'd take this from some configuration
 var eql = "if location.name = 'Mars' then (cost + 5) * type.premium else (cost * type.premium) / 3"
 var compiledResult = compiler.Compile(eql, schemaProvider);
