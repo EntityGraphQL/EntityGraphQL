@@ -20,7 +20,6 @@ namespace EntityQueryLanguage.DataApi {
 
       try {
         var objectGraph = new DataApiCompiler(schemaProvider, methodProvider).Compile(dataQuery);
-        var compiler = new EqlCompiler();
   
         Parallel.ForEach(objectGraph.Fields, node => {
           try {
