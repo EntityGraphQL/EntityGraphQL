@@ -25,6 +25,9 @@ namespace EntityQueryLanguage
     public EqlResult Compile(string query) {
       return Compile(query, null, null);
     }
+    public EqlResult Compile(string query, ISchemaProvider schemaProvider) {
+      return Compile(query, schemaProvider, new DefaultMethodProvider());
+    }
     public EqlResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider _methodProvider) {
       ParameterExpression contextParam = null;
       
