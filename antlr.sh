@@ -1,0 +1,1 @@
+java -jar ~/.dnx/packages/Antlr4/4.5-alpha002/tools/antlr4-csharp-4.5-SNAPSHOT-complete.jar EntityQueryLanguage/EqlGrammer.g4 -Dlanguage=CSharp_v4_5 -package EntityQueryLanguage.Generated -visitor -no-listener -o "EntityQueryLanguage.Generated"
