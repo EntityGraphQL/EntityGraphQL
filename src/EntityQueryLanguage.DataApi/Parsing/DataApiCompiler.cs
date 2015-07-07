@@ -82,13 +82,27 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         var node = new DataApiNode(actualName, Expression.Property(_selectContext, actualName), null);
         return node;
       }
+      public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context) {
+        var name = context.name.GetText();
+        var result = _compiler.CompileWith(context.entity.GetText(), _selectContext, _schemaProvider, _methodProvider);
+        var node = new DataApiNode(name, result.Expression, null);
+        return node;
+      }
       
       /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
       public override DataApiNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context) {
-        var query = context.entity.GetText();
-        var name = query;
-        if (name.IndexOf(".") > -1)
-          name = name.Substring(0, name.IndexOf("."));
+        string name;
+        string query;
+        if (context.alias != null) {
+          name = context.alias.name.GetText();
+          query = context.alias.entity.GetText();
+        }
+        else {
+          query = context.entity.GetText();
+          name = query;
+          if (name.IndexOf(".") > -1)
+            name = name.Substring(0, name.IndexOf("."));
+        }
         
         try {
           if (_selectContext == null) {
@@ -114,7 +128,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         var oldContext = _selectContext;
         _selectContext = contextParameter;
         // visit child fields. Will be field or entityQueries again
-        var fieldExpressions = context.children.Select(c => Visit(c)).Where(n => n != null).ToList();
+        var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
         //  var d = string.Join(", ", fieldExpressions.Select(n => n.ToString()));
         
         var selectExpression = SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
@@ -141,7 +155,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           var oldContext = _selectContext;
           _selectContext = exp.Body;
           // visit child fields. Will be field or entityQueries again
-          var fieldExpressions = context.children.Select(c => Visit(c)).Where(n => n != null).ToList();
+          var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
           var newExp = CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
           _selectContext = oldContext;

@@ -169,11 +169,18 @@ public interface IEqlGrammerVisitor<Result> : IParseTreeVisitor<Result> {
 	Result VisitField([NotNull] EqlGrammerParser.FieldContext context);
 
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="EqlGrammerParser.alias"/>.
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.aliasExp"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitAlias([NotNull] EqlGrammerParser.AliasContext context);
+	Result VisitAliasExp([NotNull] EqlGrammerParser.AliasExpContext context);
+
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.fieldSelect"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitFieldSelect([NotNull] EqlGrammerParser.FieldSelectContext context);
 
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.entityQuery"/>.

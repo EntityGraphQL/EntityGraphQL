@@ -241,7 +241,7 @@ public partial class EqlGrammerBaseVisitor<Result> : AbstractParseTreeVisitor<Re
 	public virtual Result VisitField([NotNull] EqlGrammerParser.FieldContext context) { return VisitChildren(context); }
 
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="EqlGrammerParser.alias"/>.
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.aliasExp"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -249,7 +249,18 @@ public partial class EqlGrammerBaseVisitor<Result> : AbstractParseTreeVisitor<Re
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitAlias([NotNull] EqlGrammerParser.AliasContext context) { return VisitChildren(context); }
+	public virtual Result VisitAliasExp([NotNull] EqlGrammerParser.AliasExpContext context) { return VisitChildren(context); }
+
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.fieldSelect"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitFieldSelect([NotNull] EqlGrammerParser.FieldSelectContext context) { return VisitChildren(context); }
 
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.entityQuery"/>.

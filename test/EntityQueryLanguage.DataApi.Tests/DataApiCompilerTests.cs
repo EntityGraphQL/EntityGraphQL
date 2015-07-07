@@ -21,7 +21,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@" {
 	myEntity field1, field2 }
 }"));
-			Assert.Equal("Error: line 2:10 extraneous input 'field1' expecting 28", ex.Message);
+			Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
 		}
 		
 		[Fact]
@@ -56,6 +56,32 @@ namespace EntityQueryLanguage.DataApi.Tests {
 			Assert.Equal(1, tree.Fields.Count);
 			dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
 			Assert.Equal(0, Enumerable.Count(result));
+		}
+		[Fact]
+		public void CanParseAliasQuery() {
+			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+{
+	luke: people.where(id = 99) { id, name }
+}");
+			Assert.Equal(1, tree.Fields.Count);
+			Assert.Equal("luke", tree.Fields.ElementAt(0).Name);
+			dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+			Assert.Equal(1, Enumerable.Count(result));
+		}
+		[Fact]
+		public void CanParseAliasQueryComplexExpression() {
+			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+{
+	people { id, fullName: name + ' ' + lastname }
+}");
+			Assert.Equal(1, tree.Fields.Count);
+			Assert.Equal("people", tree.Fields.ElementAt(0).Name);
+			dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+			Assert.Equal(1, Enumerable.Count(result));
+			var person = Enumerable.ElementAt(result, 0);
+			Assert.Equal(2, person.GetType().GetFields().Length);
+			Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+			Assert.Equal("fullName", person.GetType().GetFields()[1].Name);
 		}
 		
 		[Fact]
@@ -248,6 +274,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		private class Person {
 			public int Id { get { return 99; } }
 			public string Name { get { return "Luke"; } }
+			public string LastName { get { return "Last Name"; } }
 			public User User { get { return new User(); } }
 			public IEnumerable<Project> Projects { get { return new List<Project>{ new Project() }; } }
 		}

@@ -32,6 +32,7 @@ startRule   : expression;
 // }
 ws          : (' ' | '\t' | '\n' | '\r');
 field       : callPath;
-alias       : identity ws* ':' ws* expression;
-entityQuery : entity=callPath ws* '{' ws* (alias | field | entityQuery) (ws* ',' ws* (alias | field | entityQuery))* ws* '}' ws*;
+aliasExp    : name=identity ws* ':' ws* entity=expression;
+fieldSelect : '{' ws* (aliasExp | field | entityQuery) (ws* ',' ws* (aliasExp | field | entityQuery))* ws* '}';
+entityQuery : (alias=aliasExp | entity=callPath) ws* fields=fieldSelect ws*;
 dataQuery   : ws* '{' ws* entityQuery ( ws* ',' ws* entityQuery)* ws* '}' ws*;

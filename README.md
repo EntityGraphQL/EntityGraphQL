@@ -148,7 +148,6 @@ Some things still on the list to complete. Pull request are very welcome.
 
 - EF navigation not implemented (https://github.com/aspnet/EntityFramework/issues/325)
 
-- alias' in queries (myName: fieldExpression { })
 - parameters in queries e.g. defining the size of an image to return
 - Add logging options
 - fix GetMethodContext()
@@ -159,3 +158,4 @@ Some things still on the list to complete. Pull request are very welcome.
 - Auto generate schema documentation page
 - better paging
 - Wiki page on writing EQL
+- Authentication and access control options

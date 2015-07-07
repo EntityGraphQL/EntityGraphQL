@@ -74,27 +74,44 @@ namespace EntityQueryLanguage
     	public override Expression VisitBinary(EqlGrammerParser.BinaryContext context) {
         var left = Visit(context.left);
         var right = Visit(context.right);
-        
+        var op = MakeOperator(context.op.GetText());
         // we may need to do some converting here
         if (left.Type != right.Type) {
-          ConvertLeftOrRight(left, right, out left, out right);
+          return ConvertLeftOrRight(op, left, right);
         }
         
-        var bin = Expression.MakeBinary(MakeOperator(context.op.GetText()), left, right);
-        return bin;
+        if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string)) {
+          return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+        }
+
+        return Expression.MakeBinary(op, left, right);
       }
     	public override Expression VisitExpr(EqlGrammerParser.ExprContext context) {
         var r = Visit(context.body);
         return r;
       }
+    	public override Expression VisitCallPath(EqlGrammerParser.CallPathContext context) {
+        var startingContext = _currentContext;
+        Expression exp = null;
+        foreach (var child in context.children) {
+          var r = Visit(child);
+          if (r == null)
+            continue;
+
+          exp = r;
+          _currentContext = exp;
+        }
+        _currentContext = startingContext;
+        return exp;
+      }
+
     	public override Expression VisitIdentity(EqlGrammerParser.IdentityContext context) {
         // check that the schema has the property for the context
         var field = context.GetText();
         if (!_schemaProvider.EntityTypeHasField(_currentContext.Type, field)) {
           throw new EqlCompilerException($"Field or property '{field}' not found on current context '{_currentContext.Type.Name}'");
         }
-        _currentContext = Expression.PropertyOrField(_currentContext, field);
-        return _currentContext;
+        return Expression.PropertyOrField(_currentContext, field);
       }
     	public override Expression VisitInt(EqlGrammerParser.IntContext context) {
         return Expression.Constant(Int32.Parse(context.GetText()));
@@ -133,9 +150,6 @@ namespace EntityQueryLanguage
     	//  public override Expression VisitCallOrId(EqlGrammerParser.CallOrIdContext context) {
       //    return VisitChildren(context);
       //  }
-    	//  public override Expression VisitCallPath(EqlGrammerParser.CallPathContext context) {
-      //    return VisitChildren(context);
-      //  }
     	//  public override Expression VisitConstant(EqlGrammerParser.ConstantContext context) {
       //    return VisitChildren(context);
       //  }
@@ -154,9 +168,7 @@ namespace EntityQueryLanguage
       /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
       /// int vs. uint - the uint gets down cast to int
       /// more to come...
-      private void ConvertLeftOrRight(Expression leftIn, Expression rightIn, out Expression left, out Expression right) {
-        left = leftIn;
-        right = rightIn;
+      private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right) {
         if (left.Type.IsNullableType() && !right.Type.IsNullableType())
           right = Expression.Convert(right, left.Type);
         else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
@@ -166,6 +178,8 @@ namespace EntityQueryLanguage
           right = Expression.Convert(right, left.Type);
         else if (left.Type == typeof(uint) && right.Type == typeof(int))
           left = Expression.Convert(left, right.Type);
+
+        return Expression.MakeBinary(op, left, right);
       }
       
       private Expression CheckConditionalTest(Expression test) {
