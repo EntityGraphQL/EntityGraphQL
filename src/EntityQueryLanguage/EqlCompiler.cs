@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using Antlr4.Runtime;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
+using System.Reflection;
 
 namespace EntityQueryLanguage
 {
