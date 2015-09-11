@@ -9,13 +9,13 @@ using EntityQueryLanguage.DataApi.Parsing;
 
 
 namespace EntityQueryLanguage.DataApi {
-  public class DataManager<TContextType> where TContextType : IDisposable
-  {
-    public DataManager() {
+  public class DataManager<TContextType> where TContextType : IDisposable {
+    private readonly Func<TContextType> _newContextFunc;
+    public DataManager(Func<TContextType> newContextFunc) {
+      _newContextFunc = newContextFunc;
     }
 
-    public IDictionary<string, object> Query(string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
-    {
+    public IDictionary<string, object> Query(string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider) {
       var allData = new ConcurrentDictionary<string, object>();
 
       try {
@@ -30,7 +30,7 @@ namespace EntityQueryLanguage.DataApi {
             else {
               // fetch the data
               // Some EF code here...
-              using (var ctx = schemaProvider.CreateContextValue<TContextType>()) {
+              using (var ctx = CreateContextValue()) {
                 var data = node.AsLambda().Compile().DynamicInvoke(ctx);
                 allData[node.Name] = data;
               }
@@ -45,6 +45,11 @@ namespace EntityQueryLanguage.DataApi {
         allData["error"] = ex.Message;
       }
       return allData;
+    }
+    
+    /// Returns a new instance of the context type
+    private TContextType CreateContextValue() {
+      return _newContextFunc();
     }
   }
 }

@@ -12,16 +12,16 @@ namespace EntityQueryLanguage.Tests {
 		[Fact]
 		public void CachesPublicProperties() {
 			var schema = new ObjectSchemaProvider(typeof(TestEntity));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(TestEntity), "id"));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(TestEntity), "Field1"));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(TestEntity), "relation"));
-			Assert.Equal(false, schema.EntityTypeHasField(typeof(TestEntity), "notthere"));
+			Assert.Equal(true, schema.EntityHasField(typeof(TestEntity), "id"));
+			Assert.Equal(true, schema.EntityHasField(typeof(TestEntity), "Field1"));
+			Assert.Equal(true, schema.EntityHasField(typeof(TestEntity), "relation"));
+			Assert.Equal(false, schema.EntityHasField(typeof(TestEntity), "notthere"));
 		}
 		[Fact]
 		public void CachesPublicFields() {
 			var schema = new ObjectSchemaProvider(typeof(Person));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(Person), "id"));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(Person), "name"));
+			Assert.Equal(true, schema.EntityHasField(typeof(Person), "id"));
+			Assert.Equal(true, schema.EntityHasField(typeof(Person), "name"));
 		}
 		[Fact]
 		public void ReturnsActualName() {
@@ -32,9 +32,9 @@ namespace EntityQueryLanguage.Tests {
 		[Fact]
 		public void CachesRecursively() {
 			var schema = new ObjectSchemaProvider(typeof(TestSchema));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(TestSchema), "someRelation"));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(Person), "name"));
-			Assert.Equal(true, schema.EntityTypeHasField(typeof(TestEntity), "field1"));
+			Assert.Equal(true, schema.EntityHasField(typeof(TestSchema), "someRelation"));
+			Assert.Equal(true, schema.EntityHasField(typeof(Person), "name"));
+			Assert.Equal(true, schema.EntityHasField(typeof(TestEntity), "field1"));
 		}
 		// This would be your Entity/Object graph you use with EntityFramework
 		private class TestSchema {

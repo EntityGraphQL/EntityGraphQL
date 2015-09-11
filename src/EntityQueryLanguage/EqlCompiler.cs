@@ -17,19 +17,15 @@ namespace EntityQueryLanguage
   ///   =, !=, <, <=, >, >=, +, -, *, %, /, in
   /// Urnary Operators
   ///   not(), !
-  public class EqlCompiler
+  public static class EqlCompiler
   {
-    public EqlCompiler() {
-      
-    }
-
-    public EqlResult Compile(string query) {
+    public static EqlResult Compile(string query) {
       return Compile(query, null, null);
     }
-    public EqlResult Compile(string query, ISchemaProvider schemaProvider) {
+    public static EqlResult Compile(string query, ISchemaProvider schemaProvider) {
       return Compile(query, schemaProvider, new DefaultMethodProvider());
     }
-    public EqlResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider _methodProvider) {
+    public static EqlResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider _methodProvider) {
       ParameterExpression contextParam = null;
       
       if (schemaProvider != null)
@@ -47,7 +43,7 @@ namespace EntityQueryLanguage
 
       return new EqlResult(contextParam != null ? Expression.Lambda(expression, contextParam) : Expression.Lambda(expression));
     }
-    public EqlResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider _methodProvider) {
+    public static EqlResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider _methodProvider) {
       AntlrInputStream stream = new AntlrInputStream(query);
       var lexer = new EqlGrammerLexer(stream);
       var tokens = new CommonTokenStream(lexer);
@@ -109,10 +105,12 @@ namespace EntityQueryLanguage
     	public override Expression VisitIdentity(EqlGrammerParser.IdentityContext context) {
         // check that the schema has the property for the context
         var field = context.GetText();
-        if (!_schemaProvider.EntityTypeHasField(_currentContext.Type, field)) {
+        //TODO - need to get the mapped name for the type to check for fields to support mapped schema too
+        if (!_schemaProvider.TypeHasField(_schemaProvider.GetSchemaTypeNameForRealType(_currentContext.Type), field)) {
           throw new EqlCompilerException($"Field or property '{field}' not found on current context '{_currentContext.Type.Name}'");
         }
-        return Expression.PropertyOrField(_currentContext, field);
+        var exp = _schemaProvider.GetExpressionForField(_currentContext, _currentContext.Type.Name, field);
+        return exp;
       }
     	public override Expression VisitInt(EqlGrammerParser.IntContext context) {
         return Expression.Constant(Int32.Parse(context.GetText()));

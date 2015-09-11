@@ -16,6 +16,7 @@ namespace EntityQueryLanguage
   ///   List.last(filter?)
   ///   List.take(int)
   ///   List.skip(int)
+  ///   List.count(filter?)
   ///
   ///   TODO:
   ///   List.orderBy(field desc?, ...)
@@ -34,6 +35,7 @@ namespace EntityQueryLanguage
       { "last", MakeLastMethod },
       { "take", MakeTakeMethod },
       { "skip", MakeSkipMethod },
+      { "count", MakeCountMethod },
 	  };
 
     public bool EntityTypeHasMethod(Type context, string methodName) {
@@ -59,9 +61,12 @@ namespace EntityQueryLanguage
       return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Where", new Type[] {argContext.Type}, context, lambda);
     }
     private static Expression MakeFirstMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
-      return MakeFirstOrLastMethod(context, argContext, methodName, args, "First");
+      return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "First");
     }
-    private static Expression MakeFirstOrLastMethod(Expression context, Expression argContext, string methodName, Expression[] args, string actualMethodName) {
+    private static Expression MakeCountMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
+      return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Count");
+    }
+    private static Expression MakeOptionalFilterArgumentCall(Expression context, Expression argContext, string methodName, Expression[] args, string actualMethodName) {
       ExpectArgsCountBetween(0, 1, args, methodName);
       
       var allArgs = new List<Expression> { context };
@@ -74,7 +79,7 @@ namespace EntityQueryLanguage
       return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, actualMethodName, new Type[] {argContext.Type}, allArgs.ToArray());
     }
     private static Expression MakeLastMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
-      return MakeFirstOrLastMethod(context, argContext, methodName, args, "Last");
+      return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Last");
     }
     private static Expression MakeTakeMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
       ExpectArgsCount(1, args, methodName);
@@ -95,6 +100,7 @@ namespace EntityQueryLanguage
       foreach (var t in types) {
         // Please tell me a better way to do this!
         try {
+          //  Console.WriteLine($"Call({t}, {methodName}, {genericTypes}, {parameters.First()})");
           return Expression.Call(t, methodName, genericTypes, parameters);
         }
         catch (InvalidOperationException) {

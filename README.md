@@ -1,31 +1,9 @@
 # Entity Query Language
-EQL is a powerful data querying language which lets you quickly build an API backend for your applications. Application and consumers of the API then have control over what data they query using a GraphQL inspired syntax. It is built on top of a simple language allowing you to easily build .NET expressions for execution against a given context object which can also be used for powerful runtime configuration.
+EQL is a data/object querying language allowing you to quickly expose an API for your applications. Applications and consumers of the API then have control over what data they query using a GraphQL inspired syntax. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
 
-_Note EQL is in early stages of development_
+_EQL is in early stages of development. Please explore, give feedback or join the development._
 
-## How do I use this?
-Lets look at an example. You have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
-```js
-  // This might be a configured EQL statement for filtering the results. It has a context of Property
-  (type.id = 2 or type.id = 3) and type.name startswith 'Region'
-```
-This can be compile and checked for correctness at configuration time and as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
-```csharp
-var compiler = new EqlCompiler();
-// we create a schema provider (more on this later) to compile the statement against our Property type
-var schemaProvider = new ObjectSchemaProvider(typeof(Property));
-var compiledResult = compiler.Compile(myConfigurationEqlStatement, schemaProvider);
-// you get your list of Properties from you DB
-var thingsToShow = myProperties.Where(compiledResult.Expression);
-```
-Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
-```csharp
-// You'd take this from some configuration
-var eql = "if location.name = 'Mars' then (cost + 5) * type.premium else (cost * type.premium) / 3"
-var compiledResult = compiler.Compile(eql, schemaProvider);
-var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
-```
-## Building an API
+## Serving your data
 The ``EntityQueryLanguage.DataApi`` namespace contains some middleware to easily get up and running with an API for your application. An overview of it's features:
 - Applications/consumers define what data they want, not you REST endpoints
 - Meaning you don't over send data
@@ -143,19 +121,40 @@ Technically EQL just compiles to .NET LINQ functions (Where() and friends) so yo
 
 [Check out the wiki](https://github.com/lukemurray/EntityQueryLanguage/wiki) for more detail on writing EQL expressions and data queries.
 
+## Using expressions else where
+Lets look at an example. You have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
+```js
+  // This might be a configured EQL statement for filtering the results. It has a context of Property
+  (type.id = 2 or type.id = 3) and type.name startswith 'Region'
+```
+This can be compile and checked for correctness at configuration time and as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
+```csharp
+// we create a schema provider (more on this later) to compile the statement against our Property type
+var schemaProvider = new ObjectSchemaProvider(typeof(Property));
+var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
+// you get your list of Properties from you DB
+var thingsToShow = myProperties.Where(compiledResult.Expression);
+```
+Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
+```csharp
+// You'd take this from some configuration
+var eql = "if location.name = 'Mars' then (cost + 5) * type.premium else (cost * type.premium) / 3"
+var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
+var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
+```
+
 # TODO
-Some things still on the list to complete. Pull request are very welcome.
+Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
 
-- EF navigation not implemented (https://github.com/aspnet/EntityFramework/issues/325)
-
-- parameters in queries e.g. defining the size of an image to return
-- Add logging options
-- fix GetMethodContext()
-- Support for a schema definition for versioning - JSON or maybe CS?
-- Add support for data manipulation - writes, updates, deletes
-- A way to "plug-in" security - examples
-- A way to "plug-in" business logic - examples
-- Auto generate schema documentation page
-- better paging
-- Wiki page on writing EQL
-- Authentication and access control options
+* parameters in queries e.g. defining the size of an image to return
+* Add logging options
+* fix GetMethodContext() in methodProvider
+* Support for a schema definition for versioning - JSON or maybe CS?
+* look at complying with GraphQL spec now that that is out
+* Add support for data manipulation - writes, updates, deletes
+* A way to "plug-in" security - examples
+* A way to "plug-in" business logic - examples
+* Auto generate schema documentation page
+* better paging
+* Wiki page on writing EQL
+* Authentication and access control options

@@ -20,7 +20,7 @@ namespace EntityQueryLanguage.DataApi
 		private string _path = string.Empty;
 		private DataManager<TContextType> _dataManager;
 		
-		public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions options) {
+		public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions options, Func<TContextType> newDataContextFunc) {
 			if (options == null)
 				throw new System.ArgumentNullException("options");
 			if (string.IsNullOrEmpty(options.Path))
@@ -28,7 +28,7 @@ namespace EntityQueryLanguage.DataApi
 			_next = next;
 			_schemProvider = options.Schema;
 			_methodProvider = options.MethodProvider ?? new DefaultMethodProvider();
-			_dataManager = new DataManager<TContextType>();
+			_dataManager = new DataManager<TContextType>(newDataContextFunc);
 			_path = options.Path;
 		}
 		

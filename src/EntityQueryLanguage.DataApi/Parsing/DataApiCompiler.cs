@@ -64,7 +64,6 @@ namespace EntityQueryLanguage.DataApi.Parsing {
     /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
     /// We use EqlCompiler to compile the query and then build a Select() call for each field
     private class DataApiVisitor : EqlGrammerBaseVisitor<DataApiNode> {
-      private readonly EqlCompiler _compiler = new EqlCompiler();
       private ISchemaProvider _schemaProvider;
       private IMethodProvider _methodProvider;
       // This is really just so we know what to use when visiting a field
@@ -76,15 +75,15 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       
       public override DataApiNode VisitField(EqlGrammerParser.FieldContext context) {
         var name = context.GetText();
-        if (!_schemaProvider.EntityTypeHasField(_selectContext.Type, name))
+        if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
           throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
-        var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type, name);
+        var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
         var node = new DataApiNode(actualName, Expression.Property(_selectContext, actualName), null);
         return node;
       }
       public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context) {
         var name = context.name.GetText();
-        var result = _compiler.CompileWith(context.entity.GetText(), _selectContext, _schemaProvider, _methodProvider);
+        var result = EqlCompiler.CompileWith(context.entity.GetText(), _selectContext, _schemaProvider, _methodProvider);
         var node = new DataApiNode(name, result.Expression, null);
         return node;
       }
@@ -107,7 +106,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         try {
           if (_selectContext == null) {
             // top level are queries on the context
-            var exp = _compiler.Compile(query, _schemaProvider, _methodProvider).Expression;
+            var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
             return BuildDynamicSelectOnCollection(exp, name, context);
           }
           // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
@@ -140,13 +139,13 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       /// Given a syntax of someField { fields, to, selection, from, object }
       /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a aollection) and build the correct select statement
       private DataApiNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context) {
-        if (!_schemaProvider.EntityTypeHasField(_selectContext.Type, name))
+        if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
           throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
-        name = _schemaProvider.GetActualFieldName(_selectContext.Type, name);
+        name = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
 
         // Don't really like any of this, but...
         try {
-          var result = _compiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
+          var result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
           var exp = result.Expression;
           if (exp.Body.Type.IsEnumerable()) {
             return BuildDynamicSelectOnCollection(exp, name, context);
@@ -159,7 +158,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
 
           var newExp = CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
           _selectContext = oldContext;
-          return new DataApiNode(_schemaProvider.GetActualFieldName(_selectContext.Type, name), newExp, exp.Parameters.Any() ? exp.Parameters.First() : null);
+          return new DataApiNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), newExp, exp.Parameters.Any() ? exp.Parameters.First() : null);
         }
         catch (EqlCompilerException ex) {
           throw DataApiException.MakeFieldCompileError(query, ex.Message);
