@@ -45,7 +45,7 @@ public class Location {
   public string Name { get; set; }
 }
 ```
-1. Configure the Data API middleware
+2. Configure the Data API middleware
 
 ```csharp
 public class Startup {
@@ -58,7 +58,7 @@ public class Startup {
   }
 }
 ```
-1. Build awesome applications
+3. Build awesome applications
 
 You can now make request to your API. For example
 ```
@@ -149,7 +149,6 @@ Some larger things still on the list to complete, in no real order. Pull request
 * parameters in queries e.g. defining the size of an image to return
 * Add logging options
 * fix GetMethodContext() in methodProvider
-* Support for a schema definition for versioning - JSON or maybe CS?
 * look at complying with GraphQL spec now that that is out
 * Add support for data manipulation - writes, updates, deletes
 * A way to "plug-in" security - examples
