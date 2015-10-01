@@ -51,7 +51,7 @@ public class Location {
 public class Startup {
   public void Configure(IApplicationBuilder app) {
     var options = new DataApiMiddlewareOptions {
-      Schema = new ObjectSchemaProvider(typeof(MyDbContext), () => new MyDbContext()),
+      Schema = new ObjectSchemaProvider<MyDbContext>(() => new MyDbContext()),
       Path = "/api"
     };
     app.UseMiddleware<DataApiMiddleware<HighPlanContext>>(options);
@@ -130,7 +130,7 @@ Lets look at an example. You have a screen in your application listing propertie
 This can be compile and checked for correctness at configuration time and as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
 ```csharp
 // we create a schema provider (more on this later) to compile the statement against our Property type
-var schemaProvider = new ObjectSchemaProvider(typeof(Property));
+var schemaProvider = new ObjectSchemaProvider<Property>();
 var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
 var thingsToShow = myProperties.Where(compiledResult.Expression);

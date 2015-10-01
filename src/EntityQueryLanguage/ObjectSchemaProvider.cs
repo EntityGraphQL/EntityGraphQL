@@ -8,7 +8,7 @@ using EntityQueryLanguage.Extensions;
 namespace EntityQueryLanguage
 {
   /// A simple schema provider to map a EntityQL query directly to a object graph
-  public class ObjectSchemaProvider : ISchemaProvider
+  public class ObjectSchemaProvider<TContextType> : ISchemaProvider
   {
     private Type _contextType;
     private Func<object> _newContextFunc;
@@ -16,8 +16,8 @@ namespace EntityQueryLanguage
     
     public Type ContextType { get { return _contextType; } }
     
-    public ObjectSchemaProvider(Type contextType, Func<object> newContextFunc = null) {
-      _contextType = contextType;
+    public ObjectSchemaProvider(Func<object> newContextFunc = null) {
+      _contextType = typeof(TContextType);
       _newContextFunc = newContextFunc;
       
       CacheFieldsFromObjectAsSchema(_contextType);

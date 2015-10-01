@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "description": "Data query language and expression language for Entity Framework and .NET",
+  "description": "A data query language (GraphQL-ish) and expression language for .NET. Execute with EntityFramework or in memory",
   "repository": {
     "type": "git",
     "url": "git://github.com/lukemurray/EntityQueryLanguage"

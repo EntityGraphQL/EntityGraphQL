@@ -20,11 +20,11 @@ namespace EntityQueryLanguage
   ///
   ///   TODO:
   ///   List.orderBy(field desc?, ...)
+  ///   List.select(field, ...)?
   ///   List.isBelow(primary_key)
   ///   List.isAtOrBelow(primary_key)
   ///   List.isAbove(primary_key)
   ///   List.isAtOrAbove(primary_key)
-  ///   List.select(field, ...)?
   public class DefaultMethodProvider : IMethodProvider
   {
     // Map of the method names and a function that makes the Expression.Call

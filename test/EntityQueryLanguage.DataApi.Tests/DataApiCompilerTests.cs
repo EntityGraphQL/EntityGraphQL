@@ -10,7 +10,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 	{
 		[Fact]
 		public void ExpectsOpenBrace() {
-			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1, field2 }
 }"));
 			Assert.Equal("Error: line 2:1 extraneous input 'myEntity' expecting 28", ex.Message);
@@ -18,7 +18,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void ExpectsOpenBraceForEntity() {
-			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@" {
+			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity field1, field2 }
 }"));
 			Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
@@ -26,14 +26,14 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void ExpectsCloseBraceForEntity() {
-			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@" {
+			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity {field1, field2 }"));
 			Assert.Equal("Error: line 2:27 no viable alternative at input '<EOF>'", ex.Message);
 		}
 		
 		[Fact]
 		public void CanParseSimpleQuery() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name }
 }");
@@ -49,7 +49,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseSimpleQuery2() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people.where(id = 9) { id, name }
 }");
@@ -59,7 +59,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		}
 		[Fact]
 		public void CanParseAliasQuery() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	luke: people.where(id = 99) { id, name }
 }");
@@ -70,7 +70,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		}
 		[Fact]
 		public void CanParseAliasQueryComplexExpression() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, fullName: name + ' ' + lastname }
 }");
@@ -86,7 +86,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void FailsBinaryAsQuery() {
-			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people.id = 9 { id, name }
 }"));
@@ -95,7 +95,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseMultipleEntityQuery() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name },
 	Users { id }
@@ -120,7 +120,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseQueryWithRelation() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name, User { field1 } }
 }");
@@ -142,7 +142,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseQueryWithRelationDeep() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name,
 		User {
@@ -174,7 +174,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseQueryWithCollection() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name, projects { name } }
 }");
@@ -198,7 +198,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void CanParseQueryWithCollectionDeep() {
-			var tree = new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id,
 		projects {
@@ -233,7 +233,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		
 		[Fact]
 		public void FailsNonExistingField() {
-			var ex = Assert.Throws<DataApiException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var ex = Assert.Throws<DataApiException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id,
 		projects {
@@ -246,7 +246,7 @@ namespace EntityQueryLanguage.DataApi.Tests {
 		}
 		[Fact]
 		public void FailsNonExistingField2() {
-			var ex = Assert.Throws<DataApiException>(() => new DataApiCompiler(new ObjectSchemaProvider(typeof(TestSchema)), new DefaultMethodProvider()).Compile(@"
+			var ex = Assert.Throws<DataApiException>(() => new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id,
 		projects {
