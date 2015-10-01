@@ -125,7 +125,7 @@ Will return the following result.
   ]
 }
 ```
-Technically EQL just compiles to .NET LINQ functions (Where() and friends) so you could use this with other ORMs or libraries but it currently is only tested against EntityFramework 7.
+Technically EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework 7.
 
 [Check out the wiki](https://github.com/lukemurray/EntityQueryLanguage/wiki) for more detail on writing EQL expressions and data queries.
 
