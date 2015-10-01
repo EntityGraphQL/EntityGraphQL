@@ -94,7 +94,7 @@ Will return the following result.
   ]
 }
 ```
-If you need a deeper graph or relations, just tell us
+If you need a deeper graph or relations, just ask
 ```
   GET localhost:5000/api?query={properties { id, name, location { name }, type { premium } }}
 ```
@@ -105,14 +105,22 @@ Will return the following result.
     {
       "id": 11,
       "name": "My Beach Pad",
-      "location": { "name": "Greece" },
-      "type": { "premium": 1.2 }
+      "location": {
+        "name": "Greece"
+      },
+      "type": {
+        "premium": 1.2
+      }
     },
     {
       "id": 12,
       "name": "My Other Beach Pad",
-      "location": { "name": "Spain" },
-      "type": { "premium": 1.25 }
+      "location": {
+        "name": "Spain"
+      },
+      "type": {
+        "premium": 1.25
+      }
     }
   ]
 }
