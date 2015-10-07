@@ -158,10 +158,10 @@ Some larger things still on the list to complete, in no real order. Pull request
 * Add logging options
 * fix GetMethodContext() in methodProvider
 * look at complying with GraphQL spec now that that is out
-* Add support for data manipulation - writes, updates, deletes
+* Add support for data manipulation - adds, updates, deletes
 * A way to "plug-in" security - examples
 * A way to "plug-in" business logic - examples
 * Auto generate schema documentation page
 * better paging
-* Wiki page on writing EQL
+* Wiki page on writing queries
 * Authentication and access control options
