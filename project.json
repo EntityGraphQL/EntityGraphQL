@@ -1,36 +1,39 @@
 {
   "version": "0.1.0",
   "description": "A data query language (GraphQL-ish) and expression language for .NET. Execute with EntityFramework or in memory",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/lukemurray/EntityQueryLanguage"
+  "packOptions": {
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/lukemurray/EntityQueryLanguage"
+    }
   },
   "compilationOptions": {
     "warningsAsErrors": true
   },
-  "commands": {
-    "test": "xunit.runner.dnx"
+  "buildOptions": {
+    "compile": {
+      "exclude": [
+        "demo",
+        "test"
+      ],
+    }
   },
   "dependencies": {
-    "Antlr4": "4.5.0-alpha002",
-    "Antlr4.Runtime": "4.5.0-alpha002",
-    "Newtonsoft.Json": "6.0.8",
-    
-    "xunit": "2.1.0-rc1-build3168",
-    "xunit.runner.dnx": "2.1.0-beta5-build169"
+    "Antlr4": "4.5.3.1-beta001",
+    "Antlr4.Runtime": "4.5.3.1-beta001",
+    "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
-    "dnx451": {
+    "netstandard1.3": {
+      "imports": "dnxcore50",
       "dependencies": {
-        "Microsoft.AspNet.Hosting": "1.0.0-*"
-      }
-    },
-    "dnxcore50": {
-      "dependencies": {
-        "Microsoft.AspNet.Hosting": "1.0.0-*"
+        "NETStandard.Library": "1.6.0",
+        "Microsoft.AspNet.Hosting": "1.0.0-*",
+        "System.Linq.Queryable": "4.0.1",
+        "System.Threading.Tasks.Parallel": "4.0.1",
+        "System.Reflection.Emit": "4.0.1"
       }
     }
   }
 }
 
-      
