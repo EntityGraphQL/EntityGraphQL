@@ -9,14 +9,14 @@ using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
 
 namespace EntityQueryLanguage.DataApi.Parsing {
-  internal class DataApiCompiler {
+  public class DataApiCompiler {
     private ISchemaProvider _schemaProvider;
     private IMethodProvider _methodProvider;
     public DataApiCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider) {
       _schemaProvider = schemaProvider;
       _methodProvider = methodProvider;
     }
-    
+
     /// Parses a GraphQL-like query syntax into a tree respresenting the requested object graph. E.g.
     /// {
     ///   entity/query {
@@ -52,7 +52,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           else if (pce.InnerException is InputMismatchException) {
             var ime = (InputMismatchException)pce.InnerException;
             var expecting = string.Join(", ", ime.GetExpectedTokens());
-            throw new EqlCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");            
+            throw new EqlCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
           }
           System.Console.WriteLine(pce.InnerException.GetType());
           throw new EqlCompilerException(pce.InnerException.Message);
@@ -60,7 +60,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         throw new EqlCompilerException(pce.Message);
       }
     }
-    
+
     /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
     /// We use EqlCompiler to compile the query and then build a Select() call for each field
     private class DataApiVisitor : EqlGrammerBaseVisitor<DataApiNode> {
@@ -72,7 +72,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         _schemaProvider = schemaProvider;
         _methodProvider = methodProvider;
       }
-      
+
       public override DataApiNode VisitField(EqlGrammerParser.FieldContext context) {
         var name = context.GetText();
         if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
@@ -87,7 +87,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         var node = new DataApiNode(name, result.Expression, null);
         return node;
       }
-      
+
       /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
       public override DataApiNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context) {
         string name;
@@ -102,7 +102,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           if (name.IndexOf(".") > -1)
             name = name.Substring(0, name.IndexOf("."));
         }
-        
+
         try {
           if (_selectContext == null) {
             // top level are queries on the context
@@ -117,19 +117,19 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           throw DataApiException.MakeFieldCompileError(query, ex.Message);
         }
       }
-      
+
       /// Given a syntax of someCollection { fields, to, selection, from, object }
       /// it will build a select assuming 'someCollection' is an IEnumerable
       private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context) {
         var elementType = exp.Body.Type.GetEnumerableType();
         var contextParameter = Expression.Parameter(elementType);
-        
+
         var oldContext = _selectContext;
         _selectContext = contextParameter;
         // visit child fields. Will be field or entityQueries again
         var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
         //  var d = string.Join(", ", fieldExpressions.Select(n => n.ToString()));
-        
+
         var selectExpression = SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
         var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null);
         _selectContext = oldContext;
@@ -164,7 +164,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           throw DataApiException.MakeFieldCompileError(query, ex.Message);
         }
       }
-      
+
       /// This is our top level node.
       /// {
       ///   entityQuery { fields [, field] },
@@ -178,7 +178,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         root.Fields.AddRange(entities.Where(n => n != null));
         return root;
       }
-      
+
       public static Expression CreateNewExpression(Expression currentContext, IEnumerable<DataApiNode> fieldExpressions, ISchemaProvider schemaProvider) {
         Type dynamicType;
         var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
@@ -187,7 +187,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       public static Expression CreateNewExpression(Expression currentContext, IEnumerable<DataApiNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType) {
         var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.Expression);
         dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.Expression.Type));
-        
+
         var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
         var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
         var mi = Expression.MemberInit(newExp, bindings);
@@ -201,7 +201,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       }
     }
   }
-  
+
   public class DataApiException : Exception {
     public DataApiException(string message) : base(message) {}
     public static DataApiException MakeFieldCompileError(string query, string message) {

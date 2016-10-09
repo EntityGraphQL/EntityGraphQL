@@ -15,7 +15,7 @@
       "exclude": [
         "demo",
         "test"
-      ],
+      ]
     }
   },
   "dependencies": {
@@ -28,10 +28,10 @@
       "imports": "dnxcore50",
       "dependencies": {
         "NETStandard.Library": "1.6.0",
-        "Microsoft.AspNet.Hosting": "1.0.0-*",
         "System.Linq.Queryable": "4.0.1",
         "System.Threading.Tasks.Parallel": "4.0.1",
-        "System.Reflection.Emit": "4.0.1"
+        "System.Reflection.Emit": "4.0.1",
+        "System.Reflection.TypeExtensions": "4.1.0"
       }
     }
   }
