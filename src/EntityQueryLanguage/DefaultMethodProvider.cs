@@ -41,6 +41,8 @@ namespace EntityQueryLanguage
       { "take", MakeTakeMethod },
       { "skip", MakeSkipMethod },
       { "count", MakeCountMethod },
+      { "orderby", MakeOrderByMethod },
+      { "orderbydesc", MakeOrderByDescMethod },
     };
 
     public bool EntityTypeHasMethod(Type context, string methodName) {
@@ -123,6 +125,22 @@ namespace EntityQueryLanguage
       }
       var typesStr = string.Join<Type>(", ", types);
       throw new EqlCompilerException($"Could not find extension method {methodName} on types {typesStr}");
+    }
+
+    private static Expression MakeOrderByMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
+      ExpectArgsCount(1, args, methodName);
+      var column = args.First();
+      var lambda = Expression.Lambda(column, argContext as ParameterExpression);
+
+      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderBy", new Type[] {argContext.Type, column.Type}, context, lambda);
+    }
+
+    private static Expression MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
+      ExpectArgsCount(1, args, methodName);
+      var column = args.First();
+      var lambda = Expression.Lambda(column, argContext as ParameterExpression);
+
+      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderByDescending", new Type[] {argContext.Type, column.Type}, context, lambda);
     }
 
     private static Expression GetContextFromEnumerable(Expression context) {

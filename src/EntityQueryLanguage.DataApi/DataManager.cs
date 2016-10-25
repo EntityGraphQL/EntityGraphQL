@@ -20,7 +20,7 @@ namespace EntityQueryLanguage.DataApi {
 
       try {
         var objectGraph = new DataApiCompiler(schemaProvider, methodProvider).Compile(dataQuery);
-  
+
         Parallel.ForEach(objectGraph.Fields, node => {
           try {
             if (!string.IsNullOrEmpty(node.Error)) {
@@ -31,7 +31,7 @@ namespace EntityQueryLanguage.DataApi {
               // fetch the data
               // Some EF code here...
               using (var ctx = CreateContextValue()) {
-                var data = node.AsLambda().Compile().DynamicInvoke(ctx);
+                var data = ((IEnumerable<object>)node.AsLambda().Compile().DynamicInvoke(ctx)).ToList();
                 allData[node.Name] = data;
               }
             }
@@ -39,14 +39,14 @@ namespace EntityQueryLanguage.DataApi {
           catch (Exception ex) {
             allData[node.Name] = new { Name = ex.Message };
           }
-        });  
+        });
       }
       catch (Exception ex) {
         allData["error"] = ex.Message;
       }
       return allData;
     }
-    
+
     /// Returns a new instance of the context type
     private TContextType CreateContextValue() {
       return _newContextFunc();

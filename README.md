@@ -54,7 +54,7 @@ public class Startup {
       Schema = new ObjectSchemaProvider<MyDbContext>(() => new MyDbContext()),
       Path = "/api"
     };
-    app.UseMiddleware<DataApiMiddleware<HighPlanContext>>(options);
+    app.UseMiddleware<DataApiMiddleware<MyDbContext>>(options);
   }
 }
 ```
