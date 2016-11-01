@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Linq;
 using System.Reflection;
 using EntityQueryLanguage.Extensions;
+using EntityQueryLanguage.Util;
 
 namespace EntityQueryLanguage
 {
@@ -18,9 +19,10 @@ namespace EntityQueryLanguage
   ///   List.take(int)
   ///   List.skip(int)
   ///   List.count(filter?)
+  ///   List.orderBy(field)
+  ///   List.orderByDesc(field)
   ///
   ///   TODO:
-  ///   List.orderBy(field desc?, ...)
   ///   List.sort(field desc?, ...)
   ///   List.select(field, ...)?
   ///   List.isBelow(primary_key)
@@ -68,7 +70,7 @@ namespace EntityQueryLanguage
       var predicate = args.First();
       ExpectArgTypeToBe(predicate.Type, typeof(bool), methodName);
       var lambda = Expression.Lambda(predicate, argContext as ParameterExpression);
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Where", new Type[] {argContext.Type}, context, lambda);
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Where", new Type[] {argContext.Type}, context, lambda);
     }
 
     private static Expression MakeFirstMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
@@ -89,7 +91,7 @@ namespace EntityQueryLanguage
         allArgs.Add(Expression.Lambda(predicate, argContext as ParameterExpression));
       }
 
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, actualMethodName, new Type[] {argContext.Type}, allArgs.ToArray());
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, actualMethodName, new Type[] {argContext.Type}, allArgs.ToArray());
     }
 
     private static Expression MakeLastMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
@@ -101,7 +103,7 @@ namespace EntityQueryLanguage
       var amount = args.First();
       ExpectArgTypeToBe(amount.Type, typeof(int), methodName);
 
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Take", new Type[] {argContext.Type}, context, amount);
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Take", new Type[] {argContext.Type}, context, amount);
     }
 
     private static Expression MakeSkipMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
@@ -109,22 +111,7 @@ namespace EntityQueryLanguage
       var amount = args.First();
       ExpectArgTypeToBe(amount.Type, typeof(int), methodName);
 
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Skip", new Type[] {argContext.Type}, context, amount);
-    }
-
-    private static Expression MakeExpressionCall(Type[] types, string methodName, Type[] genericTypes, params Expression[] parameters) {
-      foreach (var t in types) {
-        // Please tell me a better way to do this!
-        try {
-          //  Console.WriteLine($"Call({t}, {methodName}, {genericTypes}, {parameters.First()})");
-          return Expression.Call(t, methodName, genericTypes, parameters);
-        }
-        catch (InvalidOperationException) {
-          continue; // to next type
-        }
-      }
-      var typesStr = string.Join<Type>(", ", types);
-      throw new EqlCompilerException($"Could not find extension method {methodName} on types {typesStr}");
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "Skip", new Type[] {argContext.Type}, context, amount);
     }
 
     private static Expression MakeOrderByMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
@@ -132,7 +119,7 @@ namespace EntityQueryLanguage
       var column = args.First();
       var lambda = Expression.Lambda(column, argContext as ParameterExpression);
 
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderBy", new Type[] {argContext.Type, column.Type}, context, lambda);
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderBy", new Type[] {argContext.Type, column.Type}, context, lambda);
     }
 
     private static Expression MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, Expression[] args) {
@@ -140,7 +127,7 @@ namespace EntityQueryLanguage
       var column = args.First();
       var lambda = Expression.Lambda(column, argContext as ParameterExpression);
 
-      return MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderByDescending", new Type[] {argContext.Type, column.Type}, context, lambda);
+      return ExpressionUtil.MakeExpressionCall(new []{typeof(Queryable), typeof(Enumerable)}, "OrderByDescending", new Type[] {argContext.Type, column.Type}, context, lambda);
     }
 
     private static Expression GetContextFromEnumerable(Expression context) {

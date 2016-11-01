@@ -1,8 +1,6 @@
 using Xunit;
 using System.Collections.Generic;
-using System;
 using System.Linq;
-using System.Linq.Expressions;
 using EntityQueryLanguage.Tests.ApiVersion1;
 
 namespace EntityQueryLanguage.Tests {
@@ -37,7 +35,7 @@ namespace EntityQueryLanguage.Tests {
 			var exp = EqlCompiler.Compile("if publicProjects.Count() > 1 then 'Yes' else 'No'", new TestObjectGraphSchema());
 			Assert.Equal("No", exp.Execute(GetDataContext()));
 		}
-		
+
 		private TestDataContext GetDataContext() {
 			var db = new TestDataContext();
 			db.Projects = new List<Project> { new Project { Id = 90, Type = 2 }, new Project { Id = 91, Type = 1 } };

@@ -1,20 +1,24 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
+using EntityQueryLanguage.DataApi.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
 
-namespace EntityQueryLanguage.DataApi.Parsing {
-  public class DataApiCompiler {
+namespace EntityQueryLanguage.DataApi.Parsing
+{
+  public class DataApiCompiler
+  {
     private ISchemaProvider _schemaProvider;
     private IMethodProvider _methodProvider;
-    public DataApiCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider) {
+    private IRelationHandler _relationHandler;
+    public DataApiCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
+    {
       _schemaProvider = schemaProvider;
       _methodProvider = methodProvider;
+      _relationHandler = relationHandler;
     }
 
     /// Parses a GraphQL-like query syntax into a tree respresenting the requested object graph. E.g.
@@ -28,7 +32,8 @@ namespace EntityQueryLanguage.DataApi.Parsing {
     /// }
     ///
     /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-    public DataApiNode Compile(string query) {
+    public DataApiNode Compile(string query)
+    {
       // Setup our Antlr parser
       var stream = new AntlrInputStream(query);
       var lexer = new EqlGrammerLexer(stream);
@@ -36,20 +41,25 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       var parser = new EqlGrammerParser(tokens);
       parser.BuildParseTree = true;
       parser.ErrorHandler = new BailErrorStrategy();
-      try {
+      try
+      {
         var tree = parser.dataQuery();
-        var visitor = new DataApiVisitor(_schemaProvider, _methodProvider);
+        var visitor = new DataApiVisitor(_schemaProvider, _methodProvider, _relationHandler);
         // visit each node. it will return a linq expression for each entity requested
         var node = visitor.Visit(tree);
         return node;
       }
-      catch (ParseCanceledException pce) {
-        if (pce.InnerException != null) {
-          if (pce.InnerException is NoViableAltException) {
+      catch (ParseCanceledException pce)
+      {
+        if (pce.InnerException != null)
+        {
+          if (pce.InnerException is NoViableAltException)
+          {
             var nve = (NoViableAltException)pce.InnerException;
             throw new EqlCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'");
           }
-          else if (pce.InnerException is InputMismatchException) {
+          else if (pce.InnerException is InputMismatchException)
+          {
             var ime = (InputMismatchException)pce.InnerException;
             var expecting = string.Join(", ", ime.GetExpectedTokens());
             throw new EqlCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
@@ -61,66 +71,83 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       }
     }
 
-    /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
-    /// We use EqlCompiler to compile the query and then build a Select() call for each field
-    private class DataApiVisitor : EqlGrammerBaseVisitor<DataApiNode> {
+      /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
+      /// We use EqlCompiler to compile the query and then build a Select() call for each field
+    private class DataApiVisitor : EqlGrammerBaseVisitor<DataApiNode>
+    {
       private ISchemaProvider _schemaProvider;
       private IMethodProvider _methodProvider;
+      private IRelationHandler _relationHandler;
       // This is really just so we know what to use when visiting a field
       private Expression _selectContext;
-      public DataApiVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider) {
+      public DataApiVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler)
+      {
         _schemaProvider = schemaProvider;
         _methodProvider = methodProvider;
+        _relationHandler = relationHandler;
       }
 
-      public override DataApiNode VisitField(EqlGrammerParser.FieldContext context) {
+      public override DataApiNode VisitField(EqlGrammerParser.FieldContext context)
+      {
         var name = context.GetText();
         if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
-          throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
+            throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
         var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
-        var node = new DataApiNode(actualName, Expression.Property(_selectContext, actualName), null);
+        var node = new DataApiNode(actualName, Expression.Property(_selectContext, actualName), null, null);
         return node;
       }
-      public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context) {
+      public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)
+      {
         var name = context.name.GetText();
         var result = EqlCompiler.CompileWith(context.entity.GetText(), _selectContext, _schemaProvider, _methodProvider);
-        var node = new DataApiNode(name, result.Expression, null);
+        var node = new DataApiNode(name, result.Expression, null, null);
         return node;
       }
 
       /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
-      public override DataApiNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context) {
-        string name;
-        string query;
-        if (context.alias != null) {
-          name = context.alias.name.GetText();
-          query = context.alias.entity.GetText();
-        }
-        else {
-          query = context.entity.GetText();
-          name = query;
-          if (name.IndexOf(".") > -1)
-            name = name.Substring(0, name.IndexOf("."));
-        }
-
-        try {
-          if (_selectContext == null) {
-            // top level are queries on the context
-            var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
-            return BuildDynamicSelectOnCollection(exp, name, context);
+      public override DataApiNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context)
+      {
+          string name;
+          string query;
+          if (context.alias != null)
+          {
+            name = context.alias.name.GetText();
+            query = context.alias.entity.GetText();
           }
-          // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
-          return BuildDynamicSelectForObjectGraph(query, name, context);
-        }
-        catch (EqlCompilerException ex) {
-          //return DataApiNode.MakeError(name, $"Error compiling field or query '{query}'. {ex.Message}");
-          throw DataApiException.MakeFieldCompileError(query, ex.Message);
-        }
+          else
+          {
+            query = context.entity.GetText();
+            name = query;
+            if (name.IndexOf(".") > -1)
+              name = name.Substring(0, name.IndexOf("."));
+          }
+
+          try
+          {
+            if (_selectContext == null)
+            {
+              // top level are queries on the context
+              var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
+              var topLevelSelect = BuildDynamicSelectOnCollection(exp, name, context);
+              // if (_relationHandler != null)
+              // {
+              // }
+              return topLevelSelect;
+            }
+            // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
+            return BuildDynamicSelectForObjectGraph(query, name, context);
+          }
+          catch (EqlCompilerException ex)
+          {
+            //return DataApiNode.MakeError(name, $"Error compiling field or query '{query}'. {ex.Message}");
+            throw DataApiException.MakeFieldCompileError(query, ex.Message);
+          }
       }
 
       /// Given a syntax of someCollection { fields, to, selection, from, object }
       /// it will build a select assuming 'someCollection' is an IEnumerable
-      private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context) {
+      private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context)
+      {
         var elementType = exp.Body.Type.GetEnumerableType();
         var contextParameter = Expression.Parameter(elementType);
 
@@ -128,26 +155,38 @@ namespace EntityQueryLanguage.DataApi.Parsing {
         _selectContext = contextParameter;
         // visit child fields. Will be field or entityQueries again
         var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-        //  var d = string.Join(", ", fieldExpressions.Select(n => n.ToString()));
+        if (_relationHandler != null)
+        {
+          // Likely the EF handler to build .Include()s
+          var node = _relationHandler.BuildNode(fieldExpressions, contextParameter, exp, name, _schemaProvider);
+          _selectContext = oldContext;
 
-        var selectExpression = SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
-        var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null);
-        _selectContext = oldContext;
-        return node;
+          return node;
+        }
+        else {
+          // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
+          var selectExpression = DataApiExpressionUtil.SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
+          var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
+          _selectContext = oldContext;
+          return node;
+        }
       }
 
       /// Given a syntax of someField { fields, to, selection, from, object }
-      /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a aollection) and build the correct select statement
-      private DataApiNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context) {
+      /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a collection) and build the correct select statement
+      private DataApiNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context)
+      {
         if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
           throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
         name = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
 
         // Don't really like any of this, but...
-        try {
+        try
+        {
           var result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
           var exp = result.Expression;
-          if (exp.Body.Type.IsEnumerable()) {
+          if (exp.Body.Type.IsEnumerable())
+          {
             return BuildDynamicSelectOnCollection(exp, name, context);
           }
 
@@ -156,11 +195,12 @@ namespace EntityQueryLanguage.DataApi.Parsing {
           // visit child fields. Will be field or entityQueries again
           var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-          var newExp = CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
+          var newExp = DataApiExpressionUtil.CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
           _selectContext = oldContext;
-          return new DataApiNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), newExp, exp.Parameters.Any() ? exp.Parameters.First() : null);
+          return new DataApiNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), newExp, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
         }
-        catch (EqlCompilerException ex) {
+        catch (EqlCompilerException ex)
+        {
           throw DataApiException.MakeFieldCompileError(query, ex.Message);
         }
       }
@@ -171,40 +211,22 @@ namespace EntityQueryLanguage.DataApi.Parsing {
       ///   entityQuery { fields [, field] },
       ///   ...
       /// }
-  	  public override DataApiNode VisitDataQuery(EqlGrammerParser.DataQueryContext context) {
-        var root = new DataApiNode("root", null, null);
+      public override DataApiNode VisitDataQuery(EqlGrammerParser.DataQueryContext context)
+      {
+        var root = new DataApiNode("root", null, null, null);
         // Just visit each child node. All top level will be entityQueries
         var entities = context.children.Select(c => Visit(c)).ToList();
         root.Fields.AddRange(entities.Where(n => n != null));
         return root;
       }
-
-      public static Expression CreateNewExpression(Expression currentContext, IEnumerable<DataApiNode> fieldExpressions, ISchemaProvider schemaProvider) {
-        Type dynamicType;
-        var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
-        return memberInit;
-      }
-      public static Expression CreateNewExpression(Expression currentContext, IEnumerable<DataApiNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType) {
-        var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.Expression);
-        dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.Expression.Type));
-
-        var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-        var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
-        var mi = Expression.MemberInit(newExp, bindings);
-        return mi;
-      }
-      public static Expression SelectDynamic(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<DataApiNode> fieldExpressions, ISchemaProvider schemaProvider) {
-        Type dynamicType;
-        var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
-        var selector = Expression.Lambda(memberInit, currentContextParam);
-        return Expression.Call(typeof(Enumerable), "Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
-      }
     }
   }
 
-  public class DataApiException : Exception {
-    public DataApiException(string message) : base(message) {}
-    public static DataApiException MakeFieldCompileError(string query, string message) {
+  public class DataApiException : Exception
+  {
+    public DataApiException(string message) : base(message) { }
+    public static DataApiException MakeFieldCompileError(string query, string message)
+    {
       return new DataApiException($"Error compiling field or query '{query}'. {message}");
     }
   }
