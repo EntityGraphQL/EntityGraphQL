@@ -23,8 +23,8 @@
       "version": "0.2.0",
       "target": "project"
     },
-    "Antlr4": "4.5.3.1-beta001",
-    "Antlr4.Runtime": "4.5.3.1-beta001",
+    "Antlr4": "4.5.4-beta001",
+    "Antlr4.Runtime": "4.5.4-beta001",
     "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
@@ -32,10 +32,7 @@
       "imports": "dnxcore50",
       "dependencies": {
         "NETStandard.Library": "1.6.0",
-        "Microsoft.AspNet.Hosting": "1.0.0-*",
-        "System.Linq.Queryable": "4.0.1",
-        "System.Threading.Tasks.Parallel": "4.0.1",
-        "System.Reflection.Emit": "4.0.1"
+        "Microsoft.AspNet.Hosting": "1.0.0-*"
       }
     }
   }
