@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "EntityQueryLanguage": {
-      "version": "0.1.0",
+      "version": "0.2.0",
       "target": "project"
     },
     "Antlr4": "4.5.3.1-beta001",
