@@ -13,11 +13,11 @@ namespace EntityQueryLanguage.DataApi {
       _newContextFunc = newContextFunc;
     }
 
-    public IDictionary<string, object> Query(string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider) {
+    public IDictionary<string, object> Query(string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null) {
       var allData = new ConcurrentDictionary<string, object>();
 
       try {
-        var objectGraph = new DataApiCompiler(schemaProvider, methodProvider).Compile(dataQuery);
+        var objectGraph = new DataApiCompiler(schemaProvider, methodProvider, relationHandler).Compile(dataQuery);
 
         Parallel.ForEach(objectGraph.Fields, node => {
           try {
