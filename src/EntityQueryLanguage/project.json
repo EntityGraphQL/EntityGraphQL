@@ -19,8 +19,8 @@
     }
   },
   "dependencies": {
-    "Antlr4": "4.5.3.1-beta001",
-    "Antlr4.Runtime": "4.5.3.1-beta001",
+    "Antlr4": "4.5.4-beta001",
+    "Antlr4.Runtime": "4.5.4-beta001",
     "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {

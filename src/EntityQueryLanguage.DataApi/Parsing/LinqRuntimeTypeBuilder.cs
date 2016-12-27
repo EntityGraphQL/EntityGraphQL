@@ -38,7 +38,7 @@ namespace EntityQueryLanguage.DataApi.Parsing {
 
         var typeBuilder = _moduleBuilder.DefineType(className, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable);
 
-        foreach (var field in fields)                    
+        foreach (var field in fields)
           typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
 
         builtTypes[className] = typeBuilder.CreateTypeInfo().AsType();

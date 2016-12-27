@@ -62,6 +62,7 @@ namespace EntityQueryLanguage.Tests
           Id = Field((Person p) => p.Id, "The unique identifier"),
           FirstName = Field((Person p) => p.Name, "Person's first name"),
           LastName = Field((Person p) => p.LastName, "Person's last name"),
+          FullName = Field(p => p.Name + " " + p.LastName, "Person's full name")
         });
 
         Type<Project>("project", "Details of a project", new {
