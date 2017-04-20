@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>A data query language (GraphQL-ish) and expression language for .NET. Execute with EntityFramework or in memory</Description>
+    <VersionPrefix>0.2.1</VersionPrefix>
+    <TargetFramework>netstandard1.3</TargetFramework>
+    <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
+    <PackageId>EntityQueryLanguage.DataApi</PackageId>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="demo;test" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../EntityQueryLanguage/EntityQueryLanguage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4" Version="4.5.4-beta001" />
+    <PackageReference Include="Antlr4.Runtime" Version="4.5.4-beta001" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="1.1.1" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 using System;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Http;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -19,7 +19,7 @@ namespace EntityQueryLanguage.DataApi
 		private IMethodProvider _methodProvider;
 		private string _path = string.Empty;
 		private DataManager<TContextType> _dataManager;
-		
+
 		public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions options, Func<TContextType> newDataContextFunc) {
 			if (options == null)
 				throw new System.ArgumentNullException("options");
@@ -31,18 +31,18 @@ namespace EntityQueryLanguage.DataApi
 			_dataManager = new DataManager<TContextType>(newDataContextFunc);
 			_path = options.Path;
 		}
-		
+
 		public async Task Invoke(HttpContext context) {
 			// check it matches our path, if we have one
 			if (context.Request.Path.Value.StartsWith(_path)) {
 				// right now ignore anything after our path
-				
+
 				if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value == _path + "/query")) {
 					// a POST should be an add, but the query might be too long for a GET URL param
 					// we process a POST to /{_path}/query as a GET with the body as the query instead of a URL param
 					var timer = new System.Diagnostics.Stopwatch();
 					timer.Start();
-					
+
 					var query = context.Request.Query["query"];
 					if (string.IsNullOrEmpty(query)) {
 						query = context.Request.Body.ToString();
@@ -62,11 +62,11 @@ namespace EntityQueryLanguage.DataApi
 					}
 				}
 				else {
-					await context.Response.WriteAsync(string.Format("We don't currently support {0} at {1}.", context.Request.Method, context.Request.Path.Value));	
+					await context.Response.WriteAsync(string.Format("We don't currently support {0} at {1}.", context.Request.Method, context.Request.Path.Value));
 				}
 			} else {
 				await _next(context);
 			}
 		}
-	}		
+	}
 }
