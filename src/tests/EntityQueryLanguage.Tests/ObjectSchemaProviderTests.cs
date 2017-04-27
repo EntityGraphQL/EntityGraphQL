@@ -36,18 +36,25 @@ namespace EntityQueryLanguage.Tests {
 			Assert.Equal(true, schema.EntityHasField(typeof(Person), "name"));
 			Assert.Equal(true, schema.EntityHasField(typeof(TestEntity), "field1"));
 		}
+		[Fact]
+		public void AllowsExtending() {
+			var schema = new ObjectSchemaProvider<TestSchema>();
+			schema.Extend<Person>("idAndName", p => p.Id + " " + p.Name)
+			Assert.Equal(true, schema.EntityHasField(typeof(Person), "name"));
+			Assert.Equal(true, schema.EntityHasField(typeof(Person), "idAndName"));
+		}
 		// This would be your Entity/Object graph you use with EntityFramework
 		private class TestSchema {
 			public TestEntity SomeRelation { get; }
 			public IEnumerable<Person> People { get; }
 		}
-		
+
 		private class TestEntity {
 			public int Id { get; }
 			public int Field1 { get; }
 			public Person Relation { get; }
 		}
-		
+
 		private class Person {
 			public int Id = 0;
 			public string Name = string.Empty;
