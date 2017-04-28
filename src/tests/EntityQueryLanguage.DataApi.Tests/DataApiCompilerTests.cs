@@ -53,6 +53,25 @@ namespace EntityQueryLanguage.DataApi.Tests
         }
 
         [Fact]
+        public void CanQueryExtendedFields()
+        {
+            var objectSchemaProvider = new ObjectSchemaProvider<TestSchema>();
+            objectSchemaProvider.ExtendType<Person>("thing", p => p.Id + " - " + p.Name);
+            var tree = new DataApiCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+{
+	people { id, thing }
+}");
+            Assert.Equal(1, tree.Fields.Count);
+            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            Assert.Equal(1, Enumerable.Count(result));
+            var person = Enumerable.ElementAt(result, 0);
+            // we only have the fields requested
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("thing", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
         public void CanParseSimpleQuery2()
         {
             var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"

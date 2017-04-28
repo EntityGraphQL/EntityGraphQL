@@ -92,8 +92,11 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 var name = context.GetText();
                 if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
                     throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
+
                 var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
-                var node = new DataApiNode(actualName, Expression.Property(_selectContext, actualName), null, null);
+                var fieldExp = _schemaProvider.GetExpressionForField(_selectContext, _selectContext.Type.Name, name);
+
+                var node = new DataApiNode(actualName, fieldExp, null, null);
                 return node;
             }
             public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)

@@ -10,8 +10,18 @@ namespace EntityQueryLanguage
     /// This allows your internal model to change over time while not break your external API. You can create new versions when needed.
     public class MappedSchemaProvider : ISchemaProvider
     {
-        protected BaseEqlType _queryContext;
-        protected Dictionary<string, BaseEqlType> _types = new Dictionary<string, BaseEqlType>(StringComparer.OrdinalIgnoreCase);
+        protected EqlType _queryContext;
+        protected Dictionary<string, EqlType> _types = new Dictionary<string, EqlType>(StringComparer.OrdinalIgnoreCase);
+
+        /// Get the EqlType for the given TBaseType. Allowing you to extend it etc.
+        public EqlType Type<TBaseType>()
+        {
+            return Type(typeof(TBaseType).Name);
+        }
+        public EqlType Type(string typeName)
+        {
+            return _types[typeName];
+        }
 
         /// Define a type in the schema. Fields are taken from the type T
         public EqlType Type<TBaseType>(string name, string description)
@@ -79,6 +89,15 @@ namespace EntityQueryLanguage
                 return _queryContext.GetField(identifier).Name;
             throw new EqlCompilerException($"Field {identifier} not found on any type");
         }
+        public Field GetField(string typeName, string identifier)
+        {
+            if (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
+                return _types[typeName].GetField(identifier);
+            if (typeName == _queryContext.ContextType.Name && _queryContext.HasField(identifier))
+                return _queryContext.GetField(identifier);
+            throw new EqlCompilerException($"Field {identifier} not found on any type");
+        }
+
         public Expression GetExpressionForField(Expression context, string typeName, string field)
         {
             // the expressions we collect have a different starting parameter. We need to change that
@@ -93,7 +112,7 @@ namespace EntityQueryLanguage
             {
                 if (!_types.ContainsKey(typeName))
                     throw new EntityQuerySchemaError($"{typeName} not found in schema.");
-                result = _types[typeName].GetField(field).Resolve;
+                result = _types[typeName].GetField(field).Resolve ?? Expression.Property(context, field);
                 paramExp = _types[typeName].GetField(field).FieldParam;
             }
 
@@ -147,21 +166,10 @@ namespace EntityQueryLanguage
         public string Description { get; private set; }
     }
 
-    public abstract class BaseEqlType
+    public class EqlType
     {
-        public abstract Type ContextType { get; protected set; }
-        public abstract string Name { get; protected set; }
-
-		internal abstract void AddField(Field field);
-
-        internal abstract Field GetField(string identifier);
-
-        internal abstract bool HasField(string identifier);
-    }
-    public class EqlType : BaseEqlType
-    {
-        public override Type ContextType { get; protected set; }
-        public override string Name { get; protected set; }
+        public Type ContextType { get; protected set; }
+        public string Name { get; protected set; }
         private string _description;
         private Dictionary<string, Field> _fields = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
 
@@ -188,7 +196,7 @@ namespace EntityQueryLanguage
             }
         }
 
-		internal override void AddField(Field field)
+		internal void AddField(Field field)
 		{
 			_fields.Add(field.Name, field);
 		}
@@ -212,11 +220,11 @@ namespace EntityQueryLanguage
                 }
             }
         }
-        internal override Field GetField(string identifier)
+        internal Field GetField(string identifier)
         {
             return _fields[identifier];
         }
-        internal override bool HasField(string identifier)
+        internal bool HasField(string identifier)
         {
             return _fields.ContainsKey(identifier);
         }

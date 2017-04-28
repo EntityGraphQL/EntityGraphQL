@@ -48,9 +48,9 @@ namespace demo
             var demoSchema = new ObjectSchemaProvider<DemoContext>();
             // we can extend the schema
             demoSchema.ExtendType<Location>("dumb", l => l.Id + " - " + l.Name);
-            demoSchema.Type<DemoContext>("Stats", "Some stats", new {
-                TotalLocations = demoSchema.Field((DemoContext c) => c.Locations.Count(), "Some desciption")
-            });
+            // demoSchema.Type<DemoContext>("Stats", "Some stats", new {
+            //     TotalLocations = demoSchema.Field((DemoContext c) => c.Locations.Count(), "Some desciption")
+            // });
 
             app.UseEql("/api/query", demoSchema, () => app.ApplicationServices.GetService<DemoContext>());
         }
