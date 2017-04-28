@@ -6,8 +6,6 @@
     <TargetFramework>netstandard1.3</TargetFramework>
     <AssemblyName>EntityQueryLanguage</AssemblyName>
     <PackageId>EntityQueryLanguage</PackageId>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
   </PropertyGroup>

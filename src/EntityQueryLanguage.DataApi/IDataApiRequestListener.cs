@@ -1,5 +1,7 @@
-namespace EntityQueryLanguage.DataApi {
-	public interface IDataApiRequestListener {
-		
-	}
+namespace EntityQueryLanguage.DataApi
+{
+    public interface IDataApiRequestListener
+    {
+
+    }
 }

@@ -7,73 +7,63 @@ using EntityQueryLanguage.Extensions;
 
 namespace EntityQueryLanguage
 {
-  /// A simple schema provider to map a EntityQL query directly to a object graph
-  public class ObjectSchemaProvider<TContextType> : ISchemaProvider
-  {
-    private Type _contextType;
-    private Func<object> _newContextFunc;
-    private Dictionary<string, List<EqlPropertyInfo>> _propertiesOrFieldsByType = new Dictionary<string, List<EqlPropertyInfo>>(StringComparer.OrdinalIgnoreCase);
-    
-    public Type ContextType { get { return _contextType; } }
-    
-    public ObjectSchemaProvider(Func<object> newContextFunc = null) {
-      _contextType = typeof(TContextType);
-      _newContextFunc = newContextFunc;
-      
-      CacheFieldsFromObjectAsSchema(_contextType);
+    /// A simple schema provider to map a EntityQL query directly to a object graph
+    public class ObjectSchemaProvider<TContextType> : MappedSchemaProvider
+    {
+        public ObjectSchemaProvider()
+        {
+            var contextType = typeof(TContextType);
+            var rootTypes = new List<Field>();
+            CreateFieldsFromObjectAsSchema(contextType, rootTypes);
+            BuildSchema(contextType, rootTypes);
+        }
+
+        private void CreateFieldsFromObjectAsSchema(Type type, List<Field> fields)
+        {
+            // cache fields/properties
+            var param = Expression.Parameter(type);
+            foreach (var prop in type.GetProperties())
+            {
+                LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
+                var f = new Field(le, prop.Name, "");
+                f.Name = prop.Name;
+                fields.Add(f);
+                CacheType(prop.PropertyType);
+            }
+            foreach (var prop in type.GetFields())
+            {
+                LambdaExpression le = Expression.Lambda(Expression.Field(param, prop.Name), param);
+                var f = new Field(le, prop.Name, "");
+                f.Name = prop.Name;
+                fields.Add(f);
+                CacheType(prop.FieldType);
+            }
+        }
+
+        private void CacheType(Type propType)
+        {
+            if (propType.GetTypeInfo().IsGenericType && propType.IsEnumerable()
+                && !HasType(propType.GetGenericArguments()[0].Name) && propType.GetGenericArguments()[0].Name != "String"
+                && (propType.GetGenericArguments()[0].GetTypeInfo().IsClass || propType.GetGenericArguments()[0].GetTypeInfo().IsInterface))
+            {
+                var rootTypes = new List<Field>();
+                CreateFieldsFromObjectAsSchema(propType.GetGenericArguments()[0], rootTypes);
+                var genType = propType.GetGenericArguments()[0];
+                _types.Add(genType.Name, new EqlType(genType, genType.Name, "", rootTypes));
+            }
+            else if (!HasType(propType.Name) && propType.Name != "String" && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))
+            {
+                var rootTypes = new List<Field>();
+                CreateFieldsFromObjectAsSchema(propType, rootTypes);
+                _types.Add(propType.Name, new EqlType(propType, propType.Name, "", rootTypes));
+            }
+        }
+
+        public void ExtendType<TBaseType>(string fieldName, Expression<Func<TBaseType, object>> fieldFunc, string description = "")
+        {
+            var f = new Field(fieldFunc, description, fieldFunc.ReturnType.Name);
+            f.Name = fieldName;
+            _types[typeof(TBaseType).Name].AddField(f);
+        }
     }
-    public bool EntityHasField(Type type, string identifier) {
-      return TypeHasField(type.Name, identifier);
-    }
-    public bool TypeHasField(string typeName, string identifier) {
-      return _propertiesOrFieldsByType.ContainsKey(typeName) && _propertiesOrFieldsByType[typeName].Any(c => c.LowerCaseName == identifier.ToLower());
-    }
-    public string GetActualFieldName(Type type, string identifier) {
-      return GetActualFieldName(type.Name, identifier);
-    }
-    public string GetActualFieldName(string typeName, string identifier) {
-      return _propertiesOrFieldsByType.ContainsKey(typeName) ? _propertiesOrFieldsByType[typeName].First(c => c.LowerCaseName == identifier.ToLower()).ActualName : string.Empty;
-    }
-    public Expression GetExpressionForField(Expression context, string typeName, string field) {
-      return Expression.PropertyOrField(context, field);
-    }
-    
-    public string GetSchemaTypeNameForRealType(Type type) {
-      return type.Name;
-    }
-    
-    private void CacheFieldsFromObjectAsSchema(Type type) {
-      // cache fields/properties
-      var fieldsForType = new List<EqlPropertyInfo>();
-      _propertiesOrFieldsByType.Add(type.Name, fieldsForType);
-      foreach (var prop in type.GetProperties()) {
-        fieldsForType.Add(new EqlPropertyInfo(prop.Name, prop.Name.ToLower()));
-        var propType = prop.PropertyType;
-        CacheType(prop.PropertyType);
-      }
-      foreach (var prop in type.GetFields()) {
-        fieldsForType.Add(new EqlPropertyInfo(prop.Name, prop.Name.ToLower()));
-        CacheType(prop.FieldType);
-      }
-    }
-    private void CacheType(Type propType) {
-      if (propType.GetTypeInfo().IsGenericType && propType.IsEnumerable()  
-          && !_propertiesOrFieldsByType.ContainsKey(propType.GetGenericArguments()[0].Name) && propType.GetGenericArguments()[0].Name != "String" 
-          && (propType.GetGenericArguments()[0].GetTypeInfo().IsClass || propType.GetGenericArguments()[0].GetTypeInfo().IsInterface)) {
-        CacheFieldsFromObjectAsSchema(propType.GetGenericArguments()[0]);
-      }
-      else if (!_propertiesOrFieldsByType.ContainsKey(propType.Name) && propType.Name != "String" && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface)) {
-        CacheFieldsFromObjectAsSchema(propType);
-      }
-    }
-    
-    private class EqlPropertyInfo {
-      public string ActualName {get; private set; }
-      public string LowerCaseName {get; private set; }
-      public EqlPropertyInfo(string actualName, string lowerCase) {
-        ActualName = actualName;
-        LowerCaseName = lowerCase;
-      }
-    }
-  }
 }

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>Tests for Entity Query Language</Description>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>EntityQueryLanguage.Tests</AssemblyName>
     <PackageId>EntityQueryLanguage.Tests</PackageId>
