@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 namespace demo
 {
     public class DemoContext : DbContext {
+        public DemoContext(DbContextOptions<DemoContext> opts) : base(opts)
+        {
+        }
+
         protected override void OnModelCreating(ModelBuilder builder) {
             // Set up your relations
         }

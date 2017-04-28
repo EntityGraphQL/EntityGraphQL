@@ -4,15 +4,30 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.IO;
 
 namespace EntityQueryLanguage.DataApi
 {
-    public class DataApiMiddlewareOptions
+    public class DataApiMiddlewareOptions<TContextType>
     {
         public ISchemaProvider Schema { get; set; }
         public IMethodProvider MethodProvider { get; set; }
+        public Func<TContextType> NewContextFunc { get; set; }
         public string Path { get; set; }
         public IDataApiRequestListener RequestListener { get; set; }
+    }
+
+    public static class DataApiMiddlewareExtension
+    {
+        public static void UseEql<TContextType>(this IApplicationBuilder app, string path, ISchemaProvider schemaProvider, Func<TContextType> newContextFunc) where TContextType : IDisposable
+        {
+            var options = new DataApiMiddlewareOptions<TContextType> {
+                Schema = schemaProvider,
+                NewContextFunc = newContextFunc,
+                Path = path
+            };
+            app.UseMiddleware<DataApiMiddleware<TContextType>>(options);
+        }
     }
 
     public class DataApiMiddleware<TContextType> where TContextType : IDisposable
@@ -23,16 +38,20 @@ namespace EntityQueryLanguage.DataApi
         private string _path = string.Empty;
         private DataManager<TContextType> _dataManager;
 
-        public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions options, Func<TContextType> newDataContextFunc)
+        public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions<TContextType> options)
         {
             if (options == null)
-                throw new System.ArgumentNullException("options");
+                throw new ArgumentNullException("options");
             if (string.IsNullOrEmpty(options.Path))
-                throw new System.ArgumentException("Please provide a path to the DataQueryMiddlewareOptions");
+                throw new ArgumentException("Please provide a path to the DataQueryMiddlewareOptions");
+            if (options.Schema == null)
+                throw new ArgumentException("Please provide a schema to the DataQueryMiddlewareOptions");
+            if (options.NewContextFunc == null)
+                throw new ArgumentException("Please provide a NewContextFunc to the DataQueryMiddlewareOptions");
             _next = next;
             _schemProvider = options.Schema;
             _methodProvider = options.MethodProvider ?? new DefaultMethodProvider();
-            _dataManager = new DataManager<TContextType>(newDataContextFunc);
+            _dataManager = new DataManager<TContextType>(options.NewContextFunc);
             _path = options.Path;
         }
 
@@ -53,7 +72,8 @@ namespace EntityQueryLanguage.DataApi
                     var query = context.Request.Query["q"];
                     if (string.IsNullOrEmpty(query))
                     {
-                        query = context.Request.Body.ToString();
+                        using (var sr = new StreamReader(context.Request.Body))
+                        query = sr.ReadToEnd();
                     }
                     var data = _dataManager.Query(query, _schemProvider, _methodProvider);
                     timer.Stop();

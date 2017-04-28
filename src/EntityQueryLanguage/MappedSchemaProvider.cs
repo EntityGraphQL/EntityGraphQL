@@ -52,11 +52,11 @@ namespace EntityQueryLanguage
 
         public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description)
         {
-            return new Field(resolve, description, null);
+            return new Field(resolve, description);
         }
         public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description, string type)
         {
-            return new Field(resolve, description, type);
+            return new Field(resolve, description);
         }
 
         // ISchemaProvider interface
@@ -137,15 +137,13 @@ namespace EntityQueryLanguage
     {
         public string Name { get; set; }
         public ParameterExpression FieldParam { get; private set; }
-        internal Field(LambdaExpression resolve, string description, string type)
+        internal Field(LambdaExpression resolve, string description)
         {
             Resolve = resolve.Body;
-            Type = type;
             Description = description;
             FieldParam = resolve.Parameters.First();
         }
         public Expression Resolve { get; private set; }
-        public string Type { get; private set; }
         public string Description { get; private set; }
     }
 
@@ -202,7 +200,7 @@ namespace EntityQueryLanguage
                 if (!_fields.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, f.PropertyType.ToString()) { Name = f.Name });
+                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty) { Name = f.Name });
                 }
             }
             foreach (var f in ContextType.GetFields())
@@ -210,7 +208,7 @@ namespace EntityQueryLanguage
                 if (!_fields.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, f.FieldType.ToString()) { Name = f.Name });
+                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty) { Name = f.Name });
                 }
             }
         }

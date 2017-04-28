@@ -36,8 +36,8 @@ namespace EntityQueryLanguage.DataApi
                         else
                         {
                             // fetch the data
-                            // Some EF code here...
-                            using (var ctx = CreateContextValue())
+                            var ctx = CreateContextValue();
+                            // using (var ctx = CreateContextValue())
                             {
                                 var data = ((IEnumerable<object>)node.AsLambda().Compile().DynamicInvoke(ctx)).ToList();
                                 allData[node.Name] = data;

@@ -48,11 +48,7 @@ public class Location {
 ```csharp
 public class Startup {
   public void Configure(IApplicationBuilder app) {
-    var options = new DataApiMiddlewareOptions {
-      Schema = new ObjectSchemaProvider<MyDbContext>(),
-      Path = "/api/query"
-    };
-    app.UseMiddleware<DataApiMiddleware<MyDbContext>>(options);
+    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), () => new MyDbContext());
   }
 }
 ```

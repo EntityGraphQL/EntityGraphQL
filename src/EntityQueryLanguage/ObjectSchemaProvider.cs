@@ -25,7 +25,7 @@ namespace EntityQueryLanguage
             foreach (var prop in type.GetProperties())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(le, prop.Name, "");
+                var f = new Field(le, prop.Name);
                 f.Name = prop.Name;
                 fields.Add(f);
                 CacheType(prop.PropertyType);
@@ -33,7 +33,7 @@ namespace EntityQueryLanguage
             foreach (var prop in type.GetFields())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Field(param, prop.Name), param);
-                var f = new Field(le, prop.Name, "");
+                var f = new Field(le, prop.Name);
                 f.Name = prop.Name;
                 fields.Add(f);
                 CacheType(prop.FieldType);
@@ -64,7 +64,7 @@ namespace EntityQueryLanguage
 
         public void ExtendType<TBaseType>(string fieldName, Expression<Func<TBaseType, object>> fieldFunc, string description = "")
         {
-            var f = new Field(fieldFunc, description, fieldFunc.ReturnType.Name);
+            var f = new Field(fieldFunc, description);
             f.Name = fieldName;
             _types[typeof(TBaseType).Name].AddField(f);
         }
