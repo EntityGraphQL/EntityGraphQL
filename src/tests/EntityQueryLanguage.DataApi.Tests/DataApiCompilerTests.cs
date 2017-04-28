@@ -37,7 +37,8 @@ namespace EntityQueryLanguage.DataApi.Tests
         [Fact]
         public void CanParseSimpleQuery()
         {
-            var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+            var objectSchemaProvider = new ObjectSchemaProvider<TestSchema>();
+            var tree = new DataApiCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name }
 }");

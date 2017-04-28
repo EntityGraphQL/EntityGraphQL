@@ -205,6 +205,14 @@ namespace EntityQueryLanguage
                     _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, f.PropertyType.ToString()) { Name = f.Name });
                 }
             }
+            foreach (var f in ContextType.GetFields())
+            {
+                if (!_fields.ContainsKey(f.Name))
+                {
+                    var parameter = Expression.Parameter(ContextType);
+                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, f.FieldType.ToString()) { Name = f.Name });
+                }
+            }
         }
         internal override Field GetField(string identifier)
         {

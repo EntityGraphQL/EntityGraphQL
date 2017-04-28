@@ -1,16 +1,14 @@
 # Entity Query Language
-EQL is a data/object querying language allowing you to quickly expose an API for your applications. Applications and consumers of the API then have control over what data they query using a GraphQL inspired syntax. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
+EQL is a data/object querying language (should support GraphQL syntax but I started it before the spec - it should still look familar) allowing you to quickly expose an API for your applications. Applications and consumers of the API then have control over what data they query using the GraphQL syntax. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
 
 _EQL is in early stages of development. Please explore, give feedback or join the development._
 
 ## Serving your data
 The ``EntityQueryLanguage.DataApi`` namespace contains some middleware to easily get up and running with an API for your application. An overview of it's features:
-- Applications/consumers define what data they want, not you REST endpoints
+- Applications/consumers define what data they want, not your REST endpoints
 - Meaning you don't over send data
 - You can fetch complex object graphs in one go, or many
 - Working in your application you know what data to expect without jumping to documentation as it clearly defined
-
-The Data API syntax has been inspired by Facebook's GraphQL, for a nice overview of GraphQL and why this is a powerful way to query your data check out Facebook's video [here](https://www.youtube.com/watch?v=9sc8Pyc51uU).
 
 ### Getting up and running
 
@@ -51,8 +49,8 @@ public class Location {
 public class Startup {
   public void Configure(IApplicationBuilder app) {
     var options = new DataApiMiddlewareOptions {
-      Schema = new ObjectSchemaProvider<MyDbContext>(() => new MyDbContext()),
-      Path = "/api"
+      Schema = new ObjectSchemaProvider<MyDbContext>(),
+      Path = "/api/query"
     };
     app.UseMiddleware<DataApiMiddleware<MyDbContext>>(options);
   }
@@ -62,7 +60,7 @@ public class Startup {
 
 You can now make request to your API. For example
 ```
-  GET localhost:5000/api?query={properties { id, name }}
+  GET localhost:5000/api/query?q={properties { id, name }}
 ```
 Will return the following result.
 ```json
@@ -81,7 +79,7 @@ Will return the following result.
 ```
 Maybe you only want a specific property
 ```
-  GET localhost:5000/api?query={properties.where(id = 11) { id, name }}
+  GET localhost:5000/api/query?q={properties.where(id = 11) { id, name }}
 ```
 Will return the following result.
 ```json
@@ -96,7 +94,7 @@ Will return the following result.
 ```
 If you need a deeper graph or relations, just ask
 ```
-  GET localhost:5000/api?query={properties { id, name, location { name }, type { premium } }}
+  GET localhost:5000/api/query?q={properties { id, name, location { name }, type { premium } }}
 ```
 Will return the following result.
 ```json
@@ -128,6 +126,10 @@ Will return the following result.
 Technically EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework 7.
 
 [Check out the wiki](https://github.com/lukemurray/EntityQueryLanguage/wiki) for more detail on writing EQL expressions and data queries.
+
+This allows you to easily get up and running building your application. It even continues to work great if you only have the one internal client app accessing the API. However if you have a public API or need to version things you can do that too.
+
+TODO - doco here
 
 ## Using expressions else where
 Lets look at an example. You have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.

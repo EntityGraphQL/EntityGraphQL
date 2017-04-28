@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Tests for Entity Query Language</Description>
+    <Description>Tests for Entity Query Language DataApi</Description>
     <VersionPrefix>0.1.0</VersionPrefix>
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -22,6 +22,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="1.1.0" />
     <PackageReference Include="xunit" Version="2.2.0" />
+    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.0-*" />
   </ItemGroup>
 
 </Project>

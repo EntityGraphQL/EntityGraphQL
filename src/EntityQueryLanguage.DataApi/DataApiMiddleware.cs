@@ -14,6 +14,7 @@ namespace EntityQueryLanguage.DataApi
         public string Path { get; set; }
         public IDataApiRequestListener RequestListener { get; set; }
     }
+
     public class DataApiMiddleware<TContextType> where TContextType : IDisposable
     {
         private RequestDelegate _next;
@@ -42,14 +43,14 @@ namespace EntityQueryLanguage.DataApi
             {
                 // right now ignore anything after our path
 
-                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value == _path + "/query"))
+                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value == _path))
                 {
                     // a POST should be an add, but the query might be too long for a GET URL param
                     // we process a POST to /{_path}/query as a GET with the body as the query instead of a URL param
                     var timer = new System.Diagnostics.Stopwatch();
                     timer.Start();
 
-                    var query = context.Request.Query["query"];
+                    var query = context.Request.Query["q"];
                     if (string.IsNullOrEmpty(query))
                     {
                         query = context.Request.Body.ToString();

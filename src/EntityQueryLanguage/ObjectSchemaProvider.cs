@@ -13,13 +13,13 @@ namespace EntityQueryLanguage
         public ObjectSchemaProvider()
         {
             var contextType = typeof(TContextType);
-            var rootTypes = new List<Field>();
-            CreateFieldsFromObjectAsSchema(contextType, rootTypes);
+            var rootTypes = CreateFieldsFromObjectAsSchema(contextType);
             BuildSchema(contextType, rootTypes);
         }
 
-        private void CreateFieldsFromObjectAsSchema(Type type, List<Field> fields)
+        private List<Field> CreateFieldsFromObjectAsSchema(Type type)
         {
+            var fields = new List<Field>();
             // cache fields/properties
             var param = Expression.Parameter(type);
             foreach (var prop in type.GetProperties())
@@ -38,24 +38,27 @@ namespace EntityQueryLanguage
                 fields.Add(f);
                 CacheType(prop.FieldType);
             }
+            return fields;
         }
 
         private void CacheType(Type propType)
         {
-            if (propType.GetTypeInfo().IsGenericType && propType.IsEnumerable()
-                && !HasType(propType.GetGenericArguments()[0].Name) && propType.GetGenericArguments()[0].Name != "String"
-                && (propType.GetGenericArguments()[0].GetTypeInfo().IsClass || propType.GetGenericArguments()[0].GetTypeInfo().IsInterface))
+            if (propType.GetTypeInfo().IsGenericType && propType.IsEnumerable())
             {
-                var rootTypes = new List<Field>();
-                CreateFieldsFromObjectAsSchema(propType.GetGenericArguments()[0], rootTypes);
                 var genType = propType.GetGenericArguments()[0];
-                _types.Add(genType.Name, new EqlType(genType, genType.Name, "", rootTypes));
+                if (!HasType(genType.Name) && genType.Name != "String" && (genType.GetTypeInfo().IsClass || genType.GetTypeInfo().IsInterface))
+                {
+                    // var fields = new List<Field>();
+                    // add type before we recurse more that may also add the type
+                    _types.Add(genType.Name, new EqlType(genType, genType.Name, ""));
+                    CreateFieldsFromObjectAsSchema(genType);
+                }
             }
             else if (!HasType(propType.Name) && propType.Name != "String" && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))
             {
-                var rootTypes = new List<Field>();
-                CreateFieldsFromObjectAsSchema(propType, rootTypes);
-                _types.Add(propType.Name, new EqlType(propType, propType.Name, "", rootTypes));
+                // var fields = new List<Field>();
+                _types.Add(propType.Name, new EqlType(propType, propType.Name, ""));
+                CreateFieldsFromObjectAsSchema(propType);
             }
         }
 

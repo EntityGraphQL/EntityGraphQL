@@ -1,4 +1,5 @@
 bin/
 project.lock.json
 .vscode/
+.idea/
 obj/
