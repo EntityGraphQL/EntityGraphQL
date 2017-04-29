@@ -26,21 +26,20 @@ using Antlr4.Runtime.Misc;
 using DFA = Antlr4.Runtime.Dfa.DFA;
 
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.6.1-SNAPSHOT")]
-[System.CLSCompliant(false)]
 public partial class EqlGrammerLexer : Lexer {
 	public const int
-		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9, 
-		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17, 
-		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24, 
+		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9,
+		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17,
+		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24,
 		T__24=25, T__25=26, T__26=27, T__27=28, T__28=29, ID=30, DIGIT=31, STRING_CHARS=32;
 	public static string[] modeNames = {
 		"DEFAULT_MODE"
 	};
 
 	public static readonly string[] ruleNames = {
-		"T__0", "T__1", "T__2", "T__3", "T__4", "T__5", "T__6", "T__7", "T__8", 
-		"T__9", "T__10", "T__11", "T__12", "T__13", "T__14", "T__15", "T__16", 
-		"T__17", "T__18", "T__19", "T__20", "T__21", "T__22", "T__23", "T__24", 
+		"T__0", "T__1", "T__2", "T__3", "T__4", "T__5", "T__6", "T__7", "T__8",
+		"T__9", "T__10", "T__11", "T__12", "T__13", "T__14", "T__15", "T__16",
+		"T__17", "T__18", "T__19", "T__20", "T__21", "T__22", "T__23", "T__24",
 		"T__25", "T__26", "T__27", "T__28", "ID", "DIGIT", "STRING_CHARS"
 	};
 
@@ -52,14 +51,14 @@ public partial class EqlGrammerLexer : Lexer {
 	}
 
 	private static readonly string[] _LiteralNames = {
-		null, "'.'", "'-'", "'''", "'\n'", "'\r'", "'('", "')'", "','", "'+'", 
-		"'%'", "'^'", "'and'", "'*'", "'or'", "'='", "'<='", "'>='", "'<'", "'>'", 
-		"'/'", "'if'", "' '", "'then'", "'else'", "'?'", "':'", "'\t'", "'{'", 
+		null, "'.'", "'-'", "'''", "'\n'", "'\r'", "'('", "')'", "','", "'+'",
+		"'%'", "'^'", "'and'", "'*'", "'or'", "'='", "'<='", "'>='", "'<'", "'>'",
+		"'/'", "'if'", "' '", "'then'", "'else'", "'?'", "':'", "'\t'", "'{'",
 		"'}'"
 	};
 	private static readonly string[] _SymbolicNames = {
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
 		null, null, null, null, null, null, "ID", "DIGIT", "STRING_CHARS"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);

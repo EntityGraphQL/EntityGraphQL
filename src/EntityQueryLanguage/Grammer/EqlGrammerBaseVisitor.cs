@@ -32,7 +32,6 @@ using ParserRuleContext = Antlr4.Runtime.ParserRuleContext;
 /// </summary>
 /// <typeparam name="Result">The return type of the visit operation.</typeparam>
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.6.1-SNAPSHOT")]
-[System.CLSCompliant(false)]
 public partial class EqlGrammerBaseVisitor<Result> : AbstractParseTreeVisitor<Result>, IEqlGrammerVisitor<Result> {
 	/// <summary>
 	/// Visit a parse tree produced by the <c>const</c>

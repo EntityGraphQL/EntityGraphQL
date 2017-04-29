@@ -28,34 +28,33 @@ using System.Collections.Generic;
 using DFA = Antlr4.Runtime.Dfa.DFA;
 
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.6.1-SNAPSHOT")]
-[System.CLSCompliant(false)]
 public partial class EqlGrammerParser : Parser {
 	public const int
-		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9, 
-		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17, 
-		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24, 
+		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9,
+		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17,
+		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24,
 		T__24=25, T__25=26, T__26=27, T__27=28, T__28=29, ID=30, DIGIT=31, STRING_CHARS=32;
 	public const int
-		RULE_identity = 0, RULE_callPath = 1, RULE_int = 2, RULE_decimal = 3, 
-		RULE_string = 4, RULE_constant = 5, RULE_call = 6, RULE_args = 7, RULE_operator = 8, 
-		RULE_expression = 9, RULE_startRule = 10, RULE_ws = 11, RULE_field = 12, 
-		RULE_aliasType = 13, RULE_aliasExp = 14, RULE_fieldSelect = 15, RULE_entityQuery = 16, 
+		RULE_identity = 0, RULE_callPath = 1, RULE_int = 2, RULE_decimal = 3,
+		RULE_string = 4, RULE_constant = 5, RULE_call = 6, RULE_args = 7, RULE_operator = 8,
+		RULE_expression = 9, RULE_startRule = 10, RULE_ws = 11, RULE_field = 12,
+		RULE_aliasType = 13, RULE_aliasExp = 14, RULE_fieldSelect = 15, RULE_entityQuery = 16,
 		RULE_dataQuery = 17;
 	public static readonly string[] ruleNames = {
-		"identity", "callPath", "int", "decimal", "string", "constant", "call", 
-		"args", "operator", "expression", "startRule", "ws", "field", "aliasType", 
+		"identity", "callPath", "int", "decimal", "string", "constant", "call",
+		"args", "operator", "expression", "startRule", "ws", "field", "aliasType",
 		"aliasExp", "fieldSelect", "entityQuery", "dataQuery"
 	};
 
 	private static readonly string[] _LiteralNames = {
-		null, "'.'", "'-'", "'''", "'\n'", "'\r'", "'('", "')'", "','", "'+'", 
-		"'%'", "'^'", "'and'", "'*'", "'or'", "'='", "'<='", "'>='", "'<'", "'>'", 
-		"'/'", "'if'", "' '", "'then'", "'else'", "'?'", "':'", "'\t'", "'{'", 
+		null, "'.'", "'-'", "'''", "'\n'", "'\r'", "'('", "')'", "','", "'+'",
+		"'%'", "'^'", "'and'", "'*'", "'or'", "'='", "'<='", "'>='", "'<'", "'>'",
+		"'/'", "'if'", "' '", "'then'", "'else'", "'?'", "':'", "'\t'", "'{'",
 		"'}'"
 	};
 	private static readonly string[] _SymbolicNames = {
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
 		null, null, null, null, null, null, "ID", "DIGIT", "STRING_CHARS"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
@@ -215,7 +214,7 @@ public partial class EqlGrammerParser : Parser {
 						break;
 					}
 					}
-					} 
+					}
 				}
 				State = 51;
 				_errHandler.Sync(this);
@@ -447,7 +446,7 @@ public partial class EqlGrammerParser : Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				State = 82;
 				_errHandler.Sync(this);
@@ -691,7 +690,7 @@ public partial class EqlGrammerParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_expression; } }
-	 
+
 		public ExpressionContext() { }
 		public virtual void CopyFrom(ExpressionContext context) {
 			base.CopyFrom(context);
@@ -1032,7 +1031,7 @@ public partial class EqlGrammerParser : Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				State = 203;
 				_errHandler.Sync(this);
@@ -1423,7 +1422,7 @@ public partial class EqlGrammerParser : Parser {
 						break;
 					}
 					}
-					} 
+					}
 				}
 				State = 261;
 				_errHandler.Sync(this);
@@ -1529,7 +1528,7 @@ public partial class EqlGrammerParser : Parser {
 					{
 					State = 281; ws();
 					}
-					} 
+					}
 				}
 				State = 286;
 				_errHandler.Sync(this);
@@ -1680,7 +1679,7 @@ public partial class EqlGrammerParser : Parser {
 						break;
 					}
 					}
-					} 
+					}
 				}
 				State = 325;
 				_errHandler.Sync(this);
