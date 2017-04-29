@@ -101,10 +101,22 @@ namespace EntityQueryLanguage.DataApi.Parsing
             }
             public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)
             {
-                var name = context.name.GetText();
-                var result = EqlCompiler.CompileWith(context.entity.GetText(), _selectContext, _schemaProvider, _methodProvider);
-                var node = new DataApiNode(name, result.Expression, null, null);
-                return node;
+                var name = context.alias.name.GetText();
+                var query = context.entity.GetText();
+                Expression result;
+                if (_selectContext == null)
+                {
+                    // top level are queries on the context
+                    var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
+                    var node = new DataApiNode(name, exp.Body, exp.Parameters.First(), null);
+                    return node;
+                }
+                else
+                {
+                    result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider).Expression.Body;
+                    var node = new DataApiNode(name, result, null, null);
+                    return node;
+                }
             }
 
             /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
@@ -115,7 +127,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 if (context.alias != null)
                 {
                     name = context.alias.name.GetText();
-                    query = context.alias.entity.GetText();
+                    query = context.entity.GetText();
                 }
                 else
                 {

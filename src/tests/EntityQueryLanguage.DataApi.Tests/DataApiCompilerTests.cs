@@ -53,6 +53,20 @@ namespace EntityQueryLanguage.DataApi.Tests
         }
 
         [Fact]
+        public void CanParseScalar()
+        {
+            var objectSchemaProvider = new ObjectSchemaProvider<TestSchema>();
+            var tree = new DataApiCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+{
+	people { id, name },
+    total: people.count()
+}");
+            Assert.Equal(2, tree.Fields.Count);
+            var result = tree.Fields.ElementAt(1).AsLambda().Compile().DynamicInvoke(new TestSchema()) as int?;
+            Assert.Equal(true, result.HasValue);
+            Assert.Equal(1, result.Value);
+        }
+        [Fact]
         public void CanQueryExtendedFields()
         {
             var objectSchemaProvider = new ObjectSchemaProvider<TestSchema>();
@@ -209,31 +223,6 @@ namespace EntityQueryLanguage.DataApi.Tests
             var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name, projects { name } }
-}");
-            // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            Assert.Equal(1, tree.Fields.Count);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
-            Assert.Equal(1, Enumerable.Count(result));
-            var person = Enumerable.ElementAt(result, 0);
-            // we only have the fields requested
-            Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
-            // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("Projects", person.GetType().GetFields()[2].Name);
-            var projects = person.Projects;
-            Assert.Equal(1, Enumerable.Count(projects));
-            var project = Enumerable.ElementAt(projects, 0);
-            Assert.Equal(1, project.GetType().GetFields().Length);
-            Assert.Equal("Name", project.GetType().GetFields()[0].Name);
-        }
-
-        [Fact(Skip = "Not implemented yet")]
-        public void CanCountRoot()
-        {
-            var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"
-{
-	totalpeople: people.count(), people.where(name == 'luke') { name }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Equal(1, tree.Fields.Count);

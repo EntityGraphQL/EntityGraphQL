@@ -41,16 +41,13 @@ namespace demo
 
             // add test data
             var context = app.ApplicationServices.GetService<DemoContext>();
-            context.Locations.Add(new Location {Id = 11, Name = "My House"});
-            context.Locations.Add(new Location {Id = 12, Name = "The White House"});
+            context.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
+            context.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America"}});
             context.SaveChanges();
 
             var demoSchema = new ObjectSchemaProvider<DemoContext>();
             // we can extend the schema
             demoSchema.ExtendType<Location>("dumb", l => l.Id + " - " + l.Name);
-            // demoSchema.Type<DemoContext>("Stats", "Some stats", new {
-            //     TotalLocations = demoSchema.Field((DemoContext c) => c.Locations.Count(), "Some desciption")
-            // });
 
             app.UseEql("/api/query", demoSchema, () => app.ApplicationServices.GetService<DemoContext>());
         }

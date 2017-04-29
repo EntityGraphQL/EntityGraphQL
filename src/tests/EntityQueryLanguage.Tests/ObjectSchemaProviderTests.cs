@@ -58,7 +58,7 @@ namespace EntityQueryLanguage.Tests
             var schema = new ObjectSchemaProvider<TestSchema>();
             var ex = Assert.Throws<ArgumentException>(() => {
                 // Type "person" was auto created from the TestSchema
-                schema.Type<Person>("person", description: "duplicate type", fields: new
+                schema.TypeFrom<Person>("person", description: "duplicate type", fields: new
                 {
                     Id = schema.Field((Person p) => p.Id, "The unique identifier"),
                     FullName = schema.Field((Person p) => p.Name + " Fakey", "Person's full name")
@@ -72,7 +72,7 @@ namespace EntityQueryLanguage.Tests
             var schema = new ObjectSchemaProvider<TestSchema>();
             var ex = Assert.Throws<ArgumentException>(() => {
                 // Type "person" was auto created from the TestSchema
-                schema.Type<Person>("person", description: "duplicate type", fields: new
+                schema.TypeFrom<Person>("person", description: "duplicate type", fields: new
                 {
                     Count = schema.Field((Person c) => c.Name, "Total people")
                 });

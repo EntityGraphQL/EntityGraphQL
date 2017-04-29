@@ -52,7 +52,7 @@ namespace EntityQueryLanguage.Tests
     // of these classes means you can make non-breaking changes to your exposed API
     namespace ApiVersion1
     {
-        internal class TestObjectGraphSchema : MappedSchemaProvider
+        internal class TestObjectGraphSchema : MappedSchemaProvider<TestDataContext>
         {
             public TestObjectGraphSchema()
             {
@@ -60,11 +60,11 @@ namespace EntityQueryLanguage.Tests
 
                 // Without the fields argument we expose Location fields as-is. Easy and simple, but this means changes in
                 // Location data model may break API
-                Type<Location>(name: "location", description: "A geographical location");
+                TypeFrom<Location>(name: "location", description: "A geographical location");
 
                 // It's better to define the fields of each type you want to expose, so over time your data model can change and
                 // if you keep these definitions compiling you shouldn't break any API calls
-                Type<Person>(name: "person", description: "Details of a person in the system", fields: new
+                TypeFrom<Person>(name: "person", description: "Details of a person in the system", fields: new
                 {
                     // you don't need to define the return type unless you need to specify the type to map to
                     Id = Field((Person p) => p.Id, "The unique identifier"),
@@ -73,7 +73,7 @@ namespace EntityQueryLanguage.Tests
                     FullName = Field((Person p) => p.Name + " " + p.LastName, "Person's full name")
                 });
 
-                Type<Project>("project", "Details of a project", new
+                TypeFrom<Project>("project", "Details of a project", new
                 {
                     Id = Field((Project p) => p.Id, "Unique identifier for the project"),
                     Name = Field((Project p) => p.Owner.Name + "'s Project", "Project's name"), // fields can be built with expressions
@@ -86,19 +86,19 @@ namespace EntityQueryLanguage.Tests
                 });
 
                 // You can define multiple types from one base type and define a filter which is applied
-                Type<Task>("openTask", "Details of a project", new
+                TypeFrom<Task>("openTask", "Details of a project", new
                 {
                     Id = Field((Task t) => t.Id, "Unique identifier for a task"),
                     Description = Field((Task t) => t.Name, "Description of the task"),
                 });
-                Type<Task>("closedTask", "Details of a project", new
+                TypeFrom<Task>("closedTask", "Details of a project", new
                 {
                     Id = Field((Task t) => t.Id, "Unique identifier for a task"),
                     Description = Field((Task t) => t.Name, "Description of the task"),
                 });
 
                 // Now we defined what fields are at the root of the graph
-                BuildSchema<TestDataContext>(new
+                BuildSchema(new
                 {
                     Locations = Field((TestDataContext db) => db.Locations, "All locations in the world", "location"),
                     People = Field((TestDataContext db) => db.People, "Person details", "person"),

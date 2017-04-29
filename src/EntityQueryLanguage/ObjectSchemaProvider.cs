@@ -4,17 +4,18 @@ using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Reflection;
 using EntityQueryLanguage.Extensions;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage
 {
     /// A simple schema provider to map a EntityQL query directly to a object graph
-    public class ObjectSchemaProvider<TContextType> : MappedSchemaProvider
+    public class ObjectSchemaProvider<TContextType> : MappedSchemaProvider<TContextType>
     {
         public ObjectSchemaProvider()
         {
             var contextType = typeof(TContextType);
             var rootTypes = CreateFieldsFromObjectAsSchema(contextType);
-            BuildSchema(contextType, rootTypes);
+            BuildSchema(rootTypes);
         }
 
         private List<Field> CreateFieldsFromObjectAsSchema(Type type)
@@ -25,16 +26,14 @@ namespace EntityQueryLanguage
             foreach (var prop in type.GetProperties())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(le, prop.Name);
-                f.Name = prop.Name;
+                var f = new Field(prop.Name, le, prop.Name);
                 fields.Add(f);
                 CacheType(prop.PropertyType);
             }
             foreach (var prop in type.GetFields())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Field(param, prop.Name), param);
-                var f = new Field(le, prop.Name);
-                f.Name = prop.Name;
+                var f = new Field(prop.Name, le, prop.Name);
                 fields.Add(f);
                 CacheType(prop.FieldType);
             }
@@ -60,13 +59,6 @@ namespace EntityQueryLanguage
                 _types.Add(propType.Name, new EqlType(propType, propType.Name, ""));
                 CreateFieldsFromObjectAsSchema(propType);
             }
-        }
-
-        public void ExtendType<TBaseType>(string fieldName, Expression<Func<TBaseType, object>> fieldFunc, string description = "")
-        {
-            var f = new Field(fieldFunc, description);
-            f.Name = fieldName;
-            _types[typeof(TBaseType).Name].AddField(f);
         }
     }
 }

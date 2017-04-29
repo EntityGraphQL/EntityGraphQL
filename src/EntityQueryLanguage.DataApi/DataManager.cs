@@ -39,14 +39,14 @@ namespace EntityQueryLanguage.DataApi
                             var ctx = CreateContextValue();
                             // using (var ctx = CreateContextValue())
                             {
-                                var data = ((IEnumerable<object>)node.AsLambda().Compile().DynamicInvoke(ctx)).ToList();
+                                var data = node.AsLambda().Compile().DynamicInvoke(ctx);
                                 allData[node.Name] = data;
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        allData[node.Name] = new { Name = ex.Message };
+                        allData[node.Name] = new { eql_error = ex.Message };
                     }
                 });
             }

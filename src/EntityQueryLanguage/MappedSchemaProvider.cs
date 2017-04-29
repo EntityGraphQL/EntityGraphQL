@@ -1,43 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage
 {
     /// Builder interface to build a schema definition. The built schema definition maps an external view of your data model to you internal model.
     /// This allows your internal model to change over time while not break your external API. You can create new versions when needed.
-    public class MappedSchemaProvider : ISchemaProvider
+    public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
         protected EqlType _queryContext;
         protected Dictionary<string, EqlType> _types = new Dictionary<string, EqlType>(StringComparer.OrdinalIgnoreCase);
 
-        /// Get the EqlType for the given TBaseType. Allowing you to extend it etc.
-        public EqlType Type<TBaseType>()
-        {
-            return Type(typeof(TBaseType).Name);
-        }
-        public EqlType Type(string typeName)
-        {
-            return _types[typeName];
-        }
-
         /// Define a type in the schema. Fields are taken from the type T
-        public EqlType Type<TBaseType>(string name, string description)
+        public EqlType TypeFrom<TBaseType>(string name, string description)
         {
 			var tt = new EqlType(typeof(TBaseType), name, description);
             _types.Add(name, tt);
 			return tt;
         }
-        public EqlType Type(Type contextType, string name, string description)
-        {
-			var tt = new EqlType(contextType, name, description);
-            _types.Add(name, tt);
-			return tt;
-        }
         /// Define a type in the schema. Fields are defined
-        public EqlType Type<TBaseType>(string name, string description, object fields)
+        public EqlType TypeFrom<TBaseType>(string name, string description, object fields)
         {
 			var tt = new EqlType(typeof(TBaseType), name, description, BuildFields(fields));
             _types.Add(name, tt);
@@ -45,7 +29,7 @@ namespace EntityQueryLanguage
         }
 
         /// Define the base root of the schema
-        public void BuildSchema<TContextType>(object fields)
+        public void BuildSchema(object fields)
         {
             if (fields is List<Field>)
                 _queryContext = new EqlType(typeof(TContextType), typeof(TContextType).Name, "Query context", (List<Field>)fields);
@@ -54,19 +38,18 @@ namespace EntityQueryLanguage
             _types.Add(_queryContext.Name, _queryContext);
         }
 
-        public void BuildSchema(Type contextType, List<Field> fields)
+        public void BuildSchema(List<Field> fields)
         {
-            _queryContext = new EqlType(contextType, contextType.Name, "Query context", fields);
+            _queryContext = new EqlType(typeof(TContextType), typeof(TContextType).Name, "Query context", fields);
             _types.Add(_queryContext.Name, _queryContext);
         }
-
         public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description)
         {
-            return new Field(resolve, description);
+            return new Field(null, resolve, description);
         }
         public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description, string type)
         {
-            return new Field(resolve, description);
+            return new Field(null, resolve, description);
         }
 
         // ISchemaProvider interface
@@ -87,14 +70,6 @@ namespace EntityQueryLanguage
                 return _types[typeName].GetField(identifier).Name;
             if (typeName == _queryContext.ContextType.Name && _queryContext.HasField(identifier))
                 return _queryContext.GetField(identifier).Name;
-            throw new EqlCompilerException($"Field {identifier} not found on any type");
-        }
-        public Field GetField(string typeName, string identifier)
-        {
-            if (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
-                return _types[typeName].GetField(identifier);
-            if (typeName == _queryContext.ContextType.Name && _queryContext.HasField(identifier))
-                return _queryContext.GetField(identifier);
             throw new EqlCompilerException($"Field {identifier} not found on any type");
         }
 
@@ -149,84 +124,11 @@ namespace EntityQueryLanguage
         {
             return _types.ContainsKey(typeName);
         }
-    }
 
-    /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
-    public class Field
-    {
-        public string Name { get; set; }
-        public ParameterExpression FieldParam { get; private set; }
-        internal Field(LambdaExpression resolve, string description)
+        public void ExtendType<TBaseType>(string fieldName, Expression<Func<TBaseType, object>> fieldFunc, string description = "")
         {
-            Resolve = resolve.Body;
-            Description = description;
-            FieldParam = resolve.Parameters.First();
-        }
-        public Expression Resolve { get; private set; }
-        public string Description { get; private set; }
-    }
-
-    public class EqlType
-    {
-        public Type ContextType { get; protected set; }
-        public string Name { get; protected set; }
-        private string _description;
-        private Dictionary<string, Field> _fields = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
-
-        public EqlType(Type contextType)
-        {
-            ContextType = contextType;
-            BuildFieldsFromBase(contextType);
-        }
-
-        public EqlType(Type contextType, string name, string description) : this(contextType)
-        {
-            Name = name;
-            _description = description;
-            BuildFieldsFromBase(contextType);
-        }
-        public EqlType(Type contextType, string name, string description, IEnumerable<Field> fields)
-        {
-            ContextType = contextType;
-            Name = name;
-            _description = description;
-            foreach (var f in fields)
-            {
-                _fields.Add(f.Name, f);
-            }
-        }
-
-		internal void AddField(Field field)
-		{
-			_fields.Add(field.Name, field);
-		}
-
-        private void BuildFieldsFromBase(Type contextType)
-        {
-            foreach (var f in ContextType.GetProperties())
-            {
-                if (!_fields.ContainsKey(f.Name))
-                {
-                    var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty) { Name = f.Name });
-                }
-            }
-            foreach (var f in ContextType.GetFields())
-            {
-                if (!_fields.ContainsKey(f.Name))
-                {
-                    var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty) { Name = f.Name });
-                }
-            }
-        }
-        internal Field GetField(string identifier)
-        {
-            return _fields[identifier];
-        }
-        internal bool HasField(string identifier)
-        {
-            return _fields.ContainsKey(identifier);
+            var f = new Field(fieldName, fieldFunc, description);
+            _types[typeof(TBaseType).Name].AddField(f);
         }
     }
 
