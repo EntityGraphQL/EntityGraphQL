@@ -52,6 +52,10 @@ public class Startup {
   }
 }
 ```
+This sets up
+- `POST` at `/api/query` where the query is in the body of the post
+- `GET` at `/api/query` where the query is expected as the `q` parameter. e.g. `GET /api/query?q={locations {name}}`
+
 3. Build awesome applications
 
 You can now make request to your API. For example
