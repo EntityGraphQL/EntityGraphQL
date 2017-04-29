@@ -1,1 +1,1 @@
-java -jar ~/.dnx/packages/Antlr4/4.5-alpha002/tools/antlr4-csharp-4.5-SNAPSHOT-complete.jar src/EntityQueryLanguage/Grammer/EqlGrammer.g4 -Dlanguage=CSharp_v4_5 -package EntityQueryLanguage.Grammer -visitor -no-listener 
+java -jar ~/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar src/EntityQueryLanguage/Grammer/EqlGrammer.g4 -Dlanguage=CSharp_v4_5 -package EntityQueryLanguage.Grammer -visitor -no-listener

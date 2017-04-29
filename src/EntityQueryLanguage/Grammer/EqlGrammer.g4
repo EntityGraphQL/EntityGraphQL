@@ -1,9 +1,9 @@
 grammar EqlGrammer;
 
 // This is our expression language
-ID          : [a-z_A-Z]+[a-z_A-Z\w\-0-9]*;
+ID          : [a-z_A-Z]+[a-z_A-Z0-9-]*;
 DIGIT       : [0-9];
-STRING_CHARS: [ \t`~!@#$%^&*\(\)_+\-={}|\[\]:\";<>?,\./];
+STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"\u005B\u005D;<>?,./-];
 
 identity    : ID;
 callPath    : (identity | call) ('.' (identity | call))*;
@@ -32,7 +32,8 @@ startRule   : expression;
 // }
 ws          : (' ' | '\t' | '\n' | '\r');
 field       : callPath;
-aliasExp    : name=identity ws* ':' ws* entity=expression;
+aliasType   : name=identity ws* ':' ws*;
+aliasExp    : alias=aliasType entity=expression;
 fieldSelect : '{' ws* (aliasExp | field | entityQuery) (ws* ',' ws* (aliasExp | field | entityQuery))* ws* '}';
-entityQuery : (alias=aliasExp | entity=callPath) ws* fields=fieldSelect ws*;
-dataQuery   : ws* '{' ws* entityQuery ( ws* ',' ws* entityQuery)* ws* '}' ws*;
+entityQuery : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
+dataQuery   : ws* '{' ws* (aliasExp | entityQuery) ( ws* ',' ws* (aliasExp | entityQuery))* ws* '}' ws*;
