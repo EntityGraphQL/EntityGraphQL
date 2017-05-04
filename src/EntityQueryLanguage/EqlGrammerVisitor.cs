@@ -29,6 +29,13 @@ namespace EntityQueryLanguage
             // we may need to do some converting here
             if (left.Type != right.Type)
             {
+                if (op == ExpressionType.Equal)
+                {
+                    var result = DoObjectComparisonOnDifferentTypes(op, left, right);
+
+                    if (result != null)
+                        return result;
+                }
                 return ConvertLeftOrRight(op, left, right);
             }
 
@@ -38,6 +45,34 @@ namespace EntityQueryLanguage
             }
 
             return Expression.MakeBinary(op, left, right);
+        }
+
+        private Expression DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
+        {
+            var convertedToSameTypes = false;
+
+            // leftGuid == 'asdasd' == null ? (Guid) null : new Guid('asdasdas'.ToString())
+            // leftGuid == null
+            if (left.Type == typeof(Guid) && right.Type != typeof(Guid))
+            {
+                right = ConvertToGuid(right);
+                convertedToSameTypes = true;
+            }
+            else if (right.Type == typeof(Guid) && left.Type != typeof(Guid))
+            {
+                left = ConvertToGuid(left);
+                convertedToSameTypes = true;
+            }
+                
+            return convertedToSameTypes ?  
+                Expression.MakeBinary(op, left, right) : 
+                null;
+        }
+
+        private static NewExpression ConvertToGuid(Expression expression)
+        {
+            // currently doesn't support nulls - to fix that wrap in  a conditional is null ? (Guid) null : below
+            return Expression.New(typeof(Guid).GetConstructor(new Type[] { typeof(string) }), Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
         public override Expression VisitExpr(EqlGrammerParser.ExprContext context)

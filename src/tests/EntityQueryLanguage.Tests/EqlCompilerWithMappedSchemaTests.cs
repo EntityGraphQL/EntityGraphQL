@@ -2,12 +2,21 @@ using Xunit;
 using System.Collections.Generic;
 using System.Linq;
 using EntityQueryLanguage.Tests.ApiVersion1;
+using System;
 
 namespace EntityQueryLanguage.Tests
 {
     /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
     public class EqlCompilerWithMappedSchemaTests
     {
+        [Fact]
+        public void TestConversionToGuid()
+        {
+            var exp = EqlCompiler.Compile("people.where(guid = '6492f5fe-0869-4279-88df-7f82f8e87a67')", new TestObjectGraphSchema());
+            dynamic result = exp.Execute(GetDataContext());
+            Assert.Equal(1, Enumerable.Count(result));
+        }
+
         [Fact]
         public void CompilesIdentityCall()
         {
@@ -47,7 +56,7 @@ namespace EntityQueryLanguage.Tests
         {
             var db = new TestDataContext();
             db.Projects = new List<Project> { new Project { Id = 90, Type = 2 }, new Project { Id = 91, Type = 1 } };
-            db.People = new List<Person> { new Person { Id = 4 } };
+            db.People = new List<Person> { new Person { Id = 4, Guid = new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67") } };
             db.Locations = new List<Location> { new Location { Id = 10 } };
             return db;
         }

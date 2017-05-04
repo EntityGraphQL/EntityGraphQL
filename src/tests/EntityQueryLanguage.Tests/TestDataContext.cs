@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 // This is a mock datamodel, what would be your real datamodel and EF context
 namespace EntityQueryLanguage.Tests
@@ -15,6 +16,7 @@ namespace EntityQueryLanguage.Tests
     internal class Person
     {
         public int Id { get; set; }
+        public Guid Guid { get; set; }
         public string Name { get; set; }
         public string LastName { get; set; }
     }
@@ -68,6 +70,7 @@ namespace EntityQueryLanguage.Tests
                 {
                     // you don't need to define the return type unless you need to specify the type to map to
                     Id = Field((Person p) => p.Id, "The unique identifier"),
+                    Guid = Field((Person p) => p.Guid, "A Guid identifier"),
                     FirstName = Field((Person p) => p.Name, "Person's first name"),
                     LastName = Field((Person p) => p.LastName, "Person's last name"),
                     FullName = Field((Person p) => p.Name + " " + p.LastName, "Person's full name")
