@@ -86,6 +86,18 @@ namespace EntityQueryLanguage.DataApi.Tests
         }
 
         [Fact]
+        public void CanRemoveFields()
+        {
+            var objectSchemaProvider = new ObjectSchemaProvider<TestSchema>();
+            objectSchemaProvider.RemoveField<Person>(p => p.Id);
+            var ex = Assert.Throws<EqlCompilerException>(() => { var tree = new DataApiCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+{
+	people { id }
+}");});
+            Assert.Equal(ex.Message, "Error compiling field or query 'people'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Person does not have field or property id");
+        }
+
+        [Fact]
         public void CanParseSimpleQuery2()
         {
             var tree = new DataApiCompiler(new ObjectSchemaProvider<TestSchema>(), new DefaultMethodProvider()).Compile(@"

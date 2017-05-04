@@ -15,16 +15,18 @@ namespace EntityQueryLanguage.DataApi
         public Func<TContextType> NewContextFunc { get; set; }
         public string Path { get; set; }
         public IDataApiRequestListener RequestListener { get; set; }
+        public IRelationHandler RelationHandler { get; set; }
     }
 
     public static class DataApiMiddlewareExtension
     {
-        public static void UseEql<TContextType>(this IApplicationBuilder app, string path, ISchemaProvider schemaProvider, Func<TContextType> newContextFunc) where TContextType : IDisposable
+        public static void UseEql<TContextType>(this IApplicationBuilder app, string path, ISchemaProvider schemaProvider, Func<TContextType> newContextFunc, IRelationHandler customRelationHandler = null) where TContextType : IDisposable
         {
             var options = new DataApiMiddlewareOptions<TContextType> {
                 Schema = schemaProvider,
                 NewContextFunc = newContextFunc,
-                Path = path
+                Path = path,
+                RelationHandler = customRelationHandler
             };
             app.UseMiddleware<DataApiMiddleware<TContextType>>(options);
         }
@@ -37,6 +39,7 @@ namespace EntityQueryLanguage.DataApi
         private IMethodProvider _methodProvider;
         private string _path = string.Empty;
         private DataManager<TContextType> _dataManager;
+        private IRelationHandler _relationHandler;
 
         public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions<TContextType> options)
         {
@@ -51,6 +54,7 @@ namespace EntityQueryLanguage.DataApi
             _next = next;
             _schemProvider = options.Schema;
             _methodProvider = options.MethodProvider ?? new DefaultMethodProvider();
+            _relationHandler = options.RelationHandler;
             _dataManager = new DataManager<TContextType>(options.NewContextFunc);
             _path = options.Path;
         }
@@ -62,24 +66,21 @@ namespace EntityQueryLanguage.DataApi
             {
                 // right now ignore anything after our path
 
-                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value == _path))
+                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value.TrimEnd('/') == _path.TrimEnd('/')))
                 {
                     // a POST should be an add, but the query might be too long for a GET URL param
-                    // we process a POST to /{_path}/query as a GET with the body as the query instead of a URL param
-                    var timer = new System.Diagnostics.Stopwatch();
-                    timer.Start();
-
+                    // we process a POST to /{_path} as a GET with the body as the query instead of a URL param
                     var query = context.Request.Query["q"];
                     if (string.IsNullOrEmpty(query))
                     {
                         using (var sr = new StreamReader(context.Request.Body))
                         query = sr.ReadToEnd();
                     }
-                    var data = _dataManager.Query(query, _schemProvider, _methodProvider);
-                    timer.Stop();
-                    data.Add("_debug", new { TotalMilliseconds = timer.ElapsedMilliseconds });
+                    var data = _dataManager.Query(query, _schemProvider, _methodProvider, _relationHandler);
                     // TODO add support for requesting different data formats
                     // for now it's JSON
+                    context.Response.Headers.Add("Content-Type", "application/json");
+
                     try
                     {
                         var resultData = JsonConvert.SerializeObject(data, new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });

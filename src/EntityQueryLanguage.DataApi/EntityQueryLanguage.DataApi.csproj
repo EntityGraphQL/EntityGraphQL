@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>A data query language (GraphQL-ish) and expression language for .NET. Execute with EntityFramework or in memory</Description>
-    <VersionPrefix>0.3.1</VersionPrefix>
+    <VersionPrefix>0.4.0</VersionPrefix>
     <TargetFramework>netstandard1.3</TargetFramework>
     <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
     <PackageId>EntityQueryLanguage.DataApi</PackageId>

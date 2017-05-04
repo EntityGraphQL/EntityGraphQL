@@ -60,5 +60,17 @@ namespace EntityQueryLanguage
                 CreateFieldsFromObjectAsSchema(propType);
             }
         }
+
+        public void RemoveField<TType>(Expression<Func<TType, object>> fieldSelection)
+        {
+            var exp = fieldSelection.Body;
+            if (exp.NodeType == ExpressionType.Convert)
+                exp = ((UnaryExpression)exp).Operand;
+
+            if (exp.NodeType != ExpressionType.MemberAccess)
+                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", "fieldSelection");
+
+            _types[typeof(TType).Name].RemoveField(((MemberExpression)exp).Member.Name);
+        }
     }
 }

@@ -67,5 +67,11 @@ namespace EntityQueryLanguage.Schema
         {
             return _fields.ContainsKey(identifier);
         }
+
+        internal void RemoveField(string name)
+        {
+            if (_fields.ContainsKey(name))
+                _fields.Remove(name);
+        }
     }
 }

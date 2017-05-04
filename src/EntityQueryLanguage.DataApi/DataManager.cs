@@ -18,6 +18,9 @@ namespace EntityQueryLanguage.DataApi
 
         public IDictionary<string, object> Query(string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
         {
+            var timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+
             var allData = new ConcurrentDictionary<string, object>();
 
             try
@@ -37,11 +40,8 @@ namespace EntityQueryLanguage.DataApi
                         {
                             // fetch the data
                             var ctx = CreateContextValue();
-                            // using (var ctx = CreateContextValue())
-                            {
-                                var data = node.AsLambda().Compile().DynamicInvoke(ctx);
-                                allData[node.Name] = data;
-                            }
+                            var data = node.AsLambda().Compile().DynamicInvoke(ctx);
+                            allData[node.Name] = data;
                         }
                     }
                     catch (Exception ex)
@@ -54,6 +54,9 @@ namespace EntityQueryLanguage.DataApi
             {
                 allData["error"] = ex.Message;
             }
+            timer.Stop();
+            allData["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
+
             return allData;
         }
 
