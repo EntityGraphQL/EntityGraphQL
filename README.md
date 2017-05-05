@@ -1,16 +1,18 @@
 # Entity Query Language
-EQL is a data/object querying language (should support GraphQL syntax but I started it before the spec - it should still look familar) allowing you to quickly expose an API for your applications. Applications and consumers of the API then have control over what data they query using the GraphQL syntax. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
+EQL is a data/object querying language for .NET Core.
 
-_EQL is in early stages of development. Please explore, give feedback or join the development._
+Full GraphQL query syntax support is being worked on. Although it is already quite powerful using familar Linq-style queries.
+
+EQL allows you to quickly expose an object-graph as an API in your applications. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
+
+_Please explore, give feedback or join the development._
 
 ## Serving your data
-The ``EntityQueryLanguage.DataApi`` namespace contains some middleware to easily get up and running with an API for your application. An overview of it's features:
-- Applications/consumers define what data they want, not your REST endpoints
-- Meaning you don't over send data
-- You can fetch complex object graphs in one go, or many
-- Working in your application you know what data to expect without jumping to documentation as it clearly defined
+The ``EntityQueryLanguage.DataApi`` namespace contains middleware to easily get up and running with an API for your application.
 
-### Getting up and running
+### Getting up and running with EF
+
+_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirements - any ORM should work - although EF is tested well._
 
 1. Define your EF context
 
@@ -48,11 +50,13 @@ public class Location {
 ```csharp
 public class Startup {
   public void Configure(IApplicationBuilder app) {
-    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), () => new MyDbContext());
+    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), () => new MyDbContext(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
   }
 }
 ```
-This sets up
+`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.DataApi` does not have a requirement on EF.
+
+This sets up 2 end points:
 - `POST` at `/api/query` where the query is in the body of the post
 - `GET` at `/api/query` where the query is expected as the `q` parameter. e.g. `GET /api/query?q={locations {name}}`
 
@@ -79,7 +83,11 @@ Will return the following result.
 ```
 Maybe you only want a specific property
 ```
-  GET localhost:5000/api/query?q={properties.where(id = 11) { id, name }}
+  {
+    properties.where(id = 11) {
+      id, name
+    }
+  }
 ```
 Will return the following result.
 ```json
@@ -94,7 +102,18 @@ Will return the following result.
 ```
 If you need a deeper graph or relations, just ask
 ```
-  GET localhost:5000/api/query?q={properties { id, name, location { name }, type { premium } }}
+  {
+    properties {
+      id,
+      name,
+      location {
+        name
+      },
+      type {
+        premium
+      }
+    }
+  }
 ```
 Will return the following result.
 ```json
@@ -123,28 +142,36 @@ Will return the following result.
   ]
 }
 ```
-Technically EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework 7.
+
+As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core 1.1.
 
 [Check out the wiki](https://github.com/lukemurray/EntityQueryLanguage/wiki) for more detail on writing EQL expressions and data queries.
 
-This allows you to easily get up and running building your application. It even continues to work great if you only have the one internal client app accessing the API. However if you have a public API or need to version things you can do that too.
+### Custom schemata
 
 TODO - doco here
 
+### Secuity
+
+TODO - coming soon
+
 ## Using expressions else where
-Lets look at an example. You have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
+Lets say you have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
 ```js
   // This might be a configured EQL statement for filtering the results. It has a context of Property
   (type.id = 2 or type.id = 3) and type.name startswith 'Region'
 ```
-This can be compile and checked for correctness at configuration time and as part of you deploy process, to make sure all EQL statements are valid. To use it in your application:
+This would compile to `(Property p) => (p.Type.Id == 2 || p.Type.Id == 3) && p.Type.Name.StartsWith("Region");`
+
+This can then be used in various Linq functions either in memory or against an ORM.
 ```csharp
-// we create a schema provider (more on this later) to compile the statement against our Property type
+// we create a schema provider to compile the statement against our Property type
 var schemaProvider = new ObjectSchemaProvider<Property>();
 var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
 var thingsToShow = myProperties.Where(compiledResult.Expression);
 ```
+
 Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
 ```csharp
 // You'd take this from some configuration
