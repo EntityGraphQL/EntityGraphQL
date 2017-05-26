@@ -50,7 +50,7 @@ namespace EntityQueryLanguage.DataApi
             _options = options;
         }
 
-        public async Task Invoke(HttpContext context, TContextType dbContext)
+        public async Task Invoke(HttpContext context, TContextType queryContext)
         {
             // check it matches our path, if we have one
             if (context.Request.Path.Value.StartsWith(_options.Path))
@@ -67,7 +67,7 @@ namespace EntityQueryLanguage.DataApi
                         using (var sr = new StreamReader(context.Request.Body))
                             query = sr.ReadToEnd();
                     }
-                    var data = DataManager<TContextType>.Query(dbContext, query, _options.Schema, _options.MethodProvider, _options.RelationHandler);
+                    var data = DataManager<TContextType>.Query(queryContext, query, _options.Schema, _options.MethodProvider, _options.RelationHandler);
                     // TODO add support for requesting different data formats
                     // for now it's JSON
                     context.Response.Headers.Add("Content-Type", "application/json");
@@ -88,7 +88,10 @@ namespace EntityQueryLanguage.DataApi
                     await context.Response.WriteAsync(string.Format("We don't currently support {0} at {1}.", context.Request.Method, context.Request.Path.Value));
                 }
             }
-            await _next(context);
+            else
+            {
+                await _next(context);
+            }
         }
     }
 }
