@@ -7,7 +7,7 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <PackageVersion>0.5.1</PackageVersion>
+    <PackageVersion>0.5.2</PackageVersion>
     <Description>A data query/GraphQL library for .NET Core. Execute with EntityFramework (or other ORMs) or in memory</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>

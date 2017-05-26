@@ -12,7 +12,6 @@ namespace EntityQueryLanguage.DataApi
     {
         public ISchemaProvider Schema { get; set; }
         public IMethodProvider MethodProvider { get; set; }
-        public Func<TContextType> NewContextFunc { get; set; }
         public string Path { get; set; }
         public IDataApiRequestListener RequestListener { get; set; }
         public IRelationHandler RelationHandler { get; set; }
@@ -47,6 +46,8 @@ namespace EntityQueryLanguage.DataApi
             if (options.Schema == null)
                 throw new ArgumentException("Please provide a schema to the DataQueryMiddlewareOptions");
             _next = next;
+            if (options.MethodProvider == null)
+                options.MethodProvider = new DefaultMethodProvider();
             _options = options;
         }
 
