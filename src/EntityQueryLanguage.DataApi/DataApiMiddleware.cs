@@ -20,11 +20,11 @@ namespace EntityQueryLanguage.DataApi
 
     public static class DataApiMiddlewareExtension
     {
-        public static void UseEql<TContextType>(this IApplicationBuilder app, string path, ISchemaProvider schemaProvider, Func<TContextType> newContextFunc, IRelationHandler customRelationHandler = null) where TContextType : IDisposable
+        /// Set up EQL at the given path. TContextType should be registered as a service
+        public static void UseEql<TContextType>(this IApplicationBuilder app, string path, ISchemaProvider schemaProvider, IRelationHandler customRelationHandler = null) where TContextType : IDisposable
         {
             var options = new DataApiMiddlewareOptions<TContextType> {
                 Schema = schemaProvider,
-                NewContextFunc = newContextFunc,
                 Path = path,
                 RelationHandler = customRelationHandler
             };
@@ -32,14 +32,11 @@ namespace EntityQueryLanguage.DataApi
         }
     }
 
+    /// Middleware helper. Expects that TContextType is registered in the ServiceProvider
     public class DataApiMiddleware<TContextType> where TContextType : IDisposable
     {
         private RequestDelegate _next;
-        private ISchemaProvider _schemProvider;
-        private IMethodProvider _methodProvider;
-        private string _path = string.Empty;
-        private DataManager<TContextType> _dataManager;
-        private IRelationHandler _relationHandler;
+        private readonly DataApiMiddlewareOptions<TContextType> _options;
 
         public DataApiMiddleware(RequestDelegate next, DataApiMiddlewareOptions<TContextType> options)
         {
@@ -49,24 +46,18 @@ namespace EntityQueryLanguage.DataApi
                 throw new ArgumentException("Please provide a path to the DataQueryMiddlewareOptions");
             if (options.Schema == null)
                 throw new ArgumentException("Please provide a schema to the DataQueryMiddlewareOptions");
-            if (options.NewContextFunc == null)
-                throw new ArgumentException("Please provide a NewContextFunc to the DataQueryMiddlewareOptions");
             _next = next;
-            _schemProvider = options.Schema;
-            _methodProvider = options.MethodProvider ?? new DefaultMethodProvider();
-            _relationHandler = options.RelationHandler;
-            _dataManager = new DataManager<TContextType>(options.NewContextFunc);
-            _path = options.Path;
+            _options = options;
         }
 
-        public async Task Invoke(HttpContext context)
+        public async Task Invoke(HttpContext context, TContextType dbContext)
         {
             // check it matches our path, if we have one
-            if (context.Request.Path.Value.StartsWith(_path))
+            if (context.Request.Path.Value.StartsWith(_options.Path))
             {
                 // right now ignore anything after our path
 
-                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value.TrimEnd('/') == _path.TrimEnd('/')))
+                if (context.Request.Method == "GET" || (context.Request.Method == "POST" && context.Request.Path.Value.TrimEnd('/') == _options.Path.TrimEnd('/')))
                 {
                     // a POST should be an add, but the query might be too long for a GET URL param
                     // we process a POST to /{_path} as a GET with the body as the query instead of a URL param
@@ -76,7 +67,7 @@ namespace EntityQueryLanguage.DataApi
                         using (var sr = new StreamReader(context.Request.Body))
                             query = sr.ReadToEnd();
                     }
-                    var data = _dataManager.Query(query, _schemProvider, _methodProvider, _relationHandler);
+                    var data = DataManager<TContextType>.Query(dbContext, query, _options.Schema, _options.MethodProvider, _options.RelationHandler);
                     // TODO add support for requesting different data formats
                     // for now it's JSON
                     context.Response.Headers.Add("Content-Type", "application/json");
@@ -97,10 +88,7 @@ namespace EntityQueryLanguage.DataApi
                     await context.Response.WriteAsync(string.Format("We don't currently support {0} at {1}.", context.Request.Method, context.Request.Path.Value));
                 }
             }
-            else
-            {
-                await _next(context);
-            }
+            await _next(context);
         }
     }
 }

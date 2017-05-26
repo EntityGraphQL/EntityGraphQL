@@ -49,7 +49,7 @@ namespace demo
             // we can extend the schema
             demoSchema.Type<Location>().AddField("dumb", l => l.Id + " - " + l.Name, "A dumb field");
 
-            app.UseEql("/api/query", demoSchema, () => app.ApplicationServices.GetService<DemoContext>());
+            app.UseEql<DemoContext>("/api/query", demoSchema);
         }
     }
 }

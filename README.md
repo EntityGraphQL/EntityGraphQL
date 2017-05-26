@@ -50,8 +50,14 @@ public class Location {
 ```csharp
 public class Startup {
   public void Configure(IApplicationBuilder app) {
-    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), () => new MyDbContext(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
+    // MyDbContext hsould be registered as a Service for DI e.g. in ConfigureServices()
+    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
   }
+  public void ConfigureServices(IServiceCollection services)
+  {
+      services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
+  }
+
 }
 ```
 `EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.DataApi` does not have a requirement on EF.
