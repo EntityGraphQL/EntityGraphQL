@@ -27,16 +27,16 @@ namespace EntityQueryLanguage.Tests
         {
             var provider = new TestObjectGraphSchema();
             Assert.Equal(true, provider.TypeHasField("opentask", "id"));
-            Assert.Equal(true, provider.TypeHasField("opentask", "description"));
-            // Name is not exposed in our schema
-            Assert.Equal(false, provider.TypeHasField("opentask", "name"));
+            Assert.Equal(true, provider.TypeHasField("opentask", "assignee"));
+            // Not exposed in our schema
+            Assert.Equal(false, provider.TypeHasField("opentask", "IsActive"));
         }
         [Fact]
         public void ReturnsActualName()
         {
             var schema = new TestObjectGraphSchema();
             Assert.Equal("Id", schema.GetActualFieldName("project", "ID"));
-            Assert.Equal("Name", schema.GetActualFieldName("project", "NAme"));
+            Assert.Equal("Name".ToLower(), schema.GetActualFieldName("project", "NAme").ToLower());
         }
     }
 }

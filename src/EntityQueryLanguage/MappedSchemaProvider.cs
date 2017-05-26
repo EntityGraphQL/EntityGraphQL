@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityQueryLanguage.Schema;
+using EntityQueryLanguage.Util;
 
 namespace EntityQueryLanguage
 {
@@ -10,59 +11,68 @@ namespace EntityQueryLanguage
     /// This allows your internal model to change over time while not break your external API. You can create new versions when needed.
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
-        protected EqlType _queryContext;
-        protected Dictionary<string, EqlType> _types = new Dictionary<string, EqlType>(StringComparer.OrdinalIgnoreCase);
+        protected readonly EqlType<TContextType> _queryContext;
+        protected Dictionary<string, IEqlType> _types = new Dictionary<string, IEqlType>(StringComparer.OrdinalIgnoreCase);
 
-        /// Define a type in the schema. Fields are taken from the type T
-        public EqlType TypeFrom<TBaseType>(string name, string description)
+        public MappedSchemaProvider()
         {
-			var tt = new EqlType(typeof(TBaseType), name, description);
+            _queryContext = new EqlType<TContextType>(typeof(TContextType).Name, "Query schema");
+        }
+
+        /// Add a new Object type into the schema with TBaseType as it's context
+        public EqlType<TBaseType> AddType<TBaseType>(string name, string description)
+        {
+			return AddType<TBaseType>(name, description, null);
+        }
+
+        public EqlType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
+        {
+			var tt = new EqlType<TBaseType>(name, description, filter);
             _types.Add(name, tt);
 			return tt;
         }
-        /// Define a type in the schema. Fields are defined
-        public EqlType TypeFrom<TBaseType>(string name, string description, object fields)
+
+        public EqlType<TBaseType> AddType<TBaseType>(string description, Expression<Func<TBaseType, bool>> filter = null)
         {
-			var tt = new EqlType(typeof(TBaseType), name, description, BuildFields(fields));
-            _types.Add(name, tt);
-			return tt;
+            var name = typeof(TBaseType).Name;
+            return AddType(name, description, filter);
         }
 
-        /// Define the base root of the schema
-        public void BuildSchema(object fields)
+        /// Add a "field" to the root of the object graph. This is where you define top level objects/names that they can query
+        public void AddField(Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null)
         {
-            if (fields is List<Field>)
-                _queryContext = new EqlType(typeof(TContextType), typeof(TContextType).Name, "Query context", (List<Field>)fields);
-            else
-                _queryContext = new EqlType(typeof(TContextType), typeof(TContextType).Name, "Query context", BuildFields(fields));
-            _types.Add(_queryContext.Name, _queryContext);
+            var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
+            AddField(exp.Member.Name, selection, description, returnSchemaType);
+        }
+        public void AddField(Field field)
+        {
+            _queryContext.AddField(field);
         }
 
-        public void BuildSchema(List<Field> fields)
+        public void AddField(string name, Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null)
         {
-            _queryContext = new EqlType(typeof(TContextType), typeof(TContextType).Name, "Query context", fields);
-            _types.Add(_queryContext.Name, _queryContext);
+            _queryContext.AddField(name, selection, description, returnSchemaType);
         }
-        public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description)
+
+        /// Get registered type by TType name
+        public EqlType<TType> Type<TType>()
         {
-            return new Field(null, resolve, description);
-        }
-        public Field Field<TContext, TFieldType>(Expression<Func<TContext, TFieldType>> resolve, string description, string type)
-        {
-            return new Field(null, resolve, description);
+            return (EqlType<TType>)_types[typeof(TType).Name];
         }
 
         // ISchemaProvider interface
         public Type ContextType { get { return _queryContext.ContextType; } }
         public bool TypeHasField(string typeName, string identifier)
         {
+            if (_queryContext.ContextType.Name.ToLower() == typeName.ToLower())
+                return _queryContext.HasField(identifier);
+
             return (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
                  || (typeName == _queryContext.ContextType.Name && _queryContext.HasField(identifier));
         }
 		public bool TypeHasField(Type type, string identifier)
         {
-			var typeName = type.Name.ToLower();
-            return TypeHasField(typeName, identifier);
+            return TypeHasField(type.Name, identifier);
         }
         public string GetActualFieldName(string typeName, string identifier)
         {
@@ -123,12 +133,6 @@ namespace EntityQueryLanguage
         public bool HasType(string typeName)
         {
             return _types.ContainsKey(typeName);
-        }
-
-        public void ExtendType<TBaseType>(string fieldName, Expression<Func<TBaseType, object>> fieldFunc, string description = "")
-        {
-            var f = new Field(fieldName, fieldFunc, description);
-            _types[typeof(TBaseType).Name].AddField(f);
         }
     }
 

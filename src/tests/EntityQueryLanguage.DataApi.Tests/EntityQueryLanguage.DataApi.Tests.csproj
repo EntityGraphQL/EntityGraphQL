@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <Description>Tests for Entity Query Language DataApi</Description>
-    <VersionPrefix>0.1.0</VersionPrefix>
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>EntityQueryLanguage.DataApi.Tests</AssemblyName>
@@ -10,6 +9,7 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

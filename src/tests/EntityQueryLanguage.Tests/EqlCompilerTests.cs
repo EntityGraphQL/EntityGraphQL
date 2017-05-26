@@ -38,47 +38,47 @@ namespace EntityQueryLanguage.Tests
         [Fact]
         public void CompilesIdentityCall()
         {
-            var exp = EqlCompiler.Compile("hello", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("hello", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal("returned value", exp.Execute(new TestSchema()));
         }
         [Fact]
         public void FailsIdentityNotThere()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("wrongField", new ObjectSchemaProvider<TestSchema>()));
+            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>()));
             Assert.Equal("Field or property 'wrongField' not found on current context 'TestSchema'", ex.Message);
         }
         [Fact]
         public void CompilesIdentityCallFullPath()
         {
-            var exp = EqlCompiler.Compile("someRelation.field1", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("someRelation.field1", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(2, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesIdentityCallFullPathDeep()
         {
-            var exp = EqlCompiler.Compile("someRelation.relation.id", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("someRelation.relation.id", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(99, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesBinaryExpressionEquals()
         {
-            var exp = EqlCompiler.Compile("someRelation.relation.id = 99", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("someRelation.relation.id = 99", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(true, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesBinaryExpressionPlus()
         {
-            var exp = EqlCompiler.Compile("someRelation.relation.id + 99", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("someRelation.relation.id + 99", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(198, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesBinaryExpressionEqualsAndAdd()
         {
-            var exp = EqlCompiler.Compile("someRelation.relation.id = (99 - 32)", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("someRelation.relation.id = (99 - 32)", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(false, exp.Execute(new TestSchema()));
         }
 
@@ -86,7 +86,7 @@ namespace EntityQueryLanguage.Tests
         public void FailsIfThenElseInlineNoBrackets()
         {
             // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? 'wooh' : 66", new ObjectSchemaProvider<TestSchema>()));
+            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? 'wooh' : 66", SchemaBuilder.FromObject<TestSchema>()));
             Assert.Equal("Expected boolean value in conditional test but found '99'", ex.Message);
         }
 
@@ -94,7 +94,7 @@ namespace EntityQueryLanguage.Tests
         public void CompilesIfThenElseInlineTrueBrackets()
         {
             // tells it how to read it
-            var exp = EqlCompiler.Compile("(someRelation.relation.id = 99) ? 100 : 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("(someRelation.relation.id = 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(100, exp.Execute(new TestSchema()));
         }
 
@@ -102,38 +102,38 @@ namespace EntityQueryLanguage.Tests
         public void CompilesIfThenElseInlineFalseBrackets()
         {
             // tells it how to read it
-            var exp = EqlCompiler.Compile("(someRelation.relation.id = 98) ? 100 : 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("(someRelation.relation.id = 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(66, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesIfThenElseTrue()
         {
-            var exp = EqlCompiler.Compile("if someRelation.relation.id = 99 then 100 else 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.relation.id = 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(100, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesIfThenElseFalse()
         {
-            var exp = EqlCompiler.Compile("if someRelation.relation.id = 33 then 100 else 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.relation.id = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithIntAndUint()
         {
-            var exp = EqlCompiler.Compile("if someRelation.UnisgnedInt = 33 then 100 else 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.UnisgnedInt = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithNullableAndNonNullable()
         {
-            var exp = EqlCompiler.Compile("if someRelation.NullableInt = 8 then 100 else 66", new ObjectSchemaProvider<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.NullableInt = 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal(100, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CanUseCompiledExpressionInWhereMethod()
         {
-            var exp = EqlCompiler.Compile("name = 'Bob", new ObjectSchemaProvider<TestEntity>());
+            var exp = EqlCompiler.Compile("name = 'Bob", SchemaBuilder.FromObject<TestEntity>());
             var objects = new List<TestEntity> { new TestEntity { Name = "Sally" }, new TestEntity { Name = "Bob" } };
             Assert.Equal(2, objects.Count);
             var results = objects.Where(exp.Expression);

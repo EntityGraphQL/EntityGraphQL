@@ -27,9 +27,10 @@ namespace EntityQueryLanguage.Tests
         [Fact]
         public void CompilesIdentityCallFullPath()
         {
-            var exp = EqlCompiler.Compile("privateProjects.where(id = 8).count()", new TestObjectGraphSchema());
+            var schema = new TestObjectGraphSchema();
+            var exp = EqlCompiler.Compile("privateProjects.where(id = 8).count()", schema);
             Assert.Equal(0, exp.Execute(GetDataContext()));
-            var exp2 = EqlCompiler.Compile("privateProjects.count()", new TestObjectGraphSchema());
+            var exp2 = EqlCompiler.Compile("privateProjects.count()", schema);
             Assert.Equal(1, exp2.Execute(GetDataContext()));
         }
         [Fact]

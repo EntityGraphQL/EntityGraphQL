@@ -42,12 +42,12 @@ namespace demo
             // add test data
             var context = app.ApplicationServices.GetService<DemoContext>();
             context.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
-            context.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America"}});
+            context.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America", SomeInt = 9999}});
             context.SaveChanges();
 
-            var demoSchema = new ObjectSchemaProvider<DemoContext>();
+            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
             // we can extend the schema
-            demoSchema.ExtendType<Location>("dumb", l => l.Id + " - " + l.Name);
+            demoSchema.Type<Location>().AddField("dumb", l => l.Id + " - " + l.Name, "A dumb field");
 
             app.UseEql("/api/query", demoSchema, () => app.ApplicationServices.GetService<DemoContext>());
         }

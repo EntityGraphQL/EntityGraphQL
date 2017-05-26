@@ -1,14 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>A data query language (GraphQL-ish) and expression language for .NET. Execute with EntityFramework or in memory</Description>
-    <VersionPrefix>0.4.0</VersionPrefix>
     <TargetFramework>netstandard1.3</TargetFramework>
     <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
     <PackageId>EntityQueryLanguage.DataApi</PackageId>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <PackageVersion>0.5.0</PackageVersion>
+    <Description>A data query/GraphQL library for .NET Core. Execute with EntityFramework (or other ORMs) or in memory</Description>
+    <Authors>Luke Murray</Authors>
+    <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
+    <PackageTags>GraphQL;data query;expression;language</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

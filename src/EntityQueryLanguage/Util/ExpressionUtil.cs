@@ -23,5 +23,16 @@ namespace EntityQueryLanguage.Util
             var typesStr = string.Join<Type>(", ", types);
             throw new EqlCompilerException($"Could not find extension method {methodName} on types {typesStr}");
         }
+
+        public static MemberExpression CheckAndGetMemberExpression<TBaseType, TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection)
+        {
+            var exp = fieldSelection.Body;
+            if (exp.NodeType == ExpressionType.Convert)
+                exp = ((UnaryExpression)exp).Operand;
+
+            if (exp.NodeType != ExpressionType.MemberAccess)
+                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", "fieldSelection");
+            return (MemberExpression)exp;
+        }
     }
 }

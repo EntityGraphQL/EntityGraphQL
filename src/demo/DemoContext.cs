@@ -53,5 +53,6 @@ namespace demo
         public string Name { get; set; }
 
         public List<Property> Properties { get; set; }
+        public int SomeInt { get; set; }
     }
 }

@@ -74,7 +74,7 @@ namespace EntityQueryLanguage.DataApi
                     if (string.IsNullOrEmpty(query))
                     {
                         using (var sr = new StreamReader(context.Request.Body))
-                        query = sr.ReadToEnd();
+                            query = sr.ReadToEnd();
                     }
                     var data = _dataManager.Query(query, _schemProvider, _methodProvider, _relationHandler);
                     // TODO add support for requesting different data formats

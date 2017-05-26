@@ -39,9 +39,11 @@ namespace EntityQueryLanguage.DataApi
                         else
                         {
                             // fetch the data
-                            var ctx = CreateContextValue();
-                            var data = node.AsLambda().Compile().DynamicInvoke(ctx);
-                            allData[node.Name] = data;
+                            using (var ctx = CreateContextValue())
+                            {
+                                var data = node.AsLambda().Compile().DynamicInvoke(ctx);
+                                allData[node.Name] = data;
+                            }
                         }
                     }
                     catch (Exception ex)

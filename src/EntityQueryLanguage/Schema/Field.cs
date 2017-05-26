@@ -18,5 +18,6 @@ namespace EntityQueryLanguage.Schema
         public Expression Resolve { get; private set; }
         public string Description { get; private set; }
         public bool IsCustomType { get; internal set; }
+        public string ReturnSchemaType { get; internal set; }
     }
 }
