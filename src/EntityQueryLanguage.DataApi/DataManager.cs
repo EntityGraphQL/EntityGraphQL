@@ -21,7 +21,8 @@ namespace EntityQueryLanguage.DataApi
             try
             {
                 var objectGraph = new DataApiCompiler(schemaProvider, methodProvider, relationHandler).Compile(dataQuery);
-                Parallel.ForEach(objectGraph.Fields, node =>
+                // Parallel.ForEach(objectGraph.Fields, node =>
+                foreach (var node in objectGraph.Fields)
                 {
                     try
                     {
@@ -32,7 +33,6 @@ namespace EntityQueryLanguage.DataApi
                         }
                         else
                         {
-                            // fetch the data
                             var data = node.AsLambda().Compile().DynamicInvoke(context);
                             allData[node.Name] = data;
                         }
@@ -41,7 +41,8 @@ namespace EntityQueryLanguage.DataApi
                     {
                         allData[node.Name] = new { eql_error = ex.Message };
                     }
-                });
+                }
+                // );
             }
             catch (Exception ex)
             {

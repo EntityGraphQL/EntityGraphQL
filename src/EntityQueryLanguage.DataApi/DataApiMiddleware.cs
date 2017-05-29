@@ -51,7 +51,7 @@ namespace EntityQueryLanguage.DataApi
             _options = options;
         }
 
-        public async Task Invoke(HttpContext context, TContextType queryContext)
+        public async Task Invoke(HttpContext context, TContextType dataContext)
         {
             // check it matches our path, if we have one
             if (context.Request.Path.Value.StartsWith(_options.Path))
@@ -68,7 +68,7 @@ namespace EntityQueryLanguage.DataApi
                         using (var sr = new StreamReader(context.Request.Body))
                             query = sr.ReadToEnd();
                     }
-                    var data = DataManager<TContextType>.Query(queryContext, query, _options.Schema, _options.MethodProvider, _options.RelationHandler);
+                    var data = DataManager<TContextType>.Query(dataContext, query, _options.Schema, _options.MethodProvider, _options.RelationHandler);
                     // TODO add support for requesting different data formats
                     // for now it's JSON
                     context.Response.Headers.Add("Content-Type", "application/json");
