@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
     <PackageId>EntityQueryLanguage.DataApi</PackageId>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
-    <PackageVersion>0.5.3</PackageVersion>
+    <PackageVersion>0.6.0</PackageVersion>
     <Description>A data query/GraphQL library for .NET Core. Execute with EntityFramework (or other ORMs) or in memory</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="1.1.3" />
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
   </ItemGroup>
 
