@@ -183,7 +183,7 @@ namespace EntityQueryLanguage.DataApi.Tests
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
-            Assert.Single(1, Enumerable.Count(result));
+            Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
