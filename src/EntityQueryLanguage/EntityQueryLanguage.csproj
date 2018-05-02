@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>EntityQueryLanguage</AssemblyName>
     <PackageId>EntityQueryLanguage</PackageId>
     <PackageVersion>0.5.0</PackageVersion>
@@ -17,6 +17,7 @@
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.1-beta002" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="System.Linq.Queryable" Version="4.3.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
   </ItemGroup>
 
