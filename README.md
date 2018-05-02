@@ -8,7 +8,7 @@ EQL allows you to quickly expose an object-graph as an API in your applications.
 _Please explore, give feedback or join the development._
 
 ## Serving your data
-The ``EntityQueryLanguage.DataApi`` namespace contains middleware to easily get up and running with an API for your application.
+The ``EntityQueryLanguage.DataApi`` namespace contains the GraphQL-like object querying.
 
 ### Getting up and running with EF
 
@@ -45,22 +45,58 @@ public class Location {
   public string Name { get; set; }
 }
 ```
-2. Configure the Data API middleware
+2. Create a route
+Using what ever API library you wish. Here is an example for a ASP.NET WebApi controller
 
 ```csharp
 public class Startup {
-  public void Configure(IApplicationBuilder app) {
-    // MyDbContext should be registered as a Service for DI e.g. in ConfigureServices()
-    app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
-  }
   public void ConfigureServices(IServiceCollection services)
   {
       services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
+      // add schema provider so we don't need to create it everytime
+      services.AddSingleton<MappedSchemaProvider<MyDbContext>>();
   }
+}
 
+[Route("api/[controller]")]
+public class QueryController : Controller
+{
+    private readonly MyDbContext _dbContext;
+    private readonly MappedSchemaProvider<MyDbContext> _schemaProvider;
+
+    public QueryController(MyDbContext dbContext, MappedSchemaProvider<MyDbContext> schemaProvider)
+    {
+        this._dbContext = dbContext;
+        this._schemaProvider = schemaProvider;
+    }
+
+    [HttpGet]
+    public object Get(string query)
+    {
+        return RunDataQuery(query);
+    }
+
+    [HttpPost]
+    public object Post([FromBody]string query)
+    {
+        return RunDataQuery(query);
+    }
+
+    private object RunDataQuery(string query)
+    {
+        try
+        {
+            var data = _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
+            return data;
+        }
+        catch (Exception)
+        {
+            return HttpStatusCode.InternalServerError;
+        }
+    }
 }
 ```
-`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.DataApi` does not have a requirement on EF.
+`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.DataApi` does not have a requirement on EF (But this example does).
 
 This sets up 2 end points:
 - `POST` at `/api/query` where the query is in the body of the post
