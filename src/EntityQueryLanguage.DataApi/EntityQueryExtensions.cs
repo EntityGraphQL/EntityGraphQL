@@ -5,14 +5,25 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using EntityQueryLanguage.DataApi.Parsing;
 
-
 namespace EntityQueryLanguage.DataApi
 {
-    public class DataManager<TContextType> where TContextType : IDisposable
+    public static class EntityQueryExtensions
     {
-        /// Function that returns the DataContext for the queries. If null _serviceProvider is used
-        public static IDictionary<string, object> Query(TContextType context, string dataQuery, ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
+        /// <summary>
+        /// Extension method to query an object purely based on the schema of that object.null Note it creates a new MappedSchemaProvider each time.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="dataQuery"></param>
+        /// <returns></returns>
+        public static object QueryObject<TType>(this TType context, string dataQuery)
         {
+            return QueryObject(context, dataQuery, new MappedSchemaProvider<TType>(), null, null);
+        }
+        /// Function that returns the DataContext for the queries. If null _serviceProvider is used
+        public static object QueryObject<TType>(this TType context, string dataQuery, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null,IMethodProvider methodProvider = null)
+        {
+            if (methodProvider == null)
+                methodProvider = new DefaultMethodProvider();
             var timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 

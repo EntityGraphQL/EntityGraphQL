@@ -31,6 +31,9 @@ namespace demo
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("demo-db"));
+
+            // add schema provider so we don't need to create it everytime
+            services.AddSingleton<MappedSchemaProvider<DemoContext>>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -49,7 +52,7 @@ namespace demo
             // we can extend the schema
             demoSchema.Type<Location>().AddField("dumb", l => l.Id + " - " + l.Name, "A dumb field");
 
-            app.UseEql<DemoContext>("/api/query", demoSchema);
+            app.UseMvc();
         }
     }
 }
