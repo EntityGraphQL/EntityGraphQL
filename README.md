@@ -12,7 +12,7 @@ The ``EntityQueryLanguage.DataApi`` namespace contains middleware to easily get 
 
 ### Getting up and running with EF
 
-_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirements - any ORM should work - although EF is tested well._
+_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM should work - although EF is tested well._
 
 1. Define your EF context
 
@@ -50,7 +50,7 @@ public class Location {
 ```csharp
 public class Startup {
   public void Configure(IApplicationBuilder app) {
-    // MyDbContext hsould be registered as a Service for DI e.g. in ConfigureServices()
+    // MyDbContext should be registered as a Service for DI e.g. in ConfigureServices()
     app.UseEql<MyDbContext>("/api/query", new ObjectSchemaProvider<MyDbContext>(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
   }
   public void ConfigureServices(IServiceCollection services)

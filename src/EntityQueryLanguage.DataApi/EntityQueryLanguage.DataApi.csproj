@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.3</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
     <PackageId>EntityQueryLanguage.DataApi</PackageId>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
-    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <PackageVersion>0.5.3</PackageVersion>
     <Description>A data query/GraphQL library for .NET Core. Execute with EntityFramework (or other ORMs) or in memory</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageTags>GraphQL;data query;expression;language</PackageTags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,10 +22,9 @@
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.1-beta002" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.0.2" />
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
   </ItemGroup>
 
 </Project>

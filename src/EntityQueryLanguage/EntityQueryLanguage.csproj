@@ -1,25 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.3</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>EntityQueryLanguage</AssemblyName>
     <PackageId>EntityQueryLanguage</PackageId>
-    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
     <PackageVersion>0.5.0</PackageVersion>
     <Description>An run-time expression language for .NET Core. Compiles simple code into .NET Expressions for runtime execution. Includes schema creation and type checking.</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageTags>GraphQL;data query;expression;language</PackageTags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.1-beta002" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-    <PackageReference Include="System.Linq.Queryable" Version="4.0.1" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
   </ItemGroup>
 
 </Project>

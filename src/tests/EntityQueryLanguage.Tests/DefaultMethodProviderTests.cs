@@ -11,14 +11,14 @@ namespace EntityQueryLanguage.Tests
         {
             var exp = EqlCompiler.Compile("people.where(name = 'bob')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
-            Assert.Equal(0, result.Count());
+            Assert.Empty(result);
         }
         [Fact]
         public void CompilesWhere2()
         {
             var exp = EqlCompiler.Compile("people.where(name = 'Luke')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
-            Assert.Equal(1, result.Count());
+            Assert.Single(result);
         }
         [Fact]
         public void FailsWhereNoParameter()
@@ -53,7 +53,7 @@ namespace EntityQueryLanguage.Tests
         {
             var exp = EqlCompiler.Compile("people.take(1)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
-            Assert.Equal(1, result.Count());
+            Assert.Single(result);
             Assert.Equal("Bob", result.ElementAt(0).Name);
         }
         [Fact]

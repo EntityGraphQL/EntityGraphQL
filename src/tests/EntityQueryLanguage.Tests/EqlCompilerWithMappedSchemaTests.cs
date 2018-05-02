@@ -38,7 +38,7 @@ namespace EntityQueryLanguage.Tests
         {
             // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
             var exp = EqlCompiler.Compile("defaultlocation.id = 10", new TestObjectGraphSchema());
-            Assert.Equal(true, exp.Execute(GetDataContext()));
+            Assert.True((bool)exp.Execute(GetDataContext()));
         }
         [Fact]
         public void CompilesIfThenElseInlineFalseBrackets()

@@ -42,7 +42,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people { id, name }
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
@@ -63,7 +63,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 }");
             Assert.Equal(2, tree.Fields.Count);
             var result = tree.Fields.ElementAt(1).AsLambda().Compile().DynamicInvoke(new TestSchema()) as int?;
-            Assert.Equal(true, result.HasValue);
+            Assert.True(result.HasValue);
             Assert.Equal(1, result.Value);
         }
         [Fact]
@@ -75,7 +75,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people { id, thing }
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
@@ -94,7 +94,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people { id }
 }");});
-            Assert.Equal(ex.Message, "Error compiling field or query 'people'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Person does not have field or property id");
+            Assert.Equal("Error compiling field or query 'people'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Person does not have field or property id", ex.Message);
         }
 
         [Fact]
@@ -104,7 +104,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people.where(id = 9) { id, name }
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(0, Enumerable.Count(result));
         }
@@ -115,7 +115,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	luke: people.where(id = 99) { id, name }
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             Assert.Equal("luke", tree.Fields.ElementAt(0).Name);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
@@ -127,7 +127,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people { id, fullName: name + ' ' + lastname }
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             Assert.Equal("people", tree.Fields.ElementAt(0).Name);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
@@ -169,7 +169,7 @@ namespace EntityQueryLanguage.DataApi.Tests
             Assert.Equal(1, Enumerable.Count(result));
             var user = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
-            Assert.Equal(1, user.GetType().GetFields().Length);
+            Assert.Single(user.GetType().GetFields());
             Assert.Equal("Id", user.GetType().GetFields()[0].Name);
         }
 
@@ -181,9 +181,9 @@ namespace EntityQueryLanguage.DataApi.Tests
 	people { id, name, User { field1 } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
-            Assert.Equal(1, Enumerable.Count(result));
+            Assert.Single(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
@@ -192,7 +192,7 @@ namespace EntityQueryLanguage.DataApi.Tests
             // make sure we sub-select correctly to make the requested object graph
             Assert.Equal("User", person.GetType().GetFields()[2].Name);
             var user = person.User;
-            Assert.Equal(1, user.GetType().GetFields().Length);
+            Assert.Single(user.GetType().GetFields());
             Assert.Equal("Field1", user.GetType().GetFields()[0].Name);
         }
 
@@ -209,7 +209,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 	}
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
@@ -237,7 +237,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 	people { id, name, projects { name } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
@@ -266,7 +266,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 		}
 	}
 }");
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
@@ -326,7 +326,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 	people { id, name, User { field1 } }
 }");
             // People.Include(p => p.User).Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            Assert.Equal(1, tree.Fields.Count);
+            Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);

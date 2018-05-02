@@ -16,20 +16,20 @@ namespace EntityQueryLanguage.Tests
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.Equal(true, provider.TypeHasField("location", "id"));
-            Assert.Equal(true, provider.TypeHasField("location", "address"));
-            Assert.Equal(true, provider.TypeHasField("location", "state"));
-            Assert.Equal(true, provider.TypeHasField("location", "Country"));
-            Assert.Equal(true, provider.TypeHasField("location", "planet"));
+            Assert.True(provider.TypeHasField("location", "id"));
+            Assert.True(provider.TypeHasField("location", "address"));
+            Assert.True(provider.TypeHasField("location", "state"));
+            Assert.True(provider.TypeHasField("location", "Country"));
+            Assert.True(provider.TypeHasField("location", "planet"));
         }
         [Fact]
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.Equal(true, provider.TypeHasField("opentask", "id"));
-            Assert.Equal(true, provider.TypeHasField("opentask", "assignee"));
+            Assert.True(provider.TypeHasField("opentask", "id"));
+            Assert.True(provider.TypeHasField("opentask", "assignee"));
             // Not exposed in our schema
-            Assert.Equal(false, provider.TypeHasField("opentask", "IsActive"));
+            Assert.False(provider.TypeHasField("opentask", "IsActive"));
         }
         [Fact]
         public void ReturnsActualName()

@@ -65,7 +65,7 @@ namespace EntityQueryLanguage.Tests
         public void CompilesBinaryExpressionEquals()
         {
             var exp = EqlCompiler.Compile("someRelation.relation.id = 99", SchemaBuilder.FromObject<TestSchema>());
-            Assert.Equal(true, exp.Execute(new TestSchema()));
+            Assert.True((bool)exp.Execute(new TestSchema()));
         }
 
         [Fact]
@@ -79,7 +79,7 @@ namespace EntityQueryLanguage.Tests
         public void CompilesBinaryExpressionEqualsAndAdd()
         {
             var exp = EqlCompiler.Compile("someRelation.relation.id = (99 - 32)", SchemaBuilder.FromObject<TestSchema>());
-            Assert.Equal(false, exp.Execute(new TestSchema()));
+            Assert.False((bool)exp.Execute(new TestSchema()));
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace EntityQueryLanguage.Tests
             var objects = new List<TestEntity> { new TestEntity { Name = "Sally" }, new TestEntity { Name = "Bob" } };
             Assert.Equal(2, objects.Count);
             var results = objects.Where(exp.Expression);
-            Assert.Equal(1, results.Count());
+            Assert.Single(results);
             Assert.Equal("Bob", results.ElementAt(0).Name);
         }
 
