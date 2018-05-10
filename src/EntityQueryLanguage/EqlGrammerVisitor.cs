@@ -63,16 +63,15 @@ namespace EntityQueryLanguage
                 left = ConvertToGuid(left);
                 convertedToSameTypes = true;
             }
-                
-            return convertedToSameTypes ?  
-                Expression.MakeBinary(op, left, right) : 
+
+            return convertedToSameTypes ?
+                Expression.MakeBinary(op, left, right) :
                 null;
         }
 
-        private static NewExpression ConvertToGuid(Expression expression)
+        private static Expression ConvertToGuid(Expression expression)
         {
-            // currently doesn't support nulls - to fix that wrap in  a conditional is null ? (Guid) null : below
-            return Expression.New(typeof(Guid).GetConstructor(new Type[] { typeof(string) }), Expression.Call(expression, typeof(object).GetMethod("ToString")));
+            return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
         public override Expression VisitExpr(EqlGrammerParser.ExprContext context)

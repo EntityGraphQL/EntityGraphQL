@@ -1,11 +1,19 @@
 using Xunit;
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 namespace EntityQueryLanguage.Tests
 {
     public class DefaultMethodProviderTests
     {
+        [Fact]
+        public void CompilesFirst()
+        {
+            var exp = EqlCompiler.Compile("people.first(guid = '6492f5fe-0869-4279-88df-7f82f8e87a67')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as Person;
+            Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
+        }
         [Fact]
         public void CompilesWhere()
         {
@@ -98,6 +106,7 @@ namespace EntityQueryLanguage.Tests
             public int Id { get; set; } = 99;
             public string Name { get; set; } = "Luke";
             public string LastName { get; set; } = "Lasty";
+            public Guid Guid { get; set; } = new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67");
         }
     }
 }

@@ -19,8 +19,8 @@ namespace EntityQueryLanguage.DataApi
 
         public DataApiNode BuildNode(List<DataApiNode> fieldExpressions, ParameterExpression contextParameter, LambdaExpression exp, string name, ISchemaProvider schemaProvider)
         {
-            var localFields = fieldExpressions.Where(f => f.Expression.NodeType != ExpressionType.MemberInit);
-            var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit);
+            var localFields = fieldExpressions.Where(f => f.Expression.NodeType != ExpressionType.MemberInit && f.Expression.NodeType != ExpressionType.Call);
+            var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call);
 
             var body = exp.Body;
             foreach (var relation in relations)

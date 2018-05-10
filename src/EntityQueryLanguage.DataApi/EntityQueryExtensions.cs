@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using EntityQueryLanguage.DataApi.Parsing;
+using System.Diagnostics;
 
 namespace EntityQueryLanguage.DataApi
 {
@@ -15,17 +16,21 @@ namespace EntityQueryLanguage.DataApi
         /// <param name="context"></param>
         /// <param name="dataQuery"></param>
         /// <returns></returns>
-        public static object QueryObject<TType>(this TType context, string dataQuery)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, string dataQuery, bool includeDebugInfo = false)
         {
-            return QueryObject(context, dataQuery, new MappedSchemaProvider<TType>(), null, null);
+            return QueryObject(context, dataQuery, new MappedSchemaProvider<TType>(), null, null, includeDebugInfo);
         }
         /// Function that returns the DataContext for the queries. If null _serviceProvider is used
-        public static object QueryObject<TType>(this TType context, string dataQuery, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null,IMethodProvider methodProvider = null)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, string dataQuery, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
-            var timer = new System.Diagnostics.Stopwatch();
-            timer.Start();
+            Stopwatch timer = null;
+            if (includeDebugInfo)
+            {
+                timer = new Stopwatch();
+                timer.Start();
+            }
 
             var allData = new ConcurrentDictionary<string, object>();
 
@@ -59,8 +64,11 @@ namespace EntityQueryLanguage.DataApi
             {
                 allData["error"] = ex.Message;
             }
-            timer.Stop();
-            allData["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
+            if (includeDebugInfo && timer != null)
+            {
+                timer.Stop();
+                allData["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
+            }
 
             return allData;
         }

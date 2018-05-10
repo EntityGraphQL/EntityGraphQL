@@ -54,7 +54,8 @@ public class Startup {
   {
       services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
       // add schema provider so we don't need to create it everytime
-      services.AddSingleton<MappedSchemaProvider<MyDbContext>>();
+      // Also for this demo we expose all fields on MyDbContext. See below for details on building custom fields etc.
+      services.AddSingleton(SchemaBuilder.FromObject<MyDbContext>());
   }
 }
 
@@ -87,6 +88,9 @@ public class QueryController : Controller
         try
         {
             var data = _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
+            if (data.ContainsKey("error"))
+                return this.StatusCode(StatusCodes.Status500InternalServerError, data);
+
             return data;
         }
         catch (Exception)
