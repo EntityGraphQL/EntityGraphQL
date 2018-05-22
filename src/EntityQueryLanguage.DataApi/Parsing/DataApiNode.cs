@@ -11,15 +11,15 @@ namespace EntityQueryLanguage.DataApi.Parsing
         public List<DataApiNode> Fields { get; private set; }
         public IEnumerable<DataApiNode> Relations { get; private set; }
         public Expression RelationExpression { get; private set; }
+        public ParameterExpression Parameter { get; private set; }
 
-        private ParameterExpression _parameter;
 
         public DataApiNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression)
         {
             Name = name;
             Expression = query;
             Fields = new List<DataApiNode>();
-            _parameter = parameter;
+            Parameter = parameter;
             RelationExpression = relationExpression;
         }
 
@@ -30,7 +30,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
 
         public LambdaExpression AsLambda()
         {
-            return Expression.Lambda(Expression, _parameter);
+            return Expression.Lambda(Expression, Parameter);
         }
 
         public static DataApiNode MakeError(string name, string message)

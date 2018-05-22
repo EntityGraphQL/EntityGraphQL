@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Antlr4.Runtime;
@@ -80,6 +81,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
             private IRelationHandler _relationHandler;
             // This is really just so we know what to use when visiting a field
             private Expression _selectContext;
+
             public DataApiVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler)
             {
                 _schemaProvider = schemaProvider;
@@ -143,10 +145,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
                     {
                         // top level are queries on the context
                         var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
-                        var topLevelSelect = BuildDynamicSelectOnCollection(exp, name, context);
-                        // if (_relationHandler != null)
-                        // {
-                        // }
+                        var topLevelSelect = BuildDynamicSelectOnCollection(exp, name, context, true);
                         return topLevelSelect;
                     }
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
@@ -161,7 +160,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
 
             /// Given a syntax of someCollection { fields, to, selection, from, object }
             /// it will build a select assuming 'someCollection' is an IEnumerable
-            private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context)
+            private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context, bool isRootSelect)
             {
                 var elementType = exp.Body.Type.GetEnumerableType();
                 var contextParameter = Expression.Parameter(elementType);
@@ -170,22 +169,25 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 _selectContext = contextParameter;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-                if (_relationHandler != null)
+                var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).Select(r => r.RelationExpression).ToList();
+                // process at each relation
+                if (_relationHandler != null && relations.Any())
                 {
                     // Likely the EF handler to build .Include()s
-                    var node = _relationHandler.BuildNode(fieldExpressions, contextParameter, exp, name, _schemaProvider);
-                    _selectContext = oldContext;
+                    exp = _relationHandler.BuildNodeForSelect(relations, contextParameter, exp, name, _schemaProvider);
+                }
 
-                    return node;
-                }
-                else
+                // we're about to add the .Select() call. May need to do something
+                if (_relationHandler != null && isRootSelect)
                 {
-                    // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
-                    var selectExpression = DataApiExpressionUtil.SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
-                    var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
-                    _selectContext = oldContext;
-                    return node;
+                    exp = _relationHandler.HandleSelectComplete(exp);
                 }
+
+                // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
+                var selectExpression = DataApiExpressionUtil.SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
+                var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
+                _selectContext = oldContext;
+                return node;
             }
 
             /// Given a syntax of someField { fields, to, selection, from, object }
@@ -203,13 +205,21 @@ namespace EntityQueryLanguage.DataApi.Parsing
                     var exp = result.Expression;
                     if (exp.Body.Type.IsEnumerable())
                     {
-                        return BuildDynamicSelectOnCollection(exp, name, context);
+                        return BuildDynamicSelectOnCollection(exp, name, context, false);
                     }
 
                     var oldContext = _selectContext;
                     _selectContext = exp.Body;
                     // visit child fields. Will be field or entityQueries again
                     var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
+
+                    var relationsExps = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).ToList();
+                    if (_relationHandler != null && relationsExps.Any())
+                    {
+                        var parameterExpression = Expression.Parameter(_selectContext.Type);
+                        var relations = relationsExps.Select(r => (Expression)Expression.PropertyOrField(parameterExpression, r.Name)).ToList();
+                        exp = _relationHandler.BuildNodeForSelect(relations, parameterExpression, exp, name, _schemaProvider);
+                    }
 
                     var newExp = DataApiExpressionUtil.CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
                     _selectContext = oldContext;

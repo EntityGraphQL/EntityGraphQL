@@ -3,3 +3,4 @@ project.lock.json
 .vscode/
 .idea/
 obj/
+.DS_Store
