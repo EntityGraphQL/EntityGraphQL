@@ -48,19 +48,56 @@ namespace EntityQueryLanguage.DataApi
             var exp = baseExpression.Body;
             _includes.Reverse();
             var type = exp.Type.GetGenericArguments()[0];
+            Type lastType = null;
             foreach (var relationLambda in _includes)
             {
-                if (type != relationLambda.Parameters.First().Type)
+                var relationParamType = relationLambda.Parameters.First().Type;
+                if (type != relationParamType)
                 {
-                    exp = ExpressionUtil.MakeExpressionCall(new Type[] { _lookupType }, "ThenInclude", new Type[] { type, relationLambda.Parameters.First().Type, relationLambda.Body.Type }, exp, relationLambda);
+                    // EF requires something like this
+                    // .Include(level1 => level1.Level2)
+                    //     .ThenInclude(level2 => level2.level3)
+                    // .Include(level1 => level1.Level2b)
+                    //     .ThenInclude(level2b => level2b.Level3b)
+                    //         .ThenInclude(level3b => level3b.Level4)
+                    if (lastType != null && relationParamType != lastType)
+                    {
+                        exp = InsertTopLevelIncludesIfRequired(exp, type, relationParamType);
+                    }
+                    exp = ExpressionUtil.MakeExpressionCall(new Type[] { _lookupType }, "ThenInclude", new Type[] { type, relationParamType, relationLambda.Body.Type }, exp, relationLambda);
                 }
                 else
                 {
-                    exp = ExpressionUtil.MakeExpressionCall(new Type[1] { _lookupType }, "Include", new Type[2] { relationLambda.Parameters.First().Type, relationLambda.Body.Type }, exp, relationLambda);
+                    exp = ExpressionUtil.MakeExpressionCall(new Type[1] { _lookupType }, "Include", new Type[2] { relationParamType, relationLambda.Body.Type }, exp, relationLambda);
                 }
+                lastType = relationLambda.Body.Type.IsEnumerable() ? relationLambda.Body.Type.GetGenericArguments()[0] : relationLambda.Body.Type;
             }
             var lambda = Expression.Lambda(exp, baseExpression.Parameters);
             return lambda;
+        }
+
+        private Expression InsertTopLevelIncludesIfRequired(Expression exp, Type rootType, Type relationParamType)
+        {
+            var searchParamType = relationParamType;
+            var lastRelation = _includes.Where(r => (r.ReturnType.IsEnumerable() ? r.ReturnType.GetGenericArguments()[0] : r.ReturnType) == searchParamType).First();
+
+            if (lastRelation.Parameters.First().Type != rootType)
+            {
+                exp = InsertTopLevelIncludesIfRequired(exp, rootType, lastRelation.Parameters.First().Type);
+            }
+
+            var newRelationParamType = lastRelation.Parameters.First().Type;
+            if (newRelationParamType == rootType)
+            {
+                exp = ExpressionUtil.MakeExpressionCall(new Type[] { _lookupType }, "Include", new Type[] { rootType, lastRelation.Body.Type }, exp, lastRelation);
+            }
+            else
+            {
+                exp = ExpressionUtil.MakeExpressionCall(new Type[] { _lookupType }, "ThenInclude", new Type[] { rootType, newRelationParamType, lastRelation.Body.Type }, exp, lastRelation);
+            }
+            searchParamType = lastRelation.Parameters.First().Type;
+
+            return exp;
         }
     }
 }
