@@ -9,6 +9,9 @@ namespace EntityQueryLanguage.Extensions
     {
         public static bool IsEnumerable(this Type source)
         {
+            if (source == typeof(string))
+                return false;
+
             var isEnumerable = source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>);
             if (!isEnumerable)
             {

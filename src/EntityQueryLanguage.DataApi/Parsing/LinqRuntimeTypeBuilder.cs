@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
+using EntityQueryLanguage.Extensions;
 
 namespace EntityQueryLanguage.DataApi.Parsing
 {
@@ -21,7 +22,21 @@ namespace EntityQueryLanguage.DataApi.Parsing
             //TODO: optimize the type caching -- if fields are simply reordered, that doesn't mean that they're actually different types, so this needs to be smarter
             string key = string.Empty;
             foreach (var field in fields)
-                key += field.Key + ":" + field.Value.Name + ",";
+            {
+                key = MakeKey(key, field.Value);
+            }
+
+            return $":eql_anon:{key}";
+        }
+
+        private static string MakeKey(string key, Type field)
+        {
+            if (field.IsNullableType())
+                key += "N" + field.GetGenericArguments()[0].Name;
+            else if (field.IsEnumerable())
+                key += "L" + field.GetGenericArguments()[0].Name;
+            else
+                key += field.Name;
 
             return key;
         }
