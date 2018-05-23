@@ -23,21 +23,23 @@ namespace EntityQueryLanguage.DataApi.Parsing
             string key = string.Empty;
             foreach (var field in fields)
             {
-                key = MakeKey(key, field.Value);
+                key = MakeKey(key, field.Key, field.Value);
             }
 
             return $":eql_anon:{key}";
         }
 
-        private static string MakeKey(string key, Type field)
+        private static string MakeKey(string key, string fieldName, Type fieldType)
         {
-            if (field.IsNullableType())
-                key += "N" + field.GetGenericArguments()[0].Name;
-            else if (field.IsEnumerable())
-                key += "L" + field.GetGenericArguments()[0].Name;
+            string type;
+            if (fieldType.IsNullableType())
+                type = "N" + fieldType.GetGenericArguments()[0].Name;
+            else if (fieldType.IsEnumerable())
+                type = "L" + fieldType.GetGenericArguments()[0].Name;
             else
-                key += field.Name;
+                type = fieldType.Name;
 
+            key += fieldName + type;
             return key;
         }
 

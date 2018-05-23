@@ -51,11 +51,7 @@ namespace EntityQueryLanguage
             {
                 propType = propType.GetGenericArguments()[0];
             }
-            NewMethod(schema, propType);
-        }
 
-        private static void NewMethod<TContextType>(MappedSchemaProvider<TContextType> schema, Type propType)
-        {
             if (!schema.HasType(propType.Name) && propType.Name != "String" && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))
             {
                 // add type before we recurse more that may also add the type
