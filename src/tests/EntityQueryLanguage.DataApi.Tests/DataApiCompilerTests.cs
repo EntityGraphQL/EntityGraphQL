@@ -14,7 +14,7 @@ namespace EntityQueryLanguage.DataApi.Tests
             var ex = Assert.Throws<EqlCompilerException>(() => new DataApiCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1, field2 }
 }"));
-            Assert.Equal("Error: line 2:1 extraneous input 'myEntity' expecting 28", ex.Message);
+            Assert.Equal("Error: line 2:1 extraneous input 'myEntity' expecting 29", ex.Message);
         }
 
         [Fact]
@@ -144,7 +144,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people.id = 9 { id, name }
 }"));
-            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 28", ex.Message);
+            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 29", ex.Message);
         }
 
         [Fact]

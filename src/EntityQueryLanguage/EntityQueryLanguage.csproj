@@ -14,10 +14,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4" Version="4.6.4" />
-    <PackageReference Include="Antlr4.Runtime" Version="4.6.4" />
+    <PackageReference Include="Antlr4" Version="4.6.5-rc002" />
+    <PackageReference Include="Antlr4.Runtime" Version="4.6.5-rc002" />
     <PackageReference Include="System.Linq.Queryable" Version="4.3.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
   </ItemGroup>
 
+  <!-- Uncomment this to generate the listener on build -->
+  <!-- <ItemGroup>
+    <Antlr4 Include="Grammer/EqlGrammer.g4">
+      <Generator>MSBuild:Compile</Generator>
+      <CustomToolNamespace>EntityQueryLanguage.Grammer</CustomToolNamespace>
+      <Listener>False</Listener>
+      <Visitor>True</Visitor>
+    </Antlr4>
+  </ItemGroup> -->
 </Project>
