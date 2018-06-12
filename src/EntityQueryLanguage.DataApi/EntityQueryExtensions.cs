@@ -32,7 +32,8 @@ namespace EntityQueryLanguage.DataApi
                 timer.Start();
             }
 
-            var allData = new ConcurrentDictionary<string, object>();
+            var queryData = new ConcurrentDictionary<string, object>();
+            var result = new Dictionary<string, object>();
 
             try
             {
@@ -45,32 +46,34 @@ namespace EntityQueryLanguage.DataApi
                         if (!string.IsNullOrEmpty(node.Error))
                         {
                             System.Console.WriteLine(node.Error);
-                            allData[node.Name] = node.Error;
+                            queryData[node.Name] = node.Error;
                         }
                         else
                         {
                             var data = node.AsLambda().Compile().DynamicInvoke(context);
-                            allData[node.Name] = data;
+                            queryData[node.Name] = data;
                         }
                     }
                     catch (Exception ex)
                     {
-                        allData[node.Name] = new { eql_error = ex.Message };
+                        queryData[node.Name] = new { eql_error = ex.Message };
                     }
                 }
                 // );
             }
             catch (Exception ex)
             {
-                allData["error"] = ex.Message;
+                // error with the whole query
+                result["error"] = ex.Message;
             }
             if (includeDebugInfo && timer != null)
             {
                 timer.Stop();
-                allData["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
+                result["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
             }
+            result["data"] = queryData;
 
-            return allData;
+            return result;
         }
     }
 }

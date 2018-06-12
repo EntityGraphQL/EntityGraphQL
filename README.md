@@ -191,7 +191,21 @@ Will return the following result.
 
 As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core 1.1.
 
-[Check out the wiki](https://github.com/lukemurray/EntityQueryLanguage/wiki) for more detail on writing EQL expressions and data queries.
+### Supported GraphQL features
+- Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
+- Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
+
+### Supported LINQ methods (non-GraphQL compatible)
+- `array.where(filter)`
+- `array.filter(filter)`
+- `array.first(filter?)`
+- `array.last(filter?)`
+- `array.count(filter?)`
+  - `filter` is an expression that can be `true` or `false`, written from the context of the array item
+- `array.take(int)`
+- `array.skip(int)`
+- `array.orderBy(field)`
+- `array.orderByDesc(field)`
 
 ### Custom schemata
 
@@ -229,21 +243,22 @@ var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
 
-- fix GetMethodContext() in methodProvider
-- Implement more of the GraphQL query spec
-  - Arguments (note you can also use a LINQ style query for filtering etc.)
-  - fragments
-  - variables & operation names
-  - Directives
-  - Mutations
-  - Inline fragments
-  - meta fields
-- Extend schema type system
-- Add support for data manipulation - adds, updates, deletes
-- Add logging options
-- A way to "plug-in" security - examples
-- A way to "plug-in" business logic - examples
-- Auto generate schema documentation page
-- better paging (from graphql?)
-- Wiki page on writing queries
-- Authentication and access control options
+[ ] fix GetMethodContext() in methodProvider
+[ ] Implement more of the GraphQL query spec
+  [ ] Arguments
+  [ ] fragments
+  [ ] operation names
+  [ ] variables
+  [ ] Directives
+  [ ] Mutations
+  [ ] Inline fragments
+  [ ] meta fields
+[ ] Extend schema type system
+[ ] Add support for data manipulation - adds, updates, deletes
+[ ] Add logging options
+[ ] A way to "plug-in" security - examples
+[ ] A way to "plug-in" business logic - examples
+[ ] Auto generate schema documentation page
+[ ] better paging (from graphql?)
+[ ] Wiki page on writing queries
+[ ] Authentication and access control options
