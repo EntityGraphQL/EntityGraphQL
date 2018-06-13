@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using System.Threading;
 using EntityQueryLanguage.Extensions;
 
-namespace EntityQueryLanguage.DataApi.Parsing
+namespace EntityQueryLanguage.GraphQL.Parsing
 {
     public static class LinqRuntimeTypeBuilder
     {

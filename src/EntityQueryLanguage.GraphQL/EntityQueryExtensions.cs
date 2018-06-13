@@ -3,12 +3,12 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using EntityQueryLanguage.DataApi.Parsing;
+using EntityQueryLanguage.GraphQL.Parsing;
 using System.Diagnostics;
 using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Compiler;
 
-namespace EntityQueryLanguage.DataApi
+namespace EntityQueryLanguage.GraphQL
 {
     public static class EntityQueryExtensions
     {

@@ -4,15 +4,15 @@
     <Description>Tests for Entity Query Language DataApi</Description>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AssemblyName>EntityQueryLanguage.DataApi.Tests</AssemblyName>
-    <PackageId>EntityQueryLanguage.DataApi.Tests</PackageId>
+    <AssemblyName>EntityQueryLanguage.GraphQL.Tests</AssemblyName>
+    <PackageId>EntityQueryLanguage.GraphQL.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../EntityQueryLanguage/EntityQueryLanguage.csproj" />
-    <ProjectReference Include="../../EntityQueryLanguage.DataApi/EntityQueryLanguage.DataApi.csproj" />
+    <ProjectReference Include="../../EntityQueryLanguage.GraphQL/EntityQueryLanguage.GraphQL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

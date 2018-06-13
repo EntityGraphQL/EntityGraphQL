@@ -8,7 +8,7 @@ EQL allows you to quickly expose an object-graph as an API in your applications.
 _Please explore, give feedback or join the development._
 
 ## Serving your data
-The ``EntityQueryLanguage.DataApi`` namespace contains the GraphQL-like object querying.
+The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL-like object querying.
 
 ### Getting up and running with EF
 
@@ -100,7 +100,7 @@ public class QueryController : Controller
     }
 }
 ```
-`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.DataApi` does not have a requirement on EF (But this example does).
+`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.GraphQL` does not have a requirement on EF (But this example does).
 
 This sets up 2 end points:
 - `POST` at `/api/query` where the query is in the body of the post

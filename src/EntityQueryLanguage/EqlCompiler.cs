@@ -30,11 +30,6 @@ namespace EntityQueryLanguage
             return Compile(query, schemaProvider, new DefaultMethodProvider());
         }
 
-        private static QueryResult Compile(string query, ISchemaProvider schemaProvider, DefaultMethodProvider defaultMethodProvider)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Compile a query.
         /// </summary>

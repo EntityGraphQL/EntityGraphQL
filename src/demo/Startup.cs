@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using EntityQueryLanguage;
-using EntityQueryLanguage.DataApi;
+using EntityQueryLanguage.GraphQL;
 using Microsoft.EntityFrameworkCore;
 using EntityQueryLanguage.Schema;
 

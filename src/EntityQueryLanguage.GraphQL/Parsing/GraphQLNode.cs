@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace EntityQueryLanguage.DataApi.Parsing
+namespace EntityQueryLanguage.GraphQL.Parsing
 {
     public class GraphQLNode
     {

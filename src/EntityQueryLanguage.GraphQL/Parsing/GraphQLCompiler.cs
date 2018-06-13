@@ -5,12 +5,12 @@ using System.Linq.Expressions;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using EntityQueryLanguage.Compiler;
-using EntityQueryLanguage.DataApi.Util;
+using EntityQueryLanguage.GraphQL.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Schema;
 
-namespace EntityQueryLanguage.DataApi.Parsing
+namespace EntityQueryLanguage.GraphQL.Parsing
 {
     public class GraphQLCompiler
     {

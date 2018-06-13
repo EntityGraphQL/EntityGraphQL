@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
-    <AssemblyName>EntityQueryLanguage.DataApi</AssemblyName>
-    <PackageId>EntityQueryLanguage.DataApi</PackageId>
+    <AssemblyName>EntityQueryLanguage.GraphQL</AssemblyName>
+    <PackageId>EntityQueryLanguage.GraphQL</PackageId>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>git://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>
     <PackageVersion>0.8.0</PackageVersion>
-    <Description>A data query/GraphQL library for .NET Core. Execute with EntityFramework (or other ORMs) or in memory</Description>
+    <Description>Adds support for GraphQL to EntityQueryLanguage</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityQueryLanguage</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityQueryLanguage</RepositoryUrl>

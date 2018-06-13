@@ -4,12 +4,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityQueryLanguage.Compiler;
-using EntityQueryLanguage.DataApi.Parsing;
-using EntityQueryLanguage.DataApi.Util;
+using EntityQueryLanguage.GraphQL.Parsing;
+using EntityQueryLanguage.GraphQL.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Schema;
 
-namespace EntityQueryLanguage.DataApi
+namespace EntityQueryLanguage.GraphQL
 {
     public class EfRelationHandler : IRelationHandler
     {

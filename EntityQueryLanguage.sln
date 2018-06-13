@@ -11,9 +11,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5F132C01
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.Tests", "src\tests\EntityQueryLanguage.Tests\EntityQueryLanguage.Tests.csproj", "{C55A2E96-5040-4234-80B6-A0A7B4EFAF3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.DataApi", "src\EntityQueryLanguage.DataApi\EntityQueryLanguage.DataApi.csproj", "{E13AEC71-0133-45A7-BE8C-F5F9B9FBCC57}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.GraphQL", "src\EntityQueryLanguage.GraphQL\EntityQueryLanguage.GraphQL.csproj", "{E13AEC71-0133-45A7-BE8C-F5F9B9FBCC57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.DataApi.Tests", "src\tests\EntityQueryLanguage.DataApi.Tests\EntityQueryLanguage.DataApi.Tests.csproj", "{FBBCA8E9-287A-4CCE-8FFD-E9484F39DB34}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.GraphQL.Tests", "src\tests\EntityQueryLanguage.GraphQL.Tests\EntityQueryLanguage.GraphQL.Tests.csproj", "{FBBCA8E9-287A-4CCE-8FFD-E9484F39DB34}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "demo", "src\demo\demo.csproj", "{881BC76F-90C8-4D25-8E6C-A616E592FA96}"
 EndProject

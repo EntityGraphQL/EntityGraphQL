@@ -5,13 +5,13 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage", "EntityQueryLanguage\EntityQueryLanguage.csproj", "{F935D78D-6924-4C21-91A8-FCF0C8E0D27B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.DataApi", "EntityQueryLanguage.DataApi\EntityQueryLanguage.DataApi.csproj", "{648EF0AA-3B05-4FCC-A9CE-F1A7F5232D5B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.GraphQL", "EntityQueryLanguage.GraphQL\EntityQueryLanguage.GraphQL.csproj", "{648EF0AA-3B05-4FCC-A9CE-F1A7F5232D5B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ABD17E3A-F43F-472E-ABEB-0AAB045C1761}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.Tests", "tests\EntityQueryLanguage.Tests\EntityQueryLanguage.Tests.csproj", "{611C7797-013F-4229-AC02-357633B78133}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.DataApi.Tests", "tests\EntityQueryLanguage.DataApi.Tests\EntityQueryLanguage.DataApi.Tests.csproj", "{277AF87F-A64C-440F-9D22-8EB0F602AF2B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityQueryLanguage.GraphQL.Tests", "tests\EntityQueryLanguage.GraphQL.Tests\EntityQueryLanguage.GraphQL.Tests.csproj", "{277AF87F-A64C-440F-9D22-8EB0F602AF2B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "demo", "demo\demo.csproj", "{940392E5-C5D2-4503-A543-27D3E4B27C60}"
 EndProject

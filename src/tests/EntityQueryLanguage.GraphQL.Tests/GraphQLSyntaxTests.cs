@@ -1,13 +1,13 @@
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using EntityQueryLanguage.DataApi.Parsing;
+using EntityQueryLanguage.GraphQL.Parsing;
 using Microsoft.EntityFrameworkCore;
 using static EntityQueryLanguage.ArgumentHelper;
 using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Compiler;
 
-namespace EntityQueryLanguage.DataApi.Tests
+namespace EntityQueryLanguage.GraphQL.Tests
 {
     public class GraphQLSyntaxTests
     {

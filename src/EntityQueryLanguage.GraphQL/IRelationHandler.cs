@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using EntityQueryLanguage.DataApi.Parsing;
+using EntityQueryLanguage.GraphQL.Parsing;
 using EntityQueryLanguage.Schema;
 
-namespace EntityQueryLanguage.DataApi
+namespace EntityQueryLanguage.GraphQL
 {
     public interface IRelationHandler
     {

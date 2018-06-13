@@ -1,14 +1,17 @@
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using EntityQueryLanguage.DataApi.Parsing;
+using EntityQueryLanguage.GraphQL.Parsing;
 using Microsoft.EntityFrameworkCore;
 using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Compiler;
 
-namespace EntityQueryLanguage.DataApi.Tests
+namespace EntityQueryLanguage.GraphQL.Tests
 {
-    public class DataApiCompilerTests
+    /// <summary>
+    /// Tests the extended (non-GraphQL - came first) LINQ style querying functionality
+    /// </summary>
+    public class DataLinqCompilerTests
     {
         [Fact]
         public void ExpectsOpenBrace()
@@ -96,7 +99,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 {
 	people { id }
 }");});
-            Assert.Equal("Error compiling field or query 'people'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Person does not have field or property id", ex.Message);
+            Assert.Equal("Error compiling field or query 'people'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Person does not have field or property id", ex.Message);
         }
 
         [Fact]
@@ -304,7 +307,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'blahs'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Project does not have field or property blahs", ex.Message);
+            Assert.Equal("Error compiling field or query 'blahs'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Project does not have field or property blahs", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -317,7 +320,7 @@ namespace EntityQueryLanguage.DataApi.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'projects'. Type EntityQueryLanguage.DataApi.Tests.DataApiCompilerTests+Project does not have field or property name3", ex.Message);
+            Assert.Equal("Error compiling field or query 'projects'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Project does not have field or property name3", ex.Message);
         }
 
         [Fact(Skip = "Not sure of the status")]
