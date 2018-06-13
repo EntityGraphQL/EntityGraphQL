@@ -1,20 +1,25 @@
 # Entity Query Language
-EQL is a data/object querying language for .NET Core.
+EQL is a data/object querying language for .NET Core that supports the GraphQL Syntax.
 
-Full GraphQL query syntax support is being worked on. Although it is already quite powerful using familar Linq-style queries.
+This library in still in development, although it is already a quite very powerful tool for querying data.
 
-EQL allows you to quickly expose an object-graph as an API in your applications. It can also be used to execute expressions at runtime against a given object which provides powerful runtime configuration.
+EQL allows you take a query (GraphQL) and execute it against an object
+- Expose any object graph, e.g. your DbContext
+- Programatically build a schema that maps to an object graph (DbContext), selectively expose fields
+- Create custom fields
+
+It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
 
 _Please explore, give feedback or join the development._
 
 ## Serving your data
-The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL-like object querying.
+The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL support.
 
 ### Getting up and running with EF
 
-_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM should work - although EF is tested well._
+_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested well._
 
-1. Define your EF context
+1. Define your DB context
 
 ```csharp
 public class MyDbContext : DbContext {
@@ -130,7 +135,7 @@ Will return the following result.
 Maybe you only want a specific property
 ```
   {
-    properties.where(id = 11) {
+    property(id: 11) {
       id, name
     }
   }
@@ -138,7 +143,7 @@ Maybe you only want a specific property
 Will return the following result.
 ```json
 {
-  "properties": [
+  "property": [
     {
       "id": 11,
       "name": "My Beach Pad"
@@ -189,14 +194,14 @@ Will return the following result.
 }
 ```
 
-As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core 1.1.
+As mentioned, EQL compiles to .NET LINQ expressions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core 2.0.
 
 ### Supported GraphQL features
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
 - Arguments
-  - By default `` generates a non-pural field for any type with a public `Id` property
-  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in Customizing the schema below
+  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property. With the argument name of `id`
+  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below
 
 ### Supported LINQ methods (non-GraphQL compatible)
 - `array.where(filter)`
@@ -214,6 +219,7 @@ As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension met
 
 You can customise the default schema, or create one from stratch exposing only the fields you want.
 ```csharp
+// Build from object
 var schema = SchemaBuilder.FromObject<MyDbContext>();
 
 // custom fields on existing type
@@ -226,12 +232,15 @@ var type = schema.AddType<Person>("peopleOnMars", "All people on mars", person =
 type.AddPublicProperties(); // add the C# properties
 // or select the fields
 type.AddField(p => p.Id, "The unique identifier");
-// Add fields with arguments
-schemaProvider.AddField("user", new {id = 0}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
+// Add fields with _required_ arguments
+schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
 
 // Here the type schema of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
 // You can also use default()
-var paramTypes = new {id = default(Guid)};
+var paramTypes = new {id = Required<Guid>()};
+
+// If you use a value, the argument will not be required and the value used as a default
+var paramTypes = new {unit = "meter"};
 ```
 
 ### Secuity
@@ -239,17 +248,17 @@ var paramTypes = new {id = default(Guid)};
 TODO - coming soon
 
 ## Using expressions else where
-Lets say you have a screen in your application listing properties that a user can configure to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown.
+Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
 ```js
   // This might be a configured EQL statement for filtering the results. It has a context of Property
-  (type.id = 2 or type.id = 3) and type.name startswith 'Region'
+  (type.id = 2 or type.id = 3) and type.name == 'Farm'
 ```
-This would compile to `(Property p) => (p.Type.Id == 2 || p.Type.Id == 3) && p.Type.Name.StartsWith("Region");`
+This would compile to `(Property p) => (p.Type.Id == 2 || p.Type.Id == 3) && p.Type.Name == "Farm";`
 
 This can then be used in various Linq functions either in memory or against an ORM.
 ```csharp
 // we create a schema provider to compile the statement against our Property type
-var schemaProvider = new ObjectSchemaProvider<Property>();
+var schemaProvider = SchemaBuilder.FromObject<Property>();
 var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
 var thingsToShow = myProperties.Where(compiledResult.Expression);
@@ -275,11 +284,10 @@ Some larger things still on the list to complete, in no real order. Pull request
   - Inline fragments
   - meta fields
 - fix GetMethodContext() in methodProvider
-- Extend schema type system
-- Add support for data manipulation - adds, updates, deletes
 - Add logging options
+- Add support for data manipulation - adds, updates, deletes
 - A way to "plug-in" security - examples
-- A way to "plug-in" business logic - examples
+- A way to "plug-in" other logic - examples
 - Auto generate schema documentation page
 - better paging (from graphql?)
 - Authentication and access control options
