@@ -194,6 +194,9 @@ As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension met
 ### Supported GraphQL features
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
+- Arguments
+  - By default `` generates a non-pural field for any type with a public `Id` property
+  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in Customizing the schema below
 
 ### Supported LINQ methods (non-GraphQL compatible)
 - `array.where(filter)`
@@ -207,9 +210,29 @@ As mentioned, EQL just compiles to .NET LINQ functions (IQueryable extension met
 - `array.orderBy(field)`
 - `array.orderByDesc(field)`
 
-### Custom schemata
+### Customizing the schema
 
-TODO - doco here
+You can customise the default schema, or create one from stratch exposing only the fields you want.
+```csharp
+var schema = SchemaBuilder.FromObject<MyDbContext>();
+
+// custom fields on existing type
+schema.Type<Person>().AddField("totalChildren", p => p.Children.Count(), "Number of children");
+
+// custom type
+schema.AddType<TBaseEntity>("name", "description");
+// e.g. add a new type based on Person filtered by an expression
+var type = schema.AddType<Person>("peopleOnMars", "All people on mars", person => person.Location.Name == "Mars");
+type.AddPublicProperties(); // add the C# properties
+// or select the fields
+type.AddField(p => p.Id, "The unique identifier");
+// Add fields with arguments
+schemaProvider.AddField("user", new {id = 0}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
+
+// Here the type schema of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
+// You can also use default()
+var paramTypes = new {id = default(Guid)};
+```
 
 ### Secuity
 
@@ -243,22 +266,20 @@ var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
 
-[ ] fix GetMethodContext() in methodProvider
-[ ] Implement more of the GraphQL query spec
-  [ ] Arguments
-  [ ] fragments
-  [ ] operation names
-  [ ] variables
-  [ ] Directives
-  [ ] Mutations
-  [ ] Inline fragments
-  [ ] meta fields
-[ ] Extend schema type system
-[ ] Add support for data manipulation - adds, updates, deletes
-[ ] Add logging options
-[ ] A way to "plug-in" security - examples
-[ ] A way to "plug-in" business logic - examples
-[ ] Auto generate schema documentation page
-[ ] better paging (from graphql?)
-[ ] Wiki page on writing queries
-[ ] Authentication and access control options
+- Implement more of the GraphQL query spec
+  - fragments
+  - operation names
+  - variables
+  - Directives
+  - Mutations
+  - Inline fragments
+  - meta fields
+- fix GetMethodContext() in methodProvider
+- Extend schema type system
+- Add support for data manipulation - adds, updates, deletes
+- Add logging options
+- A way to "plug-in" security - examples
+- A way to "plug-in" business logic - examples
+- Auto generate schema documentation page
+- better paging (from graphql?)
+- Authentication and access control options

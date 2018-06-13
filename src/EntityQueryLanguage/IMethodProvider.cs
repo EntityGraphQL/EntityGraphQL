@@ -8,6 +8,6 @@ namespace EntityQueryLanguage
     {
         bool EntityTypeHasMethod(Type context, string methodName);
         Expression GetMethodContext(Expression context, string methodName);
-        Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression> args);
+        ExpressionResult MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<ExpressionResult> args);
     }
 }

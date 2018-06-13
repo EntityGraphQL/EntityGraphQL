@@ -3,27 +3,27 @@ using System.Linq.Expressions;
 
 namespace EntityQueryLanguage.DataApi.Parsing
 {
-    public class DataApiNode
+    public class GraphQLNode
     {
         public string Name { get; private set; }
         public string Error { get; private set; }
         public Expression Expression { get; private set; }
-        public List<DataApiNode> Fields { get; private set; }
-        public IEnumerable<DataApiNode> Relations { get; private set; }
+        public List<GraphQLNode> Fields { get; private set; }
+        public IEnumerable<GraphQLNode> Relations { get; private set; }
         public Expression RelationExpression { get; private set; }
         public ParameterExpression Parameter { get; private set; }
 
 
-        public DataApiNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression)
+        public GraphQLNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression)
         {
             Name = name;
             Expression = query;
-            Fields = new List<DataApiNode>();
+            Fields = new List<GraphQLNode>();
             Parameter = parameter;
             RelationExpression = relationExpression;
         }
 
-        public DataApiNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression, IEnumerable<DataApiNode> relations) : this(name, query, parameter, relationExpression)
+        public GraphQLNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression, IEnumerable<GraphQLNode> relations) : this(name, query, parameter, relationExpression)
         {
             this.Relations = relations;
         }
@@ -33,9 +33,9 @@ namespace EntityQueryLanguage.DataApi.Parsing
             return Expression.Lambda(Expression, Parameter);
         }
 
-        public static DataApiNode MakeError(string name, string message)
+        public static GraphQLNode MakeError(string name, string message)
         {
-            return new DataApiNode(name, null, null, null) { Error = message };
+            return new GraphQLNode(name, null, null, null) { Error = message };
         }
 
         public override string ToString()

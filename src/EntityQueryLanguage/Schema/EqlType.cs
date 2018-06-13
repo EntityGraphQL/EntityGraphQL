@@ -14,6 +14,7 @@ namespace EntityQueryLanguage.Schema
         Field GetField(string identifier);
         bool HasField(string identifier);
         void AddFields(List<Field> fields);
+        void AddField(Field field);
     }
     public class EqlType<TBaseType> : IEqlType
     {
@@ -57,8 +58,24 @@ namespace EntityQueryLanguage.Schema
         }
         public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
-            var field = new Field(name, fieldSelection, description);
-            field.ReturnSchemaType = returnSchemaType;
+            var field = new Field(name, fieldSelection, description, returnSchemaType);
+            _fields.Add(field.Name, field);
+        }
+
+        /// <summary>
+        /// Add a field with arguments.
+        ///     field(arg: val)
+        /// </summary>
+        /// <param name="name">Field name</param>
+        /// <param name="argTypes">Anonymous object defines the names and types of each argument</param>
+        /// <param name="selectionExpression">The expression that selects the data from TBaseType using the arguments</param>
+        /// <param name="returnSchemaType">The schema type to return, it defines the fields available on the return object. If null, defaults to TReturn type mapped in the schema.</param>
+        /// <typeparam name="TParams">Type describing the arguments</typeparam>
+        /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
+        /// <returns></returns>
+        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
             _fields.Add(field.Name, field);
         }
 
@@ -69,7 +86,7 @@ namespace EntityQueryLanguage.Schema
                 if (!_fields.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty));
+                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, string.Empty));
                 }
             }
             foreach (var f in ContextType.GetFields())
@@ -77,7 +94,7 @@ namespace EntityQueryLanguage.Schema
                 if (!_fields.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty));
+                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, string.Empty));
                 }
             }
         }

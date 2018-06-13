@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace EntityQueryLanguage
@@ -19,8 +20,16 @@ namespace EntityQueryLanguage
         bool HasType(string typeName);
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
         string GetActualFieldName(string typeName, string identifier);
+
+        /// <summary>
         /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
-        Expression GetExpressionForField(Expression context, string typeName, string field);
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="typeName"></param>
+        /// <param name="field"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        ExpressionResult GetExpressionForField(Expression context, string typeName, string field, Dictionary<string, ExpressionResult> args);
         string GetSchemaTypeNameForRealType(Type type);
     }
 }

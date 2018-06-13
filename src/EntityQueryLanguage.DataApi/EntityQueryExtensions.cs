@@ -37,7 +37,7 @@ namespace EntityQueryLanguage.DataApi
 
             try
             {
-                var objectGraph = new DataApiCompiler(schemaProvider, methodProvider, relationHandler).Compile(dataQuery);
+                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider, relationHandler).Compile(dataQuery);
                 // Parallel.ForEach(objectGraph.Fields, node =>
                 foreach (var node in objectGraph.Fields)
                 {

@@ -30,9 +30,9 @@ namespace EntityQueryLanguage.DataApi
         /// <param name="name"></param>
         /// <param name="schemaProvider"></param>
         /// <returns></returns>
-        public LambdaExpression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, LambdaExpression exp, string name, ISchemaProvider schemaProvider)
+        public Expression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, Expression exp, string name, ISchemaProvider schemaProvider)
         {
-            var body = exp.Body;
+            var body = exp;
             foreach (var relation in relationFields)
             {
                 // we want to capture the relations here to process later.
@@ -43,9 +43,9 @@ namespace EntityQueryLanguage.DataApi
             return exp;
         }
 
-        public LambdaExpression HandleSelectComplete(LambdaExpression baseExpression)
+        public Expression HandleSelectComplete(Expression baseExpression)
         {
-            var exp = baseExpression.Body;
+            var exp = baseExpression;
             _includes.Reverse();
             var type = exp.Type.GetGenericArguments()[0];
             Type lastType = null;
@@ -72,8 +72,7 @@ namespace EntityQueryLanguage.DataApi
                 }
                 lastType = relationLambda.Body.Type.IsEnumerable() ? relationLambda.Body.Type.GetGenericArguments()[0] : relationLambda.Body.Type;
             }
-            var lambda = Expression.Lambda(exp, baseExpression.Parameters);
-            return lambda;
+            return exp;
         }
 
         private Expression InsertTopLevelIncludesIfRequired(Expression exp, Type rootType, Type relationParamType)

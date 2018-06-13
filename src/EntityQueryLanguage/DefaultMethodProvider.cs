@@ -34,18 +34,18 @@ namespace EntityQueryLanguage
     public class DefaultMethodProvider : IMethodProvider
     {
         // Map of the method names and a function that makes the Expression.Call
-        private Dictionary<string, Func<Expression, Expression, string, Expression[], Expression>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, Expression[], Expression>>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "where", MakeWhereMethod },
-      { "filter", MakeWhereMethod },
-      { "first", MakeFirstMethod },
-      { "last", MakeLastMethod },
-      { "take", MakeTakeMethod },
-      { "skip", MakeSkipMethod },
-      { "count", MakeCountMethod },
-      { "orderby", MakeOrderByMethod },
-      { "orderbydesc", MakeOrderByDescMethod },
-    };
+        private Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "where", MakeWhereMethod },
+            { "filter", MakeWhereMethod },
+            { "first", MakeFirstMethod },
+            { "last", MakeLastMethod },
+            { "take", MakeTakeMethod },
+            { "skip", MakeSkipMethod },
+            { "count", MakeCountMethod },
+            { "orderby", MakeOrderByMethod },
+            { "orderbydesc", MakeOrderByDescMethod },
+        };
 
         public bool EntityTypeHasMethod(Type context, string methodName)
         {
@@ -60,16 +60,16 @@ namespace EntityQueryLanguage
             return GetContextFromEnumerable(context);
         }
 
-        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression> args)
+        public ExpressionResult MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<ExpressionResult> args)
         {
             if (_supportedMethods.ContainsKey(methodName))
             {
-                return _supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new Expression[] { });
+                return _supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new ExpressionResult[] { });
             }
             throw new EqlCompilerException($"Unsupported method {methodName}");
         }
 
-        private static Expression MakeWhereMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeWhereMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var predicate = args.First();
@@ -78,17 +78,17 @@ namespace EntityQueryLanguage
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { argContext.Type }, context, lambda);
         }
 
-        private static Expression MakeFirstMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeFirstMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "First");
         }
 
-        private static Expression MakeCountMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeCountMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Count");
         }
 
-        private static Expression MakeOptionalFilterArgumentCall(Expression context, Expression argContext, string methodName, Expression[] args, string actualMethodName)
+        private static ExpressionResult MakeOptionalFilterArgumentCall(Expression context, Expression argContext, string methodName, ExpressionResult[] args, string actualMethodName)
         {
             ExpectArgsCountBetween(0, 1, args, methodName);
 
@@ -103,12 +103,12 @@ namespace EntityQueryLanguage
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, actualMethodName, new Type[] { argContext.Type }, allArgs.ToArray());
         }
 
-        private static Expression MakeLastMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeLastMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Last");
         }
 
-        private static Expression MakeTakeMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeTakeMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
@@ -117,7 +117,7 @@ namespace EntityQueryLanguage
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Take", new Type[] { argContext.Type }, context, amount);
         }
 
-        private static Expression MakeSkipMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeSkipMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
@@ -126,7 +126,7 @@ namespace EntityQueryLanguage
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Skip", new Type[] { argContext.Type }, context, amount);
         }
 
-        private static Expression MakeOrderByMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeOrderByMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var column = args.First();
@@ -135,7 +135,7 @@ namespace EntityQueryLanguage
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "OrderBy", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
-        private static Expression MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        private static ExpressionResult MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var column = args.First();
@@ -156,13 +156,13 @@ namespace EntityQueryLanguage
             return context;
         }
 
-        private static void ExpectArgsCount(int count, Expression[] args, string method)
+        private static void ExpectArgsCount(int count, ExpressionResult[] args, string method)
         {
             if (args.Count() != count)
                 throw new EqlCompilerException($"Method '{method}' expects {count} argument(s) but {args.Count()} were supplied");
         }
 
-        private static void ExpectArgsCountBetween(int low, int high, Expression[] args, string method)
+        private static void ExpectArgsCountBetween(int low, int high, ExpressionResult[] args, string method)
         {
             if (args.Count() < low || args.Count() > high)
                 throw new EqlCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");

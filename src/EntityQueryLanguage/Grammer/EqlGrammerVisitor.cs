@@ -129,11 +129,32 @@ public interface IEqlGrammerVisitor<Result> : IParseTreeVisitor<Result> {
 	Result VisitCall([NotNull] EqlGrammerParser.CallContext context);
 
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.gqlcall"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGqlcall([NotNull] EqlGrammerParser.GqlcallContext context);
+
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.args"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitArgs([NotNull] EqlGrammerParser.ArgsContext context);
+
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.gqlargs"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGqlargs([NotNull] EqlGrammerParser.GqlargsContext context);
+
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="EqlGrammerParser.gqlarg"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGqlarg([NotNull] EqlGrammerParser.GqlargContext context);
 
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="EqlGrammerParser.operator"/>.

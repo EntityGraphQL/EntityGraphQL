@@ -15,7 +15,7 @@ namespace EntityQueryLanguage
         {
             var schema = new MappedSchemaProvider<TContextType>();
             var contextType = typeof(TContextType);
-            var rootFields = CreateFieldsFromObjectAsSchema<TContextType>(contextType, schema);
+            var rootFields = AddFieldsFromObjectToSchema<TContextType>(contextType, schema);
             foreach (var f in rootFields)
             {
                 schema.AddField(f);
@@ -23,7 +23,7 @@ namespace EntityQueryLanguage
             return schema;
         }
 
-        private static List<Field> CreateFieldsFromObjectAsSchema<TContextType>(Type type, MappedSchemaProvider<TContextType> schema)
+        private static List<Field> AddFieldsFromObjectToSchema<TContextType>(Type type, MappedSchemaProvider<TContextType> schema)
         {
             var fields = new List<Field>();
             // cache fields/properties
@@ -63,7 +63,7 @@ namespace EntityQueryLanguage
                 method = method.MakeGenericMethod(propType);
                 var t = (IEqlType)method.Invoke(schema, new object[] { propType.Name, propType.Name + " description" });
 
-                var fields = CreateFieldsFromObjectAsSchema<TContextType>(propType, schema);
+                var fields = AddFieldsFromObjectToSchema<TContextType>(propType, schema);
                 t.AddFields(fields);
             }
         }

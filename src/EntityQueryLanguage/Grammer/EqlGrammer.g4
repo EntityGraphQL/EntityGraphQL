@@ -6,13 +6,16 @@ DIGIT       : [0-9];
 STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"\u005B\u005D;<>?,./-];
 
 identity    : ID;
-callPath    : (identity | call) ('.' (identity | call))*;
+callPath    : (identity | call | gqlcall) ('.' (identity | call | gqlcall))*;
 int         : '-'? DIGIT+;
 decimal     : '-'? DIGIT+'.'DIGIT+;
 string      :   '\'' ( '\'' | ~('\n'|'\r') | STRING_CHARS )*? '\'';
 constant    : string | int | decimal;
 call        : method=identity '(' arguments=args? ')';
+gqlcall     : method=identity '(' gqlarguments=gqlargs ')';
 args        : expression (',' expression)*;
+gqlargs     : gqlarg (',' gqlarg)*;
+gqlarg      : gqlfield=identity ws* ':' ws* gqlvalue=expression;
 
 operator    : '-' | '+' | '%' | '^' | 'and' | '*' | 'or' | '=' | '<=' | '>=' | '<' | '>' | '/';
 

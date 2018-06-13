@@ -10,12 +10,12 @@ using EntityQueryLanguage.Grammer;
 
 namespace EntityQueryLanguage.DataApi.Parsing
 {
-    public class DataApiCompiler
+    public class GraphQLCompiler
     {
         private ISchemaProvider _schemaProvider;
         private IMethodProvider _methodProvider;
         private IRelationHandler _relationHandler;
-        public DataApiCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
+        public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
         {
             _schemaProvider = schemaProvider;
             _methodProvider = methodProvider;
@@ -33,7 +33,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public DataApiNode Compile(string query)
+        public GraphQLNode Compile(string query)
         {
             // Setup our Antlr parser
             var stream = new AntlrInputStream(query);
@@ -74,7 +74,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
 
         /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
         /// We use EqlCompiler to compile the query and then build a Select() call for each field
-        private class DataApiVisitor : EqlGrammerBaseVisitor<DataApiNode>
+        private class DataApiVisitor : EqlGrammerBaseVisitor<GraphQLNode>
         {
             private ISchemaProvider _schemaProvider;
             private IMethodProvider _methodProvider;
@@ -89,19 +89,19 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 _relationHandler = relationHandler;
             }
 
-            public override DataApiNode VisitField(EqlGrammerParser.FieldContext context)
+            public override GraphQLNode VisitField(EqlGrammerParser.FieldContext context)
             {
                 var name = context.GetText();
                 if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
                     throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
 
                 var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
-                var fieldExp = _schemaProvider.GetExpressionForField(_selectContext, _selectContext.Type.Name, name);
+                var fieldExp = _schemaProvider.GetExpressionForField(_selectContext, _selectContext.Type.Name, name, null);
 
-                var node = new DataApiNode(actualName, fieldExp, null, null);
+                var node = new GraphQLNode(actualName, fieldExp, null, null);
                 return node;
             }
-            public override DataApiNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)
+            public override GraphQLNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)
             {
                 var name = context.alias.name.GetText();
                 var query = context.entity.GetText();
@@ -110,19 +110,19 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 {
                     // top level are queries on the context
                     var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
-                    var node = new DataApiNode(name, exp.Body, exp.Parameters.First(), null);
+                    var node = new GraphQLNode(name, exp.Body, exp.Parameters.First(), null);
                     return node;
                 }
                 else
                 {
                     result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider).Expression.Body;
-                    var node = new DataApiNode(name, result, null, null);
+                    var node = new GraphQLNode(name, result, null, null);
                     return node;
                 }
             }
 
             /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
-            public override DataApiNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context)
+            public override GraphQLNode VisitEntityQuery(EqlGrammerParser.EntityQueryContext context)
             {
                 string name;
                 string query;
@@ -144,8 +144,14 @@ namespace EntityQueryLanguage.DataApi.Parsing
                     if (_selectContext == null)
                     {
                         // top level are queries on the context
-                        var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider).Expression;
-                        var topLevelSelect = BuildDynamicSelectOnCollection(exp, name, context, true);
+                        var result = EqlCompiler.Compile(query, _schemaProvider, _methodProvider);
+                        var exp = result.Expression.Body;
+
+                        if (exp.Type.IsEnumerable())
+                        {
+                            exp = BuildDynamicSelectOnCollection(exp, name, context, true);
+                        }
+                        var topLevelSelect = new GraphQLNode(name, exp, result.Expression.Parameters.Any() ? result.Expression.Parameters.First() : null, exp);
                         return topLevelSelect;
                     }
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
@@ -160,9 +166,9 @@ namespace EntityQueryLanguage.DataApi.Parsing
 
             /// Given a syntax of someCollection { fields, to, selection, from, object }
             /// it will build a select assuming 'someCollection' is an IEnumerable
-            private DataApiNode BuildDynamicSelectOnCollection(LambdaExpression exp, string name, EqlGrammerParser.EntityQueryContext context, bool isRootSelect)
+            private ExpressionResult BuildDynamicSelectOnCollection(Expression exp, string name, EqlGrammerParser.EntityQueryContext context, bool isRootSelect)
             {
-                var elementType = exp.Body.Type.GetEnumerableType();
+                var elementType = exp.Type.GetEnumerableType();
                 var contextParameter = Expression.Parameter(elementType);
 
                 var oldContext = _selectContext;
@@ -184,15 +190,14 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 }
 
                 // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
-                var selectExpression = DataApiExpressionUtil.SelectDynamic(contextParameter, exp.Body, fieldExpressions, _schemaProvider);
-                var node = new DataApiNode(name, selectExpression, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
+                var selectExpression = (ExpressionResult)DataApiExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, _schemaProvider);
                 _selectContext = oldContext;
-                return node;
+                return selectExpression;
             }
 
             /// Given a syntax of someField { fields, to, selection, from, object }
             /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a collection) and build the correct select statement
-            private DataApiNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context)
+            private GraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context)
             {
                 if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
                     throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
@@ -202,14 +207,16 @@ namespace EntityQueryLanguage.DataApi.Parsing
                 try
                 {
                     var result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
-                    var exp = result.Expression;
-                    if (exp.Body.Type.IsEnumerable())
+                    Expression exp = result.Expression.Body;
+                    if (exp.Type.IsEnumerable())
                     {
-                        return BuildDynamicSelectOnCollection(exp, name, context, false);
+                        var r = BuildDynamicSelectOnCollection(exp, name, context, false);
+                        var selectOnCollection = new GraphQLNode(name, r, result.Expression.Parameters.Any() ? result.Expression.Parameters.First() : null, exp);
+                        return selectOnCollection;
                     }
 
                     var oldContext = _selectContext;
-                    _selectContext = exp.Body;
+                    _selectContext = exp;
                     // visit child fields. Will be field or entityQueries again
                     var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
@@ -223,7 +230,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
 
                     var newExp = DataApiExpressionUtil.CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
                     _selectContext = oldContext;
-                    return new DataApiNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), newExp, exp.Parameters.Any() ? exp.Parameters.First() : null, exp.Body);
+                    return new GraphQLNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), newExp, result.Expression.Parameters.Any() ? result.Expression.Parameters.First() : null, exp);
                 }
                 catch (EqlCompilerException ex)
                 {
@@ -237,9 +244,9 @@ namespace EntityQueryLanguage.DataApi.Parsing
             ///   entityQuery { fields [, field] },
             ///   ...
             /// }
-            public override DataApiNode VisitDataQuery(EqlGrammerParser.DataQueryContext context)
+            public override GraphQLNode VisitDataQuery(EqlGrammerParser.DataQueryContext context)
             {
-                var root = new DataApiNode("root", null, null, null);
+                var root = new GraphQLNode("root", null, null, null);
                 // Just visit each child node. All top level will be entityQueries
                 var entities = context.children.Select(c => Visit(c)).ToList();
                 root.Fields.AddRange(entities.Where(n => n != null));

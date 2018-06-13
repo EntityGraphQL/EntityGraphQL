@@ -5,23 +5,25 @@ using System.Reflection;
 
 using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Extensions;
+using System.Collections.Generic;
 
 namespace EntityQueryLanguage
 {
-    internal class EqlGrammerVisitor : EqlGrammerBaseVisitor<Expression>
+
+    internal class EqlGrammerVisitor : EqlGrammerBaseVisitor<ExpressionResult>
     {
-        private Expression _currentContext;
-        private ISchemaProvider _schemaProvider;
-        private IMethodProvider _methodProvider;
+        private Expression currentContext;
+        private ISchemaProvider schemaProvider;
+        private IMethodProvider methodProvider;
 
         public EqlGrammerVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
-            _currentContext = expression;
-            _schemaProvider = schemaProvider;
-            _methodProvider = methodProvider;
+            currentContext = expression;
+            this.schemaProvider = schemaProvider;
+            this.methodProvider = methodProvider;
         }
 
-        public override Expression VisitBinary(EqlGrammerParser.BinaryContext context)
+        public override ExpressionResult VisitBinary(EqlGrammerParser.BinaryContext context)
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
@@ -41,13 +43,13 @@ namespace EntityQueryLanguage
 
             if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
             {
-                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+                return (ExpressionResult)Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
             }
 
-            return Expression.MakeBinary(op, left, right);
+            return (ExpressionResult)Expression.MakeBinary(op, left, right);
         }
 
-        private Expression DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
+        private ExpressionResult DoObjectComparisonOnDifferentTypes(ExpressionType op, ExpressionResult left, ExpressionResult right)
         {
             var convertedToSameTypes = false;
 
@@ -64,26 +66,24 @@ namespace EntityQueryLanguage
                 convertedToSameTypes = true;
             }
 
-            return convertedToSameTypes ?
-                Expression.MakeBinary(op, left, right) :
-                null;
+            return convertedToSameTypes ? (ExpressionResult)Expression.MakeBinary(op, left, right) : null;
         }
 
-        private static Expression ConvertToGuid(Expression expression)
+        private static ExpressionResult ConvertToGuid(ExpressionResult expression)
         {
-            return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")));
+            return (ExpressionResult)Expression.Call(typeof(Guid), "Parse", null, (ExpressionResult)Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
-        public override Expression VisitExpr(EqlGrammerParser.ExprContext context)
+        public override ExpressionResult VisitExpr(EqlGrammerParser.ExprContext context)
         {
             var r = Visit(context.body);
             return r;
         }
 
-        public override Expression VisitCallPath(EqlGrammerParser.CallPathContext context)
+        public override ExpressionResult VisitCallPath(EqlGrammerParser.CallPathContext context)
         {
-            var startingContext = _currentContext;
-            Expression exp = null;
+            var startingContext = currentContext;
+            ExpressionResult exp = null;
             foreach (var child in context.children)
             {
                 var r = Visit(child);
@@ -91,106 +91,102 @@ namespace EntityQueryLanguage
                     continue;
 
                 exp = r;
-                _currentContext = exp;
+                currentContext = exp;
             }
-            _currentContext = startingContext;
+            currentContext = startingContext;
             return exp;
         }
 
-        public override Expression VisitIdentity(EqlGrammerParser.IdentityContext context)
+        public override ExpressionResult VisitIdentity(EqlGrammerParser.IdentityContext context)
+        {
+            var field = context.GetText();
+            return MakeFieldExpression(field, null);
+        }
+
+        public override ExpressionResult VisitGqlcall(EqlGrammerParser.GqlcallContext context)
+        {
+            var field = context.method.GetText();
+            var args = context.gqlarguments.children.Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => Visit(a.gqlvalue));
+            return MakeFieldExpression(field, args);
+        }
+
+        private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
             // check that the schema has the property for the context
-            var field = context.GetText();
             //TODO - need to get the mapped name for the type to check for fields to support mapped schema too
-            if (!_schemaProvider.TypeHasField(_schemaProvider.GetSchemaTypeNameForRealType(_currentContext.Type), field))
+            if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field))
             {
-                throw new EqlCompilerException($"Field or property '{field}' not found on current context '{_currentContext.Type.Name}'");
+                throw new EqlCompilerException($"Field or property '{field}' not found on current context '{currentContext.Type.Name}'");
             }
-            var exp = _schemaProvider.GetExpressionForField(_currentContext, _currentContext.Type.Name, field);
+            var exp = schemaProvider.GetExpressionForField(currentContext, currentContext.Type.Name, field, args);
             return exp;
         }
 
-        public override Expression VisitInt(EqlGrammerParser.IntContext context)
+        public override ExpressionResult VisitInt(EqlGrammerParser.IntContext context)
         {
-            return Expression.Constant(Int32.Parse(context.GetText()));
+            return (ExpressionResult)Expression.Constant(Int32.Parse(context.GetText()));
         }
 
-        public override Expression VisitDecimal(EqlGrammerParser.DecimalContext context)
+        public override ExpressionResult VisitDecimal(EqlGrammerParser.DecimalContext context)
         {
-            return Expression.Constant(Decimal.Parse(context.GetText()));
+            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText()));
         }
 
-        public override Expression VisitString(EqlGrammerParser.StringContext context)
+        public override ExpressionResult VisitString(EqlGrammerParser.StringContext context)
         {
-            return Expression.Constant(context.GetText().Trim('\''));
+            return (ExpressionResult)Expression.Constant(context.GetText().Trim('\''));
         }
 
-        public override Expression VisitIfThenElse(EqlGrammerParser.IfThenElseContext context)
+        public override ExpressionResult VisitIfThenElse(EqlGrammerParser.IfThenElseContext context)
         {
-            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override Expression VisitIfThenElseInline(EqlGrammerParser.IfThenElseInlineContext context)
+        public override ExpressionResult VisitIfThenElseInline(EqlGrammerParser.IfThenElseInlineContext context)
         {
-            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override Expression VisitCall(EqlGrammerParser.CallContext context)
+        public override ExpressionResult VisitCall(EqlGrammerParser.CallContext context)
         {
             var method = context.method.GetText();
-            if (!_methodProvider.EntityTypeHasMethod(_currentContext.Type, method))
-                throw new EqlCompilerException($"Method '{method}' not found on current context '{_currentContext.Type.Name}'");
+            if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
+                throw new EqlCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
             // Keep the current context
-            var outerContext = _currentContext;
+            var outerContext = currentContext;
             // some methods might have a different inner context (IEnumerable etc)
-            var methodArgContext = _methodProvider.GetMethodContext(_currentContext, method);
-            _currentContext = methodArgContext;
+            var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
+            currentContext = methodArgContext;
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = _methodProvider.MakeCall(outerContext, methodArgContext, method, args);
-            _currentContext = call;
+            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args);
+            currentContext = call;
             return call;
         }
 
-        public override Expression VisitArgs(EqlGrammerParser.ArgsContext context)
+        public override ExpressionResult VisitArgs(EqlGrammerParser.ArgsContext context)
         {
             return VisitChildren(context);
         }
-        //  public override Expression VisitCallOrId(EqlGrammerParser.CallOrIdContext context) {
-        //    return VisitChildren(context);
-        //  }
-        //  public override Expression VisitConstant(EqlGrammerParser.ConstantContext context) {
-        //    return VisitChildren(context);
-        //  }
-        //  public override Expression VisitOperator(EqlGrammerParser.OperatorContext context) {
-        //    return VisitChildren(context);
-        //  }
-        //  public override Expression VisitExpression(EqlGrammerParser.ExpressionContext context) {
-        //    return VisitChildren(context);
-        //  }
-        //  public override Expression VisitStartRule(EqlGrammerParser.StartRuleContext context) {
-        //    Console.WriteLine($"----VisitStartRule {context.GetText()}");
-        //    return VisitChildren(context);
-        //  }
 
         /// Implements rules about comparing non-matching types.
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+        private ExpressionResult ConvertLeftOrRight(ExpressionType op, ExpressionResult left, ExpressionResult right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-                right = Expression.Convert(right, left.Type);
+                right = (ExpressionResult)Expression.Convert(right, left.Type);
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-                left = Expression.Convert(left, right.Type);
+                left = (ExpressionResult)Expression.Convert(left, right.Type);
 
             else if (left.Type == typeof(int) && right.Type == typeof(uint))
-                right = Expression.Convert(right, left.Type);
+                right = (ExpressionResult)Expression.Convert(right, left.Type);
             else if (left.Type == typeof(uint) && right.Type == typeof(int))
-                left = Expression.Convert(left, right.Type);
+                left = (ExpressionResult)Expression.Convert(left, right.Type);
 
-            return Expression.MakeBinary(op, left, right);
+            return (ExpressionResult)Expression.MakeBinary(op, left, right);
         }
 
         private Expression CheckConditionalTest(Expression test)
