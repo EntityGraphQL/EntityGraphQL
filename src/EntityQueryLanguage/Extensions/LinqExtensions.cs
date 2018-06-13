@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Extensions
 {
     /// Extension methods to allow EQL compiled expression to easily be used in LINQ methods.
     /// TODO: fill this out with all the others. Also wonder if there is a better way?

@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace EntityQueryLanguage.Util
+namespace EntityQueryLanguage.Compiler
 {
     public class ExpressionUtil
     {

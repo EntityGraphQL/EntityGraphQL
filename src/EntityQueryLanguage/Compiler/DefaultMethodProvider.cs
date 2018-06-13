@@ -4,9 +4,8 @@ using System.Linq.Expressions;
 using System.Linq;
 using System.Reflection;
 using EntityQueryLanguage.Extensions;
-using EntityQueryLanguage.Util;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Compiler
 {
     /// The default method provider for Entity Query Language. Implements all the useful Linq functions for
     /// querying and filtering your data requests.

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
+using EntityQueryLanguage.Compiler;
 using EntityQueryLanguage.DataApi.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
@@ -166,7 +167,7 @@ namespace EntityQueryLanguage.DataApi.Parsing
             }
 
             /// Given a syntax of someCollection { fields, to, selection, from, object }
-            /// it will build a select assuming 'someCollection' is an IEnumerable
+            /// it will build a select assuming 'someCollection' is an IEnumerables
             private ExpressionResult BuildDynamicSelectOnCollection(Expression exp, string name, EqlGrammerParser.EntityQueryContext context, bool isRootSelect)
             {
                 var elementType = exp.Type.GetEnumerableType();

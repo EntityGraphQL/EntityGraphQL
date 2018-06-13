@@ -8,7 +8,7 @@ using EntityQueryLanguage.Extensions;
 using System.Collections.Generic;
 using EntityQueryLanguage.Schema;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Compiler
 {
 
     internal class QueryGrammerNodeVisitor : EqlGrammerBaseVisitor<ExpressionResult>

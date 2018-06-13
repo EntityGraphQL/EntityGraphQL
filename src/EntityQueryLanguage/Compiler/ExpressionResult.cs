@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Compiler
 {
     /// <summary>
     /// Holds information about the compiled expression

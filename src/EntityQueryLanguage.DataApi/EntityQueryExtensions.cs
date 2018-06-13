@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EntityQueryLanguage.DataApi.Parsing;
 using System.Diagnostics;
 using EntityQueryLanguage.Schema;
+using EntityQueryLanguage.Compiler;
 
 namespace EntityQueryLanguage.DataApi
 {

@@ -5,6 +5,7 @@ using EntityQueryLanguage.DataApi.Parsing;
 using Microsoft.EntityFrameworkCore;
 using static EntityQueryLanguage.ArgumentHelper;
 using EntityQueryLanguage.Schema;
+using EntityQueryLanguage.Compiler;
 
 namespace EntityQueryLanguage.DataApi.Tests
 {

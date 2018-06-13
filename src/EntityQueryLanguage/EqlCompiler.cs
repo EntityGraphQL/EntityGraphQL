@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Antlr4.Runtime;
+using EntityQueryLanguage.Compiler;
 using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Schema;
 
@@ -27,6 +28,11 @@ namespace EntityQueryLanguage
         public static QueryResult Compile(string query, ISchemaProvider schemaProvider)
         {
             return Compile(query, schemaProvider, new DefaultMethodProvider());
+        }
+
+        private static QueryResult Compile(string query, ISchemaProvider schemaProvider, DefaultMethodProvider defaultMethodProvider)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

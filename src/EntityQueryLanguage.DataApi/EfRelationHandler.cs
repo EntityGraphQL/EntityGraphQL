@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityQueryLanguage.Compiler;
 using EntityQueryLanguage.DataApi.Parsing;
 using EntityQueryLanguage.DataApi.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Schema;
-using EntityQueryLanguage.Util;
 
 namespace EntityQueryLanguage.DataApi
 {

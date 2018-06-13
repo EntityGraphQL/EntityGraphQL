@@ -2,6 +2,7 @@ using Xunit;
 using System.Collections.Generic;
 using System.Linq;
 using EntityQueryLanguage.Schema;
+using EntityQueryLanguage.Extensions;
 
 namespace EntityQueryLanguage.Tests
 {
