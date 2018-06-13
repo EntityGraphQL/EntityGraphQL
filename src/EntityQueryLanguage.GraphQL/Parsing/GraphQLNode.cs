@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,7 +16,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     public class GraphQLNode
     {
         public string Name { get; private set; }
-        public string Error { get; private set; }
         public Expression Expression { get; private set; }
         public List<ParameterExpression> Parameters { get; private set; }
         public List<object> ConstParameterValues { get; private set; }
@@ -37,7 +37,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             RelationExpression = relationExpression;
         }
 
-
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
@@ -45,11 +44,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 allArgs.AddRange(ConstParameterValues);
 
             return Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
-        }
-
-        public static GraphQLNode MakeError(string name, string message)
-        {
-            return new GraphQLNode(name, (Expression)null, null) { Error = message };
         }
 
         public override string ToString()

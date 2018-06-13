@@ -72,28 +72,34 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 name = query;
                 if (name.IndexOf(".") > -1)
                     name = name.Substring(0, name.IndexOf("."));
+                if (name.IndexOf("(") > -1)
+                    name = name.Substring(0, name.IndexOf("("));
             }
 
             try
             {
+                QueryResult result = null;
                 if (_selectContext == null)
                 {
                     // top level are queries on the context
-                    var result = EqlCompiler.Compile(query, _schemaProvider, _methodProvider);
-                    var exp = result.Expression.Body;
-
-                    if (exp.Type.IsEnumerable())
-                    {
-                        return BuildDynamicSelectOnCollection(result, name, context, true);
-                    }
-                    return BuildDynamicSelectForObjectGraph(query, name, context);
+                    result = EqlCompiler.Compile(query, _schemaProvider, _methodProvider);
                 }
+                else
+                {
+                    result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
+                }
+                var exp = result.Expression.Body;
+
+                if (exp.Type.IsEnumerable())
+                {
+                    return BuildDynamicSelectOnCollection(result, name, context, true);
+                }
+                // Could be a list.First() that we need to turn into a select, or
                 // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
-                return BuildDynamicSelectForObjectGraph(query, name, context);
+                return BuildDynamicSelectForObjectGraph(query, name, context, result);
             }
             catch (EqlCompilerException ex)
             {
-                //return DataApiNode.MakeError(name, $"Error compiling field or query '{query}'. {ex.Message}");
                 throw DataApiException.MakeFieldCompileError(query, ex.Message);
             }
         }
@@ -136,22 +142,18 @@ namespace EntityQueryLanguage.GraphQL.Parsing
 
         /// Given a syntax of someField { fields, to, selection, from, object }
         /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a collection) and build the correct select statement
-        private GraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context)
+        private GraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context, QueryResult rootField)
         {
+            if (_selectContext == null)
+                _selectContext = Expression.Parameter(_schemaProvider.ContextType);
+
             if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
                 throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
             name = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
 
-            // Don't really like any of this, but...
             try
             {
-                var result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
-                Expression exp = result.Expression.Body;
-                if (exp.Type.IsEnumerable())
-                {
-                    var r = BuildDynamicSelectOnCollection(result, name, context, false);
-                    return r;
-                }
+                Expression exp = rootField.Expression.Body;
 
                 var oldContext = _selectContext;
                 _selectContext = exp;
@@ -168,8 +170,12 @@ namespace EntityQueryLanguage.GraphQL.Parsing
 
                 var newExp = DataApiExpressionUtil.CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
                 _selectContext = oldContext;
-                var lambda = Expression.Lambda(newExp, result.Expression.Parameters);
-                return new GraphQLNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), new QueryResult(lambda, result.ParameterValues), exp);
+
+                // we might need to merge const parameters from the context comming in
+                var parameters = rootField.Expression.Parameters.ToList();
+                var parameterValues = rootField.ParameterValues.ToList();
+                var lambda = Expression.Lambda(newExp, parameters);
+                return new GraphQLNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), new QueryResult(lambda, parameterValues), exp);
             }
             catch (EqlCompilerException ex)
             {

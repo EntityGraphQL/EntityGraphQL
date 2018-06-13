@@ -37,7 +37,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
 
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema(), 1);
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var user = Enumerable.ElementAt(result, 0);
             // we only have the fields requested

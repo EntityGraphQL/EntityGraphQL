@@ -45,16 +45,8 @@ namespace EntityQueryLanguage.GraphQL
                 {
                     try
                     {
-                        if (!string.IsNullOrEmpty(node.Error))
-                        {
-                            System.Console.WriteLine(node.Error);
-                            queryData[node.Name] = node.Error;
-                        }
-                        else
-                        {
-                            var data = node.Execute(context);
-                            queryData[node.Name] = data;
-                        }
+                        var data = node.Execute(context);
+                        queryData[node.Name] = data;
                     }
                     catch (Exception ex)
                     {
