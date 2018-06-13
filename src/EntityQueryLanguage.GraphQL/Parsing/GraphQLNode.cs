@@ -1,41 +1,55 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace EntityQueryLanguage.GraphQL.Parsing
 {
+    /// <summary>
+    /// Represents a top level node in the GraphQL query.
+    /// {
+    ///     people { id, name },
+    ///     houses { location }
+    /// }
+    /// Each of people & houses are seperate queries that can/will be executed
+    /// </summary>
     public class GraphQLNode
     {
         public string Name { get; private set; }
         public string Error { get; private set; }
         public Expression Expression { get; private set; }
+        public List<ParameterExpression> Parameters { get; private set; }
+        public List<object> ConstParameterValues { get; private set; }
+
         public List<GraphQLNode> Fields { get; private set; }
-        public IEnumerable<GraphQLNode> Relations { get; private set; }
         public Expression RelationExpression { get; private set; }
-        public ParameterExpression Parameter { get; private set; }
 
+        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, query.Expression.Body, relationExpression)
+        {
+            Parameters = query.Expression.Parameters.ToList();
+            ConstParameterValues = query.ParameterValues?.ToList();
+        }
 
-        public GraphQLNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression)
+        public GraphQLNode(string name, Expression exp, Expression relationExpression)
         {
             Name = name;
-            Expression = query;
+            Expression = exp;
             Fields = new List<GraphQLNode>();
-            Parameter = parameter;
             RelationExpression = relationExpression;
         }
 
-        public GraphQLNode(string name, Expression query, ParameterExpression parameter, Expression relationExpression, IEnumerable<GraphQLNode> relations) : this(name, query, parameter, relationExpression)
-        {
-            this.Relations = relations;
-        }
 
-        public LambdaExpression AsLambda()
+        public object Execute(params object[] args)
         {
-            return Expression.Lambda(Expression, Parameter);
+            var allArgs = new List<object>(args);
+            if (ConstParameterValues != null)
+                allArgs.AddRange(ConstParameterValues);
+
+            return Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
         }
 
         public static GraphQLNode MakeError(string name, string message)
         {
-            return new GraphQLNode(name, null, null, null) { Error = message };
+            return new GraphQLNode(name, (Expression)null, null) { Error = message };
         }
 
         public override string ToString()

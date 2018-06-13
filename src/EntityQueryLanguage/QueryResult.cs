@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -8,6 +9,12 @@ namespace EntityQueryLanguage
         private readonly IEnumerable<object> parameterValues;
 
         public LambdaExpression Expression { get; private set; }
+        public Type Type { get { return Expression.Type; } }
+
+        public IEnumerable<object> ParameterValues { get { return parameterValues; } }
+
+        public Type BodyType { get { return Expression.Body.Type; } }
+
         public QueryResult(LambdaExpression compiledEql, IEnumerable<object> parameterValues)
         {
             Expression = compiledEql;

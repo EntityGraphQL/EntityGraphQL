@@ -52,7 +52,7 @@ namespace EntityQueryLanguage.GraphQL
                         }
                         else
                         {
-                            var data = node.AsLambda().Compile().DynamicInvoke(context);
+                            var data = node.Execute(context);
                             queryData[node.Name] = data;
                         }
                     }

@@ -48,7 +48,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 	people { id, name }
 }");
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -67,7 +67,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
     total: people.count()
 }");
             Assert.Equal(2, tree.Fields.Count);
-            var result = tree.Fields.ElementAt(1).AsLambda().Compile().DynamicInvoke(new TestSchema()) as int?;
+            var result = tree.Fields.ElementAt(1).Execute(new TestSchema()) as int?;
             Assert.True(result.HasValue);
             Assert.Equal(1, result.Value);
         }
@@ -81,7 +81,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 	people { id, thing }
 }");
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -110,7 +110,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 	people.where(id = 9) { id, name }
 }");
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(0, Enumerable.Count(result));
         }
         [Fact]
@@ -122,7 +122,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             Assert.Single(tree.Fields);
             Assert.Equal("luke", tree.Fields.ElementAt(0).Name);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
         }
         [Fact]
@@ -134,7 +134,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             Assert.Single(tree.Fields);
             Assert.Equal("people", tree.Fields.ElementAt(0).Name);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
@@ -162,7 +162,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
 
             Assert.Equal(2, tree.Fields.Count);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -170,7 +170,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
             Assert.Equal("Name", person.GetType().GetFields()[1].Name);
 
-            result = tree.Fields.ElementAt(1).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            result = tree.Fields.ElementAt(1).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var user = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -187,7 +187,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -215,7 +215,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -243,7 +243,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -272,7 +272,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 	}
 }");
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
@@ -332,7 +332,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
             // People.Include(p => p.User).Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).AsLambda().Compile().DynamicInvoke(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
