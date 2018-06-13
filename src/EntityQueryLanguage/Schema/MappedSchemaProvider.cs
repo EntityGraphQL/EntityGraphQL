@@ -7,7 +7,7 @@ using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Util;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Schema
 {
     /// <summary>
     /// Builder interface to build a schema definition. The built schema definition maps an external view of your data model to you internal model.
@@ -16,12 +16,12 @@ namespace EntityQueryLanguage
     /// <typeparam name="TContextType"></typeparam>
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
-        protected Dictionary<string, IEqlType> _types = new Dictionary<string, IEqlType>(StringComparer.OrdinalIgnoreCase);
+        protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
         private readonly string _queryContextName;
 
         public MappedSchemaProvider()
         {
-            var queryContext = new EqlType<TContextType>(typeof(TContextType).Name, "Query schema");
+            var queryContext = new SchemaType<TContextType>(typeof(TContextType).Name, "Query schema");
             _queryContextName = queryContext.Name;
             _types.Add(queryContext.Name, queryContext);
         }
@@ -33,7 +33,7 @@ namespace EntityQueryLanguage
         /// <param name="description">description of the type</param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns></returns>
-        public EqlType<TBaseType> AddType<TBaseType>(string name, string description)
+        public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
 			return AddType<TBaseType>(name, description, null);
         }
@@ -46,9 +46,9 @@ namespace EntityQueryLanguage
         /// <param name="filter"></param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns></returns>
-        public EqlType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
+        public SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
         {
-			var tt = new EqlType<TBaseType>(name, description, filter);
+			var tt = new SchemaType<TBaseType>(name, description, filter);
             _types.Add(name, tt);
 			return tt;
         }
@@ -60,7 +60,7 @@ namespace EntityQueryLanguage
         /// <param name="filter"></param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns></returns>
-        public EqlType<TBaseType> AddType<TBaseType>(string description, Expression<Func<TBaseType, bool>> filter = null)
+        public SchemaType<TBaseType> AddType<TBaseType>(string description, Expression<Func<TBaseType, bool>> filter = null)
         {
             var name = typeof(TBaseType).Name;
             return AddType(name, description, filter);
@@ -119,9 +119,9 @@ namespace EntityQueryLanguage
         /// </summary>
         /// <typeparam name="TType"></typeparam>
         /// <returns></returns>
-        public EqlType<TType> Type<TType>()
+        public SchemaType<TType> Type<TType>()
         {
-            return (EqlType<TType>)_types[typeof(TType).Name];
+            return (SchemaType<TType>)_types[typeof(TType).Name];
         }
 
         // ISchemaProvider interface

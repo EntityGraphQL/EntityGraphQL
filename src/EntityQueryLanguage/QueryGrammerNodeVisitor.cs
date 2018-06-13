@@ -6,17 +6,18 @@ using System.Reflection;
 using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Extensions;
 using System.Collections.Generic;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage
 {
 
-    internal class EqlGrammerVisitor : EqlGrammerBaseVisitor<ExpressionResult>
+    internal class QueryGrammerNodeVisitor : EqlGrammerBaseVisitor<ExpressionResult>
     {
         private Expression currentContext;
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
 
-        public EqlGrammerVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
             currentContext = expression;
             this.schemaProvider = schemaProvider;

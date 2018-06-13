@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using EntityQueryLanguage;
 using EntityQueryLanguage.DataApi;
 using Microsoft.EntityFrameworkCore;
+using EntityQueryLanguage.Schema;
 
 namespace demo
 {

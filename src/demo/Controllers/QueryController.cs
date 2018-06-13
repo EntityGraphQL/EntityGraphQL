@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using EntityQueryLanguage;
 using EntityQueryLanguage.DataApi;
+using EntityQueryLanguage.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

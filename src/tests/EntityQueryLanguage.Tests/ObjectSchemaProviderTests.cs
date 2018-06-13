@@ -1,6 +1,7 @@
 using Xunit;
 using System.Collections.Generic;
 using System;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.Tests
 {

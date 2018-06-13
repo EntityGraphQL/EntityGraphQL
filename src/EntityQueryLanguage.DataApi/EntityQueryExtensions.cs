@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using EntityQueryLanguage.DataApi.Parsing;
 using System.Diagnostics;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.DataApi
 {

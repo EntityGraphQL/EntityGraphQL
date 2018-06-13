@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityQueryLanguage.DataApi.Parsing;
 using Microsoft.EntityFrameworkCore;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.DataApi.Tests
 {

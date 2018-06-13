@@ -6,7 +6,7 @@ using EntityQueryLanguage.Util;
 
 namespace EntityQueryLanguage.Schema
 {
-    public interface IEqlType
+    public interface ISchemaType
     {
         Type ContextType { get; }
         string Name { get; }
@@ -16,7 +16,7 @@ namespace EntityQueryLanguage.Schema
         void AddFields(List<Field> fields);
         void AddField(Field field);
     }
-    public class EqlType<TBaseType> : IEqlType
+    public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }
         public string Name { get; protected set; }
@@ -24,12 +24,12 @@ namespace EntityQueryLanguage.Schema
         private Dictionary<string, Field> _fields = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
-        public EqlType()
+        public SchemaType()
         {
             ContextType = typeof(TBaseType);
         }
 
-        public EqlType(string name, string description, Expression<Func<TBaseType, bool>> filter = null) : this()
+        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null) : this()
         {
             Name = name;
             _description = description;

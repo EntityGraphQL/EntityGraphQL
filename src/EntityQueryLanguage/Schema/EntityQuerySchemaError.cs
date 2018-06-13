@@ -1,6 +1,6 @@
 using System;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Schema
 {
     public class EntityQuerySchemaError : Exception
     {

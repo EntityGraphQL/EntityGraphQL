@@ -7,6 +7,7 @@ using Antlr4.Runtime.Misc;
 using EntityQueryLanguage.DataApi.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.DataApi.Parsing
 {

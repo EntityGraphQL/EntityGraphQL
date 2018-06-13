@@ -1,4 +1,5 @@
 using System.Linq;
+using EntityQueryLanguage.Schema;
 
 // This is a mock datamodel, what would be your real datamodel and EF context
 namespace EntityQueryLanguage.Tests

@@ -6,7 +6,7 @@ using System.Reflection;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Schema;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Schema
 {
     /// A simple schema provider to map a EntityQL query directly to a object graph
     public class SchemaBuilder
@@ -61,7 +61,7 @@ namespace EntityQueryLanguage
                 // this is not the fastest, but only done on schema creation
                 var method = schema.GetType().GetMethod("AddType", new [] {typeof(string), typeof(string)});
                 method = method.MakeGenericMethod(propType);
-                var t = (IEqlType)method.Invoke(schema, new object[] { propType.Name, propType.Name + " description" });
+                var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, propType.Name + " description" });
 
                 var fields = AddFieldsFromObjectToSchema<TContextType>(propType, schema);
                 t.AddFields(fields);

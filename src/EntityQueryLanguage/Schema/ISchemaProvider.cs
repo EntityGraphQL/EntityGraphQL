@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace EntityQueryLanguage
+namespace EntityQueryLanguage.Schema
 {
     /// An interface that the EqlCompiler uses to help understand the types it is building against. This abstraction lets us
     /// have a simple provider that maps directly to an object as well as other complex providers that read a schema from else where

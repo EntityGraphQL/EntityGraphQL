@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityQueryLanguage.DataApi.Parsing;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.DataApi.Util
 {

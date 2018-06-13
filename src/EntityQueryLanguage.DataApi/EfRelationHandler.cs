@@ -6,6 +6,7 @@ using System.Reflection;
 using EntityQueryLanguage.DataApi.Parsing;
 using EntityQueryLanguage.DataApi.Util;
 using EntityQueryLanguage.Extensions;
+using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Util;
 
 namespace EntityQueryLanguage.DataApi
