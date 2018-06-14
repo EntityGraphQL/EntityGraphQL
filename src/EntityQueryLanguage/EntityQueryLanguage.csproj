@@ -16,7 +16,6 @@
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.4" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.4" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Linq.Queryable" Version="4.3.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
   </ItemGroup>
