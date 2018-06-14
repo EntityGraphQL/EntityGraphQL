@@ -70,12 +70,12 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         }
     }
 
-    public class DataApiException : Exception
+    public class SchemaException : Exception
     {
-        public DataApiException(string message) : base(message) { }
-        public static DataApiException MakeFieldCompileError(string query, string message)
+        public SchemaException(string message) : base(message) { }
+        public static SchemaException MakeFieldCompileError(string query, string message)
         {
-            return new DataApiException($"Error compiling field or query '{query}'. {message}");
+            return new SchemaException($"Error compiling field or query '{query}'. {message}");
         }
     }
 }

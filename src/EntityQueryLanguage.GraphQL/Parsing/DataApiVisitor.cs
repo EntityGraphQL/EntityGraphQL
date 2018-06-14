@@ -100,7 +100,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             }
             catch (EqlCompilerException ex)
             {
-                throw DataApiException.MakeFieldCompileError(query, ex.Message);
+                throw SchemaException.MakeFieldCompileError(query, ex.Message);
             }
         }
 
@@ -179,7 +179,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             }
             catch (EqlCompilerException ex)
             {
-                throw DataApiException.MakeFieldCompileError(query, ex.Message);
+                throw SchemaException.MakeFieldCompileError(query, ex.Message);
             }
         }
 

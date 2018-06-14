@@ -54,12 +54,21 @@ namespace EntityQueryLanguage.Schema
         }
         public void AddField(Field field)
         {
+            if (_fields.ContainsKey(field.Name))
+                throw new EntityQuerySchemaError($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+
             _fields.Add(field.Name, field);
         }
         public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             var field = new Field(name, fieldSelection, description, returnSchemaType);
-            _fields.Add(field.Name, field);
+            this.AddField(field);
+        }
+
+        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        {
+            var field = new Field(name, fieldSelection, description, returnSchemaType);
+            _fields[field.Name] = field;
         }
 
         /// <summary>
@@ -76,7 +85,13 @@ namespace EntityQueryLanguage.Schema
         public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
-            _fields.Add(field.Name, field);
+            this.AddField(field);
+        }
+
+        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
+            _fields[field.Name] = field;
         }
 
         private void BuildFieldsFromBase(Type contextType)

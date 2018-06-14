@@ -13,7 +13,7 @@ namespace EntityQueryLanguage.Schema
     /// Builder interface to build a schema definition. The built schema definition maps an external view of your data model to you internal model.
     /// This allows your internal model to change over time while not break your external API. You can create new versions when needed.
     /// </summary>
-    /// <typeparam name="TContextType"></typeparam>
+    /// <typeparam name="TContextType">Base object graph. Ex. DbContext</typeparam>
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
         protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
@@ -128,11 +128,7 @@ namespace EntityQueryLanguage.Schema
         public Type ContextType { get { return _types[_queryContextName].ContextType; } }
         public bool TypeHasField(string typeName, string identifier)
         {
-            if (_queryContextName.ToLower() == typeName.ToLower())
-                return _types[_queryContextName].HasField(identifier);
-
-            return (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
-                 || (typeName == _queryContextName && _types[_queryContextName].HasField(identifier));
+            return _types.ContainsKey(typeName) && _types[typeName].HasField(identifier);
         }
 		public bool TypeHasField(Type type, string identifier)
         {
@@ -154,17 +150,18 @@ namespace EntityQueryLanguage.Schema
             var field = _types[typeName].GetField(fieldName);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
 
-            if (args != null)
+            if (field.ArgumentTypes != null)
             {
+                var argType = field.ArgumentTypes.GetType();
                 // get the values for the argument object constructor
                 var vals = new List<object>();
-                foreach (var argField in field.ArgumentTypes.GetType().GetProperties())
+                foreach (var argField in argType.GetProperties())
                 {
                     string argName = argField.Name.ToLower();
                     // check we have required arguments
-                    if (argField.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                    if (argField.PropertyType.GetGenericArguments().Any() && argField.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
                     {
-                        if (!args.ContainsKey(argName))
+                        if (args == null || !args.ContainsKey(argName))
                         {
                             throw new EqlCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
                         }
@@ -173,7 +170,7 @@ namespace EntityQueryLanguage.Schema
                         var typedVal = Activator.CreateInstance(argField.PropertyType, item);
                         vals.Add(typedVal);
                     }
-                    else if (args.ContainsKey(argName))
+                    else if (args != null && args.ContainsKey(argName))
                     {
                         vals.Add(Expression.Lambda(args[argName]).Compile().DynamicInvoke());
                     }
@@ -186,10 +183,11 @@ namespace EntityQueryLanguage.Schema
 
                 // create a copy of the anonymous object. It will have the default values set
                 // there is only 1 constructor for the anonymous type that takes all the property values
-                var con = field.ArgumentTypes.GetType().GetConstructors().First();
+                var con = argType.GetConstructors().First();
                 var parameters = con.Invoke(vals.ToArray());
                 // tell them this expression has another parameter
-                var argParam = Expression.Parameter(field.ArgumentTypes.GetType());
+                var argParam = Expression.Parameter(argType);
+                result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
                 result.AddParameter(argParam, parameters);
             }
 
@@ -234,19 +232,29 @@ namespace EntityQueryLanguage.Schema
     /// As people build schema fields they are against a different parameter, this visitor lets us change it to the one used in compiling the EQL
     internal class ParameterReplacer : ExpressionVisitor
     {
-        private Expression _newParam;
-        private ParameterExpression _toReplace;
+        private Expression newParam;
+        private Type toReplaceType;
+        private ParameterExpression toReplace;
         internal Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam)
         {
-            _newParam = newParam;
-            _toReplace = toReplace;
+            this.newParam = newParam;
+            this.toReplace = toReplace;
+            return Visit(node);
+        }
+
+        internal Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
+        {
+            this.newParam = newParam;
+            this.toReplaceType = toReplaceType;
             return Visit(node);
         }
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            if (_toReplace == node)
-                return _newParam;
+            if (toReplace != null && toReplace == node)
+                return newParam;
+            if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
+                return newParam;
             return node;
         }
     }

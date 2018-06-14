@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using static EntityQueryLanguage.ArgumentHelper;
 using EntityQueryLanguage.Schema;
 using EntityQueryLanguage.Compiler;
+using System;
 
 namespace EntityQueryLanguage.GraphQL.Tests
 {
@@ -37,9 +38,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 }");
 
             Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
-            Assert.Equal(1, Enumerable.Count(result));
-            var user = Enumerable.ElementAt(result, 0);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
             Assert.Equal("Id", user.GetType().GetFields()[0].Name);
@@ -49,16 +48,67 @@ namespace EntityQueryLanguage.GraphQL.Tests
         [Fact]
         public void ThrowsOnMissingRequiredArgument()
         {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                user { id }
+            }"));
+            Assert.Equal("Error compiling field or query 'user'. Missing required argument 'id' for field 'user'", ex.Message);
         }
 
         [Fact]
         public void SupportsArgumentsDefaultValue()
         {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a default parameter
+            schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return me, or someone else");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                me { id }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(9, user.Id);
+        }
+
+        [Fact]
+        public void SupportsDefaultArgumentsInNonRoot()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                people { id, height }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic person = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, person.GetType().GetFields().Length);
+            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
+            Assert.Equal(183.0, person.Height);
         }
 
         [Fact]
         public void SupportsArgumentsInNonRoot()
         {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                people { id, height(meter) }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic person = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, person.GetType().GetFields().Length);
+            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
+            Assert.Equal(1.8, person.Height);
         }
 
         private class TestSchema
@@ -66,6 +116,13 @@ namespace EntityQueryLanguage.GraphQL.Tests
             public string Hello { get { return "returned value"; } }
             public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
             public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1) }; } }
+        }
+
+        private enum HeightUnit
+        {
+            Cm,
+            Meter,
+            Feet
         }
 
 
@@ -90,7 +147,19 @@ namespace EntityQueryLanguage.GraphQL.Tests
             public string Name { get { return "Luke"; } }
             public string LastName { get { return "Last Name"; } }
             public User User { get { return new User(100); } }
+            public double Height { get { return 183.0; } }
             public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
+
+            public double GetHeight(HeightUnit unit)
+            {
+                switch (unit)
+                {
+                    case HeightUnit.Cm: return Height;
+                    case HeightUnit.Meter: return Height / 100;
+                    case HeightUnit.Feet: return Height * 0.0328;
+                    default: throw new NotSupportedException($"Height unit {unit} not supported");
+                }
+            }
         }
         private class Project
         {
