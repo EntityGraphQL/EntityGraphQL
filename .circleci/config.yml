@@ -6,5 +6,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Unit Tests
-          command: dotnet test
+          name: Base EQL tests
+          command: dotnet test src/tests/EntityQueryLanguage.Tests/
+      - run:
+          name: GraphQL tests
+          command: dotnet test src/tests/EntityQueryLanguage.GraphQL.Tests/
