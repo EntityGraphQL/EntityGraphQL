@@ -18,32 +18,41 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         public string Name { get; private set; }
         public Expression Expression { get; private set; }
         public List<ParameterExpression> Parameters { get; private set; }
-        public List<object> ConstParameterValues { get; private set; }
+        public List<object> ConstantParameterValues { get; private set; }
 
         public List<GraphQLNode> Fields { get; private set; }
         public Expression RelationExpression { get; private set; }
 
-        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, query.Expression.Body, relationExpression)
+        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, query.Expression.Body, relationExpression, query.Expression.Parameters, query.ConstantParameterValues)
         {
-            Parameters = query.Expression.Parameters.ToList();
-            ConstParameterValues = query.ParameterValues?.ToList();
         }
 
-        public GraphQLNode(string name, Expression exp, Expression relationExpression)
+        public GraphQLNode(string name, Expression exp, Expression relationExpression, IEnumerable<ParameterExpression> constantParameters, IEnumerable<object> constantParameterValues)
         {
             Name = name;
             Expression = exp;
             Fields = new List<GraphQLNode>();
             RelationExpression = relationExpression;
+            Parameters = constantParameters?.ToList();
+            ConstantParameterValues = constantParameterValues?.ToList();
         }
 
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
-            if (ConstParameterValues != null)
-                allArgs.AddRange(ConstParameterValues);
+            if (ConstantParameterValues != null)
+                allArgs.AddRange(ConstantParameterValues);
 
             return Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
+        }
+
+        public TReturnType Execute<TReturnType>(params object[] args)
+        {
+            var allArgs = new List<object>(args);
+            if (ConstantParameterValues != null)
+                allArgs.AddRange(ConstantParameterValues);
+
+            return (TReturnType)Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
         }
 
         public override string ToString()

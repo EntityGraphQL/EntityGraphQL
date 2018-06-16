@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityQueryLanguage.Compiler;
@@ -5,6 +6,7 @@ using EntityQueryLanguage.GraphQL.Util;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Schema;
+using System.Collections.Generic;
 
 namespace EntityQueryLanguage.GraphQL.Parsing
 {
@@ -12,45 +14,42 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     /// We use EqlCompiler to compile the query and then build a Select() call for each field
     internal class DataApiVisitor : EqlGrammerBaseVisitor<GraphQLNode>
     {
-        private ISchemaProvider _schemaProvider;
-        private IMethodProvider _methodProvider;
-        private IRelationHandler _relationHandler;
+        private ISchemaProvider schemaProvider;
+        private IMethodProvider methodProvider;
+        private IRelationHandler relationHandler;
         // This is really just so we know what to use when visiting a field
-        private Expression _selectContext;
+        private Expression selectContext;
+        private BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
 
         public DataApiVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler)
         {
-            _schemaProvider = schemaProvider;
-            _methodProvider = methodProvider;
-            _relationHandler = relationHandler;
+            this.schemaProvider = schemaProvider;
+            this.methodProvider = methodProvider;
+            this.relationHandler = relationHandler;
         }
 
         public override GraphQLNode VisitField(EqlGrammerParser.FieldContext context)
         {
-            var name = context.GetText();
-            if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
-                throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
-
-            var actualName = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
-            var fieldExp = _schemaProvider.GetExpressionForField(_selectContext, _selectContext.Type.Name, name, null);
-
-            var node = new GraphQLNode(actualName, fieldExp, null);
+            var name = baseIdentityFinder.Visit(context);
+            var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, methodProvider);
+            var actualName = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
+            var node = new GraphQLNode(actualName, result, null);
             return node;
         }
         public override GraphQLNode VisitAliasExp(EqlGrammerParser.AliasExpContext context)
         {
             var name = context.alias.name.GetText();
             var query = context.entity.GetText();
-            if (_selectContext == null)
+            if (selectContext == null)
             {
                 // top level are queries on the context
-                var exp = EqlCompiler.Compile(query, _schemaProvider, _methodProvider);
+                var exp = EqlCompiler.Compile(query, schemaProvider, methodProvider);
                 var node = new GraphQLNode(name, exp, null);
                 return node;
             }
             else
             {
-                var result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
+                var result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider);
                 var node = new GraphQLNode(name, result, null);
                 return node;
             }
@@ -79,14 +78,14 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             try
             {
                 QueryResult result = null;
-                if (_selectContext == null)
+                if (selectContext == null)
                 {
                     // top level are queries on the context
-                    result = EqlCompiler.Compile(query, _schemaProvider, _methodProvider);
+                    result = EqlCompiler.Compile(query, schemaProvider, methodProvider);
                 }
                 else
                 {
-                    result = EqlCompiler.CompileWith(query, _selectContext, _schemaProvider, _methodProvider);
+                    result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider);
                 }
                 var exp = result.Expression.Body;
 
@@ -113,69 +112,85 @@ namespace EntityQueryLanguage.GraphQL.Parsing
 
             var exp = queryResult.Expression.Body;
 
-            var oldContext = _selectContext;
-            _selectContext = contextParameter;
+            var oldContext = selectContext;
+            selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
             var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
             var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).Select(r => r.RelationExpression).ToList();
             // process at each relation
-            if (_relationHandler != null && relations.Any())
+            if (relationHandler != null && relations.Any())
             {
                 // Likely the EF handler to build .Include()s
-                exp = _relationHandler.BuildNodeForSelect(relations, contextParameter, exp, name, _schemaProvider);
+                exp = relationHandler.BuildNodeForSelect(relations, contextParameter, exp, name, schemaProvider);
             }
-
             // we're about to add the .Select() call. May need to do something
-            if (_relationHandler != null && isRootSelect)
+            if (relationHandler != null && isRootSelect)
             {
-                exp = _relationHandler.HandleSelectComplete(exp);
+                exp = relationHandler.HandleSelectComplete(exp);
             }
 
             // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
-            var selectExpression = (ExpressionResult)DataApiExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, _schemaProvider);
-            _selectContext = oldContext;
+            var selectExpression = (ExpressionResult)DataApiExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, schemaProvider);
+            selectContext = oldContext;
 
-            var lambda = Expression.Lambda(selectExpression, queryResult.Expression.Parameters);
-            var gqlNode = new GraphQLNode(name, new QueryResult(lambda, queryResult.ParameterValues), null);
+            var t = MergeConstantParametersFromFields(queryResult, fieldExpressions);
+            var parameters = t.Item1;
+            var constantParameterValues = t.Item2;
+            var lambda = Expression.Lambda(selectExpression, parameters);
+            var gqlNode = new GraphQLNode(name, new QueryResult(lambda, constantParameterValues), null);
             return gqlNode;
+        }
+
+        private static Tuple<List<ParameterExpression>, List<object>> MergeConstantParametersFromFields(QueryResult queryResult, List<GraphQLNode> fieldExpressions)
+        {
+            var parameters = queryResult.Expression.Parameters.ToList();
+            var constantParameterValues = queryResult.ConstantParameterValues.ToList();
+            fieldExpressions.ForEach(field =>
+            {
+                if (field.ConstantParameterValues != null && field.ConstantParameterValues.Any())
+                {
+                    parameters.AddRange(field.Parameters);
+                    constantParameterValues.AddRange(field.ConstantParameterValues);
+                }
+            });
+            return Tuple.Create(parameters, constantParameterValues);
         }
 
         /// Given a syntax of someField { fields, to, selection, from, object }
         /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a collection) and build the correct select statement
         private GraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context, QueryResult rootField)
         {
-            if (_selectContext == null)
-                _selectContext = Expression.Parameter(_schemaProvider.ContextType);
+            if (selectContext == null)
+                selectContext = Expression.Parameter(schemaProvider.ContextType);
 
-            if (!_schemaProvider.TypeHasField(_selectContext.Type.Name, name))
-                throw new EqlCompilerException($"Type {_selectContext.Type} does not have field or property {name}");
-            name = _schemaProvider.GetActualFieldName(_selectContext.Type.Name, name);
+            if (!schemaProvider.TypeHasField(selectContext.Type.Name, name))
+                throw new EqlCompilerException($"Type {selectContext.Type} does not have field or property {name}");
+            name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
 
             try
             {
                 Expression exp = rootField.Expression.Body;
 
-                var oldContext = _selectContext;
-                _selectContext = exp;
+                var oldContext = selectContext;
+                selectContext = exp;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-
                 var relationsExps = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).ToList();
-                if (_relationHandler != null && relationsExps.Any())
+                if (relationHandler != null && relationsExps.Any())
                 {
-                    var parameterExpression = Expression.Parameter(_selectContext.Type);
+                    var parameterExpression = Expression.Parameter(selectContext.Type);
                     var relations = relationsExps.Select(r => (Expression)Expression.PropertyOrField(parameterExpression, r.Name)).ToList();
-                    exp = _relationHandler.BuildNodeForSelect(relations, parameterExpression, exp, name, _schemaProvider);
+                    exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp, name, schemaProvider);
                 }
 
-                var newExp = DataApiExpressionUtil.CreateNewExpression(_selectContext, fieldExpressions, _schemaProvider);
-                _selectContext = oldContext;
+                var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
+                selectContext = oldContext;
 
-                // we might need to merge const parameters from the context comming in
-                var parameters = rootField.Expression.Parameters.ToList();
-                var parameterValues = rootField.ParameterValues.ToList();
+                var t = MergeConstantParametersFromFields(rootField, fieldExpressions);
+                var parameters = t.Item1;
+                var constantParameterValues = t.Item2;
                 var lambda = Expression.Lambda(newExp, parameters);
-                return new GraphQLNode(_schemaProvider.GetActualFieldName(_selectContext.Type.Name, name), new QueryResult(lambda, parameterValues), exp);
+                return new GraphQLNode(schemaProvider.GetActualFieldName(selectContext.Type.Name, name), new QueryResult(lambda, constantParameterValues), exp);
             }
             catch (EqlCompilerException ex)
             {
@@ -191,7 +206,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         /// }
         public override GraphQLNode VisitDataQuery(EqlGrammerParser.DataQueryContext context)
         {
-            var root = new GraphQLNode("root", (Expression)null, null);
+            var root = new GraphQLNode("root", null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             var entities = context.children.Select(c => Visit(c)).ToList();
             root.Fields.AddRange(entities.Where(n => n != null));

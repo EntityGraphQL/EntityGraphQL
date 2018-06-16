@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace EntityQueryLanguage.Schema
 {
@@ -29,5 +30,14 @@ namespace EntityQueryLanguage.Schema
         public string ReturnSchemaType { get; private set; }
         public object ArgumentTypes { get; private set; }
 
+        public Type GetArgumentType(string argName)
+        {
+            var arg = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
+            if (arg == null)
+            {
+                throw new EqlCompilerException($"{argName} is not an argument on field {Name}");
+            }
+            return arg.PropertyType;
+        }
     }
 }

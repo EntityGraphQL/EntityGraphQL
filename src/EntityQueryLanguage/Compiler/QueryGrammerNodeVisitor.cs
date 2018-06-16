@@ -13,13 +13,14 @@ namespace EntityQueryLanguage.Compiler
 
     internal class QueryGrammerNodeVisitor : EqlGrammerBaseVisitor<ExpressionResult>
     {
-        private Expression currentContext;
+        private ExpressionResult currentContext;
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
+        private Field fieldArgumentContext;
 
         public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
-            currentContext = expression;
+            currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
         }
@@ -107,8 +108,31 @@ namespace EntityQueryLanguage.Compiler
         public override ExpressionResult VisitGqlcall(EqlGrammerParser.GqlcallContext context)
         {
             var field = context.method.GetText();
-            var args = context.gqlarguments.children.Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => Visit(a.gqlvalue));
+            var args = context.gqlarguments.children.Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => {
+                fieldArgumentContext = schemaProvider.GetFieldType(currentContext, field);
+                var r = VisitGqlarg(a);
+                fieldArgumentContext = null;
+                return r;
+            });
             return MakeFieldExpression(field, args);
+        }
+
+        public override ExpressionResult VisitGqlarg(EqlGrammerParser.GqlargContext context)
+        {
+            var enumName = context.gqlvalue.GetText();
+            var argType = fieldArgumentContext.GetArgumentType(context.gqlfield.GetText());
+            if (!argType.GetTypeInfo().IsEnum)
+            {
+                // could be a constant or some other compilable expression
+                return Visit(context.gqlvalue);
+            }
+            var valueIndex = Enum.GetNames(argType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
+            if (valueIndex == -1)
+            {
+                throw new EqlCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
+            }
+            var enumValue = Enum.GetValues(argType).GetValue(valueIndex);
+            return (ExpressionResult)Expression.Constant(enumValue);
         }
 
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
@@ -152,7 +176,9 @@ namespace EntityQueryLanguage.Compiler
         {
             var method = context.method.GetText();
             if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
+            {
                 throw new EqlCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
+            }
             // Keep the current context
             var outerContext = currentContext;
             // some methods might have a different inner context (IEnumerable etc)

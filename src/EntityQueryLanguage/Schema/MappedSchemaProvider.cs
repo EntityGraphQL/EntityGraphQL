@@ -134,6 +134,11 @@ namespace EntityQueryLanguage.Schema
         {
             return TypeHasField(type.Name, identifier);
         }
+        public bool TypeHasFieldWithArguments(Type type, string field)
+        {
+            var r = TypeHasField(type, field) && _types[type.Name].GetField(field).ArgumentTypes != null;
+            return r;
+        }
         public string GetActualFieldName(string typeName, string identifier)
         {
             if (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
@@ -141,6 +146,12 @@ namespace EntityQueryLanguage.Schema
             if (typeName == _queryContextName && _types[_queryContextName].HasField(identifier))
                 return _types[_queryContextName].GetField(identifier).Name;
             throw new EqlCompilerException($"Field {identifier} not found on any type");
+        }
+
+        public Field GetFieldType(Expression context, string fieldName)
+        {
+            var field = _types[context.Type.Name].GetField(fieldName);
+            return field;
         }
 
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)
@@ -188,7 +199,7 @@ namespace EntityQueryLanguage.Schema
                 // tell them this expression has another parameter
                 var argParam = Expression.Parameter(argType);
                 result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
-                result.AddParameter(argParam, parameters);
+                result.AddConstantParameter(argParam, parameters);
             }
 
             // the expressions we collect have a different starting parameter. We need to change that

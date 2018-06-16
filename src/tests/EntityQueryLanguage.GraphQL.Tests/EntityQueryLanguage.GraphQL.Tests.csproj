@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Tests for Entity Query Language DataApi</Description>
+    <Description>Tests for Entity Query Language GraphQL support</Description>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>EntityQueryLanguage.GraphQL.Tests</AssemblyName>

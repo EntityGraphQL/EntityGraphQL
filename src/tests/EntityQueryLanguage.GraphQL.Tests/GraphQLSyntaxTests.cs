@@ -85,12 +85,14 @@ namespace EntityQueryLanguage.GraphQL.Tests
             }");
 
             Assert.Single(tree.Fields);
-            dynamic person = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            Assert.Equal(1, Enumerable.Count(result));
+            var person = Enumerable.First(result);
             // we only have the fields requested
-            Assert.Equal(1, person.GetType().GetFields().Length);
+            Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
-            Assert.Equal(183.0, person.Height);
+            Assert.Equal("height", person.GetType().GetFields()[1].Name);
+            Assert.Equal(183.0, person.height);
         }
 
         [Fact]
@@ -99,16 +101,15 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                people { id, height(meter) }
+                people { height(unit: meter) }
             }");
 
             Assert.Single(tree.Fields);
-            dynamic person = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            Assert.Equal(1, Enumerable.Count(result));
+            var person = Enumerable.First(result);
             // we only have the fields requested
-            Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
-            Assert.Equal(1.8, person.Height);
+            Assert.Equal(1.83, person.height);
         }
 
         private class TestSchema

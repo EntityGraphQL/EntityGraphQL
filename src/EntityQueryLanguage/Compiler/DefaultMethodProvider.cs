@@ -51,7 +51,7 @@ namespace EntityQueryLanguage.Compiler
             return _supportedMethods.ContainsKey(methodName);
         }
 
-        public Expression GetMethodContext(Expression context, string methodName)
+        public ExpressionResult GetMethodContext(ExpressionResult context, string methodName)
         {
             // some methods have a context of the element type in the list, other is jsut the original context
             // need some way for the method compiler to tells us that
@@ -143,15 +143,15 @@ namespace EntityQueryLanguage.Compiler
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "OrderByDescending", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
-        private static Expression GetContextFromEnumerable(Expression context)
+        private static ExpressionResult GetContextFromEnumerable(ExpressionResult context)
         {
             if (context.Type.IsEnumerable())
             {
-                return Expression.Parameter(context.Type.GetGenericArguments()[0]);
+                return (ExpressionResult)Expression.Parameter(context.Type.GetGenericArguments()[0]);
             }
             var t = context.Type.GetEnumerableType();
             if (t != null)
-                return Expression.Parameter(t);
+                return (ExpressionResult)Expression.Parameter(t);
             return context;
         }
 

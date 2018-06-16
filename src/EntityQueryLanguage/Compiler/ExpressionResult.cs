@@ -6,11 +6,13 @@ using System.Reflection;
 namespace EntityQueryLanguage.Compiler
 {
     /// <summary>
-    /// Holds information about the compiled expression
+    /// Holds information about the compiled expression.
+    /// The Expression and any ParameterExpressions and their values.
+    /// We use ParameterExpression and not Constant so the compiled query can be cached and values swapped out
     /// </summary>
     public class ExpressionResult
     {
-        private Dictionary<ParameterExpression, object> parameters = new Dictionary<ParameterExpression, object>();
+        private Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
 
         public ExpressionResult(Expression value)
         {
@@ -20,7 +22,7 @@ namespace EntityQueryLanguage.Compiler
         public Expression Expression { get; internal set; }
         public Type Type { get { return Expression.Type; } }
 
-        public IReadOnlyDictionary<ParameterExpression, object> Parameters { get => parameters; }
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
 
         public static implicit operator Expression(ExpressionResult field)
         {
@@ -36,9 +38,9 @@ namespace EntityQueryLanguage.Compiler
             return new ExpressionResult(value);
         }
 
-        internal void AddParameter(ParameterExpression type, object value)
+        internal void AddConstantParameter(ParameterExpression type, object value)
         {
-            parameters.Add(type, value);
+            constantParameters.Add(type, value);
         }
     }
 }

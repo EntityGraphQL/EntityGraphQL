@@ -48,17 +48,22 @@ namespace EntityQueryLanguage
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
                 contextParams.Add(contextParam);
-            if (expression.Parameters.Any())
-                contextParams.AddRange(expression.Parameters.Keys);
+            if (expression.ConstantParameters.Any())
+                contextParams.AddRange(expression.ConstantParameters.Keys);
             var lambda = Expression.Lambda(expression, contextParams.ToArray());
-            return new QueryResult(lambda, expression.Parameters.Values);
+            return new QueryResult(lambda, expression.ConstantParameters.Values);
         }
 
         public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
             var expression = CompileQuery(query, context, schemaProvider, methodProvider);
 
-            return new QueryResult(Expression.Lambda(expression), null);
+            var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
+            if (expression.ConstantParameters != null)
+            {
+                parameters.AddRange(expression.ConstantParameters.Keys);
+            }
+            return new QueryResult(Expression.Lambda(expression, parameters.ToArray()), expression.ConstantParameters?.Values);
         }
 
         private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider)

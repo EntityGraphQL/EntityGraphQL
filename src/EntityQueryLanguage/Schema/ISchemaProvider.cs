@@ -18,6 +18,8 @@ namespace EntityQueryLanguage.Schema
         /// Checks if the given type has the given field identifier
         bool TypeHasField(string typeName, string identifier);
         bool TypeHasField(Type type, string identifier);
+        bool TypeHasFieldWithArguments(Type type, string field);
+
         bool HasType(string typeName);
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
         string GetActualFieldName(string typeName, string identifier);
@@ -32,5 +34,6 @@ namespace EntityQueryLanguage.Schema
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string field, Dictionary<string, ExpressionResult> args);
         string GetSchemaTypeNameForRealType(Type type);
+        Field GetFieldType(Expression context, string field);
     }
 }
