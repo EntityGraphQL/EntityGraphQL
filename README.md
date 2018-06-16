@@ -1,4 +1,6 @@
 # Entity Query Language
+Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master)
+
 EQL is a data/object querying language for .NET Core that supports the GraphQL Syntax.
 
 This library in still in development, although it is already a quite very powerful tool for querying data.
