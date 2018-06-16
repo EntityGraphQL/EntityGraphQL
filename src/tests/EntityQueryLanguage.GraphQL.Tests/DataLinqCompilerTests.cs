@@ -99,7 +99,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 {
 	people { id }
 }");});
-            Assert.Equal("Error compiling field or query 'people'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Person does not have field or property id", ex.Message);
+            Assert.Equal("Error compiling field or query 'people'. Field or property 'id' not found on current context 'Person'", ex.Message);
         }
 
         [Fact]
@@ -251,8 +251,8 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
             Assert.Equal("Name", person.GetType().GetFields()[1].Name);
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("Projects", person.GetType().GetFields()[2].Name);
-            var projects = person.Projects;
+            Assert.Equal("projects", person.GetType().GetFields()[2].Name);
+            var projects = person.projects;
             Assert.Equal(1, Enumerable.Count(projects));
             var project = Enumerable.ElementAt(projects, 0);
             Assert.Equal(1, project.GetType().GetFields().Length);
@@ -279,15 +279,15 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("Projects", person.GetType().GetFields()[1].Name);
-            var projects = person.Projects;
+            Assert.Equal("projects", person.GetType().GetFields()[1].Name);
+            var projects = person.projects;
             Assert.Equal(1, Enumerable.Count(projects));
             var project = Enumerable.ElementAt(projects, 0);
             Assert.Equal(2, project.GetType().GetFields().Length);
             Assert.Equal("Name", project.GetType().GetFields()[0].Name);
-            Assert.Equal("Tasks", project.GetType().GetFields()[1].Name);
+            Assert.Equal("tasks", project.GetType().GetFields()[1].Name);
 
-            var tasks = project.Tasks;
+            var tasks = project.tasks;
             Assert.Equal(1, Enumerable.Count(tasks));
             var task = Enumerable.ElementAt(tasks, 0);
             Assert.Equal(2, task.GetType().GetFields().Length);
@@ -307,7 +307,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'blahs'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Project does not have field or property blahs", ex.Message);
+            Assert.Equal("Error compiling field or query 'blahs'. Field or property 'blahs' not found on current context 'Project'", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -320,7 +320,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'projects'. Type EntityQueryLanguage.GraphQL.Tests.DataLinqCompilerTests+Project does not have field or property name3", ex.Message);
+            Assert.Equal("Error compiling field or query 'projects'. Field or property 'name3' not found on current context 'Project'", ex.Message);
         }
 
         [Fact(Skip = "Not sure of the status")]
