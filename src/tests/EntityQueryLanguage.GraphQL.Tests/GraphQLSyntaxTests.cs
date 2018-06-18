@@ -30,7 +30,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         [Fact]
         public void SupportsArguments()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
             schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
@@ -48,7 +48,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         [Fact]
         public void ThrowsOnMissingRequiredArgument()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
             schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
