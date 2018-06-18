@@ -14,6 +14,9 @@ It can also be used to execute simple LINQ-style expressions at runtime against 
 
 _Please explore, give feedback or join the development._
 
+## Install
+Via Nuget https://www.nuget.org/packages/EntityQueryLanguage.GraphQL
+
 ## Serving your data
 The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL support.
 
@@ -201,7 +204,7 @@ As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension meth
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
 - Arguments
-  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property. With the argument name of `id`
+  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below
 
 ## Supported LINQ methods (non-GraphQL compatible)
@@ -272,6 +275,8 @@ var eql = "if location.name = 'Mars' then (cost + 5) * type.premium else (cost *
 var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
+
+If you want this functionalilty and not GraphQL support you can install the base package https://www.nuget.org/packages/EntityQueryLanguage
 
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
