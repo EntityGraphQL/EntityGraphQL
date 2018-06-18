@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityQueryLanguage.Extensions;
 
 namespace EntityQueryLanguage.Schema
 {
@@ -17,6 +18,17 @@ namespace EntityQueryLanguage.Schema
             Description = description;
             FieldParam = resolve.Parameters.First();
             ReturnSchemaType = returnSchemaType;
+            if (ReturnSchemaType == null)
+            {
+                if (resolve.Body.Type.IsEnumerable())
+                {
+                    ReturnSchemaType = resolve.Body.Type.GetGenericArguments()[0].Name;
+                }
+                else
+                {
+                    ReturnSchemaType = resolve.Body.Type.Name;
+                }
+            }
         }
 
         public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes) : this(name, resolve, description, returnSchemaType)

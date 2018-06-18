@@ -40,15 +40,7 @@ namespace EntityQueryLanguage.Extensions
             }
             return null;
         }
-        public static bool ListEquals(this IEnumerable<Type> source, IEnumerable<Type> compare)
-        {
-            if (source.Count() != compare.Count())
-                return false;
-            for (var i = 0; i < source.Count(); i++)
-                if (source.ElementAt(i) != (compare.ElementAt(i)))
-                    return false;
-            return true;
-        }
+
         public static bool IsNullableType(this Type t)
         {
             return t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);

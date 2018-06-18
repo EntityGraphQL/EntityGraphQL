@@ -13,7 +13,7 @@ namespace EntityQueryLanguage.GraphQL
     public static class EntityQueryExtensions
     {
         /// <summary>
-        /// Extension method to query an object purely based on the schema of that object.null Note it creates a new MappedSchemaProvider each time.
+        /// Extension method to query an object purely based on the schema of that object. Note it creates a new MappedSchemaProvider each time.
         /// </summary>
         /// <param name="context"></param>
         /// <param name="dataQuery"></param>

@@ -123,7 +123,10 @@ namespace EntityQueryLanguage.Schema
         {
             return (SchemaType<TType>)_types[typeof(TType).Name];
         }
-
+        public ISchemaType Type(string typeName)
+        {
+            return _types[typeName];
+        }
         // ISchemaProvider interface
         public Type ContextType { get { return _types[_queryContextName].ContextType; } }
         public bool TypeHasField(string typeName, string identifier)
@@ -133,11 +136,6 @@ namespace EntityQueryLanguage.Schema
 		public bool TypeHasField(Type type, string identifier)
         {
             return TypeHasField(type.Name, identifier);
-        }
-        public bool TypeHasFieldWithArguments(Type type, string field)
-        {
-            var r = TypeHasField(type, field) && _types[type.Name].GetField(field).ArgumentTypes != null;
-            return r;
         }
         public string GetActualFieldName(string typeName, string identifier)
         {

@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using System.Threading;
 using EntityQueryLanguage.Extensions;
 
-namespace EntityQueryLanguage.GraphQL.Parsing
+namespace EntityQueryLanguage.Compiler
 {
     public static class LinqRuntimeTypeBuilder
     {
@@ -19,7 +19,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
 
         private static string GetTypeKey(Dictionary<string, Type> fields)
         {
-            //TODO: optimize the type caching -- if fields are simply reordered, that doesn't mean that they're actually different types, so this needs to be smarter
+            // TODO: optimize the type caching -- if fields are simply reordered, that doesn't mean that they're actually different types, so this needs to be smarter
             string key = string.Empty;
             foreach (var field in fields)
             {

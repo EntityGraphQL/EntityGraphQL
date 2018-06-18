@@ -69,9 +69,6 @@ namespace EntityQueryLanguage.Tests
                 AddField("openTasks", ctx => ctx.Tasks, "All open tasks for all projects", "openTask");
                 AddField("closedTasks", ctx => ctx.Tasks, "All closedtasks for all projects", "closedTask");
                 AddField("defaultLocation", ctx => ctx.Locations.First(l => l.Id == 10), "The default location for projects");
-
-                // add a call with arguments - TODO
-                // AddField("person", new { Id = 0 }, (ctx, args) => ctx.People.Where(p => p.Id == args.Id).FirstOrDefault(), "Get a single person by their ID");
             }
         }
     }

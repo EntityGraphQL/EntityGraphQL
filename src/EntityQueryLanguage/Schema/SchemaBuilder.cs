@@ -5,22 +5,66 @@ using System.Collections.Generic;
 using System.Reflection;
 using EntityQueryLanguage.Extensions;
 using EntityQueryLanguage.Schema;
+using Humanizer;
+using EntityQueryLanguage.Compiler;
 
 namespace EntityQueryLanguage.Schema
 {
-    /// A simple schema provider to map a EntityQL query directly to a object graph
+    /// <summary>
+    /// A simple schema provider to automattically create a query schema based on an object.
+    /// Commonly used with a DbContext.
+    /// </summary>
     public class SchemaBuilder
     {
-        public static MappedSchemaProvider<TContextType> FromObject<TContextType>()
+        /// <summary>
+        /// Given the type TContextType recursively create a query schema based on the public properties of the object.
+        /// </summary>
+        /// <param name="autoCreateIdArguments">If True, automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        public static MappedSchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true)
         {
             var schema = new MappedSchemaProvider<TContextType>();
             var contextType = typeof(TContextType);
             var rootFields = AddFieldsFromObjectToSchema<TContextType>(contextType, schema);
             foreach (var f in rootFields)
             {
+                if (autoCreateIdArguments)
+                {
+                    // add non-pural field with argument of ID
+                    AddFieldWithIdArgumentIfExists(schema, contextType, f);
+                }
                 schema.AddField(f);
             }
             return schema;
+        }
+
+        private static void AddFieldWithIdArgumentIfExists<TContextType>(MappedSchemaProvider<TContextType> schema, Type contextType, Field fieldProp)
+        {
+            if (!fieldProp.Resolve.Type.IsEnumerable())
+                return;
+            var schemaType = schema.Type(fieldProp.ReturnSchemaType);
+            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "Id");
+            if (idFieldDef == null)
+                return;
+
+            // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
+            var requiredField = Activator.CreateInstance(typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type));
+            var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredField.GetType() } };
+            var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
+            var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
+            var argTypeParam = Expression.Parameter(argTypes);
+            Type arrayContextType = schema.Type(fieldProp.ReturnSchemaType).ContextType;
+            var arrayContextParam = Expression.Parameter(arrayContextType);
+            var lambdaParams = new[] { arrayContextParam, argTypeParam };
+            var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
+            var argId = Expression.PropertyOrField(argTypeParam, "id");
+            var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, Expression.Convert(argId, idFieldDef.Resolve.Type));
+            var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
+            var body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            var selectionExpression = Expression.Lambda(body, lambdaParams);
+            var field = new Field(fieldProp.Name.Singularize(), selectionExpression, $"Return {fieldProp.ReturnSchemaType} by Id", fieldProp.ReturnSchemaType, argTypesValue);
+            schema.AddField(field);
         }
 
         private static List<Field> AddFieldsFromObjectToSchema<TContextType>(Type type, MappedSchemaProvider<TContextType> schema)

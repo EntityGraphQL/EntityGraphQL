@@ -1,9 +1,9 @@
 # Entity Query Language
 Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master)
 
-EQL is a data/object querying language for .NET Core that supports the GraphQL Syntax.
+EQL is a data/object querying language for .NET Core (netstandard 1.6) that supports the GraphQL syntax.
 
-This library in still in development, although it is already a quite very powerful tool for querying data.
+This library in still in development, although it is already a very powerful tool for querying data.
 
 EQL allows you take a query (GraphQL) and execute it against an object
 - Expose any object graph, e.g. your DbContext
@@ -19,7 +19,7 @@ The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL support.
 
 ### Getting up and running with EF
 
-_Note: Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested well._
+_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested well._
 
 1. Define your DB context
 
@@ -53,6 +53,7 @@ public class Location {
 }
 ```
 2. Create a route
+
 Using what ever API library you wish. Here is an example for a ASP.NET WebApi controller
 
 ```csharp
@@ -115,7 +116,7 @@ This sets up 2 end points:
 
 3. Build awesome applications
 
-You can now make request to your API. For example
+You can now make a request to your API. For example
 ```
   GET localhost:5000/api/query?q={properties { id, name }}
 ```
@@ -145,12 +146,10 @@ Maybe you only want a specific property
 Will return the following result.
 ```json
 {
-  "property": [
-    {
-      "id": 11,
-      "name": "My Beach Pad"
-    }
-  ]
+  "property": {
+    "id": 11,
+    "name": "My Beach Pad"
+  }
 }
 ```
 If you need a deeper graph or relations, just ask
@@ -196,16 +195,16 @@ Will return the following result.
 }
 ```
 
-As mentioned, EQL compiles to .NET LINQ expressions (IQueryable extension methods - Where() and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core 2.0.
+As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core.
 
-### Supported GraphQL features
+## Supported GraphQL features
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
 - Arguments
   - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property. With the argument name of `id`
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below
 
-### Supported LINQ methods (non-GraphQL compatible)
+## Supported LINQ methods (non-GraphQL compatible)
 - `array.where(filter)`
 - `array.filter(filter)`
 - `array.first(filter?)`
@@ -217,7 +216,7 @@ As mentioned, EQL compiles to .NET LINQ expressions (IQueryable extension method
 - `array.orderBy(field)`
 - `array.orderByDesc(field)`
 
-### Customizing the schema
+## Customizing the schema
 
 You can customise the default schema, or create one from stratch exposing only the fields you want.
 ```csharp
@@ -277,19 +276,11 @@ var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
 
-- Implement more of the GraphQL query spec
-  - fragments
-  - operation names
-  - variables
-  - Directives
-  - Mutations
-  - Inline fragments
-  - meta fields
+- Implement more of the GraphQL query spec (See issues)
 - fix GetMethodContext() in methodProvider
 - Add logging options
-- Add support for data manipulation - adds, updates, deletes
 - A way to "plug-in" security - examples
 - A way to "plug-in" other logic - examples
 - Auto generate schema documentation page
-- better paging (from graphql?)
-- Authentication and access control options
+- Add paging support (from graphql?)
+- Support integration into security for controlling data access

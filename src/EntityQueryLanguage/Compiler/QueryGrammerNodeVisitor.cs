@@ -138,7 +138,7 @@ namespace EntityQueryLanguage.Compiler
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
             // check that the schema has the property for the context
-            //TODO - need to get the mapped name for the type to check for fields to support mapped schema too
+            // TODO - need to get the mapped name for the type to check for fields to support mapped schema too
             if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field))
             {
                 throw new EqlCompilerException($"Field or property '{field}' not found on current context '{currentContext.Type.Name}'");

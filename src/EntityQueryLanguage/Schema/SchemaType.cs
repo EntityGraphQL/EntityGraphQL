@@ -12,6 +12,7 @@ namespace EntityQueryLanguage.Schema
         string Name { get; }
 
         Field GetField(string identifier);
+        IEnumerable<Field> GetFields();
         bool HasField(string identifier);
         void AddFields(List<Field> fields);
         void AddField(Field field);
@@ -117,6 +118,10 @@ namespace EntityQueryLanguage.Schema
         public Field GetField(string identifier)
         {
             return _fields[identifier];
+        }
+        public IEnumerable<Field> GetFields()
+        {
+            return _fields.Values;
         }
         public bool HasField(string identifier)
         {

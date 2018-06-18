@@ -65,6 +65,17 @@ namespace EntityQueryLanguage.Tests
             });
             Assert.Equal("An item with the same key has already been added. Key: person", ex.Message);
         }
+
+        [Fact]
+        public void AutoAddArgumentForId()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var argumentTypes = schema.Type<TestSchema>().GetField("person").ArgumentTypes.GetType();
+            Assert.Single(argumentTypes.GetFields());
+            var prop = argumentTypes.GetFields()[0];
+            Assert.Equal("id", prop.Name);
+            Assert.Equal(typeof(RequiredField<int>), prop.FieldType);
+        }
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
