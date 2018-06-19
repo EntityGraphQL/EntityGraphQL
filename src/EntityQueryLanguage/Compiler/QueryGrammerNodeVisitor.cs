@@ -7,6 +7,7 @@ using EntityQueryLanguage.Grammer;
 using EntityQueryLanguage.Extensions;
 using System.Collections.Generic;
 using EntityQueryLanguage.Schema;
+using System.Text.RegularExpressions;
 
 namespace EntityQueryLanguage.Compiler
 {
@@ -17,6 +18,7 @@ namespace EntityQueryLanguage.Compiler
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
         private Field fieldArgumentContext;
+        private Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
         public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
@@ -159,7 +161,12 @@ namespace EntityQueryLanguage.Compiler
 
         public override ExpressionResult VisitString(EqlGrammerParser.StringContext context)
         {
-            return (ExpressionResult)Expression.Constant(context.GetText().Trim('\''));
+            // we may need to convert a string into a DateTime or Guid type
+            string value = context.GetText().Trim('\'');
+            var exp = (ExpressionResult)Expression.Constant(value);
+            if (guidRegex.IsMatch(value))
+                exp = ConvertToGuid(exp);
+            return exp;
         }
 
         public override ExpressionResult VisitIfThenElse(EqlGrammerParser.IfThenElseContext context)

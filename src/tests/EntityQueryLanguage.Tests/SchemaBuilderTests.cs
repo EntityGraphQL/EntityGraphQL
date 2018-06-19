@@ -6,7 +6,7 @@ using EntityQueryLanguage.Schema;
 namespace EntityQueryLanguage.Tests
 {
     /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
-    public class ObjectSchemaProviderTests
+    public class SchemaBuilderTests
     {
         [Fact]
         public void ReadsContextType()
@@ -76,11 +76,26 @@ namespace EntityQueryLanguage.Tests
             Assert.Equal("id", prop.Name);
             Assert.Equal(typeof(RequiredField<int>), prop.FieldType);
         }
+        [Fact]
+        public void AutoAddArgumentForIdGuid()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema2>();
+            var argumentTypes = schema.Type<TestSchema2>().GetField("property").ArgumentTypes.GetType();
+            Assert.Single(argumentTypes.GetFields());
+            var prop = argumentTypes.GetFields()[0];
+            Assert.Equal("id", prop.Name);
+            Assert.Equal(typeof(RequiredField<Guid>), prop.FieldType);
+        }
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
             public TestEntity SomeRelation { get; }
             public IEnumerable<Person> People { get; }
+        }
+
+        private class TestSchema2
+        {
+            public IEnumerable<Property> Properties { get; }
         }
 
         private class TestEntity
@@ -94,6 +109,11 @@ namespace EntityQueryLanguage.Tests
         {
             public int Id = 0;
             public string Name = string.Empty;
+        }
+
+        private class Property
+        {
+            public Guid Id { get; set; }
         }
     }
 }

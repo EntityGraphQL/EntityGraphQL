@@ -118,8 +118,8 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-	user(id: 1) { id }
-}");
+                user(id: 1) { id }
+            }");
 
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -128,11 +128,29 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Id", user.GetType().GetFields()[0].Name);
             Assert.Equal(1, user.Id);
         }
+
+        [Fact]
+        public void SupportsArgumentsAutoWithGuid()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                project(id: 'aaaaaaaa-bbbb-4444-1111-ccddeeff0022') { id }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic project = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, project.GetType().GetFields().Length);
+            Assert.Equal("Id", project.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.Id);
+        }
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
             public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
             public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1) }; } }
+            public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
         }
 
         private enum HeightUnit
@@ -180,7 +198,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         }
         private class Project
         {
-            public int Id { get { return 55; } }
+            public Guid Id { get { return new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"); } }
             public string Name { get { return "Project 3"; } }
             public IEnumerable<Task> Tasks { get { return new List<Task> { new Task() }; } }
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
@@ -26,7 +27,7 @@ namespace EntityQueryLanguage.Compiler
                 key = MakeKey(key, field.Key, field.Value);
             }
 
-            return $":eql_anon:{key}";
+            return $"anon.{key}";
         }
 
         private static string MakeKey(string key, string fieldName, Type fieldType)
@@ -36,6 +37,8 @@ namespace EntityQueryLanguage.Compiler
                 type = "N" + fieldType.GetGenericArguments()[0].Name;
             else if (fieldType.IsEnumerable())
                 type = "L" + fieldType.GetGenericArguments()[0].Name;
+            else if (fieldType.GetTypeInfo().IsGenericType)
+                type = $"{fieldType.Name}:{string.Join(",", fieldType.GetGenericArguments().Select(a => a.Name))}";
             else
                 type = fieldType.Name;
 
