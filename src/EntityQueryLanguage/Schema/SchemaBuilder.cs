@@ -49,19 +49,21 @@ namespace EntityQueryLanguage.Schema
                 return;
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
-            var requiredField = Activator.CreateInstance(typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type));
-            var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredField.GetType() } };
+            var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type);
+            var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes);
             Type arrayContextType = schema.Type(fieldProp.ReturnSchemaType).ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType);
-            var lambdaParams = new[] { arrayContextParam, argTypeParam };
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             var argId = Expression.PropertyOrField(argTypeParam, "id");
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, Expression.Convert(argId, idFieldDef.Resolve.Type));
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            var body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            Expression body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            var contextParam = Expression.Parameter(contextType);
+            var lambdaParams = new[] { contextParam, argTypeParam };
+            body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
             var field = new Field(fieldProp.Name.Singularize(), selectionExpression, $"Return {fieldProp.ReturnSchemaType} by Id", fieldProp.ReturnSchemaType, argTypesValue);
             schema.AddField(field);
@@ -72,6 +74,9 @@ namespace EntityQueryLanguage.Schema
             var fields = new List<Field>();
             // cache fields/properties
             var param = Expression.Parameter(type);
+            if (type.IsArray || type.IsEnumerable())
+                return fields;
+
             foreach (var prop in type.GetProperties())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);

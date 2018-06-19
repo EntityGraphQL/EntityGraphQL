@@ -162,38 +162,49 @@ namespace EntityQueryLanguage.Schema
             if (field.ArgumentTypes != null)
             {
                 var argType = field.ArgumentTypes.GetType();
-                // get the values for the argument object constructor
-                var vals = new List<object>();
+                // get the values for the argument anonymous type object constructor
+                var propVals = new Dictionary<PropertyInfo, object>();
+                var fieldVals = new Dictionary<FieldInfo, object>();
+                // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the
                 foreach (var argField in argType.GetProperties())
                 {
-                    string argName = argField.Name.ToLower();
-                    // check we have required arguments
-                    if (argField.PropertyType.GetGenericArguments().Any() && argField.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
-                    {
-                        if (args == null || !args.ContainsKey(argName))
-                        {
-                            throw new EqlCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
-                        }
-                        var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
-                        // explicitly cast the value to the RequiredField<> type
-                        var typedVal = Activator.CreateInstance(argField.PropertyType, item);
-                        vals.Add(typedVal);
-                    }
-                    else if (args != null && args.ContainsKey(argName))
-                    {
-                        vals.Add(Expression.Lambda(args[argName]).Compile().DynamicInvoke());
-                    }
-                    else
-                    {
-                        // set the default value
-                        vals.Add(argField.GetValue(field.ArgumentTypes));
-                    }
+                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypes));
+                    propVals.Add(argField, val);
+                }
+                // The auto argument is built at runtime from LinqRuntimeTypeBuilder which just makes public fields
+                // they could also use a custom class
+                foreach (var argField in argType.GetFields())
+                {
+                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.FieldType, argField.GetValue(field.ArgumentTypes));
+                    fieldVals.Add(argField, val);
                 }
 
                 // create a copy of the anonymous object. It will have the default values set
                 // there is only 1 constructor for the anonymous type that takes all the property values
-                var con = argType.GetConstructors().First();
-                var parameters = con.Invoke(vals.ToArray());
+                var con = argType.GetConstructor(propVals.Values.Select(v => v.GetType()).ToArray());
+                object parameters;
+                if (con != null)
+                {
+                    parameters = con.Invoke(propVals.Values.ToArray());
+                    foreach (var item in fieldVals)
+                    {
+                        item.Key.SetValue(parameters, item.Value);
+                    }
+                }
+                else
+                {
+                    // expect an empty constructor
+                    con = argType.GetConstructor(new Type[0]);
+                    parameters = con.Invoke(new object[0]);
+                    foreach (var item in fieldVals)
+                    {
+                        item.Key.SetValue(parameters, item.Value);
+                    }
+                    foreach (var item in propVals)
+                    {
+                        item.Key.SetValue(parameters, item.Value);
+                    }
+                }
                 // tell them this expression has another parameter
                 var argParam = Expression.Parameter(argType);
                 result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
@@ -206,6 +217,33 @@ namespace EntityQueryLanguage.Schema
 
             return result;
         }
+
+        private static object BuildArgumentFromMember(Dictionary<string, ExpressionResult> args, Field field, string memberName, Type memberType, object defaultValue)
+        {
+            string argName = memberName.ToLower();
+            // check we have required arguments
+            if (memberType.GetGenericArguments().Any() && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+            {
+                if (args == null || !args.ContainsKey(argName))
+                {
+                    throw new EqlCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
+                }
+                var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
+                // explicitly cast the value to the RequiredField<> type
+                var typedVal = Activator.CreateInstance(memberType, item);
+                return typedVal;
+            }
+            else if (args != null && args.ContainsKey(argName))
+            {
+                return Expression.Lambda(args[argName]).Compile().DynamicInvoke();
+            }
+            else
+            {
+                // set the default value
+                return defaultValue;
+            }
+        }
+
         public string GetSchemaTypeNameForRealType(Type type)
         {
             if (type == _types[_queryContextName].ContextType)
@@ -234,37 +272,6 @@ namespace EntityQueryLanguage.Schema
         public bool HasType(string typeName)
         {
             return _types.ContainsKey(typeName);
-        }
-    }
-
-
-    /// As people build schema fields they are against a different parameter, this visitor lets us change it to the one used in compiling the EQL
-    internal class ParameterReplacer : ExpressionVisitor
-    {
-        private Expression newParam;
-        private Type toReplaceType;
-        private ParameterExpression toReplace;
-        internal Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam)
-        {
-            this.newParam = newParam;
-            this.toReplace = toReplace;
-            return Visit(node);
-        }
-
-        internal Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
-        {
-            this.newParam = newParam;
-            this.toReplaceType = toReplaceType;
-            return Visit(node);
-        }
-
-        protected override Expression VisitParameter(ParameterExpression node)
-        {
-            if (toReplace != null && toReplace == node)
-                return newParam;
-            if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
-                return newParam;
-            return node;
         }
     }
 }

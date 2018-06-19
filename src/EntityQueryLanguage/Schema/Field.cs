@@ -44,12 +44,17 @@ namespace EntityQueryLanguage.Schema
 
         public Type GetArgumentType(string argName)
         {
-            var arg = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
-            if (arg == null)
+            var argProp = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
+            if (argProp == null)
             {
-                throw new EqlCompilerException($"{argName} is not an argument on field {Name}");
+                var argField = ArgumentTypes.GetType().GetTypeInfo().GetFields().Where(f => f.IsPublic && f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
+                if (argField == null)
+                {
+                    throw new EqlCompilerException($"{argName} is not an argument on field {Name}");
+                }
+                return argField.FieldType;
             }
-            return arg.PropertyType;
+            return argProp.PropertyType;
         }
     }
 }

@@ -112,6 +112,22 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal(1.83, person.height);
         }
 
+        [Fact]
+        public void SupportsArgumentsAuto()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+	user(id: 1) { id }
+}");
+
+            Assert.Single(tree.Fields);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.Id);
+        }
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
