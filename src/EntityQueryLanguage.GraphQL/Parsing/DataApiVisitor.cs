@@ -116,12 +116,12 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
             var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-            var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).Select(r => r.RelationExpression).ToList();
+            var relations = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).Select(r => r.RelationExpression).Where(n => n != null).ToList();
             // process at each relation
             if (relationHandler != null && relations.Any())
             {
                 // Likely the EF handler to build .Include()s
-                exp = relationHandler.BuildNodeForSelect(relations, contextParameter, exp, name, schemaProvider);
+                exp = relationHandler.BuildNodeForSelect(relations, contextParameter, exp);
             }
             // we're about to add the .Select() call. May need to do something
             if (relationHandler != null && isRootSelect)
@@ -137,7 +137,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             var parameters = t.Item1;
             var constantParameterValues = t.Item2;
             var lambda = Expression.Lambda(selectExpression, parameters);
-            var gqlNode = new GraphQLNode(name, new QueryResult(lambda, constantParameterValues), null);
+            var gqlNode = new GraphQLNode(name, new QueryResult(lambda, constantParameterValues), exp);
             return gqlNode;
         }
 
@@ -175,12 +175,12 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 selectContext = exp;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-                var relationsExps = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).ToList();
+                var relationsExps = fieldExpressions.Where(f => f.Expression.NodeType == ExpressionType.MemberInit || f.Expression.NodeType == ExpressionType.Call).Where(n => n != null).ToList();
                 if (relationHandler != null && relationsExps.Any())
                 {
                     var parameterExpression = Expression.Parameter(selectContext.Type);
                     var relations = relationsExps.Select(r => (Expression)Expression.PropertyOrField(parameterExpression, r.Name)).ToList();
-                    exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp, name, schemaProvider);
+                    exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp);
                 }
 
                 var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);

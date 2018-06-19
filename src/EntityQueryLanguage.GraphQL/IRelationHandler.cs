@@ -11,7 +11,7 @@ namespace EntityQueryLanguage.GraphQL
         /// Called for each select. Check if there are any relations
         /// </summary>
         /// <returns></returns>
-        Expression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, Expression exp, string name, ISchemaProvider schemaProvider);
+        Expression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, Expression exp);
 
         /// <summary>
         /// Called once a whole Select statement is complete.

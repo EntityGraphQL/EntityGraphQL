@@ -28,10 +28,8 @@ namespace EntityQueryLanguage.GraphQL
         /// <param name="fieldExpressions">The fields they are selecting</param>
         /// <param name="contextParameter">Current context</param>
         /// <param name="exp">Current expression. Not used for EF, but it may be an inner select</param>
-        /// <param name="name"></param>
-        /// <param name="schemaProvider"></param>
         /// <returns></returns>
-        public Expression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, Expression exp, string name, ISchemaProvider schemaProvider)
+        public Expression BuildNodeForSelect(List<Expression> relationFields, ParameterExpression contextParameter, Expression exp)
         {
             var body = exp;
             foreach (var relation in relationFields)
@@ -39,7 +37,6 @@ namespace EntityQueryLanguage.GraphQL
                 // we want to capture the relations here to process later.
                 var rLambda = Expression.Lambda(relation, contextParameter);
                 _includes.Add(rLambda);
-                // body = ExpressionUtil.MakeExpressionCall(new Type[1] { _lookupType }, "Include", new Type[2] { body.Type, relation.RelationExpression.Type }, body, rLambda);
             }
             return exp;
         }
