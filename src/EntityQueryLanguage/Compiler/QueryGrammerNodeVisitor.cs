@@ -35,7 +35,7 @@ namespace EntityQueryLanguage.Compiler
             // we may need to do some converting here
             if (left.Type != right.Type)
             {
-                if (op == ExpressionType.Equal)
+                if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
                 {
                     var result = DoObjectComparisonOnDifferentTypes(op, left, right);
 

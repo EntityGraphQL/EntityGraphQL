@@ -145,6 +145,23 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Id", project.GetType().GetFields()[0].Name);
             Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.Id);
         }
+
+        [Fact]
+        public void SupportsArgumentsComplex()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                person(id: 'cccccccc-bbbb-4444-1111-ccddeeff0033') { id, projects { id, name } }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+        }
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
@@ -178,7 +195,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 
         private class Person
         {
-            public int Id { get { return 99; } }
+            public Guid Id { get { return new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"); } }
             public string Name { get { return "Luke"; } }
             public string LastName { get { return "Last Name"; } }
             public User User { get { return new User(100); } }

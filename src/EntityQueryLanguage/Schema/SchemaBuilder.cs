@@ -57,8 +57,9 @@ namespace EntityQueryLanguage.Schema
             Type arrayContextType = schema.Type(fieldProp.ReturnSchemaType).ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType);
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
-            var argId = Expression.PropertyOrField(argTypeParam, "id");
-            var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, Expression.Convert(argId, idFieldDef.Resolve.Type));
+            Expression argId = Expression.PropertyOrField(argTypeParam, "id");
+            argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
+            var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
             Expression body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
             var contextParam = Expression.Parameter(contextType);
