@@ -36,6 +36,17 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal(typeof(IEnumerable<Project>), relationHandler.Fields.ElementAt(1).Type);
         }
 
+        [Fact]
+        public void CalledOnRelationsArrayFromFieldWithArgument()
+        {
+            var relationHandler = new TestRelationHandler();
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), relationHandler).Compile(@"query {
+	person(id: 99) { projects {id} }
+}");
+            Assert.Equal(1, relationHandler.Fields.Count);
+            Assert.Equal(typeof(IEnumerable<Project>), relationHandler.Fields.ElementAt(0).Type);
+        }
+
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
