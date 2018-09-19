@@ -157,11 +157,15 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         }
 
         /// Given a syntax of someField { fields, to, selection, from, object }
-        /// it will figure out if 'someField' is an IEnumerable or an istance of the object (not a collection) and build the correct select statement
+        /// it will build the correct select statement
         private GraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EqlGrammerParser.EntityQueryContext context, QueryResult rootField)
         {
+            var selectWasNull = false;
             if (selectContext == null)
+            {
                 selectContext = Expression.Parameter(schemaProvider.ContextType);
+                selectWasNull = true;
+            }
 
             if (!schemaProvider.TypeHasField(selectContext.Type.Name, name))
                 throw new EqlCompilerException($"Type {selectContext.Type} does not have field or property {name}");
@@ -182,6 +186,11 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                     var relations = relationsExps.Select(r => (Expression)Expression.PropertyOrField(parameterExpression, r.Name)).ToList();
                     exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp);
                 }
+                // we're about to add the .Select() call. May need to do something
+                // if (relationHandler != null)
+                // {
+                //     exp = relationHandler.HandleSelectComplete(exp);
+                // }
 
                 var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
                 selectContext = oldContext;
@@ -190,7 +199,13 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 var parameters = t.Item1;
                 var constantParameterValues = t.Item2;
                 var lambda = Expression.Lambda(newExp, parameters);
-                return new GraphQLNode(schemaProvider.GetActualFieldName(selectContext.Type.Name, name), new QueryResult(lambda, constantParameterValues), exp);
+
+                var graphQLNode = new GraphQLNode(schemaProvider.GetActualFieldName(selectContext.Type.Name, name), new QueryResult(lambda, constantParameterValues), exp);
+                if (selectWasNull)
+                {
+                    selectContext = null;
+                }
+                return graphQLNode;
             }
             catch (EqlCompilerException ex)
             {

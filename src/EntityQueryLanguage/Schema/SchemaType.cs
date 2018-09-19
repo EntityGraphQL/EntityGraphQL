@@ -25,16 +25,13 @@ namespace EntityQueryLanguage.Schema
         private Dictionary<string, Field> _fields = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
-        public SchemaType()
+        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null)
         {
             ContextType = typeof(TBaseType);
-        }
-
-        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null) : this()
-        {
             Name = name;
             _description = description;
             _filter = filter;
+            AddField("__typename", t => name, "Type name");
         }
 
         public void AddAllFields()

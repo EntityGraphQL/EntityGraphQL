@@ -162,6 +162,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Id", user.GetType().GetFields()[0].Name);
             Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
         }
+
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
