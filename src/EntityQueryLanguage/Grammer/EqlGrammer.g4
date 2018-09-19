@@ -30,14 +30,14 @@ startRule   : expression;
 
 // this is a data query (graphQL inspired)
 // {
-//   entity1 { field1, field2, relation { field1, field2 } },
-//   entity2 { field1, field2, relation { field1, field2 } }
+//   entity1 { field1 field2 relation { field1 field2 } }
+//   entity2 { field1 field2 relation { field1 field2 } }
 // }
 ws          : (' ' | '\t' | '\n' | '\r');
 queryKeyword: 'query';
 field       : callPath;
 aliasType   : name=identity ws* ':' ws*;
 aliasExp    : alias=aliasType entity=expression;
-fieldSelect : '{' ws* (aliasExp | field | entityQuery) (ws* ',' ws* (aliasExp | field | entityQuery))* ws* '}';
+fieldSelect : '{' ws* (aliasExp | field | entityQuery) ((ws* ','? ws*) (aliasExp | field | entityQuery))* ws* '}';
 entityQuery : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
-dataQuery   : queryKeyword? ws* '{' ws* (aliasExp | entityQuery) ( ws* ',' ws* (aliasExp | entityQuery))* ws* '}' ws*;
+dataQuery   : queryKeyword? ws* '{' ws* (aliasExp | entityQuery) ( (ws* ','? ws*) (aliasExp | entityQuery))* ws* '}' ws*;

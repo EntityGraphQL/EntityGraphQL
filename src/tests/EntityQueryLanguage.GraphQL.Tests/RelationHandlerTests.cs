@@ -29,7 +29,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var relationHandler = new TestRelationHandler();
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), relationHandler).Compile(@"query {
-	People { user { id }, projects {id} }
+	People { user { id } projects {id} }
 }");
             Assert.Equal(2, relationHandler.Fields.Count);
             Assert.Equal(typeof(User), relationHandler.Fields.ElementAt(0).Type);
@@ -40,7 +40,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         public void CalledOnRelationsArrayFromFieldWithArgument()
         {
             var relationHandler = new TestRelationHandler();
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), relationHandler).Compile(@"query {
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), relationHandler).Compile(@"{
 	person(id: 99) { projects {id} }
 }");
             Assert.Equal(1, relationHandler.Fields.Count);

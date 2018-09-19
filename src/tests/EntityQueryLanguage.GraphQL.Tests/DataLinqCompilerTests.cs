@@ -17,7 +17,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         public void ExpectsOpenBrace()
         {
             var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
-	myEntity { field1, field2 }
+	myEntity { field1 field2 }
 }"));
             Assert.Equal("Error: line 2:1 extraneous input 'myEntity' expecting 29", ex.Message);
         }
@@ -26,7 +26,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         public void ExpectsOpenBraceForEntity()
         {
             var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
-	myEntity field1, field2 }
+	myEntity field1 field2 }
 }"));
             Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
         }
@@ -35,12 +35,30 @@ namespace EntityQueryLanguage.GraphQL.Tests
         public void ExpectsCloseBraceForEntity()
         {
             var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
-	myEntity {field1, field2 }"));
-            Assert.Equal("Error: line 2:27 no viable alternative at input '<EOF>'", ex.Message);
+	myEntity {field1 field2 }"));
+            Assert.Equal("Error: line 2:26 no viable alternative at input '<EOF>'", ex.Message);
         }
 
         [Fact]
         public void CanParseSimpleQuery()
+        {
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+{
+	people { id name }
+}");
+            Assert.Single(tree.Fields);
+            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            Assert.Equal(1, Enumerable.Count(result));
+            var person = Enumerable.ElementAt(result, 0);
+            // we only have the fields requested
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void CanParseSimpleQueryOptionalComma()
         {
             var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
@@ -63,7 +81,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
-	people { id, name },
+	people { id name }
     total: people.count()
 }");
             Assert.Equal(2, tree.Fields.Count);
@@ -78,7 +96,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             objectSchemaProvider.Type<Person>().AddField("thing", p => p.Id + " - " + p.Name, "A weird field I want");
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
-	people { id, thing }
+	people { id thing }
 }");
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -107,7 +125,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people.where(id = 9) { id, name }
+	people.where(id = 9) { id name }
 }");
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -118,7 +136,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	luke: people.where(id = 99) { id, name }
+	luke: people.where(id = 99) { id name }
 }");
             Assert.Single(tree.Fields);
             Assert.Equal("luke", tree.Fields.ElementAt(0).Name);
@@ -130,7 +148,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id, fullName: name + ' ' + lastname }
+	people { id fullName: name + ' ' + lastname }
 }");
             Assert.Single(tree.Fields);
             Assert.Equal("people", tree.Fields.ElementAt(0).Name);
@@ -147,7 +165,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people.id = 9 { id, name }
+	people.id = 9 { id name }
 }"));
             Assert.Equal("Error: line 3:11 extraneous input '=' expecting 29", ex.Message);
         }
@@ -157,7 +175,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id, name },
+	people { id name },
 	Users { id }
 }");
 
@@ -183,7 +201,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id, name, User { field1 } }
+	people { id name User { field1 } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
@@ -206,10 +224,10 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id, name,
+	people { id name
 		User {
-			field1,
-			nestedRelation { id, name }
+			field1
+			nestedRelation { id name }
 		}
 	}
 }");
@@ -239,7 +257,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id, name, projects { name } }
+	people { id name projects { name } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);
@@ -264,10 +282,10 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id,
+	people { id
 		projects {
-			name,
-			tasks { id, name }
+			name
+			tasks { id name }
 		}
 	}
 }");
@@ -300,10 +318,10 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id,
+	people { id
 		projects {
-			name,
-			blahs { id, name }
+			name
+			blahs { id name }
 		}
 	}
 }"));
@@ -314,7 +332,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id,
+	people { id
 		projects {
 			name3
 		}
@@ -328,7 +346,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<DbTestSchema>(), new DefaultMethodProvider(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions))).Compile(@"
 {
-	people { id, name, User { field1 } }
+	people { id name User { field1 } }
 }");
             // People.Include(p => p.User).Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             Assert.Single(tree.Fields);

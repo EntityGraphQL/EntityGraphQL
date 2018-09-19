@@ -45,6 +45,9 @@ namespace EntityQueryLanguage.GraphQL
         {
             var exp = baseExpression;
             _includes.Reverse();
+            if (!exp.Type.IsEnumerable())
+                return exp;
+
             var type = exp.Type.GetGenericArguments()[0];
             Type lastType = null;
             foreach (var relationLambda in _includes)

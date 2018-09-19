@@ -1,3 +1,5 @@
+# 0.8.1
+- `,` between fields is optional like in GraphQL
 # 0.8.0
 - `Moved EntityQueryLanguage.DataApi` namespace to `EntityQueryLanguage.GraphQL` to better communicate that its intent is to support
 - Add support GraphQL arguments in fields. See updated readme

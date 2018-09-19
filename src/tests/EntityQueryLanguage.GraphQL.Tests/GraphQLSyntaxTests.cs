@@ -81,7 +81,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                people { id, height }
+                people { id height }
             }");
 
             Assert.Single(tree.Fields);
@@ -152,7 +152,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                person(id: 'cccccccc-bbbb-4444-1111-ccddeeff0033') { id, projects { id, name } }
+                person(id: 'cccccccc-bbbb-4444-1111-ccddeeff0033') { id projects { id name } }
             }");
 
             Assert.Single(tree.Fields);
