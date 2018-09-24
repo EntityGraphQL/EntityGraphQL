@@ -3,12 +3,13 @@ Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityQueryLanguag
 
 EQL is a data/object querying language for .NET Core (netstandard 1.6) that supports the GraphQL syntax.
 
-This library in still in development, although it is already a very powerful tool for querying data.
+This library in still in development, although it is already a very powerful tool for working with data.
 
 EQL allows you take a query (GraphQL) and execute it against an object
 - Expose any object graph, e.g. your DbContext
 - Programatically build a schema that maps to an object graph (DbContext), selectively expose fields
 - Create custom fields
+- Supports GraphQL mutations
 
 It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
 
@@ -17,14 +18,11 @@ _Please explore, give feedback or join the development._
 ## Install
 Via Nuget https://www.nuget.org/packages/EntityQueryLanguage.GraphQL
 
-## Serving your data
-The ``EntityQueryLanguage.GraphQL`` namespace contains the GraphQL support.
+## Getting up and running with EF
 
-### Getting up and running with EF
+_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested._
 
-_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested well._
-
-1. Define your DB context
+### 1. Define your DB context
 
 ```csharp
 public class MyDbContext : DbContext {
@@ -55,7 +53,7 @@ public class Location {
   public string Name { get; set; }
 }
 ```
-2. Create a route
+### 2. Create a route
 
 Using what ever API library you wish. Here is an example for a ASP.NET WebApi controller
 
@@ -82,19 +80,8 @@ public class QueryController : Controller
         this._schemaProvider = schemaProvider;
     }
 
-    [HttpGet]
-    public object Get(string query)
-    {
-        return RunDataQuery(query);
-    }
-
     [HttpPost]
     public object Post([FromBody]string query)
-    {
-        return RunDataQuery(query);
-    }
-
-    private object RunDataQuery(string query)
     {
         try
         {
@@ -113,45 +100,51 @@ public class QueryController : Controller
 ```
 `EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.GraphQL` does not have a requirement on EF (But this example does).
 
-This sets up 2 end points:
-- `POST` at `/api/query` where the query is in the body of the post
-- `GET` at `/api/query` where the query is expected as the `q` parameter. e.g. `GET /api/query?q={locations {name}}`
+This sets up 1 end point:
+- `POST` at `/api/query` where the body of the post is the GraphQL query
 
-3. Build awesome applications
+### 3. Build awesome applications
 
 You can now make a request to your API. For example
 ```
-  GET localhost:5000/api/query?q={properties { id, name }}
+  POST localhost:5000/api/query
+  {
+    properties { id name }
+  }
 ```
 Will return the following result.
 ```json
 {
-  "properties": [
-    {
-      "id": 11,
-      "name": "My Beach Pad"
-    },
-    {
-      "id": 12,
-      "name": "My Other Beach Pad"
-    }
-  ]
+  "data": {
+    "properties": [
+      {
+        "id": 11,
+        "name": "My Beach Pad"
+      },
+      {
+        "id": 12,
+        "name": "My Other Beach Pad"
+      }
+    ]
+  }
 }
 ```
 Maybe you only want a specific property
 ```
   {
     property(id: 11) {
-      id, name
+      id name
     }
   }
 ```
 Will return the following result.
 ```json
 {
-  "property": {
-    "id": 11,
-    "name": "My Beach Pad"
+  "data": {
+    "property": {
+      "id": 11,
+      "name": "My Beach Pad"
+    }
   }
 }
 ```
@@ -159,11 +152,11 @@ If you need a deeper graph or relations, just ask
 ```
   {
     properties {
-      id,
-      name,
+      id
+      name
       location {
         name
-      },
+      }
       type {
         premium
       }
@@ -173,41 +166,45 @@ If you need a deeper graph or relations, just ask
 Will return the following result.
 ```json
 {
-  "properties": [
-    {
-      "id": 11,
-      "name": "My Beach Pad",
-      "location": {
-        "name": "Greece"
+  "data": {
+    "properties": [
+      {
+        "id": 11,
+        "name": "My Beach Pad",
+        "location": {
+          "name": "Greece"
+        },
+        "type": {
+          "premium": 1.2
+        }
       },
-      "type": {
-        "premium": 1.2
+      {
+        "id": 12,
+        "name": "My Other Beach Pad",
+        "location": {
+          "name": "Spain"
+        },
+        "type": {
+          "premium": 1.25
+        }
       }
-    },
-    {
-      "id": 12,
-      "name": "My Other Beach Pad",
-      "location": {
-        "name": "Spain"
-      },
-      "type": {
-        "premium": 1.25
-      }
-    }
-  ]
+    ]
+  }
 }
 ```
 
-As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders or libraries but it currently is only tested against EntityFramework Core.
+As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders/in memory objects or libraries but currently I test against EntityFramework Core.
 
 ## Supported GraphQL features
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
-- Aliases (`{ cheapProperties: properties.where(cost < 100) { id, name } }`)
+- Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
-  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field
-  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below
+  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field so you can query `{ person(id: 1234) { name phone email } }` to select a single person
+  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for moe on custom fields
+- Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 
 ## Supported LINQ methods (non-GraphQL compatible)
+**On top of** GraphQL syntax, any list/array supports some of the standard .NET LINQ methods.
 - `array.where(filter)`
 - `array.filter(filter)`
 - `array.first(filter?)`
@@ -218,6 +215,16 @@ As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension meth
 - `array.skip(int)`
 - `array.orderBy(field)`
 - `array.orderByDesc(field)`
+
+e.g.
+```
+query {
+  cheap2BedPlaces: peroperties.where(price < 100000 && bedrooms >= 2).orderby(age) {
+    location { name }
+    price
+  }
+}
+```
 
 ## Customizing the schema
 
@@ -247,11 +254,67 @@ var paramTypes = new {id = Required<Guid>()};
 var paramTypes = new {unit = "meter"};
 ```
 
-### Secuity
+## Mutations
+Mutations allow you to make changes to data while selecting some data to return from the result. See the [GraphQL documentation](https://graphql.org/learn/queries/#mutations) for more information on the syntax.
+
+The main concept behind this is you create a class to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
+
+```csharp
+public class PropertyMutations
+{
+  [GraphQLMutation]
+  public Property AddProperty(MyDbContext db, PropertyArgs args)
+  {
+    // do your magic here. e.g. with EF
+    var property = new Property { Name = args.Name, ... };
+    db.Properties.Add(property);
+    db.SaveChanges();
+    return property;
+  }
+}
+
+public class PropertyArgs
+{
+  public string Name { get; set; }
+  public Decimal Cost { get; set; }
+}
+```
+
+To add this to you schema call
+
+```csharp
+schemaProvider.AddMutationFrom(new PropertyMutations());
+```
+
+- All `public` methods marked with the `GraphQLMutation` attribute will be added to the schema
+- Parameters should be the base context that your schema is built from and a class that defines each available parameter (and type)
+- Variables from the GraphQL request are mapped into the args parameter
+
+You can now request a mutation
+```
+mutation AddProperty($name: String!, $cost: Float!) {
+  addProperty(name: $name, cost: $cost) {
+    id
+    name
+  }
+}
+```
+
+With variables
+```
+{
+  "name": "beach pad",
+  "cost": 1000000.3
+}
+```
+
+This also selects the resulting `id` & `name` from the result of the mutation.
+
+## Secuity
 
 TODO - coming soon
 
-## Using expressions else where
+# Using expressions else where
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
 ```js
   // This might be a configured EQL statement for filtering the results. It has a context of Property
@@ -284,8 +347,6 @@ Some larger things still on the list to complete, in no real order. Pull request
 - Implement more of the GraphQL query spec (See issues)
 - fix GetMethodContext() in methodProvider
 - Add logging options
-- A way to "plug-in" security - examples
-- A way to "plug-in" other logic - examples
 - Auto generate schema documentation page
 - Add paging support (from graphql?)
 - Support integration into security for controlling data access

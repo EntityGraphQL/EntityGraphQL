@@ -1,4 +1,5 @@
-# 0.8.1
+# 0.9.0
+- Add initial support for Mutations
 - `,` between fields is optional like in GraphQL
 - Support `__typename` metadata
 
