@@ -179,9 +179,8 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 selectWasNull = true;
             }
 
-            // if (!schemaProvider.TypeHasField(selectContext.Type.Name, name))
-            //     throw new EqlCompilerException($"Type {selectContext.Type} does not have field or property {name}");
-            // name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
+            if (schemaProvider.TypeHasField(selectContext.Type.Name, name))
+                name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
 
             try
             {

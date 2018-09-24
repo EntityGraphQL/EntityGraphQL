@@ -19,7 +19,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
             var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
-            Assert.Equal("Error: line 2:1 extraneous input 'myEntity' expecting 29", ex.Message);
+            Assert.Equal("Error: line 2:9 extraneous input ' ' expecting 6", ex.Message);
         }
 
         [Fact]
@@ -167,7 +167,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 {
 	people.id = 9 { id name }
 }"));
-            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 29", ex.Message);
+            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 32", ex.Message);
         }
 
         [Fact]
