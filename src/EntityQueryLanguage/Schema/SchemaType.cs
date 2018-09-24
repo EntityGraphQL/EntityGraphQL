@@ -45,6 +45,13 @@ namespace EntityQueryLanguage.Schema
                     prop.SetValue(argInstance, Expression.Lambda(gqlRequestArgs[prop.Name]).Compile().DynamicInvoke());
                 }
             }
+            foreach (var field in argInstance.GetType().GetFields())
+            {
+                if (gqlRequestArgs.ContainsKey(field.Name))
+                {
+                    field.SetValue(argInstance, Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke());
+                }
+            }
         }
 
         public Type ContextType => ReturnType.ContextType;
