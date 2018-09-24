@@ -17,14 +17,16 @@ namespace EntityQueryLanguage.Compiler
         private ExpressionResult currentContext;
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
-        private Field fieldArgumentContext;
+        private readonly Dictionary<string, string> variables;
+        private IMethodType fieldArgumentContext;
         private Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
         {
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
+            this.variables = variables;
         }
 
         public override ExpressionResult VisitBinary(EqlGrammerParser.BinaryContext context)
@@ -109,18 +111,27 @@ namespace EntityQueryLanguage.Compiler
 
         public override ExpressionResult VisitGqlcall(EqlGrammerParser.GqlcallContext context)
         {
-            var field = context.method.GetText();
+            var method = context.method.GetText();
+            IMethodType methodType = schemaProvider.GetMethodType(currentContext, method);
             var args = context.gqlarguments.children.Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => {
-                fieldArgumentContext = schemaProvider.GetFieldType(currentContext, field);
+                fieldArgumentContext = methodType;
                 var r = VisitGqlarg(a);
                 fieldArgumentContext = null;
                 return r;
-            });
-            return MakeFieldExpression(field, args);
+            }, StringComparer.OrdinalIgnoreCase);
+            if (schemaProvider.HasMutation(method))
+            {
+                return MakeMutationExpression(method, (MutationType)methodType, args);
+            }
+            return MakeFieldExpression(method, args);
         }
 
         public override ExpressionResult VisitGqlarg(EqlGrammerParser.GqlargContext context)
         {
+            if (context.gqlVar() != null)
+            {
+                return (ExpressionResult)Expression.Constant(variables[context.gqlVar().GetText().TrimStart('$')]);
+            }
             var enumName = context.gqlvalue.GetText();
             var argType = fieldArgumentContext.GetArgumentType(context.gqlfield.GetText());
             if (!argType.GetTypeInfo().IsEnum)
@@ -147,6 +158,11 @@ namespace EntityQueryLanguage.Compiler
             }
             var exp = schemaProvider.GetExpressionForField(currentContext, currentContext.Type.Name, field, args);
             return exp;
+        }
+
+        private ExpressionResult MakeMutationExpression(string method, MutationType mutationType, Dictionary<string, ExpressionResult> args)
+        {
+            return new MutationResult(method, mutationType, args);
         }
 
         public override ExpressionResult VisitInt(EqlGrammerParser.IntContext context)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityQueryLanguage.Compiler;
 
 namespace EntityQueryLanguage
 {
@@ -14,17 +15,24 @@ namespace EntityQueryLanguage
     public class QueryResult
     {
         private readonly IEnumerable<object> constantParameterValues;
+        private readonly ExpressionResult expressionResult;
+        private readonly List<ParameterExpression> contextParams;
 
-        public LambdaExpression Expression { get; private set; }
-        public Type Type { get { return Expression.Type; } }
+        public LambdaExpression LambdaExpression { get { return Expression.Lambda(expressionResult.Expression, contextParams.ToArray()); } }
+        public Type Type { get { return LambdaExpression.Type; } }
 
         public IEnumerable<object> ConstantParameterValues { get { return constantParameterValues; } }
 
-        public Type BodyType { get { return Expression.Body.Type; } }
+        public Type BodyType { get { return LambdaExpression.Body.Type; } }
 
-        public QueryResult(LambdaExpression compiledEql, IEnumerable<object> parameterValues)
+        public ExpressionResult ExpressionResult { get { return expressionResult; } }
+
+        public bool IsMutation { get { return typeof(MutationResult) == expressionResult.GetType(); } }
+
+        public QueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams, IEnumerable<object> parameterValues)
         {
-            Expression = compiledEql;
+            this.expressionResult = expressionResult;
+            this.contextParams = contextParams;
             this.constantParameterValues = parameterValues;
         }
         public object Execute(params object[] args)
@@ -32,11 +40,7 @@ namespace EntityQueryLanguage
             var allArgs = new List<object>(args);
             if (constantParameterValues != null)
                 allArgs.AddRange(constantParameterValues);
-            return Expression.Compile().DynamicInvoke(allArgs.ToArray());
-        }
-        public TObject Execute<TObject>(params object[] args)
-        {
-            return (TObject)Execute(args);
+            return LambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
     }
 }

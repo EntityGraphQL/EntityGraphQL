@@ -11,7 +11,7 @@ namespace EntityQueryLanguage.GraphQL.Util
 {
     public class DataApiExpressionUtil
     {
-        public static Expression SelectDynamic(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<GraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+        public static Expression SelectDynamic(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
         {
             Type dynamicType;
             var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
@@ -19,16 +19,16 @@ namespace EntityQueryLanguage.GraphQL.Util
             return Expression.Call(typeof(Enumerable), "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
         }
 
-        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<GraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
         {
             Type dynamicType;
             var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
             return memberInit;
         }
-        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<GraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
+        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
         {
-            var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.Expression);
-            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.Expression.Type));
+            var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression);
+            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));

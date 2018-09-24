@@ -19,10 +19,11 @@ namespace EntityQueryLanguage.Compiler
             this.Expression = value;
         }
 
-        public Expression Expression { get; internal set; }
+        public virtual Expression Expression { get; internal set; }
         public Type Type { get { return Expression.Type; } }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
+        public ExpressionType NodeType { get { return Expression.NodeType; } }
 
         public static implicit operator Expression(ExpressionResult field)
         {

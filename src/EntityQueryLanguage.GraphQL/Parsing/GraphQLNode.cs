@@ -2,9 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityQueryLanguage.Compiler;
 
 namespace EntityQueryLanguage.GraphQL.Parsing
 {
+    public interface IGraphQLNode
+    {
+        bool IsMutation { get; }
+        ExpressionResult NodeExpression { get; }
+        Expression RelationExpression { get; }
+        string Name { get; }
+        List<object> ConstantParameterValues { get; }
+        List<ParameterExpression> Parameters { get; }
+        List<IGraphQLNode> Fields { get; }
+
+        object Execute(params object[] args);
+    }
+
     /// <summary>
     /// Represents a top level node in the GraphQL query.
     /// {
@@ -13,26 +27,31 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     /// }
     /// Each of people & houses are seperate queries that can/will be executed
     /// </summary>
-    public class GraphQLNode
+    public class GraphQLNode : IGraphQLNode
     {
         public string Name { get; private set; }
-        public Expression Expression { get; private set; }
+        public ExpressionResult NodeExpression { get; private set; }
         public List<ParameterExpression> Parameters { get; private set; }
         public List<object> ConstantParameterValues { get; private set; }
 
-        public List<GraphQLNode> Fields { get; private set; }
+        public List<IGraphQLNode> Fields { get; private set; }
         public Expression RelationExpression { get; private set; }
 
-        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, query.Expression.Body, relationExpression, query.Expression.Parameters, query.ConstantParameterValues)
+        public bool IsMutation => false;
+
+        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, (ExpressionResult)query.ExpressionResult, relationExpression, query.LambdaExpression.Parameters, query.ConstantParameterValues)
         {
         }
 
-        public GraphQLNode(string name, Expression exp, Expression relationExpression, IEnumerable<ParameterExpression> constantParameters, IEnumerable<object> constantParameterValues)
+        public GraphQLNode(string name, ExpressionResult exp, Expression relationExpression, IEnumerable<ParameterExpression> constantParameters, IEnumerable<object> constantParameterValues)
         {
             Name = name;
-            Expression = exp;
-            Fields = new List<GraphQLNode>();
-            RelationExpression = relationExpression;
+            NodeExpression = exp;
+            Fields = new List<IGraphQLNode>();
+            if (relationExpression != null)
+            {
+                RelationExpression = relationExpression;
+            }
             Parameters = constantParameters?.ToList();
             ConstantParameterValues = constantParameterValues?.ToList();
         }
@@ -43,7 +62,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             if (ConstantParameterValues != null)
                 allArgs.AddRange(ConstantParameterValues);
 
-            return Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
+            return Expression.Lambda(NodeExpression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
         }
 
         public TReturnType Execute<TReturnType>(params object[] args)
@@ -52,12 +71,52 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             if (ConstantParameterValues != null)
                 allArgs.AddRange(ConstantParameterValues);
 
-            return (TReturnType)Expression.Lambda(Expression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
+            return (TReturnType)Expression.Lambda(NodeExpression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
         }
 
         public override string ToString()
         {
-            return $"Node - Name={Name}, Expression={Expression}";
+            return $"Node - Name={Name}, Expression={NodeExpression}";
+        }
+    }
+
+    public class GraphQLMutationNode : IGraphQLNode
+    {
+        private QueryResult result;
+        private IGraphQLNode graphQLNode;
+
+        public bool IsMutation => true;
+        public List<IGraphQLNode> Fields { get; private set; }
+
+        public ExpressionResult NodeExpression => throw new NotImplementedException();
+
+        public Expression RelationExpression => throw new NotImplementedException();
+
+        public string Name => graphQLNode.Name;
+
+        public List<object> ConstantParameterValues => throw new NotImplementedException();
+
+        public List<ParameterExpression> Parameters => throw new NotImplementedException();
+
+        public GraphQLMutationNode(QueryResult result, IGraphQLNode graphQLNode)
+        {
+            this.result = result;
+            this.graphQLNode = graphQLNode;
+            Fields = new List<IGraphQLNode>();
+        }
+
+        public object Execute(params object[] args)
+        {
+            var allArgs = new List<object>(args);
+            if (graphQLNode.ConstantParameterValues != null)
+                allArgs.AddRange(graphQLNode.ConstantParameterValues);
+
+            // run the mutation to get the context for the query select
+            var mutation = (MutationResult)this.result.ExpressionResult;
+            var result = mutation.Execute(args);
+            // run the query select
+            result = graphQLNode.Execute(result);
+            return result;
         }
     }
 }

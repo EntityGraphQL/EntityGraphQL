@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityQueryLanguage.Compiler;
@@ -17,6 +18,82 @@ namespace EntityQueryLanguage.Schema
         void AddFields(List<Field> fields);
         void AddField(Field field);
     }
+
+    public class MutationType : ISchemaType, IMethodType
+    {
+        private readonly ISchemaType returnType;
+        private readonly object mutationClassInstance;
+        private readonly MethodInfo method;
+        private Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
+        private object argInstance;
+
+        public object Call(object[] args, Dictionary<string, ExpressionResult> gqlRequestArgs)
+        {
+            var allArgs = args.ToList();
+            AssignArgValues(gqlRequestArgs);
+            allArgs.Add(argInstance);
+            var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
+            return result;
+        }
+
+        private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
+        {
+            foreach (var prop in argInstance.GetType().GetProperties())
+            {
+                if (gqlRequestArgs.ContainsKey(prop.Name))
+                {
+                    prop.SetValue(argInstance, Expression.Lambda(gqlRequestArgs[prop.Name]).Compile().DynamicInvoke());
+                }
+            }
+        }
+
+        public Type ContextType => ReturnType.ContextType;
+
+        public string Name => ReturnType.Name;
+
+        public ISchemaType ReturnType => returnType;
+
+        public MutationType(ISchemaType returnType, object mutationClassInstance, MethodInfo method)
+        {
+            this.returnType = returnType;
+            this.mutationClassInstance = mutationClassInstance;
+            this.method = method;
+
+            var methodArg = method.GetParameters().ElementAt(1);
+            this.argInstance = Activator.CreateInstance(methodArg.ParameterType);
+        }
+
+        public void AddField(Field field)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddFields(List<Field> fields)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Field GetField(string identifier)
+        {
+            return ReturnType.GetField(identifier);
+        }
+
+        public IEnumerable<Field> GetFields()
+        {
+            return ReturnType.GetFields();
+        }
+
+        public bool HasField(string identifier)
+        {
+            return ReturnType.HasField(identifier);
+        }
+
+        public Type GetArgumentType(string argName)
+        {
+            return argumentTypes[argName];
+        }
+    }
+
     public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }

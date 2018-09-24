@@ -12,10 +12,13 @@ decimal     : '-'? DIGIT+'.'DIGIT+;
 string      :   '\'' ( '\'' | ~('\n'|'\r') | STRING_CHARS )*? '\'';
 constant    : string | int | decimal;
 call        : method=identity '(' arguments=args? ')';
-gqlcall     : method=identity '(' gqlarguments=gqlargs ')';
-args        : expression (',' expression)*;
-gqlargs     : gqlarg (',' gqlarg)*;
-gqlarg      : gqlfield=identity ws* ':' ws* gqlvalue=expression;
+gqlcall     : method=identity '(' ws* (gqlarguments=gqlargs | gqltypedefs=gqlTypeDefs) ws* ')';
+args        : expression (',' ws* expression)*;
+gqlargs     : gqlarg (',' ws* gqlarg)*;
+gqlTypeDefs : gqlTypeDef (',' ws* gqlTypeDef)*;
+gqlVar      : '$' identity;
+gqlTypeDef  : gqlVar ws* ':' ws* identity '!';
+gqlarg      : gqlfield=identity ws* ':' ws* (gqlvalue=expression | gqlvar=gqlVar);
 
 operator    : '-' | '+' | '%' | '^' | 'and' | '*' | 'or' | '=' | '<=' | '>=' | '<' | '>' | '/';
 
@@ -33,11 +36,17 @@ startRule   : expression;
 //   entity1 { field1 field2 relation { field1 field2 } }
 //   entity2 { field1 field2 relation { field1 field2 } }
 // }
-ws          : (' ' | '\t' | '\n' | '\r');
-queryKeyword: 'query';
-field       : callPath;
-aliasType   : name=identity ws* ':' ws*;
-aliasExp    : alias=aliasType entity=expression;
-fieldSelect : '{' ws* (aliasExp | field | entityQuery) ((ws* ','? ws*) (aliasExp | field | entityQuery))* ws* '}';
-entityQuery : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
-dataQuery   : queryKeyword? ws* '{' ws* (aliasExp | entityQuery) ( (ws* ','? ws*) (aliasExp | entityQuery))* ws* '}' ws*;
+ws              : (' ' | '\t' | '\n' | '\r');
+queryKeyword    : 'query';
+mutationKeyword : 'mutation';
+field           : callPath;
+aliasType       : name=identity ws* ':' ws*;
+aliasExp        : alias=aliasType entity=expression;
+fieldSelect     : '{' ws* (aliasExp | field | entityQuery) ((ws* ','? ws*) (aliasExp | field | entityQuery))* ws* '}';
+entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
+operationName   : operation=identity '(' (operationArgs=gqlTypeDefs)? ')';
+gqlBody         : '{' ws* (aliasExp | entityQuery) ( (ws* ','? ws*) (aliasExp | entityQuery))* ws* '}';
+dataQuery       : queryKeyword? ws* operationName? ws* gqlBody ws*;
+mutationQuery   : mutationKeyword ws* operationName ws* gqlBody ws*;
+
+graphQL         : dataQuery | mutationQuery;

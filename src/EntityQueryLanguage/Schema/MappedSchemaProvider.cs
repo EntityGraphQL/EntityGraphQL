@@ -17,6 +17,7 @@ namespace EntityQueryLanguage.Schema
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
         protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
+        protected Dictionary<string, ISchemaType> _mutations = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
         private readonly string _queryContextName;
 
         public MappedSchemaProvider()
@@ -51,6 +52,23 @@ namespace EntityQueryLanguage.Schema
 			var tt = new SchemaType<TBaseType>(name, description, filter);
             _types.Add(name, tt);
 			return tt;
+        }
+
+        public void AddMutationFrom<TType>(TType mutationClassInstance)
+        {
+            foreach (var method in mutationClassInstance.GetType().GetMethods())
+            {
+                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute));
+                if (attribute != null)
+                {
+                    _mutations[method.Name] = new MutationType(_types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method);
+                }
+            }
+        }
+
+        public bool HasMutation(string method)
+        {
+            return _mutations.ContainsKey(method);
         }
 
         /// <summary>
@@ -146,10 +164,19 @@ namespace EntityQueryLanguage.Schema
             throw new EqlCompilerException($"Field {identifier} not found on any type");
         }
 
-        public Field GetFieldType(Expression context, string fieldName)
+        public IMethodType GetMethodType(Expression context, string fieldName)
         {
-            var field = _types[context.Type.Name].GetField(fieldName);
-            return field;
+            if (_mutations.ContainsKey(fieldName))
+            {
+                var mutation = _mutations[fieldName];
+                return (IMethodType)mutation;
+            }
+            if (_types.ContainsKey(context.Type.Name))
+            {
+                var field = _types[context.Type.Name].GetField(fieldName);
+                return field;
+            }
+            throw new EqlCompilerException($"No field or mutation '{fieldName}' found in schema.");
         }
 
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)

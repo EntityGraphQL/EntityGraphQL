@@ -30,10 +30,18 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public GraphQLNode Compile(string query)
+        public IGraphQLNode Compile(string query, Dictionary<string, string> variables = null)
+        {
+            if (variables == null)
+            {
+                variables = new Dictionary<string, string>();
+            }
+            return Compile(new GraphQLRequest {Query = query, Variables = variables});
+        }
+        public IGraphQLNode Compile(GraphQLRequest request)
         {
             // Setup our Antlr parser
-            var stream = new AntlrInputStream(query);
+            var stream = new AntlrInputStream(request.Query);
             var lexer = new EqlGrammerLexer(stream);
             var tokens = new CommonTokenStream(lexer);
             var parser = new EqlGrammerParser(tokens);
@@ -41,8 +49,8 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             parser.ErrorHandler = new BailErrorStrategy();
             try
             {
-                var tree = parser.dataQuery();
-                var visitor = new DataApiVisitor(_schemaProvider, _methodProvider, _relationHandler);
+                var tree = parser.graphQL();
+                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, _relationHandler, request.Variables);
                 // visit each node. it will return a linq expression for each entity requested
                 var node = visitor.Visit(tree);
                 return node;

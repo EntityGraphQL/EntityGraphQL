@@ -138,7 +138,7 @@ namespace EntityQueryLanguage.Tests
             var exp = EqlCompiler.Compile("name = 'Bob", SchemaBuilder.FromObject<TestEntity>());
             var objects = new List<TestEntity> { new TestEntity { Name = "Sally" }, new TestEntity { Name = "Bob" } };
             Assert.Equal(2, objects.Count);
-            var results = objects.Where(exp.Expression);
+            var results = objects.Where(exp.LambdaExpression);
             Assert.Single(results);
             Assert.Equal("Bob", results.ElementAt(0).Name);
         }

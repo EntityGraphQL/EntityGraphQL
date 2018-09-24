@@ -18,12 +18,13 @@ namespace EntityQueryLanguage.GraphQL
         /// <param name="context"></param>
         /// <param name="dataQuery"></param>
         /// <returns></returns>
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, string dataQuery, bool includeDebugInfo = false)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
-            return QueryObject(context, dataQuery, new MappedSchemaProvider<TType>(), null, null, includeDebugInfo);
+            return QueryObject(context, new GraphQLRequest { Query = query }, new MappedSchemaProvider<TType>(), null, null, includeDebugInfo);
         }
+
         /// Function that returns the DataContext for the queries. If null _serviceProvider is used
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, string dataQuery, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, GraphQLRequest request, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
@@ -39,19 +40,15 @@ namespace EntityQueryLanguage.GraphQL
 
             try
             {
-                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider, relationHandler).Compile(dataQuery);
-                // Parallel.ForEach(objectGraph.Fields, node =>
-                foreach (var node in objectGraph.Fields)
+                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider, relationHandler).Compile(request);
+                foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
                 {
-                    try
-                    {
-                        var data = node.Execute(context);
-                        queryData[node.Name] = data;
-                    }
-                    catch (Exception ex)
-                    {
-                        queryData[node.Name] = new { eql_error = ex.Message };
-                    }
+                    ExecuteNode(context, request, queryData, node);
+                }
+                // Parallel.ForEach(objectGraph.Fields, node =>
+                foreach (var node in objectGraph.Fields.Where(f => !f.IsMutation))
+                {
+                    ExecuteNode(context, request, queryData, node);
                 }
                 // );
             }
@@ -68,6 +65,20 @@ namespace EntityQueryLanguage.GraphQL
             result["data"] = queryData;
 
             return result;
+        }
+
+        private static void ExecuteNode<TType>(TType context, GraphQLRequest request, ConcurrentDictionary<string, object> queryData, IGraphQLNode node)
+        {
+            try
+            {
+                // request.Variables are already compiled into the expression
+                var data = node.Execute(context);
+                queryData[node.Name] = data;
+            }
+            catch (Exception ex)
+            {
+                queryData[node.Name] = new { eql_error = ex.Message };
+            }
         }
     }
 }

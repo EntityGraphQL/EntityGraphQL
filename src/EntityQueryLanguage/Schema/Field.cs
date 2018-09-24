@@ -7,7 +7,7 @@ using EntityQueryLanguage.Extensions;
 namespace EntityQueryLanguage.Schema
 {
     /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
-    public class Field
+    public class Field : IMethodType
     {
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }

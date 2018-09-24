@@ -33,6 +33,7 @@ namespace EntityQueryLanguage.Schema
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string field, Dictionary<string, ExpressionResult> args);
         string GetSchemaTypeNameForRealType(Type type);
-        Field GetFieldType(Expression context, string field);
+        IMethodType GetMethodType(Expression context, string field);
+        bool HasMutation(string method);
     }
 }

@@ -22,12 +22,12 @@ namespace EntityQueryLanguage
     {
         public static QueryResult Compile(string query)
         {
-            return Compile(query, null, new DefaultMethodProvider());
+            return Compile(query, null, new DefaultMethodProvider(), null);
         }
 
         public static QueryResult Compile(string query, ISchemaProvider schemaProvider)
         {
-            return Compile(query, schemaProvider, new DefaultMethodProvider());
+            return Compile(query, schemaProvider, new DefaultMethodProvider(), null);
         }
 
         /// <summary>
@@ -37,36 +37,35 @@ namespace EntityQueryLanguage
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static QueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        public static QueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
         {
             ParameterExpression contextParam = null;
 
             if (schemaProvider != null)
                 contextParam = Expression.Parameter(schemaProvider.ContextType);
-            var expression = CompileQuery(query, contextParam, schemaProvider, methodProvider);
+            var expression = CompileQuery(query, contextParam, schemaProvider, methodProvider, variables);
 
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
                 contextParams.Add(contextParam);
             if (expression.ConstantParameters.Any())
                 contextParams.AddRange(expression.ConstantParameters.Keys);
-            var lambda = Expression.Lambda(expression, contextParams.ToArray());
-            return new QueryResult(lambda, expression.ConstantParameters.Values);
+            return new QueryResult(expression, contextParams, expression.ConstantParameters.Values);
         }
 
-        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
         {
-            var expression = CompileQuery(query, context, schemaProvider, methodProvider);
+            var expression = CompileQuery(query, context, schemaProvider, methodProvider, variables);
 
             var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
             if (expression.ConstantParameters != null)
             {
                 parameters.AddRange(expression.ConstantParameters.Keys);
             }
-            return new QueryResult(Expression.Lambda(expression, parameters.ToArray()), expression.ConstantParameters?.Values);
+            return new QueryResult(expression, parameters, expression.ConstantParameters?.Values);
         }
 
-        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
         {
             AntlrInputStream stream = new AntlrInputStream(query);
             var lexer = new EqlGrammerLexer(stream);
@@ -75,7 +74,7 @@ namespace EntityQueryLanguage
             parser.BuildParseTree = true;
             var tree = parser.startRule();
 
-            var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider);
+            var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables);
             var expression = visitor.Visit(tree);
             return expression;
         }
