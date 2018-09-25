@@ -20,7 +20,7 @@ namespace EntityQueryLanguage.GraphQL
         /// <returns></returns>
         public static IDictionary<string, object> QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
-            return QueryObject(context, new GraphQLRequest { Query = query }, new MappedSchemaProvider<TType>(), null, null, includeDebugInfo);
+            return QueryObject(context, new GraphQLRequest { Query = query }, schemaProvider, relationHandler, methodProvider, includeDebugInfo);
         }
 
         /// Function that returns the DataContext for the queries. If null _serviceProvider is used

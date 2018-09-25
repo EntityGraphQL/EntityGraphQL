@@ -1,3 +1,6 @@
+# 0.9.1
+- Fix a issue where schema and metrhod provider were not being passed down in `QueryObject`
+
 # 0.9.0
 - Add initial support for Mutations
 - `,` between fields is optional like in GraphQL
