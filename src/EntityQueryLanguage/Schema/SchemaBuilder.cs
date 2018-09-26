@@ -49,6 +49,8 @@ namespace EntityQueryLanguage.Schema
                 return;
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
+            // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
+            // This allows us to "insert" .Select() (and .Include()) before the .First()
             var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type);
             var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
@@ -61,7 +63,9 @@ namespace EntityQueryLanguage.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            Expression body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+
+            body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, body);
             var contextParam = Expression.Parameter(contextType);
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);

@@ -18,7 +18,7 @@ namespace EntityQueryLanguage
         private readonly ExpressionResult expressionResult;
         private readonly List<ParameterExpression> contextParams;
 
-        public LambdaExpression LambdaExpression { get { return Expression.Lambda(expressionResult.Expression, contextParams.ToArray()); } }
+        public LambdaExpression LambdaExpression { get { return Expression.Lambda(expressionResult.Expression, ContextParams.ToArray()); } }
         public Type Type { get { return LambdaExpression.Type; } }
 
         public IEnumerable<object> ConstantParameterValues { get { return constantParameterValues; } }
@@ -28,6 +28,8 @@ namespace EntityQueryLanguage
         public ExpressionResult ExpressionResult { get { return expressionResult; } }
 
         public bool IsMutation { get { return typeof(MutationResult) == expressionResult.GetType(); } }
+
+        public List<ParameterExpression> ContextParams => contextParams;
 
         public QueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams, IEnumerable<object> parameterValues)
         {

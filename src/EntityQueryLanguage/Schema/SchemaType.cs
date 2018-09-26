@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityQueryLanguage.Compiler;
+using EntityQueryLanguage.Extensions;
 
 namespace EntityQueryLanguage.Schema
 {
@@ -49,7 +50,7 @@ namespace EntityQueryLanguage.Schema
             {
                 if (gqlRequestArgs.ContainsKey(field.Name))
                 {
-                    field.SetValue(argInstance, Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke());
+                    field.SetValue(argInstance, ExpressionUtil.ChangeType(Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke(), field.FieldType));
                 }
             }
         }

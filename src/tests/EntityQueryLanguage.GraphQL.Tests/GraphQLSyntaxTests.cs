@@ -32,11 +32,11 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	user(id: 1) { id }
 }");
-
+            // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested

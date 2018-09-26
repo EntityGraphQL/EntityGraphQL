@@ -9,7 +9,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     public interface IGraphQLNode
     {
         bool IsMutation { get; }
-        ExpressionResult NodeExpression { get; }
+        ExpressionResult NodeExpression { get; set; }
         Expression RelationExpression { get; }
         string Name { get; }
         List<object> ConstantParameterValues { get; }
@@ -30,7 +30,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     public class GraphQLNode : IGraphQLNode
     {
         public string Name { get; private set; }
-        public ExpressionResult NodeExpression { get; private set; }
+        public ExpressionResult NodeExpression { get; set; }
         public List<ParameterExpression> Parameters { get; private set; }
         public List<object> ConstantParameterValues { get; private set; }
 
@@ -88,8 +88,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         public bool IsMutation => true;
         public List<IGraphQLNode> Fields { get; private set; }
 
-        public ExpressionResult NodeExpression => throw new NotImplementedException();
-
         public Expression RelationExpression => throw new NotImplementedException();
 
         public string Name => graphQLNode.Name;
@@ -97,6 +95,8 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         public List<object> ConstantParameterValues => throw new NotImplementedException();
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
+
+        ExpressionResult IGraphQLNode.NodeExpression { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public GraphQLMutationNode(QueryResult result, IGraphQLNode graphQLNode)
         {

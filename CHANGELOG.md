@@ -1,3 +1,7 @@
+# 0.9.2
+- Fix type issues with mutation args
+- Change auto entity call with `id:` (e.g. `{ entity(id: 13)}`) to call the `First()` method last
+
 # 0.9.1
 - Fix a issue where schema and metrhod provider were not being passed down in `QueryObject`
 

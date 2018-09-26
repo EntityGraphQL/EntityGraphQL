@@ -101,7 +101,18 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 {
                     // Could be a list.First() that we need to turn into a select, or
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
-                    graphQLNode = BuildDynamicSelectForObjectGraph(query, name, context, result);
+                    // Can we turn a list.First() into and list.Select().First()
+                    var listExp = ExpressionUtil.FindIEnumerable(result.LambdaExpression.Body);
+                    if (listExp.Item1 != null)
+                    {
+                        // yes we can
+                        graphQLNode = BuildDynamicSelectOnCollection(new QueryResult((ExpressionResult)listExp.Item1, result.ContextParams, result.ConstantParameterValues), name, context, true);
+                        graphQLNode.NodeExpression = (ExpressionResult)ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
+                    }
+                    else
+                    {
+                        graphQLNode = BuildDynamicSelectForObjectGraph(query, name, context, result);
+                    }
                 }
                 // the query result may be a mutation
                 if (result.IsMutation)
@@ -199,10 +210,10 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                     exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp);
                 }
                 // we're about to add the .Select() call. May need to do something
-                // if (relationHandler != null)
-                // {
-                //     exp = relationHandler.HandleSelectComplete(exp);
-                // }
+                if (relationHandler != null)
+                {
+                    exp = relationHandler.HandleSelectComplete(exp);
+                }
 
                 var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
                 selectContext = oldContext;

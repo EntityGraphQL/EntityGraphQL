@@ -113,7 +113,7 @@ namespace EntityQueryLanguage.Compiler
         {
             var method = context.method.GetText();
             IMethodType methodType = schemaProvider.GetMethodType(currentContext, method);
-            var args = context.gqlarguments.children.Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => {
+            var args = context.gqlarguments.children.Where(c => c.GetType() == typeof(EqlGrammerParser.GqlargContext)).Cast<EqlGrammerParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => {
                 fieldArgumentContext = methodType;
                 var r = VisitGqlarg(a);
                 fieldArgumentContext = null;
@@ -130,7 +130,11 @@ namespace EntityQueryLanguage.Compiler
         {
             if (context.gqlVar() != null)
             {
-                return (ExpressionResult)Expression.Constant(variables[context.gqlVar().GetText().TrimStart('$')]);
+                string value = variables[context.gqlVar().GetText().TrimStart('$')];
+                var exp = (ExpressionResult)Expression.Constant(value);
+                if (guidRegex.IsMatch(value))
+                    exp = ConvertToGuid(exp);
+                return exp;
             }
             var enumName = context.gqlvalue.GetText();
             var argType = fieldArgumentContext.GetArgumentType(context.gqlfield.GetText());
