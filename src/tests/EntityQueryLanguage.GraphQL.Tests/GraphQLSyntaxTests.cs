@@ -62,7 +62,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a default parameter
-            schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return me, or someone else");
+            schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 me { id }
             }");
