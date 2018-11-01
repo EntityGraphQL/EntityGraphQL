@@ -85,11 +85,7 @@ public class QueryController : Controller
     {
         try
         {
-            var data = _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
-            if (data.ContainsKey("error"))
-                return this.StatusCode(StatusCodes.Status500InternalServerError, data);
-
-            return data;
+            return _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
         }
         catch (Exception)
         {

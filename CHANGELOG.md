@@ -1,3 +1,7 @@
+# 0.10.0
+- Change the errors to appear in `errors` key along side `data` key as per GraphQL
+- Fix an issue when selecting fields from a mutation result
+
 # 0.9.4
 - Support selecting an object that may be null `{ person {name} }` `person` will be null if it does not exist
 

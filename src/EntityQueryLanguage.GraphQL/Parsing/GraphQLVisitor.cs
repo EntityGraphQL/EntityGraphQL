@@ -218,9 +218,12 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
                 var anonType = newExp.Type;
                 // make a null check from this new expression
-                newExp = Expression.IfThenElse(Expression.MakeBinary(ExpressionType.Equal, exp, Expression.Constant(null)), Expression.Constant(null, anonType), newExp);
-                // cast it as anonType otherwise Conditional type is System.Void
-                newExp = Expression.TypeAs(newExp, anonType);
+                if (!rootField.IsMutation)
+                {
+                    newExp = Expression.IfThenElse(Expression.MakeBinary(ExpressionType.Equal, selectContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp);
+                    // cast it as anonType otherwise Conditional type is System.Void
+                    newExp = Expression.TypeAs(newExp, anonType);
+                }
                 selectContext = oldContext;
 
                 var t = MergeConstantParametersFromFields(rootField, fieldExpressions, rootFieldParam);

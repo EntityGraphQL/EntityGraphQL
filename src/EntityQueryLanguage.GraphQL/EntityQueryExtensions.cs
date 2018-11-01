@@ -37,6 +37,7 @@ namespace EntityQueryLanguage.GraphQL
 
             var queryData = new ConcurrentDictionary<string, object>();
             var result = new Dictionary<string, object>();
+            var errors = new List<GraphQLError>();
 
             try
             {
@@ -55,7 +56,7 @@ namespace EntityQueryLanguage.GraphQL
             catch (Exception ex)
             {
                 // error with the whole query
-                result["error"] = ex.Message;
+                errors.Add(new GraphQLError(ex.Message));
             }
             if (includeDebugInfo && timer != null)
             {
@@ -63,22 +64,17 @@ namespace EntityQueryLanguage.GraphQL
                 result["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
             }
             result["data"] = queryData;
+            result["errors"] = errors;
 
             return result;
         }
 
         private static void ExecuteNode<TType>(TType context, GraphQLRequest request, ConcurrentDictionary<string, object> queryData, IGraphQLNode node)
         {
-            try
-            {
-                // request.Variables are already compiled into the expression
-                var data = node.Execute(context);
-                queryData[node.Name] = data;
-            }
-            catch (Exception ex)
-            {
-                queryData[node.Name] = new { eql_error = ex.Message };
-            }
+            queryData[node.Name] = null;
+            // request.Variables are already compiled into the expression
+            var data = node.Execute(context);
+            queryData[node.Name] = data;
         }
     }
 }

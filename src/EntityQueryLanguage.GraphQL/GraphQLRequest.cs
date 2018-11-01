@@ -8,4 +8,16 @@ namespace EntityQueryLanguage.GraphQL
         public string Query { get; set; }
         public Dictionary<string, string> Variables { get; set; }
     }
+
+    public class GraphQLError
+    {
+        private string message;
+
+        public GraphQLError(string message)
+        {
+            this.Message = message;
+        }
+
+        public string Message { get => message; set => message = value; }
+    }
 }
