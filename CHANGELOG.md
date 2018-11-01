@@ -1,3 +1,6 @@
+# 0.9.4
+- Support selecting an object that may be null `{ person {name} }` `person` will be null if it does not exist
+
 # 0.9.3
 - Parameter types can be optional (no `!`)
 

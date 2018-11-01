@@ -50,7 +50,8 @@ namespace EntityQueryLanguage.Schema
             {
                 if (gqlRequestArgs.ContainsKey(field.Name))
                 {
-                    field.SetValue(argInstance, ExpressionUtil.ChangeType(Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke(), field.FieldType));
+                    var fieldValue = Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke();
+                    field.SetValue(argInstance, fieldValue == null ? fieldValue : ExpressionUtil.ChangeType(fieldValue, field.FieldType));
                 }
             }
         }
