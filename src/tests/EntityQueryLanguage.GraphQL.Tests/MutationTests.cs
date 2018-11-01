@@ -39,6 +39,32 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
             Assert.Equal("Frank", addPersonResult.Name);
         }
+
+        [Fact]
+        public void SupportsMutationOptional()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new GraphQLRequest {
+                Query = @"mutation AddPerson($name: String) {
+  addPerson(name: $name) {
+    id
+    name
+  }
+}",
+                Variables = new Dictionary<string, string> {}
+            };
+            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["data"];
+            addPersonResult = Enumerable.First(addPersonResult);
+            addPersonResult = addPersonResult.Value;
+            // we only have the fields requested
+            Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
+            Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal(555, addPersonResult.Id);
+            Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Equal("Default", addPersonResult.Name);
+        }
     }
 
     internal class TestSchema
@@ -89,7 +115,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
         [GraphQLMutation]
         public Person AddPerson(TestSchema db, PeopleMutationsArgs args)
         {
-            return new Person { Name = args.Name, Id = 555 };
+            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555 };
         }
     }
 

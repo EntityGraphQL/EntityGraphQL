@@ -1,3 +1,6 @@
+# 0.9.3
+- Parameter types can be optional (no `!`)
+
 # 0.9.2
 - Fix type issues with mutation args
 - Change auto entity call with `id:` (e.g. `{ entity(id: 13)}`) to call the `First()` method last

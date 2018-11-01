@@ -130,9 +130,10 @@ namespace EntityQueryLanguage.Compiler
         {
             if (context.gqlVar() != null)
             {
-                string value = variables[context.gqlVar().GetText().TrimStart('$')];
+                string varKey = context.gqlVar().GetText().TrimStart('$');
+                string value = variables.ContainsKey(varKey) ? variables[varKey] : null;
                 var exp = (ExpressionResult)Expression.Constant(value);
-                if (guidRegex.IsMatch(value))
+                if (value != null && guidRegex.IsMatch(value))
                     exp = ConvertToGuid(exp);
                 return exp;
             }
