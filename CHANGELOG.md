@@ -1,3 +1,6 @@
+# 0.10.1
+- Fix issue with arrays and objects in variables parameter on the request
+
 # 0.10.0
 - Change the errors to appear in `errors` key along side `data` key as per GraphQL
 - Fix an issue when selecting fields from a mutation result

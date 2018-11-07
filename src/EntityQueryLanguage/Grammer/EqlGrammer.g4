@@ -17,7 +17,7 @@ args        : expression (',' ws* expression)*;
 gqlargs     : gqlarg (',' ws* gqlarg)*;
 gqlTypeDefs : gqlTypeDef (',' ws* gqlTypeDef)*;
 gqlVar      : '$' identity;
-gqlTypeDef  : gqlVar ws* ':' ws* identity '!'?;
+gqlTypeDef  : gqlVar ws* ':' ws* (identity | '[' identity ']') '!'?;
 gqlarg      : gqlfield=identity ws* ':' ws* (gqlvalue=expression | gqlvar=gqlVar);
 
 operator    : '-' | '+' | '%' | '^' | 'and' | '*' | 'or' | '=' | '<=' | '>=' | '<' | '>' | '/';

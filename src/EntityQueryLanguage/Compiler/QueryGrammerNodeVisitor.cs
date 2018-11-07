@@ -17,11 +17,11 @@ namespace EntityQueryLanguage.Compiler
         private ExpressionResult currentContext;
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
-        private readonly Dictionary<string, string> variables;
+        private readonly QueryVariables variables;
         private IMethodType fieldArgumentContext;
         private Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
+        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
@@ -131,9 +131,9 @@ namespace EntityQueryLanguage.Compiler
             if (context.gqlVar() != null)
             {
                 string varKey = context.gqlVar().GetText().TrimStart('$');
-                string value = variables.ContainsKey(varKey) ? variables[varKey] : null;
+                object value = variables.GetValueFor(varKey);
                 var exp = (ExpressionResult)Expression.Constant(value);
-                if (value != null && guidRegex.IsMatch(value))
+                if (value != null && value.GetType() == typeof(string) && guidRegex.IsMatch((string)value))
                     exp = ConvertToGuid(exp);
                 return exp;
             }

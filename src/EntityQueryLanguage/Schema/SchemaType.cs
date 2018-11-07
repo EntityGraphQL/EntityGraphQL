@@ -37,23 +37,54 @@ namespace EntityQueryLanguage.Schema
             return result;
         }
 
+        private static List<T> ConvertArray<T>(Array input)
+        {
+            return input.Cast<T>().ToList(); // Using LINQ for simplicity
+        }
+
         private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
         {
             foreach (var prop in argInstance.GetType().GetProperties())
             {
                 if (gqlRequestArgs.ContainsKey(prop.Name))
                 {
-                    prop.SetValue(argInstance, Expression.Lambda(gqlRequestArgs[prop.Name]).Compile().DynamicInvoke());
+                    object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
+                    prop.SetValue(argInstance, value);
                 }
             }
             foreach (var field in argInstance.GetType().GetFields())
             {
                 if (gqlRequestArgs.ContainsKey(field.Name))
                 {
-                    var fieldValue = Expression.Lambda(gqlRequestArgs[field.Name]).Compile().DynamicInvoke();
-                    field.SetValue(argInstance, fieldValue == null ? fieldValue : ExpressionUtil.ChangeType(fieldValue, field.FieldType));
+                    object value = GetValue(gqlRequestArgs, field, field.FieldType);
+                    field.SetValue(argInstance, value);
                 }
             }
+        }
+
+        private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, MemberInfo member, Type memberType)
+        {
+            object value = Expression.Lambda(gqlRequestArgs[member.Name]).Compile().DynamicInvoke();
+            if (value != null)
+            {
+                Type type = value.GetType();
+                if (type.IsArray && memberType.IsEnumerable())
+                {
+                    var arr = (Array)value;
+                    var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
+                    var generic = convertMethod.MakeGenericMethod(new[] {memberType.GetGenericArguments()[0]});
+                    value = generic.Invoke(null, new object[] { value });
+                }
+                else if (type == typeof(Newtonsoft.Json.Linq.JObject))
+                {
+                    value = ((Newtonsoft.Json.Linq.JObject)value).ToObject(memberType);
+                }
+                else
+                {
+                    value = ExpressionUtil.ChangeType(value, memberType);
+                }
+            }
+            return value;
         }
 
         public Type ContextType => ReturnType.ContextType;

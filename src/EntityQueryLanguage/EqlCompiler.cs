@@ -37,7 +37,7 @@ namespace EntityQueryLanguage
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static QueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
+        public static QueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             ParameterExpression contextParam = null;
 
@@ -53,7 +53,7 @@ namespace EntityQueryLanguage
             return new QueryResult(expression, contextParams, expression.ConstantParameters.Values);
         }
 
-        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
+        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             var expression = CompileQuery(query, context, schemaProvider, methodProvider, variables);
 
@@ -65,7 +65,7 @@ namespace EntityQueryLanguage
             return new QueryResult(expression, parameters, expression.ConstantParameters?.Values);
         }
 
-        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, Dictionary<string, string> variables)
+        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             AntlrInputStream stream = new AntlrInputStream(query);
             var lexer = new EqlGrammerLexer(stream);

@@ -30,11 +30,11 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public IGraphQLNode Compile(string query, Dictionary<string, string> variables = null)
+        public IGraphQLNode Compile(string query, QueryVariables variables = null)
         {
             if (variables == null)
             {
-                variables = new Dictionary<string, string>();
+                variables = new QueryVariables();
             }
             return Compile(new GraphQLRequest {Query = query, Variables = variables});
         }

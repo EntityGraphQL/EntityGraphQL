@@ -17,13 +17,13 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
         private IRelationHandler relationHandler;
-        private readonly Dictionary<string, string> variables;
+        private readonly QueryVariables variables;
 
         // This is really just so we know what to use when visiting a field
         private Expression selectContext;
         private BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
 
-        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler, Dictionary<string, string> variables)
+        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler, QueryVariables variables)
         {
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
