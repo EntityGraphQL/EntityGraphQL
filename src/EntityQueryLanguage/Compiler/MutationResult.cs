@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityQueryLanguage.Schema;
 
 namespace EntityQueryLanguage.Compiler
 {
@@ -24,7 +25,14 @@ namespace EntityQueryLanguage.Compiler
 
         public object Execute(object[] externalArgs)
         {
-            return mutationType.Call(externalArgs, gqlRequestArgs);
+            try
+            {
+                return mutationType.Call(externalArgs, gqlRequestArgs);
+            }
+            catch(EntityQuerySchemaError e)
+            {
+                throw new EntityQuerySchemaError($"Error applying mutation: {e.Message}");
+            }
         }
     }
 }

@@ -44,20 +44,34 @@ namespace EntityQueryLanguage.Schema
 
         private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
         {
-            foreach (var prop in argInstance.GetType().GetProperties())
+            Type argType = argInstance.GetType();
+            foreach (var key in gqlRequestArgs.Keys)
             {
-                if (gqlRequestArgs.ContainsKey(prop.Name))
+                var foundProp = false;
+                foreach (var prop in argType.GetProperties())
                 {
-                    object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
-                    prop.SetValue(argInstance, value);
+                    if (key == prop.Name)
+                    {
+                        object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
+                        prop.SetValue(argInstance, value);
+                        foundProp = true;
+                    }
                 }
-            }
-            foreach (var field in argInstance.GetType().GetFields())
-            {
-                if (gqlRequestArgs.ContainsKey(field.Name))
+                if (!foundProp)
                 {
-                    object value = GetValue(gqlRequestArgs, field, field.FieldType);
-                    field.SetValue(argInstance, value);
+                    foreach (var field in argType.GetFields())
+                    {
+                        if (key == field.Name)
+                        {
+                            object value = GetValue(gqlRequestArgs, field, field.FieldType);
+                            field.SetValue(argInstance, value);
+                            foundProp = true;
+                        }
+                    }
+                }
+                if (!foundProp)
+                {
+                    throw new EntityQuerySchemaError($"Could not find property or field {key} on in schema object {argType.Name}");
                 }
             }
         }
