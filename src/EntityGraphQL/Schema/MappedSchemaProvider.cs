@@ -161,7 +161,7 @@ namespace EntityGraphQL.Schema
                 return _types[typeName].GetField(identifier).Name;
             if (typeName == _queryContextName && _types[_queryContextName].HasField(identifier))
                 return _types[_queryContextName].GetField(identifier).Name;
-            throw new EqlCompilerException($"Field {identifier} not found on any type");
+            throw new EntityGraphQLCompilerException($"Field {identifier} not found on any type");
         }
 
         public IMethodType GetMethodType(Expression context, string fieldName)
@@ -176,7 +176,7 @@ namespace EntityGraphQL.Schema
                 var field = _types[context.Type.Name].GetField(fieldName);
                 return field;
             }
-            throw new EqlCompilerException($"No field or mutation '{fieldName}' found in schema.");
+            throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
         }
 
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)
@@ -253,7 +253,7 @@ namespace EntityGraphQL.Schema
             {
                 if (args == null || !args.ContainsKey(argName))
                 {
-                    throw new EqlCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
+                    throw new EntityGraphQLCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
                 }
                 var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
                 // explicitly cast the value to the RequiredField<> type
@@ -281,7 +281,7 @@ namespace EntityGraphQL.Schema
                 if (eType.ContextType == type)
                     return eType.Name;
             }
-            throw new EqlCompilerException($"No mapped entity found for type '{type}'");
+            throw new EntityGraphQLCompilerException($"No mapped entity found for type '{type}'");
         }
 
         private List<Field> BuildFields(object fieldsObj)

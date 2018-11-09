@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Grammer;
+using EntityGraphQL.LinqQuery;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Parsing
@@ -60,18 +62,18 @@ namespace EntityGraphQL.Parsing
                     if (pce.InnerException is NoViableAltException)
                     {
                         var nve = (NoViableAltException)pce.InnerException;
-                        throw new EqlCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'");
+                        throw new EntityGraphQLCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'");
                     }
                     else if (pce.InnerException is InputMismatchException)
                     {
                         var ime = (InputMismatchException)pce.InnerException;
                         var expecting = string.Join(", ", ime.GetExpectedTokens());
-                        throw new EqlCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
+                        throw new EntityGraphQLCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
                     }
                     System.Console.WriteLine(pce.InnerException.GetType());
-                    throw new EqlCompilerException(pce.InnerException.Message);
+                    throw new EntityGraphQLCompilerException(pce.InnerException.Message);
                 }
-                throw new EqlCompilerException(pce.Message);
+                throw new EntityGraphQLCompilerException(pce.Message);
             }
         }
     }

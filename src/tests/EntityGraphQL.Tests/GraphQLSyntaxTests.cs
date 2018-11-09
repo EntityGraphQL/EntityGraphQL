@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Parsing;
 using Microsoft.EntityFrameworkCore;
-using static EntityGraphQL.ArgumentHelper;
+using static EntityGraphQL.Schema.ArgumentHelper;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System;
+using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Tests
 {

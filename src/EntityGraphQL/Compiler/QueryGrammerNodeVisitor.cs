@@ -8,6 +8,7 @@ using EntityGraphQL.Extensions;
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using System.Text.RegularExpressions;
+using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Compiler
 {
@@ -147,7 +148,7 @@ namespace EntityGraphQL.Compiler
             var valueIndex = Enum.GetNames(argType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
             if (valueIndex == -1)
             {
-                throw new EqlCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
+                throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
             }
             var enumValue = Enum.GetValues(argType).GetValue(valueIndex);
             return (ExpressionResult)Expression.Constant(enumValue);
@@ -159,7 +160,7 @@ namespace EntityGraphQL.Compiler
             // TODO - need to get the mapped name for the type to check for fields to support mapped schema too
             if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field))
             {
-                throw new EqlCompilerException($"Field or property '{field}' not found on current context '{currentContext.Type.Name}'");
+                throw new EntityGraphQLCompilerException($"Field or property '{field}' not found on current context '{currentContext.Type.Name}'");
             }
             var exp = schemaProvider.GetExpressionForField(currentContext, currentContext.Type.Name, field, args);
             return exp;
@@ -205,7 +206,7 @@ namespace EntityGraphQL.Compiler
             var method = context.method.GetText();
             if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
             {
-                throw new EqlCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
+                throw new EntityGraphQLCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
             }
             // Keep the current context
             var outerContext = currentContext;
@@ -247,7 +248,7 @@ namespace EntityGraphQL.Compiler
         private Expression CheckConditionalTest(Expression test)
         {
             if (test.Type != typeof(bool))
-                throw new EqlCompilerException($"Expected boolean value in conditional test but found '{test}'");
+                throw new EntityGraphQLCompilerException($"Expected boolean value in conditional test but found '{test}'");
             return test;
         }
 
@@ -267,7 +268,7 @@ namespace EntityGraphQL.Compiler
                 case ">=": return ExpressionType.GreaterThanOrEqual;
                 case "<": return ExpressionType.LessThan;
                 case ">": return ExpressionType.GreaterThan;
-                default: throw new EqlCompilerException($"Unsupported binary operator '{op}'");
+                default: throw new EntityGraphQLCompilerException($"Unsupported binary operator '{op}'");
             }
         }
     }

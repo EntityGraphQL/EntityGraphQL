@@ -5,6 +5,7 @@ using EntityGraphQL.Parsing;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Tests
 {
@@ -16,7 +17,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsOpenBrace()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
             Assert.Equal("Error: line 2:9 extraneous input ' ' expecting 6", ex.Message);
@@ -25,7 +26,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsOpenBraceForEntity()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity field1 field2 }
 }"));
             Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
@@ -34,7 +35,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsCloseBraceForEntity()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity {field1 field2 }"));
             Assert.Equal("Error: line 2:26 no viable alternative at input '<EOF>'", ex.Message);
         }
@@ -163,7 +164,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsBinaryAsQuery()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people.id = 9 { id name }
 }"));

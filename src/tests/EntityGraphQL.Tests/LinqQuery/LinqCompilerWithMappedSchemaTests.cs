@@ -4,6 +4,7 @@ using System.Linq;
 using EntityGraphQL.Tests.ApiVersion1;
 using System;
 using EntityGraphQL.Tests;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.LinqQuery.Tests
 {

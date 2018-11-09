@@ -27,7 +27,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
             var typesStr = string.Join<Type>(", ", types);
-            throw new EqlCompilerException($"Could not find extension method {methodName} on types {typesStr}");
+            throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {typesStr}");
         }
 
         public static MemberExpression CheckAndGetMemberExpression<TBaseType, TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection)
@@ -84,7 +84,7 @@ namespace EntityGraphQL.Compiler
                     }
                     return Expression.Call(baseExp, mc.Method, mc.Arguments);
                 }
-                default: throw new EqlCompilerException($"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
+                default: throw new EntityGraphQLCompilerException($"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
             }
         }
 

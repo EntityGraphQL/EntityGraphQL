@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
@@ -50,7 +51,7 @@ namespace EntityGraphQL.Schema
                 var argField = ArgumentTypes.GetType().GetTypeInfo().GetFields().Where(f => f.IsPublic && f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
                 if (argField == null)
                 {
-                    throw new EqlCompilerException($"{argName} is not an argument on field {Name}");
+                    throw new EntityGraphQLCompilerException($"{argName} is not an argument on field {Name}");
                 }
                 return argField.FieldType;
             }

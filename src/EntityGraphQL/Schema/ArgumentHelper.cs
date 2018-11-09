@@ -1,7 +1,11 @@
 using System;
 
-namespace EntityGraphQL
+namespace EntityGraphQL.Schema
 {
+    /// <summary>
+    /// Use this to mark arguments as required when building schemas with arguments.
+    /// <code>schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id)</code>
+    /// </summary>
     public static class ArgumentHelper
     {
         public static RequiredField<TType> Required<TType>()
@@ -10,6 +14,10 @@ namespace EntityGraphQL
         }
     }
 
+    /// <summary>
+    /// Wraps a field/argument, marking it as required when building schemas
+    /// </summary>
+    /// <typeparam name="TType"></typeparam>
     public class RequiredField<TType>
     {
         public Type Type { get; }

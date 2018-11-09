@@ -5,6 +5,7 @@ using EntityGraphQL.Parsing;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Tests
 {

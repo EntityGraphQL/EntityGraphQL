@@ -4,8 +4,9 @@ using System.Linq.Expressions;
 using System.Linq;
 using System.Reflection;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.LinqQuery
 {
     /// <summary>
     /// The default method provider for Ling Querys. Implements the useful Linq functions for
@@ -67,7 +68,7 @@ namespace EntityGraphQL.Compiler
             {
                 return _supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new ExpressionResult[] { });
             }
-            throw new EqlCompilerException($"Unsupported method {methodName}");
+            throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
         }
 
         private static ExpressionResult MakeWhereMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -160,19 +161,19 @@ namespace EntityGraphQL.Compiler
         private static void ExpectArgsCount(int count, ExpressionResult[] args, string method)
         {
             if (args.Count() != count)
-                throw new EqlCompilerException($"Method '{method}' expects {count} argument(s) but {args.Count()} were supplied");
+                throw new EntityGraphQLCompilerException($"Method '{method}' expects {count} argument(s) but {args.Count()} were supplied");
         }
 
         private static void ExpectArgsCountBetween(int low, int high, ExpressionResult[] args, string method)
         {
             if (args.Count() < low || args.Count() > high)
-                throw new EqlCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");
+                throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");
         }
 
         private static void ExpectArgTypeToBe(Type argType, Type expected, string methodName)
         {
             if (argType != expected)
-                throw new EqlCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argType}'");
+                throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argType}'");
         }
     }
 }

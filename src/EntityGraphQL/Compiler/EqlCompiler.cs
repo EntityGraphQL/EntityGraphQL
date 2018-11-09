@@ -5,9 +5,10 @@ using System.Linq.Expressions;
 using Antlr4.Runtime;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Grammer;
+using EntityGraphQL.LinqQuery;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL
+namespace EntityGraphQL.Compiler
 {
     /// Simple language to write queries against an object schema.
     ///
@@ -77,13 +78,6 @@ namespace EntityGraphQL
             var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables);
             var expression = visitor.Visit(tree);
             return expression;
-        }
-    }
-
-    public class EqlCompilerException : System.Exception
-    {
-        public EqlCompilerException(string message) : base(message)
-        {
         }
     }
 }

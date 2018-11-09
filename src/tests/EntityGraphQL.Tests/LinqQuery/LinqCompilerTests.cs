@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.LinqQuery.Tests
 {
@@ -48,7 +49,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void FailsIdentityNotThere()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>()));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>()));
             Assert.Equal("Field or property 'wrongField' not found on current context 'TestSchema'", ex.Message);
         }
         [Fact]
@@ -90,7 +91,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void FailsIfThenElseInlineNoBrackets()
         {
             // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? 'wooh' : 66", SchemaBuilder.FromObject<TestSchema>()));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? 'wooh' : 66", SchemaBuilder.FromObject<TestSchema>()));
             Assert.Equal("Expected boolean value in conditional test but found '99'", ex.Message);
         }
 

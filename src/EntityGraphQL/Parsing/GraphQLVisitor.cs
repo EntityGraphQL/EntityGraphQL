@@ -8,6 +8,7 @@ using EntityGraphQL.Schema;
 using System.Collections.Generic;
 using EntityGraphQL.Parsing;
 using EntityGraphQL;
+using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Parsing
 {
@@ -123,7 +124,7 @@ namespace EntityGraphQL.Parsing
                 }
                 return graphQLNode;
             }
-            catch (EqlCompilerException ex)
+            catch (EntityGraphQLCompilerException ex)
             {
                 throw SchemaException.MakeFieldCompileError(query, ex.Message);
             }
@@ -213,7 +214,7 @@ namespace EntityGraphQL.Parsing
                 }
                 return graphQLNode;
             }
-            catch (EqlCompilerException ex)
+            catch (EntityGraphQLCompilerException ex)
             {
                 throw SchemaException.MakeFieldCompileError(query, ex.Message);
             }

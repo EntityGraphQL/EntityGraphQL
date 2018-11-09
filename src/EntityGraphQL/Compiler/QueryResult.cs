@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL
+namespace EntityGraphQL.Compiler
 {
     /// <summary>
     /// Represents the final result of a single Expression that can be executed.

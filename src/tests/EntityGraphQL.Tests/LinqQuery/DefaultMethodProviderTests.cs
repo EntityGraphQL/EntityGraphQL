@@ -33,13 +33,13 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void FailsWhereNoParameter()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
             Assert.Equal("Method 'where' expects 1 argument(s) but 0 were supplied", ex.Message);
         }
         [Fact]
         public void FailsWhereWrongParameterType()
         {
-            var ex = Assert.Throws<EqlCompilerException>(() => EqlCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
             Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String'", ex.Message);
         }
 
