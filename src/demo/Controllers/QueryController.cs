@@ -1,8 +1,7 @@
 using System;
 using System.Net;
-using EntityQueryLanguage;
-using EntityQueryLanguage.GraphQL;
-using EntityQueryLanguage.Schema;
+using EntityGraphQL;
+using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

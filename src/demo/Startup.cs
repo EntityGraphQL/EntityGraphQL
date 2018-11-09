@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using EntityQueryLanguage;
-using EntityQueryLanguage.GraphQL;
 using Microsoft.EntityFrameworkCore;
-using EntityQueryLanguage.Schema;
+using EntityGraphQL.Schema;
 
 namespace demo
 {
