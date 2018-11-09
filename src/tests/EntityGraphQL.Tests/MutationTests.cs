@@ -78,7 +78,7 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(99, addPersonResult.Id);
+            Assert.Equal(0, addPersonResult.Id);
             Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
             Assert.Equal("Bill", addPersonResult.Name);
             Assert.Equal("Frank", addPersonResult.LastName);
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(99, addPersonResult.Id);
+            Assert.Equal(0, addPersonResult.Id);
             Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
             Assert.Equal("Lisa", addPersonResult.Name);
             Assert.Equal("Simpson", addPersonResult.LastName);
