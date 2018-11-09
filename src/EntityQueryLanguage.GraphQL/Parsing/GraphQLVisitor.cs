@@ -220,9 +220,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 // make a null check from this new expression
                 if (!rootField.IsMutation)
                 {
-                    newExp = Expression.IfThenElse(Expression.MakeBinary(ExpressionType.Equal, selectContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp);
-                    // cast it as anonType otherwise Conditional type is System.Void
-                    newExp = Expression.TypeAs(newExp, anonType);
+                    newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, selectContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
                 }
                 selectContext = oldContext;
 

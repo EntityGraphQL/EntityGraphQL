@@ -2,6 +2,7 @@
 - Fix issue with arrays and objects in variables parameter on the request
 - Better error messages when GraphQL arguments can't be mapped to an object
 - Validate required variables in operations are supplied in the variables dictionary
+- Fix potential issue with selecting sub object graphs
 
 # 0.10.0
 - Change the errors to appear in `errors` key along side `data` key as per GraphQL
