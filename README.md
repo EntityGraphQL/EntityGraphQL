@@ -5,9 +5,10 @@ EQL is a data/object querying language for .NET Core (netstandard 1.6) that supp
 
 This library in still in development, although it is already a very powerful tool for working with data.
 
-EQL allows you take a query (GraphQL) and execute it against an object
-- Expose any object graph, e.g. your DbContext
-- Programatically build a schema that maps to an object graph (DbContext), selectively expose fields
+EQL allows you to
+- Query your data with the GraphQL syntax
+- Easily expose an object graph, e.g. your DbContext
+- Programatically build a schema that maps to an object graph (e.g. DbContext), selectively exposing fields
 - Create custom fields
 - Supports GraphQL mutations
 
@@ -20,7 +21,7 @@ Via Nuget https://www.nuget.org/packages/EntityQueryLanguage.GraphQL
 
 ## Getting up and running with EF
 
-_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` linq expressions. EF is not a requirement - any ORM working on LinqProvider should work - although EF is tested._
+_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF is tested._
 
 ### 1. Define your DB context
 
@@ -55,7 +56,7 @@ public class Location {
 ```
 ### 2. Create a route
 
-Using what ever API library you wish. Here is an example for a ASP.NET WebApi controller
+Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller
 
 ```csharp
 public class Startup {
@@ -85,7 +86,7 @@ public class QueryController : Controller
     {
         try
         {
-            return _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
+            return _dbContext.QueryObject(query, _schemaProvider);
         }
         catch (Exception)
         {
@@ -94,7 +95,6 @@ public class QueryController : Controller
     }
 }
 ```
-`EfRelationHandler` is a helper class to handle EFs `.Include()` calls. `EntityQueryLanguage.GraphQL` does not have a requirement on EF (But this example does).
 
 This sets up 1 end point:
 - `POST` at `/api/query` where the body of the post is the GraphQL query
@@ -189,14 +189,14 @@ Will return the following result.
 }
 ```
 
-As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders/in memory objects or libraries but currently I test against EntityFramework Core.
+As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders/in memory objects or libraries but currently I test against EntityFramework Core 2.1.
 
 ## Supported GraphQL features
 - Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
-  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field so you can query `{ person(id: 1234) { name phone email } }` to select a single person
-  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for moe on custom fields
+  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` field so you can query `{ person(id: 1234) { name phone email } }` to select a single person
+  - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 
 ## Supported LINQ methods (non-GraphQL compatible)

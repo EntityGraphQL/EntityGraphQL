@@ -16,18 +16,16 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     {
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
-        private IRelationHandler relationHandler;
         private readonly QueryVariables variables;
 
         // This is really just so we know what to use when visiting a field
         private Expression selectContext;
         private BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
 
-        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler, QueryVariables variables)
+        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
-            this.relationHandler = relationHandler;
             this.variables = variables;
         }
 
@@ -140,18 +138,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
             var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-            var relations = fieldExpressions.Where(f => f.NodeExpression.NodeType == ExpressionType.MemberInit || f.NodeExpression.NodeType == ExpressionType.Call).Select(r => r.RelationExpression).Where(n => n != null).ToList();
-            // process at each relation
-            if (relationHandler != null && relations.Any())
-            {
-                // Likely the EF handler to build .Include()s
-                exp = relationHandler.BuildNodeForSelect(relations, contextParameter, exp);
-            }
-            // we're about to add the .Select() call. May need to do something
-            if (relationHandler != null && isRootSelect)
-            {
-                exp = relationHandler.HandleSelectComplete(exp);
-            }
 
             // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
             var selectExpression = (ExpressionResult)DataApiExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, schemaProvider);
@@ -202,18 +188,6 @@ namespace EntityQueryLanguage.GraphQL.Parsing
                 selectContext = rootField.IsMutation ? rootFieldParam : exp;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
-                var relationsExps = fieldExpressions.Where(f => f.NodeExpression.NodeType == ExpressionType.MemberInit || f.NodeExpression.NodeType == ExpressionType.Call).Where(n => n != null).ToList();
-                if (relationHandler != null && relationsExps.Any())
-                {
-                    var parameterExpression = Expression.Parameter(selectContext.Type);
-                    var relations = relationsExps.Select(r => (Expression)Expression.PropertyOrField(parameterExpression, r.Name)).ToList();
-                    exp = relationHandler.BuildNodeForSelect(relations, parameterExpression, exp);
-                }
-                // we're about to add the .Select() call. May need to do something
-                if (relationHandler != null)
-                {
-                    exp = relationHandler.HandleSelectComplete(exp);
-                }
 
                 var newExp = DataApiExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
                 var anonType = newExp.Type;

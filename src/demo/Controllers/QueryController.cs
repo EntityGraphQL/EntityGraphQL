@@ -39,7 +39,7 @@ namespace demo.Controllers
             {
                 var schemProvider = new MappedSchemaProvider<DemoContext>();
 
-                var data = _dbContext.QueryObject(query, _schemaProvider, relationHandler: new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions)));
+                var data = _dbContext.QueryObject(query, _schemaProvider);
                 return data;
             }
             catch (Exception)

@@ -18,13 +18,13 @@ namespace EntityQueryLanguage.GraphQL
         /// <param name="context"></param>
         /// <param name="dataQuery"></param>
         /// <returns></returns>
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
-            return QueryObject(context, new GraphQLRequest { Query = query }, schemaProvider, relationHandler, methodProvider, includeDebugInfo);
+            return QueryObject(context, new GraphQLRequest { Query = query }, schemaProvider, methodProvider, includeDebugInfo);
         }
 
         /// Function that returns the DataContext for the queries. If null _serviceProvider is used
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, GraphQLRequest request, ISchemaProvider schemaProvider, IRelationHandler relationHandler = null, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public static IDictionary<string, object> QueryObject<TType>(this TType context, GraphQLRequest request, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
@@ -41,7 +41,7 @@ namespace EntityQueryLanguage.GraphQL
 
             try
             {
-                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider, relationHandler).Compile(request);
+                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider).Compile(request);
                 foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
                 {
                     ExecuteNode(context, request, queryData, node);

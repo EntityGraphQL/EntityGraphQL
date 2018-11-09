@@ -11,12 +11,10 @@ namespace EntityQueryLanguage.GraphQL.Parsing
     {
         private ISchemaProvider _schemaProvider;
         private IMethodProvider _methodProvider;
-        private IRelationHandler _relationHandler;
-        public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider, IRelationHandler relationHandler = null)
+        public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
             _schemaProvider = schemaProvider;
             _methodProvider = methodProvider;
-            _relationHandler = relationHandler;
         }
 
         /// Parses a GraphQL-like query syntax into a tree respresenting the requested object graph. E.g.
@@ -50,7 +48,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             try
             {
                 var tree = parser.graphQL();
-                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, _relationHandler, request.Variables);
+                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, request.Variables);
                 // visit each node. it will return a linq expression for each entity requested
                 var node = visitor.Visit(tree);
                 return node;

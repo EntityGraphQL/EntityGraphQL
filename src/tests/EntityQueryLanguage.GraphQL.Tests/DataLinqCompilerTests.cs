@@ -341,29 +341,6 @@ namespace EntityQueryLanguage.GraphQL.Tests
             Assert.Equal("Error compiling field or query 'projects'. Field or property 'name3' not found on current context 'Project'", ex.Message);
         }
 
-        [Fact(Skip = "Not sure of the status")]
-        public void HandlesCustomRelationHandler()
-        {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<DbTestSchema>(), new DefaultMethodProvider(), new EfRelationHandler(typeof(EntityFrameworkQueryableExtensions))).Compile(@"
-{
-	people { id name User { field1 } }
-}");
-            // People.Include(p => p.User).Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
-            Assert.Equal(1, Enumerable.Count(result));
-            var person = Enumerable.ElementAt(result, 0);
-            // we only have the fields requested
-            Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
-            // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("User", person.GetType().GetFields()[2].Name);
-            var user = person.User;
-            Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Field1", user.GetType().GetFields()[0].Name);
-        }
-
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
