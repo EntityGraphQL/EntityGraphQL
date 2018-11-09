@@ -167,7 +167,7 @@ namespace EntityQueryLanguage.GraphQL.Tests
 {
 	people.id = 9 { id name }
 }"));
-            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 32", ex.Message);
+            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 34", ex.Message);
         }
 
         [Fact]

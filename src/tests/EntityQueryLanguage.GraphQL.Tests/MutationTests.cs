@@ -15,29 +15,20 @@ namespace EntityQueryLanguage.GraphQL.Tests
     public class MutationTests
     {
         [Fact]
-        public void SupportsMutation()
+        public void MissingRequiredVar()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new GraphQLRequest {
                 Query = @"mutation AddPerson($name: String!) {
-  addPerson(name: $name) {
-    id
-    name
-  }
+  addPerson(name: $name) { id name }
 }",
-                Variables = new QueryVariables{{"name", "Frank"}}
+                Variables = new QueryVariables{{"na", "Frank"}}
             };
-            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["data"];
-            addPersonResult = Enumerable.First(addPersonResult);
-            addPersonResult = addPersonResult.Value;
-            // we only have the fields requested
-            Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(555, addPersonResult.Id);
-            Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
-            Assert.Equal("Frank", addPersonResult.Name);
+            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["errors"];
+            var err = Enumerable.First(addPersonResult);
+            Assert.Equal("Missing required variable 'name' on query 'AddPerson'", err.Message);
         }
 
         [Fact]

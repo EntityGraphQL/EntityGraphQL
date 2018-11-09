@@ -252,6 +252,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         public override IGraphQLNode VisitDataQuery(EqlGrammerParser.DataQueryContext context)
         {
             var root = new GraphQLNode("root", null, null, null, null);
+            var operationName = GetOperationName(context.operationName());
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
@@ -266,7 +267,7 @@ namespace EntityQueryLanguage.GraphQL.Parsing
         {
             var root = new GraphQLNode("root", null, null, null, null);
 
-            var operationName = Visit(context.operationName());
+            var operationName = GetOperationName(context.operationName());
             foreach (var c in context.gqlBody().children)
             {
                 var mutation = Visit(c);
@@ -278,5 +279,16 @@ namespace EntityQueryLanguage.GraphQL.Parsing
             return root;
         }
 
+        public GraphQLOperation GetOperationName(EqlGrammerParser.OperationNameContext context)
+        {
+            if (context == null)
+            {
+                return new GraphQLOperation();
+            }
+            var visitor = new OperationVisitor(variables);
+            var op = visitor.Visit(context);
+
+            return op;
+        }
     }
 }

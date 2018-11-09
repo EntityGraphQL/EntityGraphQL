@@ -50,7 +50,7 @@ namespace EntityQueryLanguage.Schema
                 var foundProp = false;
                 foreach (var prop in argType.GetProperties())
                 {
-                    if (key == prop.Name)
+                    if (key.ToLower() == prop.Name.ToLower())
                     {
                         object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
                         prop.SetValue(argInstance, value);
@@ -61,7 +61,7 @@ namespace EntityQueryLanguage.Schema
                 {
                     foreach (var field in argType.GetFields())
                     {
-                        if (key == field.Name)
+                        if (key.ToLower() == field.Name.ToLower())
                         {
                             object value = GetValue(gqlRequestArgs, field, field.FieldType);
                             field.SetValue(argInstance, value);
