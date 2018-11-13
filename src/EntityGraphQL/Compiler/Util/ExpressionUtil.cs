@@ -4,10 +4,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Parsing;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.Util
 {
     public class ExpressionUtil
     {

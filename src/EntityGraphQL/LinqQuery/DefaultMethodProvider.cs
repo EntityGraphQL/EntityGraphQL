@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.LinqQuery
 {

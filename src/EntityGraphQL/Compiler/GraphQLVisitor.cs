@@ -6,11 +6,11 @@ using EntityGraphQL.Extensions;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
-using EntityGraphQL.Parsing;
 using EntityGraphQL;
 using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.Util;
 
-namespace EntityGraphQL.Parsing
+namespace EntityGraphQL.Compiler
 {
     /// <summary>
     /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
@@ -105,12 +105,12 @@ namespace EntityGraphQL.Parsing
                     // Could be a list.First() that we need to turn into a select, or
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
                     // Can we turn a list.First() into and list.Select().First()
-                    var listExp = Compiler.ExpressionUtil.FindIEnumerable(result.LambdaExpression.Body);
+                    var listExp = Compiler.Util.ExpressionUtil.FindIEnumerable(result.LambdaExpression.Body);
                     if (listExp.Item1 != null)
                     {
                         // yes we can
                         graphQLNode = BuildDynamicSelectOnCollection(new QueryResult((ExpressionResult)listExp.Item1, result.ContextParams, result.ConstantParameterValues), name, context, true);
-                        graphQLNode.NodeExpression = (ExpressionResult)Compiler.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
+                        graphQLNode.NodeExpression = (ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
                     }
                     else
                     {

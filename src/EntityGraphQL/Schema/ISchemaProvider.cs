@@ -5,12 +5,14 @@ using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
+    /// <summary>
     /// An interface that the EqlCompiler uses to help understand the types it is building against. This abstraction lets us
     /// have a simple provider that maps directly to an object as well as other complex providers that read a schema from else where
     /// and that can map them back to complex expressions. See ObjectSchemaProvider and MappedSchemaProvider for two examples.
     ///
     /// It works with type name's as strings because although we ultimately build expressions against actual c# types the provider
     /// might expose custom names for the underlying type.
+    /// </summary>
     public interface ISchemaProvider
     {
         /// The base context type that expression will be built from. For example your DbContext

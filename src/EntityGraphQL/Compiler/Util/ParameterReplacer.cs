@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.Util
 {
     /// <summary>
     /// As people build schema fields they are against a different parameter, this visitor lets us change it to the one used in compiling the EQL

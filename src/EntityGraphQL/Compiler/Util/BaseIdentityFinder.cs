@@ -1,6 +1,6 @@
 using EntityGraphQL.Grammer;
 
-namespace EntityGraphQL.Parsing
+namespace EntityGraphQL.Compiler.Util
 {
     internal class BaseIdentityFinder : EntityGraphQLBaseVisitor<string>
     {

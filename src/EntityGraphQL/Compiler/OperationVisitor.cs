@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using EntityGraphQL.Grammer;
 
-namespace EntityGraphQL.Parsing
+namespace EntityGraphQL.Compiler
 {
     internal class OperationVisitor : EntityGraphQLBaseVisitor<GraphQLOperation>
     {

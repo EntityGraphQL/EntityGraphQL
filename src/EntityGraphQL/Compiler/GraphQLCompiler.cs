@@ -7,7 +7,7 @@ using EntityGraphQL.Grammer;
 using EntityGraphQL.LinqQuery;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Parsing
+namespace EntityGraphQL.Compiler
 {
     public class GraphQLCompiler
     {

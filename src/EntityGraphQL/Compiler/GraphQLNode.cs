@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.Parsing
+namespace EntityGraphQL.Compiler
 {
     public interface IGraphQLNode
     {

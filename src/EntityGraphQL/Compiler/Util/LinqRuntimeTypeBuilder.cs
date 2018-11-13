@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 using System.Threading;
 using EntityGraphQL.Extensions;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.Util
 {
     /// <summary>
     /// Builds .NET types at runtime and caches them to be reused

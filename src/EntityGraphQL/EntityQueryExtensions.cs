@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using EntityGraphQL.Parsing;
 using System.Diagnostics;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
