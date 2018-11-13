@@ -1,5 +1,5 @@
 # Entity Query Language
-Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityQueryLanguage/tree/master)
+Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master)
 
 EQL is a data/object querying language for .NET Core (netstandard 1.6) that supports the GraphQL syntax.
 
@@ -17,7 +17,7 @@ It can also be used to execute simple LINQ-style expressions at runtime against 
 _Please explore, give feedback or join the development._
 
 ## Install
-Via Nuget https://www.nuget.org/packages/EntityQueryLanguage.GraphQL
+Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
 ## Getting up and running with EF
 
@@ -334,8 +334,6 @@ var eql = "if location.name = 'Mars' then (cost + 5) * type.premium else (cost *
 var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
-
-If you want this functionalilty and not GraphQL support you can install the base package https://www.nuget.org/packages/EntityQueryLanguage
 
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.

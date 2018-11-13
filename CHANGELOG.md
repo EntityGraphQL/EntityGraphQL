@@ -1,3 +1,6 @@
+# 0.11.0
+- Renamed package EntityGraphQL to emphasizes that it implements GraphQL
+
 # 0.10.1
 - Fix issue with arrays and objects in variables parameter on the request
 - Better error messages when GraphQL arguments can't be mapped to an object
