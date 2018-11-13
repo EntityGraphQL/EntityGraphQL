@@ -1,16 +1,7 @@
-# Entity Query Language
+# Entity GraphQL
 Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master)
 
-EQL is a data/object querying language for .NET Core (netstandard 1.6) that supports the GraphQL syntax.
-
-This library in still in development, although it is already a very powerful tool for working with data.
-
-EQL allows you to
-- Query your data with the GraphQL syntax
-- Easily expose an object graph, e.g. your DbContext
-- Programatically build a schema that maps to an object graph (e.g. DbContext), selectively exposing fields
-- Create custom fields
-- Supports GraphQL mutations
+Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to query your data using the GraphQL syntax.
 
 It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
 
@@ -21,7 +12,7 @@ Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
 ## Getting up and running with EF
 
-_Note: There is no hard dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF is tested._
+_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF is tested._
 
 ### 1. Define your DB context
 
@@ -189,38 +180,13 @@ Will return the following result.
 }
 ```
 
-As mentioned, EQL compiles to .NET LINQ expressions (`IQueryable` extension methods - `Where()` and friends) so you could use this with any ORMs/LinqProviders/in memory objects or libraries but currently I test against EntityFramework Core 2.1.
-
 ## Supported GraphQL features
-- Fields - the core part, select the fields you want returned, including selecting the fields of sub-objects in the object graph
+- Fields - the core part, select the fields you want, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
-  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` field so you can query `{ person(id: 1234) { name phone email } }` to select a single person
+  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` graphql field so you can query `{ person(id: 1234) { name email } }` to select a single person
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
-
-## Supported LINQ methods (non-GraphQL compatible)
-**On top of** GraphQL syntax, any list/array supports some of the standard .NET LINQ methods.
-- `array.where(filter)`
-- `array.filter(filter)`
-- `array.first(filter?)`
-- `array.last(filter?)`
-- `array.count(filter?)`
-  - `filter` is an expression that can be `true` or `false`, written from the context of the array item
-- `array.take(int)`
-- `array.skip(int)`
-- `array.orderBy(field)`
-- `array.orderByDesc(field)`
-
-e.g.
-```
-query {
-  cheap2BedPlaces: peroperties.where(price < 100000 && bedrooms >= 2).orderby(age) {
-    location { name }
-    price
-  }
-}
-```
 
 ## Customizing the schema
 
@@ -297,7 +263,7 @@ mutation AddProperty($name: String!, $cost: Float!) {
 ```
 
 With variables
-```
+```json
 {
   "name": "beach pad",
   "cost": 1000000.3
@@ -335,10 +301,32 @@ var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
 
+## Supported LINQ methods (non-GraphQL compatible)
+**On top of** GraphQL syntax, any list/array supports some of the standard .NET LINQ methods.
+- `array.where(filter)`
+- `array.filter(filter)`
+- `array.first(filter?)`
+- `array.last(filter?)`
+- `array.count(filter?)`
+  - `filter` is an expression that can be `true` or `false`, written from the context of the array item
+- `array.take(int)`
+- `array.skip(int)`
+- `array.orderBy(field)`
+- `array.orderByDesc(field)`
+
+e.g.
+```
+query {
+  cheap2BedPlaces: peroperties.where(price < 100000 && bedrooms >= 2).orderby(age) {
+    location { name }
+    price
+  }
+}
+```
+
 # TODO
 Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
 
-- Implement more of the GraphQL query spec (See issues)
 - fix GetMethodContext() in methodProvider
 - Add logging options
 - Auto generate schema documentation page
