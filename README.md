@@ -205,7 +205,7 @@ var type = schema.AddType<Person>("peopleOnMars", "All people on mars", person =
 type.AddPublicProperties(); // add the C# properties
 // or select the fields
 type.AddField(p => p.Id, "The unique identifier");
-// Add fields with _required_ arguments
+// Add fields with _required_ arguments - include `using static EntityGraphQL.Schema.ArgumentHelper;`
 schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
 
 // Here the type schema of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety

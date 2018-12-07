@@ -18,17 +18,17 @@ namespace EntityGraphQL.Tests
         public void CachesPublicProperties()
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "id"));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "Field1"));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "relation"));
-            Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere"));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "Field1", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0]));
+            Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", new string[0]));
         }
         [Fact]
         public void CachesPublicFields()
         {
             var schema = SchemaBuilder.FromObject<Person>();
-            Assert.True(schema.TypeHasField(typeof(Person), "id"));
-            Assert.True(schema.TypeHasField(typeof(Person), "name"));
+            Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
         }
         [Fact]
         public void ReturnsActualName()
@@ -41,17 +41,17 @@ namespace EntityGraphQL.Tests
         public void CachesRecursively()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation"));
-            Assert.True(schema.TypeHasField(typeof(Person), "name"));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1"));
+            Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0]));
         }
         [Fact]
         public void AllowsExtending()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().AddField("idAndName", p => p.Id + " " + p.Name, "The Id and Name");
-            Assert.True(schema.TypeHasField(typeof(Person), "name"));
-            Assert.True(schema.TypeHasField(typeof(Person), "idAndName"));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(Person), "idAndName", new string[0]));
         }
         [Fact]
         public void CanNotOverrideExistingType()
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Tests
         public void AutoAddArgumentForId()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            var argumentTypes = schema.Type<TestSchema>().GetField("person").ArgumentTypes.GetType();
+            var argumentTypes = schema.Type<TestSchema>().GetField("person", "id").ArgumentTypes.GetType();
             Assert.Single(argumentTypes.GetFields());
             var prop = argumentTypes.GetFields()[0];
             Assert.Equal("id", prop.Name);
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Tests
         public void AutoAddArgumentForIdGuid()
         {
             var schema = SchemaBuilder.FromObject<TestSchema2>();
-            var argumentTypes = schema.Type<TestSchema2>().GetField("property").ArgumentTypes.GetType();
+            var argumentTypes = schema.Type<TestSchema2>().GetField("property", "id").ArgumentTypes.GetType();
             Assert.Single(argumentTypes.GetFields());
             var prop = argumentTypes.GetFields()[0];
             Assert.Equal("id", prop.Name);

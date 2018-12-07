@@ -181,8 +181,10 @@ namespace EntityGraphQL.Compiler
                 selectWasNull = true;
             }
 
-            if (schemaProvider.TypeHasField(selectContext.Type.Name, name))
+            if (schemaProvider.TypeHasField(selectContext.Type.Name, name, new string[0]))
+            {
                 name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
+            }
 
             try
             {

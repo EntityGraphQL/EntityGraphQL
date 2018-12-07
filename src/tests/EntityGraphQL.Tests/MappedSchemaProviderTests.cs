@@ -15,20 +15,20 @@ namespace EntityGraphQL.Tests
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("location", "id"));
-            Assert.True(provider.TypeHasField("location", "address"));
-            Assert.True(provider.TypeHasField("location", "state"));
-            Assert.True(provider.TypeHasField("location", "Country"));
-            Assert.True(provider.TypeHasField("location", "planet"));
+            Assert.True(provider.TypeHasField("location", "id", new string[0]));
+            Assert.True(provider.TypeHasField("location", "address", new string[0]));
+            Assert.True(provider.TypeHasField("location", "state", new string[0]));
+            Assert.True(provider.TypeHasField("location", "Country", new string[0]));
+            Assert.True(provider.TypeHasField("location", "planet", new string[0]));
         }
         [Fact]
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("opentask", "id"));
-            Assert.True(provider.TypeHasField("opentask", "assignee"));
+            Assert.True(provider.TypeHasField("opentask", "id", new string[0]));
+            Assert.True(provider.TypeHasField("opentask", "assignee", new string[0]));
             // Not exposed in our schema
-            Assert.False(provider.TypeHasField("opentask", "IsActive"));
+            Assert.False(provider.TypeHasField("opentask", "IsActive", new string[0]));
         }
         [Fact]
         public void ReturnsActualName()

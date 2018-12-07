@@ -18,8 +18,8 @@ namespace EntityGraphQL.Schema
         /// The base context type that expression will be built from. For example your DbContext
         Type ContextType { get; }
         /// Checks if the given type has the given field identifier
-        bool TypeHasField(string typeName, string identifier);
-        bool TypeHasField(Type type, string identifier);
+        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs);
+        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs);
 
         bool HasType(string typeName);
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
@@ -35,7 +35,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string field, Dictionary<string, ExpressionResult> args);
         string GetSchemaTypeNameForRealType(Type type);
-        IMethodType GetMethodType(Expression context, string field);
+        IMethodType GetFieldType(Expression context, string field, IEnumerable<string> fieldArgs);
         bool HasMutation(string method);
     }
 }

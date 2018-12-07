@@ -46,6 +46,25 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportsSameFieldDifferentArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+            // Add same field with a different parameter
+            schemaProvider.AddField("user", new {name = Required<string>()}, (ctx, param) => ctx.Users.Where(u => u.Field2 == param.name).FirstOrDefault(), "Return a user by name");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+	user(name: '2') { id }
+}");
+            // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
+            Assert.Single(tree.Fields);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(1, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.Id);
+        }
+
+        [Fact]
         public void ThrowsOnMissingRequiredArgument()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
@@ -54,7 +73,19 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Error compiling field or query 'user'. Missing required argument 'id' for field 'user'", ex.Message);
+            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument(s) 'id'", ex.Message);
+        }
+
+        [Fact]
+        public void ThrowsOnMissingRequiredArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            // Add a argument field with a require parameter
+            schemaProvider.AddField("user", new {id = Required<int>(), h = Required<string>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                user { id }
+            }"));
+            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument(s) 'id, h'", ex.Message);
         }
 
         [Fact]
@@ -91,8 +122,8 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("height", person.GetType().GetFields()[1].Name);
-            Assert.Equal(183.0, person.height);
+            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
+            Assert.Equal(183.0, person.Height);
         }
 
         [Fact]
@@ -109,7 +140,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.First(result);
             // we only have the fields requested
-            Assert.Equal(1.83, person.height);
+            Assert.Equal(1.83, person.Height);
         }
 
         [Fact]
@@ -167,7 +198,7 @@ namespace EntityGraphQL.Tests
         {
             public string Hello { get { return "returned value"; } }
             public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
-            public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1) }; } }
+            public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1, "2") }; } }
             public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
         }
 
@@ -178,18 +209,17 @@ namespace EntityGraphQL.Tests
             Feet
         }
 
-
         private class User
         {
-
-            public User(int id)
+            public User(int id, string v = "1")
             {
                 this.Id = id;
+                this.Field2 = v;
             }
 
             public int Id { get; private set; }
             public int Field1 { get { return 2; } }
-            public string Field2 { get { return "2"; } }
+            public string Field2 { get; private set; }
             public Person Relation { get { return new Person(); } }
             public Task NestedRelation { get { return new Task(); } }
         }

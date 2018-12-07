@@ -14,14 +14,16 @@ namespace EntityGraphQL.Schema
         Type ContextType { get; }
         string Name { get; }
 
-        Field GetField(string identifier);
+        Field GetField(string identifier, params string[] arguments);
         IEnumerable<Field> GetFields();
-        bool HasField(string identifier);
+        bool HasField(string identifier, params string[] arguments);
         void AddFields(List<Field> fields);
         void AddField(Field field);
+        bool HasFieldByNameOnly(string identifier);
+        IEnumerable<Field> GetFieldsByNameOnly(string identifier);
     }
 
-    public class MutationType : ISchemaType, IMethodType
+    public class MutationType : IMethodType
     {
         private readonly ISchemaType returnType;
         private readonly object mutationClassInstance;
@@ -36,11 +38,6 @@ namespace EntityGraphQL.Schema
             allArgs.Add(argInstance);
             var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
             return result;
-        }
-
-        private static List<T> ConvertArray<T>(Array input)
-        {
-            return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
         private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
@@ -75,6 +72,17 @@ namespace EntityGraphQL.Schema
                     throw new EntityQuerySchemaError($"Could not find property or field {key} on in schema object {argType.Name}");
                 }
             }
+        }
+
+        /// <summary>
+        /// Used at runtime below
+        /// </summary>
+        /// <param name="input"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        private static List<T> ConvertArray<T>(Array input)
+        {
+            return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
         private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, MemberInfo member, Type memberType)
@@ -128,9 +136,9 @@ namespace EntityGraphQL.Schema
             throw new NotImplementedException();
         }
 
-        public Field GetField(string identifier)
+        public Field GetField(string identifier, params string[] arguments)
         {
-            return ReturnType.GetField(identifier);
+            return ReturnType.GetField(identifier, arguments);
         }
 
         public IEnumerable<Field> GetFields()
@@ -138,9 +146,9 @@ namespace EntityGraphQL.Schema
             return ReturnType.GetFields();
         }
 
-        public bool HasField(string identifier)
+        public bool HasField(string identifier, params string[] arguments)
         {
-            return ReturnType.HasField(identifier);
+            return ReturnType.HasField(identifier, arguments);
         }
 
         public Type GetArgumentType(string argName)
@@ -154,7 +162,8 @@ namespace EntityGraphQL.Schema
         public Type ContextType { get; protected set; }
         public string Name { get; protected set; }
         private string _description;
-        private Dictionary<string, Field> _fields = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, Field> _fieldsByKey = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, List<Field>> _fieldsByName = new Dictionary<string, List<Field>>(StringComparer.OrdinalIgnoreCase);
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
         public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null)
@@ -166,6 +175,9 @@ namespace EntityGraphQL.Schema
             AddField("__typename", t => name, "Type name");
         }
 
+        /// <summary>
+        /// Add all public Properties and Fields from the base type
+        /// </summary>
         public void AddAllFields()
         {
             BuildFieldsFromBase(typeof(TBaseType));
@@ -184,21 +196,18 @@ namespace EntityGraphQL.Schema
         }
         public void AddField(Field field)
         {
-            if (_fields.ContainsKey(field.Name))
-                throw new EntityQuerySchemaError($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+            if (_fieldsByKey.ContainsKey(field.Key))
+                throw new EntityQuerySchemaError($"Field {field.Name} already exists on type {this.Name} with the same argument names. Use ReplaceField() if this is intended.");
 
-            _fields.Add(field.Name, field);
+            _fieldsByKey.Add(field.Key, field);
+            if (!_fieldsByName.ContainsKey(field.Name))
+                _fieldsByName.Add(field.Name, new List<Field>());
+            _fieldsByName[field.Name].Add(field);
         }
         public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             var field = new Field(name, fieldSelection, description, returnSchemaType);
             this.AddField(field);
-        }
-
-        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
-        {
-            var field = new Field(name, fieldSelection, description, returnSchemaType);
-            _fields[field.Name] = field;
         }
 
         /// <summary>
@@ -218,49 +227,114 @@ namespace EntityGraphQL.Schema
             this.AddField(field);
         }
 
+        /// <summary>
+        /// Replaces a field by Name and Argument Names (that is the key)
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="argTypes"></param>
+        /// <param name="selectionExpression"></param>
+        /// <param name="description"></param>
+        /// <param name="returnSchemaType"></param>
+        /// <typeparam name="TParams"></typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <returns></returns>
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
-            _fields[field.Name] = field;
+            var oldField = _fieldsByKey.ContainsKey(field.Key) ? _fieldsByKey[field.Key] : null;
+            _fieldsByKey[field.Key] = field;
+            if (oldField != null && _fieldsByName.ContainsKey(field.Name))
+            {
+                _fieldsByName[field.Name].Remove(oldField);
+            }
+        }
+
+        /// <summary>
+        /// Checks for a field by name only. There could be multiple fields with the same name but different arguments (overloads)
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        public bool HasFieldByNameOnly(string identifier)
+        {
+            return _fieldsByName.ContainsKey(identifier);
+        }
+
+        public IEnumerable<Field> GetFieldsByNameOnly(string identifier)
+        {
+            return _fieldsByName[identifier];
         }
 
         private void BuildFieldsFromBase(Type contextType)
         {
             foreach (var f in ContextType.GetProperties())
             {
-                if (!_fields.ContainsKey(f.Name))
+                if (!_fieldsByKey.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, string.Empty));
                 }
             }
             foreach (var f in ContextType.GetFields())
             {
-                if (!_fields.ContainsKey(f.Name))
+                if (!_fieldsByKey.ContainsKey(f.Name))
                 {
                     var parameter = Expression.Parameter(ContextType);
-                    _fields.Add(f.Name, new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, string.Empty));
                 }
             }
         }
 
-        public Field GetField(string identifier)
+        public Field GetField(string identifier, params string[] arguments)
         {
-            return _fields[identifier];
-        }
-        public IEnumerable<Field> GetFields()
-        {
-            return _fields.Values;
-        }
-        public bool HasField(string identifier)
-        {
-            return _fields.ContainsKey(identifier);
+            var key = Field.MakeFieldKey(identifier, arguments);
+            if (_fieldsByKey.ContainsKey(key))
+                return _fieldsByKey[key];
+            // they could be looking for a field that has default argument values
+            if (_fieldsByName.ContainsKey(identifier))
+            {
+                var probableFields = _fieldsByName[identifier].Where(f => f.RequiredArgumentNames.All(r => arguments.Contains(r)));
+                if (probableFields.Count() > 1)
+                {
+                    throw new EntityGraphQLCompilerException($"Field {identifier}({string.Join(", ", arguments)}) is ambiguous, please provide more arguments. Possible fields {ListFields(identifier)}");
+                }
+                return probableFields.First();
+            }
+            throw new EntityGraphQLCompilerException($"Field {identifier}({string.Join(", ", arguments)}) not found");
         }
 
-        public void RemoveField(string name)
+        private string ListFields(string identifier)
         {
-            if (_fields.ContainsKey(name))
-                _fields.Remove(name);
+            var fields = _fieldsByName[identifier].Select(f => f.Name + "(" + string.Join(", ", f.ArgumentNames) + ")");
+            return string.Join(", ", fields);
+        }
+
+        public IEnumerable<Field> GetFields()
+        {
+            return _fieldsByKey.Values;
+        }
+        /// <summary>
+        /// Checks if type has a field with the given name and the given arguments
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        public bool HasField(string identifier, params string[] arguments)
+        {
+            var key = Field.MakeFieldKey(identifier, arguments);
+            return _fieldsByKey.ContainsKey(key);
+        }
+
+        public void RemoveField(string name, params string[] arguments)
+        {
+            var key = Field.MakeFieldKey(name, arguments);
+            if (_fieldsByKey.ContainsKey(key))
+            {
+                var oldField = _fieldsByKey[key];
+                _fieldsByKey.Remove(key);
+                if (_fieldsByName.ContainsKey(name))
+                {
+                    _fieldsByName[name].Remove(oldField);
+                }
+            }
         }
         public void RemoveField(Expression<Func<TBaseType, object>> fieldSelection)
         {

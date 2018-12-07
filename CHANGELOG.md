@@ -1,3 +1,6 @@
+# 0.12.0
+- Support field "overloads" - fields with same name and different arguments.
+
 # 0.11.0
 - Renamed package EntityGraphQL to emphasizes that it implements GraphQL
 

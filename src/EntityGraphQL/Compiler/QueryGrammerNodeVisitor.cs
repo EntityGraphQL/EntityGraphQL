@@ -112,19 +112,20 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitGqlcall(EntityGraphQLParser.GqlcallContext context)
         {
-            var method = context.method.GetText();
-            IMethodType methodType = schemaProvider.GetMethodType(currentContext, method);
-            var args = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>().ToDictionary(a => a.gqlfield.GetText().ToLower(), a => {
+            var fieldName = context.method.GetText();
+            var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
+            IMethodType methodType = schemaProvider.GetFieldType(currentContext, fieldName, argList.Select(a => a.gqlfield.GetText().ToLower()));
+            var args = argList.ToDictionary(a => a.gqlfield.GetText(), a => {
                 fieldArgumentContext = methodType;
                 var r = VisitGqlarg(a);
                 fieldArgumentContext = null;
                 return r;
             }, StringComparer.OrdinalIgnoreCase);
-            if (schemaProvider.HasMutation(method))
+            if (schemaProvider.HasMutation(fieldName))
             {
-                return MakeMutationExpression(method, (MutationType)methodType, args);
+                return MakeMutationExpression(fieldName, (MutationType)methodType, args);
             }
-            return MakeFieldExpression(method, args);
+            return MakeFieldExpression(fieldName, args);
         }
 
         public override ExpressionResult VisitGqlarg(EntityGraphQLParser.GqlargContext context)
@@ -156,11 +157,9 @@ namespace EntityGraphQL.Compiler
 
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
-            // check that the schema has the property for the context
-            // TODO - need to get the mapped name for the type to check for fields to support mapped schema too
-            if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field))
+            if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field, args != null ? args.Select(d => d.Key) : new string[0]))
             {
-                throw new EntityGraphQLCompilerException($"Field or property '{field}' not found on current context '{currentContext.Type.Name}'");
+                throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{currentContext.Type.Name}'");
             }
             var exp = schemaProvider.GetExpressionForField(currentContext, currentContext.Type.Name, field, args);
             return exp;

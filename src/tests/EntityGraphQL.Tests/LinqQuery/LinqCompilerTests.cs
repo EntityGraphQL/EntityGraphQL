@@ -50,7 +50,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void FailsIdentityNotThere()
         {
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>()));
-            Assert.Equal("Field or property 'wrongField' not found on current context 'TestSchema'", ex.Message);
+            Assert.Equal("Field 'wrongField' not found on current context 'TestSchema'", ex.Message);
         }
         [Fact]
         public void CompilesIdentityCallFullPath()

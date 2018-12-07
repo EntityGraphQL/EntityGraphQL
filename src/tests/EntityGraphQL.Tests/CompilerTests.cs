@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests
 {
 	people { id }
 }");});
-            Assert.Equal("Error compiling field or query 'people'. Field or property 'id' not found on current context 'Person'", ex.Message);
+            Assert.Equal("Error compiling query 'people'. Field 'id' not found on current context 'Person'", ex.Message);
         }
 
         [Fact]
@@ -325,7 +325,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'blahs'. Field or property 'blahs' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Error compiling query 'blahs'. Field 'blahs' not found on current context 'Project'", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -338,7 +338,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error compiling field or query 'projects'. Field or property 'name3' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Error compiling query 'projects'. Field 'name3' not found on current context 'Project'", ex.Message);
         }
 
         private class TestSchema

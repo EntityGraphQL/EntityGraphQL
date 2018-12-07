@@ -18,7 +18,7 @@ namespace EntityGraphQL.Schema
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
         protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
-        protected Dictionary<string, ISchemaType> _mutations = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
+        protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>(StringComparer.OrdinalIgnoreCase);
         private readonly string _queryContextName;
 
         public MappedSchemaProvider()
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Adds a new type into the schema. The name defaults to the TBaseType nmae
+        /// Adds a new type into the schema. The name defaults to the TBaseType name
         /// </summary>
         /// <param name="description"></param>
         /// <param name="filter"></param>
@@ -148,13 +148,41 @@ namespace EntityGraphQL.Schema
         }
         // ISchemaProvider interface
         public Type ContextType { get { return _types[_queryContextName].ContextType; } }
-        public bool TypeHasField(string typeName, string identifier)
+        public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs)
         {
-            return _types.ContainsKey(typeName) && _types[typeName].HasField(identifier);
+            if (!_types.ContainsKey(typeName))
+                return false;
+            var t = _types[typeName];
+            if (!t.HasField(identifier, fieldArgs.ToArray()))
+            {
+                if ((fieldArgs == null || !fieldArgs.Any()) && t.HasFieldByNameOnly(identifier))
+                {
+                    IEnumerable<Field> fields = t.GetFieldsByNameOnly(identifier);
+                    if (fields.Count() == 1)
+                    {
+                        // if there are defaults for all, continue
+                        if (fields.First().RequiredArgumentNames.Count() > 0)
+                        {
+                            throw new EntityGraphQLCompilerException($"Field '{identifier}' missing required argument(s) '{string.Join(", ", fields.First().RequiredArgumentNames)}'");
+                        }
+                        return true;
+                    }
+                    else if (fields.Count() == 0)
+                    {
+                        throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on current context '{typeName}'");
+                    }
+                    else
+                    {
+                        throw new EntityGraphQLCompilerException($"Field '{identifier}' is ambiguous. Please provide arguments. Available: '{string.Join(", ", fields.Select(f => f.Name + "(" + string.Join(", ", f.ArgumentNames)) + ")")}'");
+                    }
+                }
+                return false;
+            }
+            return true;
         }
-		public bool TypeHasField(Type type, string identifier)
+		public bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs)
         {
-            return TypeHasField(type.Name, identifier);
+            return TypeHasField(type.Name, identifier, fieldArgs);
         }
         public string GetActualFieldName(string typeName, string identifier)
         {
@@ -165,7 +193,7 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"Field {identifier} not found on any type");
         }
 
-        public IMethodType GetMethodType(Expression context, string fieldName)
+        public IMethodType GetFieldType(Expression context, string fieldName, IEnumerable<string> fieldArgs)
         {
             if (_mutations.ContainsKey(fieldName))
             {
@@ -174,7 +202,7 @@ namespace EntityGraphQL.Schema
             }
             if (_types.ContainsKey(context.Type.Name))
             {
-                var field = _types[context.Type.Name].GetField(fieldName);
+                var field = _types[context.Type.Name].GetField(fieldName, fieldArgs.ToArray());
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
@@ -184,7 +212,8 @@ namespace EntityGraphQL.Schema
         {
             if (!_types.ContainsKey(typeName))
                 throw new EntityQuerySchemaError($"{typeName} not found in schema.");
-            var field = _types[typeName].GetField(fieldName);
+
+            var field = _types[typeName].GetField(fieldName, args != null ? args.Select(f => f.Key).ToArray() : new string[0]);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
 
             if (field.ArgumentTypes != null)
@@ -193,7 +222,7 @@ namespace EntityGraphQL.Schema
                 // get the values for the argument anonymous type object constructor
                 var propVals = new Dictionary<PropertyInfo, object>();
                 var fieldVals = new Dictionary<FieldInfo, object>();
-                // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the
+                // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
                 foreach (var argField in argType.GetProperties())
                 {
                     var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypes));
@@ -254,7 +283,7 @@ namespace EntityGraphQL.Schema
             {
                 if (args == null || !args.ContainsKey(argName))
                 {
-                    throw new EntityGraphQLCompilerException($"Missing required argument '{argName}' for field '{field.Name}'");
+                    throw new EntityGraphQLCompilerException($"Error compiling query. Field '{argName}' missing required argument '{field.Name}'");
                 }
                 var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
                 // explicitly cast the value to the RequiredField<> type
