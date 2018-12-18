@@ -1,3 +1,6 @@
+# 0.12.1
+- Fix bug converting Int values to double? values
+
 # 0.12.0
 - Support field "overloads" - fields with same name and different arguments.
 

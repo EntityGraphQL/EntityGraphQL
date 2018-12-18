@@ -53,11 +53,11 @@ namespace EntityGraphQL.Compiler.Util
                 if (type == typeof(uint) || type == typeof(Nullable<uint>))
                     return uint.Parse((string)value);
             }
-            var nonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
-            var nonNullObjType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
-            if (nonNullType != nonNullObjType)
+            var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
+            var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
+            if (argumentNonNullType != valueNonNullType)
             {
-                var newVal = Convert.ChangeType(value, type);
+                var newVal = Convert.ChangeType(value, argumentNonNullType);
                 return newVal;
             }
             return value;
