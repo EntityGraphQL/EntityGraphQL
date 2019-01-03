@@ -226,10 +226,21 @@ namespace EntityGraphQL.Schema
                 foreach (var argField in argType.GetProperties())
                 {
                     var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypes));
-                    propVals.Add(argField, val);
+                    // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
+                    if (argField.PropertyType.IsConstructedGenericType && argField.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    {
+                        var queryVal = argField.GetValue(field.ArgumentTypes);
+                        var genericProp = queryVal.GetType().GetProperty("Query");
+                        genericProp.SetValue(queryVal, ((dynamic)val).Expression);
+                        propVals.Add(argField, queryVal);
+                    }
+                    else
+                    {
+                        propVals.Add(argField, val);
+                    }
                 }
                 // The auto argument is built at runtime from LinqRuntimeTypeBuilder which just makes public fields
-                // they could also use a custom class
+                // they could also use a custom class, so we need to look for both fields and properties
                 foreach (var argField in argType.GetFields())
                 {
                     var val = BuildArgumentFromMember(args, field, argField.Name, argField.FieldType, argField.GetValue(field.ArgumentTypes));
@@ -289,6 +300,10 @@ namespace EntityGraphQL.Schema
                 // explicitly cast the value to the RequiredField<> type
                 var typedVal = Activator.CreateInstance(memberType, item);
                 return typedVal;
+            }
+            else if (defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                return args[argName];
             }
             else if (args != null && args.ContainsKey(argName))
             {

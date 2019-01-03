@@ -60,7 +60,9 @@ namespace EntityGraphQL.Compiler
         {
             var allArgs = new List<object>(args);
             if (ConstantParameterValues != null)
+            {
                 allArgs.AddRange(ConstantParameterValues);
+            }
 
             return Expression.Lambda(NodeExpression, Parameters.ToArray()).Compile().DynamicInvoke(allArgs.ToArray());
         }

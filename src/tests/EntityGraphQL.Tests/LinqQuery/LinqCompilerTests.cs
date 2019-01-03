@@ -34,10 +34,31 @@ namespace EntityGraphQL.LinqQuery.Tests
         }
 
         [Fact]
+        public void CompilesNullConstant()
+        {
+            var exp = EqlCompiler.Compile("null");
+            Assert.Null(exp.Execute());
+        }
+
+        [Fact]
+        public void CompilesEmptyConstant()
+        {
+            var exp = EqlCompiler.Compile("empty");
+            Assert.Null(exp.Execute());
+        }
+
+        [Fact]
         public void CompilesStringConstant()
         {
-            var exp = EqlCompiler.Compile("'Hello there_987-%#&	;;s'");
+            var exp = EqlCompiler.Compile("\"Hello there_987-%#&	;;s\"");
             Assert.Equal("Hello there_987-%#&	;;s", exp.Execute());
+        }
+
+        [Fact]
+        public void CompilesStringConstant2()
+        {
+            var exp = EqlCompiler.Compile("\"\"Hello\" there\"");
+            Assert.Equal("\"Hello\" there", exp.Execute());
         }
 
         [Fact]
@@ -91,7 +112,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void FailsIfThenElseInlineNoBrackets()
         {
             // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? 'wooh' : 66", SchemaBuilder.FromObject<TestSchema>()));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("someRelation.relation.id = 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>()));
             Assert.Equal("Expected boolean value in conditional test but found '99'", ex.Message);
         }
 
@@ -138,7 +159,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CanUseCompiledExpressionInWhereMethod()
         {
-            var exp = EqlCompiler.Compile("name = 'Bob", SchemaBuilder.FromObject<TestEntity>());
+            var exp = EqlCompiler.Compile("name = \"Bob\"", SchemaBuilder.FromObject<TestEntity>());
             var objects = new List<TestEntity> { new TestEntity { Name = "Sally" }, new TestEntity { Name = "Bob" } };
             Assert.Equal(2, objects.Count);
             var results = objects.Where(exp.LambdaExpression);

@@ -14,7 +14,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void TestConversionToGuid()
         {
-            var exp = EqlCompiler.Compile("people.where(guid = '6492f5fe-0869-4279-88df-7f82f8e87a67')", new TestObjectGraphSchema());
+            var exp = EqlCompiler.Compile("people.where(guid = \"6492f5fe-0869-4279-88df-7f82f8e87a67\")", new TestObjectGraphSchema());
             dynamic result = exp.Execute(GetDataContext());
             Assert.Equal(1, Enumerable.Count(result));
         }
@@ -45,13 +45,13 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesIfThenElseInlineFalseBrackets()
         {
-            var exp = EqlCompiler.Compile("(publicProjects.Count(id = 90) = 1) ? 'Yes' : 'No'", new TestObjectGraphSchema());
+            var exp = EqlCompiler.Compile("(publicProjects.Count(id = 90) = 1) ? \"Yes\" : \"No\"", new TestObjectGraphSchema());
             Assert.Equal("Yes", exp.Execute(GetDataContext()));
         }
         [Fact]
         public void CompilesIfThenElseTrue()
         {
-            var exp = EqlCompiler.Compile("if publicProjects.Count() > 1 then 'Yes' else 'No'", new TestObjectGraphSchema());
+            var exp = EqlCompiler.Compile("if publicProjects.Count() > 1 then \"Yes\" else \"No\"", new TestObjectGraphSchema());
             Assert.Equal("No", exp.Execute(GetDataContext()));
         }
 

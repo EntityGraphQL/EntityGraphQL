@@ -151,8 +151,17 @@ namespace EntityGraphQL.Schema
             return ReturnType.HasField(identifier, arguments);
         }
 
+        public bool HasArgumentType(string argName)
+        {
+            return argumentTypes.ContainsKey(argName);
+        }
+
         public Type GetArgumentType(string argName)
         {
+            if (!argumentTypes.ContainsKey(argName))
+            {
+                throw new EntityQuerySchemaError($"Argument type not found for argument '{argName}'");
+            }
             return argumentTypes[argName];
         }
     }

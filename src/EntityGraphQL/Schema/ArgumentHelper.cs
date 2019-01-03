@@ -1,4 +1,6 @@
 using System;
+using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
@@ -11,6 +13,11 @@ namespace EntityGraphQL.Schema
         public static RequiredField<TType> Required<TType>()
         {
             return new RequiredField<TType>();
+        }
+
+        public static EntityQueryType<TType> EntityQuery<TType>()
+        {
+            return new EntityQueryType<TType>();
         }
     }
 
@@ -49,5 +56,28 @@ namespace EntityGraphQL.Schema
         {
             return Value.ToString();
         }
+    }
+
+    public class EntityQueryType<TType> : BaseEntityQueryType
+    {
+        /// <summary>
+        /// The compiler will end up setting this to the compiled lambda that can be used in LINQ functions
+        /// </summary>
+        /// <value></value>
+        public Expression<Func<TType, bool>> Query { get; set; }
+        public EntityQueryType()
+        {
+            this.QueryType = typeof(TType);
+        }
+
+        public static implicit operator Expression<Func<TType, bool>>(EntityQueryType<TType> q)
+        {
+            return q.Query;
+        }
+    }
+
+    public class BaseEntityQueryType
+    {
+        public Type QueryType { get; protected set; }
     }
 }

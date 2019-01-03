@@ -135,17 +135,33 @@ namespace EntityGraphQL.Compiler
                 string varKey = context.gqlVar().GetText().TrimStart('$');
                 object value = variables.GetValueFor(varKey);
                 var exp = (ExpressionResult)Expression.Constant(value);
-                if (value != null && value.GetType() == typeof(string) && guidRegex.IsMatch((string)value))
-                    exp = ConvertToGuid(exp);
+                if (value != null && value.GetType() == typeof(string))
+                {
+                    if (guidRegex.IsMatch((string)value))
+                    {
+                        exp = ConvertToGuid(exp);
+                    }
+                    if (fieldArgumentContext.HasArgumentType(context.gqlfield.GetText()) && fieldArgumentContext.GetArgumentType(context.gqlfield.GetText()).IsConstructedGenericType && fieldArgumentContext.GetArgumentType(context.gqlfield.GetText()).GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    {
+                        return BuildEntityQueryExpression((string)value);
+                    }
+                }
                 return exp;
             }
-            var enumName = context.gqlvalue.GetText();
+
             var argType = fieldArgumentContext.GetArgumentType(context.gqlfield.GetText());
-            if (!argType.GetTypeInfo().IsEnum)
+            if (argType.IsConstructedGenericType && argType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                string query = context.gqlvalue.GetText().Substring(1, context.gqlvalue.GetText().Length - 2);
+                return BuildEntityQueryExpression(query);
+            }
+            else if (!argType.GetTypeInfo().IsEnum)
             {
                 // could be a constant or some other compilable expression
                 return Visit(context.gqlvalue);
             }
+
+            var enumName = context.gqlvalue.GetText();
             var valueIndex = Enum.GetNames(argType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
             if (valueIndex == -1)
             {
@@ -153,6 +169,16 @@ namespace EntityGraphQL.Compiler
             }
             var enumValue = Enum.GetValues(argType).GetValue(valueIndex);
             return (ExpressionResult)Expression.Constant(enumValue);
+        }
+
+        private ExpressionResult BuildEntityQueryExpression(string query)
+        {
+            var prop = ((Schema.Field)fieldArgumentContext).ArgumentTypes.GetType().GetProperties().FirstOrDefault(p => p.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
+            var eqlt = prop.GetValue(((Schema.Field)fieldArgumentContext).ArgumentTypes) as BaseEntityQueryType;
+            var contextParam = Expression.Parameter(eqlt.QueryType);
+            ExpressionResult expressionResult = EqlCompiler.CompileWith(query, contextParam, schemaProvider, methodProvider, variables).ExpressionResult;
+            expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);
+            return expressionResult;
         }
 
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
@@ -183,10 +209,17 @@ namespace EntityGraphQL.Compiler
         public override ExpressionResult VisitString(EntityGraphQLParser.StringContext context)
         {
             // we may need to convert a string into a DateTime or Guid type
-            string value = context.GetText().Trim('\'');
+            string value = context.GetText().Substring(1, context.GetText().Length - 2).Replace("\\\"", "\"");
             var exp = (ExpressionResult)Expression.Constant(value);
             if (guidRegex.IsMatch(value))
                 exp = ConvertToGuid(exp);
+            return exp;
+        }
+
+        public override ExpressionResult VisitNull(EntityGraphQLParser.NullContext context)
+        {
+            // we may need to convert a string into a DateTime or Guid type
+            var exp = (ExpressionResult)Expression.Constant(null);
             return exp;
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using static EntityGraphQL.Schema.ArgumentHelper;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System;
@@ -46,6 +47,39 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportEntityQuery()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+	users(filter: ""field2 = ""2"" "") { field2 }
+}");
+            Assert.Single(tree.Fields);
+            dynamic users = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            Assert.Equal(1, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.Field2);
+        }
+
+        [Fact]
+        public void SupportEntityQueryArgument()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            var gql = new QueryRequest {
+                Query = @"query {
+                    users(filter: $filter) { field2 }
+                }",
+                Variables = new QueryVariables { {"filter", "field2 = \"2\""} }
+            };
+            var tree = new TestSchema().QueryObject(gql, schemaProvider);
+            dynamic users = ((IDictionary<string, object>)tree["data"])["users"];
+            Assert.Equal(1, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.Field2);
+        }
+
+        [Fact]
         public void SupportsSameFieldDifferentArguments()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
@@ -53,7 +87,7 @@ namespace EntityGraphQL.Tests
             // Add same field with a different parameter
             schemaProvider.AddField("user", new {name = Required<string>()}, (ctx, param) => ctx.Users.Where(u => u.Field2 == param.name).FirstOrDefault(), "Return a user by name");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-	user(name: '2') { id }
+	user(name: ""2"") { id }
 }");
             // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
             Assert.Single(tree.Fields);
@@ -166,7 +200,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                project(id: 'aaaaaaaa-bbbb-4444-1111-ccddeeff0022') { id }
+                project(id: ""aaaaaaaa-bbbb-4444-1111-ccddeeff0022"") { id }
             }");
 
             Assert.Single(tree.Fields);
@@ -183,7 +217,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                person(id: 'cccccccc-bbbb-4444-1111-ccddeeff0033') { id projects { id name } }
+                person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
             }");
 
             Assert.Single(tree.Fields);

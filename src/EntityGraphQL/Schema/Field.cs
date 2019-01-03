@@ -68,6 +68,11 @@ namespace EntityGraphQL.Schema
             }
         }
 
+        public bool HasArgumentType(string argName)
+        {
+            return ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault() != null;
+        }
+
         public Type GetArgumentType(string argName)
         {
             var argProp = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();

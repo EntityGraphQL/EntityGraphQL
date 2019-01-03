@@ -19,7 +19,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
-            Assert.Equal("Error: line 2:9 extraneous input ' ' expecting 6", ex.Message);
+            Assert.Equal("Error: line 2:9 extraneous input ' ' expecting 8", ex.Message);
         }
 
         [Fact]
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id fullName: name + ' ' + lastname }
+	people { id fullName: name + "" "" + lastname }
 }");
             Assert.Single(tree.Fields);
             Assert.Equal("people", tree.Fields.ElementAt(0).Name);
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Tests
 {
 	people.id = 9 { id name }
 }"));
-            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 34", ex.Message);
+            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 36", ex.Message);
         }
 
         [Fact]

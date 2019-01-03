@@ -3,14 +3,15 @@ grammar EntityGraphQL;
 // This is our expression language
 ID          : [a-z_A-Z]+[a-z_A-Z0-9-]*;
 DIGIT       : [0-9];
-STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"\u005B\u005D;<>?,./-];
+STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"'\u005B\u005D;<>?,./-];
 
 identity    : ID;
 callPath    : (identity | call | gqlcall) ('.' (identity | call | gqlcall))*;
 int         : '-'? DIGIT+;
 decimal     : '-'? DIGIT+'.'DIGIT+;
-string      :   '\'' ( '\'' | ~('\n'|'\r') | STRING_CHARS )*? '\'';
-constant    : string | int | decimal;
+string      : '"' ( '"' | ~('\n'|'\r') | STRING_CHARS )*? '"';
+null        : 'null' | 'empty';
+constant    : string | int | decimal | null;
 call        : method=identity '(' arguments=args? ')';
 gqlcall     : method=identity '(' ws* (gqlarguments=gqlargs | gqltypedefs=gqlTypeDefs) ws* ')';
 args        : expression (',' ws* expression)*;

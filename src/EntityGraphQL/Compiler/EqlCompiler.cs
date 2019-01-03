@@ -54,8 +54,16 @@ namespace EntityGraphQL.Compiler
             return new QueryResult(expression, contextParams, expression.ConstantParameters.Values);
         }
 
-        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, QueryVariables variables = null)
         {
+            if (methodProvider == null)
+            {
+                methodProvider = new DefaultMethodProvider();
+            }
+            if (variables == null)
+            {
+                variables = new QueryVariables();
+            }
             var expression = CompileQuery(query, context, schemaProvider, methodProvider, variables);
 
             var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();

@@ -12,21 +12,21 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesFirst()
         {
-            var exp = EqlCompiler.Compile("people.first(guid = '6492f5fe-0869-4279-88df-7f82f8e87a67')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.first(guid = ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
         }
         [Fact]
         public void CompilesWhere()
         {
-            var exp = EqlCompiler.Compile("people.where(name = 'bob')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.where(name = ""bob"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Empty(result);
         }
         [Fact]
         public void CompilesWhere2()
         {
-            var exp = EqlCompiler.Compile("people.where(name = 'Luke')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.where(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
         }
@@ -46,7 +46,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesFirstWithPredicate()
         {
-            var exp = EqlCompiler.Compile("people.first(name = 'Luke')", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.first(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal("Luke", result.Name);
         }

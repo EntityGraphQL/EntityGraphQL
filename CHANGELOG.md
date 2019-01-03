@@ -1,3 +1,8 @@
+# 0.13.0
+- Breaking change: Strings are now defined by double quotes `"` to fit in with GraphQL better
+- Added support to use a LINQ-style language as a argument in GraphQL. E.g the following GQL field, `{ users(filter: "active = true and age > 20") { id name } }` can be defined with `schema.AddField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users")`. Letting you write that filter using any fields defined on the `User` object
+- Add `null`/`empty` constant for checking for null in EQL
+
 # 0.12.1
 - Fix bug converting Int values to double? values
 
