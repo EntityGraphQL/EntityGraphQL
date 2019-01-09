@@ -46,7 +46,7 @@ aliasType       : name=identity ws* ':' ws*;
 aliasExp        : alias=aliasType entity=expression;
 fieldSelect     : '{' ws* (aliasExp | field | entityQuery) ((ws* ','? ws*) (aliasExp | field | entityQuery))* ws* '}';
 entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
-operationName   : operation=identity '(' (operationArgs=gqlTypeDefs)? ')';
+operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
 gqlBody         : '{' ws* (aliasExp | entityQuery) ( (ws* ','? ws*) (aliasExp | entityQuery))* ws* '}';
 dataQuery       : queryKeyword? ws* operationName? ws* gqlBody ws*;
 mutationQuery   : mutationKeyword ws* operationName ws* gqlBody ws*;

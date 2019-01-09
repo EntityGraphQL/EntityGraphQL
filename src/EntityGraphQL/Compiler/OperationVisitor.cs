@@ -18,7 +18,10 @@ namespace EntityGraphQL.Compiler
         public override GraphQLOperation VisitOperationName(EntityGraphQLParser.OperationNameContext context)
         {
             this.operation.Name = context.operation.GetText();
-            Visit(context.operationArgs);
+            if (context.operationArgs != null)
+            {
+                Visit(context.operationArgs);
+            }
             return this.operation;
         }
 
