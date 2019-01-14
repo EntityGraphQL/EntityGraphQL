@@ -55,14 +55,22 @@ namespace EntityGraphQL.Schema
 			return tt;
         }
 
+        public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
+        {
+            var tt = new SchemaType<TBaseType>(name, description, null, true);
+            _types.Add(name, tt);
+			return tt;
+        }
+
         public void AddMutationFrom<TType>(TType mutationClassInstance)
         {
             foreach (var method in mutationClassInstance.GetType().GetMethods())
             {
-                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute));
+                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) as GraphQLMutationAttribute;
                 if (attribute != null)
                 {
-                    _mutations[method.Name] = new MutationType(_types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method);
+                    var mutationType = new MutationType(method.Name, _types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description);
+                    _mutations[method.Name] = mutationType;
                 }
             }
         }
@@ -109,6 +117,13 @@ namespace EntityGraphQL.Schema
         {
             Type<TContextType>().AddField(name, selection, description, returnSchemaType);
         }
+
+        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            Type<TContextType>().RemoveField(name);
+            Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
+        }
+
 
         /// <summary>
         /// Add a field with arguments.
@@ -173,14 +188,15 @@ namespace EntityGraphQL.Schema
                     }
                     else
                     {
-                        throw new EntityGraphQLCompilerException($"Field '{identifier}' is ambiguous. Please provide arguments. Available: '{string.Join(", ", fields.Select(f => f.Name + "(" + string.Join(", ", f.ArgumentNames)) + ")")}'");
+                        throw new EntityGraphQLCompilerException($"Field '{identifier}' is ambiguous. Please provide arguments. Available: '{string.Join(", ", fields.Select(f => f.Name + "(" + string.Join(", ", f.Arguments.Values)) + ")")}'");
                     }
                 }
                 return false;
             }
             return true;
         }
-		public bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs)
+
+        public bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs)
         {
             return TypeHasField(type.Name, identifier, fieldArgs);
         }
@@ -216,22 +232,31 @@ namespace EntityGraphQL.Schema
             var field = _types[typeName].GetField(fieldName, args != null ? args.Select(f => f.Key).ToArray() : new string[0]);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
 
-            if (field.ArgumentTypes != null)
+            if (field.ArgumentTypesObject != null)
             {
-                var argType = field.ArgumentTypes.GetType();
+                var argType = field.ArgumentTypesObject.GetType();
                 // get the values for the argument anonymous type object constructor
                 var propVals = new Dictionary<PropertyInfo, object>();
                 var fieldVals = new Dictionary<FieldInfo, object>();
                 // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
                 foreach (var argField in argType.GetProperties())
                 {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypes));
+                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypesObject));
                     // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
                     if (argField.PropertyType.IsConstructedGenericType && argField.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
-                        var queryVal = argField.GetValue(field.ArgumentTypes);
-                        var genericProp = queryVal.GetType().GetProperty("Query");
-                        genericProp.SetValue(queryVal, ((dynamic)val).Expression);
+                        var queryVal = argField.GetValue(field.ArgumentTypesObject);
+                        // set HasValue
+                        var hasValue = val != null;
+                        var genericProp = queryVal.GetType().GetProperty("HasValue");
+                        genericProp.SetValue(queryVal, hasValue);
+                        if (hasValue)
+                        {
+                            // set Query
+                            genericProp = queryVal.GetType().GetProperty("Query");
+                            genericProp.SetValue(queryVal, ((dynamic)val).Expression);
+                        }
+
                         propVals.Add(argField, queryVal);
                     }
                     else
@@ -243,7 +268,7 @@ namespace EntityGraphQL.Schema
                 // they could also use a custom class, so we need to look for both fields and properties
                 foreach (var argField in argType.GetFields())
                 {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.FieldType, argField.GetValue(field.ArgumentTypes));
+                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.FieldType, argField.GetValue(field.ArgumentTypesObject));
                     fieldVals.Add(argField, val);
                 }
 
@@ -344,6 +369,43 @@ namespace EntityGraphQL.Schema
         public bool HasType(string typeName)
         {
             return _types.ContainsKey(typeName);
+        }
+
+        public bool HasType(Type type)
+        {
+            if (type == _types[_queryContextName].ContextType)
+                return true;
+
+            foreach (var eType in _types.Values)
+            {
+                if (eType.ContextType == type)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Builds a GraphQL schema file
+        /// </summary>
+        /// <returns></returns>
+        public string GetGraphQLSchema()
+        {
+            return SchemaGenerator.Make(this);
+        }
+
+        public IEnumerable<Field> GetQueryFields()
+        {
+            return _types[_queryContextName].GetFields();
+        }
+
+        public IEnumerable<ISchemaType> GetNonContextTypes()
+        {
+            return _types.Values.Where(s => s.Name != _queryContextName).ToList();
+        }
+
+        public IEnumerable<IMethodType> GetMutations()
+        {
+            return _mutations.Values.ToList();
         }
     }
 }

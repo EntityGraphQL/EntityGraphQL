@@ -22,6 +22,7 @@ namespace EntityGraphQL.Schema
         bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs);
 
         bool HasType(string typeName);
+        bool HasType(Type type);
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
         string GetActualFieldName(string typeName, string identifier);
 
@@ -37,5 +38,18 @@ namespace EntityGraphQL.Schema
         string GetSchemaTypeNameForRealType(Type type);
         IMethodType GetFieldType(Expression context, string field, IEnumerable<string> fieldArgs);
         bool HasMutation(string method);
+        string GetGraphQLSchema();
+        /// <summary>
+        /// Return all the fields that are ast the root query type
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<Field> GetQueryFields();
+        /// <summary>
+        /// Return all types in the schema
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<ISchemaType> GetNonContextTypes();
+
+        IEnumerable<IMethodType> GetMutations();
     }
 }

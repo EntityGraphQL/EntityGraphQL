@@ -13,6 +13,7 @@ namespace EntityGraphQL.Schema
     {
         Type ContextType { get; }
         string Name { get; }
+        bool IsInput { get; }
 
         Field GetField(string identifier, params string[] arguments);
         IEnumerable<Field> GetFields();
@@ -23,164 +24,24 @@ namespace EntityGraphQL.Schema
         IEnumerable<Field> GetFieldsByNameOnly(string identifier);
     }
 
-    public class MutationType : IMethodType
-    {
-        private readonly ISchemaType returnType;
-        private readonly object mutationClassInstance;
-        private readonly MethodInfo method;
-        private Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
-        private object argInstance;
-
-        public object Call(object[] args, Dictionary<string, ExpressionResult> gqlRequestArgs)
-        {
-            var allArgs = args.ToList();
-            AssignArgValues(gqlRequestArgs);
-            allArgs.Add(argInstance);
-            var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
-            return result;
-        }
-
-        private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
-        {
-            Type argType = argInstance.GetType();
-            foreach (var key in gqlRequestArgs.Keys)
-            {
-                var foundProp = false;
-                foreach (var prop in argType.GetProperties())
-                {
-                    if (key.ToLower() == prop.Name.ToLower())
-                    {
-                        object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
-                        prop.SetValue(argInstance, value);
-                        foundProp = true;
-                    }
-                }
-                if (!foundProp)
-                {
-                    foreach (var field in argType.GetFields())
-                    {
-                        if (key.ToLower() == field.Name.ToLower())
-                        {
-                            object value = GetValue(gqlRequestArgs, field, field.FieldType);
-                            field.SetValue(argInstance, value);
-                            foundProp = true;
-                        }
-                    }
-                }
-                if (!foundProp)
-                {
-                    throw new EntityQuerySchemaError($"Could not find property or field {key} on in schema object {argType.Name}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Used at runtime below
-        /// </summary>
-        /// <param name="input"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        private static List<T> ConvertArray<T>(Array input)
-        {
-            return input.Cast<T>().ToList(); // Using LINQ for simplicity
-        }
-
-        private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, MemberInfo member, Type memberType)
-        {
-            object value = Expression.Lambda(gqlRequestArgs[member.Name]).Compile().DynamicInvoke();
-            if (value != null)
-            {
-                Type type = value.GetType();
-                if (type.IsArray && memberType.IsEnumerable())
-                {
-                    var arr = (Array)value;
-                    var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
-                    var generic = convertMethod.MakeGenericMethod(new[] {memberType.GetGenericArguments()[0]});
-                    value = generic.Invoke(null, new object[] { value });
-                }
-                else if (type == typeof(Newtonsoft.Json.Linq.JObject))
-                {
-                    value = ((Newtonsoft.Json.Linq.JObject)value).ToObject(memberType);
-                }
-                else
-                {
-                    value = ExpressionUtil.ChangeType(value, memberType);
-                }
-            }
-            return value;
-        }
-
-        public Type ContextType => ReturnType.ContextType;
-
-        public string Name => ReturnType.Name;
-
-        public ISchemaType ReturnType => returnType;
-
-        public MutationType(ISchemaType returnType, object mutationClassInstance, MethodInfo method)
-        {
-            this.returnType = returnType;
-            this.mutationClassInstance = mutationClassInstance;
-            this.method = method;
-
-            var methodArg = method.GetParameters().ElementAt(1);
-            this.argInstance = Activator.CreateInstance(methodArg.ParameterType);
-        }
-
-        public void AddField(Field field)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddFields(List<Field> fields)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Field GetField(string identifier, params string[] arguments)
-        {
-            return ReturnType.GetField(identifier, arguments);
-        }
-
-        public IEnumerable<Field> GetFields()
-        {
-            return ReturnType.GetFields();
-        }
-
-        public bool HasField(string identifier, params string[] arguments)
-        {
-            return ReturnType.HasField(identifier, arguments);
-        }
-
-        public bool HasArgumentType(string argName)
-        {
-            return argumentTypes.ContainsKey(argName);
-        }
-
-        public Type GetArgumentType(string argName)
-        {
-            if (!argumentTypes.ContainsKey(argName))
-            {
-                throw new EntityQuerySchemaError($"Argument type not found for argument '{argName}'");
-            }
-            return argumentTypes[argName];
-        }
-    }
-
     public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }
         public string Name { get; protected set; }
+        public bool IsInput { get; }
+
         private string _description;
         private Dictionary<string, Field> _fieldsByKey = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, List<Field>> _fieldsByName = new Dictionary<string, List<Field>>(StringComparer.OrdinalIgnoreCase);
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
-        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null)
+        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false)
         {
             ContextType = typeof(TBaseType);
             Name = name;
             _description = description;
             _filter = filter;
+            IsInput = isInput;
             AddField("__typename", t => name, "Type name");
         }
 
@@ -313,7 +174,7 @@ namespace EntityGraphQL.Schema
 
         private string ListFields(string identifier)
         {
-            var fields = _fieldsByName[identifier].Select(f => f.Name + "(" + string.Join(", ", f.ArgumentNames) + ")");
+            var fields = _fieldsByName[identifier].Select(f => f.Name + "(" + string.Join(", ", f.Arguments.Values) + ")");
             return string.Join(", ", fields);
         }
 

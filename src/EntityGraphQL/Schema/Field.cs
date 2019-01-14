@@ -11,11 +11,13 @@ namespace EntityGraphQL.Schema
     /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
     public class Field : IMethodType
     {
+        private readonly Dictionary<string, Type> allArguments = new Dictionary<string, Type>();
+
         public string Key
         {
             get
             {
-                return MakeFieldKey(Name, ArgumentNames);
+                return MakeFieldKey(Name, allArguments.Keys);
             }
         }
 
@@ -32,53 +34,60 @@ namespace EntityGraphQL.Schema
             Resolve = resolve.Body;
             Description = description;
             FieldParam = resolve.Parameters.First();
-            ReturnSchemaType = returnSchemaType;
-            if (ReturnSchemaType == null)
+            ReturnTypeSingle = returnSchemaType;
+            IsEnumerable = resolve.Body.Type.IsEnumerable();
+            if (ReturnTypeSingle == null)
             {
-                if (resolve.Body.Type.IsEnumerable())
+                if (IsEnumerable)
                 {
-                    ReturnSchemaType = resolve.Body.Type.GetGenericArguments()[0].Name;
+                    ReturnTypeSingle = resolve.Body.Type.GetGenericArguments()[0].Name;
                 }
                 else
                 {
-                    ReturnSchemaType = resolve.Body.Type.Name;
+                    ReturnTypeSingle = resolve.Body.Type.Name;
                 }
             }
         }
 
         public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes) : this(name, resolve, description, returnSchemaType)
         {
-            this.ArgumentTypes = argTypes;
-            this.ArgumentNames = argTypes.GetType().GetProperties().Select(p => p.Name).Concat(argTypes.GetType().GetFields().Select(p => p.Name)).ToList();
-            this.Resolve = resolve.Body;
+            this.ArgumentTypesObject = argTypes;
+            this.allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => p.PropertyType);
+            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => p.FieldType).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
         }
 
         public Expression Resolve { get; private set; }
         public string Description { get; private set; }
-        public string ReturnSchemaType { get; private set; }
-        public object ArgumentTypes { get; private set; }
-        public IEnumerable<string> ArgumentNames { get; }
+        public string ReturnTypeSingle { get; private set; }
+
+        public bool IsEnumerable { get; }
+
+        public object ArgumentTypesObject { get; private set; }
+        public IDictionary<string, Type> Arguments => allArguments;
+
         public IEnumerable<string> RequiredArgumentNames
         {
             get
             {
-                var required = ArgumentTypes.GetType().GetTypeInfo().GetFields().Where(f => f.FieldType.IsConstructedGenericType && f.FieldType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
-                var requiredProps = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.PropertyType.IsConstructedGenericType && f.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
+                var required = ArgumentTypesObject.GetType().GetTypeInfo().GetFields().Where(f => f.FieldType.IsConstructedGenericType && f.FieldType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
+                var requiredProps = ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.PropertyType.IsConstructedGenericType && f.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
                 return required.Concat(requiredProps).ToList();
             }
         }
 
-        public bool HasArgumentType(string argName)
+        public Type ReturnTypeClr => Resolve.Type;
+
+        public bool HasArgumentByName(string argName)
         {
-            return ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault() != null;
+            return ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault() != null;
         }
 
         public Type GetArgumentType(string argName)
         {
-            var argProp = ArgumentTypes.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
+            var argProp = ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
             if (argProp == null)
             {
-                var argField = ArgumentTypes.GetType().GetTypeInfo().GetFields().Where(f => f.IsPublic && f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
+                var argField = ArgumentTypesObject.GetType().GetTypeInfo().GetFields().Where(f => f.IsPublic && f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
                 if (argField == null)
                 {
                     throw new EntityGraphQLCompilerException($"{argName} is not an argument on field {Name}");

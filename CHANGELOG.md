@@ -1,3 +1,8 @@
+# 0.14.0
+- Bring back `ReplaceField` as technically GraphQL doesn't support overloading, so if you're using tools like Apollo etc to generate code you need to only have unique fields
+- Added `GetGraphQLSchema` on the schema to return a `.graphql` schema file for input into tools like Apollo codegen
+- Add the option to add descriptions to Mutations
+
 # 0.13.1
 - Fix issue where operation name with no arguments failed
 

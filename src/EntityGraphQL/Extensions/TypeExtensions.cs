@@ -12,7 +12,7 @@ namespace EntityGraphQL.Extensions
             if (source == typeof(string) || source == typeof(byte[]))
                 return false;
 
-            var isEnumerable = source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            var isEnumerable = source.GetTypeInfo().IsGenericType && (source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.GetGenericTypeDefinition() == typeof(IQueryable<>));
             if (!isEnumerable)
             {
                 foreach (var intType in source.GetInterfaces())

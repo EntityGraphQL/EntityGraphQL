@@ -19,7 +19,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
-            Assert.Equal("Error: line 2:9 extraneous input ' ' expecting 8", ex.Message);
+            Assert.Equal("Error: line 2:19 no viable alternative at input 'field2'", ex.Message);
         }
 
         [Fact]

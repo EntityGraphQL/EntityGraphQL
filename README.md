@@ -276,6 +276,9 @@ This also selects the resulting `id` & `name` from the result of the mutation.
 
 TODO - coming soon
 
+# Intergrating with other tools
+Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce one. This works well with the Apollo code gen tools.
+
 # Using expressions else where
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
 ```js

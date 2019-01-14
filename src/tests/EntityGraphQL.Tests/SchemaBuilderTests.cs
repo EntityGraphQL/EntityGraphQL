@@ -2,6 +2,7 @@ using Xunit;
 using System.Collections.Generic;
 using System;
 using EntityGraphQL.Schema;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -70,21 +71,19 @@ namespace EntityGraphQL.Tests
         public void AutoAddArgumentForId()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            var argumentTypes = schema.Type<TestSchema>().GetField("person", "id").ArgumentTypes.GetType();
-            Assert.Single(argumentTypes.GetFields());
-            var prop = argumentTypes.GetFields()[0];
-            Assert.Equal("id", prop.Name);
-            Assert.Equal(typeof(RequiredField<int>), prop.FieldType);
+            var argumentTypes = schema.Type<TestSchema>().GetField("person", "id").Arguments;
+            Assert.Single(argumentTypes);
+            Assert.Equal("id", argumentTypes.First().Key);
+            Assert.Equal(typeof(RequiredField<int>), argumentTypes.First().Value);
         }
         [Fact]
         public void AutoAddArgumentForIdGuid()
         {
             var schema = SchemaBuilder.FromObject<TestSchema2>();
-            var argumentTypes = schema.Type<TestSchema2>().GetField("property", "id").ArgumentTypes.GetType();
-            Assert.Single(argumentTypes.GetFields());
-            var prop = argumentTypes.GetFields()[0];
-            Assert.Equal("id", prop.Name);
-            Assert.Equal(typeof(RequiredField<Guid>), prop.FieldType);
+            var argumentTypes = schema.Type<TestSchema2>().GetField("property", "id").Arguments;
+            Assert.Single(argumentTypes);
+            Assert.Equal("id", argumentTypes.First().Key);
+            Assert.Equal(typeof(RequiredField<Guid>), argumentTypes.First().Value);
         }
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema

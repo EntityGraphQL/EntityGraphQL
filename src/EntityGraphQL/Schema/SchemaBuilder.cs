@@ -17,6 +17,17 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class SchemaBuilder
     {
+        private static readonly HashSet<string> ignoreProps = new HashSet<string> {
+            "Database",
+            "Model",
+            "ChangeTracker"
+        };
+
+        private static readonly HashSet<string> ignoreTypes = new HashSet<string> {
+            "String",
+            "Byte[]"
+        };
+
         /// <summary>
         /// Given the type TContextType recursively create a query schema based on the public properties of the object.
         /// </summary>
@@ -44,7 +55,7 @@ namespace EntityGraphQL.Schema
         {
             if (!fieldProp.Resolve.Type.IsEnumerable())
                 return;
-            var schemaType = schema.Type(fieldProp.ReturnSchemaType);
+            var schemaType = schema.Type(fieldProp.ReturnTypeSingle);
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "Id");
             if (idFieldDef == null)
                 return;
@@ -57,7 +68,7 @@ namespace EntityGraphQL.Schema
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes);
-            Type arrayContextType = schema.Type(fieldProp.ReturnSchemaType).ContextType;
+            Type arrayContextType = schema.Type(fieldProp.ReturnTypeSingle).ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType);
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             Expression argId = Expression.PropertyOrField(argTypeParam, "id");
@@ -71,7 +82,7 @@ namespace EntityGraphQL.Schema
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
-            var field = new Field(fieldProp.Name.Singularize(), selectionExpression, $"Return {fieldProp.ReturnSchemaType} by Id", fieldProp.ReturnSchemaType, argTypesValue);
+            var field = new Field(fieldProp.Name.Singularize(), selectionExpression, $"Return a {fieldProp.ReturnTypeSingle} by its Id", fieldProp.ReturnTypeSingle, argTypesValue);
             schema.AddField(field);
         }
 
@@ -85,8 +96,12 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties())
             {
+                if (ignoreProps.Contains(prop.Name))
+                {
+                    continue;
+                }
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(prop.Name, le, prop.Name);
+                var f = new Field(prop.Name, le, "");
                 fields.Add(f);
                 CacheType<TContextType>(prop.PropertyType, schema);
             }
@@ -107,7 +122,7 @@ namespace EntityGraphQL.Schema
                 propType = propType.GetGenericArguments()[0];
             }
 
-            if (!schema.HasType(propType.Name) && propType.Name != "String" && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))
+            if (!schema.HasType(propType.Name) && !ignoreTypes.Contains(propType.Name) && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))
             {
                 // add type before we recurse more that may also add the type
                 // dynamcially call generic method
