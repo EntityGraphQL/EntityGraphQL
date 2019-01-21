@@ -1,3 +1,7 @@
+# 0.14.1
+- Fix SchemaGenerator to support arrays better
+- Support turning `QueryRequest` variables from JSON objects into their requied objects
+
 # 0.14.0
 - Bring back `ReplaceField` as technically GraphQL doesn't support overloading, so if you're using tools like Apollo etc to generate code you need to only have unique fields
 - Added `GetGraphQLSchema` on the schema to return a `.graphql` schema file for input into tools like Apollo codegen

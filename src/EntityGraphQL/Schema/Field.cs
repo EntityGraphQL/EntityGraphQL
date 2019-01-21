@@ -69,6 +69,9 @@ namespace EntityGraphQL.Schema
         {
             get
             {
+                if (ArgumentTypesObject == null)
+                    return new List<string>();
+
                 var required = ArgumentTypesObject.GetType().GetTypeInfo().GetFields().Where(f => f.FieldType.IsConstructedGenericType && f.FieldType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
                 var requiredProps = ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.PropertyType.IsConstructedGenericType && f.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
                 return required.Concat(requiredProps).ToList();

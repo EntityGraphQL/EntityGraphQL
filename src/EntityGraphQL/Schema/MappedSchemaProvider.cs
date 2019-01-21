@@ -326,7 +326,7 @@ namespace EntityGraphQL.Schema
                 var typedVal = Activator.CreateInstance(memberType, item);
                 return typedVal;
             }
-            else if (defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
             {
                 return args[argName];
             }

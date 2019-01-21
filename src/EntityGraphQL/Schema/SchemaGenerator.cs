@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -114,6 +115,9 @@ type Mutation {{
                 if (schema.HasType(type))
                 {
                     return schema.GetSchemaTypeNameForRealType(type);
+                }
+                if (type.IsEnumerable()) {
+                    return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema) + "]";
                 }
                 if (type.IsConstructedGenericType)
                 {

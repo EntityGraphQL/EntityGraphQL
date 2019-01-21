@@ -43,6 +43,11 @@ namespace EntityGraphQL.Compiler.Util
         public static object ChangeType(object value, Type type)
         {
             var objType = value.GetType();
+            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType)) {
+                var newVal = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
+                return newVal;
+            }
+
             if (type != typeof(string) && objType == typeof(string)) {
                 if (type == typeof(double) || type == typeof(Nullable<double>))
                     return double.Parse((string)value);
