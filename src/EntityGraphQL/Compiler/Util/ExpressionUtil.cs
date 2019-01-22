@@ -60,6 +60,10 @@ namespace EntityGraphQL.Compiler.Util
             }
             var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
             var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
+            if (argumentNonNullType.GetTypeInfo().IsEnum)
+            {
+                return Enum.ToObject(argumentNonNullType, value);
+            }
             if (argumentNonNullType != valueNonNullType)
             {
                 var newVal = Convert.ChangeType(value, argumentNonNullType);

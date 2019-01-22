@@ -1,3 +1,6 @@
+# 0.14.2
+- Convert enums correctly
+
 # 0.14.1
 - Fix SchemaGenerator to support arrays better
 - Support turning `QueryRequest` variables from JSON objects into their requied objects
