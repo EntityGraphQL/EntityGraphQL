@@ -40,6 +40,10 @@ namespace EntityGraphQL.Schema
             {
                 if (IsEnumerable)
                 {
+                    if (resolve.Body.Type.GetGenericArguments().Count() == 0)
+                    {
+                        throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> but didn't find it's generic type");
+                    }
                     ReturnTypeSingle = resolve.Body.Type.GetGenericArguments()[0].Name;
                 }
                 else
