@@ -1,3 +1,7 @@
+# 0.14.3
+- Fix an issue where we would some time identify a type as IEnumerable when it shouldn't have been
+- Allow `ReplaceField` on a sub type
+
 # 0.14.2
 - Convert enums correctly
 
