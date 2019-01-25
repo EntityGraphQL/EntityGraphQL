@@ -274,7 +274,7 @@ namespace EntityGraphQL.Schema
 
                 // create a copy of the anonymous object. It will have the default values set
                 // there is only 1 constructor for the anonymous type that takes all the property values
-                var con = argType.GetConstructor(propVals.Values.Select(v => v.GetType()).ToArray());
+                var con = argType.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
                 object parameters;
                 if (con != null)
                 {

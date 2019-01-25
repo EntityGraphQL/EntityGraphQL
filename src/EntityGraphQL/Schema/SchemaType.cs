@@ -79,6 +79,16 @@ namespace EntityGraphQL.Schema
             var field = new Field(name, fieldSelection, description, returnSchemaType);
             this.AddField(field);
         }
+        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            var field = new Field(name, selectionExpression, description, returnSchemaType);
+            var oldField = _fieldsByKey.ContainsKey(field.Key) ? _fieldsByKey[field.Key] : null;
+            _fieldsByKey[field.Key] = field;
+            if (oldField != null && _fieldsByName.ContainsKey(field.Name))
+            {
+                _fieldsByName[field.Name].Remove(oldField);
+            }
+        }
 
         /// <summary>
         /// Add a field with arguments.
