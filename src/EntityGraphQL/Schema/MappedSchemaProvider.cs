@@ -19,6 +19,7 @@ namespace EntityGraphQL.Schema
     {
         protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
         protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>(StringComparer.OrdinalIgnoreCase);
+        protected Dictionary<Type, string> _typeMappingForSchemaGeneration = new Dictionary<Type, string>();
         private readonly string _queryContextName;
 
         public MappedSchemaProvider()
@@ -78,6 +79,11 @@ namespace EntityGraphQL.Schema
         public bool HasMutation(string method)
         {
             return _mutations.ContainsKey(method);
+        }
+
+        public void AddTypeMapping<TFrom>(string gqlType)
+        {
+            _typeMappingForSchemaGeneration.Add(typeof(TFrom), gqlType);
         }
 
         /// <summary>
@@ -390,7 +396,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public string GetGraphQLSchema()
         {
-            return SchemaGenerator.Make(this);
+            return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration);
         }
 
         public IEnumerable<Field> GetQueryFields()

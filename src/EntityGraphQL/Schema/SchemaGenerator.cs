@@ -9,7 +9,7 @@ namespace EntityGraphQL.Schema
 {
     internal class SchemaGenerator
     {
-        private static readonly Dictionary<Type, string> typeMapping = new Dictionary<Type, string> {
+        private static readonly Dictionary<Type, string> defaultTypeMappings = new Dictionary<Type, string> {
             {typeof(string), "String"},
             {typeof(RequiredField<string>), "String!"},
             {typeof(Guid), "ID"},
@@ -30,12 +30,22 @@ namespace EntityGraphQL.Schema
             {typeof(EntityQueryType<>), "String"},
         };
 
-        internal static string Make(ISchemaProvider schema)
+        internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
         {
-            var types = BuildSchemaTypes(schema);
-            var mutations = BuildMutations(schema);
+            // defaults first
+            var combinedMapping = defaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
+            foreach (var item in typeMappings)
+            {
+                if (combinedMapping.ContainsKey(item.Key))
+                    combinedMapping[item.Key] = item.Value;
+                else
+                    combinedMapping.Add(item.Key, item.Value);
+            }
 
-            var queryTypes = MakeQueryType(schema);
+            var types = BuildSchemaTypes(schema, combinedMapping);
+            var mutations = BuildMutations(schema, combinedMapping);
+
+            var queryTypes = MakeQueryType(schema, combinedMapping);
 
             return $@"schema {{
     query: RootQuery
@@ -52,7 +62,7 @@ type Mutation {{
 }}";
         }
 
-        private static string BuildMutations(ISchemaProvider schema)
+        private static string BuildMutations(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var mutations = new StringBuilder();
             foreach (var item in schema.GetMutations())
@@ -60,13 +70,13 @@ type Mutation {{
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"{item.Description}\"");
 
-                mutations.AppendLine($"\t{ToCamelCase(item.Name)}{GetGqlArgs(item, schema, "()")}: {GetGqlReturnType(item, schema)}");
+                mutations.AppendLine($"\t{ToCamelCase(item.Name)}{GetGqlArgs(item, schema, combinedMapping, "()")}: {GetGqlReturnType(item, schema, combinedMapping)}");
             }
 
             return mutations.ToString();
         }
 
-        private static string BuildSchemaTypes(ISchemaProvider schema)
+        private static string BuildSchemaTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes())
@@ -84,7 +94,7 @@ type Mutation {{
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"{field.Description}\"");
 
-                    types.AppendLine($"\t{ToCamelCase(field.Name)}{GetGqlArgs(field, schema)}: {GetGqlReturnType(field, schema)}");
+                    types.AppendLine($"\t{ToCamelCase(field.Name)}{GetGqlArgs(field, schema, combinedMapping)}: {GetGqlReturnType(field, schema, combinedMapping)}");
 
                 }
                 types.AppendLine("}");
@@ -93,44 +103,44 @@ type Mutation {{
             return types.ToString();
         }
 
-        private static object GetGqlReturnType(IMethodType field, ISchemaProvider schema)
+        private static object GetGqlReturnType(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            return field.IsEnumerable ? "[" + ClrToGqlType(field.ReturnTypeClr.GetGenericArguments()[0], schema) + "]" : ClrToGqlType(field.ReturnTypeClr, schema);
+            return field.IsEnumerable ? "[" + ClrToGqlType(field.ReturnTypeClr.GetGenericArguments()[0], schema, combinedMapping) + "]" : ClrToGqlType(field.ReturnTypeClr, schema, combinedMapping);
         }
 
-        private static object GetGqlArgs(IMethodType field, ISchemaProvider schema, string noArgs = "")
+        private static object GetGqlArgs(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string noArgs = "")
         {
             if (field.Arguments == null || !field.Arguments.Any())
                 return noArgs;
 
-            var all = field.Arguments.Select(f => ToCamelCase(f.Key) + ": " + ClrToGqlType(f.Value, schema));
+            var all = field.Arguments.Select(f => ToCamelCase(f.Key) + ": " + ClrToGqlType(f.Value, schema, combinedMapping));
 
             return $"({string.Join(", ", all)})";
         }
 
-        private static string ClrToGqlType(Type type, ISchemaProvider schema)
+        private static string ClrToGqlType(Type type, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            if (!typeMapping.ContainsKey(type))
+            if (!combinedMapping.ContainsKey(type))
             {
                 if (schema.HasType(type))
                 {
                     return schema.GetSchemaTypeNameForRealType(type);
                 }
                 if (type.IsEnumerable()) {
-                    return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema) + "]";
+                    return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema, combinedMapping) + "]";
                 }
                 if (type.IsConstructedGenericType)
                 {
-                    return ClrToGqlType(type.GetGenericTypeDefinition(), schema);
+                    return ClrToGqlType(type.GetGenericTypeDefinition(), schema, combinedMapping);
                 }
                 // Default to a string type
                 return "String";
             }
-            return typeMapping[type];
+            return combinedMapping[type];
 
         }
 
-        private static string MakeQueryType(ISchemaProvider schema)
+        private static string MakeQueryType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var sb = new StringBuilder();
 
@@ -138,10 +148,10 @@ type Mutation {{
             {
                 if (t.Name.StartsWith("__"))
                     continue;
-                var typeName = GetGqlReturnType(t, schema);
+                var typeName = GetGqlReturnType(t, schema, combinedMapping);
                 if (!string.IsNullOrEmpty(t.Description))
                     sb.AppendLine($"\t\"{t.Description}\"");
-                sb.AppendLine($"\t{ToCamelCase(t.Name)}{GetGqlArgs(t, schema)}: {typeName}");
+                sb.AppendLine($"\t{ToCamelCase(t.Name)}{GetGqlArgs(t, schema, combinedMapping)}: {typeName}");
             }
 
             return sb.ToString();

@@ -1,3 +1,6 @@
+# 0.14.4
+- Allow user to supply a type mapping for the generated GraphQL schema
+
 # 0.14.3
 - Fix an issue where we would some time identify a type as IEnumerable when it shouldn't have been
 - Allow `ReplaceField` on a sub type
