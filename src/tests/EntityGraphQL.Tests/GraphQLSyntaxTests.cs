@@ -50,7 +50,7 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQuery()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.AddField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            schemaProvider.ReplaceField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	users(filter: ""field2 = ""2"" "") { field2 }
 }");
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQueryArgument()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.AddField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            schemaProvider.ReplaceField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
             var gql = new QueryRequest {
                 Query = @"query {
                     users(filter: $filter) { field2 }
@@ -80,22 +80,13 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void SupportsSameFieldDifferentArguments()
+        public void DoesNotSupportSameFieldDifferentArguments()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
-            // Add same field with a different parameter
-            schemaProvider.AddField("user", new {name = Required<string>()}, (ctx, param) => ctx.Users.Where(u => u.Field2 == param.name).FirstOrDefault(), "Return a user by name");
-            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-	user(name: ""2"") { id }
-}");
-            // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
-            Assert.Single(tree.Fields);
-            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
-            // we only have the fields requested
-            Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(1, user.Id);
+            // Grpahql doesn't support "field overloading"
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
+            // user(id: ID) already created
+            var ex = Assert.Throws<EntityQuerySchemaError>(() => schemaProvider.AddField("user", new {monkey = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+            Assert.Equal("Field user already exists on type TestSchema. Use ReplaceField() if this is intended.", ex.Message);
         }
 
         [Fact]
@@ -107,7 +98,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument(s) 'id'", ex.Message);
+            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]
@@ -119,7 +110,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument(s) 'id, h'", ex.Message);
+            Assert.Equal("Error compiling query 'user'. Field 'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]
@@ -156,8 +147,8 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Height", person.GetType().GetFields()[1].Name);
-            Assert.Equal(183.0, person.Height);
+            Assert.Equal("height", person.GetType().GetFields()[1].Name);
+            Assert.Equal(183.0, person.height);
         }
 
         [Fact]
@@ -174,7 +165,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.First(result);
             // we only have the fields requested
-            Assert.Equal(1.83, person.Height);
+            Assert.Equal(1.83, person.height);
         }
 
         [Fact]

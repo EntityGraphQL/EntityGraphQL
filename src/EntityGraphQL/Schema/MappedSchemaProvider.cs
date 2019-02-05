@@ -174,27 +174,23 @@ namespace EntityGraphQL.Schema
             if (!_types.ContainsKey(typeName))
                 return false;
             var t = _types[typeName];
-            if (!t.HasField(identifier, fieldArgs.ToArray()))
+            if (!t.HasField(identifier))
             {
-                if ((fieldArgs == null || !fieldArgs.Any()) && t.HasFieldByNameOnly(identifier))
+                if ((fieldArgs == null || !fieldArgs.Any()) && t.HasField(identifier))
                 {
-                    IEnumerable<Field> fields = t.GetFieldsByNameOnly(identifier);
-                    if (fields.Count() == 1)
+                    var field = t.GetField(identifier);
+                    if (field != null)
                     {
                         // if there are defaults for all, continue
-                        if (fields.First().RequiredArgumentNames.Count() > 0)
+                        if (field.RequiredArgumentNames.Count() > 0)
                         {
-                            throw new EntityGraphQLCompilerException($"Field '{identifier}' missing required argument(s) '{string.Join(", ", fields.First().RequiredArgumentNames)}'");
+                            throw new EntityGraphQLCompilerException($"Field '{identifier}' missing required argument(s) '{string.Join(", ", field.RequiredArgumentNames)}'");
                         }
                         return true;
                     }
-                    else if (fields.Count() == 0)
-                    {
-                        throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on current context '{typeName}'");
-                    }
                     else
                     {
-                        throw new EntityGraphQLCompilerException($"Field '{identifier}' is ambiguous. Please provide arguments. Available: '{string.Join(", ", fields.Select(f => f.Name + "(" + string.Join(", ", f.Arguments.Values)) + ")")}'");
+                        throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on current context '{typeName}'");
                     }
                 }
                 return false;
@@ -224,7 +220,7 @@ namespace EntityGraphQL.Schema
             }
             if (_types.ContainsKey(context.Type.Name))
             {
-                var field = _types[context.Type.Name].GetField(fieldName, fieldArgs.ToArray());
+                var field = _types[context.Type.Name].GetField(fieldName);
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
@@ -235,7 +231,7 @@ namespace EntityGraphQL.Schema
             if (!_types.ContainsKey(typeName))
                 throw new EntityQuerySchemaError($"{typeName} not found in schema.");
 
-            var field = _types[typeName].GetField(fieldName, args != null ? args.Select(f => f.Key).ToArray() : new string[0]);
+            var field = _types[typeName].GetField(fieldName);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
 
             if (field.ArgumentTypesObject != null)
@@ -325,7 +321,7 @@ namespace EntityGraphQL.Schema
             {
                 if (args == null || !args.ContainsKey(argName))
                 {
-                    throw new EntityGraphQLCompilerException($"Error compiling query. Field '{argName}' missing required argument '{field.Name}'");
+                    throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
                 }
                 var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
                 // explicitly cast the value to the RequiredField<> type

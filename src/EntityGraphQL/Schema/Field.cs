@@ -13,19 +13,6 @@ namespace EntityGraphQL.Schema
     {
         private readonly Dictionary<string, Type> allArguments = new Dictionary<string, Type>();
 
-        public string Key
-        {
-            get
-            {
-                return MakeFieldKey(Name, allArguments.Keys);
-            }
-        }
-
-        public static string MakeFieldKey(string name, IEnumerable<string> args)
-        {
-            return name + "|" + (args != null ? string.Join(".", args) : "");
-        }
-
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
         internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType = null)

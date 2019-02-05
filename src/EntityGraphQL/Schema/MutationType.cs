@@ -130,9 +130,9 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field GetField(string identifier, params string[] arguments)
+        public Field GetField(string identifier)
         {
-            return ReturnType.GetField(identifier, arguments);
+            return ReturnType.GetField(identifier);
         }
 
         public bool HasArgumentByName(string argName)

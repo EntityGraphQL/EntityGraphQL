@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
         public void AutoAddArgumentForId()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            var argumentTypes = schema.Type<TestSchema>().GetField("person", "id").Arguments;
+            var argumentTypes = schema.Type<TestSchema>().GetField("person").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
             Assert.Equal(typeof(RequiredField<int>), argumentTypes.First().Value);
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Tests
         public void AutoAddArgumentForIdGuid()
         {
             var schema = SchemaBuilder.FromObject<TestSchema2>();
-            var argumentTypes = schema.Type<TestSchema2>().GetField("property", "id").Arguments;
+            var argumentTypes = schema.Type<TestSchema2>().GetField("property").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
             Assert.Equal(typeof(RequiredField<Guid>), argumentTypes.First().Value);
