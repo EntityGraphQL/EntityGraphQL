@@ -12,9 +12,9 @@ Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
 ## Getting up and running with EF
 
-_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF is tested._
+_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF well is tested._
 
-### 1. Define your DB context
+### 1. Define your data context (in this case an EF context)
 
 ```csharp
 public class MyDbContext : DbContext {
@@ -77,7 +77,9 @@ public class QueryController : Controller
     {
         try
         {
-            return _dbContext.QueryObject(query, _schemaProvider);
+            var results = _dbContext.QueryObject(query, _schemaProvider);
+            // most gql compile errors show up in results["errors"]
+            return results
         }
         catch (Exception)
         {
@@ -88,7 +90,7 @@ public class QueryController : Controller
 ```
 
 This sets up 1 end point:
-- `POST` at `/api/query` where the body of the post is the GraphQL query
+- `POST` at `/api/query` where the body of the post is a GraphQL query
 
 ### 3. Build awesome applications
 
@@ -184,6 +186,7 @@ Will return the following result.
 - Fields - the core part, select the fields you want, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
+  - Add fields that take required or optional arguments to fullfill the query
   - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` graphql field so you can query `{ person(id: 1234) { name email } }` to select a single person
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
@@ -219,7 +222,7 @@ var paramTypes = new {unit = "meter"};
 ## Mutations
 Mutations allow you to make changes to data while selecting some data to return from the result. See the [GraphQL documentation](https://graphql.org/learn/queries/#mutations) for more information on the syntax.
 
-The main concept behind this is you create a class to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
+The main concept behind this is you create a class (or many) to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
 
 ```csharp
 public class PropertyMutations
@@ -242,7 +245,7 @@ public class PropertyArgs
 }
 ```
 
-To add this to you schema call
+To add this to you schema, call
 
 ```csharp
 schemaProvider.AddMutationFrom(new PropertyMutations());
@@ -250,7 +253,7 @@ schemaProvider.AddMutationFrom(new PropertyMutations());
 
 - All `public` methods marked with the `GraphQLMutation` attribute will be added to the schema
 - Parameters should be the base context that your schema is built from and a class that defines each available parameter (and type)
-- Variables from the GraphQL request are mapped into the args parameter
+- Variables from the GraphQL request are mapped into the args (second) parameter
 
 You can now request a mutation
 ```
@@ -274,14 +277,27 @@ This also selects the resulting `id` & `name` from the result of the mutation.
 
 ## Secuity
 
-TODO - coming soon
+### Mutations
+Security checks should be done in your mutation code.
+
+### Queries
+Coming soon. But you should have security at other layers too
+
+## Paging
+For paging you want to create your own fields.
+
+```cs
+schemaProvider.AddField("MyEntities", new {take = 10, skip = 0}, (db, param) => db.MyEntities.Skip(p.skip).Take(p.take), "Get a page of entities");
+```
+
+Helpers for different types of paging will likely be added.
 
 # Intergrating with other tools
-Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce one. This works well with the Apollo code gen tools.
+Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
 
 # Using expressions else where
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
-```js
+```cs
   // This might be a configured EQL statement for filtering the results. It has a context of Property
   (type.id = 2 or type.id = 3) and type.name == "Farm"
 ```
@@ -333,5 +349,4 @@ Some larger things still on the list to complete, in no real order. Pull request
 - fix GetMethodContext() in methodProvider
 - Add logging options
 - Auto generate schema documentation page
-- Add paging support (from graphql?)
 - Support integration into security for controlling data access
