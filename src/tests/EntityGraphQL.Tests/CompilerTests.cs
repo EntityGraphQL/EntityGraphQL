@@ -341,11 +341,27 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Error compiling query 'projects'. Field 'name3' not found on current context 'Project'", ex.Message);
         }
 
+        [Fact]
+        public void CanExecuteRequiredParameter()
+        {
+            dynamic tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+{
+	project(id: 55) {
+		name
+	}
+}");
+
+            Assert.Single(tree.Fields);
+            dynamic result = tree.Fields[0].Execute(new TestSchema());
+            Assert.Equal("Project 3", result.Name);
+        }
+
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
             public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
             public IEnumerable<User> Users { get { return new List<User> { new User() }; } }
+            public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
         }
 
         private class DbTestSchema
@@ -375,7 +391,7 @@ namespace EntityGraphQL.Tests
         }
         private class Project
         {
-            public int Id { get { return 55; } }
+            public uint Id { get { return 55; } }
             public string Name { get { return "Project 3"; } }
             public IEnumerable<Task> Tasks { get { return new List<Task> { new Task() }; } }
         }

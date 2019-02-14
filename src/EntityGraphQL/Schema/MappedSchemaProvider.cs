@@ -324,8 +324,28 @@ namespace EntityGraphQL.Schema
                     throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
                 }
                 var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
-                // explicitly cast the value to the RequiredField<> type
-                var typedVal = Activator.CreateInstance(memberType, item);
+                var constructor = memberType.GetConstructor(new [] {item.GetType()});
+                if (constructor == null)
+                {
+                    // we might need to change the type
+                    foreach (var c in memberType.GetConstructors())
+                    {
+                        var parameters = c.GetParameters();
+                        if (parameters.Count() == 1)
+                        {
+                            item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType);
+                            constructor = memberType.GetConstructor(new [] {item.GetType()});
+                            break;
+                        }
+                    }
+                }
+
+                if (constructor == null)
+                {
+                    throw new EntityGraphQLCompilerException($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
+                }
+
+                var typedVal = constructor.Invoke(new [] {item});
                 return typedVal;
             }
             else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
