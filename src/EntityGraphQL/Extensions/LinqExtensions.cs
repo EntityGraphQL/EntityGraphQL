@@ -4,8 +4,9 @@ using System.Linq.Expressions;
 
 namespace EntityGraphQL.Extensions
 {
-    /// Extension methods to allow EQL compiled expression to easily be used in LINQ methods.
-    /// TODO: fill this out with all the others. Also wonder if there is a better way?
+    /// <summary>
+    /// Extension methods to allow EQL compiled expression to easily be used in LINQ methods. Also helpers to work with nullable parmaeters
+    /// </summary>
     public static class LinqExtensions
     {
         public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
@@ -43,15 +44,13 @@ namespace EntityGraphQL.Extensions
             var call = Expression.Call(typeof(Enumerable), "LastOrDefault", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
             return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
         }
-        public static IEnumerable<TSource> LongCount<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
+
+        public static Expression<IQueryable<TSource>> Take<TSource>(this IQueryable<TSource> source, int? count)
         {
-            var call = Expression.Call(typeof(Enumerable), "LongCount", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> TakeWhile<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "TakeWhile", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
+            if (!count.HasValue)
+                return (Expression<IQueryable<TSource>>)source.Expression;
+
+            return source.Take(count.Value);
         }
     }
 }
