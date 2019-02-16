@@ -343,10 +343,5 @@ query {
 }
 ```
 
-# TODO
-Some larger things still on the list to complete, in no real order. Pull requests are very welcome.
-
-- fix GetMethodContext() in methodProvider
-- Add logging options
-- Auto generate schema documentation page
-- Support integration into security for controlling data access
+# Contribute
+Please do. Pull requests are very welcome. See the open issue for bugs or features that would be useful

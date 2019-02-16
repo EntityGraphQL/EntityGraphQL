@@ -57,7 +57,7 @@ namespace EntityGraphQL.LinqQuery
 
         public ExpressionResult GetMethodContext(ExpressionResult context, string methodName)
         {
-            // some methods have a context of the element type in the list, other is jsut the original context
+            // some methods have a context of the element type in the list, other is just the original context
             // need some way for the method compiler to tells us that
             //  return _supportedMethods[methodName](context);
             return GetContextFromEnumerable(context);
