@@ -309,7 +309,7 @@ This can then be used in various Linq functions either in memory or against an O
 var schemaProvider = SchemaBuilder.FromObject<Property>();
 var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
-var thingsToShow = myProperties.Where(compiledResult.Expression);
+var thingsToShow = myProperties.Where(compiledResult.LambdaExpression);
 ```
 
 Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
