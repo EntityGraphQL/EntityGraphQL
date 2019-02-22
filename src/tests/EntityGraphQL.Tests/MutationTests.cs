@@ -100,8 +100,8 @@ namespace EntityGraphQL.Tests
                     {"names", Newtonsoft.Json.JsonConvert.DeserializeObject("{\"name\": \"Lisa\", \"lastName\": \"Simpson\"}")}
                 }
             };
-            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider);
-            Assert.Empty(addPersonResult["errors"]);
+            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider);
+            Assert.Empty(addPersonResult.Errors);
             addPersonResult = Enumerable.First(addPersonResult["data"]);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
