@@ -102,7 +102,7 @@ namespace EntityGraphQL.Tests
             };
             dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider);
             Assert.Empty(addPersonResult.Errors);
-            addPersonResult = Enumerable.First(addPersonResult["data"]);
+            addPersonResult = Enumerable.First(addPersonResult.Data);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
