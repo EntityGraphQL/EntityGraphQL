@@ -73,7 +73,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { {"filter", "field2 = \"2\""} }
             };
             var tree = new TestSchema().QueryObject(gql, schemaProvider);
-            dynamic users = ((IDictionary<string, object>)tree["data"])["users"];
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
             Assert.Equal("2", user.Field2);

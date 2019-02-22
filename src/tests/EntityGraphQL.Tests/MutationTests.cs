@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables{{"na", "Frank"}}
             };
-            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["errors"];
+            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Errors;
             var err = Enumerable.First(addPersonResult);
             Assert.Equal("Missing required variable 'name' on query 'AddPerson'", err.Message);
         }
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables {}
             };
-            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["data"];
+            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
                     {"names", new [] {"Bill", "Frank"}}
                 }
             };
-            dynamic addPersonResult = (IEnumerable)new TestSchema().QueryObject(gql, schemaProvider)["data"];
+            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
