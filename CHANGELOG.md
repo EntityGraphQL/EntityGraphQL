@@ -1,3 +1,6 @@
+# 0.15.2
+- Move the query results into a `QueryResult` class so it is easier to work with
+
 # 0.15.1
 - Fix #11 - failure to use `RequiredField` with types like `uint` - it would try to initialise it with an `int`
 

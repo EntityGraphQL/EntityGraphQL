@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler
 
         public bool IsMutation => false;
 
-        public GraphQLNode(string name, QueryResult query, Expression relationExpression) : this(name, (ExpressionResult)query.ExpressionResult, relationExpression, query.LambdaExpression.Parameters, query.ConstantParameterValues)
+        public GraphQLNode(string name, CompiledQueryResult query, Expression relationExpression) : this(name, (ExpressionResult)query.ExpressionResult, relationExpression, query.LambdaExpression.Parameters, query.ConstantParameterValues)
         {
         }
 
@@ -84,7 +84,7 @@ namespace EntityGraphQL.Compiler
 
     public class GraphQLMutationNode : IGraphQLNode
     {
-        private QueryResult result;
+        private CompiledQueryResult result;
         private IGraphQLNode graphQLNode;
 
         public bool IsMutation => true;
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Compiler
 
         ExpressionResult IGraphQLNode.NodeExpression { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        public GraphQLMutationNode(QueryResult result, IGraphQLNode graphQLNode)
+        public GraphQLMutationNode(CompiledQueryResult result, IGraphQLNode graphQLNode)
         {
             this.result = result;
             this.graphQLNode = graphQLNode;

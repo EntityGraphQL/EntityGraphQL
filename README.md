@@ -78,7 +78,7 @@ public class QueryController : Controller
         try
         {
             var results = _dbContext.QueryObject(query, _schemaProvider);
-            // most gql compile errors show up in results["errors"]
+            // gql compile errors show up in results.Errors
             return results
         }
         catch (Exception)

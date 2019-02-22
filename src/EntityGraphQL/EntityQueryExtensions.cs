@@ -25,7 +25,7 @@ namespace EntityGraphQL
         /// <param name="includeDebugInfo">Include debug/timing information in the result</param>
         /// <typeparam name="TType"></typeparam>
         /// <returns></returns>
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public static QueryResult QueryObject<TType>(this TType context, string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
             return QueryObject(context, new QueryRequest { Query = query }, schemaProvider, methodProvider, includeDebugInfo);
         }
@@ -40,7 +40,7 @@ namespace EntityGraphQL
         /// <param name="includeDebugInfo">Include debug/timing information in the result</param>
         /// <typeparam name="TType"></typeparam>
         /// <returns></returns>
-        public static IDictionary<string, object> QueryObject<TType>(this TType context, QueryRequest request, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public static QueryResult QueryObject<TType>(this TType context, QueryRequest request, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
@@ -51,36 +51,32 @@ namespace EntityGraphQL
                 timer.Start();
             }
 
-            var queryData = new ConcurrentDictionary<string, object>();
-            var result = new Dictionary<string, object>();
-            var errors = new List<GraphQLError>();
+            var result = new QueryResult();
 
             try
             {
                 var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider).Compile(request);
                 foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
                 {
-                    ExecuteNode(context, request, queryData, node);
+                    ExecuteNode(context, request, result.Data, node);
                 }
                 // Parallel.ForEach(objectGraph.Fields, node =>
                 foreach (var node in objectGraph.Fields.Where(f => !f.IsMutation))
                 {
-                    ExecuteNode(context, request, queryData, node);
+                    ExecuteNode(context, request, result.Data, node);
                 }
                 // );
             }
             catch (Exception ex)
             {
                 // error with the whole query
-                errors.Add(new GraphQLError(ex.Message));
+                result.Errors.Add(new GraphQLError(ex.Message));
             }
             if (includeDebugInfo && timer != null)
             {
                 timer.Stop();
-                result["_debug"] = new { TotalMilliseconds = timer.ElapsedMilliseconds };
+                result.SetDebug(new { TotalMilliseconds = timer.ElapsedMilliseconds });
             }
-            result["data"] = queryData;
-            result["errors"] = errors;
 
             return result;
         }

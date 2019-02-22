@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     ///
     /// The LambdaExpression will be (context, constParameters, ...) where context is required to be passed in when your call Execute()
     /// </summary>
-    public class QueryResult
+    public class CompiledQueryResult
     {
         private readonly IEnumerable<object> constantParameterValues;
         private readonly ExpressionResult expressionResult;
@@ -31,7 +31,7 @@ namespace EntityGraphQL.Compiler
 
         public List<ParameterExpression> ContextParams => contextParams;
 
-        public QueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams, IEnumerable<object> parameterValues)
+        public CompiledQueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams, IEnumerable<object> parameterValues)
         {
             this.expressionResult = expressionResult;
             this.contextParams = contextParams;

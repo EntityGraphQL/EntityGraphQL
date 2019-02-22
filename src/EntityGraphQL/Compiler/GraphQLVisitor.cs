@@ -83,7 +83,7 @@ namespace EntityGraphQL.Compiler
 
             try
             {
-                QueryResult result = null;
+                CompiledQueryResult result = null;
                 if (selectContext == null)
                 {
                     // top level are queries on the context
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Compiler
                     if (listExp.Item1 != null)
                     {
                         // yes we can
-                        graphQLNode = BuildDynamicSelectOnCollection(new QueryResult((ExpressionResult)listExp.Item1, result.ContextParams, result.ConstantParameterValues), name, context, true);
+                        graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult((ExpressionResult)listExp.Item1, result.ContextParams, result.ConstantParameterValues), name, context, true);
                         graphQLNode.NodeExpression = (ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
                     }
                     else
@@ -132,7 +132,7 @@ namespace EntityGraphQL.Compiler
 
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerables
-        private IGraphQLNode BuildDynamicSelectOnCollection(QueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context, bool isRootSelect)
+        private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context, bool isRootSelect)
         {
             var elementType = queryResult.BodyType.GetEnumerableType();
             var contextParameter = Expression.Parameter(elementType);
@@ -151,11 +151,11 @@ namespace EntityGraphQL.Compiler
             var t = MergeConstantParametersFromFields(queryResult, fieldExpressions, contextParameter);
             var parameters = t.Item1;
             var constantParameterValues = t.Item2;
-            var gqlNode = new GraphQLNode(name, new QueryResult(selectExpression, parameters, constantParameterValues), (ExpressionResult)exp);
+            var gqlNode = new GraphQLNode(name, new CompiledQueryResult(selectExpression, parameters, constantParameterValues), (ExpressionResult)exp);
             return gqlNode;
         }
 
-        private static Tuple<List<ParameterExpression>, List<object>> MergeConstantParametersFromFields(QueryResult queryResult, List<IGraphQLNode> fieldExpressions, ParameterExpression parameterExpression)
+        private static Tuple<List<ParameterExpression>, List<object>> MergeConstantParametersFromFields(CompiledQueryResult queryResult, List<IGraphQLNode> fieldExpressions, ParameterExpression parameterExpression)
         {
             var parameters = queryResult.IsMutation ? new List<ParameterExpression> {parameterExpression} : queryResult.LambdaExpression.Parameters.ToList();
             var constantParameterValues = queryResult.ConstantParameterValues.ToList();
@@ -172,7 +172,7 @@ namespace EntityGraphQL.Compiler
 
         /// Given a syntax of someField { fields, to, selection, from, object }
         /// it will build the correct select statement
-        private IGraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EntityGraphQLParser.EntityQueryContext context, QueryResult rootField)
+        private IGraphQLNode BuildDynamicSelectForObjectGraph(string query, string name, EntityGraphQLParser.EntityQueryContext context, CompiledQueryResult rootField)
         {
             var selectWasNull = false;
             if (selectContext == null)
@@ -209,7 +209,7 @@ namespace EntityGraphQL.Compiler
                 var parameters = t.Item1;
                 var constantParameterValues = t.Item2;
 
-                var graphQLNode = new GraphQLNode(name, new QueryResult((ExpressionResult)newExp, parameters, constantParameterValues), (ExpressionResult)exp);
+                var graphQLNode = new GraphQLNode(name, new CompiledQueryResult((ExpressionResult)newExp, parameters, constantParameterValues), (ExpressionResult)exp);
                 if (selectWasNull)
                 {
                     selectContext = null;

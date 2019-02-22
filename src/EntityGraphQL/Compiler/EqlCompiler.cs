@@ -21,12 +21,12 @@ namespace EntityGraphQL.Compiler
     ///   not(), !
     public static class EqlCompiler
     {
-        public static QueryResult Compile(string query)
+        public static CompiledQueryResult Compile(string query)
         {
             return Compile(query, null, new DefaultMethodProvider(), null);
         }
 
-        public static QueryResult Compile(string query, ISchemaProvider schemaProvider)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider)
         {
             return Compile(query, schemaProvider, new DefaultMethodProvider(), null);
         }
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static QueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
             ParameterExpression contextParam = null;
 
@@ -51,10 +51,10 @@ namespace EntityGraphQL.Compiler
                 contextParams.Add(contextParam);
             if (expression.ConstantParameters.Any())
                 contextParams.AddRange(expression.ConstantParameters.Keys);
-            return new QueryResult(expression, contextParams, expression.ConstantParameters.Values);
+            return new CompiledQueryResult(expression, contextParams, expression.ConstantParameters.Values);
         }
 
-        public static QueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, QueryVariables variables = null)
+        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, QueryVariables variables = null)
         {
             if (methodProvider == null)
             {
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler
             {
                 parameters.AddRange(expression.ConstantParameters.Keys);
             }
-            return new QueryResult(expression, parameters, expression.ConstantParameters?.Values);
+            return new CompiledQueryResult(expression, parameters, expression.ConstantParameters?.Values);
         }
 
         private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
