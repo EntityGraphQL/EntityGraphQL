@@ -36,8 +36,6 @@ namespace demo.Controllers
 
             try
             {
-                var schemProvider = new MappedSchemaProvider<DemoContext>();
-
                 var data = _dbContext.QueryObject(query, _schemaProvider);
                 return data;
             }

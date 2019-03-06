@@ -82,7 +82,13 @@ namespace EntityGraphQL.Schema
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
-            var field = new Field(fieldProp.Name.Singularize(), selectionExpression, $"Return a {fieldProp.ReturnTypeSingle} by its Id", fieldProp.ReturnTypeSingle, argTypesValue);
+            var name = fieldProp.Name.Singularize();
+            if (name == null)
+            {
+                // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
+                name = $"{fieldProp.Name}ById";
+            }
+            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeSingle} by its Id", fieldProp.ReturnTypeSingle, argTypesValue);
             schema.AddField(field);
         }
 

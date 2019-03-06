@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema
         bool HasMutation(string method);
         string GetGraphQLSchema();
         /// <summary>
-        /// Return all the fields that are ast the root query type
+        /// Return all the fields that are at the root query type
         /// </summary>
         /// <returns></returns>
         IEnumerable<Field> GetQueryFields();

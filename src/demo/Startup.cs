@@ -32,7 +32,15 @@ namespace demo
             services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("demo-db"));
 
             // add schema provider so we don't need to create it everytime
-            services.AddSingleton<MappedSchemaProvider<DemoContext>>();
+            services.AddSingleton(MakeSchema());
+        }
+
+        private MappedSchemaProvider<DemoContext> MakeSchema()
+        {
+            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
+            // we can extend the schema
+            demoSchema.Type<Location>().AddField("idAndName", l => l.Id + " - " + l.Name, "Show ID and Name of location");
+            return demoSchema;
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,10 +54,6 @@ namespace demo
             context.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
             context.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America", SomeInt = 9999}});
             context.SaveChanges();
-
-            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
-            // we can extend the schema
-            demoSchema.Type<Location>().AddField("dumb", l => l.Id + " - " + l.Name, "A dumb field");
 
             app.UseMvc();
         }

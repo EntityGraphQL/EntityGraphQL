@@ -1,3 +1,6 @@
+# 0.15.3
+- Fix an issue where it would generate an invalid field name if we couldn't singularize the name
+
 # 0.15.2
 - Move the query results into a `QueryResult` class so it is easier to work with
 
