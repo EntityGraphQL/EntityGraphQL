@@ -105,7 +105,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             var exp = baseExpression;
             Expression endExpression = null;
-            while (exp != null && !exp.Type.IsEnumerable())
+            while (exp != null && !exp.Type.IsEnumerableOrArray())
             {
                 switch (exp.NodeType)
                 {

@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema
 
         private static void AddFieldWithIdArgumentIfExists<TContextType>(MappedSchemaProvider<TContextType> schema, Type contextType, Field fieldProp)
         {
-            if (!fieldProp.Resolve.Type.IsEnumerable())
+            if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
             var schemaType = schema.Type(fieldProp.ReturnTypeSingle);
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "Id");
@@ -97,7 +97,7 @@ namespace EntityGraphQL.Schema
             var fields = new List<Field>();
             // cache fields/properties
             var param = Expression.Parameter(type);
-            if (type.IsArray || type.IsEnumerable())
+            if (type.IsArray || type.IsEnumerableOrArray())
                 return fields;
 
             foreach (var prop in type.GetProperties())
@@ -123,9 +123,9 @@ namespace EntityGraphQL.Schema
 
         private static void CacheType<TContextType>(Type propType,  MappedSchemaProvider<TContextType> schema)
         {
-            if (propType.GetTypeInfo().IsGenericType && propType.IsEnumerable())
+            if (propType.IsEnumerableOrArray())
             {
-                propType = propType.GetGenericArguments()[0];
+                propType = propType.GetEnumerableOrArrayType();
             }
 
             if (!schema.HasType(propType.Name) && !ignoreTypes.Contains(propType.Name) && (propType.GetTypeInfo().IsClass || propType.GetTypeInfo().IsInterface))

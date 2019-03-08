@@ -22,16 +22,16 @@ namespace EntityGraphQL.Schema
             Description = description;
             FieldParam = resolve.Parameters.First();
             ReturnTypeSingle = returnSchemaType;
-            IsEnumerable = resolve.Body.Type.IsEnumerable();
+            IsEnumerable = resolve.Body.Type.IsEnumerableOrArray();
             if (ReturnTypeSingle == null)
             {
                 if (IsEnumerable)
                 {
-                    if (resolve.Body.Type.GetGenericArguments().Count() == 0)
+                    if (!resolve.Body.Type.IsArray && resolve.Body.Type.GetGenericArguments().Count() == 0)
                     {
-                        throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> but didn't find it's generic type");
+                        throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
                     }
-                    ReturnTypeSingle = resolve.Body.Type.GetGenericArguments()[0].Name;
+                    ReturnTypeSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
                 }
                 else
                 {

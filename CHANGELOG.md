@@ -1,3 +1,7 @@
+# 0.15.4
+- Fix issue where the generated GraphQL schema had the incorrect type for arrays (e.g. double[])
+- Fix issue with `SchemaBuilder.FromObject` building invalid types from arrays.
+
 # 0.15.3
 - Fix an issue where it would generate an invalid field name if we couldn't singularize the name
 

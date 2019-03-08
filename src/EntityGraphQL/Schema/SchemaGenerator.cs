@@ -105,7 +105,7 @@ type Mutation {{
 
         private static object GetGqlReturnType(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            return field.IsEnumerable ? "[" + ClrToGqlType(field.ReturnTypeClr.GetGenericArguments()[0], schema, combinedMapping) + "]" : ClrToGqlType(field.ReturnTypeClr, schema, combinedMapping);
+            return field.IsEnumerable ? "[" + ClrToGqlType(field.ReturnTypeClr.GetEnumerableOrArrayType(), schema, combinedMapping) + "]" : ClrToGqlType(field.ReturnTypeClr, schema, combinedMapping);
         }
 
         private static object GetGqlArgs(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string noArgs = "")
@@ -126,7 +126,7 @@ type Mutation {{
                 {
                     return schema.GetSchemaTypeNameForRealType(type);
                 }
-                if (type.IsEnumerable()) {
+                if (type.IsEnumerableOrArray()) {
                     return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema, combinedMapping) + "]";
                 }
                 if (type.IsConstructedGenericType)

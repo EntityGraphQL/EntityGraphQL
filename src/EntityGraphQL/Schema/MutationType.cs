@@ -81,7 +81,7 @@ namespace EntityGraphQL.Schema
             if (value != null)
             {
                 Type type = value.GetType();
-                if (type.IsArray && memberType.IsEnumerable())
+                if (type.IsArray && memberType.IsEnumerableOrArray())
                 {
                     var arr = (Array)value;
                     var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
@@ -106,7 +106,7 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType ReturnType => returnType;
 
-        public bool IsEnumerable => ReturnType.ContextType.IsEnumerable();
+        public bool IsEnumerable => ReturnType.ContextType.IsEnumerableOrArray();
 
         public IDictionary<string, Type> Arguments => argumentTypes;
 

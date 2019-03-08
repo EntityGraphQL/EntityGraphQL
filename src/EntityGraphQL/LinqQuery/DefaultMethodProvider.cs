@@ -149,11 +149,11 @@ namespace EntityGraphQL.LinqQuery
 
         private static ExpressionResult GetContextFromEnumerable(ExpressionResult context)
         {
-            if (context.Type.IsEnumerable())
+            if (context.Type.IsEnumerableOrArray())
             {
                 return (ExpressionResult)Expression.Parameter(context.Type.GetGenericArguments()[0]);
             }
-            var t = context.Type.GetEnumerableType();
+            var t = context.Type.GetEnumerableOrArrayType();
             if (t != null)
                 return (ExpressionResult)Expression.Parameter(t);
             return context;

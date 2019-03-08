@@ -96,7 +96,7 @@ namespace EntityGraphQL.Compiler
                 var exp = result.LambdaExpression.Body;
 
                 IGraphQLNode graphQLNode = null;
-                if (exp.Type.IsEnumerable())
+                if (exp.Type.IsEnumerableOrArray())
                 {
                     graphQLNode = BuildDynamicSelectOnCollection(result, name, context, true);
                 }
@@ -134,7 +134,7 @@ namespace EntityGraphQL.Compiler
         /// it will build a select assuming 'someCollection' is an IEnumerables
         private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context, bool isRootSelect)
         {
-            var elementType = queryResult.BodyType.GetEnumerableType();
+            var elementType = queryResult.BodyType.GetEnumerableOrArrayType();
             var contextParameter = Expression.Parameter(elementType);
 
             var exp = queryResult.LambdaExpression.Body;
