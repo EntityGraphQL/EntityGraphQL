@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler.Util
             if (fieldType.IsNullableType())
                 type = "N" + fieldType.GetGenericArguments()[0].Name;
             else if (fieldType.IsEnumerableOrArray())
-                type = "L" + fieldType.GetGenericArguments()[0].Name;
+                type = "L" + fieldType.GetEnumerableOrArrayType().Name;
             else if (fieldType.GetTypeInfo().IsGenericType)
                 type = $"{fieldType.Name}:{string.Join(",", fieldType.GetGenericArguments().Select(a => a.Name))}";
             else

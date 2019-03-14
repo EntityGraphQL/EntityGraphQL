@@ -1,3 +1,6 @@
+# 0.15.5
+- Fix issue with array types in the dynamically generated type for lambdas
+
 # 0.15.4
 - Fix issue where the generated GraphQL schema had the incorrect type for arrays (e.g. double[])
 - Fix issue with `SchemaBuilder.FromObject` building invalid types from arrays.
