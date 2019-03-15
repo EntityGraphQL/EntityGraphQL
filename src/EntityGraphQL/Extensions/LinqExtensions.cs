@@ -45,12 +45,12 @@ namespace EntityGraphQL.Extensions
             return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
         }
 
-        public static Expression<IQueryable<TSource>> Take<TSource>(this IQueryable<TSource> source, int? count)
+        public static IQueryable<TSource> Take<TSource>(this IQueryable<TSource> source, int? count)
         {
             if (!count.HasValue)
-                return (Expression<IQueryable<TSource>>)source.Expression;
+                return source;
 
-            return source.Take(count.Value);
+            return Queryable.Take(source, count.Value);
         }
     }
 }

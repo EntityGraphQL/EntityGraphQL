@@ -1,3 +1,6 @@
+# 0.15.6
+- Fix issue with incorrectly checking for generic types
+
 # 0.15.5
 - Fix issue with array types in the dynamically generated type for lambdas
 

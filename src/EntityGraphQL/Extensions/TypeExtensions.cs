@@ -31,7 +31,7 @@ namespace EntityGraphQL.Extensions
 
         private static bool IsGenericTypeEnumerable(Type source)
         {
-            bool isEnumerable = (source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.GetGenericTypeDefinition() == typeof(IQueryable<>));
+            bool isEnumerable = (source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>));
             if (!isEnumerable)
             {
                 foreach (var intType in source.GetInterfaces())
@@ -46,7 +46,7 @@ namespace EntityGraphQL.Extensions
         }
 
         /// <summary>
-        /// Return the arary element type or the generic type for a IEnumerable<T>
+        /// Return the array element type or the generic type for a IEnumerable<T>
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
