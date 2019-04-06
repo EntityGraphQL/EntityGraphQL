@@ -9,11 +9,27 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
+    public interface ISchemaType
+    {
+        Type ContextType { get; }
+        string Name { get; }
+        string Description { get; }
+        bool IsInput { get; }
+
+        Field GetField(string identifier);
+        IEnumerable<Field> GetFields();
+        bool HasField(string identifier);
+        void AddFields(List<Field> fields);
+        void AddField(Field field);
+    }
+
     public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }
         public string Name { get; protected set; }
         public bool IsInput { get; }
+
+        public string Description => _description;
 
         private string _description;
         private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
