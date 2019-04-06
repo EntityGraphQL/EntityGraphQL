@@ -1,0 +1,65 @@
+@{
+    DisableEncoding = true;
+}
+using System.Linq;
+using EntityGraphQL.Schema;
+
+namespace @Model.Namespace 
+{
+    /// <summary>
+    /// GraphQL schema original generated from @Model.ContextClass on @System.DateTime.Now
+    /// 
+    /// Use this to create your GraphQL schema. E.g. in ASP.NET you could services.AddSingleton(@{@Model.OutputClassName}.MakeSchema());
+    /// Then use it with the QueryObject() extension method. e.g. given an instance of @Model.ContextClass call var data = context.QueryObject(query, schema);
+    /// </summary>
+    public static class @Model.OutputClassName
+    {
+        public static MappedSchemaProvider<@Model.ContextClass> MakeSchema()
+        {
+            var schema = new MappedSchemaProvider<@Model.ContextClass>();
+
+            // Add root query fields
+            @foreach(var field in Model.Schema.GetQueryFields())
+            {
+                if (field.Name.StartsWith("__"))
+                {
+                    continue;
+                }
+                @if (field.Arguments.Count > 0)
+                {
+            @:schema.AddField("@field.Name", new {  }, (Param_0, Param_2) => @field.Resolve, "@field.Description");
+                }
+                else
+                {
+            @:schema.AddField("@field.Name", Param_0 => @field.Resolve, "@field.Description");
+                }
+            }
+
+            @foreach(var type in Model.Schema.GetNonContextTypes())
+            {
+            @:// Add @type.Name type
+            @:schema.AddType<@type.ContextType.Name>("@type.Name", "@type.Description");
+
+            @:// Add @type.Name fields
+                @foreach(var field in type.GetFields())
+                {
+                if (field.Name.StartsWith("__"))
+                {
+                    continue;
+                }
+            @:schema.Type<@type.ContextType.Name>().AddField("@field.Name", Param_0 => @field.Resolve, "@field.Description");
+                }
+@:
+            }
+
+            // Add any input types required in your schema using schema.AddInputType<Point>("Point", "A point with x,y").AddAllFields();
+            // Add any type mappings required for your schema with schema.AddTypeMapping<NpgsqlPolygon>("[Point]");
+
+            // Add your mutations using schema.AddMutationFrom(new MyMutationClass());
+
+            // If you want to output the GraphQL schema somewhere, you can get the GraphQL format as a string by calling schema.GetGraphQLSchema()
+
+            return schema;
+        }
+    }
+}
