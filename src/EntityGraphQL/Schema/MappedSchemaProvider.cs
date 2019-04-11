@@ -56,6 +56,13 @@ namespace EntityGraphQL.Schema
 			return tt;
         }
 
+        public SchemaType<object> AddType(Type contextType, string name, string description)
+        {
+			var tt = new SchemaType<object>(contextType, name, description, null);
+            _types.Add(name, tt);
+			return tt;
+        }
+
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
             var tt = new SchemaType<TBaseType>(name, description, null, true);

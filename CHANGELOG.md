@@ -1,3 +1,7 @@
+# 0.15.7
+- Fix bug in handling converting a string into an enum
+- Fix issue looking up types internally when working with anonymous types
+
 # 0.15.6
 - Fix issue with incorrectly checking for generic types
 

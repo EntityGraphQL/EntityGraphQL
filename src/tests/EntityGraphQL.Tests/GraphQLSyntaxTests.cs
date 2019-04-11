@@ -157,7 +157,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                people { height(unit: meter) }
+                people { height(unit: ""meter"") }
             }");
 
             Assert.Single(tree.Fields);

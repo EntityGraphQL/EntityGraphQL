@@ -9,19 +9,6 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
-    public interface ISchemaType
-    {
-        Type ContextType { get; }
-        string Name { get; }
-        bool IsInput { get; }
-
-        Field GetField(string identifier);
-        IEnumerable<Field> GetFields();
-        bool HasField(string identifier);
-        void AddFields(List<Field> fields);
-        void AddField(Field field);
-    }
-
     public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }
@@ -32,9 +19,13 @@ namespace EntityGraphQL.Schema
         private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
-        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false)
+        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, filter, isInput)
         {
-            ContextType = typeof(TBaseType);
+        }
+
+        public SchemaType(Type contextType, string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false)
+        {
+            ContextType = contextType;
             Name = name;
             _description = description;
             _filter = filter;
@@ -45,9 +36,10 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Add all public Properties and Fields from the base type
         /// </summary>
-        public void AddAllFields()
+        public SchemaType<TBaseType> AddAllFields()
         {
             BuildFieldsFromBase(typeof(TBaseType));
+            return this;
         }
         public void AddFields(List<Field> fields)
         {

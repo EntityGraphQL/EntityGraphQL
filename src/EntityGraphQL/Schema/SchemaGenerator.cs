@@ -7,7 +7,7 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
-    internal class SchemaGenerator
+    public class SchemaGenerator
     {
         private static readonly Dictionary<Type, string> defaultTypeMappings = new Dictionary<Type, string> {
             {typeof(string), "String"},
@@ -70,7 +70,7 @@ type Mutation {{
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"{item.Description}\"");
 
-                mutations.AppendLine($"\t{ToCamelCase(item.Name)}{GetGqlArgs(item, schema, combinedMapping, "()")}: {GetGqlReturnType(item, schema, combinedMapping)}");
+                mutations.AppendLine($"\t{ToCamelCaseStartsLower(item.Name)}{GetGqlArgs(item, schema, combinedMapping, "()")}: {GetGqlReturnType(item, schema, combinedMapping)}");
             }
 
             return mutations.ToString();
@@ -94,7 +94,7 @@ type Mutation {{
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"{field.Description}\"");
 
-                    types.AppendLine($"\t{ToCamelCase(field.Name)}{GetGqlArgs(field, schema, combinedMapping)}: {GetGqlReturnType(field, schema, combinedMapping)}");
+                    types.AppendLine($"\t{ToCamelCaseStartsLower(field.Name)}{GetGqlArgs(field, schema, combinedMapping)}: {GetGqlReturnType(field, schema, combinedMapping)}");
 
                 }
                 types.AppendLine("}");
@@ -113,7 +113,7 @@ type Mutation {{
             if (field.Arguments == null || !field.Arguments.Any())
                 return noArgs;
 
-            var all = field.Arguments.Select(f => ToCamelCase(f.Key) + ": " + ClrToGqlType(f.Value, schema, combinedMapping));
+            var all = field.Arguments.Select(f => ToCamelCaseStartsLower(f.Key) + ": " + ClrToGqlType(f.Value, schema, combinedMapping));
 
             return $"({string.Join(", ", all)})";
         }
@@ -151,13 +151,13 @@ type Mutation {{
                 var typeName = GetGqlReturnType(t, schema, combinedMapping);
                 if (!string.IsNullOrEmpty(t.Description))
                     sb.AppendLine($"\t\"{t.Description}\"");
-                sb.AppendLine($"\t{ToCamelCase(t.Name)}{GetGqlArgs(t, schema, combinedMapping)}: {typeName}");
+                sb.AppendLine($"\t{ToCamelCaseStartsLower(t.Name)}{GetGqlArgs(t, schema, combinedMapping)}: {typeName}");
             }
 
             return sb.ToString();
         }
 
-        private static object ToCamelCase(string name)
+        public static string ToCamelCaseStartsLower(string name)
         {
             return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
         }

@@ -122,11 +122,11 @@ namespace EntityGraphQL.Schema
             this.argInstance = Activator.CreateInstance(methodArg.ParameterType);
             foreach (var item in this.argInstance.GetType().GetProperties())
             {
-                argumentTypes.Add(item.Name, item.PropertyType);
+                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.PropertyType);
             }
             foreach (var item in this.argInstance.GetType().GetFields())
             {
-                argumentTypes.Add(item.Name, item.FieldType);
+                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.FieldType);
             }
         }
 

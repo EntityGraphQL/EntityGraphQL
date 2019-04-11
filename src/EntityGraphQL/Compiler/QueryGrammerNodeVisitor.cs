@@ -130,45 +130,56 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitGqlarg(EntityGraphQLParser.GqlargContext context)
         {
+            ExpressionResult gqlVarValue = null;
             if (context.gqlVar() != null)
             {
                 string varKey = context.gqlVar().GetText().TrimStart('$');
                 object value = variables.GetValueFor(varKey);
-                var exp = (ExpressionResult)Expression.Constant(value);
-                if (value != null && value.GetType() == typeof(string))
+                gqlVarValue = (ExpressionResult)Expression.Constant(value);
+            }
+            else 
+            {
+                gqlVarValue = Visit(context.gqlvalue);
+            }
+
+
+            string argName = context.gqlfield.GetText();
+            if (fieldArgumentContext.HasArgumentByName(argName))
+            {
+                var argType = fieldArgumentContext.GetArgumentType(argName);
+                
+                if (gqlVarValue != null && gqlVarValue.Type == typeof(string) && gqlVarValue.NodeType == ExpressionType.Constant)
                 {
-                    if (guidRegex.IsMatch((string)value))
+                    string strValue = (string)((ConstantExpression)gqlVarValue).Value;
+                    if (guidRegex.IsMatch(strValue))
                     {
-                        exp = ConvertToGuid(exp);
+                        return ConvertToGuid(gqlVarValue);
                     }
-                    if (fieldArgumentContext.HasArgumentByName(context.gqlfield.GetText()) && fieldArgumentContext.GetArgumentType(context.gqlfield.GetText()).IsConstructedGenericType && fieldArgumentContext.GetArgumentType(context.gqlfield.GetText()).GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    if (argType.IsConstructedGenericType && argType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
-                        return BuildEntityQueryExpression((string)value);
+                        string query = strValue;
+                        if (query.StartsWith("\""))
+                        {
+                            query = query.Substring(1, context.gqlvalue.GetText().Length - 2);
+                        }
+                        return BuildEntityQueryExpression(query);
+                    }
+
+                    var argumentNonNullType = argType.IsNullableType() ? Nullable.GetUnderlyingType(argType) : argType;
+                    if (argumentNonNullType.GetTypeInfo().IsEnum)
+                    {
+                        var enumName = strValue;
+                        var valueIndex = Enum.GetNames(argumentNonNullType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
+                        if (valueIndex == -1)
+                        {
+                            throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
+                        }
+                        var enumValue = Enum.GetValues(argumentNonNullType).GetValue(valueIndex);
+                        return (ExpressionResult)Expression.Constant(enumValue);
                     }
                 }
-                return exp;
             }
-
-            var argType = fieldArgumentContext.GetArgumentType(context.gqlfield.GetText());
-            if (argType.IsConstructedGenericType && argType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-            {
-                string query = context.gqlvalue.GetText().Substring(1, context.gqlvalue.GetText().Length - 2);
-                return BuildEntityQueryExpression(query);
-            }
-            else if (!argType.GetTypeInfo().IsEnum)
-            {
-                // could be a constant or some other compilable expression
-                return Visit(context.gqlvalue);
-            }
-
-            var enumName = context.gqlvalue.GetText();
-            var valueIndex = Enum.GetNames(argType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
-            if (valueIndex == -1)
-            {
-                throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
-            }
-            var enumValue = Enum.GetValues(argType).GetValue(valueIndex);
-            return (ExpressionResult)Expression.Constant(enumValue);
+            return gqlVarValue;
         }
 
         private ExpressionResult BuildEntityQueryExpression(string query)
@@ -187,11 +198,12 @@ namespace EntityGraphQL.Compiler
 
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
+            string name = schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type);
             if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field, args != null ? args.Select(d => d.Key) : new string[0]))
             {
-                throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{currentContext.Type.Name}'");
+                throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{name}'");
             }
-            var exp = schemaProvider.GetExpressionForField(currentContext, currentContext.Type.Name, field, args);
+            var exp = schemaProvider.GetExpressionForField(currentContext, name, field, args);
             return exp;
         }
 

@@ -73,22 +73,12 @@ namespace EntityGraphQL.Schema
 
         public bool HasArgumentByName(string argName)
         {
-            return ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault() != null;
+            return allArguments.ContainsKey(argName);
         }
 
         public Type GetArgumentType(string argName)
         {
-            var argProp = ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
-            if (argProp == null)
-            {
-                var argField = ArgumentTypesObject.GetType().GetTypeInfo().GetFields().Where(f => f.IsPublic && f.Name.ToLower() == argName.ToLower()).FirstOrDefault();
-                if (argField == null)
-                {
-                    throw new EntityGraphQLCompilerException($"{argName} is not an argument on field {Name}");
-                }
-                return argField.FieldType;
-            }
-            return argProp.PropertyType;
+            return allArguments[argName];
         }
     }
 }
