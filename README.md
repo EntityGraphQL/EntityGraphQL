@@ -10,11 +10,11 @@ _Please explore, give feedback or join the development._
 ## Install
 Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
-## Getting up and running with EF
+# Getting up and running with EF
 
 _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF well is tested._
 
-### 1. Define your data context (in this case an EF context)
+## 1. Define your data context (in this case an EF context)
 
 ```csharp
 public class MyDbContext : DbContext {
@@ -45,7 +45,7 @@ public class Location {
   public string Name { get; set; }
 }
 ```
-### 2. Create a route
+## 2. Create a route
 
 Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller
 
@@ -92,7 +92,7 @@ public class QueryController : Controller
 This sets up 1 end point:
 - `POST` at `/api/query` where the body of the post is a GraphQL query
 
-### 3. Build awesome applications
+## 3. Build awesome applications
 
 You can now make a request to your API. For example
 ```
@@ -182,7 +182,7 @@ Will return the following result.
 }
 ```
 
-## Supported GraphQL features
+# Supported GraphQL features
 - Fields - the core part, select the fields you want, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
@@ -191,7 +191,7 @@ Will return the following result.
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 
-## Customizing the schema
+# Customizing the schema
 
 You can customise the default schema, or create one from stratch exposing only the fields you want.
 ```csharp
@@ -219,7 +219,13 @@ var paramTypes = new {id = Required<Guid>()};
 var paramTypes = new {unit = "meter"};
 ```
 
-## Mutations
+## LINQ Helper Methods
+EntityGraphQL provides a few extension methods to help with building queries with optinoal parameters.
+
+- `Take(int?)` - Only apply the `Take()` method if the argument has a value. Usage: `schema.AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description")`
+- `WhereWhen(predicate, when)` - Only apply the `Where()` method is `when` is true. Usage: `schema.AddField("Field", new { search = (string)null }, (db, p) => db.Entity.WhereWhen(s => s.Name.ToLower().Contains(p.search.ToLower()), !string.IsNullOrEmpty(p.search)), "Description")`
+
+# Mutations
 Mutations allow you to make changes to data while selecting some data to return from the result. See the [GraphQL documentation](https://graphql.org/learn/queries/#mutations) for more information on the syntax.
 
 The main concept behind this is you create a class (or many) to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
@@ -275,27 +281,25 @@ With variables
 
 This also selects the resulting `id` & `name` from the result of the mutation.
 
-## Secuity
+# Secuity
 
-### Mutations
+## Mutations
 Security checks should be done in your mutation code.
 
-### Queries
+## Queries
 Coming soon. But you should have security at other layers too
 
-## Paging
+# Paging
 For paging you want to create your own fields.
 
 ```cs
 schemaProvider.AddField("MyEntities", new {take = 10, skip = 0}, (db, param) => db.MyEntities.Skip(p.skip).Take(p.take), "Get a page of entities");
 ```
 
-Helpers for different types of paging will likely be added.
-
 # Intergrating with other tools
 Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
 
-# Using expressions else where
+# Using expressions else where (EQL)
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
 ```cs
   // This might be a configured EQL statement for filtering the results. It has a context of Property

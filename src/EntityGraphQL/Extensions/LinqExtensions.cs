@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -51,6 +52,22 @@ namespace EntityGraphQL.Extensions
                 return source;
 
             return Queryable.Take(source, count.Value);
+        }
+
+        /// <summary>
+        /// Apply the Where condition when applyPredicate is true
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="wherePredicate"></param>
+        /// <param name="applyPredicate"></param>
+        /// <typeparam name="TSource"></typeparam>
+        /// <returns></returns>
+        public static IQueryable<TSource> WhereWhen<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> wherePredicate, bool applyPredicate)
+        {
+            if (applyPredicate)
+                return Queryable.Where(source, wherePredicate);
+
+            return source;
         }
     }
 }
