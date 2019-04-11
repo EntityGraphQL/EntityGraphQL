@@ -1,3 +1,6 @@
+# 0.15.8
+- Add `WhereWhen()` to the extension helpers
+
 # 0.15.7
 - Fix bug in handling converting a string into an enum
 - Fix issue looking up types internally when working with anonymous types
