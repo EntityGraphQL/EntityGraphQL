@@ -7,6 +7,7 @@ namespace EntityGraphQL.Schema
     {
         Type ContextType { get; }
         string Name { get; }
+        string Description { get; }
         bool IsInput { get; }
 
         Field GetField(string identifier);
