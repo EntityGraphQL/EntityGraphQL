@@ -22,16 +22,16 @@ namespace demo.Controllers
         [HttpGet]
         public object Get(string query)
         {
-            return RunDataQuery(query);
+            return RunDataQuery(new QueryRequest { Query = query });
         }
 
         [HttpPost]
-        public object Post([FromBody]string query)
+        public object Post([FromBody]QueryRequest query)
         {
             return RunDataQuery(query);
         }
 
-        private object RunDataQuery(string query)
+        private object RunDataQuery(QueryRequest query)
         {
 
             try

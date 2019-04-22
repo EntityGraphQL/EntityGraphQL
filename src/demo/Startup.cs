@@ -29,31 +29,28 @@ namespace demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("demo-db"));
+            services.AddDbContext<DemoContext>(opt => opt.UseSqlite("Filename=demo.db"));
 
             // add schema provider so we don't need to create it everytime
-            services.AddSingleton(MakeSchema());
-        }
-
-        private MappedSchemaProvider<DemoContext> MakeSchema()
-        {
-            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
-            // we can extend the schema
-            demoSchema.Type<Location>().AddField("idAndName", l => l.Id + " - " + l.Name, "Show ID and Name of location");
-            return demoSchema;
+            services.AddSingleton(GraphQLSchema.MakeSchema());
+            services.AddMvc();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, DemoContext db)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            db.Database.EnsureCreated();
+            // db.Database.Migrate();
+
             // add test data
-            var context = app.ApplicationServices.GetService<DemoContext>();
-            context.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
-            context.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America", SomeInt = 9999}});
-            context.SaveChanges();
+            // db.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
+            // db.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America", SomeInt = 9999}});
+            // db.SaveChanges();
+
+            app.UseFileServer();
 
             app.UseMvc();
         }
