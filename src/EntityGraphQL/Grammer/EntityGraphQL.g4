@@ -45,12 +45,14 @@ mutationKeyword : 'mutation';
 field           : callPath;
 aliasType       : name=identity ws* ':' ws*;
 aliasExp        : alias=aliasType entity=expression;
-fieldSelect     : '{' (ws* | comment*) (aliasExp | field | entityQuery | comment) ((ws* ','? ws*) (aliasExp | field | entityQuery | comment))* (ws* | comment*) '}';
+fieldSelect     : '{' (ws* | comment*) (aliasExp | field | fragmentSelect | entityQuery | comment) ((ws* ','? ws*) (aliasExp | field | fragmentSelect | entityQuery | comment))* (ws* | comment*) '}';
 entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
 operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
 gqlBody         : '{' (ws* | comment*) (aliasExp | entityQuery) ( ((ws* ','? ws*) | comment*) (aliasExp | entityQuery))* (ws* | comment*) '}';
 dataQuery       : queryKeyword? ws* operationName? ws* gqlBody (ws* | comment*);
 mutationQuery   : mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
 comment         : ws* '#' ~( '\r' | '\n' )* ws*;
+gqlFragment     : ws* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* gqlBody;
+fragmentSelect  : '...' name=identity;
 
-graphQL         : comment* (dataQuery | mutationQuery);
+graphQL         : comment* (dataQuery | mutationQuery) gqlFragment;
