@@ -34,6 +34,7 @@ expression  : 'if' ' '* test=expression ' '* 'then' ' '* ifTrue=expression ' '* 
 startRule   : expression;
 
 // this is a data query (graphQL inspired)
+// # my comment
 // {
 //   entity1 { field1 field2 relation { field1 field2 } }
 //   entity2 { field1 field2 relation { field1 field2 } }
@@ -44,11 +45,12 @@ mutationKeyword : 'mutation';
 field           : callPath;
 aliasType       : name=identity ws* ':' ws*;
 aliasExp        : alias=aliasType entity=expression;
-fieldSelect     : '{' ws* (aliasExp | field | entityQuery) ((ws* ','? ws*) (aliasExp | field | entityQuery))* ws* '}';
+fieldSelect     : '{' (ws* | comment*) (aliasExp | field | entityQuery | comment) ((ws* ','? ws*) (aliasExp | field | entityQuery | comment))* (ws* | comment*) '}';
 entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
 operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
-gqlBody         : '{' ws* (aliasExp | entityQuery) ( (ws* ','? ws*) (aliasExp | entityQuery))* ws* '}';
-dataQuery       : queryKeyword? ws* operationName? ws* gqlBody ws*;
-mutationQuery   : mutationKeyword ws* operationName ws* gqlBody ws*;
+gqlBody         : '{' (ws* | comment*) (aliasExp | entityQuery) ( ((ws* ','? ws*) | comment*) (aliasExp | entityQuery))* (ws* | comment*) '}';
+dataQuery       : queryKeyword? ws* operationName? ws* gqlBody (ws* | comment*);
+mutationQuery   : mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
+comment         : ws* '#' ~( '\r' | '\n' )* ws*;
 
-graphQL         : dataQuery | mutationQuery;
+graphQL         : comment* (dataQuery | mutationQuery);

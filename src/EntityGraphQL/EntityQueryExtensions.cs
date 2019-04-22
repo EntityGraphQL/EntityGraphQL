@@ -56,16 +56,19 @@ namespace EntityGraphQL
             try
             {
                 var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider).Compile(request);
-                foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
+                if (objectGraph != null)
                 {
-                    ExecuteNode(context, request, result.Data, node);
+                    foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
+                    {
+                        ExecuteNode(context, request, result.Data, node);
+                    }
+                    // Parallel.ForEach(objectGraph.Fields, node =>
+                    foreach (var node in objectGraph.Fields.Where(f => !f.IsMutation))
+                    {
+                        ExecuteNode(context, request, result.Data, node);
+                    }
+                    // );
                 }
-                // Parallel.ForEach(objectGraph.Fields, node =>
-                foreach (var node in objectGraph.Fields.Where(f => !f.IsMutation))
-                {
-                    ExecuteNode(context, request, result.Data, node);
-                }
-                // );
             }
             catch (Exception ex)
             {
