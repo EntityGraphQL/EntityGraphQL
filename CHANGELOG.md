@@ -1,3 +1,7 @@
+# 0.
+- Add support for graphql comments
+- (Aplha) Add dotnet gql comment to generate a schema from your current DBContext. See readme for more info
+
 # 0.15.8
 - Add `WhereWhen()` to the extension helpers
 
