@@ -38,6 +38,10 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         List<ParameterExpression> Parameters { get; }
+        /// <summary>
+        /// Any constant (provided with the query) values for any of the parameters require for the expression. This allows us to cache a compiled expression (in the future) and supply different parameter values
+        /// </summary>
+        /// <value></value>
         List<object> ConstantParameterValues { get; }
     }
 }
