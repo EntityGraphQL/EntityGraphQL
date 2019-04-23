@@ -219,6 +219,27 @@ namespace EntityGraphQL.Tests
             Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
         }
 
+        [Fact]
+        public void SupportsFragmentSyntax()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query {
+    people { projects { id name } }
+}
+fragment info on Person {
+    id name
+}
+");
+
+            Assert.Single(tree.Action.Fields);
+            dynamic user = tree.Action.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+        }
+
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }

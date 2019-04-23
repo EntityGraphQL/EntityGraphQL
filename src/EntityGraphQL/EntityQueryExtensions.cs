@@ -55,20 +55,9 @@ namespace EntityGraphQL
 
             try
             {
-                var objectGraph = new GraphQLCompiler(schemaProvider, methodProvider).Compile(request);
-                if (objectGraph != null)
-                {
-                    foreach (var node in objectGraph.Fields.Where(f => f.IsMutation))
-                    {
-                        ExecuteNode(context, request, result.Data, node);
-                    }
-                    // Parallel.ForEach(objectGraph.Fields, node =>
-                    foreach (var node in objectGraph.Fields.Where(f => !f.IsMutation))
-                    {
-                        ExecuteNode(context, request, result.Data, node);
-                    }
-                    // );
-                }
+                var graphQLCompiler = new GraphQLCompiler(schemaProvider, methodProvider);
+                var queryResult = (GraphQLResultNode)graphQLCompiler.Compile(request);
+                queryResult.Execute(context, result);
             }
             catch (Exception ex)
             {
@@ -82,14 +71,6 @@ namespace EntityGraphQL
             }
 
             return result;
-        }
-
-        private static void ExecuteNode<TType>(TType context, QueryRequest request, ConcurrentDictionary<string, object> queryData, IGraphQLNode node)
-        {
-            queryData[node.Name] = null;
-            // request.Variables are already compiled into the expression
-            var data = node.Execute(context);
-            queryData[node.Name] = data;
         }
     }
 }

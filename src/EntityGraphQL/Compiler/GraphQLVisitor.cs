@@ -13,8 +13,7 @@ using EntityGraphQL.Compiler.Util;
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
-    /// Visits nodes of a DataQuery to build a list of linq expressions for each requested entity.
-    /// We use EqlCompiler to compile the query and then build a Select() call for each field
+    /// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
     /// </summary>
     /// <typeparam name="IGraphQLNode"></typeparam>
     internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLNode>
@@ -26,6 +25,16 @@ namespace EntityGraphQL.Compiler
         // This is really just so we know what to use when visiting a field
         private Expression selectContext;
         private BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
+        /// <summary>
+        /// As we parse the request fragments are added to this
+        /// </summary>
+        /// <typeparam name="string"></typeparam>
+        /// <returns></returns>
+        private List<string> fragments = new List<string>();
+        /// <summary>
+        /// Each request has 1 main "action" which is a query or a mutation
+        /// </summary>
+        private IGraphQLNode rootQuery;
 
         public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
@@ -222,12 +231,30 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        /// This is our top level node.
-        /// {
+        /// <summary>
+        /// This is out TOP level GQL result
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override IGraphQLNode VisitGraphQL(EntityGraphQLParser.GraphQLContext context)
+        {
+            foreach (var c in context.children)
+            {
+                Visit(c);
+            }
+            return new GraphQLResultNode(rootQuery, fragments);
+        }
+
+        /// <summary>
+        /// This is one of our top level node.
+        /// query MyQuery {
         ///   entityQuery { fields [, field] },
         ///   entityQuery { fields [, field] },
         ///   ...
         /// }
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public override IGraphQLNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
             var root = new GraphQLNode("root", null, null, null, null);
@@ -239,9 +266,15 @@ namespace EntityGraphQL.Compiler
                 if (n != null)
                     root.Fields.Add(n);
             }
+            rootQuery = root;
             return root;
         }
-
+        /// <summary>
+        /// This is one of our top level node.
+        /// mutation MyMutation {...}
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public override IGraphQLNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
             var root = new GraphQLNode("root", null, null, null, null);
@@ -255,6 +288,7 @@ namespace EntityGraphQL.Compiler
                     root.Fields.Add(mutation);
                 }
             }
+            rootQuery = root;
             return root;
         }
 
@@ -268,6 +302,13 @@ namespace EntityGraphQL.Compiler
             var op = visitor.Visit(context);
 
             return op;
+        }
+
+        public override IGraphQLNode VisitGqlFragment(EntityGraphQLParser.GqlFragmentContext context)
+        {
+            // top level syntax part. Add to the fragrments and return null
+            fragments.Add(context.fragmentName.GetText());
+            return null;
         }
     }
 }

@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public IGraphQLNode Compile(string query, QueryVariables variables = null)
+        public GraphQLResultNode Compile(string query, QueryVariables variables = null)
         {
             if (variables == null)
             {
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler
             }
             return Compile(new QueryRequest {Query = query, Variables = variables});
         }
-        public IGraphQLNode Compile(QueryRequest request)
+        public GraphQLResultNode Compile(QueryRequest request)
         {
             // Setup our Antlr parser
             var stream = new AntlrInputStream(request.Query);
@@ -53,7 +53,7 @@ namespace EntityGraphQL.Compiler
                 var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, request.Variables);
                 // visit each node. it will return a linq expression for each entity requested
                 var node = visitor.Visit(tree);
-                return node;
+                return (GraphQLResultNode)node;
             }
             catch (ParseCanceledException pce)
             {

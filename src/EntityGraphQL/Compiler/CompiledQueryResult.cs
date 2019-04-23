@@ -19,7 +19,6 @@ namespace EntityGraphQL.Compiler
         private readonly List<ParameterExpression> contextParams;
 
         public LambdaExpression LambdaExpression { get { return Expression.Lambda(expressionResult.Expression, ContextParams.ToArray()); } }
-        public Type Type { get { return LambdaExpression.Type; } }
 
         public IEnumerable<object> ConstantParameterValues { get { return constantParameterValues; } }
 

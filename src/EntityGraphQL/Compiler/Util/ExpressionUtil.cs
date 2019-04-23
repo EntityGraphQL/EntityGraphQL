@@ -136,7 +136,7 @@ namespace EntityGraphQL.Compiler.Util
             var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
             return memberInit;
         }
-        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
+        private static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
         {
             var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression);
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression.Type));
