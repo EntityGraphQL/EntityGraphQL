@@ -28,9 +28,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// As we parse the request fragments are added to this
         /// </summary>
-        /// <typeparam name="string"></typeparam>
-        /// <returns></returns>
-        private List<string> fragments = new List<string>();
+        private List<GraphQLFragment> fragments = new List<GraphQLFragment>();
         /// <summary>
         /// Each request has 1 main "action" which is a query or a mutation
         /// </summary>
@@ -70,7 +68,11 @@ namespace EntityGraphQL.Compiler
             }
         }
 
+        /// <summary>
         /// We compile each entityQuery with EqlCompiler and build a Select call from the fields
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public override IGraphQLNode VisitEntityQuery(EntityGraphQLParser.EntityQueryContext context)
         {
             string name;
@@ -307,7 +309,22 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLNode VisitGqlFragment(EntityGraphQLParser.GqlFragmentContext context)
         {
             // top level syntax part. Add to the fragrments and return null
-            fragments.Add(context.fragmentName.GetText());
+            var typeName = context.fragmentType.GetText();
+            selectContext = Expression.Parameter(schemaProvider.Type(typeName).ContextType);
+            foreach (var item in context.fields.children)
+            {
+                var fields2 = Visit(item);
+            }
+            var fields = Visit(context.fields);
+            selectContext = null;
+            fragments.Add(new GraphQLFragment(context.fragmentName.GetText(), typeName));
+            return null;
+        }
+
+        public override IGraphQLNode VisitFragmentSelect(EntityGraphQLParser.FragmentSelectContext context)
+        {
+            // top level syntax part. Add to the fragrments and return null
+            var name = context.name.GetText();
             return null;
         }
     }

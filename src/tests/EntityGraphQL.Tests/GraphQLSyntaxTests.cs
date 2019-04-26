@@ -220,6 +220,28 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportsComments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+            # hey there
+            query {
+                # yep
+                person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { # this is a good field
+                    id projects { id name }
+                }
+            }");
+
+            Assert.Single(tree.Fields);
+            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            // we only have the fields requested
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+        }
+
+        [Fact]
         public void SupportsFragmentSyntax()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
@@ -233,11 +255,38 @@ fragment info on Person {
 }
 ");
 
-            Assert.Single(tree.Action.Fields);
-            dynamic user = tree.Action.Fields.ElementAt(0).Execute(new TestSchema());
+            Assert.Single(tree.Fields);
+            var qr = new QueryResult();
+            tree.Execute(new TestSchema(), qr);
+            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
-            Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, person.GetType().GetFields().Length);
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void SupportsFragmentSelectionSyntax()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query {
+    people { ...info projects { id name } }
+}
+fragment info on Person {
+    id name
+}
+");
+
+            Assert.Single(tree.Fields);
+            var qr = new QueryResult();
+            tree.Execute(new TestSchema(), qr);
+            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+            // we only have the fields requested
+            Assert.Equal(3, person.GetType().GetFields().Length);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Equal("projects", person.GetType().GetFields()[2].Name);
         }
 
         private class TestSchema

@@ -8,10 +8,10 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLResultNode : IGraphQLNode
     {
-        private List<string> fragments;
+        private List<GraphQLFragment> fragments;
         public IGraphQLNode Action { get; }
 
-        public GraphQLResultNode(IGraphQLNode action, List<string> fragments)
+        public GraphQLResultNode(IGraphQLNode action, List<GraphQLFragment> fragments)
         {
             this.Action = action;
             this.fragments = fragments;
