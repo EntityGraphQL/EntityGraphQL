@@ -137,7 +137,7 @@ namespace EntityGraphQL.Compiler
                 object value = variables.GetValueFor(varKey);
                 gqlVarValue = (ExpressionResult)Expression.Constant(value);
             }
-            else 
+            else
             {
                 gqlVarValue = Visit(context.gqlvalue);
             }
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Compiler
             if (fieldArgumentContext.HasArgumentByName(argName))
             {
                 var argType = fieldArgumentContext.GetArgumentType(argName);
-                
+
                 if (gqlVarValue != null && gqlVarValue.Type == typeof(string) && gqlVarValue.NodeType == ExpressionType.Constant)
                 {
                     string strValue = (string)((ConstantExpression)gqlVarValue).Value;
@@ -214,7 +214,8 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitInt(EntityGraphQLParser.IntContext context)
         {
-            return (ExpressionResult)Expression.Constant(Int32.Parse(context.GetText()));
+            string s = context.GetText();
+            return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(Int64.Parse(s)) : Expression.Constant(UInt64.Parse(s)));
         }
 
         public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)
