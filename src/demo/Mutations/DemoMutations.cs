@@ -33,7 +33,25 @@ namespace demo.Mutations
                 Rating = args.Rating,
             };
             db.Movies.Add(movie);
+            db.SaveChanges();
             return movie;
+        }
+
+        [GraphQLMutation]
+        public Person AddActor(DemoContext db, AddActorArgs args)
+        {
+            var person = new Person {
+                FirstName = args.FirstName,
+                LastName = args.LastName,
+            };
+            db.People.Add(person);
+            var actor = new Actor {
+                MovieId = args.MovieId,
+                PersonId = person.Id,
+            };
+            db.Actors.Add(actor);
+            db.SaveChanges();
+            return person;
         }
     }
 
@@ -47,4 +65,12 @@ namespace demo.Mutations
         public double Rating { get; set; }
         public DateTime Released;
     }
+
+    public class AddActorArgs
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public uint MovieId { get; set; }
+    }
+
 }

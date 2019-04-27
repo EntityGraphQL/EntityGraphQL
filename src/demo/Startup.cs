@@ -42,8 +42,16 @@ namespace demo
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            // CreateData(db);
+
+            app.UseFileServer();
+
+            app.UseMvc();
+        }
+
+        private static void CreateData(DemoContext db)
+        {
             db.Database.EnsureCreated();
-            // db.Database.Migrate();
 
             // add test data
             var shawshank = new Movie
@@ -109,10 +117,6 @@ namespace demo
             db.Movies.Add(godfather);
 
             db.SaveChanges();
-
-            app.UseFileServer();
-
-            app.UseMvc();
         }
     }
 }

@@ -131,12 +131,17 @@ namespace EntityGraphQL.Schema
             Type<TContextType>().AddField(name, selection, description, returnSchemaType);
         }
 
+        public void ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            Type<TContextType>().RemoveField(name);
+            Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType);
+        }
+
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
             Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
-
 
         /// <summary>
         /// Add a field with arguments.
