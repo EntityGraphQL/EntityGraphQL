@@ -46,9 +46,69 @@ namespace demo
             // db.Database.Migrate();
 
             // add test data
-            // db.Properties.Add(new Property {Id = 11, Name = "My House", Location = new Location {Id = 21, Name = "Australia"}});
-            // db.Properties.Add(new Property {Id = 12, Name = "The White House", Location = new Location {Id = 22, Name = "America", SomeInt = 9999}});
-            // db.SaveChanges();
+            var shawshank = new Movie
+            {
+                Name = "The Shawshank Redemption",
+                Genre = Genre.Drama,
+                Released = new DateTime(1994, 10, 14),
+                Rating = 9.2,
+                Director = new Person
+                {
+                    FirstName = "Frank",
+                    LastName = "Darabont",
+                    Dob = new DateTime(1959, 1, 28),
+                }
+            };
+            shawshank.Actors = new List<Actor> {
+                new Actor {
+                    Person = new Person {
+                        Dob = new DateTime(1958, 10, 16),
+                        FirstName = "Tim",
+                        LastName = "Robbins",
+                    },
+                },
+            };
+            db.Movies.Add(shawshank);
+            var francis = new Person
+            {
+                Dob = new DateTime(1939, 4, 7),
+                FirstName = "Francis",
+                LastName = "Coppola",
+            };
+            var godfather = new Movie
+            {
+                Name = "The Godfather",
+                Genre = Genre.Drama,
+                Released = new DateTime(1972, 3, 24),
+                Rating = 9.2,
+                Director = francis,
+            };
+            godfather.Actors = new List<Actor> {
+                new Actor {
+                    Person = new Person {
+                        Dob = new DateTime(1924, 4, 3),
+                        Died = new DateTime(2004, 7, 1),
+                        FirstName = "Marlon",
+                        LastName = "Brando",
+                    },
+                },
+                new Actor {
+                    Person = new Person {
+                        Dob = new DateTime(1940, 4, 25),
+                        FirstName = "Al",
+                        LastName = "Pacino",
+                    },
+                },
+            };
+            godfather.Writers = new List<Writer> {
+                new Writer {
+                    Person = francis,
+                }
+            };
+
+            db.Movies.Add(godfather);
+
+            db.SaveChanges();
 
             app.UseFileServer();
 

@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Each request has 1 main "action" which is a query or a mutation
         /// </summary>
-        private IGraphQLNode rootQuery;
+        private List<IGraphQLNode> rootQueries = new List<IGraphQLNode>();
 
         public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
@@ -244,7 +244,7 @@ namespace EntityGraphQL.Compiler
             {
                 Visit(c);
             }
-            return new GraphQLResultNode(rootQuery, fragments);
+            return new GraphQLResultNode(rootQueries, fragments);
         }
 
         /// <summary>
@@ -259,17 +259,17 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public override IGraphQLNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
-            var root = new GraphQLNode("root", null, null, null, null);
             var operationName = GetOperationName(context.operationName());
+            var query = new GraphQLNode(operationName.Name, null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
                 if (n != null)
-                    root.Fields.Add(n);
+                    query.Fields.Add(n);
             }
-            rootQuery = root;
-            return root;
+            rootQueries.Add(query);
+            return query;
         }
         /// <summary>
         /// This is one of our top level node.
@@ -279,19 +279,18 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public override IGraphQLNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
-            var root = new GraphQLNode("root", null, null, null, null);
-
             var operationName = GetOperationName(context.operationName());
+            var mutation = new GraphQLNode(operationName.Name, null, null, null, null);
             foreach (var c in context.gqlBody().children)
             {
-                var mutation = Visit(c);
-                if (mutation != null)
+                var n = Visit(c);
+                if (n != null)
                 {
-                    root.Fields.Add(mutation);
+                    mutation.Fields.Add(n);
                 }
             }
-            rootQuery = root;
-            return root;
+            rootQueries.Add(mutation);
+            return mutation;
         }
 
         public GraphQLOperation GetOperationName(EntityGraphQLParser.OperationNameContext context)

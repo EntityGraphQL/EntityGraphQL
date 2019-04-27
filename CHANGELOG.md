@@ -1,5 +1,6 @@
 # 0.
 - Add support for graphql comments
+- Add support for `operationName` in the `GraphQLRequest`
 - Add GraphiQL web interface to the demo app
 - (Aplha) Add dotnet gql comment to generate a schema from your current DBContext. See readme for more info
 

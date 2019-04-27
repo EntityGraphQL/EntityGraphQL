@@ -8,18 +8,25 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLResultNode : IGraphQLNode
     {
+        /// <summary>
+        /// A list of the fragments in thw query document
+        /// </summary>
         private List<GraphQLFragment> fragments;
-        public IGraphQLNode Action { get; }
+        /// <summary>
+        /// A list of graphql operations. THese could be mutations or queries
+        /// </summary>
+        /// <value></value>
+        public List<IGraphQLNode> Operations { get; }
 
-        public GraphQLResultNode(IGraphQLNode action, List<GraphQLFragment> fragments)
+        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations, List<GraphQLFragment> fragments)
         {
-            this.Action = action;
+            this.Operations = operations.ToList();
             this.fragments = fragments;
         }
 
         public string Name => "Query Request Root";
 
-        public List<IGraphQLNode> Fields => Action.Fields;
+        public List<IGraphQLNode> Fields => throw new NotImplementedException();
 
         public List<object> ConstantParameterValues => throw new NotImplementedException();
 
@@ -28,17 +35,18 @@ namespace EntityGraphQL.Compiler
         public ExpressionResult NodeExpression { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         /// <summary>
-        /// Expects 2 arguments and just calls ExecuteQuery().
+        /// Expects 3 arguments and just calls ExecuteQuery().
         /// </summary>
-        /// <param name="args">Must be 2. The context and a QueryResult to add results to</param>
+        /// <param name="args">Must be 3. The context, a QueryResult to add results to and an operationName (can be null)</param>
         /// <returns></returns>
         public object Execute(params object[] args)
         {
-            if (args.Length != 2)
+            if (args.Length != 3)
                 throw new ArgumentException("Must supply 2 arguments. The context and a QueryResult instance");
             var context = args[0];
             var result = (QueryResult)args[1];
-            return ExecuteQuery(context, result);
+            var operationName = (string)args[2];
+            return ExecuteQuery(context, result, operationName);
          }
 
         /// <summary>
@@ -47,9 +55,10 @@ namespace EntityGraphQL.Compiler
         /// <param name="context">The context object to apply the compiled Lambda to. E.g. a DbContext</param>
         /// <param name="result">A QueryResult instance in which data results or errors will be added to</param>
         /// <returns></returns>
-        public object ExecuteQuery(object context, QueryResult result)
+        public object ExecuteQuery(object context, QueryResult result, string operationName)
         {
-            foreach (var node in Action.Fields)
+            var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
+            foreach (var node in op.Fields)
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
