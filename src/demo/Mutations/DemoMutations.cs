@@ -77,7 +77,7 @@ namespace demo.Mutations
             db.People.Add(person);
             var actor = new Actor {
                 MovieId = args.MovieId,
-                PersonId = person.Id,
+                Person = person,
             };
             db.Actors.Add(actor);
             db.SaveChanges();

@@ -6,13 +6,8 @@ namespace EntityGraphQL.Compiler
     /// <summary>
     /// GraphQLVisitor returns IGraphQLNodes as it processors the tree
     /// </summary>
-    public interface IGraphQLNode
+    public interface IGraphQLNode : IGraphQLBaseNode
     {
-        /// <summary>
-        /// Name of the node
-        /// </summary>
-        /// <value></value>
-        string Name { get; }
         /// <summary>
         /// Execute this node with the supplied arguments. This is used for top level fields (that are each a query/mutation themselves)
         /// </summary>
@@ -43,5 +38,14 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         List<object> ConstantParameterValues { get; }
+    }
+
+    public interface IGraphQLBaseNode
+    {
+        /// <summary>
+        /// Name of the node
+        /// </summary>
+        /// <value></value>
+        string Name { get; }
     }
 }

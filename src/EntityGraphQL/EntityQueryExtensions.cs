@@ -51,18 +51,18 @@ namespace EntityGraphQL
                 timer.Start();
             }
 
-            var result = new QueryResult();
+            QueryResult result = null;
 
             try
             {
                 var graphQLCompiler = new GraphQLCompiler(schemaProvider, methodProvider);
                 var queryResult = (GraphQLResultNode)graphQLCompiler.Compile(request);
-                queryResult.Execute(context, result, request.OperationName);
+                result = queryResult.ExecuteQuery(context, request.OperationName);
             }
             catch (Exception ex)
             {
                 // error with the whole query
-                result.Errors.Add(new GraphQLError(ex.Message));
+                result = new QueryResult {Errors = { new GraphQLError(ex.Message) }};
             }
             if (includeDebugInfo && timer != null)
             {

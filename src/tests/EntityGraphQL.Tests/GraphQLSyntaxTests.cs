@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"query {
 	People { id }
-}");
+}").Operations.First();
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(result));
@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	user(id: 1) { id }
-}");
+}").Operations.First();
             // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -53,7 +53,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.ReplaceField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	users(filter: ""field2 = ""2"" "") { field2 }
-}");
+}").Operations.First();
             Assert.Single(tree.Fields);
             dynamic users = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(users));
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 me { id }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { id height }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { height(unit: ""meter"") }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user(id: 1) { id }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -192,7 +192,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 project(id: ""aaaaaaaa-bbbb-4444-1111-ccddeeff0022"") { id }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic project = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -209,7 +209,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -231,7 +231,7 @@ namespace EntityGraphQL.Tests
                 person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { # this is a good field
                     id projects { id name }
                 }
-            }");
+            }").Operations.First();
 
             Assert.Single(tree.Fields);
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -253,7 +253,7 @@ query {
 fragment info on Person {
     id name
 }
-");
+").Operations.First();
 
             Assert.Single(tree.Fields);
             var qr = new QueryResult();
@@ -278,9 +278,8 @@ fragment info on Person {
 }
 ");
 
-            Assert.Single(tree.Fields);
-            var qr = new QueryResult();
-            tree.Execute(new TestSchema(), qr);
+            Assert.Single(tree.Operations.First().Fields);
+            var qr = tree.ExecuteQuery(new TestSchema());
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
