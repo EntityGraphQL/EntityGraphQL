@@ -15,8 +15,8 @@ namespace EntityGraphQL.Compiler
     /// <summary>
     /// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
     /// </summary>
-    /// <typeparam name="IGraphQLNode"></typeparam>
-    internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLNode>
+    /// <typeparam name="IGraphQLBaseNode"></typeparam>
+    internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLBaseNode>
     {
         private ISchemaProvider schemaProvider;
         private IMethodProvider methodProvider;
@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Each request has 1 main "action" which is a query or a mutation
         /// </summary>
-        private IGraphQLNode rootQuery;
+        private List<IGraphQLNode> rootQueries = new List<IGraphQLNode>();
 
         public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Compiler
             this.variables = variables;
         }
 
-        public override IGraphQLNode VisitField(EntityGraphQLParser.FieldContext context)
+        public override IGraphQLBaseNode VisitField(EntityGraphQLParser.FieldContext context)
         {
             var name = baseIdentityFinder.Visit(context);
             var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, methodProvider, variables);
@@ -49,7 +49,7 @@ namespace EntityGraphQL.Compiler
             var node = new GraphQLNode(actualName, result, null);
             return node;
         }
-        public override IGraphQLNode VisitAliasExp(EntityGraphQLParser.AliasExpContext context)
+        public override IGraphQLBaseNode VisitAliasExp(EntityGraphQLParser.AliasExpContext context)
         {
             var name = context.alias.name.GetText();
             var query = context.entity.GetText();
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override IGraphQLNode VisitEntityQuery(EntityGraphQLParser.EntityQueryContext context)
+        public override IGraphQLBaseNode VisitEntityQuery(EntityGraphQLParser.EntityQueryContext context)
         {
             string name;
             string query;
@@ -153,7 +153,7 @@ namespace EntityGraphQL.Compiler
             var oldContext = selectContext;
             selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
-            var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
+            var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).Cast<IGraphQLNode>().ToList();
 
             // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
             var selectExpression = (ExpressionResult)ExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, schemaProvider);
@@ -205,7 +205,7 @@ namespace EntityGraphQL.Compiler
                 var rootFieldParam = Expression.Parameter(exp.Type);
                 selectContext = rootField.IsMutation ? rootFieldParam : exp;
                 // visit child fields. Will be field or entityQueries again
-                var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
+                var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).Cast<IGraphQLNode>().ToList();
 
                 var newExp = ExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
                 var anonType = newExp.Type;
@@ -238,13 +238,13 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override IGraphQLNode VisitGraphQL(EntityGraphQLParser.GraphQLContext context)
+        public override IGraphQLBaseNode VisitGraphQL(EntityGraphQLParser.GraphQLContext context)
         {
             foreach (var c in context.children)
             {
                 Visit(c);
             }
-            return new GraphQLResultNode(rootQuery, fragments);
+            return new GraphQLResultNode(rootQueries, fragments);
         }
 
         /// <summary>
@@ -257,19 +257,19 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override IGraphQLNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
+        public override IGraphQLBaseNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
-            var root = new GraphQLNode("root", null, null, null, null);
             var operationName = GetOperationName(context.operationName());
+            var query = new GraphQLNode(operationName.Name, null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
                 if (n != null)
-                    root.Fields.Add(n);
+                    query.Fields.Add((IGraphQLNode)n);
             }
-            rootQuery = root;
-            return root;
+            rootQueries.Add(query);
+            return query;
         }
         /// <summary>
         /// This is one of our top level node.
@@ -277,21 +277,20 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override IGraphQLNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
+        public override IGraphQLBaseNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
-            var root = new GraphQLNode("root", null, null, null, null);
-
             var operationName = GetOperationName(context.operationName());
+            var mutation = new GraphQLNode(operationName.Name, null, null, null, null);
             foreach (var c in context.gqlBody().children)
             {
-                var mutation = Visit(c);
-                if (mutation != null)
+                var n = Visit(c);
+                if (n != null)
                 {
-                    root.Fields.Add(mutation);
+                    mutation.Fields.Add((IGraphQLNode)n);
                 }
             }
-            rootQuery = root;
-            return root;
+            rootQueries.Add(mutation);
+            return mutation;
         }
 
         public GraphQLOperation GetOperationName(EntityGraphQLParser.OperationNameContext context)
@@ -306,7 +305,7 @@ namespace EntityGraphQL.Compiler
             return op;
         }
 
-        public override IGraphQLNode VisitGqlFragment(EntityGraphQLParser.GqlFragmentContext context)
+        public override IGraphQLBaseNode VisitGqlFragment(EntityGraphQLParser.GqlFragmentContext context)
         {
             // top level syntax part. Add to the fragrments and return null
             var typeName = context.fragmentType.GetText();
@@ -321,7 +320,7 @@ namespace EntityGraphQL.Compiler
             return null;
         }
 
-        public override IGraphQLNode VisitFragmentSelect(EntityGraphQLParser.FragmentSelectContext context)
+        public override IGraphQLBaseNode VisitFragmentSelect(EntityGraphQLParser.FragmentSelectContext context)
         {
             // top level syntax part. Add to the fragrments and return null
             var name = context.name.GetText();

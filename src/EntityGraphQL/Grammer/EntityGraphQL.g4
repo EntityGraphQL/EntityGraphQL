@@ -55,4 +55,4 @@ comment         : ws* '#' ~( '\r' | '\n' )* ws*;
 gqlFragment     : ws* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=fieldSelect ws*;
 fragmentSelect  : '...' name=identity;
 
-graphQL         : comment* (dataQuery | mutationQuery) gqlFragment*;
+graphQL         : comment* (dataQuery | mutationQuery)+ gqlFragment*;

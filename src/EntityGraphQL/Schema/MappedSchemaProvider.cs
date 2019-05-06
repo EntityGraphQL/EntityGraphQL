@@ -131,12 +131,17 @@ namespace EntityGraphQL.Schema
             Type<TContextType>().AddField(name, selection, description, returnSchemaType);
         }
 
+        public void ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        {
+            Type<TContextType>().RemoveField(name);
+            Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType);
+        }
+
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
             Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
-
 
         /// <summary>
         /// Add a field with arguments.
@@ -372,6 +377,15 @@ namespace EntityGraphQL.Schema
 
         public string GetSchemaTypeNameForRealType(Type type)
         {
+            if (type.GetTypeInfo().BaseType == typeof(LambdaExpression))
+            {
+                // This should be Expression<Func<Context, ReturnType>>
+                type = type.GetGenericArguments()[0].GetGenericArguments()[1];
+                if (type.IsEnumerableOrArray())
+                {
+                    type = type.GetGenericArguments()[0];
+                }
+            }
             if (type == _types[_queryContextName].ContextType)
                 return type.Name;
 

@@ -22,9 +22,8 @@ namespace EntityGraphQL.Tests
 	users { __typename id }
 }");
 
-            Assert.Single(tree.Fields);
-            dynamic users = tree.Fields.ElementAt(0).Execute(new TestSchema());
-            var user = Enumerable.First(users);
+            var users = tree.ExecuteQuery(new TestSchema());
+            var user = Enumerable.First((dynamic)users.Data["users"]);
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
             Assert.Equal("__typename", user.GetType().GetFields()[0].Name);

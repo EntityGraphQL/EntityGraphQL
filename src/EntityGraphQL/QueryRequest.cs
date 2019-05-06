@@ -7,6 +7,12 @@ namespace EntityGraphQL
     /// </summary>
     public class QueryRequest
     {
+        // Name of the query or mutation you want to run in the Query (if it contains many)
+        public string OperationName { get; set; }
+        /// <summary>
+        /// GraphQL query document
+        /// </summary>
+        /// <value></value>
         public string Query { get; set; }
         public QueryVariables Variables { get; set; }
     }
