@@ -24,14 +24,14 @@ namespace demo
             demoSchema.Type<Person>().AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
             demoSchema.Type<Person>().AddField("name", l => $"{l.FirstName} {l.LastName}", "Person's name");
 
-            // replace fields. e.g. remove a many-to-many entity
+            // replace fields. e.g. remove a many-to-many relationships
             demoSchema.Type<Movie>().ReplaceField("actors", m => m.Actors.Select(a => a.Person), "Actors in the movie");
             demoSchema.Type<Movie>().ReplaceField("writers", m => m.Writers.Select(a => a.Person), "Writers in the movie");
 
             demoSchema.Type<Person>().ReplaceField("writerOf", m => m.WriterOf.Select(a => a.Movie), "Movies they wrote");
             demoSchema.Type<Person>().ReplaceField("actorIn", m => m.ActorIn.Select(a => a.Movie), "Movies they acted in");
 
-            // add some mutations
+            // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());
             return demoSchema;
         }

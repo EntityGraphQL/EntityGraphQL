@@ -42,7 +42,7 @@ namespace demo
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            // CreateData(db);
+            CreateData(db);
 
             app.UseFileServer();
 
@@ -51,6 +51,7 @@ namespace demo
 
         private static void CreateData(DemoContext db)
         {
+            db.Database.EnsureDeleted();
             db.Database.EnsureCreated();
 
             // add test data

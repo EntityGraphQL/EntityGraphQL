@@ -12,9 +12,9 @@ Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
 # Getting up and running with EF
 
-_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working on LinqProvider on an in-memory object should work - although EF well is tested._
+_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object should work - although EF well is tested._
 
-## 1. Define your data context (in this case an EF context)
+## 1. Define your data context (in this example an EF context)
 
 ```csharp
 public class MyDbContext : DbContext {
@@ -73,7 +73,7 @@ public class QueryController : Controller
     }
 
     [HttpPost]
-    public object Post([FromBody]string query)
+    public object Post([FromBody]QueryRequest query)
     {
         try
         {
@@ -220,7 +220,7 @@ var paramTypes = new {unit = "meter"};
 ```
 
 ## LINQ Helper Methods
-EntityGraphQL provides a few extension methods to help with building queries with optinoal parameters.
+EntityGraphQL provides a few extension methods to help with building queries with optional parameters.
 
 - `Take(int?)` - Only apply the `Take()` method if the argument has a value. Usage: `schema.AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description")`
 - `WhereWhen(predicate, when)` - Only apply the `Where()` method is `when` is true. Usage: `schema.AddField("Field", new { search = (string)null }, (db, p) => db.Entity.WhereWhen(s => s.Name.ToLower().Contains(p.search.ToLower()), !string.IsNullOrEmpty(p.search)), "Description")`
@@ -230,17 +230,22 @@ Mutations allow you to make changes to data while selecting some data to return 
 
 The main concept behind this is you create a class (or many) to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
 
+Although you can just return an object and the GraphQL query will be executed against that object. The suggested way is to return an `Expression`. This lets you access deep levels of the object model that may not be loaded in memory in the case you are using an ORM.
+
+I.e if you have a mutation adds an actor to a movie entity and you want to return the _current_ list of full actors.
+
 ```csharp
-public class PropertyMutations
+public class MovieMutations
 {
   [GraphQLMutation]
-  public Property AddProperty(MyDbContext db, PropertyArgs args)
+  public Movie AddActor(MyDbContext db, ActorArgs args)
   {
-    // do your magic here. e.g. with EF
-    var property = new Property { Name = args.Name, ... };
-    db.Properties.Add(property);
+    // do your magic here. e.g. with EF or other business logic
+    var movie = db.Movies.First(m => m.Id == args.Id);
+    var actor = new Person { Name = args.Name, ... };
+    movie.Actors.Add(actor);
     db.SaveChanges();
-    return property;
+    return movie;
   }
 }
 
@@ -251,10 +256,32 @@ public class PropertyArgs
 }
 ```
 
-To add this to you schema, call
+Not here, we did not `Include()` the current actors. If the query of the GraphQL mutation was `{ name actors { name id } }`, we would only get data that is loaded in memory of the `movie` variable.
+
+To support access to the full graph, regardless of if it is already loaded or via an ORM (like EF). It is reccomended to return an expression like so.
 
 ```csharp
-schemaProvider.AddMutationFrom(new PropertyMutations());
+public class MovieMutations
+{
+  [GraphQLMutation]
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args)
+  {
+    // do your magic here. e.g. with EF or other business logic
+    var movie = db.Movies.First(m => m.Id == args.Id);
+    var actor = new Person { Name = args.Name, ... };
+    movie.Actors.Add(actor);
+    db.SaveChanges();
+    return ctx => ctx.Movies.First(m => m.Id == movie.Id);
+  }
+}
+```
+
+Note the return signature change and the result we return is a `Func` that selects the movie we just modified.
+
+To add this mutation to your schema, call
+
+```csharp
+schemaProvider.AddMutationFrom(new MovieMutations());
 ```
 
 - All `public` methods marked with the `GraphQLMutation` attribute will be added to the schema
@@ -263,10 +290,10 @@ schemaProvider.AddMutationFrom(new PropertyMutations());
 
 You can now request a mutation
 ```
-mutation AddProperty($name: String!, $cost: Float!) {
-  addProperty(name: $name, cost: $cost) {
-    id
-    name
+mutation AddActor($name: String!, $movieId: int!) {
+  addMovie(name: $name, id: $movieId) {
+    id name
+    actors { name id }
   }
 }
 ```
@@ -274,12 +301,10 @@ mutation AddProperty($name: String!, $cost: Float!) {
 With variables
 ```json
 {
-  "name": "beach pad",
-  "cost": 1000000.3
+  "name": "Robot Dophlin",
+  "movieId": 2
 }
 ```
-
-This also selects the resulting `id` & `name` from the result of the mutation.
 
 # Secuity
 
@@ -295,6 +320,8 @@ For paging you want to create your own fields.
 ```cs
 schemaProvider.AddField("MyEntities", new {take = 10, skip = 0}, (db, param) => db.MyEntities.Skip(p.skip).Take(p.take), "Get a page of entities");
 ```
+
+Open to ideas for making this easier.
 
 # Intergrating with other tools
 Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
@@ -337,15 +364,5 @@ var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 - `array.orderBy(field)`
 - `array.orderByDesc(field)`
 
-e.g.
-```
-query {
-  cheap2BedPlaces: peroperties.where(price < 100000 && bedrooms >= 2).orderby(age) {
-    location { name }
-    price
-  }
-}
-```
-
 # Contribute
-Please do. Pull requests are very welcome. See the open issue for bugs or features that would be useful
+Please do. Pull requests are very welcome. See the open issues for bugs or features that would be useful

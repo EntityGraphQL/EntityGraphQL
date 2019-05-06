@@ -377,6 +377,15 @@ namespace EntityGraphQL.Schema
 
         public string GetSchemaTypeNameForRealType(Type type)
         {
+            if (type.GetTypeInfo().BaseType == typeof(LambdaExpression))
+            {
+                // This should be Expression<Func<Context, ReturnType>>
+                type = type.GetGenericArguments()[0].GetGenericArguments()[1];
+                if (type.IsEnumerableOrArray())
+                {
+                    type = type.GetGenericArguments()[0];
+                }
+            }
             if (type == _types[_queryContextName].ContextType)
                 return type.Name;
 

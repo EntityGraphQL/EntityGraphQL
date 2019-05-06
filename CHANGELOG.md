@@ -1,8 +1,9 @@
-# 0.
+# 0.16.0
 - Add support for graphql comments
 - Add support for `operationName` in the `GraphQLRequest`
 - Add GraphiQL web interface to the demo app
-- (Aplha) Add dotnet gql comment to generate a schema from your current DBContext. See readme for more info
+- Add support for full queries on a mutation result See readme for more details
+- (beta) Add dotnet gql command to generate a schema from your current DBContext. See readme for more info
 
 # 0.15.8
 - Add `WhereWhen()` to the extension helpers

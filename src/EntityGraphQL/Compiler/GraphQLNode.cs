@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
-            if (ConstantParameterValues != null)
+            if (ConstantParameterValues != null && ConstantParameterValues.Any())
             {
                 allArgs.AddRange(ConstantParameterValues);
             }
