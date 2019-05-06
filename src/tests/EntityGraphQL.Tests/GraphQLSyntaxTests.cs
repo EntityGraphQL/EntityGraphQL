@@ -253,11 +253,9 @@ query {
 fragment info on Person {
     id name
 }
-").Operations.First();
+");
 
-            Assert.Single(tree.Fields);
-            var qr = new QueryResult();
-            tree.Execute(new TestSchema(), qr);
+            var qr = tree.ExecuteQuery(new TestSchema());
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
