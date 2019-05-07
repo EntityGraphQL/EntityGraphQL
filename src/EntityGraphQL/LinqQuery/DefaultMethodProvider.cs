@@ -76,7 +76,7 @@ namespace EntityGraphQL.LinqQuery
         {
             ExpectArgsCount(1, args, methodName);
             var predicate = args.First();
-            ExpectArgTypeToBe(predicate.Type, typeof(bool), methodName);
+            predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
             var lambda = Expression.Lambda(predicate, argContext as ParameterExpression);
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { argContext.Type }, context, lambda);
         }
@@ -99,7 +99,7 @@ namespace EntityGraphQL.LinqQuery
             if (args.Count() == 1)
             {
                 var predicate = args.First();
-                ExpectArgTypeToBe(predicate.Type, typeof(bool), methodName);
+                predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
                 allArgs.Add(Expression.Lambda(predicate, argContext as ParameterExpression));
             }
 
@@ -115,7 +115,7 @@ namespace EntityGraphQL.LinqQuery
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
-            ExpectArgTypeToBe(amount.Type, typeof(int), methodName);
+            amount = ConvertTypeIfWeCan(methodName, amount, typeof(int));
 
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Take", new Type[] { argContext.Type }, context, amount);
         }
@@ -124,7 +124,7 @@ namespace EntityGraphQL.LinqQuery
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
-            ExpectArgTypeToBe(amount.Type, typeof(int), methodName);
+            amount = ConvertTypeIfWeCan(methodName, amount, typeof(int));
 
             return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Skip", new Type[] { argContext.Type }, context, amount);
         }
@@ -171,10 +171,20 @@ namespace EntityGraphQL.LinqQuery
                 throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");
         }
 
-        private static void ExpectArgTypeToBe(Type argType, Type expected, string methodName)
+        private static ExpressionResult ConvertTypeIfWeCan(string methodName, ExpressionResult argExp, Type expected)
         {
-            if (argType != expected)
-                throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argType}'");
+            if (expected != argExp.Type)
+            {
+                try
+                {
+                    return (ExpressionResult)Expression.Convert(argExp, expected);
+                }
+                catch (Exception)
+                {
+                    throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'");
+                }
+            }
+            return argExp;
         }
     }
 }
