@@ -275,6 +275,8 @@ namespace EntityGraphQL.Schema
                     }
                     else
                     {
+                        if (val != null && val.GetType() != argField.PropertyType)
+                            val = ExpressionUtil.ChangeType(val, argField.PropertyType);
                         propVals.Add(argField, val);
                     }
                 }
