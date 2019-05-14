@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler.Util
 {
     /// <summary>
-    /// As people build schema fields they are against a different parameter, this visitor lets us change it to the one used in compiling the EQL
+    /// As people build schema fields they may be against different parameters, this visitor lets us change it to the one used in compiling the EQL.
+    /// I.e. in (p_0) => p_0.blah `p_0` needs to be the same object otherwise it expects 2 values passed in.
     /// </summary>
     internal class ParameterReplacer : ExpressionVisitor
     {

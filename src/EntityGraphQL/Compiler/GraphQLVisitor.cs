@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
             var name = baseIdentityFinder.Visit(context);
             var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, methodProvider, variables);
             var actualName = schemaProvider.GetActualFieldName(schemaProvider.GetSchemaTypeNameForRealType(selectContext.Type), name);
-            var node = new GraphQLNode(actualName, result, null);
+            var node = new GraphQLNode(schemaProvider, fragments, actualName, result, null);
             return node;
         }
         public override IGraphQLBaseNode VisitAliasExp(EntityGraphQLParser.AliasExpContext context)
@@ -57,13 +57,13 @@ namespace EntityGraphQL.Compiler
             {
                 // top level are queries on the context
                 var exp = EqlCompiler.Compile(query, schemaProvider, methodProvider, variables);
-                var node = new GraphQLNode(name, exp, null);
+                var node = new GraphQLNode(schemaProvider, fragments, name, exp, null);
                 return node;
             }
             else
             {
                 var result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider, variables);
-                var node = new GraphQLNode(name, result, null);
+                var node = new GraphQLNode(schemaProvider, fragments, name, result, null);
                 return node;
             }
         }
@@ -146,23 +146,22 @@ namespace EntityGraphQL.Compiler
         private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context, bool isRootSelect)
         {
             var elementType = queryResult.BodyType.GetEnumerableOrArrayType();
-            var contextParameter = Expression.Parameter(elementType);
+            var contextParameter = Expression.Parameter(elementType, $"param_{elementType}");
 
             var exp = queryResult.LambdaExpression.Body;
 
             var oldContext = selectContext;
             selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
-            var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).Cast<IGraphQLNode>().ToList();
+            var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-            // Default we select out sub objects/relations. So Select(d => new {Field = d.Field, Relation = new { d.Relation.Field }})
-            var selectExpression = (ExpressionResult)ExpressionUtil.SelectDynamic(contextParameter, exp, fieldExpressions, schemaProvider);
+            var gqlNode = new GraphQLNode(schemaProvider, fragments, name, null, exp, queryResult.ContextParams, null, fieldExpressions, contextParameter);
+
             selectContext = oldContext;
 
-            var t = MergeConstantParametersFromFields(queryResult, fieldExpressions, contextParameter);
-            var parameters = t.Item1;
-            var constantParameterValues = t.Item2;
-            var gqlNode = new GraphQLNode(name, new CompiledQueryResult(selectExpression, parameters, constantParameterValues), (ExpressionResult)exp);
+            // var t = MergeConstantParametersFromFields(queryResult, fieldExpressions, contextParameter);
+            // var parameters = t.Item1;
+            // var constantParameterValues = t.Item2;
             return gqlNode;
         }
 
@@ -205,22 +204,16 @@ namespace EntityGraphQL.Compiler
                 var rootFieldParam = Expression.Parameter(exp.Type);
                 selectContext = rootField.IsMutation ? rootFieldParam : exp;
                 // visit child fields. Will be field or entityQueries again
-                var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).Cast<IGraphQLNode>().ToList();
+                var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var newExp = ExpressionUtil.CreateNewExpression(selectContext, fieldExpressions, schemaProvider);
-                var anonType = newExp.Type;
-                // make a null check from this new expression
-                if (!rootField.IsMutation)
-                {
-                    newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, selectContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                }
+                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, null, null, fieldExpressions, null);
+
                 selectContext = oldContext;
 
-                var t = MergeConstantParametersFromFields(rootField, fieldExpressions, rootFieldParam);
-                var parameters = t.Item1;
-                var constantParameterValues = t.Item2;
+                // var t = MergeConstantParametersFromFields(rootField, fieldExpressions, rootFieldParam);
+                // var parameters = t.Item1;
+                // var constantParameterValues = t.Item2;
 
-                var graphQLNode = new GraphQLNode(name, new CompiledQueryResult((ExpressionResult)newExp, parameters, constantParameterValues), (ExpressionResult)exp);
                 if (selectWasNull)
                 {
                     selectContext = null;
@@ -260,7 +253,7 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
             var operationName = GetOperationName(context.operationName());
-            var query = new GraphQLNode(operationName.Name, null, null, null, null);
+            var query = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
@@ -280,7 +273,7 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
             var operationName = GetOperationName(context.operationName());
-            var mutation = new GraphQLNode(operationName.Name, null, null, null, null);
+            var mutation = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null, null);
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
@@ -309,14 +302,16 @@ namespace EntityGraphQL.Compiler
         {
             // top level syntax part. Add to the fragrments and return null
             var typeName = context.fragmentType.GetText();
-            selectContext = Expression.Parameter(schemaProvider.Type(typeName).ContextType);
+            selectContext = Expression.Parameter(schemaProvider.Type(typeName).ContextType, $"fragment_{typeName}");
+            var fields = new List<IGraphQLBaseNode>();
             foreach (var item in context.fields.children)
             {
-                var fields2 = Visit(item);
+                var f = Visit(item);
+                if (f != null) // white space etc
+                    fields.Add(f);
             }
-            var fields = Visit(context.fields);
+            fragments.Add(new GraphQLFragment(context.fragmentName.GetText(), typeName, fields, (ParameterExpression)selectContext));
             selectContext = null;
-            fragments.Add(new GraphQLFragment(context.fragmentName.GetText(), typeName));
             return null;
         }
 
@@ -324,7 +319,7 @@ namespace EntityGraphQL.Compiler
         {
             // top level syntax part. Add to the fragrments and return null
             var name = context.name.GetText();
-            return null;
+            return new GraphQLFragmentSelect(name);
         }
     }
 }
