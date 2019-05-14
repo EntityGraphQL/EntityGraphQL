@@ -28,8 +28,8 @@ namespace EntityGraphQL.Compiler
         public ExpressionResult NodeExpression {
             get
             {
-                // we might have to build the expression as requested as when we prase the query
-                // document the fragment might be defined later in the document
+                // we might have to build the expression on request as when we prase the query
+                // document the fragment referenced might be defined later in the document
                 if (nodeExpression == null && fieldSelection != null && fieldSelection.Any())
                 {
                     var replacer = new ParameterReplacer();
