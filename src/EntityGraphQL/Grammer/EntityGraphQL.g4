@@ -40,6 +40,7 @@ startRule   : expression;
 //   entity2 { field1 field2 relation { field1 field2 } }
 // }
 ws              : (' ' | '\t' | '\n' | '\r');
+wsNoLines       : (' ' | '\t');
 queryKeyword    : 'query';
 mutationKeyword : 'mutation';
 field           : callPath;
@@ -48,10 +49,10 @@ aliasExp        : alias=aliasType entity=expression;
 fieldSelect     : '{' (ws* | comment*) (aliasExp | field | fragmentSelect | entityQuery | comment) ((ws* ','? ws*) (aliasExp | field | fragmentSelect | entityQuery | comment))* (ws* | comment*) '}';
 entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
 operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
-gqlBody         : '{' (ws* | comment*) (aliasExp | entityQuery) ( ((ws* ','? ws*) | comment*) (aliasExp | entityQuery))* (ws* | comment*) '}';
+gqlBody         : '{' ws* comment* (aliasExp | entityQuery) ( (ws* ','? ws*) comment* (aliasExp | entityQuery))* ws* comment* '}';
 dataQuery       : ws* queryKeyword? ws* operationName? ws* gqlBody (ws* | comment*);
 mutationQuery   : mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
-comment         : ws* '#' ~( '\r' | '\n' )* ws*;
+comment         : ws* '#' ~( '\r' | '\n' | EOF )* ( '\r' | '\n' | EOF );
 gqlFragment     : ws* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=fieldSelect ws*;
 fragmentSelect  : '...' name=identity;
 
