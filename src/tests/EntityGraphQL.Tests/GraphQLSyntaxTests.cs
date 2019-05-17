@@ -156,10 +156,9 @@ namespace EntityGraphQL.Tests
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { height(unit: ""meter"") }
-            }").Operations.First();
+            }").ExecuteQuery(new TestSchema());
 
-            Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            dynamic result = tree.Data["people"];
             Assert.Equal(1, Enumerable.Count(result));
             var person = Enumerable.First(result);
             // we only have the fields requested

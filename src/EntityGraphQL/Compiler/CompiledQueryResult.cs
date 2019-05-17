@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
 
         public LambdaExpression LambdaExpression { get { return Expression.Lambda(ExpressionResult.Expression, ContextParams.Concat(ExpressionResult.ConstantParameters.Keys).ToArray()); } }
 
-        public IEnumerable<object> ConstantParameterValues { get { return ExpressionResult.ConstantParameters.Values; } }
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get { return ExpressionResult.ConstantParameters; } }
 
         public Type BodyType { get { return LambdaExpression.Body.Type; } }
 
@@ -35,8 +35,10 @@ namespace EntityGraphQL.Compiler
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
-            if (ConstantParameterValues != null)
-                allArgs.AddRange(ConstantParameterValues);
+            if (ConstantParameters != null)
+            {
+                allArgs.AddRange(ConstantParameters.Values);
+            }
             return LambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
     }

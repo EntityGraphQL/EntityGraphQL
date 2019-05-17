@@ -147,6 +147,10 @@ namespace EntityGraphQL.Compiler
 
         public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, CompiledQueryResult query, ExpressionResult fieldSelectionBaseExpression) : this(schemaProvider, queryFragments, name, (ExpressionResult)query.ExpressionResult, fieldSelectionBaseExpression, query.LambdaExpression.Parameters, null, null)
         {
+            foreach (var item in query.ConstantParameters)
+            {
+                constantParameters.Add(item.Key, item.Value);
+            }
         }
 
         public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, ExpressionResult exp, ExpressionResult fieldSelectionBaseExpression, IEnumerable<ParameterExpression> expressionParameters, IEnumerable<IGraphQLBaseNode> fieldSelection, ParameterExpression fieldParameter)
