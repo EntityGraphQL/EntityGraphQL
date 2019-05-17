@@ -1,4 +1,6 @@
 # Entity GraphQL
+Note: `master` is currently not stable.
+
 Build status: [![CircleCI](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master.svg?style=svg)](https://circleci.com/gh/lukemurray/EntityGraphQL/tree/master)
 
 Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to query your data using the GraphQL syntax.

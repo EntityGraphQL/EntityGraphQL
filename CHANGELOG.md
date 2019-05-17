@@ -1,11 +1,11 @@
 # 0.16.0
-- Add support for full queries on a mutation result. See readme for more details
+- Add support for full queries on a mutation result. See readme for more details (you return an Expression)
 - Initial support for GraphQL fragments. fix #2
 - Add support for `operationName` in the `GraphQLRequest`
 - Add support for graphql comments
 - Add GraphiQL web interface to the demo app
 - fix bug where it would sometimes try to give an `UInt64` to an argument that required an `Int32`
-- (beta) Add dotnet gql command to generate a schema from your current DBContext. See readme for more info
+- (beta) Add `dotnet gql` command to generate a schema from your current DBContext. See readme for more info
 
 # 0.15.8
 - Add `WhereWhen()` to the extension helpers
