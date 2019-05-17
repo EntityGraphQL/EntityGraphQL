@@ -104,7 +104,7 @@ namespace EntityGraphQL.Compiler
                 {
                     result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider, variables);
                 }
-                var exp = result.LambdaExpression.Body;
+                var exp = result.ExpressionResult;
 
                 IGraphQLNode graphQLNode = null;
                 if (exp.Type.IsEnumerableOrArray())
@@ -120,7 +120,10 @@ namespace EntityGraphQL.Compiler
                     if (listExp.Item1 != null)
                     {
                         // yes we can
-                        graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult((ExpressionResult)listExp.Item1, result.ContextParams, result.ConstantParameterValues), name, context, true);
+                        // rebuild the ExpressionResult so we keep any ConstantParameters
+                        var item1 = (ExpressionResult)listExp.Item1;
+                        item1.AddConstantParameters(result.ExpressionResult.ConstantParameters);
+                        graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context, true);
                         graphQLNode.NodeExpression = (ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
                     }
                     else
@@ -148,36 +151,18 @@ namespace EntityGraphQL.Compiler
             var elementType = queryResult.BodyType.GetEnumerableOrArrayType();
             var contextParameter = Expression.Parameter(elementType, $"param_{elementType}");
 
-            var exp = queryResult.LambdaExpression.Body;
+            var exp = queryResult.ExpressionResult;
 
             var oldContext = selectContext;
             selectContext = contextParameter;
             // visit child fields. Will be field or entityQueries again
             var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-            var gqlNode = new GraphQLNode(schemaProvider, fragments, name, null, exp, queryResult.ContextParams, null, fieldExpressions, contextParameter);
+            var gqlNode = new GraphQLNode(schemaProvider, fragments, name, null, exp, queryResult.ContextParams, fieldExpressions, contextParameter);
 
             selectContext = oldContext;
 
-            // var t = MergeConstantParametersFromFields(queryResult, fieldExpressions, contextParameter);
-            // var parameters = t.Item1;
-            // var constantParameterValues = t.Item2;
             return gqlNode;
-        }
-
-        private static Tuple<List<ParameterExpression>, List<object>> MergeConstantParametersFromFields(CompiledQueryResult queryResult, List<IGraphQLNode> fieldExpressions, ParameterExpression parameterExpression)
-        {
-            var parameters = queryResult.IsMutation ? new List<ParameterExpression> {parameterExpression} : queryResult.LambdaExpression.Parameters.ToList();
-            var constantParameterValues = queryResult.ConstantParameterValues.ToList();
-            fieldExpressions.ForEach(field =>
-            {
-                if (field.ConstantParameterValues != null && field.ConstantParameterValues.Any())
-                {
-                    parameters.AddRange(field.Parameters);
-                    constantParameterValues.AddRange(field.ConstantParameterValues);
-                }
-            });
-            return Tuple.Create(parameters, constantParameterValues);
         }
 
         /// Given a syntax of someField { fields, to, selection, from, object }
@@ -198,7 +183,7 @@ namespace EntityGraphQL.Compiler
 
             try
             {
-                Expression exp = rootField.LambdaExpression.Body;
+                var exp = (Expression)rootField.ExpressionResult;
 
                 var oldContext = selectContext;
                 var rootFieldParam = Expression.Parameter(exp.Type);
@@ -206,13 +191,9 @@ namespace EntityGraphQL.Compiler
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, null, null, fieldExpressions, null);
+                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : null), fieldExpressions, null);
 
                 selectContext = oldContext;
-
-                // var t = MergeConstantParametersFromFields(rootField, fieldExpressions, rootFieldParam);
-                // var parameters = t.Item1;
-                // var constantParameterValues = t.Item2;
 
                 if (selectWasNull)
                 {
@@ -253,13 +234,13 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
             var operationName = GetOperationName(context.operationName());
-            var query = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null, null);
+            var query = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
                 if (n != null)
-                    query.Fields.Add((IGraphQLNode)n);
+                    query.AddField((IGraphQLNode)n);
             }
             rootQueries.Add(query);
             return query;
@@ -273,13 +254,13 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
             var operationName = GetOperationName(context.operationName());
-            var mutation = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null, null);
+            var mutation = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null);
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
                 if (n != null)
                 {
-                    mutation.Fields.Add((IGraphQLNode)n);
+                    mutation.AddField((IGraphQLNode)n);
                 }
             }
             rootQueries.Add(mutation);

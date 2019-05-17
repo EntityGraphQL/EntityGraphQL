@@ -136,14 +136,12 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
-            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+            var result = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { id height }
-            }").Operations.First();
+            }").ExecuteQuery(new TestSchema());
 
-            Assert.Single(tree.Fields);
-            dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
-            Assert.Equal(1, Enumerable.Count(result));
-            var person = Enumerable.First(result);
+            Assert.Equal(1, Enumerable.Count(result.Data));
+            var person = Enumerable.First((dynamic)result.Data["people"]);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("Id", person.GetType().GetFields()[0].Name);
@@ -209,14 +207,31 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
-            }").Operations.First();
+            }").ExecuteQuery(new TestSchema());
 
-            Assert.Single(tree.Fields);
-            dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
+            dynamic user = tree.Data["person"];
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
             Assert.Equal("Id", user.GetType().GetFields()[0].Name);
             Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+        }
+
+        [Fact]
+        public void SupportsArgumentsComplexInGraph()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.Type<Person>().AddField("project", new {pid = Required<Guid>()}, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+                person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id project(pid: ""aaaaaaaa-bbbb-4444-1111-ccddeeff0022"") { id name } }
+            }").ExecuteQuery(new TestSchema());
+
+            dynamic user = tree.Data["person"];
+            // we only have the fields requested
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), user.project.Id);
         }
 
         [Fact]
@@ -262,7 +277,7 @@ fragment info on Person {
             Assert.Equal("projects", person.GetType().GetFields()[0].Name);
         }
 
-        [Fact(Skip = "Not yet implemented")]
+        [Fact]
         public void SupportsFragmentSelectionSyntax()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
@@ -281,8 +296,8 @@ fragment info on Person {
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
             Assert.Equal("projects", person.GetType().GetFields()[2].Name);
         }
 

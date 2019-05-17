@@ -17,7 +17,6 @@ namespace EntityGraphQL.Compiler.Util
                 // Please tell me a better way to do this!
                 try
                 {
-                    //  Console.WriteLine($"Call({t}, {methodName}, {genericTypes}, {parameters.First()})");
                     return (ExpressionResult)Expression.Call(t, methodName, genericTypes, parameters);
                 }
                 catch (InvalidOperationException)
@@ -87,8 +86,15 @@ namespace EntityGraphQL.Compiler.Util
                     if (mc.Object == null)
                     {
                         var args = new List<Expression> { baseExp };
-                        args.AddRange(mc.Arguments.Skip(1));
-                        return Expression.Call(mc.Method.DeclaringType, mc.Method.Name, new Type[] {baseExp.Type.GetGenericArguments()[0]}, args.ToArray());
+                        var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
+                        foreach (var item in mc.Arguments.Skip(1))
+                        {
+                            var lambda = (LambdaExpression)item;
+                            var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
+                            args.Add(exp);
+                        }
+                        var call = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
+                        return call;
                     }
                     return Expression.Call(baseExp, mc.Method, mc.Arguments);
                 }

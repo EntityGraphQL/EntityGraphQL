@@ -49,7 +49,7 @@ aliasExp        : alias=aliasType entity=expression;
 fieldSelect     : '{' (ws* | comment*) (aliasExp | field | fragmentSelect | entityQuery | comment) ((ws* ','? ws*) (aliasExp | field | fragmentSelect | entityQuery | comment))* (ws* | comment*) '}';
 entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
 operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
-gqlBody         : '{' ws* comment* (aliasExp | entityQuery) ( (ws* ','? ws*) comment* (aliasExp | entityQuery))* ws* comment* '}';
+gqlBody         : '{' ws* (comment | aliasExp | entityQuery) ( (ws* ','? ws*) (comment | aliasExp | entityQuery))* ws* '}';
 dataQuery       : ws* queryKeyword? ws* operationName? ws* gqlBody (ws* | comment*);
 mutationQuery   : mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
 comment         : ws* '#' ~( '\r' | '\n' | EOF )* ( '\r' | '\n' | EOF );

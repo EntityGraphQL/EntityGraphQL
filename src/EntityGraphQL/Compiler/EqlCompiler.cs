@@ -49,9 +49,7 @@ namespace EntityGraphQL.Compiler
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
                 contextParams.Add(contextParam);
-            if (expression.ConstantParameters.Any())
-                contextParams.AddRange(expression.ConstantParameters.Keys);
-            return new CompiledQueryResult(expression, contextParams, expression.ConstantParameters.Values);
+            return new CompiledQueryResult(expression, contextParams);
         }
 
         public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, QueryVariables variables = null)
@@ -67,11 +65,7 @@ namespace EntityGraphQL.Compiler
             var expression = CompileQuery(query, context, schemaProvider, methodProvider, variables);
 
             var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
-            if (expression.ConstantParameters != null)
-            {
-                parameters.AddRange(expression.ConstantParameters.Keys);
-            }
-            return new CompiledQueryResult(expression, parameters, expression.ConstantParameters?.Values);
+            return new CompiledQueryResult(expression, parameters);
         }
 
         private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)

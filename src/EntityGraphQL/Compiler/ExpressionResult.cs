@@ -8,7 +8,7 @@ namespace EntityGraphQL.Compiler
     /// <summary>
     /// Holds information about the compiled expression.
     /// The Expression and any ParameterExpressions and their values.
-    /// We use ParameterExpression and not Constant so the compiled query can be cached and values swapped out
+    /// We use ParameterExpression and not inline ConstantExpressions so the compiled query can be cached and values swapped out
     /// </summary>
     public class ExpressionResult
     {
@@ -42,6 +42,14 @@ namespace EntityGraphQL.Compiler
         internal void AddConstantParameter(ParameterExpression type, object value)
         {
             constantParameters.Add(type, value);
+        }
+
+        internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
+        {
+            foreach (var item in constantParameters)
+            {
+                AddConstantParameter(item.Key, item.Value);
+            }
         }
     }
 }

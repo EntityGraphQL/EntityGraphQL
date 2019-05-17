@@ -22,7 +22,7 @@ namespace EntityGraphQL.Compiler
         /// If this node if movies the list of fields is [id, name]. If this node is the root the fields is [movies]
         /// </summary>
         /// <value></value>
-        List<IGraphQLNode> Fields { get; }
+        IEnumerable<IGraphQLNode> Fields { get; }
         /// <summary>
         /// The expression that would create this node. E.g. it may be db => db.Movies.Where(...)
         /// </summary>
@@ -34,10 +34,10 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         List<ParameterExpression> Parameters { get; }
         /// <summary>
-        /// Any constant (provided with the query) values for any of the parameters require for the expression. This allows us to cache a compiled expression (in the future) and supply different parameter values
+        /// Any parameters and values for constant values.
         /// </summary>
         /// <value></value>
-        List<object> ConstantParameterValues { get; }
+        IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; }
     }
 
     public interface IGraphQLBaseNode

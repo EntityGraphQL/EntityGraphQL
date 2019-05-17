@@ -36,5 +36,24 @@ namespace EntityGraphQL.Compiler.Util
                 return newParam;
             return node;
         }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            var p = node.Parameters.Select(base.Visit).Cast<ParameterExpression>();
+            var body = base.Visit(node.Body);
+            return Expression.Lambda(body, p);
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            if (node.Expression.NodeType == ExpressionType.Parameter && (node.Expression == toReplace || node.Expression.Type == toReplaceType))
+            {
+                // we may have replaces this parameter and the new type (anonymous) might have fields not properties
+                var newParam = base.Visit(node.Expression);
+                var exp = Expression.PropertyOrField(newParam, node.Member.Name);
+                return exp;
+            }
+            return base.VisitMember(node);
+        }
     }
 }

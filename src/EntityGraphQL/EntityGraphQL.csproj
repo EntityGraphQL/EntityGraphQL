@@ -13,8 +13,8 @@
     <PackageLicense>https://github.com/lukemurray/EntityGraphQL/LICENSE</PackageLicense>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Antlr4" Version="4.6.5"/>
-    <PackageReference Include="Antlr4.Runtime" Version="4.6.5"/>
+    <PackageReference Include="Antlr4" Version="4.6.6"/>
+    <PackageReference Include="Antlr4.Runtime" Version="4.6.6"/>
     <PackageReference Include="Humanizer.Core" Version="2.3.3"/>
     <PackageReference Include="System.Linq.Queryable" Version="4.3.0"/>
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0"/>

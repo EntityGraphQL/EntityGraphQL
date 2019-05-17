@@ -13,11 +13,11 @@ namespace EntityGraphQL.Compiler
         private CompiledQueryResult result;
         private IGraphQLNode graphQLNode;
 
-        public List<IGraphQLNode> Fields { get; private set; }
+        public IEnumerable<IGraphQLNode> Fields { get; private set; }
 
         public string Name => graphQLNode.Name;
 
-        public List<object> ConstantParameterValues => throw new NotImplementedException();
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => throw new NotImplementedException();
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
 
@@ -33,10 +33,6 @@ namespace EntityGraphQL.Compiler
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
-            if (graphQLNode.ConstantParameterValues != null)
-            {
-                allArgs.AddRange(graphQLNode.ConstantParameterValues);
-            }
 
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;

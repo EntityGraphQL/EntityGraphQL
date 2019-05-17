@@ -44,9 +44,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables {}
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data;
-            addPersonResult = Enumerable.First(addPersonResult);
-            addPersonResult = addPersonResult.Value;
+            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data["addPerson"];
             // we only have the fields requested
             Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
