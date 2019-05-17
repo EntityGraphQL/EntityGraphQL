@@ -168,6 +168,10 @@ namespace EntityGraphQL.Compiler
             this.fieldSelectionBaseExpression = fieldSelectionBaseExpression;
             Parameters = expressionParameters?.ToList();
             constantParameters = new Dictionary<ParameterExpression, object>();
+            if (Parameters == null)
+            {
+                Parameters = new List<ParameterExpression>();
+            }
         }
 
         public object Execute(params object[] args)
