@@ -1,6 +1,7 @@
 # 0.16.0
 - Add support for full queries on a mutation result. See readme for more details (you return an Expression)
 - Initial support for GraphQL fragments. fix #2
+- Fix issues with using field arguments deeper in the graph schema
 - Add support for `operationName` in the `GraphQLRequest`
 - Add support for graphql comments
 - Add GraphiQL web interface to the demo app
