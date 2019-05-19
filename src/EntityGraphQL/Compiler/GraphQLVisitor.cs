@@ -116,7 +116,7 @@ namespace EntityGraphQL.Compiler
                     // Could be a list.First() that we need to turn into a select, or
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
                     // Can we turn a list.First() into and list.Select().First()
-                    var listExp = Compiler.Util.ExpressionUtil.FindIEnumerable(result.LambdaExpression.Body);
+                    var listExp = Compiler.Util.ExpressionUtil.FindIEnumerable(result.ExpressionResult);
                     if (listExp.Item1 != null)
                     {
                         // yes we can
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Compiler
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : null), fieldExpressions, null);
+                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : rootField.ContextParams.ToArray()), fieldExpressions, null);
 
                 selectContext = oldContext;
 
