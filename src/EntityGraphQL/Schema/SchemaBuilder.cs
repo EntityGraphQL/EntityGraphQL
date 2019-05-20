@@ -102,7 +102,7 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties())
             {
-                if (ignoreProps.Contains(prop.Name))
+                if (ignoreProps.Contains(prop.Name) || prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
                 {
                     continue;
                 }

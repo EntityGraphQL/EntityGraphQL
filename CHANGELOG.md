@@ -5,6 +5,7 @@
 - Add support for `operationName` in the `GraphQLRequest`
 - Add support for graphql comments
 - Add GraphiQL web interface to the demo app
+- Add `GraphQLIgnore` attribute to ignore a field on a Type for the automatic schema builder
 - fix bug where it would sometimes try to give an `UInt64` to an argument that required an `Int32`
 - (beta) Add `dotnet gql` command to generate a schema from your current DBContext. See readme for more info
 
