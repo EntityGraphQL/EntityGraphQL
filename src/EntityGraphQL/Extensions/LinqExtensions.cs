@@ -69,5 +69,21 @@ namespace EntityGraphQL.Extensions
 
             return source;
         }
+
+        /// <summary>
+        /// Apply the Where condition when applyPredicate is true
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="wherePredicate"></param>
+        /// <param name="applyPredicate"></param>
+        /// <typeparam name="TSource"></typeparam>
+        /// <returns></returns>
+        public static IQueryable<TSource> WhereWhen<TSource>(this IEnumerable<TSource> source, Expression<Func<TSource, bool>> wherePredicate, bool applyPredicate)
+        {
+            if (applyPredicate)
+                return Queryable.Where(source.AsQueryable(), wherePredicate);
+
+            return source.AsQueryable();
+        }
     }
 }
