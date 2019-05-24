@@ -1,3 +1,6 @@
+# 0.16.1
+- Bring inner exception details up
+
 # 0.16.0
 - Add support for full queries on a mutation result. See readme for more details (you return an Expression)
 - Initial support for GraphQL fragments. fix #2

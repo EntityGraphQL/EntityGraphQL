@@ -62,7 +62,7 @@ namespace EntityGraphQL
             catch (Exception ex)
             {
                 // error with the whole query
-                result = new QueryResult {Errors = { new GraphQLError(ex.Message) }};
+                result = new QueryResult {Errors = { new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message) }};
             }
             if (includeDebugInfo && timer != null)
             {
