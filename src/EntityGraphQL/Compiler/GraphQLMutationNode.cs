@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
 
         public string Name => graphQLNode.Name;
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => throw new NotImplementedException();
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => null;
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
 

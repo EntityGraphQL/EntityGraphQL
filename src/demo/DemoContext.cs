@@ -70,6 +70,7 @@ namespace demo
         public List<Actor> ActorIn { get; set; }
         public List<Writer> WriterOf { get; set; }
         public List<Movie> DirectorOf { get; set; }
-        public DateTime? Died { get; internal set; }
+        public DateTime? Died { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

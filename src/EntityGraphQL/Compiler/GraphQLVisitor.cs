@@ -192,6 +192,10 @@ namespace EntityGraphQL.Compiler
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
                 var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : rootField.ContextParams.ToArray()), fieldExpressions, null);
+                if (rootField != null && rootField.ConstantParameters != null)
+                {
+                    graphQLNode.AddConstantParameters(rootField.ConstantParameters);
+                }
 
                 selectContext = oldContext;
 

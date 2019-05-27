@@ -114,10 +114,7 @@ namespace EntityGraphQL.Compiler
                         var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
                         var anonType = newExp.Type;
                         // make a null check from this new expression
-                        // if (!rootField.IsMutation)
-                        // {
                         newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldSelectionBaseExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                        // }
                         nodeExpression = (ExpressionResult)newExp;
                     }
 
@@ -191,6 +188,14 @@ namespace EntityGraphQL.Compiler
             return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
 
+        public void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
+        {
+            foreach (var item in constantParameters)
+            {
+                this.constantParameters.Add(item.Key, item.Value);
+            }
+        }
+
         public override string ToString()
         {
             return $"Node - Name={Name}, Expression={NodeExpression}";
@@ -199,6 +204,13 @@ namespace EntityGraphQL.Compiler
         public void AddField(IGraphQLNode node)
         {
             nodeFields.Add(node);
+            if (node.ConstantParameters != null)
+            {
+                foreach (var item in node.ConstantParameters)
+                {
+                    constantParameters.Add(item.Key, item.Value);
+                }
+            }
         }
     }
 }

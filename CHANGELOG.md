@@ -1,5 +1,6 @@
 # 0.16.1
 - Bring inner exception details up
+- Fix issue where fields that require arguments fail (See Paging example in Demo)
 
 # 0.16.0
 - Add support for full queries on a mutation result. See readme for more details (you return an Expression)
