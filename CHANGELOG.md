@@ -1,3 +1,6 @@
+# 0.16.2
+- Fix issue where duplicate fields (say from a query and a fragment) would cause an error
+
 # 0.16.1
 - Bring inner exception details up
 - Fix issue where fields that require arguments fail (See Paging example in Demo)

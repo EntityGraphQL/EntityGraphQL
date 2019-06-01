@@ -144,8 +144,13 @@ namespace EntityGraphQL.Compiler.Util
         }
         private static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
         {
-            var fieldExpressionsByName = fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression);
-            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Name, f => f.NodeExpression.Type));
+            var fieldExpressionsByName = new Dictionary<String, ExpressionResult>();
+            foreach (var item in fieldExpressions)
+            {
+                // if there are dupelicate fields (looking at you ApolloClient when using fragments) they override
+                fieldExpressionsByName[item.Name] = item.NodeExpression;
+            }
+            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
