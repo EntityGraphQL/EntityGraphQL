@@ -106,8 +106,15 @@ namespace EntityGraphQL.Schema
                 {
                     continue;
                 }
+
+                //Get Description from ComponentModel.DescriptionAttribute
+                string description = "";
+                var d = (System.ComponentModel.DescriptionAttribute)prop.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                if (d != null)
+                    description = d.Description;
+
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(prop.Name, le, "");
+                var f = new Field(prop.Name, le, description);
                 fields.Add(f);
                 CacheType<TContextType>(prop.PropertyType, schema);
             }
