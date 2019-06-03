@@ -125,16 +125,28 @@ namespace EntityGraphQL.Schema
             {
                 if (!_fieldsByName.ContainsKey(f.Name))
                 {
+                    //Get Description from ComponentModel.DescriptionAttribute
+                    string description = string.Empty;
+                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                    if (d != null)
+                        description = d.Description;
+
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), description, null));
                 }
             }
             foreach (var f in ContextType.GetFields())
             {
                 if (!_fieldsByName.ContainsKey(f.Name))
                 {
+                    //Get Description from ComponentModel.DescriptionAttribute
+                    string description = string.Empty;
+                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                    if (d != null)
+                        description = d.Description;
+
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), description, null));
                 }
             }
         }
