@@ -19,8 +19,11 @@ namespace demo
             builder.Entity<Person>().HasMany(p => p.WriterOf).WithOne(a => a.Person);
         }
 
+        [System.ComponentModel.Description("Collection of Movies")]
         public DbSet<Movie> Movies { get; set; }
+        [System.ComponentModel.Description("Collection of Peoples")]
         public DbSet<Person> People { get; set; }
+        [System.ComponentModel.Description("Collection of Actors")]
         public DbSet<Actor> Actors { get; set; }
     }
 
@@ -28,6 +31,8 @@ namespace demo
     {
         public uint Id { get; set; }
         public string Name { get; set; }
+
+        [System.ComponentModel.Description("Enum of Genre")]
         public Genre Genre { get; set; }
         public DateTime Released { get; set; }
         public List<Actor> Actors { get; set; }
@@ -54,10 +59,15 @@ namespace demo
 
     public enum Genre
     {
+        [System.ComponentModel.Description("Action movie type")]
         Action,
+        [System.ComponentModel.Description("Drama movie type")]
         Drama,
+        [System.ComponentModel.Description("Comedy movie type")]
         Comedy,
+        [System.ComponentModel.Description("Horror movie type")]
         Horror,
+        [System.ComponentModel.Description("Scifi movie type")]
         Scifi,
     }
 
