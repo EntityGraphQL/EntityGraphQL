@@ -33,16 +33,27 @@ namespace demo.Controllers
 
         private object RunDataQuery(QueryRequest query)
         {
-
             try
             {
+                /* Operation name was missing from the default "IntrospectionQuery" in the graphiql.js file.
+                 * Manually added this ~approx line 2152 & 2168
+                 * Update both fetcher like so: var fetch = observableToPromise(fetcher({ query: _introspectionQueries.introspectionQuery, operationName: "IntrospectionQuery" }));
+                 */
+                if (!string.IsNullOrEmpty(query.OperationName)
+                    && (query.OperationName.Equals("IntrospectionQuery", StringComparison.InvariantCultureIgnoreCase)
+                    || query.Query.Contains("IntrospectionQuery", StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    var introspection = _schemaProvider.GetGraphQLIntrospectionSchema();
+                    return introspection;
+                }
+
                 var data = _dbContext.QueryObject(query, _schemaProvider);
                 return data;
             }
-            catch (Exception)
-            {
-                return HttpStatusCode.InternalServerError;
+                catch (Exception)
+                {
+                    return HttpStatusCode.InternalServerError;
+                }
             }
-        }
     }
 }
