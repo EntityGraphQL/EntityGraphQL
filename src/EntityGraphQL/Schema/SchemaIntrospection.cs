@@ -282,11 +282,6 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    //Skip any property with special attribute
-                    var property = schemaType.ContextType.GetProperty(field.Name);
-                    if (property != null && property.GetCustomAttribute(typeof(GraphQLIgnoreInputAttribute)) != null)
-                        continue;
-
                     ////Skipping custom fields added to schema
                     //if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
                     //    continue;
