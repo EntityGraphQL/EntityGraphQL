@@ -40,7 +40,7 @@ namespace demo
                 new { page = 1, pagesize = 10, search = "" },
                 (db, p) => PaginateActors(db, p),
                 "Pagination. [defaults: page = 1, pagesize = 10]",
-                "ActorPagination");
+                "PersonPagination");
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());
