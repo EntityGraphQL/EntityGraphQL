@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema.Models
         public object[] Interfaces { get; set; }
 
         [JsonProperty("enumValues")]
-        public object EnumValues { get; set; }
+        public EnumValue[] EnumValues { get; set; }
 
         [JsonProperty("possibleTypes")]
         public object PossibleTypes { get; set; }
@@ -149,6 +149,21 @@ namespace EntityGraphQL.Schema.Models
 
         [JsonProperty("args")]
         public Arg[] Args { get; set; }
+    }
+
+    public partial class EnumValue
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("isDeprecated")]
+        public bool IsDeprecated { get; set; }
+
+        [JsonProperty("deprecationReason")]
+        public object DeprecationReason { get; set; }
     }
 
 

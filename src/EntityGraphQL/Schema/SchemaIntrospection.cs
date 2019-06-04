@@ -34,6 +34,9 @@
             {typeof(DateTime), "String"},
             {typeof(DateTime?), "String"},
             {typeof(RequiredField<DateTime>), "String"},
+            {typeof(RequiredField<uint>), "Int"},
+            {typeof(uint), "Int"},
+            {typeof(uint?), "Int"}
         };
 
         /// <summary>
@@ -61,6 +64,7 @@
             };
             types.AddRange(BuildQueryType(schema, combinedMapping));
             types.AddRange(BuildInputType(schema, combinedMapping));
+            types.AddRange(BuildEnumType(schema, combinedMapping));
 
             var introspection = new Models.Introspection
             {
@@ -100,6 +104,10 @@
             foreach (var field in schema.GetQueryFields())
             {
                 if (field.Name.StartsWith("__"))
+                    continue;
+
+                //Skipping ENUM type
+                if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                     continue;
 
                 //== Arguments ==//
@@ -227,6 +235,10 @@
                     if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
                         continue;
 
+                    //Skipping ENUM type
+                    if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
+                        continue;
+
                     fields.Add(new Models.Field
                     {
                         Name = field.Name,
@@ -239,6 +251,69 @@
 
                 typeElement.InputFields = fields.ToArray();
                 types.Add(typeElement);
+            }
+
+            return types;
+        }
+
+        private static List<Models.TypeElement> BuildEnumType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            var types = new List<Models.TypeElement>();
+
+            foreach (ISchemaType schemaType in schema.GetNonContextTypes())
+            {
+                var typeElement = new Models.TypeElement
+                {
+                    Kind = "ENUM",
+                    Name = string.Empty,
+                    Description = null,
+                    Interfaces = null,
+                    Fields = null,
+                    InputFields = null,
+                    EnumValues = new Models.EnumValue[] { }
+                };
+
+                var enumTypes = new List<Models.EnumValue>();
+
+                //filter to ENUM type ONLY!
+                foreach (Field field in schemaType.GetFields()
+                    .Where(x => x.ReturnTypeClr.GetTypeInfo().IsEnum))
+                {
+                    if (field.Name.StartsWith("__"))
+                        continue;
+
+                    //Skip any property with special attribute
+                    var property = schemaType.ContextType.GetProperty(field.Name);
+                    if (property != null && property.GetCustomAttribute(typeof(GraphQLIgnoreInputAttribute)) != null)
+                        continue;
+
+                    ////Skipping custom fields added to schema
+                    //if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
+                    //    continue;
+
+                    typeElement.Name = field.Name;
+                    typeElement.Description = field.Description;
+
+                    foreach (var fieldInfo in field.ReturnTypeClr.GetFields())
+                    {
+                        if (fieldInfo.Name == "value__")
+                            continue;
+
+                        var attribute = (System.ComponentModel.DescriptionAttribute)fieldInfo.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute));
+
+                        enumTypes.Add(new Models.EnumValue
+                        {
+                            Name = fieldInfo.Name,
+                            Description = attribute?.Description,
+                            IsDeprecated = false,
+                            DeprecationReason = null
+                        });
+                    }
+                }
+
+                typeElement.EnumValues = enumTypes.ToArray();
+                if (typeElement.EnumValues.Count() > 0)
+                    types.Add(typeElement);
             }
 
             return types;
@@ -282,6 +357,12 @@
                             OfType = null
                         };
                     }
+                    else if (arg.Value.GetTypeInfo().IsEnum)
+                    {
+                        type.Kind = "ENUM";
+                        type.Name = FindNamedMapping(arg.Value, combinedMapping, ToPascalCaseStartsUpper(arg.Key));
+                        type.OfType = null;
+                    }
                     else
                     {
                         type.Kind = combinedMapping.Any(x => x.Key == arg.Value) ? "SCALAR" : "OBJECT";
@@ -315,7 +396,7 @@
         }
 
         private static Models.Type BuildType(Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
-        {
+        {            
             //Is collection of objects??
             Models.Type type = new Models.Type();
             if (field.IsEnumerable)
@@ -416,5 +497,6 @@
 
             return directives;
         }
+
     }
 }
