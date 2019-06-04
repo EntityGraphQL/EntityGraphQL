@@ -438,6 +438,15 @@ namespace EntityGraphQL.Schema
             return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration);
         }
 
+        /// <summary>
+        /// Builds a GraphQL Introspection schema
+        /// </summary>
+        /// <returns></returns>
+        public Models.Introspection GetGraphQLIntrospectionSchema()
+        {
+            return SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration);
+        }
+
         public IEnumerable<Field> GetQueryFields()
         {
             return _types[_queryContextName].GetFields();
