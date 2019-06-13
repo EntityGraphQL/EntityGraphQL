@@ -461,5 +461,23 @@ namespace EntityGraphQL.Schema
         {
             return _mutations.Values.ToList();
         }
+
+        /// <summary>
+        /// Add a graphql error
+        /// </summary>
+        /// <param name="message"></param>
+        public void AddError(string message)
+        {
+            GraphQLVaildation.Errors.Add(new GraphQLError(message));
+        }
+
+        /// <summary>
+        /// Check if any GraphQL vaildation error
+        /// </summary>
+        /// <returns></returns>
+        public bool IsVaild()
+        {
+            return GraphQLVaildation.Errors.Count == 0;
+        }
     }
 }

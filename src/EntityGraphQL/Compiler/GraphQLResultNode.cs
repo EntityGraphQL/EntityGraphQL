@@ -67,6 +67,12 @@ namespace EntityGraphQL.Compiler
                 var data = node.Execute(context);
                 result.Data[node.Name] = data;
             }
+
+            if (GraphQLVaildation.Errors.Count > 0)
+            {
+                result.Errors.AddRange(GraphQLVaildation.Errors);
+            }
+            
             return result;
         }
     }
