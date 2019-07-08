@@ -34,6 +34,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public List<IGraphQLNode> Operations { get; }
+        public OperationType Type => OperationType.Result;
 
         public GraphQLResultNode(IEnumerable<IGraphQLNode> operations, List<GraphQLFragment> fragments)
         {
@@ -50,7 +51,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="context">The context object to apply the compiled Lambda to. E.g. a DbContext</param>
         /// <param name="operationName">Optional, the operation name to execute from in the query. If null or empty the first operation is executed</param>
         /// <returns></returns>
-        public QueryResult ExecuteQuery(object context, string operationName = null)
+        public QueryResult ExecuteQuery(object context, string operationName = null, params object[] mutationArgs)
         {
             var result = new QueryResult();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
@@ -64,7 +65,12 @@ namespace EntityGraphQL.Compiler
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var data = node.Execute(context);
+                var args = new List<object> {context};
+                if (node.Type == OperationType.Mutation)
+                {
+                    args.AddRange(mutationArgs);
+                }
+                var data = node.Execute(args.ToArray());
                 result.Data[node.Name] = data;
             }
             return result;

@@ -1,3 +1,6 @@
+# 0.17.0
+- Add the option to have other parameters passed into a mutation method. Very useful for IServiceProvider or other services your mutations require
+
 # 0.16.2
 - Fix issue where duplicate fields (say from a query and a fragment) would cause an error
 

@@ -287,8 +287,11 @@ schemaProvider.AddMutationFrom(new MovieMutations());
 ```
 
 - All `public` methods marked with the `GraphQLMutation` attribute will be added to the schema
-- Parameters should be the base context that your schema is built from and a class that defines each available parameter (and type)
-- Variables from the GraphQL request are mapped into the args (second) parameter
+- Parameters for the method should be
+  - First - the base context that your schema is built from
+  - Optionally, any other items you have passed to `QueryObject` (see below for example)
+  - Last - a class that defines each available parameter (and type)
+- Variables from the GraphQL request are mapped into the args (last) parameter
 
 You can now request a mutation
 ```
@@ -305,6 +308,26 @@ With variables
 {
   "name": "Robot Dophlin",
   "movieId": 2
+}
+```
+
+## Accessing other services in your mutation
+`QueryObject` supports `mutationArgs` as parameters which can be 0+ variables that will be resolved to your mutation method.
+
+A big use case is `IServiceProvider`. When you call `QueryObject` you can pass any number of other variables in e.g. `var data = dbContext.QueryObject(gql, schemaProvider, serviceProvider);`
+
+If you define a mutation method that requires that parameter type it will be resolved to the value you passed `QueryObject`. Note EntityGraphQL will not use `IServiceProvider` to resolve _any_ parameter. This is just an example of getting the `IServiceProvider` to your mutation for those who use it.
+
+```csharp
+public class MovieMutations
+{
+  [GraphQLMutation]
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, IServiceProvider serviceProvider, ActorArgs args)
+  {
+    var myService = serviceProvider.GetService<...>();
+    myService.DoSomething();
+    return ctx => ctx.Movies.First(m => m.Id == movie.Id);
+  }
 }
 ```
 

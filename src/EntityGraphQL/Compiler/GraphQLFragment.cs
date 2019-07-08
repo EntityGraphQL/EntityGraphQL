@@ -35,5 +35,7 @@ namespace EntityGraphQL.Compiler
         }
 
         public string Name => this.name;
+
+        public OperationType Type => OperationType.Fragment;
     }
 }

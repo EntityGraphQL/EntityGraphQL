@@ -47,5 +47,14 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         string Name { get; }
+        OperationType Type { get; }
+    }
+
+    public enum OperationType
+    {
+        Query,
+        Mutation,
+        Fragment,
+        Result,
     }
 }

@@ -16,6 +16,7 @@ namespace EntityGraphQL.Compiler
         public IEnumerable<IGraphQLNode> Fields { get; private set; }
 
         public string Name => graphQLNode.Name;
+        public OperationType Type => OperationType.Mutation;
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => null;
 

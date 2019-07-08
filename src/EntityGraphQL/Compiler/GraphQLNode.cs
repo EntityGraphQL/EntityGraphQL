@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -47,6 +45,7 @@ namespace EntityGraphQL.Compiler
         private Dictionary<ParameterExpression, object> constantParameters;
 
         public string Name { get; private set; }
+        public OperationType Type => OperationType.Query;
 
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name

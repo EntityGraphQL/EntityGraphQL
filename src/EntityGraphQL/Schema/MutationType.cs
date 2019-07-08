@@ -23,9 +23,25 @@ namespace EntityGraphQL.Schema
 
         public object Call(object[] args, Dictionary<string, ExpressionResult> gqlRequestArgs)
         {
-            var allArgs = args.ToList();
+            // first arg is the Context - required arg in the mutation method
+            var allArgs = new List<object> { args.First() };
+
+            // are they asking for any other args and do we have them
+            var parameterInfo = method.GetParameters();
+            foreach (var p in parameterInfo.Skip(1).Take(parameterInfo.Length - 2))
+            {
+                var match = args.FirstOrDefault(a => p.ParameterType.IsAssignableFrom(a.GetType()));
+                if (match == null)
+                {
+                    throw new EntityGraphQLCompilerException($"Mutation {method.Name} expecting parameter {p.Name} of type {p.ParameterType}, but no arguments suuplied to GraphQL QueryObject of that type");
+                }
+                allArgs.Add(match);
+            }
+
+            // last arg is the arguments for the mutation - required as last arg in the mutation method
             AssignArgValues(gqlRequestArgs);
             allArgs.Add(argInstance);
+
             var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
             return result;
         }
@@ -118,7 +134,7 @@ namespace EntityGraphQL.Schema
             this.method = method;
             Name = methodName;
 
-            var methodArg = method.GetParameters().ElementAt(1);
+            var methodArg = method.GetParameters().Last();
             this.argInstance = Activator.CreateInstance(methodArg.ParameterType);
             foreach (var item in this.argInstance.GetType().GetProperties())
             {
