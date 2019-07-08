@@ -6,7 +6,6 @@ using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Schema
 {
@@ -438,15 +437,6 @@ namespace EntityGraphQL.Schema
             return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration);
         }
 
-        /// <summary>
-        /// Builds a GraphQL Introspection schema
-        /// </summary>
-        /// <returns></returns>
-        public Models.Introspection GetGraphQLIntrospectionSchema()
-        {
-            return SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration);
-        }
-
         public IEnumerable<Field> GetQueryFields()
         {
             return _types[_queryContextName].GetFields();
@@ -460,24 +450,6 @@ namespace EntityGraphQL.Schema
         public IEnumerable<IMethodType> GetMutations()
         {
             return _mutations.Values.ToList();
-        }
-
-        /// <summary>
-        /// Add a graphql error
-        /// </summary>
-        /// <param name="message"></param>
-        public void AddError(string message)
-        {
-            GraphQLVaildation.Errors.Add(new GraphQLError(message));
-        }
-
-        /// <summary>
-        /// Check if any GraphQL vaildation error
-        /// </summary>
-        /// <returns></returns>
-        public bool IsVaild()
-        {
-            return GraphQLVaildation.Errors.Count == 0;
         }
     }
 }

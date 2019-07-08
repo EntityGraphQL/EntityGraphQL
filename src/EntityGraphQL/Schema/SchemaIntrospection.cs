@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using System.Text;
     using EntityGraphQL.Extensions;
 
     public class SchemaIntrospection
@@ -209,11 +208,11 @@
             var types = new List<Models.TypeElement>();
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes())
-            {                
+            {
                 var typeElement = new Models.TypeElement
                 {
                     Kind = "INPUT_OBJECT",
-                    Name = ToCamelCaseStartsLower(schemaType.Name),
+                    Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
                     Description = schemaType.Description,
                     Interfaces = new object[] { },
                     Fields = null,
@@ -228,7 +227,7 @@
 
                     //Skip any property with special attribute
                     var property = schemaType.ContextType.GetProperty(field.Name);
-                    if (property != null && property.GetCustomAttribute(typeof(GraphQLIgnoreInputAttribute)) != null)
+                    if (property != null && property.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
                         continue;
 
                     //Skipping custom fields added to schema
@@ -337,7 +336,7 @@
                     //Skip any property with special attribute
                     //Had to restore the PascalCase so Reflection could find it
                     var propInfo = mutation.ReturnTypeClr.GetProperty(ToPascalCaseStartsUpper(arg.Key));
-                    if (propInfo != null && propInfo.GetCustomAttribute(typeof(GraphQLIgnoreInputAttribute)) != null)
+                    if (propInfo != null && propInfo.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
                         continue;
 
                     var type = new Models.Type();
@@ -348,7 +347,7 @@
                         type.OfType = new Models.Type
                         {
                             Kind = "OBJECT",
-                            Name = ToCamelCaseStartsLower(arg.Value.GenericTypeArguments.First().Name),
+                            Name = SchemaGenerator.ToCamelCaseStartsLower(arg.Value.GenericTypeArguments.First().Name),
                             OfType = null
                         };
                     }
@@ -391,7 +390,7 @@
         }
 
         private static Models.Type BuildType(Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
-        {            
+        {
             //Is collection of objects??
             Models.Type type = new Models.Type();
             if (field.IsEnumerable)
@@ -401,14 +400,14 @@
                 type.OfType = new Models.Type
                 {
                     Kind = "OBJECT",
-                    Name = isInput ? ToCamelCaseStartsLower(field.ReturnTypeSingle) : field.ReturnTypeSingle
+                    Name = isInput ? SchemaGenerator.ToCamelCaseStartsLower(field.ReturnTypeSingle) : field.ReturnTypeSingle
                 };
             }
             else
             {
                 type.Kind = combinedMapping.Any(x => x.Key == field.ReturnTypeClr) ? "SCALAR" : "OBJECT";
                 if (type.Kind == "OBJECT" && isInput)
-                    type.Name = ToCamelCaseStartsLower(FindNamedMapping(field.ReturnTypeClr, combinedMapping, field.ReturnTypeSingle));
+                    type.Name = SchemaGenerator.ToCamelCaseStartsLower(FindNamedMapping(field.ReturnTypeClr, combinedMapping, field.ReturnTypeSingle));
                 else
                     type.Name = FindNamedMapping(field.ReturnTypeClr, combinedMapping, field.ReturnTypeSingle);
             }
@@ -425,11 +424,6 @@
                     return name.ToString();
                 else
                     return fallback;
-        }
-
-        public static string ToCamelCaseStartsLower(string name)
-        {
-            return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
         }
 
         public static string ToPascalCaseStartsUpper(string name)

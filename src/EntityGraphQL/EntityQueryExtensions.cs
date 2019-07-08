@@ -67,7 +67,6 @@ namespace EntityGraphQL
 
             try
             {
-                GraphQLVaildation.Errors = new List<GraphQLError>(); //Clear existing errors
                 var graphQLCompiler = new GraphQLCompiler(schemaProvider, methodProvider);
                 var queryResult = (GraphQLResultNode)graphQLCompiler.Compile(request);
                 result = queryResult.ExecuteQuery(context, request.OperationName, mutationArgs);

@@ -8,6 +8,7 @@ using EntityGraphQL.Schema;
 using Humanizer;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using System.ComponentModel;
 
 namespace EntityGraphQL.Schema
 {
@@ -107,11 +108,13 @@ namespace EntityGraphQL.Schema
                     continue;
                 }
 
-                //Get Description from ComponentModel.DescriptionAttribute
+                // Get Description from ComponentModel.DescriptionAttribute
                 string description = "";
-                var d = (System.ComponentModel.DescriptionAttribute)prop.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                var d = (DescriptionAttribute)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
                 if (d != null)
+                {
                     description = d.Description;
+                }
 
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
                 var f = new Field(prop.Name, le, description);
