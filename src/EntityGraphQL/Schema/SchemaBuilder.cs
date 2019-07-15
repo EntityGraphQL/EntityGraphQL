@@ -4,9 +4,7 @@ using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Reflection;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema;
 using Humanizer;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
 

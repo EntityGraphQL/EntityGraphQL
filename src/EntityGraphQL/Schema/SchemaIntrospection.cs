@@ -8,46 +8,16 @@
 
     public class SchemaIntrospection
     {
-        private static readonly Dictionary<Type, string> defaultTypeMappings = new Dictionary<Type, string> {
-            {typeof(string), "String"},
-            {typeof(RequiredField<string>), "String"},
-            {typeof(Guid), "ID"},
-            {typeof(Guid?), "ID"},
-            {typeof(RequiredField<Guid>), "ID"},
-            {typeof(int), "Int"},
-            {typeof(RequiredField<int>), "Int"},
-            {typeof(int?), "Int"},
-            {typeof(double), "Float"},
-            {typeof(RequiredField<double>), "Float"},
-            {typeof(double?), "Float"},
-            {typeof(float), "Float"},
-            {typeof(RequiredField<float>), "Float"},
-            {typeof(float?), "Float"},
-            {typeof(bool), "Boolean"},
-            {typeof(bool?), "Boolean"},
-            {typeof(RequiredField<bool>), "Boolean"},
-            {typeof(EntityQueryType<>), "String"},
-            {typeof(RequiredField<long>), "Int"},
-            {typeof(long), "Int"},
-            {typeof(long?), "Int"},
-            {typeof(DateTime), "String"},
-            {typeof(DateTime?), "String"},
-            {typeof(RequiredField<DateTime>), "String"},
-            {typeof(RequiredField<uint>), "Int"},
-            {typeof(uint), "Int"},
-            {typeof(uint?), "Int"}
-        };
-
         /// <summary>
         /// Creates an Introspection schema
         /// </summary>
         /// <param name="schema"></param>
         /// <param name="typeMappings"></param>
         /// <returns></returns>
-        internal static Models.Introspection Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
+        public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
         {
             // defaults first
-            var combinedMapping = defaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
+            var combinedMapping = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
             foreach (var item in typeMappings)
             {
                 if (combinedMapping.ContainsKey(item.Key))
@@ -65,27 +35,21 @@
             types.AddRange(BuildInputType(schema, combinedMapping));
             types.AddRange(BuildEnumType(schema, combinedMapping));
 
-            var introspection = new Models.Introspection
+            var schemaDescription = new Models.Schema
             {
-                Data = new Models.Data
+                QueryType = new Models.QueryType
                 {
-                    Schema = new Models.Schema
-                    {
-                        QueryType = new Models.QueryType
-                        {
-                            Name = "RootQuery"
-                        },
-                        MutationType = new Models.MutationType
-                        {
-                            Name = "MutationQuery"
-                        },
-                        Types = types.OrderBy(x => x.Name).ToArray(),
-                        Directives = BuildDirectives().ToArray()
-                    }
-                }
+                    Name = "RootQuery"
+                },
+                MutationType = new Models.MutationType
+                {
+                    Name = "MutationQuery"
+                },
+                Types = types.OrderBy(x => x.Name).ToArray(),
+                Directives = BuildDirectives().ToArray()
             };
 
-            return introspection;
+            return schemaDescription;
         }
 
         private static Models.TypeElement BuildRootQuery(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
@@ -113,12 +77,12 @@
                 var args = new List<Models.Arg>();
                 foreach (var arg in field.Arguments)
                 {
-                    var type = new Models.Type();
+                    var type = new Models.TypeElement();
                     if (arg.Value.Name == "RequiredField`1")
                     {
                         type.Kind = "NON_NULL";
                         type.Name = null;
-                        type.OfType = new Models.Type
+                        type.OfType = new Models.TypeElement
                         {
                             Kind = "SCALAR",
                             Name = FindNamedMapping(arg.Value, combinedMapping),
@@ -339,12 +303,12 @@
                     if (propInfo != null && propInfo.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
                         continue;
 
-                    var type = new Models.Type();
+                    var type = new Models.TypeElement();
                     if (arg.Value.Namespace.Contains("System.Collections.Generic"))
                     {
                         type.Kind = "LIST";
                         type.Name = null;
-                        type.OfType = new Models.Type
+                        type.OfType = new Models.TypeElement
                         {
                             Kind = "OBJECT",
                             Name = SchemaGenerator.ToCamelCaseStartsLower(arg.Value.GenericTypeArguments.First().Name),
@@ -377,7 +341,7 @@
                     Description = mutation.Description,
                     Args = args.ToArray(),
                     IsDeprecated = false,
-                    Type = new Models.Type
+                    Type = new Models.TypeElement
                     {
                         Kind = "OBJECT",
                         Name = FindNamedMapping(mutation.ReturnTypeClr, combinedMapping, mutation.ReturnTypeClr.Name)
@@ -389,15 +353,15 @@
             return mutationTypes;
         }
 
-        private static Models.Type BuildType(Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
+        private static Models.TypeElement BuildType(Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
         {
             //Is collection of objects??
-            Models.Type type = new Models.Type();
+            var type = new Models.TypeElement();
             if (field.IsEnumerable)
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = new Models.Type
+                type.OfType = new Models.TypeElement
                 {
                     Kind = "OBJECT",
                     Name = isInput ? SchemaGenerator.ToCamelCaseStartsLower(field.ReturnTypeSingle) : field.ReturnTypeSingle
@@ -444,11 +408,11 @@
                             Name = "if",
                             Description = "Included when true.",
                             DefaultValue = null,
-                            Type = new Models.Type
+                            Type = new Models.TypeElement
                             {
                                 Kind = "NON_NULL",
                                 Name = null,
-                                OfType = new Models.Type
+                                OfType = new Models.TypeElement
                                 {
                                     Kind = "SCALAR",
                                     Name = "Boolean",
@@ -468,11 +432,11 @@
                             Name = "if",
                             Description = "Skipped when true.",
                             DefaultValue = null,
-                            Type = new Models.Type
+                            Type = new Models.TypeElement
                             {
                                 Kind = "NON_NULL",
                                 Name = null,
-                                OfType = new Models.Type
+                                OfType = new Models.TypeElement
                                 {
                                     Kind = "SCALAR",
                                     Name = "Boolean",

@@ -9,7 +9,7 @@ namespace EntityGraphQL.Schema
 {
     public class SchemaGenerator
     {
-        private static readonly Dictionary<Type, string> defaultTypeMappings = new Dictionary<Type, string> {
+        public static readonly Dictionary<Type, string> DefaultTypeMappings = new Dictionary<Type, string> {
             {typeof(string), "String"},
             {typeof(RequiredField<string>), "String!"},
             {typeof(Guid), "ID"},
@@ -28,12 +28,21 @@ namespace EntityGraphQL.Schema
             {typeof(bool?), "Boolean"},
             {typeof(RequiredField<bool>), "Boolean"},
             {typeof(EntityQueryType<>), "String"},
+            {typeof(RequiredField<long>), "Int"},
+            {typeof(long), "Int"},
+            {typeof(long?), "Int"},
+            {typeof(DateTime), "String"},
+            {typeof(DateTime?), "String"},
+            {typeof(RequiredField<DateTime>), "String"},
+            {typeof(RequiredField<uint>), "Int"},
+            {typeof(uint), "Int"},
+            {typeof(uint?), "Int"}
         };
 
         internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
         {
             // defaults first
-            var combinedMapping = defaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
+            var combinedMapping = DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
             foreach (var item in typeMappings)
             {
                 if (combinedMapping.ContainsKey(item.Key))

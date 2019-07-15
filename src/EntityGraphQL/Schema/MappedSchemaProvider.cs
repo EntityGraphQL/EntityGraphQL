@@ -26,6 +26,18 @@ namespace EntityGraphQL.Schema
             var queryContext = new SchemaType<TContextType>(typeof(TContextType).Name, "Query schema");
             _queryContextName = queryContext.Name;
             _types.Add(queryContext.Name, queryContext);
+
+            AddType<Models.Arg>("__InputValue", "Information about arguments").AddAllFields();
+            AddType<Models.Directives>("Information about directives").AddAllFields();
+            AddType<Models.EnumValue>("Information about enums").AddAllFields();
+            AddType<Models.Field>("Information about fields").AddAllFields();
+            AddType<Models.MutationType>("Information about mutation types").AddAllFields();
+            AddType<Models.QueryType>("Information about query types").AddAllFields();
+            AddType<Models.Schema>("Introspection of the schema").AddAllFields();
+            AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
+            AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
+            // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
+            AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "Schema");
         }
 
         /// <summary>

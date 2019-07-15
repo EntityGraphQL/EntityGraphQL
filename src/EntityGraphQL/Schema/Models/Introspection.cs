@@ -4,21 +4,6 @@
 //
 namespace EntityGraphQL.Schema.Models
 {
-    using Newtonsoft.Json;
-
-    public partial class Introspection
-    {
-        public object[] Errors { get; set; }
-
-        public Data Data { get; set; }
-    }
-
-    public partial class Data
-    {
-        [JsonProperty("__schema")]
-        public Schema Schema { get; set; }
-    }
-
     public partial class Schema
     {
         public QueryType QueryType { get; set; }
@@ -64,6 +49,7 @@ namespace EntityGraphQL.Schema.Models
         public EnumValue[] EnumValues { get; set; }
 
         public object PossibleTypes { get; set; }
+        public TypeElement OfType { get; set; }
     }
 
     public partial class Field
@@ -74,7 +60,7 @@ namespace EntityGraphQL.Schema.Models
 
         public Arg[] Args { get; set; }
 
-        public Type Type { get; set; }
+        public TypeElement Type { get; set; }
 
         public bool IsDeprecated { get; set; }
 
@@ -87,18 +73,9 @@ namespace EntityGraphQL.Schema.Models
 
         public object Description { get; set; }
 
-        public Type Type { get; set; }
+        public TypeElement Type { get; set; }
 
         public object DefaultValue { get; set; }
-    }
-
-    public partial class Type
-    {
-        public string Kind { get; set; }
-
-        public string Name { get; set; }
-
-        public Type OfType { get; set; }
     }
 
     public partial class Directives
