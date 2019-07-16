@@ -34,6 +34,12 @@ namespace EntityGraphQL.Schema.Models
 
     public partial class TypeElement
     {
+        public TypeElement()
+        {
+            EnumValues = new Models.EnumValue[] {};
+            Interfaces = new object[] {};
+        }
+
         public string Kind { get; set; }
 
         public string Name { get; set; }
@@ -64,7 +70,7 @@ namespace EntityGraphQL.Schema.Models
 
         public bool IsDeprecated { get; set; }
 
-        public object DeprecationReason { get; set; }
+        public string DeprecationReason { get; set; }
     }
 
     public partial class Arg
@@ -97,6 +103,6 @@ namespace EntityGraphQL.Schema.Models
 
         public bool IsDeprecated { get; set; }
 
-        public object DeprecationReason { get; set; }
+        public string DeprecationReason { get; set; }
     }
 }

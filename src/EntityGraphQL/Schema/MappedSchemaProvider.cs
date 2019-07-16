@@ -39,9 +39,14 @@ namespace EntityGraphQL.Schema
             AddType<Models.Schema>("__schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
             AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
+
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("Fields", new {includeDeprecated = false},
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, _typeMappingForSchemaGeneration, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available of type");
+                (t, p) => SchemaIntrospection.BuildFieldsForType(this, _typeMappingForSchemaGeneration, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
+
+            Type<Models.TypeElement>("__Type").ReplaceField("EnumValues", new {includeDeprecated = false},
+                (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
+
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
             AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "__schema");
         }
