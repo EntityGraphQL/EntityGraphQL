@@ -92,7 +92,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add any methods marked with GraphQLMutationAttribute in the given type to the schema. Names are added as lowerCaseCamel
+        /// Add any methods marked with GraphQLMutationAttribute in the given type to the schema. Names are added as lowerCaseCamel`
         /// </summary>
         /// <param name="mutationClassInstance"></param>
         /// <typeparam name="TType"></typeparam>

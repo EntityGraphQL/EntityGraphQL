@@ -1,7 +1,6 @@
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -25,7 +24,7 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
 
         [Fact]
@@ -42,8 +41,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(1, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.id);
         }
 
         [Fact]
@@ -58,7 +57,7 @@ namespace EntityGraphQL.Tests
             dynamic users = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
-            Assert.Equal("2", user.Field2);
+            Assert.Equal("2", user.field2);
         }
 
         [Fact]
@@ -76,7 +75,7 @@ namespace EntityGraphQL.Tests
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
-            Assert.Equal("2", user.Field2);
+            Assert.Equal("2", user.field2);
         }
 
         [Fact]
@@ -127,8 +126,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(9, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(9, user.id);
         }
 
         [Fact]
@@ -144,7 +143,7 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.First((dynamic)result.Data["people"]);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
             Assert.Equal("height", person.GetType().GetFields()[1].Name);
             Assert.Equal(183.0, person.height);
         }
@@ -178,8 +177,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(1, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.id);
         }
 
         [Fact]
@@ -195,8 +194,8 @@ namespace EntityGraphQL.Tests
             dynamic project = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, project.GetType().GetFields().Length);
-            Assert.Equal("Id", project.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.Id);
+            Assert.Equal("id", project.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.id);
         }
 
         [Fact]
@@ -211,8 +210,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Data["person"];
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
         }
 
         [Fact]
@@ -228,9 +227,9 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Data["person"];
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
-            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), user.project.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), user.project.id);
         }
 
         [Fact]
@@ -251,8 +250,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
         }
 
         [Fact]
@@ -295,8 +294,8 @@ fragment info on Person {
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
             Assert.Equal("projects", person.GetType().GetFields()[2].Name);
         }
 

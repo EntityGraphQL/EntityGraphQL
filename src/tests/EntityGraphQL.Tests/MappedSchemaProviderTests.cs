@@ -25,10 +25,10 @@ namespace EntityGraphQL.Tests
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("opentask", "id", new string[0]));
-            Assert.True(provider.TypeHasField("opentask", "assignee", new string[0]));
+            Assert.True(provider.TypeHasField("openTask", "id", new string[0]));
+            Assert.True(provider.TypeHasField("openTask", "assignee", new string[0]));
             // Not exposed in our schema
-            Assert.False(provider.TypeHasField("opentask", "IsActive", new string[0]));
+            Assert.False(provider.TypeHasField("openTask", "isActive", new string[0]));
         }
         [Fact]
         public void ReturnsActualName()

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
-using System.Collections;
 
 namespace EntityGraphQL.Tests
 {
@@ -47,10 +45,10 @@ namespace EntityGraphQL.Tests
             dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data["addPerson"];
             // we only have the fields requested
             Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(555, addPersonResult.Id);
-            Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
-            Assert.Equal("Default", addPersonResult.Name);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal(555, addPersonResult.id);
+            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Equal("Default", addPersonResult.name);
         }
 
         [Fact]
@@ -74,11 +72,11 @@ namespace EntityGraphQL.Tests
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(0, addPersonResult.Id);
-            Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
-            Assert.Equal("Bill", addPersonResult.Name);
-            Assert.Equal("Frank", addPersonResult.LastName);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal(0, addPersonResult.id);
+            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Equal("Bill", addPersonResult.name);
+            Assert.Equal("Frank", addPersonResult.lastName);
         }
 
         [Fact]
@@ -104,11 +102,11 @@ namespace EntityGraphQL.Tests
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("Id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(0, addPersonResult.Id);
-            Assert.Equal("Name", addPersonResult.GetType().GetFields()[1].Name);
-            Assert.Equal("Lisa", addPersonResult.Name);
-            Assert.Equal("Simpson", addPersonResult.LastName);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal(0, addPersonResult.id);
+            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Equal("Lisa", addPersonResult.name);
+            Assert.Equal("Simpson", addPersonResult.lastName);
         }
     }
 
