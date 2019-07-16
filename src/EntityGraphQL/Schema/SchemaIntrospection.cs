@@ -5,7 +5,6 @@
     using System.Linq;
     using System.Reflection;
     using EntityGraphQL.Extensions;
-    using EntityGraphQL.Schema.Models;
 
     public class SchemaIntrospection
     {
@@ -17,24 +16,20 @@
         /// <returns></returns>
         public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            var types = new List<Models.TypeElement>
-            {
-                BuildRootQuery(schema, combinedMapping),
-                BuildMutationType(schema, combinedMapping)
-            };
-            types.AddRange(BuildQueryType(schema, combinedMapping));
-            types.AddRange(BuildInputType(schema, combinedMapping));
-            types.AddRange(BuildEnumType(schema, combinedMapping));
+            var types = new List<Models.TypeElement>();
+            types.AddRange(BuildQueryTypes(schema, combinedMapping));
+            types.AddRange(BuildInputTypes(schema, combinedMapping));
+            types.AddRange(BuildEnumTypes(schema, combinedMapping));
 
             var schemaDescription = new Models.Schema
             {
                 QueryType = new Models.QueryType
                 {
-                    Name = "RootQuery"
+                    Name = "Query"
                 },
                 MutationType = new Models.MutationType
                 {
-                    Name = "MutationQuery"
+                    Name = "Mutation"
                 },
                 Types = types.OrderBy(x => x.Name).ToArray(),
                 Directives = BuildDirectives().ToArray()
@@ -43,20 +38,7 @@
             return schemaDescription;
         }
 
-        private static Models.TypeElement BuildRootQuery(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
-        {
-            var rootTypes = new Models.TypeElement
-            {
-                Kind = "OBJECT",
-                Name = "RootQuery",
-                Interfaces = new object[] { },
-                Description = "Queries available on this server."
-            };
-
-            return rootTypes;
-        }
-
-        private static List<Models.TypeElement> BuildQueryType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Models.TypeElement> BuildQueryTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new List<Models.TypeElement>();
 
@@ -101,7 +83,7 @@
         /// Since Types and Inputs cannot have the same name, camelCase the name to pervent duplicates.
         /// </remarks>
         /// <returns></returns>
-        private static List<Models.TypeElement> BuildInputType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Models.TypeElement> BuildInputTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new List<Models.TypeElement>();
 
@@ -151,7 +133,7 @@
             return types;
         }
 
-        private static List<Models.TypeElement> BuildEnumType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Models.TypeElement> BuildEnumTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new List<Models.TypeElement>();
 
@@ -207,82 +189,6 @@
             return types;
         }
 
-        private static Models.TypeElement BuildMutationType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
-        {
-            var mutationTypes = new Models.TypeElement
-            {
-                Kind = "OBJECT",
-                Name = "MutationQuery",
-                Interfaces = new object[] { },
-                Description = "All mutations available on this server."
-            };
-            var mutationFields = new List<Models.Field>();
-
-            foreach (var mutation in schema.GetMutations())
-            {
-                if (mutation.Name.StartsWith("__"))
-                    continue;
-
-                /*== Arguments ==*/
-                var args = new List<Models.Arg>();
-                foreach (var arg in mutation.Arguments)
-                {
-                    //Skip any property with special attribute
-                    //Had to restore the PascalCase so Reflection could find it
-                    var propInfo = mutation.ReturnTypeClr.GetProperty(ToPascalCaseStartsUpper(arg.Key));
-                    if (propInfo != null && propInfo.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
-                        continue;
-
-                    var type = new Models.TypeElement();
-                    if (arg.Value.Namespace.Contains("System.Collections.Generic"))
-                    {
-                        type.Kind = "LIST";
-                        type.Name = null;
-                        type.OfType = new Models.TypeElement
-                        {
-                            Kind = "OBJECT",
-                            Name = SchemaGenerator.ToCamelCaseStartsLower(arg.Value.GenericTypeArguments.First().Name),
-                            OfType = null
-                        };
-                    }
-                    else if (arg.Value.GetTypeInfo().IsEnum)
-                    {
-                        type.Kind = "ENUM";
-                        type.Name = FindNamedMapping(arg.Value, combinedMapping, ToPascalCaseStartsUpper(arg.Key));
-                        type.OfType = null;
-                    }
-                    else
-                    {
-                        type.Kind = combinedMapping.Any(x => x.Key == arg.Value) ? "SCALAR" : "OBJECT";
-                        type.Name = FindNamedMapping(arg.Value, combinedMapping, arg.Key);
-                    }
-
-                    args.Add(new Models.Arg
-                    {
-                        Name = arg.Key,
-                        Type = type
-                    });
-                }
-
-                /*== Fields ==*/
-                mutationFields.Add(new Models.Field
-                {
-                    Name = mutation.Name,
-                    Description = mutation.Description,
-                    Args = args.ToArray(),
-                    IsDeprecated = false,
-                    Type = new Models.TypeElement
-                    {
-                        Kind = "OBJECT",
-                        Name = FindNamedMapping(mutation.ReturnTypeClr, combinedMapping, mutation.ReturnTypeClr.Name)
-                    }
-                });
-            }
-
-            // mutationTypes.Fields = mutationFields.ToArray();
-            return mutationTypes;
-        }
-
         private static Models.TypeElement BuildType(ISchemaProvider schema, Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
         {
             // Is collection of objects?
@@ -318,7 +224,7 @@
         /// <returns></returns>
         public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string typeName)
         {
-            if (typeName == "RootQuery")
+            if (typeName == "Query")
             {
                 return BuildRootQueryFields(schema, combinedMapping);
             }
@@ -333,7 +239,7 @@
             {
                 fieldDescs.Add(new Models.Field
                 {
-                    Args = null,
+                    Args = BuildArgs(combinedMapping, field).ToArray(),
                     DeprecationReason = "",
                     Description = field.Description,
                     IsDeprecated = false,
@@ -357,47 +263,77 @@
                 if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                     continue;
 
-                //== Arguments ==//
-                var args = new List<Models.Arg>();
-                foreach (var arg in field.Arguments)
-                {
-                    var type = new Models.TypeElement();
-                    if (arg.Value.Name == "RequiredField`1")
-                    {
-                        type.Kind = "NON_NULL";
-                        type.Name = null;
-                        type.OfType = new Models.TypeElement
-                        {
-                            Kind = "SCALAR",
-                            Name = FindNamedMapping(arg.Value, combinedMapping),
-                            OfType = null
-                        };
-                    }
-                    else
-                    {
-                        type.Kind = "SCALAR";
-                        type.Name = FindNamedMapping(arg.Value, combinedMapping);
-                        type.OfType = null;
-                    }
-
-                    args.Add(new Models.Arg
-                    {
-                        Name = arg.Key,
-                        Type = type
-                    });
-                }
-
                 //== Fields ==//
                 rootFields.Add(new Models.Field
                 {
                     Name = field.Name,
-                    Args = args.ToArray(),
+                    Args = BuildArgs(combinedMapping, field).ToArray(),
                     IsDeprecated = false,
                     Type = BuildType(schema, field, combinedMapping),
                     Description = field.Description
                 });
             }
             return rootFields.ToArray();
+        }
+
+        private static Models.Field[] BuildMutationFields(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            var rootFields = new List<Models.Field>();
+
+            foreach (var field in schema.GetMutations())
+            {
+                if (field.Name.StartsWith("__"))
+                    continue;
+
+                // Skipping ENUM type
+                if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
+                    continue;
+
+                //== Fields ==//
+                rootFields.Add(new Models.Field
+                {
+                    Name = field.Name,
+                    // Args = BuildArgs(combinedMapping, field).ToArray(),
+                    IsDeprecated = false,
+                    // Type = BuildType(schema, field, combinedMapping),
+                    Description = field.Description
+                });
+            }
+            return rootFields.ToArray();
+        }
+
+        private static List<Models.Arg> BuildArgs(IReadOnlyDictionary<Type, string> combinedMapping, Field field)
+        {
+            var args = new List<Models.Arg>();
+            foreach (var arg in field.Arguments)
+            {
+                var type = new Models.TypeElement();
+                if (arg.Value.Name == "RequiredField`1")
+                {
+                    type.Kind = "NON_NULL";
+                    type.Name = null;
+                    type.OfType = new Models.TypeElement
+                    {
+                        Kind = "SCALAR",
+                        Name = FindNamedMapping(arg.Value, combinedMapping),
+                        OfType = null
+                    };
+                }
+                else
+                {
+                    type.Kind = "SCALAR";
+                    type.Name = FindNamedMapping(arg.Value, combinedMapping);
+                    type.OfType = null;
+                }
+
+                args.Add(new Models.Arg
+                {
+                    Name = arg.Key,
+                    Type = type
+                });
+            }
+
+            return args;
         }
 
         private static string FindNamedMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping, string fallback = null)

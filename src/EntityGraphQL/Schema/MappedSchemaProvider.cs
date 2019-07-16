@@ -31,19 +31,19 @@ namespace EntityGraphQL.Schema
             var _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
 
             AddType<Models.Arg>("__InputValue", "Information about arguments").AddAllFields();
-            AddType<Models.Directives>("Information about directives").AddAllFields();
-            AddType<Models.EnumValue>("Information about enums").AddAllFields();
-            AddType<Models.Field>("Information about fields").AddAllFields();
-            AddType<Models.MutationType>("Information about mutation types").AddAllFields();
-            AddType<Models.QueryType>("Information about query types").AddAllFields();
-            AddType<Models.Schema>("Introspection of the schema").AddAllFields();
+            AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
+            AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
+            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
+            AddType<Models.MutationType>("Mutation", "The mutation type, represents all updates we can make to our data").AddAllFields();
+            AddType<Models.QueryType>("Query", "The query type, represents all of the entry points into our object graph").AddAllFields();
+            AddType<Models.Schema>("__schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
             AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("Fields", new {includeDeprecated = false},
                 (t, p) => SchemaIntrospection.BuildFieldsForType(this, _typeMappingForSchemaGeneration, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available of type");
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
-            AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "Schema");
+            AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "__schema");
         }
 
         /// <summary>
