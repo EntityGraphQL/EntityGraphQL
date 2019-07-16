@@ -168,7 +168,7 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    typeElement.Name = field.Name;
+                    typeElement.Name = field.ReturnTypeSingle;
                     typeElement.Description = field.Description;
 
                     foreach (var fieldInfo in field.ReturnTypeClr.GetFields())

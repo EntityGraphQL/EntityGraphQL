@@ -55,7 +55,7 @@ namespace EntityGraphQL.Schema
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
             var schemaType = schema.Type(fieldProp.ReturnTypeSingle);
-            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "Id");
+            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
@@ -115,14 +115,14 @@ namespace EntityGraphQL.Schema
                 }
 
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(prop.Name, le, description);
+                var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description);
                 fields.Add(f);
                 CacheType<TContextType>(prop.PropertyType, schema);
             }
             foreach (var prop in type.GetFields())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Field(param, prop.Name), param);
-                var f = new Field(prop.Name, le, prop.Name);
+                var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, prop.Name);
                 fields.Add(f);
                 CacheType<TContextType>(prop.FieldType, schema);
             }

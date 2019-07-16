@@ -91,6 +91,11 @@ namespace EntityGraphQL.Schema
 			return tt;
         }
 
+        /// <summary>
+        /// Add any methods marked with GraphQLMutationAttribute in the given type to the schema. Names are added as lowerCaseCamel
+        /// </summary>
+        /// <param name="mutationClassInstance"></param>
+        /// <typeparam name="TType"></typeparam>
         public void AddMutationFrom<TType>(TType mutationClassInstance)
         {
             foreach (var method in mutationClassInstance.GetType().GetMethods())
@@ -98,8 +103,9 @@ namespace EntityGraphQL.Schema
                 var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) as GraphQLMutationAttribute;
                 if (attribute != null)
                 {
-                    var mutationType = new MutationType(method.Name, _types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description);
-                    _mutations[method.Name] = mutationType;
+                    string name = SchemaGenerator.ToCamelCaseStartsLower(method.Name);
+                    var mutationType = new MutationType(name, _types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description);
+                    _mutations[name] = mutationType;
                 }
             }
         }

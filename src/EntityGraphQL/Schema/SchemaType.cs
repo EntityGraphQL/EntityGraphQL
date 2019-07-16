@@ -109,16 +109,6 @@ namespace EntityGraphQL.Schema
             _fieldsByName[field.Name] = field;
         }
 
-        /// <summary>
-        /// Checks for a field by name only. There could be multiple fields with the same name but different arguments (overloads)
-        /// </summary>
-        /// <param name="identifier"></param>
-        /// <returns></returns>
-        public bool HasFieldByNameOnly(string identifier)
-        {
-            return _fieldsByName.ContainsKey(identifier);
-        }
-
         private void BuildFieldsFromBase(Type contextType)
         {
             foreach (var f in ContextType.GetProperties())
@@ -132,7 +122,7 @@ namespace EntityGraphQL.Schema
                         description = d.Description;
 
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), description, null));
+                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Property(parameter, f.Name), parameter), description, null));
                 }
             }
             foreach (var f in ContextType.GetFields())
@@ -146,7 +136,7 @@ namespace EntityGraphQL.Schema
                         description = d.Description;
 
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), description, null));
+                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Field(parameter, f.Name), parameter), description, null));
                 }
             }
         }
