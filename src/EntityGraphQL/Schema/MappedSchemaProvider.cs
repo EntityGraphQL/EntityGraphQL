@@ -30,7 +30,7 @@ namespace EntityGraphQL.Schema
             // defaults first
             var _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
 
-            AddType<Models.InputValue>("__InputValue", "Information about input fields").AddAllFields();
+            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
             AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
             AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
             AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
@@ -47,6 +47,7 @@ namespace EntityGraphQL.Schema
 
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
             AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "__Schema");
+            AddField("__type", new {name = ArgumentHelper.Required<string>()}, (db, p) => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration).Types.Where(t => t.Name == p.name).ToList(), "Query a type by name", "__Type");
         }
 
         /// <summary>
@@ -252,7 +253,7 @@ namespace EntityGraphQL.Schema
             if (_mutations.ContainsKey(fieldName))
             {
                 var mutation = _mutations[fieldName];
-                return (IMethodType)mutation;
+                return mutation;
             }
             if (_types.ContainsKey(GetSchemaTypeNameForRealType(context.Type)))
             {

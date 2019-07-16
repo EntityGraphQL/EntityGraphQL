@@ -126,6 +126,8 @@ namespace EntityGraphQL.Schema
 
         public IDictionary<string, Type> Arguments => argumentTypes;
 
+        public string ReturnTypeSingle => returnType.Name;
+
         public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description)
         {
             this.Description = description;

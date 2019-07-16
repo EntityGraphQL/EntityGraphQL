@@ -168,10 +168,6 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    ////Skipping custom fields added to schema
-                    //if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
-                    //    continue;
-
                     typeElement.Name = field.Name;
                     typeElement.Description = field.Description;
 
@@ -200,7 +196,7 @@
             return types;
         }
 
-        private static Models.TypeElement BuildType(ISchemaProvider schema, Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
+        private static Models.TypeElement BuildType(ISchemaProvider schema, IMethodType field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
         {
             // Is collection of objects?
             var type = new Models.TypeElement();
@@ -238,6 +234,10 @@
             if (typeName == "Query")
             {
                 return BuildRootQueryFields(schema, combinedMapping);
+            }
+            if (typeName == "Mutation")
+            {
+                return BuildMutationFields(schema, combinedMapping);
             }
 
             var fieldDescs = new List<Models.Field>();
@@ -303,22 +303,21 @@
                 if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                     continue;
 
-                //== Fields ==//
                 rootFields.Add(new Models.Field
                 {
                     Name = field.Name,
-                    // Args = BuildArgs(combinedMapping, field).ToArray(),
+                    Args = BuildArgs(combinedMapping, field).ToArray(),
                     IsDeprecated = false,
-                    // Type = BuildType(schema, field, combinedMapping),
+                    Type = BuildType(schema, field, combinedMapping),
                     Description = field.Description
                 });
             }
             return rootFields.ToArray();
         }
 
-        private static List<Models.Arg> BuildArgs(IReadOnlyDictionary<Type, string> combinedMapping, Field field)
+        private static List<Models.InputValue> BuildArgs(IReadOnlyDictionary<Type, string> combinedMapping, IMethodType field)
         {
-            var args = new List<Models.Arg>();
+            var args = new List<Models.InputValue>();
             foreach (var arg in field.Arguments)
             {
                 var type = new Models.TypeElement();
@@ -340,10 +339,12 @@
                     type.OfType = null;
                 }
 
-                args.Add(new Models.Arg
+                args.Add(new Models.InputValue
                 {
                     Name = arg.Key,
-                    Type = type
+                    Type = type,
+                    DefaultValue = null,
+                    Description = null,
                 });
             }
 

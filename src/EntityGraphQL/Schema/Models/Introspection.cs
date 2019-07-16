@@ -56,24 +56,13 @@ namespace EntityGraphQL.Schema.Models
 
         public string Description { get; set; }
 
-        public Arg[] Args { get; set; }
+        public InputValue[] Args { get; set; }
 
         public TypeElement Type { get; set; }
 
         public bool IsDeprecated { get; set; }
 
         public string DeprecationReason { get; set; }
-    }
-
-    public partial class Arg
-    {
-        public string Name { get; set; }
-
-        public object Description { get; set; }
-
-        public TypeElement Type { get; set; }
-
-        public object DefaultValue { get; set; }
     }
 
     public class InputValue
@@ -92,7 +81,7 @@ namespace EntityGraphQL.Schema.Models
 
         public string[] Locations { get; set; }
 
-        public Arg[] Args { get; set; }
+        public InputValue[] Args { get; set; }
     }
 
     public partial class EnumValue
