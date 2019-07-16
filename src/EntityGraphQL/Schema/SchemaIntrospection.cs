@@ -357,7 +357,7 @@
                 return combinedMapping[name];
             else
                 if (string.IsNullOrEmpty(fallback))
-                    return name.ToString();
+                    return name.Name;
                 else
                     return fallback;
         }

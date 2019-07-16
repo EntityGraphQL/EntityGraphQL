@@ -111,17 +111,17 @@ namespace EntityGraphQL.Compiler
                     {
                         // build a new {...}
                         var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
-                        foreach (var field in selectionFields)
-                        {
-                            foreach (var cp in field.ConstantParameters)
-                            {
-                                constantParameters.Add(cp.Key, cp.Value);
-                            }
-                        }
                         var anonType = newExp.Type;
                         // make a null check from this new expression
                         newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldSelectionBaseExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
                         nodeExpression = (ExpressionResult)newExp;
+                    }
+                    foreach (var field in selectionFields)
+                    {
+                        foreach (var cp in field.ConstantParameters)
+                        {
+                            constantParameters.Add(cp.Key, cp.Value);
+                        }
                     }
 
                     foreach (var item in fieldSelectionBaseExpression.ConstantParameters)
