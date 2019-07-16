@@ -1,3 +1,6 @@
+# 0.18.0
+- Support for schema introspection. Top two fields (`__schema` and `__type(name: String!)`) are implemented. There are some things missing where we currently don't support the feature (directives). GraphiQL introspection query executes and you can naviagte the example. Big thanks to @JTravis76 for starting the work.
+
 # 0.17.0
 - Add the option to have other parameters passed into a mutation method. Very useful for IServiceProvider or other services your mutations require
 

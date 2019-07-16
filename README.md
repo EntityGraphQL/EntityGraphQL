@@ -192,6 +192,7 @@ Will return the following result.
   - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` graphql field so you can query `{ person(id: 1234) { name email } }` to select a single person
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
+- Schema introspection
 
 # Customizing the schema
 
