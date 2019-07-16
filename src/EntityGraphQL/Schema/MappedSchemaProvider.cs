@@ -16,8 +16,8 @@ namespace EntityGraphQL.Schema
     /// <typeparam name="TContextType">Base object graph. Ex. DbContext</typeparam>
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
-        protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>(StringComparer.OrdinalIgnoreCase);
-        protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>(StringComparer.OrdinalIgnoreCase);
+        protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>();
+        protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>();
         protected Dictionary<Type, string> _typeMappingForSchemaGeneration = new Dictionary<Type, string>();
         private readonly string _queryContextName;
 
