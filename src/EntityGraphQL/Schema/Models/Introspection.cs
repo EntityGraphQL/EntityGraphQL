@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema.Models
 
         public string Description { get; set; }
 
-        public Field[] Fields { get; set; }
+        // Fields is added dynamically so it is lazily loaded
 
         public object InputFields { get; set; }
 

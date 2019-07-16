@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Reflection;
     using EntityGraphQL.Extensions;
+    using EntityGraphQL.Schema.Models;
 
     public class SchemaIntrospection
     {
@@ -14,18 +15,8 @@
         /// <param name="schema"></param>
         /// <param name="typeMappings"></param>
         /// <returns></returns>
-        public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
+        public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            // defaults first
-            var combinedMapping = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
-            foreach (var item in typeMappings)
-            {
-                if (combinedMapping.ContainsKey(item.Key))
-                    combinedMapping[item.Key] = item.Value;
-                else
-                    combinedMapping.Add(item.Key, item.Value);
-            }
-
             var types = new List<Models.TypeElement>
             {
                 BuildRootQuery(schema, combinedMapping),
@@ -54,64 +45,11 @@
 
         private static Models.TypeElement BuildRootQuery(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            var rootFields = new List<Models.Field>();
-
-            foreach (var field in schema.GetQueryFields())
-            {
-                if (field.Name.StartsWith("__"))
-                    continue;
-
-                //Skipping ENUM type
-                if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
-                    continue;
-
-                //== Arguments ==//
-                var args = new List<Models.Arg>();
-                foreach (var arg in field.Arguments)
-                {
-                    var type = new Models.TypeElement();
-                    if (arg.Value.Name == "RequiredField`1")
-                    {
-                        type.Kind = "NON_NULL";
-                        type.Name = null;
-                        type.OfType = new Models.TypeElement
-                        {
-                            Kind = "SCALAR",
-                            Name = FindNamedMapping(arg.Value, combinedMapping),
-                            OfType = null
-                        };
-                    }
-                    else
-                    {
-                        type.Kind = "SCALAR";
-                        type.Name = FindNamedMapping(arg.Value, combinedMapping);
-                        type.OfType = null;
-                    }
-
-                    args.Add(new Models.Arg
-                    {
-                        Name = arg.Key,
-                        Type = type
-                    });
-                }
-
-                //== Fields ==//
-                rootFields.Add(new Models.Field
-                {
-                    Name = field.Name,
-                    Args = args.ToArray(),
-                    IsDeprecated = false,
-                    Type = BuildType(field, combinedMapping),
-                    Description = field.Description
-                });
-            }
-
             var rootTypes = new Models.TypeElement
             {
                 Kind = "OBJECT",
                 Name = "RootQuery",
                 Interfaces = new object[] { },
-                Fields = rootFields.ToArray(),
                 Description = "Queries available on this server."
             };
 
@@ -124,15 +62,6 @@
 
             foreach (var st in schema.GetNonContextTypes())
             {
-                var typeElement = new Models.TypeElement
-                {
-                    Kind = "OBJECT",
-                    Name = st.Name,
-                    Description = st.Description,
-                    Interfaces = new object[] { },
-                    Fields = new Models.Field[] { }
-                };
-
                 var fields = new List<Models.Field>();
                 foreach (var field in st.GetFields())
                 {
@@ -145,11 +74,18 @@
                         Description = field.Description,
                         IsDeprecated = false,
                         Args = new Models.Arg[] { },
-                        Type = BuildType(field, combinedMapping)
+                        Type = BuildType(schema, field, combinedMapping)
                     });
                 }
 
-                typeElement.Fields = fields.ToArray();
+                var typeElement = new Models.TypeElement
+                {
+                    Kind = "OBJECT",
+                    Name = st.Name,
+                    Description = st.Description,
+                    Interfaces = new object[] { },
+                };
+
                 types.Add(typeElement);
             }
 
@@ -171,16 +107,6 @@
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsInput))
             {
-                var typeElement = new Models.TypeElement
-                {
-                    Kind = "INPUT_OBJECT",
-                    Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
-                    Description = schemaType.Description,
-                    Interfaces = new object[] { },
-                    Fields = new Models.Field[] { },
-                    InputFields = new Models.Field[] { }
-                };
-
                 var fields = new List<Models.Field>();
                 foreach (Field field in schemaType.GetFields())
                 {
@@ -206,11 +132,19 @@
                         Description = field.Description,
                         IsDeprecated = false,
                         Args = new Models.Arg[] { },
-                        Type = BuildType(field, combinedMapping, true)
+                        Type = BuildType(schema, field, combinedMapping, true)
                     });
                 }
 
-                typeElement.InputFields = fields.ToArray();
+                var typeElement = new Models.TypeElement
+                {
+                    Kind = "INPUT_OBJECT",
+                    Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
+                    Description = schemaType.Description,
+                    Interfaces = new object[] { },
+                    InputFields = fields.ToArray()
+                };
+
                 types.Add(typeElement);
             }
 
@@ -229,7 +163,6 @@
                     Name = string.Empty,
                     Description = null,
                     Interfaces = null,
-                    Fields = new Models.Field[] { },
                     InputFields = new Models.Field[] { },
                     EnumValues = new Models.EnumValue[] { }
                 };
@@ -237,8 +170,7 @@
                 var enumTypes = new List<Models.EnumValue>();
 
                 //filter to ENUM type ONLY!
-                foreach (Field field in schemaType.GetFields()
-                    .Where(x => x.ReturnTypeClr.GetTypeInfo().IsEnum))
+                foreach (Field field in schemaType.GetFields().Where(x => x.ReturnTypeClr.GetTypeInfo().IsEnum))
                 {
                     if (field.Name.StartsWith("__"))
                         continue;
@@ -347,13 +279,13 @@
                 });
             }
 
-            mutationTypes.Fields = mutationFields.ToArray();
+            // mutationTypes.Fields = mutationFields.ToArray();
             return mutationTypes;
         }
 
-        private static Models.TypeElement BuildType(Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
+        private static Models.TypeElement BuildType(ISchemaProvider schema, Field field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
         {
-            //Is collection of objects??
+            // Is collection of objects?
             var type = new Models.TypeElement();
             if (field.IsEnumerable)
             {
@@ -375,6 +307,97 @@
             }
 
             return type;
+        }
+
+        /// <summary>
+        /// This is used in a lazy evaluated field as a graph can have circular dependencies
+        /// </summary>
+        /// <param name="schema"></param>
+        /// <param name="combinedMapping"></param>
+        /// <param name="typeName"></param>
+        /// <returns></returns>
+        public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string typeName)
+        {
+            if (typeName == "RootQuery")
+            {
+                return BuildRootQueryFields(schema, combinedMapping);
+            }
+
+            var fieldDescs = new List<Models.Field>();
+            if (!schema.HasType(typeName))
+            {
+                return fieldDescs.ToArray();
+            }
+            var type = schema.Type(typeName);
+            foreach (var field in type.GetFields())
+            {
+                fieldDescs.Add(new Models.Field
+                {
+                    Args = null,
+                    DeprecationReason = "",
+                    Description = field.Description,
+                    IsDeprecated = false,
+                    Name = SchemaGenerator.ToCamelCaseStartsLower(field.Name),
+                    Type = BuildType(schema, field, combinedMapping),
+                });
+            }
+            return fieldDescs.ToArray();
+        }
+
+        private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            var rootFields = new List<Models.Field>();
+
+            foreach (var field in schema.GetQueryFields())
+            {
+                if (field.Name.StartsWith("__"))
+                    continue;
+
+                // Skipping ENUM type
+                if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
+                    continue;
+
+                //== Arguments ==//
+                var args = new List<Models.Arg>();
+                foreach (var arg in field.Arguments)
+                {
+                    var type = new Models.TypeElement();
+                    if (arg.Value.Name == "RequiredField`1")
+                    {
+                        type.Kind = "NON_NULL";
+                        type.Name = null;
+                        type.OfType = new Models.TypeElement
+                        {
+                            Kind = "SCALAR",
+                            Name = FindNamedMapping(arg.Value, combinedMapping),
+                            OfType = null
+                        };
+                    }
+                    else
+                    {
+                        type.Kind = "SCALAR";
+                        type.Name = FindNamedMapping(arg.Value, combinedMapping);
+                        type.OfType = null;
+                    }
+
+                    args.Add(new Models.Arg
+                    {
+                        Name = arg.Key,
+                        Type = type
+                    });
+                }
+
+                //== Fields ==//
+                rootFields.Add(new Models.Field
+                {
+                    Name = field.Name,
+                    Args = args.ToArray(),
+                    IsDeprecated = false,
+                    Type = BuildType(schema, field, combinedMapping),
+                    Description = field.Description
+                });
+            }
+            return rootFields.ToArray();
         }
 
         private static string FindNamedMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping, string fallback = null)
