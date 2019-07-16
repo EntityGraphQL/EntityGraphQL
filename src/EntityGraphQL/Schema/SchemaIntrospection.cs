@@ -55,7 +55,7 @@
                         Name = field.Name,
                         Description = field.Description,
                         IsDeprecated = false,
-                        Args = new Models.Arg[] { },
+                        Args = BuildArgs(combinedMapping, field).ToArray(),
                         Type = BuildType(schema, field, combinedMapping)
                     });
                 }
@@ -113,7 +113,7 @@
                         Name = field.Name,
                         Description = field.Description,
                         IsDeprecated = false,
-                        Args = new Models.Arg[] { },
+                        Args = BuildArgs(combinedMapping, field).ToArray(),
                         Type = BuildType(schema, field, combinedMapping, true)
                     });
                 }
