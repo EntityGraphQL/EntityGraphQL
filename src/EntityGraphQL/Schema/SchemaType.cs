@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -18,7 +17,7 @@ namespace EntityGraphQL.Schema
         public string Description => _description;
 
         private string _description;
-        private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
         public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, filter, isInput)
