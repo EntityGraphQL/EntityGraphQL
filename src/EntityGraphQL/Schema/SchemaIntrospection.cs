@@ -65,7 +65,6 @@
                     Kind = "OBJECT",
                     Name = st.Name,
                     Description = st.Description,
-                    Interfaces = new object[] { },
                 };
 
                 types.Add(typeElement);
@@ -89,7 +88,7 @@
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsInput))
             {
-                var fields = new List<Models.Field>();
+                var inputValues = new List<Models.InputValue>();
                 foreach (Field field in schemaType.GetFields())
                 {
                     if (field.Name.StartsWith("__"))
@@ -108,12 +107,10 @@
                     if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                         continue;
 
-                    fields.Add(new Models.Field
+                    inputValues.Add(new Models.InputValue
                     {
                         Name = field.Name,
                         Description = field.Description,
-                        IsDeprecated = false,
-                        Args = BuildArgs(combinedMapping, field).ToArray(),
                         Type = BuildType(schema, field, combinedMapping, true)
                     });
                 }
@@ -123,8 +120,7 @@
                     Kind = "INPUT_OBJECT",
                     Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
                     Description = schemaType.Description,
-                    Interfaces = new object[] { },
-                    InputFields = fields.ToArray()
+                    InputFields = inputValues.ToArray()
                 };
 
                 types.Add(typeElement);
@@ -144,8 +140,6 @@
                     Kind = "ENUM",
                     Name = string.Empty,
                     Description = null,
-                    Interfaces = null,
-                    InputFields = new Models.Field[] { },
                     EnumValues = new Models.EnumValue[] { }
                 };
 

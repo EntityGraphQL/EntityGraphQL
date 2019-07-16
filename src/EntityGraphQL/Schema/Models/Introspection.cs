@@ -37,8 +37,9 @@ namespace EntityGraphQL.Schema.Models
         public TypeElement()
         {
             EnumValues = new Models.EnumValue[] {};
-            Interfaces = new object[] {};
+            Interfaces = new TypeElement[] {};
             PossibleTypes = new TypeElement[] {};
+            InputFields = new InputValue[] {};
         }
 
         public string Kind { get; set; }
@@ -49,9 +50,9 @@ namespace EntityGraphQL.Schema.Models
 
         // Fields is added dynamically so it is lazily loaded
 
-        public object InputFields { get; set; }
+        public InputValue[] InputFields { get; set; }
 
-        public object[] Interfaces { get; set; }
+        public TypeElement[] Interfaces { get; set; }
 
         public EnumValue[] EnumValues { get; set; }
 
@@ -82,6 +83,14 @@ namespace EntityGraphQL.Schema.Models
 
         public TypeElement Type { get; set; }
 
+        public object DefaultValue { get; set; }
+    }
+
+    public class InputValue
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public TypeElement Type { get; set; }
         public object DefaultValue { get; set; }
     }
 

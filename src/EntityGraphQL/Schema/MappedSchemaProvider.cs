@@ -30,7 +30,7 @@ namespace EntityGraphQL.Schema
             // defaults first
             var _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
 
-            AddType<Models.Arg>("__InputValue", "Information about arguments").AddAllFields();
+            AddType<Models.InputValue>("__InputValue", "Information about input fields").AddAllFields();
             AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
             AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
             AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
