@@ -6,25 +6,15 @@ namespace EntityGraphQL.Schema.Models
 {
     public partial class Schema
     {
-        public QueryType QueryType { get; set; }
+        public TypeElement QueryType { get; set; }
 
-        public MutationType MutationType { get; set; }
+        public TypeElement MutationType { get; set; }
 
         public SubscriptionType SubscriptionType { get; set; }
 
         public TypeElement[] Types { get; set; }
 
         public Directives[] Directives { get; set; }
-    }
-
-    public partial class QueryType
-    {
-        public string Name { get; set; }
-    }
-
-    public partial class MutationType
-    {
-        public string Name { get; set; }
     }
 
     public partial class SubscriptionType

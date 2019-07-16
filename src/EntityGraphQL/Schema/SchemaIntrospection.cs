@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Reflection;
     using EntityGraphQL.Extensions;
+    using EntityGraphQL.Schema.Models;
 
     public class SchemaIntrospection
     {
@@ -16,18 +17,34 @@
         /// <returns></returns>
         public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            var types = new List<Models.TypeElement>();
+            var types = new List<Models.TypeElement>
+            {
+                new TypeElement
+                {
+                    Description = "The query type, represents all of the entry points into our object graph",
+                    Kind = "OBJECT",
+                    Name = "Query",
+                    OfType = null,
+                },
+                new TypeElement
+                {
+                    Description = "The mutation type, represents all updates we can make to our data",
+                    Kind = "OBJECT",
+                    Name = "Mutation",
+                    OfType = null,
+                },
+            };
             types.AddRange(BuildQueryTypes(schema, combinedMapping));
             types.AddRange(BuildInputTypes(schema, combinedMapping));
             types.AddRange(BuildEnumTypes(schema, combinedMapping));
 
             var schemaDescription = new Models.Schema
             {
-                QueryType = new Models.QueryType
+                QueryType = new Models.TypeElement
                 {
                     Name = "Query"
                 },
-                MutationType = new Models.MutationType
+                MutationType = new Models.TypeElement
                 {
                     Name = "Mutation"
                 },
@@ -231,6 +248,9 @@
             var type = schema.Type(typeName);
             foreach (var field in type.GetFields())
             {
+                if (field.Name.StartsWith("__"))
+                    continue;
+
                 fieldDescs.Add(new Models.Field
                 {
                     Args = BuildArgs(combinedMapping, field).ToArray(),
