@@ -26,7 +26,7 @@ namespace demo.Mutations
         /// <param name="db">The first parameter must be the Schema context. This lets you operate on that context. In this case the EF DB Context</param>
         /// <param name="args">The second parameter is a class that has public fields or properties matching the argument names you want to use in the mutation</param>
         /// <returns></returns>
-        [GraphQLMutation]
+        [GraphQLMutation("Add a new Movie object")]
         public Expression<Func<DemoContext, Movie>> AddMovie(DemoContext db, AddMovieArgs args)
         {
             var movie = new Movie
