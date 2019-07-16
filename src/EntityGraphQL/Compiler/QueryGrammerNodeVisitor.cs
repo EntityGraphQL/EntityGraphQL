@@ -203,7 +203,7 @@ namespace EntityGraphQL.Compiler
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
             string name = schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type), field, args != null ? args.Select(d => d.Key) : new string[0]))
+            if (!schemaProvider.TypeHasField(name, field, args != null ? args.Select(d => d.Key) : new string[0]))
             {
                 throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{name}'");
             }
@@ -220,6 +220,12 @@ namespace EntityGraphQL.Compiler
         {
             string s = context.GetText();
             return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(Int64.Parse(s)) : Expression.Constant(UInt64.Parse(s)));
+        }
+
+        public override ExpressionResult VisitBoolean(EntityGraphQLParser.BooleanContext context)
+        {
+            string s = context.GetText();
+            return (ExpressionResult)Expression.Constant(bool.Parse(s));
         }
 
         public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)

@@ -9,9 +9,10 @@ identity    : ID;
 callPath    : (identity | call | gqlcall) ('.' (identity | call | gqlcall))*;
 int         : '-'? DIGIT+;
 decimal     : '-'? DIGIT+'.'DIGIT+;
+boolean     : 'true' | 'false';
 string      : '"' ( '"' | ~('\n'|'\r') | STRING_CHARS )*? '"';
 null        : 'null' | 'empty';
-constant    : string | int | decimal | null;
+constant    : string | int | decimal | boolean | null;
 call        : method=identity '(' arguments=args? ')';
 gqlcall     : method=identity '(' ws* (gqlarguments=gqlargs | gqltypedefs=gqlTypeDefs) ws* ')';
 args        : expression (',' ws* expression)*;
@@ -28,8 +29,8 @@ expression  : 'if' ' '* test=expression ' '* 'then' ' '* ifTrue=expression ' '* 
               | test=expression ' '* '?' ' '* ifTrue=expression ' '* ':' ' '* ifFalse=expression #ifThenElseInline
               | left=expression ' '* op=operator ' '* right=expression #binary
               | '(' body=expression ')' #expr
-              | callPath #callOrId
-              | constant #const;
+              | constant #const
+              | callPath #callOrId;
 
 startRule   : expression;
 

@@ -55,14 +55,6 @@
         private static Models.TypeElement BuildRootQuery(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var rootFields = new List<Models.Field>();
-            var rootTypes = new Models.TypeElement
-            {
-                Kind = "OBJECT",
-                Name = "RootQuery",
-                Interfaces = new object[] { },
-                Fields = rootFields.ToArray(),
-                Description = "Queries available on this server."
-            };
 
             foreach (var field in schema.GetQueryFields())
             {
@@ -114,8 +106,14 @@
                 });
             }
 
-            //add fields to base Root Query
-            rootTypes.Fields = rootFields.ToArray();
+            var rootTypes = new Models.TypeElement
+            {
+                Kind = "OBJECT",
+                Name = "RootQuery",
+                Interfaces = new object[] { },
+                Fields = rootFields.ToArray(),
+                Description = "Queries available on this server."
+            };
 
             return rootTypes;
         }
@@ -171,7 +169,7 @@
         {
             var types = new List<Models.TypeElement>();
 
-            foreach (ISchemaType schemaType in schema.GetNonContextTypes())
+            foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsInput))
             {
                 var typeElement = new Models.TypeElement
                 {
@@ -179,7 +177,7 @@
                     Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
                     Description = schemaType.Description,
                     Interfaces = new object[] { },
-                    Fields = null,
+                    Fields = new Models.Field[] { },
                     InputFields = new Models.Field[] { }
                 };
 
@@ -231,8 +229,8 @@
                     Name = string.Empty,
                     Description = null,
                     Interfaces = null,
-                    Fields = null,
-                    InputFields = null,
+                    Fields = new Models.Field[] { },
+                    InputFields = new Models.Field[] { },
                     EnumValues = new Models.EnumValue[] { }
                 };
 
@@ -398,54 +396,55 @@
         private static List<Models.Directives> BuildDirectives()
         {
             var directives = new List<Models.Directives> {
-                new Models.Directives
-                {
-                    Name = "include",
-                    Description = "Directs the executor to include this field or fragment only when the `if` argument is true.",
-                    Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                    Args = new Models.Arg[] {
-                        new Models.Arg {
-                            Name = "if",
-                            Description = "Included when true.",
-                            DefaultValue = null,
-                            Type = new Models.TypeElement
-                            {
-                                Kind = "NON_NULL",
-                                Name = null,
-                                OfType = new Models.TypeElement
-                                {
-                                    Kind = "SCALAR",
-                                    Name = "Boolean",
-                                    OfType = null
-                                }
-                            }
-                        }
-                    }
-                },
-                new Models.Directives
-                {
-                    Name = "skip",
-                    Description = "Directs the executor to skip this field or fragment when the `if` argument is true.",
-                    Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                    Args = new Models.Arg[] {
-                        new Models.Arg {
-                            Name = "if",
-                            Description = "Skipped when true.",
-                            DefaultValue = null,
-                            Type = new Models.TypeElement
-                            {
-                                Kind = "NON_NULL",
-                                Name = null,
-                                OfType = new Models.TypeElement
-                                {
-                                    Kind = "SCALAR",
-                                    Name = "Boolean",
-                                    OfType = null
-                                }
-                            }
-                        }
-                    }
-                }
+                // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the dierectives users add
+                // new Models.Directives
+                // {
+                //     Name = "include",
+                //     Description = "Directs the executor to include this field or fragment only when the `if` argument is true.",
+                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
+                //     Args = new Models.Arg[] {
+                //         new Models.Arg {
+                //             Name = "if",
+                //             Description = "Included when true.",
+                //             DefaultValue = null,
+                //             Type = new Models.TypeElement
+                //             {
+                //                 Kind = "NON_NULL",
+                //                 Name = null,
+                //                 OfType = new Models.TypeElement
+                //                 {
+                //                     Kind = "SCALAR",
+                //                     Name = "Boolean",
+                //                     OfType = null
+                //                 }
+                //             }
+                //         }
+                //     }
+                // },
+                // new Models.Directives
+                // {
+                //     Name = "skip",
+                //     Description = "Directs the executor to skip this field or fragment when the `if` argument is true.",
+                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
+                //     Args = new Models.Arg[] {
+                //         new Models.Arg {
+                //             Name = "if",
+                //             Description = "Skipped when true.",
+                //             DefaultValue = null,
+                //             Type = new Models.TypeElement
+                //             {
+                //                 Kind = "NON_NULL",
+                //                 Name = null,
+                //                 OfType = new Models.TypeElement
+                //                 {
+                //                     Kind = "SCALAR",
+                //                     Name = "Boolean",
+                //                     OfType = null
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
             };
 
             return directives;

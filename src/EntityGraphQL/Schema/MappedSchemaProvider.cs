@@ -36,6 +36,7 @@ namespace EntityGraphQL.Schema
             AddType<Models.Schema>("Introspection of the schema").AddAllFields();
             AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
+            Type<Models.TypeElement>("__Type").ReplaceField("Fields", new {includeDeprecated = false}, (t, p) => t.Fields.Where(f => p.includeDeprecated ? f.DeprecationReason != null : f.DeprecationReason == null).ToList(), "Fields available of type");
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
             AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "Schema");
         }
@@ -186,6 +187,10 @@ namespace EntityGraphQL.Schema
         {
             return (SchemaType<TType>)_types[typeof(TType).Name];
         }
+        public SchemaType<TType> Type<TType>(string typeName)
+        {
+            return (SchemaType<TType>)_types[typeName];
+        }
         public ISchemaType Type(string typeName)
         {
             return _types[typeName];
@@ -241,9 +246,9 @@ namespace EntityGraphQL.Schema
                 var mutation = _mutations[fieldName];
                 return (IMethodType)mutation;
             }
-            if (_types.ContainsKey(context.Type.Name))
+            if (_types.ContainsKey(GetSchemaTypeNameForRealType(context.Type)))
             {
-                var field = _types[context.Type.Name].GetField(fieldName);
+                var field = _types[GetSchemaTypeNameForRealType(context.Type)].GetField(fieldName);
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
