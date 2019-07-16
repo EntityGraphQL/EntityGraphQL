@@ -170,10 +170,14 @@ namespace EntityGraphQL.Schema
                 _fieldsByName.Remove(name);
             }
         }
+        /// <summary>
+        /// Remove a field by an expression selection on the real type. The name is changed to lowerCaseCamel
+        /// </summary>
+        /// <param name="fieldSelection"></param>
         public void RemoveField(Expression<Func<TBaseType, object>> fieldSelection)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            RemoveField(exp.Member.Name);
+            RemoveField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name));
         }
     }
 }
