@@ -120,7 +120,10 @@ namespace EntityGraphQL.Compiler
                     {
                         foreach (var cp in field.ConstantParameters)
                         {
-                            constantParameters.Add(cp.Key, cp.Value);
+                            if (!constantParameters.ContainsKey(cp.Key))
+                            {
+                                constantParameters.Add(cp.Key, cp.Value);
+                            }
                         }
                     }
 
