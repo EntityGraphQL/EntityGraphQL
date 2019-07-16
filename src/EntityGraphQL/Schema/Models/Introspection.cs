@@ -38,6 +38,7 @@ namespace EntityGraphQL.Schema.Models
         {
             EnumValues = new Models.EnumValue[] {};
             Interfaces = new object[] {};
+            PossibleTypes = new TypeElement[] {};
         }
 
         public string Kind { get; set; }
@@ -54,7 +55,7 @@ namespace EntityGraphQL.Schema.Models
 
         public EnumValue[] EnumValues { get; set; }
 
-        public object PossibleTypes { get; set; }
+        public TypeElement[] PossibleTypes { get; set; }
         public TypeElement OfType { get; set; }
     }
 
