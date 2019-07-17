@@ -49,10 +49,17 @@ namespace EntityGraphQL.Schema
                 AddField(f);
             }
         }
+        /// <summary>
+        /// Add a field from a type expression. The name to converted to lowerCamelCase
+        /// </summary>
+        /// <param name="fieldSelection"></param>
+        /// <param name="description"></param>
+        /// <param name="returnSchemaType"></param>
+        /// <typeparam name="TReturn"></typeparam>
         public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            AddField(exp.Member.Name, fieldSelection, description, returnSchemaType);
+            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType);
         }
         public void AddField(Field field)
         {

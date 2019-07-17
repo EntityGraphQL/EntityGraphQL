@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         public void SupportsQueryKeyword()
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"query {
-	People { id }
+	people { id }
 }").Operations.First();
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -299,10 +299,75 @@ fragment info on Person {
             Assert.Equal("projects", person.GetType().GetFields()[2].Name);
         }
 
+        [Fact]
+        public void QueryWithUnknownArgument()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var e = Assert.Throws<SchemaException>(() => {
+                var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+    query MyQuery($limit: Int = 10) {
+        people(limit: $limit) { id name projects { id name } }
+    }
+    ");
+            });
+            Assert.Equal("Error compiling query 'people(limit: $limit)'. No argument 'limit' found on field 'people'", e.Message);
+        }
+
+        [Fact]
+        public void QueryWithDefaultArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.ReplaceField("people", new { limit = Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query MyQuery($limit: Int = 10) {
+    people(limit: $limit) { id name projects { id name } }
+}
+");
+
+            Assert.Single(tree.Operations.First().Fields);
+            TestSchema context = new TestSchema();
+            for (int i = 0; i < 20; i++)
+            {
+                context.People.Add(new Person());
+            }
+            var qr = tree.ExecuteQuery(context);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(10, Enumerable.Count(people));
+        }
+
+        [Fact]
+        public void QueryWithDefaultArgumentsOverrideCodeDefault()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // code default of 5
+            schemaProvider.ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+
+            // should use gql default of 6
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query MyQuery($limit: Int = 6) {
+    people(limit: $limit) { id name projects { id name } }
+}
+");
+
+            Assert.Single(tree.Operations.First().Fields);
+            TestSchema context = new TestSchema();
+            for (int i = 0; i < 20; i++)
+            {
+                context.People.Add(new Person());
+            }
+            var qr = tree.ExecuteQuery(context);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(6, Enumerable.Count(people));
+        }
+
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
-            public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
+            public List<Person> People { get; set; } = new List<Person> { new Person() };
             public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1, "2") }; } }
             public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
         }

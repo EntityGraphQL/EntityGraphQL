@@ -152,7 +152,7 @@ namespace EntityGraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id fullName: name + "" "" + lastname }
+	people { id fullName: name + "" "" + lastName }
 }");
             Assert.Single(tree.Operations.First().Fields);
             Assert.Equal("people", tree.Operations.First().Fields.ElementAt(0).Name);

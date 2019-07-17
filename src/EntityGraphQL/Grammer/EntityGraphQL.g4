@@ -20,7 +20,7 @@ gqlargs     : gqlarg (',' ws* gqlarg)*;
 gqlTypeDefs : gqlTypeDef (',' ws* gqlTypeDef)*;
 gqlVar      : '$' identity;
 varArray    : '[' type=identity ']';
-gqlTypeDef  : gqlVar ws* ':' ws* (type=identity | arrayType=varArray) required='!'?;
+gqlTypeDef  : gqlVar ws* ':' ws* (type=identity | arrayType=varArray) required='!'? (ws* '=' ws* defaultValue=constant)?;
 gqlarg      : gqlfield=identity ws* ':' ws* (gqlvalue=expression | gqlvar=gqlVar);
 
 operator    : '-' | '+' | '%' | '^' | 'and' | '*' | 'or' | '=' | '<=' | '>=' | '<' | '>' | '/';

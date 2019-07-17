@@ -20,7 +20,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
             Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "Field1", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0]));
             Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0]));
             Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", new string[0]));
         }
@@ -30,13 +30,6 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<Person>();
             Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0]));
             Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
-        }
-        [Fact]
-        public void ReturnsActualName()
-        {
-            var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.Equal("id", schema.GetActualFieldName(typeof(TestEntity).Name, "id"));
-            Assert.Equal("field1", schema.GetActualFieldName(typeof(TestEntity).Name, "fiELd1"));
         }
         [Fact]
         public void CachesRecursively()

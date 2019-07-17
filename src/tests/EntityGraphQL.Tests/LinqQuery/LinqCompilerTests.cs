@@ -148,13 +148,13 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesBinaryWithIntAndUint()
         {
-            var exp = EqlCompiler.Compile("if someRelation.UnisgnedInt = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.unisgnedInt = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal((UInt64)66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithNullableAndNonNullable()
         {
-            var exp = EqlCompiler.Compile("if someRelation.NullableInt = 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
+            var exp = EqlCompiler.Compile("if someRelation.nullableInt = 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>());
             Assert.Equal((UInt64)100, exp.Execute(new TestSchema()));
         }
         [Fact]

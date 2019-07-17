@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Extensions;
 using System.Collections.Generic;
@@ -118,13 +117,18 @@ namespace EntityGraphQL.Compiler
         {
             var fieldName = context.method.GetText();
             var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
-            IMethodType methodType = schemaProvider.GetFieldType(currentContext, fieldName, argList.Select(a => a.gqlfield.GetText().ToLower()));
+            IMethodType methodType = schemaProvider.GetFieldType(currentContext, fieldName);
             var args = argList.ToDictionary(a => a.gqlfield.GetText(), a => {
+                var argName = a.gqlfield.GetText();
+                if (!methodType.Arguments.ContainsKey(argName))
+                {
+                    throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{methodType.Name}'");
+                }
                 fieldArgumentContext = methodType;
                 var r = VisitGqlarg(a);
                 fieldArgumentContext = null;
                 return r;
-            }, StringComparer.OrdinalIgnoreCase);
+            });
             if (schemaProvider.HasMutation(fieldName))
             {
                 return MakeMutationExpression(fieldName, (MutationType)methodType, args);

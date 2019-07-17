@@ -135,7 +135,7 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a field to the root type. This is where you define top level objects/names that you can query.
-        /// The name defaults to the MemberExpression from selection
+        /// The name defaults to the MemberExpression from selection modified to lowerCamelCase
         /// </summary>
         /// <param name="selection"></param>
         /// <param name="description"></param>
@@ -143,7 +143,7 @@ namespace EntityGraphQL.Schema
         public void AddField(Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            AddField(exp.Member.Name, selection, description, returnSchemaType);
+            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType);
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"Field {identifier} not found on any type");
         }
 
-        public IMethodType GetFieldType(Expression context, string fieldName, IEnumerable<string> fieldArgs)
+        public IMethodType GetFieldType(Expression context, string fieldName)
         {
             if (_mutations.ContainsKey(fieldName))
             {
