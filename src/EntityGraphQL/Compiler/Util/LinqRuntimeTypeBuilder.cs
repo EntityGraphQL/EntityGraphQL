@@ -16,6 +16,9 @@ namespace EntityGraphQL.Compiler.Util
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "Eql.DynamicTypes" };
         private static ModuleBuilder _moduleBuilder = null;
         private static Dictionary<string, Type> builtTypes = new Dictionary<string, Type>();
+        // We build a class name based on all the selected fields so we can cache the anonymous types we built
+        // Names can't be > 1024 length, so we store them against Guids
+        private static Dictionary<string, string> typesByName = new Dictionary<string, string>();
         static LinqRuntimeTypeBuilder()
         {
             _moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(_assemblyName.Name);
@@ -60,19 +63,24 @@ namespace EntityGraphQL.Compiler.Util
             {
                 Monitor.Enter(builtTypes);
                 string className = GetTypeKey(fields);
+                if (!typesByName.ContainsKey(className))
+                {
+                    typesByName[className] = Guid.NewGuid().ToString();
+                }
+                var classId = typesByName[className];
 
-                if (builtTypes.ContainsKey(className))
-                    return builtTypes[className];
+                if (builtTypes.ContainsKey(classId))
+                    return builtTypes[classId];
 
-                var typeBuilder = _moduleBuilder.DefineType(className, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable);
+                var typeBuilder = _moduleBuilder.DefineType(classId, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable);
 
                 foreach (var field in fields)
                 {
                     var fieldBuilder = typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
                 }
 
-                builtTypes[className] = typeBuilder.CreateTypeInfo().AsType();
-                return builtTypes[className];
+                builtTypes[classId] = typeBuilder.CreateTypeInfo().AsType();
+                return builtTypes[classId];
             }
             catch (Exception ex)
             {

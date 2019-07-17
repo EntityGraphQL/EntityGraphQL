@@ -10,6 +10,7 @@ namespace EntityGraphQL.Schema
         string Name { get; }
         Type ReturnTypeClr { get; }
         string Description { get; }
+        string ReturnTypeSingle { get; }
 
         Type GetArgumentType(string argName);
         bool HasArgumentByName(string argName);

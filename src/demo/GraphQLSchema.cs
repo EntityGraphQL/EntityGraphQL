@@ -36,11 +36,11 @@ namespace demo
             dto.AddField("pageCount", x => x.PageCount, "total pages based on page size");
             dto.AddField("people", x => x.People, "collection of people");
 
-            demoSchema.AddField("ActorPager",
+            demoSchema.AddField("actorPager",
                 new { page = 1, pagesize = 10, search = "" },
                 (db, p) => PaginateActors(db, p),
                 "Pagination. [defaults: page = 1, pagesize = 10]",
-                "ActorPagination");
+                "PersonPagination");
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());

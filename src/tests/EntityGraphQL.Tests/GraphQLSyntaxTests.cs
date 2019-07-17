@@ -1,7 +1,6 @@
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -17,7 +16,7 @@ namespace EntityGraphQL.Tests
         public void SupportsQueryKeyword()
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"query {
-	People { id }
+	people { id }
 }").Operations.First();
             Assert.Single(tree.Fields);
             dynamic result = tree.Fields.ElementAt(0).Execute(new TestSchema());
@@ -25,7 +24,7 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt(result, 0);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
 
         [Fact]
@@ -42,8 +41,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(1, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.id);
         }
 
         [Fact]
@@ -58,7 +57,7 @@ namespace EntityGraphQL.Tests
             dynamic users = tree.Fields.ElementAt(0).Execute(new TestSchema());
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
-            Assert.Equal("2", user.Field2);
+            Assert.Equal("2", user.field2);
         }
 
         [Fact]
@@ -76,7 +75,7 @@ namespace EntityGraphQL.Tests
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
-            Assert.Equal("2", user.Field2);
+            Assert.Equal("2", user.field2);
         }
 
         [Fact]
@@ -127,8 +126,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(9, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(9, user.id);
         }
 
         [Fact]
@@ -144,7 +143,7 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.First((dynamic)result.Data["people"]);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
             Assert.Equal("height", person.GetType().GetFields()[1].Name);
             Assert.Equal(183.0, person.height);
         }
@@ -178,8 +177,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(1, user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, user.id);
         }
 
         [Fact]
@@ -195,8 +194,8 @@ namespace EntityGraphQL.Tests
             dynamic project = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(1, project.GetType().GetFields().Length);
-            Assert.Equal("Id", project.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.Id);
+            Assert.Equal("id", project.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), project.id);
         }
 
         [Fact]
@@ -211,8 +210,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Data["person"];
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
         }
 
         [Fact]
@@ -228,9 +227,9 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Data["person"];
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
-            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), user.project.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
+            Assert.Equal(new Guid("aaaaaaaa-bbbb-4444-1111-ccddeeff0022"), user.project.id);
         }
 
         [Fact]
@@ -251,8 +250,8 @@ namespace EntityGraphQL.Tests
             dynamic user = tree.Fields.ElementAt(0).Execute(new TestSchema());
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("Id", user.GetType().GetFields()[0].Name);
-            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.Id);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
         }
 
         [Fact]
@@ -295,15 +294,80 @@ fragment info on Person {
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("Id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Name", person.GetType().GetFields()[1].Name);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
             Assert.Equal("projects", person.GetType().GetFields()[2].Name);
+        }
+
+        [Fact]
+        public void QueryWithUnknownArgument()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // Add a argument field with a require parameter
+            var e = Assert.Throws<SchemaException>(() => {
+                var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+    query MyQuery($limit: Int = 10) {
+        people(limit: $limit) { id name projects { id name } }
+    }
+    ");
+            });
+            Assert.Equal("Error compiling query 'people(limit: $limit)'. No argument 'limit' found on field 'people'", e.Message);
+        }
+
+        [Fact]
+        public void QueryWithDefaultArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.ReplaceField("people", new { limit = Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            // Add a argument field with a require parameter
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query MyQuery($limit: Int = 10) {
+    people(limit: $limit) { id name projects { id name } }
+}
+");
+
+            Assert.Single(tree.Operations.First().Fields);
+            TestSchema context = new TestSchema();
+            for (int i = 0; i < 20; i++)
+            {
+                context.People.Add(new Person());
+            }
+            var qr = tree.ExecuteQuery(context);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(10, Enumerable.Count(people));
+        }
+
+        [Fact]
+        public void QueryWithDefaultArgumentsOverrideCodeDefault()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            // code default of 5
+            schemaProvider.ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+
+            // should use gql default of 6
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query MyQuery($limit: Int = 6) {
+    people(limit: $limit) { id name projects { id name } }
+}
+");
+
+            Assert.Single(tree.Operations.First().Fields);
+            TestSchema context = new TestSchema();
+            for (int i = 0; i < 20; i++)
+            {
+                context.People.Add(new Person());
+            }
+            var qr = tree.ExecuteQuery(context);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(6, Enumerable.Count(people));
         }
 
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
-            public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
+            public List<Person> People { get; set; } = new List<Person> { new Person() };
             public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1, "2") }; } }
             public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
         }

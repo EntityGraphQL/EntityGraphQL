@@ -73,6 +73,7 @@ namespace EntityGraphQL.Compiler
                 var data = node.Execute(args.ToArray());
                 result.Data[node.Name] = data;
             }
+
             return result;
         }
     }

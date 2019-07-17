@@ -20,7 +20,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
             Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "Field1", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0]));
             Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0]));
             Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", new string[0]));
         }
@@ -30,13 +30,6 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<Person>();
             Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0]));
             Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
-        }
-        [Fact]
-        public void ReturnsActualName()
-        {
-            var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.Equal("Id", schema.GetActualFieldName(typeof(TestEntity).Name, "id"));
-            Assert.Equal("Field1", schema.GetActualFieldName(typeof(TestEntity).Name, "fiELd1"));
         }
         [Fact]
         public void CachesRecursively()
@@ -60,11 +53,11 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestSchema>();
             var ex = Assert.Throws<ArgumentException>(() => {
                 // Type "person" was auto created from the TestSchema
-                var t = schema.AddType<Person>("person", description: "duplicate type");
+                var t = schema.AddType<Person>("Person", description: "duplicate type");
                 t.AddField(p => p.Id, "The unique identifier");
                 t.AddField(p => p.Name + " Fakey", "Person's full name");
             });
-            Assert.Equal("An item with the same key has already been added. Key: person", ex.Message);
+            Assert.Equal("An item with the same key has already been added. Key: Person", ex.Message);
         }
 
         [Fact]

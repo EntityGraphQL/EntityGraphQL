@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 
 namespace demo
@@ -19,8 +20,11 @@ namespace demo
             builder.Entity<Person>().HasMany(p => p.WriterOf).WithOne(a => a.Person);
         }
 
+        [Description("Collection of Movies")]
         public DbSet<Movie> Movies { get; set; }
+        [Description("Collection of Peoples")]
         public DbSet<Person> People { get; set; }
+        [Description("Collection of Actors")]
         public DbSet<Actor> Actors { get; set; }
     }
 
@@ -28,6 +32,8 @@ namespace demo
     {
         public uint Id { get; set; }
         public string Name { get; set; }
+
+        [Description("Enum of Genre")]
         public Genre Genre { get; set; }
         public DateTime Released { get; set; }
         public List<Actor> Actors { get; set; }
@@ -54,10 +60,15 @@ namespace demo
 
     public enum Genre
     {
+        [Description("Action movie type")]
         Action,
+        [Description("Drama movie type")]
         Drama,
+        [Description("Comedy movie type")]
         Comedy,
+        [Description("Horror movie type")]
         Horror,
+        [Description("Scifi movie type")]
         Scifi,
     }
 

@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -18,7 +17,7 @@ namespace EntityGraphQL.Schema
         public string Description => _description;
 
         private string _description;
-        private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
         public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, filter, isInput)
@@ -50,10 +49,17 @@ namespace EntityGraphQL.Schema
                 AddField(f);
             }
         }
+        /// <summary>
+        /// Add a field from a type expression. The name to converted to lowerCamelCase
+        /// </summary>
+        /// <param name="fieldSelection"></param>
+        /// <param name="description"></param>
+        /// <param name="returnSchemaType"></param>
+        /// <typeparam name="TReturn"></typeparam>
         public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            AddField(exp.Member.Name, fieldSelection, description, returnSchemaType);
+            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType);
         }
         public void AddField(Field field)
         {
@@ -109,32 +115,34 @@ namespace EntityGraphQL.Schema
             _fieldsByName[field.Name] = field;
         }
 
-        /// <summary>
-        /// Checks for a field by name only. There could be multiple fields with the same name but different arguments (overloads)
-        /// </summary>
-        /// <param name="identifier"></param>
-        /// <returns></returns>
-        public bool HasFieldByNameOnly(string identifier)
-        {
-            return _fieldsByName.ContainsKey(identifier);
-        }
-
         private void BuildFieldsFromBase(Type contextType)
         {
             foreach (var f in ContextType.GetProperties())
             {
                 if (!_fieldsByName.ContainsKey(f.Name))
                 {
+                    //Get Description from ComponentModel.DescriptionAttribute
+                    string description = string.Empty;
+                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                    if (d != null)
+                        description = d.Description;
+
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Property(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Property(parameter, f.Name), parameter), description, null));
                 }
             }
             foreach (var f in ContextType.GetFields())
             {
                 if (!_fieldsByName.ContainsKey(f.Name))
                 {
+                    //Get Description from ComponentModel.DescriptionAttribute
+                    string description = string.Empty;
+                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
+                    if (d != null)
+                        description = d.Description;
+
                     var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(f.Name, Expression.Lambda(Expression.Field(parameter, f.Name), parameter), string.Empty, string.Empty));
+                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Field(parameter, f.Name), parameter), description, null));
                 }
             }
         }
@@ -168,10 +176,14 @@ namespace EntityGraphQL.Schema
                 _fieldsByName.Remove(name);
             }
         }
+        /// <summary>
+        /// Remove a field by an expression selection on the real type. The name is changed to lowerCaseCamel
+        /// </summary>
+        /// <param name="fieldSelection"></param>
         public void RemoveField(Expression<Func<TBaseType, object>> fieldSelection)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            RemoveField(exp.Member.Name);
+            RemoveField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name));
         }
     }
 }

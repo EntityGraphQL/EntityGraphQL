@@ -1,12 +1,9 @@
-using System;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
-using EntityGraphQL;
 using EntityGraphQL.LinqQuery;
 using EntityGraphQL.Compiler.Util;
 
@@ -237,8 +234,12 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public override IGraphQLBaseNode VisitDataQuery(EntityGraphQLParser.DataQueryContext context)
         {
-            var operationName = GetOperationName(context.operationName());
-            var query = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null);
+            var operation = GetOperation(context.operationName());
+            foreach (var item in operation.Arguments.Where(a => a.DefaultValue != null))
+            {
+                variables[item.ArgName] = Expression.Lambda(item.DefaultValue.Expression).Compile().DynamicInvoke();
+            }
+            var query = new GraphQLNode(schemaProvider, fragments, operation.Name, null, null, null, null, null);
             // Just visit each child node. All top level will be entityQueries
             foreach (var c in context.gqlBody().children)
             {
@@ -257,8 +258,12 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public override IGraphQLBaseNode VisitMutationQuery(EntityGraphQLParser.MutationQueryContext context)
         {
-            var operationName = GetOperationName(context.operationName());
-            var mutation = new GraphQLNode(schemaProvider, fragments, operationName.Name, null, null, null, null, null);
+            var operation = GetOperation(context.operationName());
+            foreach (var item in operation.Arguments.Where(a => a.DefaultValue != null))
+            {
+                variables[item.ArgName] = Expression.Lambda(item.DefaultValue.Expression).Compile().DynamicInvoke();
+            }
+            var mutation = new GraphQLNode(schemaProvider, fragments, operation.Name, null, null, null, null, null);
             foreach (var c in context.gqlBody().children)
             {
                 var n = Visit(c);
@@ -271,13 +276,13 @@ namespace EntityGraphQL.Compiler
             return mutation;
         }
 
-        public GraphQLOperation GetOperationName(EntityGraphQLParser.OperationNameContext context)
+        public GraphQLOperation GetOperation(EntityGraphQLParser.OperationNameContext context)
         {
             if (context == null)
             {
                 return new GraphQLOperation();
             }
-            var visitor = new OperationVisitor(variables);
+            var visitor = new OperationVisitor(variables, schemaProvider);
             var op = visitor.Visit(context);
 
             return op;

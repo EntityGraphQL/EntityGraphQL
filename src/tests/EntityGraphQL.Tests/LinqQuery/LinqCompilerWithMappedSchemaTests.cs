@@ -39,7 +39,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void CompilesTypeBuiltFromObject()
         {
             // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-            var exp = EqlCompiler.Compile("defaultlocation.id = 10", new TestObjectGraphSchema());
+            var exp = EqlCompiler.Compile("defaultLocation.id = 10", new TestObjectGraphSchema());
             Assert.True((bool)exp.Execute(GetDataContext()));
         }
         [Fact]

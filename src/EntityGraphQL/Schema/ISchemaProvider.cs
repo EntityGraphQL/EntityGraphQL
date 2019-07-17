@@ -37,7 +37,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string field, Dictionary<string, ExpressionResult> args);
         string GetSchemaTypeNameForRealType(Type type);
-        IMethodType GetFieldType(Expression context, string field, IEnumerable<string> fieldArgs);
+        IMethodType GetFieldType(Expression context, string field);
         bool HasMutation(string method);
         string GetGraphQLSchema();
         /// <summary>

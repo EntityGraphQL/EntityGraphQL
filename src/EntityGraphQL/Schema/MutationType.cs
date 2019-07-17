@@ -56,7 +56,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (key.ToLower() == prop.Name.ToLower())
                     {
-                        object value = GetValue(gqlRequestArgs, prop, prop.PropertyType);
+                        object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(prop.Name), prop.PropertyType);
                         prop.SetValue(argInstance, value);
                         foundProp = true;
                     }
@@ -67,7 +67,7 @@ namespace EntityGraphQL.Schema
                     {
                         if (key.ToLower() == field.Name.ToLower())
                         {
-                            object value = GetValue(gqlRequestArgs, field, field.FieldType);
+                            object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(field.Name), field.FieldType);
                             field.SetValue(argInstance, value);
                             foundProp = true;
                         }
@@ -91,9 +91,9 @@ namespace EntityGraphQL.Schema
             return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
-        private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, MemberInfo member, Type memberType)
+        private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, string memberName, Type memberType)
         {
-            object value = Expression.Lambda(gqlRequestArgs[member.Name]).Compile().DynamicInvoke();
+            object value = Expression.Lambda(gqlRequestArgs[memberName]).Compile().DynamicInvoke();
             if (value != null)
             {
                 Type type = value.GetType();
@@ -125,6 +125,8 @@ namespace EntityGraphQL.Schema
         public bool IsEnumerable => ReturnType.ContextType.IsEnumerableOrArray();
 
         public IDictionary<string, Type> Arguments => argumentTypes;
+
+        public string ReturnTypeSingle => returnType.Name;
 
         public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description)
         {

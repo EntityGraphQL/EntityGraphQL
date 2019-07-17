@@ -1,3 +1,8 @@
+# 0.18.0
+- Support for schema introspection. Top two fields (`__schema` and `__type(name: String!)`) are implemented. There are some things missing where we currently don't support the feature (directives). GraphiQL introspection query executes and you can naviagte the example. Big thanks to @JTravis76 for starting the work.
+- Implement #18 default argument values in GQL operations `mutation MyMutation($arg: String = "hey defaults") { ... }`
+- Breaking change - If you purely use `SchemaBuilder.FromObject()` it now creates all field names `lowerCaseCamel` and type names `UpperCamelCase` like the GraphQL defaults. Also since GraphQL is case sensitive I have enforced that. You _may_ need to update some queries to match casing
+
 # 0.17.0
 - Add the option to have other parameters passed into a mutation method. Very useful for IServiceProvider or other services your mutations require
 

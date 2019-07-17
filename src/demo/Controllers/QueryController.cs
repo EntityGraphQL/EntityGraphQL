@@ -33,7 +33,6 @@ namespace demo.Controllers
 
         private object RunDataQuery(QueryRequest query)
         {
-
             try
             {
                 var data = _dbContext.QueryObject(query, _schemaProvider);

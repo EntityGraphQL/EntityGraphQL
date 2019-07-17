@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests
 
                 // Without the fields argument we expose Location fields as-is. Easy and simple, but this means changes in
                 // Location data model may break API
-                var location = AddType<Location>(name: "location", description: "A geographical location");
+                var location = AddType<Location>(name: "Location", description: "A geographical location");
                 location.AddAllFields();
 
                 // It's better to define the fields of each type you want to expose, so over time your data model can change and
@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
                 // You can provide a name for the field and in composite fields you are required to
                 person.AddField("fullName", p => p.Name + " " + p.LastName, "Person's full name");
 
-                var project = AddType<Project>("project", "Details of a project");
+                var project = AddType<Project>("Project", "Details of a project");
                 project.AddField(p => p.Id, "Unique identifier for the project");
                 project.AddField("name", p => p.Owner.Name + "'s Project", "Project's name");
 
@@ -49,12 +49,12 @@ namespace EntityGraphQL.Tests
 
                 // You can define multiple types from one base type and define a filter which is applied - a poor example
                 // any time an `openTask` type is requested the filter will also be applied
-                var openTasks = AddType<Task>("openTask", "Details of a project", t => t.IsActive);
+                var openTasks = AddType<Task>("OpenTask", "Details of a project", t => t.IsActive);
                 openTasks.AddField(t => t.Id, "Unique identifier for a task");
                 openTasks.AddField(t => t.Name, "Description of the task");
                 openTasks.AddField(t => t.Assignee, "Active person on the task");
 
-                var closedTasks = AddType<Task>("closedTask", "Details of a project", t => !t.IsActive);
+                var closedTasks = AddType<Task>("ClosedTask", "Details of a project", t => !t.IsActive);
                 closedTasks.AddField(t => t.Id, "Unique identifier for a task");
                 closedTasks.AddField(t => t.Name, "Description of the task");
 

@@ -116,6 +116,16 @@ namespace EntityGraphQL.Compiler
                         newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldSelectionBaseExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
                         nodeExpression = (ExpressionResult)newExp;
                     }
+                    foreach (var field in selectionFields)
+                    {
+                        foreach (var cp in field.ConstantParameters)
+                        {
+                            if (!constantParameters.ContainsKey(cp.Key))
+                            {
+                                constantParameters.Add(cp.Key, cp.Value);
+                            }
+                        }
+                    }
 
                     foreach (var item in fieldSelectionBaseExpression.ConstantParameters)
                     {

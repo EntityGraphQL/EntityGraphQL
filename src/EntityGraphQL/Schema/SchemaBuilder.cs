@@ -4,10 +4,9 @@ using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Reflection;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema;
 using Humanizer;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using System.ComponentModel;
 
 namespace EntityGraphQL.Schema
 {
@@ -56,7 +55,7 @@ namespace EntityGraphQL.Schema
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
             var schemaType = schema.Type(fieldProp.ReturnTypeSingle);
-            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "Id");
+            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
@@ -106,15 +105,24 @@ namespace EntityGraphQL.Schema
                 {
                     continue;
                 }
+
+                // Get Description from ComponentModel.DescriptionAttribute
+                string description = "";
+                var d = (DescriptionAttribute)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
+                if (d != null)
+                {
+                    description = d.Description;
+                }
+
                 LambdaExpression le = Expression.Lambda(Expression.Property(param, prop.Name), param);
-                var f = new Field(prop.Name, le, "");
+                var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description);
                 fields.Add(f);
                 CacheType<TContextType>(prop.PropertyType, schema);
             }
             foreach (var prop in type.GetFields())
             {
                 LambdaExpression le = Expression.Lambda(Expression.Field(param, prop.Name), param);
-                var f = new Field(prop.Name, le, prop.Name);
+                var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, prop.Name);
                 fields.Add(f);
                 CacheType<TContextType>(prop.FieldType, schema);
             }
