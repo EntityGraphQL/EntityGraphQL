@@ -1,5 +1,6 @@
-# 0.19.0
+# 0.18.1
 - Update dependences (JSON.NET)
+- Fix some small casing issues
 
 # 0.18.0
 - Support for schema introspection. Top two fields (`__schema` and `__type(name: String!)`) are implemented. There are some things missing where we currently don't support the feature (directives). GraphiQL introspection query executes and you can naviagte the example. Big thanks to @JTravis76 for starting the work.

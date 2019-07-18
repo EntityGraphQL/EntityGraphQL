@@ -39,10 +39,10 @@ namespace EntityGraphQL.Schema
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
 
             // evaluate Fields lazily so we don't end up in endless loop
-            Type<Models.TypeElement>("__Type").ReplaceField("Fields", new {includeDeprecated = false},
+            Type<Models.TypeElement>("__Type").ReplaceField("fields", new {includeDeprecated = false},
                 (t, p) => SchemaIntrospection.BuildFieldsForType(this, _typeMappingForSchemaGeneration, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
 
-            Type<Models.TypeElement>("__Type").ReplaceField("EnumValues", new {includeDeprecated = false},
+            Type<Models.TypeElement>("__Type").ReplaceField("enumValues", new {includeDeprecated = false},
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
 
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
@@ -148,6 +148,7 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a field to the root type. This is where you define top level objects/names that you can query.
+        /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
         /// </summary>
         /// <param name="name"></param>
         /// <param name="selection"></param>
@@ -175,6 +176,7 @@ namespace EntityGraphQL.Schema
         /// {
         ///     field(arg: val) {}
         /// }
+        /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
         /// </summary>
         /// <param name="name">Field name</param>
         /// <param name="argTypes">Anonymous object defines the names and types of each argument</param>
@@ -188,6 +190,11 @@ namespace EntityGraphQL.Schema
             Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
 
+        /// <summary>
+        /// Add a field to the root query.
+        /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
+        /// </summary>
+        /// <param name="field"></param>
         public void AddField(Field field)
         {
             _types[_queryContextName].AddField(field);

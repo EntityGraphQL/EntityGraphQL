@@ -1,24 +1,27 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace EntityGraphQL
 {
     public class QueryResult
     {
-        private readonly ConcurrentDictionary<string, object> data = new ConcurrentDictionary<string, object>();
-        public List<GraphQLError> Errors => (List<GraphQLError>)data["errors"];
-        public ConcurrentDictionary<string, object> Data => (ConcurrentDictionary<string, object>)data["data"];
+        [JsonProperty("errors")]
+        public List<GraphQLError> Errors => (List<GraphQLError>)dataResults["errors"];
+        [JsonProperty("data")]
+        public ConcurrentDictionary<string, object> Data => (ConcurrentDictionary<string, object>)dataResults["data"];
+        private readonly ConcurrentDictionary<string, object> dataResults = new ConcurrentDictionary<string, object>();
 
         public QueryResult()
         {
-            data["errors"] = new List<GraphQLError>();
-            data["data"] = new ConcurrentDictionary<string, object>();
+            dataResults["errors"] = new List<GraphQLError>();
+            dataResults["data"] = new ConcurrentDictionary<string, object>();
         }
 
         internal void SetDebug(object debugData)
         {
-            data["_debug"] = debugData;
+            dataResults["_debug"] = debugData;
         }
     }
 }
