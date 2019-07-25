@@ -1,3 +1,6 @@
+# 0.18.2
+- Fix `kind` in schema introspection query to not have `!`
+
 # 0.18.1
 - Update dependences (JSON.NET)
 - Fix some small casing issues

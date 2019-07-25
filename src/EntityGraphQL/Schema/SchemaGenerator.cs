@@ -12,31 +12,40 @@ namespace EntityGraphQL.Schema
         public static readonly Dictionary<Type, string> DefaultTypeMappings = new Dictionary<Type, string> {
             {typeof(string), "String"},
             {typeof(RequiredField<string>), "String!"},
+
             {typeof(Guid), "ID"},
             {typeof(Guid?), "ID"},
             {typeof(RequiredField<Guid>), "ID!"},
+
             {typeof(int), "Int"},
-            {typeof(RequiredField<int>), "Int!"},
             {typeof(int?), "Int"},
+            {typeof(RequiredField<int>), "Int!"},
+
             {typeof(double), "Float"},
-            {typeof(RequiredField<double>), "Float!"},
             {typeof(double?), "Float"},
+            {typeof(RequiredField<double>), "Float!"},
+
             {typeof(float), "Float"},
-            {typeof(RequiredField<float>), "Float!"},
             {typeof(float?), "Float"},
+            {typeof(RequiredField<float>), "Float!"},
+
             {typeof(bool), "Boolean"},
             {typeof(bool?), "Boolean"},
-            {typeof(RequiredField<bool>), "Boolean"},
+            {typeof(RequiredField<bool>), "Boolean!"},
+
             {typeof(EntityQueryType<>), "String"},
-            {typeof(RequiredField<long>), "Int"},
+
             {typeof(long), "Int"},
             {typeof(long?), "Int"},
+            {typeof(RequiredField<long>), "Int!"},
+
             {typeof(DateTime), "String"},
             {typeof(DateTime?), "String"},
-            {typeof(RequiredField<DateTime>), "String"},
-            {typeof(RequiredField<uint>), "Int"},
+            {typeof(RequiredField<DateTime>), "String!"},
+
             {typeof(uint), "Int"},
-            {typeof(uint?), "Int"}
+            {typeof(uint?), "Int"},
+            {typeof(RequiredField<uint>), "Int!"},
         };
 
         internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
