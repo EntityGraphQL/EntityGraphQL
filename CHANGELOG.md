@@ -1,3 +1,6 @@
+# 0.18.3
+- map Int16/32/64 and UInt16/32/64 to Int
+
 # 0.18.2
 - Fix `kind` in schema introspection query to not have `!`
 

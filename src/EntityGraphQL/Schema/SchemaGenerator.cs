@@ -21,6 +21,18 @@ namespace EntityGraphQL.Schema
             {typeof(int?), "Int"},
             {typeof(RequiredField<int>), "Int!"},
 
+            {typeof(Int32), "Int"},
+            {typeof(Int32?), "Int"},
+            {typeof(RequiredField<Int32>), "Int!"},
+
+            {typeof(Int64), "Int"},
+            {typeof(Int64?), "Int"},
+            {typeof(RequiredField<Int64>), "Int!"},
+
+            {typeof(Int16), "Int"},
+            {typeof(Int16?), "Int"},
+            {typeof(RequiredField<Int16>), "Int!"},
+
             {typeof(double), "Float"},
             {typeof(double?), "Float"},
             {typeof(RequiredField<double>), "Float!"},
@@ -46,6 +58,18 @@ namespace EntityGraphQL.Schema
             {typeof(uint), "Int"},
             {typeof(uint?), "Int"},
             {typeof(RequiredField<uint>), "Int!"},
+
+            {typeof(UInt16), "Int"},
+            {typeof(UInt16?), "Int"},
+            {typeof(RequiredField<UInt16>), "Int!"},
+
+            {typeof(UInt32), "Int"},
+            {typeof(UInt32?), "Int"},
+            {typeof(RequiredField<UInt32>), "Int!"},
+
+            {typeof(UInt64), "Int"},
+            {typeof(UInt64?), "Int"},
+            {typeof(RequiredField<UInt64>), "Int!"},
         };
 
         internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
