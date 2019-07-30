@@ -21,14 +21,6 @@ namespace EntityGraphQL.Schema
             {typeof(int?), "Int"},
             {typeof(RequiredField<int>), "Int!"},
 
-            {typeof(Int32), "Int"},
-            {typeof(Int32?), "Int"},
-            {typeof(RequiredField<Int32>), "Int!"},
-
-            {typeof(Int64), "Int"},
-            {typeof(Int64?), "Int"},
-            {typeof(RequiredField<Int64>), "Int!"},
-
             {typeof(Int16), "Int"},
             {typeof(Int16?), "Int"},
             {typeof(RequiredField<Int16>), "Int!"},
@@ -62,14 +54,6 @@ namespace EntityGraphQL.Schema
             {typeof(UInt16), "Int"},
             {typeof(UInt16?), "Int"},
             {typeof(RequiredField<UInt16>), "Int!"},
-
-            {typeof(UInt32), "Int"},
-            {typeof(UInt32?), "Int"},
-            {typeof(RequiredField<UInt32>), "Int!"},
-
-            {typeof(UInt64), "Int"},
-            {typeof(UInt64?), "Int"},
-            {typeof(RequiredField<UInt64>), "Int!"},
         };
 
         internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)

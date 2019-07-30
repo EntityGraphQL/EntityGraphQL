@@ -177,7 +177,7 @@ namespace EntityGraphQL.Compiler
                     if (argumentNonNullType.GetTypeInfo().IsEnum)
                     {
                         var enumName = strValue;
-                        var valueIndex = Enum.GetNames(argumentNonNullType).ToList().FindIndex(n => n.ToLower() == enumName.ToLower());
+                        var valueIndex = Enum.GetNames(argumentNonNullType).ToList().FindIndex(n => n == enumName);
                         if (valueIndex == -1)
                         {
                             throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");

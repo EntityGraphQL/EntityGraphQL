@@ -1,5 +1,6 @@
 # 0.18.3
-- map Int16/32/64 and UInt16/32/64 to Int
+- map Int16 and UInt16 to Int
+- Fix issue where argument names were not case sensitive (the Breaking change introduced in 0.18)
 
 # 0.18.2
 - Fix `kind` in schema introspection query to not have `!`

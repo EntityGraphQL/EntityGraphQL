@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema
                 var foundProp = false;
                 foreach (var prop in argType.GetProperties())
                 {
-                    if (key.ToLower() == prop.Name.ToLower())
+                    if (key == prop.Name)
                     {
                         object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(prop.Name), prop.PropertyType);
                         prop.SetValue(argInstance, value);
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var field in argType.GetFields())
                     {
-                        if (key.ToLower() == field.Name.ToLower())
+                        if (key == field.Name)
                         {
                             object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(field.Name), field.FieldType);
                             field.SetValue(argInstance, value);
