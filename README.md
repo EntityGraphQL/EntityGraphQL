@@ -332,6 +332,16 @@ public class MovieMutations
 }
 ```
 
+# A note on case matching
+
+GraphQL is case sensitive. Currently EntityGraphQL will automatically turn "fields" from `UpperCase` to `camelCase` which means your C# code matches what C# code typically looks like and your graphql matches the norm too.
+
+Examples:
+- A mutation method in C# named `AddMovie` will be `addMovie` in the schema
+- A root field entity named `Movie` will be named `movie` in the schema
+- The mutation arguments class (`ActorArgs` above) with fields `FirstName` & `Id` will be arguments in the schema as `firstName` & `id`
+- If you're using the schema builder manually, the names you give will be the names used. E.g. `schemaProvider.AddField("someEntity", ...)` is different to `schemaProvider.AddField("SomeEntity", ...)`
+
 # Secuity
 
 ## Mutations
@@ -344,7 +354,7 @@ Coming soon. But you should have security at other layers too
 For paging you want to create your own fields.
 
 ```cs
-schemaProvider.AddField("MyEntities", new {take = 10, skip = 0}, (db, param) => db.MyEntities.Skip(p.skip).Take(p.take), "Get a page of entities");
+schemaProvider.AddField("myEntities", new {take = 10, skip = 0}, (db, param) => db.MyEntities.Skip(p.skip).Take(p.take), "Get a page of entities");
 ```
 
 Open to ideas for making this easier.
