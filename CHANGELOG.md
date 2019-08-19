@@ -1,3 +1,7 @@
+# 0.18.4
+- Fix case matching of arguments in mutations. EntityGraphQL defaults to turning dotnet `UpperCaseFieldsAndProperties` to `camelCaseFieldsAndProperties` as this was the intention with the change in 0.18.0
+- Enum values are as defined. E.g. if you have an enum `Meter` you can use `"Meter"` not `"meter"`
+
 # 0.18.3
 - map Int16 and UInt16 to Int
 - Fix issue where argument names were not case sensitive (the Breaking change introduced in 0.18)

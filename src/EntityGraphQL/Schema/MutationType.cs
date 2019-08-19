@@ -54,9 +54,10 @@ namespace EntityGraphQL.Schema
                 var foundProp = false;
                 foreach (var prop in argType.GetProperties())
                 {
-                    if (key == prop.Name)
+                    var propName = SchemaGenerator.ToCamelCaseStartsLower(prop.Name);
+                    if (key == propName)
                     {
-                        object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(prop.Name), prop.PropertyType);
+                        object value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
                         prop.SetValue(argInstance, value);
                         foundProp = true;
                     }
@@ -65,9 +66,10 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var field in argType.GetFields())
                     {
-                        if (key == field.Name)
+                        var fieldName = SchemaGenerator.ToCamelCaseStartsLower(field.Name);
+                        if (key == fieldName)
                         {
-                            object value = GetValue(gqlRequestArgs, SchemaGenerator.ToCamelCaseStartsLower(field.Name), field.FieldType);
+                            object value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
                             field.SetValue(argInstance, value);
                             foundProp = true;
                         }
@@ -75,7 +77,7 @@ namespace EntityGraphQL.Schema
                 }
                 if (!foundProp)
                 {
-                    throw new EntityQuerySchemaError($"Could not find property or field {key} on in schema object {argType.Name}");
+                    throw new EntityQuerySchemaError($"Could not find property or field {key} on schema object {argType.Name}");
                 }
             }
         }
