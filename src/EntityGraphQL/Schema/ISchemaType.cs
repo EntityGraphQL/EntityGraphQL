@@ -15,5 +15,6 @@ namespace EntityGraphQL.Schema
         bool HasField(string identifier);
         void AddFields(List<Field> fields);
         void AddField(Field field);
+        void RemoveField(string name);
     }
 }

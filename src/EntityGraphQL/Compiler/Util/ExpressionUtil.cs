@@ -128,12 +128,13 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
-        public static Expression SelectDynamic(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
         {
             Type dynamicType;
             var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            return ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            var call = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            return ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { dynamicType }, call);
         }
 
         public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)

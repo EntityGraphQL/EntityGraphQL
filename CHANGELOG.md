@@ -1,3 +1,7 @@
+# 0.19.0
+- `QueryObject()` calls `ToList()` on any lists so if you are using something like EF all queries will be evaluated on `QueryObject()`, not just the ones that return a single object (as they call `FirstOrDefault()`). This is more consistent, the result contains all your data (regardless of underlying ORM or not) and not a miz of evaluated and non-evaluated.
+- Add `RemoveTypeAndAllFields()` on `MappedSchemaProvider` to more easily clean up a schema that was auto created by `SchemaBuilder.FromObject<T>()`
+
 # 0.18.4
 - Fix case matching of arguments in mutations. EntityGraphQL defaults to turning dotnet `UpperCaseFieldsAndProperties` to `camelCaseFieldsAndProperties` as this was the intention with the change in 0.18.0
 - Enum values are as defined. E.g. if you have an enum `Meter` you can use `"Meter"` not `"meter"`

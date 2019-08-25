@@ -490,5 +490,37 @@ namespace EntityGraphQL.Schema
         {
             return _mutations.Values.ToList();
         }
+
+        /// <summary>
+        /// Remove type and any field that returns that type
+        /// </summary>
+        /// <typeparam name="TSchemaType"></typeparam>
+        public void RemoveTypeAndAllFields<TSchemaType>()
+        {
+            this.RemoveTypeAndAllFields(typeof(TSchemaType).Name);
+        }
+        /// <summary>
+        /// Remove type and any field that returns that type
+        /// </summary>
+        /// <param name="typeName"></param>
+        public void RemoveTypeAndAllFields(string typeName)
+        {
+            foreach (var context in _types.Values)
+            {
+                RemoveFieldsOfType(typeName, context);
+            }
+            _types.Remove(typeName);
+        }
+
+        private void RemoveFieldsOfType(string typeName, ISchemaType contextType)
+        {
+            foreach (var field in contextType.GetFields().ToList())
+            {
+                if (field.ReturnTypeSingle == typeName)
+                {
+                    contextType.RemoveField(field.Name);
+                }
+            }
+        }
     }
 }

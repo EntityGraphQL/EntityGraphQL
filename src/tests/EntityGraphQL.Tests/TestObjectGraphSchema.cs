@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using EntityGraphQL.Schema;
 

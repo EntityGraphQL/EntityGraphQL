@@ -104,12 +104,12 @@ namespace EntityGraphQL.Compiler
                     }
                     if (isSelect)
                     {
-                        // build a .Select(...)
-                        nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamic(fieldParameter, fieldSelectionBaseExpression, selectionFields, schemaProvider);
+                        // build a .Select(...) - returning a list<>
+                        nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(fieldParameter, fieldSelectionBaseExpression, selectionFields, schemaProvider);
                     }
                     else
                     {
-                        // build a new {...}
+                        // build a new {...} - returning a single object {}
                         var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
                         var anonType = newExp.Type;
                         // make a null check from this new expression

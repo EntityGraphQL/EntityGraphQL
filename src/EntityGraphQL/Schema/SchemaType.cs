@@ -169,7 +169,7 @@ namespace EntityGraphQL.Schema
             return _fieldsByName.ContainsKey(identifier);
         }
 
-        public void RemoveField(string name, params string[] arguments)
+        public void RemoveField(string name)
         {
             if (_fieldsByName.ContainsKey(name))
             {

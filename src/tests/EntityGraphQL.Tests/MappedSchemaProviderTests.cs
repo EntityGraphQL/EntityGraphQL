@@ -1,5 +1,6 @@
 using Xunit;
 using EntityGraphQL.Tests.ApiVersion1;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -36,6 +37,22 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
             Assert.Equal("name", schema.GetActualFieldName("Project", "name"));
+        }
+        [Fact]
+        public void RemovesTypeAndFields()
+        {
+            var schema = new TestObjectGraphSchema();
+            Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
+            schema.RemoveTypeAndAllFields<Project>();
+            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeSingle == "project"));
+        }
+        [Fact]
+        public void RemovesTypeAndFields2()
+        {
+            var schema = new TestObjectGraphSchema();
+            Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
+            schema.RemoveTypeAndAllFields("Project");
+            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeSingle == "project"));
         }
     }
 }
