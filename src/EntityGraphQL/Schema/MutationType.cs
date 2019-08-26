@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
-        private object argInstance;
+        private readonly Type argInstanceType;
 
         public Type ReturnTypeClr { get { return returnType.ContextType; } }
 
@@ -39,16 +39,17 @@ namespace EntityGraphQL.Schema
             }
 
             // last arg is the arguments for the mutation - required as last arg in the mutation method
-            AssignArgValues(gqlRequestArgs);
+            var argInstance = AssignArgValues(gqlRequestArgs);
             allArgs.Add(argInstance);
 
             var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
             return result;
         }
 
-        private void AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
+        private object AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
         {
-            Type argType = argInstance.GetType();
+            var argInstance = Activator.CreateInstance(this.argInstanceType);
+            Type argType = this.argInstanceType;
             foreach (var key in gqlRequestArgs.Keys)
             {
                 var foundProp = false;
@@ -80,6 +81,7 @@ namespace EntityGraphQL.Schema
                     throw new EntityQuerySchemaError($"Could not find property or field {key} on schema object {argType.Name}");
                 }
             }
+            return argInstance;
         }
 
         /// <summary>
@@ -139,12 +141,12 @@ namespace EntityGraphQL.Schema
             Name = methodName;
 
             var methodArg = method.GetParameters().Last();
-            this.argInstance = Activator.CreateInstance(methodArg.ParameterType);
-            foreach (var item in this.argInstance.GetType().GetProperties())
+            this.argInstanceType = methodArg.ParameterType;
+            foreach (var item in argInstanceType.GetProperties())
             {
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.PropertyType);
             }
-            foreach (var item in this.argInstance.GetType().GetFields())
+            foreach (var item in argInstanceType.GetFields())
             {
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.FieldType);
             }

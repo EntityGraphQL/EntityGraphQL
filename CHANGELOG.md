@@ -1,3 +1,6 @@
+# 0.19.1
+- Fix a bug where mutation arg objects retained values from previous mutation - i.e if the next call to that mutation didn't provide some optional arguments
+
 # 0.19.0
 - `QueryObject()` calls `ToList()` on any lists so if you are using something like EF all queries will be evaluated on `QueryObject()`, not just the ones that return a single object (as they call `FirstOrDefault()`). This is more consistent, the result contains all your data (regardless of underlying ORM or not) and not a miz of evaluated and non-evaluated.
 - Add `RemoveTypeAndAllFields()` on `MappedSchemaProvider` to more easily clean up a schema that was auto created by `SchemaBuilder.FromObject<T>()`
