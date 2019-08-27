@@ -1,3 +1,6 @@
+# 0.19.2
+- Fix a bug where introspection queries were in correct if you have a List/Array in your mutation type
+
 # 0.19.1
 - Fix a bug where mutation arg objects retained values from previous mutation - i.e if the next call to that mutation didn't provide some optional arguments
 

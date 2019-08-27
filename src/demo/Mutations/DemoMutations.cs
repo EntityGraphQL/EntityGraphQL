@@ -95,6 +95,12 @@ namespace demo.Mutations
         public string Name { get; set; }
         public double Rating { get; set; }
         public DateTime Released;
+        public List<Detail> Details { get; set; }
+    }
+
+    public class Detail
+    {
+        public string Description { get; set; }
     }
 
     public class AddActorArgs

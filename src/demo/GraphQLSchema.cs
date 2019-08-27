@@ -44,6 +44,7 @@ namespace demo
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());
+            demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
             return demoSchema;
         }
 

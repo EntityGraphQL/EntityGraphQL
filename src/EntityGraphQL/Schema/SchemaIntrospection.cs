@@ -72,8 +72,8 @@
                         Name = field.Name,
                         Description = field.Description,
                         IsDeprecated = false,
-                        Args = BuildArgs(combinedMapping, field).ToArray(),
-                        Type = BuildType(schema, field, combinedMapping)
+                        Args = BuildArgs(schema, combinedMapping, field).ToArray(),
+                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping)
                     });
                 }
 
@@ -128,14 +128,14 @@
                     {
                         Name = field.Name,
                         Description = field.Description,
-                        Type = BuildType(schema, field, combinedMapping, true)
+                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping, true)
                     });
                 }
 
                 var typeElement = new Models.TypeElement
                 {
                     Kind = "INPUT_OBJECT",
-                    Name = SchemaGenerator.ToCamelCaseStartsLower(schemaType.Name),
+                    Name = schemaType.Name,
                     Description = schemaType.Description,
                     InputFields = inputValues.ToArray()
                 };
@@ -196,27 +196,29 @@
             return types;
         }
 
-        private static Models.TypeElement BuildType(ISchemaProvider schema, IMethodType field, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
+        private static Models.TypeElement BuildType(ISchemaProvider schema, Type clrType, string gqlTypeName, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
         {
             // Is collection of objects?
             var type = new Models.TypeElement();
-            if (field.IsEnumerable)
+            if (clrType.IsEnumerableOrArray())
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = new Models.TypeElement
-                {
-                    Kind = "OBJECT",
-                    Name = isInput ? SchemaGenerator.ToCamelCaseStartsLower(field.ReturnTypeSingle) : field.ReturnTypeSingle
-                };
+                type.OfType = BuildType(schema, clrType.GetEnumerableOrArrayType(), gqlTypeName, combinedMapping, isInput);
+            }
+            else if (clrType.Name == "RequiredField`1")
+            {
+                type.Kind = "NON_NULL";
+                type.Name = null;
+                type.OfType = BuildType(schema, clrType.GetGenericArguments()[0], gqlTypeName, combinedMapping, isInput);
             }
             else
             {
-                type.Kind = combinedMapping.Any(x => x.Key == field.ReturnTypeClr) ? "SCALAR" : "OBJECT";
+                type.Kind = combinedMapping.Any(x => x.Key == clrType) ? "SCALAR" : "OBJECT";
                 if (type.Kind == "OBJECT" && isInput)
-                    type.Name = SchemaGenerator.ToCamelCaseStartsLower(FindNamedMapping(field.ReturnTypeClr, combinedMapping, field.ReturnTypeSingle));
+                    type.Name = SchemaGenerator.ToCamelCaseStartsLower(FindNamedMapping(clrType, combinedMapping, gqlTypeName));
                 else
-                    type.Name = FindNamedMapping(field.ReturnTypeClr, combinedMapping, field.ReturnTypeSingle);
+                    type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
             }
 
             return type;
@@ -253,12 +255,12 @@
 
                 fieldDescs.Add(new Models.Field
                 {
-                    Args = BuildArgs(combinedMapping, field).ToArray(),
+                    Args = BuildArgs(schema, combinedMapping, field).ToArray(),
                     DeprecationReason = "",
                     Description = field.Description,
                     IsDeprecated = false,
                     Name = SchemaGenerator.ToCamelCaseStartsLower(field.Name),
-                    Type = BuildType(schema, field, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
                 });
             }
             return fieldDescs.ToArray();
@@ -281,9 +283,9 @@
                 rootFields.Add(new Models.Field
                 {
                     Name = field.Name,
-                    Args = BuildArgs(combinedMapping, field).ToArray(),
+                    Args = BuildArgs(schema, combinedMapping, field).ToArray(),
                     IsDeprecated = false,
-                    Type = BuildType(schema, field, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
                     Description = field.Description
                 });
             }
@@ -306,38 +308,22 @@
                 rootFields.Add(new Models.Field
                 {
                     Name = field.Name,
-                    Args = BuildArgs(combinedMapping, field).ToArray(),
+                    Args = BuildArgs(schema, combinedMapping, field).ToArray(),
                     IsDeprecated = false,
-                    Type = BuildType(schema, field, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
                     Description = field.Description
                 });
             }
             return rootFields.ToArray();
         }
 
-        private static List<Models.InputValue> BuildArgs(IReadOnlyDictionary<Type, string> combinedMapping, IMethodType field)
+        private static List<Models.InputValue> BuildArgs(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, IMethodType field)
         {
             var args = new List<Models.InputValue>();
             foreach (var arg in field.Arguments)
             {
-                var type = new Models.TypeElement();
-                if (arg.Value.Name == "RequiredField`1")
-                {
-                    type.Kind = "NON_NULL";
-                    type.Name = null;
-                    type.OfType = new Models.TypeElement
-                    {
-                        Kind = "SCALAR",
-                        Name = FindNamedMapping(arg.Value, combinedMapping),
-                        OfType = null
-                    };
-                }
-                else
-                {
-                    type.Kind = "SCALAR";
-                    type.Name = FindNamedMapping(arg.Value, combinedMapping);
-                    type.OfType = null;
-                }
+                var gqlTypeName = arg.Value.IsEnumerableOrArray() ? arg.Value.GetEnumerableOrArrayType().Name : arg.Value.Name;
+                var type = BuildType(schema, arg.Value, gqlTypeName, combinedMapping);
 
                 args.Add(new Models.InputValue
                 {
@@ -360,11 +346,6 @@
                     return name.Name;
                 else
                     return fallback;
-        }
-
-        public static string ToPascalCaseStartsUpper(string name)
-        {
-            return name.Substring(0, 1).ToUpperInvariant() + name.Substring(1);
         }
 
         private static List<Models.Directives> BuildDirectives()
