@@ -488,7 +488,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public string GetGraphQLSchema()
         {
-            return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration, this._customScalarMappings);
+            return SchemaGenerator.Make(this, SchemaGenerator.DefaultTypeMappings, this._customScalarMappings);
         }
 
         public void AddCustomScalarType(Type clrType, string gqlTypeName)
