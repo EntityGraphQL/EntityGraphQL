@@ -13,6 +13,9 @@ namespace demo
             // build our schema directly from the DB Context
             var demoSchema = SchemaBuilder.FromObject<DemoContext>();
 
+            demoSchema.AddCustomScalarType(typeof(DateTime), "Date");
+            demoSchema.AddCustomScalarType(typeof(DateTime?), "Date");
+
             // we can extend the schema
 
             // Add custom root fields

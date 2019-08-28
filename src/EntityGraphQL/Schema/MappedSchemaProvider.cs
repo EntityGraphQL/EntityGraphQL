@@ -20,6 +20,8 @@ namespace EntityGraphQL.Schema
         protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>();
         protected Dictionary<Type, string> _typeMappingForSchemaGeneration = new Dictionary<Type, string>();
         private readonly string _queryContextName;
+        private readonly Dictionary<Type, string> _customScalarMappings = new Dictionary<Type, string>();
+        public IEnumerable<string> CustomScalarTypes => _customScalarMappings.Values;
 
         public MappedSchemaProvider()
         {
@@ -28,7 +30,7 @@ namespace EntityGraphQL.Schema
             _types.Add(queryContext.Name, queryContext);
 
             // defaults first
-            var _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
+            _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
 
             AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
             AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
@@ -38,16 +40,28 @@ namespace EntityGraphQL.Schema
             AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
 
-            // evaluate Fields lazily so we don't end up in endless loop
-            Type<Models.TypeElement>("__Type").ReplaceField("fields", new {includeDeprecated = false},
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, _typeMappingForSchemaGeneration, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
-
-            Type<Models.TypeElement>("__Type").ReplaceField("enumValues", new {includeDeprecated = false},
+            Type<Models.TypeElement>("__Type").ReplaceField("enumValues", new { includeDeprecated = false },
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
 
+            SetupIntrospectionTypesAndField();
+        }
+
+        private void SetupIntrospectionTypesAndField()
+        {
+            var typeMappingWithScalars = _typeMappingForSchemaGeneration.ToDictionary(a => a.Key, a => a.Value);
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
-            AddField("__schema", db => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration), "Introspection of the schema", "__Schema");
-            AddField("__type", new {name = ArgumentHelper.Required<string>()}, (db, p) => SchemaIntrospection.Make(this, _typeMappingForSchemaGeneration).Types.Where(t => t.Name == p.name).ToList(), "Query a type by name", "__Type");
+            foreach (var item in _customScalarMappings)
+            {
+                typeMappingWithScalars[item.Key] = item.Value;
+            }
+
+            // evaluate Fields lazily so we don't end up in endless loop
+            Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
+                (t, p) => SchemaIntrospection.BuildFieldsForType(this, typeMappingWithScalars, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
+
+
+            ReplaceField("__schema", db => SchemaIntrospection.Make(this, typeMappingWithScalars), "Introspection of the schema", "__Schema");
+            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, typeMappingWithScalars).Types.Where(s => s.Name == p.name).ToList(), "Query a type by name", "__Type");
         }
 
         /// <summary>
@@ -118,6 +132,7 @@ namespace EntityGraphQL.Schema
         public void AddTypeMapping<TFrom>(string gqlType)
         {
             _typeMappingForSchemaGeneration.Add(typeof(TFrom), gqlType);
+            SetupIntrospectionTypesAndField();
         }
 
         /// <summary>
@@ -473,7 +488,14 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public string GetGraphQLSchema()
         {
-            return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration);
+            return SchemaGenerator.Make(this, _typeMappingForSchemaGeneration, this._customScalarMappings);
+        }
+
+        public void AddCustomScalarType(Type clrType, string gqlTypeName)
+        {
+            this._customScalarMappings.Add(clrType, gqlTypeName);
+            // _customScalarMappings has change, need to make the introspectino again. Do this like this so we don't need to build the mappings inline
+            SetupIntrospectionTypesAndField();
         }
 
         public IEnumerable<Field> GetQueryFields()

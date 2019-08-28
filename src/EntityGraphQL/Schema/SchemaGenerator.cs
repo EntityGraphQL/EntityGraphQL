@@ -56,16 +56,20 @@ namespace EntityGraphQL.Schema
             {typeof(RequiredField<UInt16>), "Int!"},
         };
 
-        internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings)
+        internal static string Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> typeMappings, Dictionary<Type, string> customScalarMapping)
         {
             // defaults first
             var combinedMapping = DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
             foreach (var item in typeMappings)
             {
-                if (combinedMapping.ContainsKey(item.Key))
-                    combinedMapping[item.Key] = item.Value;
-                else
-                    combinedMapping.Add(item.Key, item.Value);
+                combinedMapping[item.Key] = item.Value;
+            }
+
+            var scalars = new StringBuilder();
+            foreach (var item in customScalarMapping)
+            {
+                scalars.AppendLine($"scalar {item.Value}");
+                combinedMapping[item.Key] = item.Value;
             }
 
             var types = BuildSchemaTypes(schema, combinedMapping);
@@ -77,6 +81,8 @@ namespace EntityGraphQL.Schema
     query: RootQuery
     mutation: Mutation
 }}
+
+{scalars}
 
 type RootQuery {{
 {queryTypes}

@@ -37,6 +37,7 @@
             types.AddRange(BuildQueryTypes(schema, combinedMapping));
             types.AddRange(BuildInputTypes(schema, combinedMapping));
             types.AddRange(BuildEnumTypes(schema, combinedMapping));
+            types.AddRange(BuildScalarTypes(schema, combinedMapping));
 
             var schemaDescription = new Models.Schema
             {
@@ -55,6 +56,25 @@
             return schemaDescription;
         }
 
+        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            var types = new List<Models.TypeElement>();
+
+            foreach (var customScalar in schema.CustomScalarTypes)
+            {
+                var typeElement = new Models.TypeElement
+                {
+                    Kind = "SCALAR",
+                    Name = customScalar,
+                    Description = null,
+                };
+
+                types.Add(typeElement);
+            }
+
+            return types;
+        }
+
         private static List<Models.TypeElement> BuildQueryTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new List<Models.TypeElement>();
@@ -67,13 +87,15 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
+                    var args = BuildArgs(schema, combinedMapping, field).ToArray();
+                    var type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping);
                     fields.Add(new Models.Field
                     {
                         Name = field.Name,
                         Description = field.Description,
                         IsDeprecated = false,
-                        Args = BuildArgs(schema, combinedMapping, field).ToArray(),
-                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping)
+                        Args = args,
+                        Type = type
                     });
                 }
 
@@ -211,6 +233,11 @@
                 type.Kind = "NON_NULL";
                 type.Name = null;
                 type.OfType = BuildType(schema, clrType.GetGenericArguments()[0], gqlTypeName, combinedMapping, isInput);
+            }
+            if (clrType.GetTypeInfo().IsEnum)
+            {
+                type.Kind = "ENUM";
+                type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
             }
             else
             {

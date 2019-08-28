@@ -17,6 +17,8 @@ namespace EntityGraphQL.Schema
     {
         /// The base context type that expression will be built from. For example your DbContext
         Type ContextType { get; }
+        IEnumerable<string> CustomScalarTypes { get; }
+
         /// Checks if the given type has the given field identifier
         bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs);
         bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs);
@@ -52,5 +54,12 @@ namespace EntityGraphQL.Schema
         IEnumerable<ISchemaType> GetNonContextTypes();
 
         IEnumerable<IMethodType> GetMutations();
+        /// <summary>
+        /// Add custom scalar types that the schema will know about when generating schema and introspection.
+        /// e.g. schema.AddCustomScalarType(typeof(DateTime), "Date");
+        /// </summary>
+        /// <param name="clrType">A CLR type that you want mapped</param>
+        /// <param name="gqlTypeName">A type name for the scala</param>
+        void AddCustomScalarType(Type clrType, string gqlTypeName);
     }
 }

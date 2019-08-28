@@ -1,4 +1,5 @@
-# 0.19.2
+# 0.20.0
+- Add the ability to add custom scalar types to the schema
 - Fix a bug where introspection queries were in correct if you have a List/Array in your mutation type
 
 # 0.19.1
