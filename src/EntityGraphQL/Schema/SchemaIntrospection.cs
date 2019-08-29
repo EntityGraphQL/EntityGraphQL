@@ -79,7 +79,7 @@
         {
             var types = new List<Models.TypeElement>();
 
-            foreach (var st in schema.GetNonContextTypes())
+            foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput))
             {
                 var fields = new List<Models.Field>();
                 foreach (var field in st.GetFields())
