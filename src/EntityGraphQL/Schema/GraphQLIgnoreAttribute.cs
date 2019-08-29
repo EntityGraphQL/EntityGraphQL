@@ -7,9 +7,5 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class GraphQLIgnoreAttribute : Attribute
     {
-
-        public GraphQLIgnoreAttribute()
-        {
-        }
     }
 }
