@@ -1,0 +1,9 @@
+{
+  "name": "entity-graphql-demo",
+  "version": "1.0.0",
+  "scripts": {
+  },
+  "devDependencies": {
+    "graphiql": "0.14.2"
+  }
+}
