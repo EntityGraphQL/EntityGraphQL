@@ -1,3 +1,6 @@
+# 0.20.2
+- Fix input types missing for the SDL schema generated
+
 # 0.20.0
 - Add the ability to add custom scalar types to the schema
 - Fix a bug where introspection queries were in correct if you have a List/Array in your mutation type

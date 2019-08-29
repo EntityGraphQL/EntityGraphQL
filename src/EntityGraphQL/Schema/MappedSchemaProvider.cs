@@ -18,7 +18,7 @@ namespace EntityGraphQL.Schema
     {
         protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>();
         protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>();
-        protected Dictionary<Type, string> _typeMappingForSchemaGeneration = new Dictionary<Type, string>();
+        protected Dictionary<Type, string> _customTypeMappings = new Dictionary<Type, string>();
         private readonly string _queryContextName;
         private readonly Dictionary<Type, string> _customScalarMappings = new Dictionary<Type, string>();
         public IEnumerable<string> CustomScalarTypes => _customScalarMappings.Values;
@@ -28,9 +28,6 @@ namespace EntityGraphQL.Schema
             var queryContext = new SchemaType<TContextType>(typeof(TContextType).Name, "Query schema");
             _queryContextName = queryContext.Name;
             _types.Add(queryContext.Name, queryContext);
-
-            // defaults first
-            _typeMappingForSchemaGeneration = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
 
             AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
             AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
@@ -48,20 +45,24 @@ namespace EntityGraphQL.Schema
 
         private void SetupIntrospectionTypesAndField()
         {
-            var typeMappingWithScalars = _typeMappingForSchemaGeneration.ToDictionary(a => a.Key, a => a.Value);
+            var allTypeMappings = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
+            foreach (var item in _customTypeMappings)
+            {
+                allTypeMappings[item.Key] = item.Value;
+            }
             foreach (var item in _customScalarMappings)
             {
-                typeMappingWithScalars[item.Key] = item.Value;
+                allTypeMappings[item.Key] = item.Value;
             }
 
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, typeMappingWithScalars, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
+                (t, p) => SchemaIntrospection.BuildFieldsForType(this, allTypeMappings, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
 
 
-            ReplaceField("__schema", db => SchemaIntrospection.Make(this, typeMappingWithScalars), "Introspection of the schema", "__Schema");
-            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, typeMappingWithScalars).Types.Where(s => s.Name == p.name).ToList(), "Query a type by name", "__Type");
+            ReplaceField("__schema", db => SchemaIntrospection.Make(this, allTypeMappings), "Introspection of the schema", "__Schema");
+            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, allTypeMappings).Types.Where(s => s.Name == p.name).ToList(), "Query a type by name", "__Type");
         }
 
         /// <summary>
@@ -131,7 +132,7 @@ namespace EntityGraphQL.Schema
 
         public void AddTypeMapping<TFrom>(string gqlType)
         {
-            _typeMappingForSchemaGeneration.Add(typeof(TFrom), gqlType);
+            _customTypeMappings.Add(typeof(TFrom), gqlType);
             SetupIntrospectionTypesAndField();
         }
 
@@ -488,7 +489,12 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public string GetGraphQLSchema()
         {
-            return SchemaGenerator.Make(this, SchemaGenerator.DefaultTypeMappings, this._customScalarMappings);
+            var extraMappings = _customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
+            foreach (var item in _customScalarMappings)
+            {
+                extraMappings[item.Key] = item.Value;
+            }
+            return SchemaGenerator.Make(this, extraMappings, this._customScalarMappings);
         }
 
         public void AddCustomScalarType(Type clrType, string gqlTypeName)
