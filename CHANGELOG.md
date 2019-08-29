@@ -1,5 +1,6 @@
 # 0.20.2
 - Fix input types missing for the SDL schema generated
+- Fix issue where mutation args has repeating `ofType` data in introspection
 
 # 0.20.0
 - Add the ability to add custom scalar types to the schema

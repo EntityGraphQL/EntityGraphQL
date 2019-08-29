@@ -234,7 +234,7 @@
                 type.Name = null;
                 type.OfType = BuildType(schema, clrType.GetGenericArguments()[0], gqlTypeName, combinedMapping, isInput);
             }
-            if (clrType.GetTypeInfo().IsEnum)
+            else if (clrType.GetTypeInfo().IsEnum)
             {
                 type.Kind = "ENUM";
                 type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
@@ -332,10 +332,11 @@
                 if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                     continue;
 
+                var args = BuildArgs(schema, combinedMapping, field).ToArray();
                 rootFields.Add(new Models.Field
                 {
                     Name = field.Name,
-                    Args = BuildArgs(schema, combinedMapping, field).ToArray(),
+                    Args = args,
                     IsDeprecated = false,
                     Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
                     Description = field.Description
