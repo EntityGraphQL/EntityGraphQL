@@ -158,12 +158,17 @@ type Mutation {{
                 {
                     return schema.GetSchemaTypeNameForRealType(type);
                 }
-                if (type.IsEnumerableOrArray()) {
+                if (type.IsEnumerableOrArray())
+                {
                     return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema, combinedMapping) + "]";
                 }
                 if (type.IsConstructedGenericType)
                 {
                     return ClrToGqlType(type.GetGenericTypeDefinition(), schema, combinedMapping);
+                }
+                if (type.GetTypeInfo().IsEnum)
+                {
+                    return "Int";
                 }
                 // Default to a string type
                 return "String";

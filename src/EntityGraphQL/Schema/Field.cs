@@ -7,7 +7,9 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
+    /// <summary>
     /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
+    /// </summary>
     public class Field : IMethodType
     {
         private readonly Dictionary<string, Type> allArguments = new Dictionary<string, Type>();

@@ -41,6 +41,11 @@ namespace EntityGraphQL.Schema
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
 
             SetupIntrospectionTypesAndField();
+
+            // //Include default scalar types
+            // AddCustomScalarType(typeof(int), "Int");
+            // AddCustomScalarType(typeof(string), "String");
+            // AddCustomScalarType(typeof(bool), "Boolean");
         }
 
         private void SetupIntrospectionTypesAndField()

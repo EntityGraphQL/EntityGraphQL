@@ -1,4 +1,5 @@
-# 0.20.2
+# 0.21.0
+- Change, make ENUMs a `Int` type as dotnet serialises them like that
 - Fix input types missing for the SDL schema generated
 - Fix issue where mutation args has repeating `ofType` data in introspection
 - Fix issue where InputTypes would be duplicated in introspection query results

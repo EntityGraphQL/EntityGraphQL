@@ -81,29 +81,11 @@
 
             foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput))
             {
-                var fields = new List<Models.Field>();
-                foreach (var field in st.GetFields())
-                {
-                    if (field.Name.StartsWith("__"))
-                        continue;
-
-                    var args = BuildArgs(schema, combinedMapping, field).ToArray();
-                    var type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping);
-                    fields.Add(new Models.Field
-                    {
-                        Name = field.Name,
-                        Description = field.Description,
-                        IsDeprecated = false,
-                        Args = args,
-                        Type = type
-                    });
-                }
-
                 var typeElement = new Models.TypeElement
                 {
                     Kind = "OBJECT",
                     Name = st.Name,
-                    Description = st.Description,
+                    Description = st.Description
                 };
 
                 types.Add(typeElement);
@@ -118,7 +100,7 @@
         /// <param name="schema"></param>
         /// <param name="combinedMapping"></param>
         /// <remarks>
-        /// Since Types and Inputs cannot have the same name, camelCase the name to pervent duplicates.
+        /// Since Types and Inputs cannot have the same name, camelCase the name to prevent duplicates.
         /// </remarks>
         /// <returns></returns>
         private static List<Models.TypeElement> BuildInputTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
@@ -127,6 +109,9 @@
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsInput))
             {
+                if (schemaType.Name.StartsWith("__"))
+                    continue;
+
                 var inputValues = new List<Models.InputValue>();
                 foreach (Field field in schemaType.GetFields())
                 {
@@ -238,12 +223,16 @@
             {
                 type.Kind = "ENUM";
                 type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
+                type.OfType = null;
             }
             else
             {
                 type.Kind = combinedMapping.Any(x => x.Key == clrType) ? "SCALAR" : "OBJECT";
+                type.OfType = null;
                 if (type.Kind == "OBJECT" && isInput)
+                {
                     type.Name = SchemaGenerator.ToCamelCaseStartsLower(FindNamedMapping(clrType, combinedMapping, gqlTypeName));
+                }
                 else
                     type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
             }
