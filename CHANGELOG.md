@@ -3,6 +3,7 @@
 - Fix input types missing for the SDL schema generated
 - Fix issue where mutation args has repeating `ofType` data in introspection
 - Fix issue where InputTypes would be duplicated in introspection query results
+- Fix issue where `ToList()` was being called deep in expressions causing issues with EF
 
 # 0.20.0
 - Add the ability to add custom scalar types to the schema

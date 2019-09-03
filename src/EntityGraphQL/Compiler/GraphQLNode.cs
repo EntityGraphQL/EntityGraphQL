@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -186,6 +187,12 @@ namespace EntityGraphQL.Compiler
 
             // build this first as NodeExpression may modify ConstantParameters
             var expression = NodeExpression;
+
+            // call tolist on to level nodes to force evaluation
+            if (expression.Type.IsEnumerableOrArray())
+            {
+                expression = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
+            }
 
             var parameters = Parameters.ToList();
             if (ConstantParameters != null && ConstantParameters.Any())

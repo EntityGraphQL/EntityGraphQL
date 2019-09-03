@@ -134,7 +134,7 @@ namespace EntityGraphQL.Compiler.Util
             var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var call = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
-            return ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { dynamicType }, call);
+            return call;
         }
 
         public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
