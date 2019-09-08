@@ -37,7 +37,7 @@ namespace EntityGraphQL.LinqQuery
     public class DefaultMethodProvider : IMethodProvider
     {
         // Map of the method names and a function that makes the Expression.Call
-        private Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
         {
             { "where", MakeWhereMethod },
             { "filter", MakeWhereMethod },
@@ -59,7 +59,6 @@ namespace EntityGraphQL.LinqQuery
         {
             // some methods have a context of the element type in the list, other is just the original context
             // need some way for the method compiler to tells us that
-            //  return _supportedMethods[methodName](context);
             return GetContextFromEnumerable(context);
         }
 
@@ -78,7 +77,7 @@ namespace EntityGraphQL.LinqQuery
             var predicate = args.First();
             predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
             var lambda = Expression.Lambda(predicate, argContext as ParameterExpression);
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { argContext.Type }, context, lambda);
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Where", new Type[] { argContext.Type }, context, lambda);
         }
 
         private static ExpressionResult MakeFirstMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -103,7 +102,7 @@ namespace EntityGraphQL.LinqQuery
                 allArgs.Add(Expression.Lambda(predicate, argContext as ParameterExpression));
             }
 
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, actualMethodName, new Type[] { argContext.Type }, allArgs.ToArray());
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), actualMethodName, new Type[] { argContext.Type }, allArgs.ToArray());
         }
 
         private static ExpressionResult MakeLastMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -117,7 +116,7 @@ namespace EntityGraphQL.LinqQuery
             var amount = args.First();
             amount = ConvertTypeIfWeCan(methodName, amount, typeof(int));
 
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Take", new Type[] { argContext.Type }, context, amount);
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Take", new Type[] { argContext.Type }, context, amount);
         }
 
         private static ExpressionResult MakeSkipMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -126,7 +125,7 @@ namespace EntityGraphQL.LinqQuery
             var amount = args.First();
             amount = ConvertTypeIfWeCan(methodName, amount, typeof(int));
 
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Skip", new Type[] { argContext.Type }, context, amount);
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Skip", new Type[] { argContext.Type }, context, amount);
         }
 
         private static ExpressionResult MakeOrderByMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -135,7 +134,7 @@ namespace EntityGraphQL.LinqQuery
             var column = args.First();
             var lambda = Expression.Lambda(column, argContext as ParameterExpression);
 
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "OrderBy", new Type[] { argContext.Type, column.Type }, context, lambda);
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "OrderBy", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
         private static ExpressionResult MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
@@ -144,7 +143,7 @@ namespace EntityGraphQL.LinqQuery
             var column = args.First();
             var lambda = Expression.Lambda(column, argContext as ParameterExpression);
 
-            return ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "OrderByDescending", new Type[] { argContext.Type, column.Type }, context, lambda);
+            return ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "OrderByDescending", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
         private static ExpressionResult GetContextFromEnumerable(ExpressionResult context)

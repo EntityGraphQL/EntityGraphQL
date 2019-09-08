@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class ExpressionResult
     {
-        private Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
+        private readonly Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
 
         public ExpressionResult(Expression value)
         {
@@ -22,7 +22,7 @@ namespace EntityGraphQL.Compiler
         public virtual Expression Expression { get; internal set; }
         public Type Type { get { return Expression.Type; } }
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get { return constantParameters; } }
         public ExpressionType NodeType { get { return Expression.NodeType; } }
 
         public static implicit operator Expression(ExpressionResult field)

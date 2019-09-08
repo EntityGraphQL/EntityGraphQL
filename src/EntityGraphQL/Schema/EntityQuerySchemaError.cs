@@ -2,17 +2,17 @@ using System;
 
 namespace EntityGraphQL.Schema
 {
-    public class EntityQuerySchemaError : Exception
+    public class EntityQuerySchemaException : Exception
     {
-        public EntityQuerySchemaError()
+        public EntityQuerySchemaException()
         {
         }
 
-        public EntityQuerySchemaError(string message) : base(message)
+        public EntityQuerySchemaException(string message) : base(message)
         {
         }
 
-        public EntityQuerySchemaError(string message, Exception innerException) : base(message, innerException)
+        public EntityQuerySchemaException(string message, Exception innerException) : base(message, innerException)
         {
         }
     }

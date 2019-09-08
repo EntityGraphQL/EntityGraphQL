@@ -91,10 +91,11 @@ namespace demo.Mutations
     /// </summary>
     public class AddMovieArgs
     {
-        public Genre Genre;
+        public Genre Genre { get; set; }
+
         public string Name { get; set; }
         public double Rating { get; set; }
-        public DateTime Released;
+        public DateTime Released { get; set; }
         public List<Detail> Details { get; set; }
     }
 

@@ -68,15 +68,15 @@ namespace EntityGraphQL
             try
             {
                 var graphQLCompiler = new GraphQLCompiler(schemaProvider, methodProvider);
-                var queryResult = (GraphQLResultNode)graphQLCompiler.Compile(request);
+                var queryResult = graphQLCompiler.Compile(request);
                 result = queryResult.ExecuteQuery(context, request.OperationName, mutationArgs);
             }
             catch (Exception ex)
             {
                 // error with the whole query
-                result = new QueryResult {Errors = { new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message) }};
+                result = new QueryResult {Errors = { new GraphQLException(ex.InnerException != null ? ex.InnerException.Message : ex.Message) }};
             }
-            if (includeDebugInfo && timer != null)
+            if (includeDebugInfo)
             {
                 timer.Stop();
                 result.SetDebug(new { TotalMilliseconds = timer.ElapsedMilliseconds });

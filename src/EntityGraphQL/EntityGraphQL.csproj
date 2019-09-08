@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>EntityGraphQL</AssemblyName>
@@ -13,14 +13,20 @@
     <PackageLicenseUrl>https://github.com/lukemurray/EntityGraphQL/LICENSE</PackageLicenseUrl>
     <PackageLicense>MIT</PackageLicense>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <CodeAnalysisRuleSet>EntityGraphQL.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <CodeAnalysisRuleSet>EntityGraphQL.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Antlr4" Version="4.6.6"/>
-    <PackageReference Include="Antlr4.Runtime" Version="4.6.6"/>
-    <PackageReference Include="Humanizer.Core" Version="2.3.3"/>
-    <PackageReference Include="System.Linq.Queryable" Version="4.3.0"/>
-    <PackageReference Include="System.Reflection.Emit" Version="4.3.0"/>
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0"/>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
+    <PackageReference Include="Antlr4" Version="4.6.6" />
+    <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
+    <PackageReference Include="Humanizer.Core" Version="2.3.3" />
+    <PackageReference Include="System.Linq.Queryable" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
   <ItemGroup>
     <Antlr4 Update="Grammer/EntityGraphQL.g4">

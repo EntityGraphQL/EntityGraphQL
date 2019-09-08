@@ -5,9 +5,9 @@ namespace EntityGraphQL.Compiler
 {
     internal class OperationVisitor : EntityGraphQLBaseVisitor<GraphQLOperation>
     {
-        private QueryVariables variables;
+        private readonly QueryVariables variables;
         private readonly Schema.ISchemaProvider schemaProvider;
-        private GraphQLOperation operation;
+        private readonly GraphQLOperation operation;
 
         public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider)
         {
@@ -51,19 +51,18 @@ namespace EntityGraphQL.Compiler
 
     internal class GraphQLOperation
     {
-        public IEnumerable<GraphQlOperationArgument> Arguments => arguments;
-        private List<GraphQlOperationArgument> arguments;
+        public List<GraphQlOperationArgument> Arguments { get; set; }
 
         public GraphQLOperation()
         {
-            arguments = new List<GraphQlOperationArgument>();
+            Arguments = new List<GraphQlOperationArgument>();
         }
 
         public string Name { get; internal set; }
 
         internal void AddArgument(string argName, object type, bool isArray, bool required, ExpressionResult defaultValue)
         {
-            arguments.Add(new GraphQlOperationArgument(argName, type, isArray, required, defaultValue));
+            Arguments.Add(new GraphQlOperationArgument(argName, type, isArray, required, defaultValue));
         }
     }
 

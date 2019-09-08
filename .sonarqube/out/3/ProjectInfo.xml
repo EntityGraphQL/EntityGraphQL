@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.sonarsource.com/msbuild/integration/2015/1">
+  <ProjectName>EntityGraphQL.Tests</ProjectName>
+  <ProjectLanguage>C#</ProjectLanguage>
+  <ProjectType>Test</ProjectType>
+  <ProjectGuid>c55a2e96-5040-4234-80b6-a0a7b4efaf3e</ProjectGuid>
+  <FullPath>Y:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\EntityGraphQL.Tests.csproj</FullPath>
+  <IsExcluded>false</IsExcluded>
+  <AnalysisResults>
+    <AnalysisResult Id="FilesToAnalyze" Location="Y:\Develop\EntityGraphQL\.sonarqube\out\3\FilesToAnalyze.txt" />
+  </AnalysisResults>
+  <AnalysisSettings>
+    <Property Name="sonar.cs.roslyn.reportFilePath">Y:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\bin\Debug\netcoreapp2.0\EntityGraphQL.Tests.dll.RoslynCA.json|Y:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\bin\Debug\netcoreapp2.0\EntityGraphQL.Tests.dll.RoslynCA.json</Property>
+    <Property Name="sonar.cs.analyzer.projectOutPath">Y:\Develop\EntityGraphQL\.sonarqube\out\3</Property>
+  </AnalysisSettings>
+  <Configuration>Debug</Configuration>
+  <Platform>AnyCPU</Platform>
+  <TargetFramework>netcoreapp2.0</TargetFramework>
+</ProjectInfo>

@@ -14,15 +14,12 @@ namespace EntityGraphQL.Compiler.Util
     public static class LinqRuntimeTypeBuilder
     {
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "Eql.DynamicTypes" };
-        private static ModuleBuilder _moduleBuilder = null;
+        private static ModuleBuilder _moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(_assemblyName.Name);
         private static Dictionary<string, Type> builtTypes = new Dictionary<string, Type>();
         // We build a class name based on all the selected fields so we can cache the anonymous types we built
         // Names can't be > 1024 length, so we store them against Guids
         private static Dictionary<string, string> typesByName = new Dictionary<string, string>();
-        static LinqRuntimeTypeBuilder()
-        {
-            _moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(_assemblyName.Name);
-        }
+
 
         private static string GetTypeKey(Dictionary<string, Type> fields)
         {
@@ -76,7 +73,7 @@ namespace EntityGraphQL.Compiler.Util
 
                 foreach (var field in fields)
                 {
-                    var fieldBuilder = typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
+                    typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
                 }
 
                 builtTypes[classId] = typeBuilder.CreateTypeInfo().AsType();

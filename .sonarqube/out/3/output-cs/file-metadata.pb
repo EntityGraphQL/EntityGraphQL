@@ -1,0 +1,15 @@
+P
+GY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\CompilerTests.csutf-8U
+LY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\GraphQLSyntaxTests.csutf-8g
+^Y:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\LinqQuery\DefaultMethodProviderTests.csutf-8^
+UY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\LinqQuery\LinqCompilerTests.csutf-8n
+eY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\LinqQuery\LinqCompilerWithMappedSchemaTests.csutf-8\
+SY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\MappedSchemaProviderTests.csutf-8P
+GY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\MetaDataTests.csutf-8P
+GY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\MutationTests.csutf-8U
+LY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\SchemaBuilderTests.csutf-8R
+IY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\TestDataContext.csutf-8X
+OY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\TestObjectGraphSchema.csutf-8[
+PC:\Users\henry\AppData\Local\Temp\.NETCoreApp,Version=v2.0.AssemblyAttributes.csutf-8y
+mY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\obj\Debug\netcoreapp2.0\EntityGraphQL.Tests.Program.csutf-16}
+rY:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\obj\Debug\netcoreapp2.0\EntityGraphQL.Tests.AssemblyInfo.csutf-8

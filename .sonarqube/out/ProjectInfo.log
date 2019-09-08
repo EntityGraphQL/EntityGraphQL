@@ -1,0 +1,27 @@
+Product projects
+---------------------------------------
+Y:\Develop\EntityGraphQL\src\EntityGraphQL\EntityGraphQL.csproj
+Y:\Develop\EntityGraphQL\src\demo\demo.csproj
+Y:\Develop\EntityGraphQL\src\dotnet-gql\dotnet-gql.csproj
+
+
+Test projects
+---------------------------------------
+Y:\Develop\EntityGraphQL\src\tests\EntityGraphQL.Tests\EntityGraphQL.Tests.csproj
+
+
+Invalid projects
+---------------------------------------
+{none}
+
+
+Skipped projects
+---------------------------------------
+{none}
+
+
+Excluded projects
+---------------------------------------
+{none}
+
+

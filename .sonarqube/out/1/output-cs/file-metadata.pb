@@ -1,0 +1,10 @@
+I
+@Y:\Develop\EntityGraphQL\src\demo\Controllers\QueryController.csutf-89
+0Y:\Develop\EntityGraphQL\src\demo\DemoContext.csutf-8;
+2Y:\Develop\EntityGraphQL\src\demo\GraphQLSchema.csutf-8E
+<Y:\Develop\EntityGraphQL\src\demo\Mutations\DemoMutations.csutf-85
+,Y:\Develop\EntityGraphQL\src\demo\Program.csutf-85
+,Y:\Develop\EntityGraphQL\src\demo\Startup.csutf-8[
+PC:\Users\henry\AppData\Local\Temp\.NETCoreApp,Version=v2.1.AssemblyAttributes.csutf-8^
+SY:\Develop\EntityGraphQL\src\demo\obj\Debug\netcoreapp2.1\demo.RazorAssemblyInfo.csutf-8Y
+NY:\Develop\EntityGraphQL\src\demo\obj\Debug\netcoreapp2.1\demo.AssemblyInfo.csutf-8

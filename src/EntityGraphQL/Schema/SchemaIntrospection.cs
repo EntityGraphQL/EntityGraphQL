@@ -7,7 +7,7 @@
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
-    public class SchemaIntrospection
+    public static class SchemaIntrospection
     {
         /// <summary>
         /// Creates an Introspection schema
@@ -34,10 +34,10 @@
                     OfType = null,
                 },
             };
-            types.AddRange(BuildQueryTypes(schema, combinedMapping));
+            types.AddRange(BuildQueryTypes(schema));
             types.AddRange(BuildInputTypes(schema, combinedMapping));
-            types.AddRange(BuildEnumTypes(schema, combinedMapping));
-            types.AddRange(BuildScalarTypes(schema, combinedMapping));
+            types.AddRange(BuildEnumTypes(schema));
+            types.AddRange(BuildScalarTypes(schema));
 
             var schemaDescription = new Models.Schema
             {
@@ -56,7 +56,7 @@
             return schemaDescription;
         }
 
-        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema)
         {
             var types = new List<Models.TypeElement>();
 
@@ -75,7 +75,7 @@
             return types;
         }
 
-        private static List<Models.TypeElement> BuildQueryTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Models.TypeElement> BuildQueryTypes(ISchemaProvider schema)
         {
             var types = new List<Models.TypeElement>();
 
@@ -153,7 +153,7 @@
             return types;
         }
 
-        private static List<Models.TypeElement> BuildEnumTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Models.TypeElement> BuildEnumTypes(ISchemaProvider schema)
         {
             var types = new List<Models.TypeElement>();
 
@@ -196,7 +196,7 @@
                 }
 
                 typeElement.EnumValues = enumTypes.ToArray();
-                if (typeElement.EnumValues.Count() > 0)
+                if (typeElement.EnumValues.Any())
                     types.Add(typeElement);
             }
 
@@ -368,55 +368,7 @@
         private static List<Models.Directives> BuildDirectives()
         {
             var directives = new List<Models.Directives> {
-                // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the dierectives users add
-                // new Models.Directives
-                // {
-                //     Name = "include",
-                //     Description = "Directs the executor to include this field or fragment only when the `if` argument is true.",
-                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                //     Args = new Models.Arg[] {
-                //         new Models.Arg {
-                //             Name = "if",
-                //             Description = "Included when true.",
-                //             DefaultValue = null,
-                //             Type = new Models.TypeElement
-                //             {
-                //                 Kind = "NON_NULL",
-                //                 Name = null,
-                //                 OfType = new Models.TypeElement
-                //                 {
-                //                     Kind = "SCALAR",
-                //                     Name = "Boolean",
-                //                     OfType = null
-                //                 }
-                //             }
-                //         }
-                //     }
-                // },
-                // new Models.Directives
-                // {
-                //     Name = "skip",
-                //     Description = "Directs the executor to skip this field or fragment when the `if` argument is true.",
-                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                //     Args = new Models.Arg[] {
-                //         new Models.Arg {
-                //             Name = "if",
-                //             Description = "Skipped when true.",
-                //             DefaultValue = null,
-                //             Type = new Models.TypeElement
-                //             {
-                //                 Kind = "NON_NULL",
-                //                 Name = null,
-                //                 OfType = new Models.TypeElement
-                //                 {
-                //                     Kind = "SCALAR",
-                //                     Name = "Boolean",
-                //                     OfType = null
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
+                // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the derectives users add
             };
 
             return directives;

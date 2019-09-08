@@ -1,0 +1,6 @@
+projectKey=EGQL
+serverUrl=https://winfly.roeland.lan
+serverVersion=7.9.1.27448
+dashboardUrl=https://winfly.roeland.lan/dashboard?id=EGQL
+ceTaskId=AWz9kIR8a3aAiWmhkHHV
+ceTaskUrl=https://winfly.roeland.lan/api/ce/task?id=AWz9kIR8a3aAiWmhkHHV
