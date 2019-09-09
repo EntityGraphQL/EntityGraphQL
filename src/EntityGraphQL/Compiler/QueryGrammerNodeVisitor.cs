@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using System.Text.RegularExpressions;
 using EntityGraphQL.LinqQuery;
+using System.Globalization;
 
 namespace EntityGraphQL.Compiler
 {
@@ -234,7 +235,7 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)
         {
-            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText()));
+            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
         }
 
         public override ExpressionResult VisitString(EntityGraphQLParser.StringContext context)
