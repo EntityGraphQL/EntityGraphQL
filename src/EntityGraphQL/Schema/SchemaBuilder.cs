@@ -74,25 +74,19 @@ namespace EntityGraphQL.Schema
 			argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
 			var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
 			var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
+			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
 
-			Type tIQueryable = typeof(IQueryable<>);
-			Type tIQueryableCtx = tIQueryable.MakeGenericType(arrayContextType);
-			var exprIQuerableCtx = Expression.Parameter(tIQueryableCtx);
-
-			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Queryable), "FirstOrDefault", new Type[] { arrayContextType }, exprIQuerableCtx, idLambda);
-
+			/// body = ExpressionUtil.MakeExpressionCall( typeof(Queryable), "FirstOrDefault", new Type[] { arrayContextType }, body);
 			var contextParam = Expression.Parameter(contextType);
-			var lambdaParams = new[] { contextParam, argTypeParam, exprIQuerableCtx };
+			var lambdaParams = new[] { contextParam, argTypeParam };
 			body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
 			var selectionExpression = Expression.Lambda(body, lambdaParams);
-
 			var name = fieldProp.Name.Singularize();
 			if (name == null)
 			{
 				// If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
 				name = $"{fieldProp.Name}ById";
 			}
-
 			var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeSingle} by its Id", fieldProp.ReturnTypeSingle, argTypesValue);
 			schema.AddField(field);
 		}

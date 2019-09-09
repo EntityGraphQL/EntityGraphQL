@@ -30,7 +30,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesNumberDecimalConstant()
         {
-            var exp = EqlCompiler.Compile("23.3");
+            var exp = EqlCompiler.Compile("23,3");
             Assert.Equal(23.3m, exp.Execute());
         }
 

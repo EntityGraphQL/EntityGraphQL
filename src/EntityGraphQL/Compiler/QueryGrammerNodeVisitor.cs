@@ -234,7 +234,10 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)
         {
-            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText()));
+				string s = context.GetText();
+				decimal d = decimal.Parse(s, System.Globalization.NumberStyles.Any);
+				var result = (ExpressionResult)Expression.Constant(d);
+				return result;
         }
 
         public override ExpressionResult VisitString(EntityGraphQLParser.StringContext context)

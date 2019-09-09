@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
 
 			// Add a argument field with a require parameter
 			var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
-                user(id: 33) { id }
+                user(id: 1) { id }
             }").Operations.First();
 
 			Assert.Single(tree.Fields);
