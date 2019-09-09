@@ -76,7 +76,6 @@ namespace EntityGraphQL.Schema
 			var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
 			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
 
-			/// body = ExpressionUtil.MakeExpressionCall( typeof(Queryable), "FirstOrDefault", new Type[] { arrayContextType }, body);
 			var contextParam = Expression.Parameter(contextType);
 			var lambdaParams = new[] { contextParam, argTypeParam };
 			body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);

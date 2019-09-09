@@ -8,7 +8,7 @@ STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"'\u005B\u005D;<>?,./-];
 identity    : ID;
 callPath    : (identity | call | gqlcall) ('.' (identity | call | gqlcall))*;
 int         : '-'? DIGIT+;
-decimal     : '-'? DIGIT+('.'|',')DIGIT+;
+decimal     : '-'? DIGIT+'.'DIGIT+;
 boolean     : 'true' | 'false';
 string      : '"' ( '"' | ~('\n'|'\r') | STRING_CHARS )*? '"';
 null        : 'null' | 'empty';
