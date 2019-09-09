@@ -16,19 +16,17 @@ namespace EntityGraphQL.Schema
 
         public string Description { get; set; }
 
-        private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
-        private readonly Expression<Func<TBaseType, bool>> _filter;
+        private readonly Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
 
-        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, filter, isInput)
+        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, isInput)
         {
         }
 
-        public SchemaType(Type contextType, string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false)
+        public SchemaType(Type contextType, string name, string description, bool isInput = false)
         {
             ContextType = contextType;
             Name = name;
 				Description = description;
-            _filter = filter;
             IsInput = isInput;
             AddField("__typename", t => name, "Type name");
         }

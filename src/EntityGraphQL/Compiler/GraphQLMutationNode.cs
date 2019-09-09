@@ -10,19 +10,28 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationNode : IGraphQLNode
     {
-        private CompiledQueryResult result;
-        private IGraphQLNode graphQLNode;
+        private readonly CompiledQueryResult result;
+        private readonly IGraphQLNode graphQLNode;
 
         public IEnumerable<IGraphQLNode> Fields { get; private set; }
 
         public string Name => graphQLNode.Name;
         public OperationType Type => OperationType.Mutation;
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => null;
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
 
-        public ExpressionResult NodeExpression { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public ExpressionResult GetNodeExpression()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetNodeExpression(ExpressionResult expr)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public GraphQLMutationNode(CompiledQueryResult result, IGraphQLNode graphQLNode)
         {
@@ -33,14 +42,12 @@ namespace EntityGraphQL.Compiler
 
         public object Execute(params object[] args)
         {
-            var allArgs = new List<object>(args);
-
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
-            var result = mutation.Execute(args);
-            if (result.GetType().GetTypeInfo().BaseType.GetTypeInfo().BaseType == typeof(LambdaExpression))
+            var res = mutation.Execute(args);
+            if (res.GetType().GetTypeInfo().BaseType.GetTypeInfo().BaseType == typeof(LambdaExpression))
             {
-                var mutationLambda = (LambdaExpression)result;
+                var mutationLambda = (LambdaExpression)res;
                 var mutationContextParam = mutationLambda.Parameters.First();
                 var mutationExpression = mutationLambda.Body;
 
@@ -61,7 +68,7 @@ namespace EntityGraphQL.Compiler
                     if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" || call.Method.Name == "Last" || call.Method.Name == "LastOrDefault")
                     {
                         var baseExp = call.Arguments.First();
-                        if (call.Arguments.Count() == 2)
+                        if (call.Arguments.Count == 2)
                         {
                             // move the fitler to a Where call
                             var filter = call.Arguments.ElementAt(1);
@@ -69,13 +76,13 @@ namespace EntityGraphQL.Compiler
                         }
 
                         // build select
-                        var selectExp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.NodeExpression.Type}, baseExp, Expression.Lambda(graphQLNode.NodeExpression, selectParam));
+                        var selectExp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type }, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
 
                         // add First/Last back
                         var firstExp = Expression.Call(typeof(Queryable), call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
                         // we're done
-                        graphQLNode.NodeExpression = (ExpressionResult)firstExp;
+                        graphQLNode.SetNodeExpression((ExpressionResult)firstExp);
                     }
                     else
                     {
@@ -84,18 +91,18 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.NodeExpression.Type}, mutationExpression, Expression.Lambda(graphQLNode.NodeExpression, selectParam));
-                    graphQLNode.NodeExpression = (ExpressionResult)exp;
+                    var exp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type }, mutationExpression, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
+                    graphQLNode.SetNodeExpression((ExpressionResult)exp);
                 }
 
                 // make sure we use the right parameter
                 graphQLNode.Parameters[0] = mutationContextParam;
-                result = graphQLNode.Execute(args[0]);
-                return result;
+                res = graphQLNode.Execute(args[0]);
+                return res;
             }
             // run the query select
-            result = graphQLNode.Execute(result);
-            return result;
+            res = graphQLNode.Execute(res);
+            return res;
         }
     }
 }

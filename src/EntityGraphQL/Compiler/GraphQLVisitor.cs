@@ -110,9 +110,9 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    // Could be a list.First() that we need to turn into a select, or
-                    // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
-                    // Can we turn a list.First() into and list.Select().First()
+                    /// Could be a list.First() that we need to turn into a select, or
+                    /// other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
+                    /// Can we turn a list.First() into and list.Select().First()
                     var listExp = Compiler.Util.ExpressionUtil.FindIEnumerable(result.ExpressionResult);
                     if (listExp.Item1 != null)
                     {
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Compiler
                         var item1 = (ExpressionResult)listExp.Item1;
                         item1.AddConstantParameters(result.ExpressionResult.ConstantParameters);
 						graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context);
-                        graphQLNode.NodeExpression = (ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
+                        graphQLNode.SetNodeExpression((ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.GetNodeExpression(), listExp.Item2));
                     }
                     else
                     {

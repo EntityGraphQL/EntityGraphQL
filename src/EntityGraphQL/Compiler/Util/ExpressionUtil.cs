@@ -162,7 +162,7 @@ namespace EntityGraphQL.Compiler.Util
 			foreach (var item in fieldExpressions)
 			{
 				// if there are dupelicate fields (looking at you ApolloClient when using fragments) they override
-				fieldExpressionsByName[item.Name] = item.NodeExpression;
+				fieldExpressionsByName[item.Name] = item.GetNodeExpression();
 			}
 			dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
