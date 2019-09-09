@@ -16,7 +16,8 @@ obj/
 
 node_modules/
 
-# Sonar directories 
+# Sonar directories and files
 .sonar/
 .sonarqube/
 .sonarlint/
+*.ruleset
