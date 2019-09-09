@@ -74,7 +74,10 @@ namespace EntityGraphQL.Schema
 			argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
 			var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
 			var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "FirstOrDefault", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+
+			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+
+			body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "FirstOrDefault", new Type[] { arrayContextType }, body);
 
 			var contextParam = Expression.Parameter(contextType);
 			var lambdaParams = new[] { contextParam, argTypeParam };
