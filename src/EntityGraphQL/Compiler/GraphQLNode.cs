@@ -72,23 +72,23 @@ namespace EntityGraphQL.Compiler
                         if (field is GraphQLFragmentSelect)
                         {
                             var fragment = queryFragments.FirstOrDefault(i => i.Name == field.Name);
-                            if (fragment == null)
-                                throw new EntityQuerySchemaError($"Fragment '{field.Name}' not found in query document");
-
-                            foreach (IGraphQLNode fragField in fragment.Fields)
+                            if (fragment != null)
                             {
-                                ExpressionResult exp = null;
-                                if (isSelect)
-                                    exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldParameter);
-                                else
-                                    exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldSelectionBaseExpression);
-                                // new object as we reuse fragments
-                                selectionFields.Add(new GraphQLNode(schemaProvider, queryFragments, fragField.Name, exp, null, null, null, null));
-
-                                // pull any constant values up
-                                foreach (var item in fragField.ConstantParameters)
+                                foreach (IGraphQLNode fragField in fragment.Fields)
                                 {
-                                    constantParameters.Add(item.Key, item.Value);
+                                    ExpressionResult exp = null;
+                                    if (isSelect)
+                                        exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldParameter);
+                                    else
+                                        exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldSelectionBaseExpression);
+                                    // new object as we reuse fragments
+                                    selectionFields.Add(new GraphQLNode(schemaProvider, queryFragments, fragField.Name, exp, null, null, null, null));
+
+                                    // pull any constant values up
+                                    foreach (var item in fragField.ConstantParameters)
+                                    {
+                                        constantParameters.Add(item.Key, item.Value);
+                                    }
                                 }
                             }
                         }
