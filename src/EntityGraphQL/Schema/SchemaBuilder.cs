@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema
     /// A simple schema provider to automattically create a query schema based on an object.
     /// Commonly used with a DbContext.
     /// </summary>
-    public class SchemaBuilder
+	public static class SchemaBuilder
     {
         private static readonly HashSet<string> ignoreProps = new HashSet<string> {
             "Database",
@@ -74,9 +74,9 @@ namespace EntityGraphQL.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+			Expression body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
 
-            body = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "FirstOrDefault", new Type[] { arrayContextType }, body);
+			body = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "FirstOrDefault", new Type[] { arrayContextType }, body);
             var contextParam = Expression.Parameter(contextType);
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
@@ -140,7 +140,7 @@ namespace EntityGraphQL.Schema
             {
                 // add type before we recurse more that may also add the type
                 // dynamcially call generic method
-                var parameters = new List<Expression> {Expression.Constant(propType.Name), Expression.Constant(""), Expression.Constant(null)};
+
                 // hate this, but want to build the types with the right Genenics so you can extend them later.
                 // this is not the fastest, but only done on schema creation
                 var method = schema.GetType().GetMethod("AddType", new [] {typeof(string), typeof(string)});

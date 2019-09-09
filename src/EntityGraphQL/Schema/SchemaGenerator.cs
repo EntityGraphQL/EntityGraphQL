@@ -7,9 +7,9 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
-    public class SchemaGenerator
+    public static class SchemaGenerator
     {
-        public static readonly Dictionary<Type, string> DefaultTypeMappings = new Dictionary<Type, string> {
+        public static readonly IReadOnlyDictionary<Type, string> DefaultTypeMappings = new Dictionary<Type, string> {
             {typeof(string), "String"},
             {typeof(RequiredField<string>), "String!"},
 
@@ -114,8 +114,6 @@ type Mutation {{
             foreach (var typeItem in schema.GetNonContextTypes())
             {
                 types.AppendLine();
-                // if (!string.IsNullOrEmpty(typeItem.Description))
-                //     types.AppendLine($"\"{typeItem.Description}\"");
 
                 types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields())

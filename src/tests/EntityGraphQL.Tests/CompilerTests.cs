@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().RemoveField(p => p.Id);
-            var ex = Assert.Throws<SchemaException>(() => { var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<SchemaException>(() => { new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
 {
 	people { id }
 }");});

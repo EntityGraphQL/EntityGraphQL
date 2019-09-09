@@ -41,9 +41,9 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// The base expression which the field seleciton is built on
         /// </summary>
-        private ExpressionResult fieldSelectionBaseExpression;
-        private List<IGraphQLNode> nodeFields;
-        private Dictionary<ParameterExpression, object> constantParameters;
+        private readonly ExpressionResult fieldSelectionBaseExpression;
+        private readonly List<IGraphQLNode> nodeFields;
+        private readonly Dictionary<ParameterExpression, object> constantParameters;
 
         public string Name { get; private set; }
         public OperationType Type => OperationType.Query;
@@ -74,7 +74,7 @@ namespace EntityGraphQL.Compiler
                             var fragment = queryFragments.FirstOrDefault(i => i.Name == field.Name);
                             if (fragment != null)
                             {
-                                foreach (IGraphQLNode fragField in fragment.Fields)
+							foreach (IGraphQLNode fragField in fragment.Fields.Select(x => (IGraphQLNode)x).ToList())
                                 {
                                     ExpressionResult exp = null;
                                     if (isSelect)
@@ -110,7 +110,6 @@ namespace EntityGraphQL.Compiler
                     }
                     else
                     {
-                        // build a new {...} - returning a single object {}
                         var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
                         var anonType = newExp.Type;
                         // make a null check from this new expression
@@ -148,11 +147,11 @@ namespace EntityGraphQL.Compiler
         /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
         /// </summary>
         /// <value></value>
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
+		public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get { return constantParameters; } }
 
-        public IEnumerable<IGraphQLNode> Fields { get => nodeFields; }
+		public IEnumerable<IGraphQLNode> Fields { get { return nodeFields; } }
 
-        public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, CompiledQueryResult query, ExpressionResult fieldSelectionBaseExpression) : this(schemaProvider, queryFragments, name, (ExpressionResult)query.ExpressionResult, fieldSelectionBaseExpression, query.LambdaExpression.Parameters, null, null)
+        public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, CompiledQueryResult query, ExpressionResult fieldSelectionBaseExpression) : this(schemaProvider, queryFragments, name, query.ExpressionResult, fieldSelectionBaseExpression, query.LambdaExpression.Parameters, null, null)
         {
             foreach (var item in query.ConstantParameters)
             {
@@ -191,7 +190,7 @@ namespace EntityGraphQL.Compiler
             // call tolist on to level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
             {
-                expression = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
+				expression = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
             }
 
             var parameters = Parameters.ToList();

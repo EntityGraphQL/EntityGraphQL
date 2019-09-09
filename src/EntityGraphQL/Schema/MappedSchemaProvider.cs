@@ -21,7 +21,7 @@ namespace EntityGraphQL.Schema
         protected Dictionary<Type, string> _customTypeMappings = new Dictionary<Type, string>();
         private readonly string _queryContextName;
         private readonly Dictionary<Type, string> _customScalarMappings = new Dictionary<Type, string>();
-        public IEnumerable<string> CustomScalarTypes => _customScalarMappings.Values;
+        public IEnumerable<string> CustomScalarTypes { get { return _customScalarMappings.Values; } }
 
         public MappedSchemaProvider()
         {
@@ -41,11 +41,6 @@ namespace EntityGraphQL.Schema
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
 
             SetupIntrospectionTypesAndField();
-
-            // //Include default scalar types
-            // AddCustomScalarType(typeof(int), "Int");
-            // AddCustomScalarType(typeof(string), "String");
-            // AddCustomScalarType(typeof(bool), "Boolean");
         }
 
         private void SetupIntrospectionTypesAndField()
@@ -234,9 +229,9 @@ namespace EntityGraphQL.Schema
         {
             return (SchemaType<TType>)_types[typeName];
         }
-        public ISchemaType Type(string typeName)
+        public ISchemaType Type(string name)
         {
-            return _types[typeName];
+            return _types[name];
         }
         // ISchemaProvider interface
         public Type ContextType { get { return _types[_queryContextName].ContextType; } }
@@ -253,7 +248,7 @@ namespace EntityGraphQL.Schema
                     if (field != null)
                     {
                         // if there are defaults for all, continue
-                        if (field.RequiredArgumentNames.Count() > 0)
+                        if (field.RequiredArgumentNames.Any())
                         {
                             throw new EntityGraphQLCompilerException($"Field '{identifier}' missing required argument(s) '{string.Join(", ", field.RequiredArgumentNames)}'");
                         }
@@ -300,7 +295,7 @@ namespace EntityGraphQL.Schema
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)
         {
             if (!_types.ContainsKey(typeName))
-                throw new EntityQuerySchemaError($"{typeName} not found in schema.");
+                throw new EntityQuerySchemaException($"{typeName} not found in schema.");
 
             var field = _types[typeName].GetField(fieldName);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
@@ -458,17 +453,6 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"No mapped entity found for type '{type}'");
         }
 
-        private List<Field> BuildFields(object fieldsObj)
-        {
-            var fieldList = new List<Field>();
-            foreach (var prop in fieldsObj.GetType().GetProperties())
-            {
-                var field = prop.GetValue(fieldsObj) as Field;
-                field.Name = prop.Name;
-                fieldList.Add(field);
-            }
-            return fieldList;
-        }
 
         public bool HasType(string typeName)
         {

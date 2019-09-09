@@ -9,27 +9,27 @@ using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Compiler
 {
-    /// <summary>
-    /// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
-    /// </summary>
-    /// <typeparam name="IGraphQLBaseNode"></typeparam>
-    internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLBaseNode>
-    {
-        private ISchemaProvider schemaProvider;
-        private IMethodProvider methodProvider;
-        private readonly QueryVariables variables;
+	/// <summary>
+	/// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
+	/// </summary>
+	/// <typeparam name="IGraphQLBaseNode"></typeparam>
+	internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLBaseNode>
+	{
+		private readonly ISchemaProvider schemaProvider;
+		private readonly IMethodProvider methodProvider;
+		private readonly QueryVariables variables;
 
-        // This is really just so we know what to use when visiting a field
-        private Expression selectContext;
-        private BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
-        /// <summary>
-        /// As we parse the request fragments are added to this
-        /// </summary>
-        private List<GraphQLFragment> fragments = new List<GraphQLFragment>();
-        /// <summary>
-        /// Each request has 1 main "action" which is a query or a mutation
-        /// </summary>
-        private List<IGraphQLNode> rootQueries = new List<IGraphQLNode>();
+		// This is really just so we know what to use when visiting a field
+		private Expression selectContext;
+		private readonly BaseIdentityFinder baseIdentityFinder = new BaseIdentityFinder();
+		/// <summary>
+		/// As we parse the request fragments are added to this
+		/// </summary>
+		private readonly List<GraphQLFragment> fragments = new List<GraphQLFragment>();
+		/// <summary>
+		/// Each request has 1 main "action" which is a query or a mutation
+		/// </summary>
+		private readonly List<IGraphQLNode> rootQueries = new List<IGraphQLNode>();
 
         public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
@@ -106,7 +106,7 @@ namespace EntityGraphQL.Compiler
                 IGraphQLNode graphQLNode = null;
                 if (exp.Type.IsEnumerableOrArray())
                 {
-                    graphQLNode = BuildDynamicSelectOnCollection(result, name, context, true);
+					graphQLNode = BuildDynamicSelectOnCollection(result, name, context);
                 }
                 else
                 {
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Compiler
                         // rebuild the ExpressionResult so we keep any ConstantParameters
                         var item1 = (ExpressionResult)listExp.Item1;
                         item1.AddConstantParameters(result.ExpressionResult.ConstantParameters);
-                        graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context, true);
+						graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context);
                         graphQLNode.NodeExpression = (ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.NodeExpression, listExp.Item2);
                     }
                     else
@@ -143,7 +143,7 @@ namespace EntityGraphQL.Compiler
 
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerables
-        private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context, bool isRootSelect)
+		private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context)
         {
             var elementType = queryResult.BodyType.GetEnumerableOrArrayType();
             var contextParameter = Expression.Parameter(elementType, $"param_{elementType}");
@@ -180,6 +180,8 @@ namespace EntityGraphQL.Compiler
 
             try
             {
+				if (rootField != null)
+				{
                 var exp = (Expression)rootField.ExpressionResult;
 
                 var oldContext = selectContext;
@@ -188,11 +190,11 @@ namespace EntityGraphQL.Compiler
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : rootField.ContextParams.ToArray()), fieldExpressions, null);
-                if (rootField != null && rootField.ConstantParameters != null)
-                {
-                    graphQLNode.AddConstantParameters(rootField.ConstantParameters);
-                }
+					var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] { rootFieldParam } : rootField.ContextParams.ToArray()), fieldExpressions, null);
+					if (rootField.ConstantParameters != null)
+					{
+						graphQLNode.AddConstantParameters(rootField.ConstantParameters);
+					}
 
                 selectContext = oldContext;
 
@@ -202,10 +204,12 @@ namespace EntityGraphQL.Compiler
                 }
                 return graphQLNode;
             }
+			}
             catch (EntityGraphQLCompilerException ex)
             {
                 throw SchemaException.MakeFieldCompileError(query, ex.Message);
             }
+			return null;
         }
 
         /// <summary>
@@ -219,7 +223,7 @@ namespace EntityGraphQL.Compiler
             {
                 Visit(c);
             }
-            return new GraphQLResultNode(rootQueries, fragments);
+			return new GraphQLResultNode(rootQueries);
         }
 
         /// <summary>

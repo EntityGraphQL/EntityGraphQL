@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace EntityGraphQL
@@ -33,15 +34,11 @@ namespace EntityGraphQL
     /// <summary>
     /// Describes any errors that might happen while resolving the query request
     /// </summary>
-    public class GraphQLError
+	public class GraphQLException : Exception
     {
-        private string message;
-
-        public GraphQLError(string message)
+        public GraphQLException(string message)
+            : base(message)
         {
-            this.Message = message;
         }
-
-        public string Message { get => message; set => message = value; }
     }
 }

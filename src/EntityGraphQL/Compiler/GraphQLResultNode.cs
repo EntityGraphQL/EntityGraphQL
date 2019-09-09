@@ -26,20 +26,15 @@ namespace EntityGraphQL.Compiler
     public class GraphQLResultNode : IGraphQLBaseNode
     {
         /// <summary>
-        /// A list of the fragments in thw query document
-        /// </summary>
-        private List<GraphQLFragment> fragments;
-        /// <summary>
         /// A list of graphql operations. THese could be mutations or queries
         /// </summary>
         /// <value></value>
         public List<IGraphQLNode> Operations { get; }
         public OperationType Type => OperationType.Result;
 
-        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations, List<GraphQLFragment> fragments)
+        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations)
         {
             this.Operations = operations.ToList();
-            this.fragments = fragments;
         }
 
         public string Name => "Query Request Root";
@@ -55,12 +50,12 @@ namespace EntityGraphQL.Compiler
         {
             var result = new QueryResult();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
-            // execute all root level nodes in the op
-            // e.g. op = query Op1 {
-            //      people { name id }
-            //      movies { released name }
-            // }
-            // people & movies will be the 2 fields that will be executed
+            /// execute all root level nodes in the op
+            /// e.g. op = query Op1 {
+            ///      people { name id }
+            ///      movies { released name }
+            /// }
+            /// people & movies will be the 2 fields that will be executed
             foreach (var node in op.Fields)
             {
                 result.Data[node.Name] = null;

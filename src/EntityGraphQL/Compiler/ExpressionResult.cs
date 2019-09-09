@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class ExpressionResult
     {
-        private Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
+        private readonly Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
 
         public ExpressionResult(Expression value)
         {

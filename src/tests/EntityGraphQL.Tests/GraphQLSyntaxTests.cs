@@ -32,7 +32,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+			schemaProvider.AddField("user", new { id = Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	user(id: 1) { id }
 }").Operations.First();
@@ -84,7 +84,7 @@ namespace EntityGraphQL.Tests
             // Grpahql doesn't support "field overloading"
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
             // user(id: ID) already created
-            var ex = Assert.Throws<EntityQuerySchemaError>(() => schemaProvider.AddField("user", new {monkey = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+			var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddField("user", new { monkey = Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.monkey), "Return a user by ID"));
             Assert.Equal("Field user already exists on type TestSchema. Use ReplaceField() if this is intended.", ex.Message);
         }
 
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a default parameter
-            schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
+			schemaProvider.AddField("me", new { id = 9 }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 me { id }
             }").Operations.First();
@@ -305,7 +305,7 @@ fragment info on Person {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
             var e = Assert.Throws<SchemaException>(() => {
-                var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+				new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
     query MyQuery($limit: Int = 10) {
         people(limit: $limit) { id name projects { id name } }
     }

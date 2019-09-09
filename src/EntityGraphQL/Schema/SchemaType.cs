@@ -14,9 +14,8 @@ namespace EntityGraphQL.Schema
         public string Name { get; protected set; }
         public bool IsInput { get; }
 
-        public string Description => _description;
+        public string Description { get; set; }
 
-        private string _description;
         private Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
         private readonly Expression<Func<TBaseType, bool>> _filter;
 
@@ -28,7 +27,7 @@ namespace EntityGraphQL.Schema
         {
             ContextType = contextType;
             Name = name;
-            _description = description;
+				Description = description;
             _filter = filter;
             IsInput = isInput;
             AddField("__typename", t => name, "Type name");
@@ -39,7 +38,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public SchemaType<TBaseType> AddAllFields()
         {
-            BuildFieldsFromBase(typeof(TBaseType));
+            BuildFieldsFromBase();
             return this;
         }
         public void AddFields(List<Field> fields)
@@ -64,7 +63,7 @@ namespace EntityGraphQL.Schema
         public void AddField(Field field)
         {
             if (_fieldsByName.ContainsKey(field.Name))
-                throw new EntityQuerySchemaError($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
             _fieldsByName.Add(field.Name, field);
             if (!_fieldsByName.ContainsKey(field.Name))
@@ -115,7 +114,7 @@ namespace EntityGraphQL.Schema
             _fieldsByName[field.Name] = field;
         }
 
-        private void BuildFieldsFromBase(Type contextType)
+        private void BuildFieldsFromBase()
         {
             foreach (var f in ContextType.GetProperties())
             {

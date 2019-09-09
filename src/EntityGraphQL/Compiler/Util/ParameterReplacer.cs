@@ -49,8 +49,8 @@ namespace EntityGraphQL.Compiler.Util
             if (node.Expression != null && node.Expression.NodeType == ExpressionType.Parameter && (node.Expression == toReplace || node.Expression.Type == toReplaceType))
             {
                 // we may have replaced this parameter and the new type (anonymous) might have fields not properties
-                var newParam = base.Visit(node.Expression);
-                var exp = Expression.PropertyOrField(newParam, node.Member.Name);
+				var parm = base.Visit(node.Expression);
+				var exp = Expression.PropertyOrField(parm, node.Member.Name);
                 return exp;
             }
             return base.VisitMember(node);

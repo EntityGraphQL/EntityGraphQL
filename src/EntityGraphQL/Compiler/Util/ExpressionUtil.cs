@@ -8,24 +8,30 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util
 {
-    public class ExpressionUtil
+    public static class ExpressionUtil
     {
-        public static ExpressionResult MakeExpressionCall(Type[] types, string methodName, Type[] genericTypes, params Expression[] parameters)
+        public static ExpressionResult MakeExpressionCall(Type t, string methodName, Type[] genericTypes, params Expression[] parameters)
         {
-            foreach (var t in types)
+            ExpressionResult result = null;
+            try
             {
-                // Please tell me a better way to do this!
-                try
+                MethodInfo mi = t.GetMethods().FirstOrDefault(x => x.Name.StartsWith(methodName) && x.GetParameters().Length == parameters.Length);
+                if (mi.IsGenericMethod)
                 {
-                    return (ExpressionResult)Expression.Call(t, methodName, genericTypes, parameters);
+                    MethodInfo miGeneric = mi.MakeGenericMethod(genericTypes);
+                    result = (ExpressionResult)Expression.Call(miGeneric, parameters);
                 }
-                catch (InvalidOperationException)
+                else
                 {
-                    continue; // to next type
+                    result = (ExpressionResult)Expression.Call(mi, parameters);
                 }
             }
-            var typesStr = string.Join<Type>(", ", types);
-            throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {typesStr}");
+            catch (Exception ex)
+            {
+                throw new EntityGraphQLCompilerException($"Invalid Operation finding extension method {methodName}", ex);
+            }
+
+            return result;
         }
 
         public static MemberExpression CheckAndGetMemberExpression<TBaseType, TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection)
@@ -42,12 +48,14 @@ namespace EntityGraphQL.Compiler.Util
         public static object ChangeType(object value, Type type)
         {
             var objType = value.GetType();
-            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType)) {
+            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType))
+            {
                 var newVal = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
                 return newVal;
             }
 
-            if (type != typeof(string) && objType == typeof(string)) {
+            if (type != typeof(string) && objType == typeof(string))
+            {
                 if (type == typeof(double) || type == typeof(Nullable<double>))
                     return double.Parse((string)value);
                 if (type == typeof(float) || type == typeof(Nullable<float>))
@@ -81,23 +89,26 @@ namespace EntityGraphQL.Compiler.Util
         {
             switch (nextExp.NodeType)
             {
-                case ExpressionType.Call: {
-                    var mc = (MethodCallExpression)nextExp;
-                    if (mc.Object == null)
+                case ExpressionType.Call:
                     {
-                        var args = new List<Expression> { baseExp };
-                        var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
-                        foreach (var item in mc.Arguments.Skip(1))
+                        var mc = (MethodCallExpression)nextExp;
+                        if (mc.Object == null)
                         {
-                            var lambda = (LambdaExpression)item;
-                            var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
-                            args.Add(exp);
+                            var args = new List<Expression> { baseExp };
+                            var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
+                            foreach (var item in mc.Arguments.Skip(1))
+                            {
+                                if (item is LambdaExpression lambda)
+                                {
+                                    var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
+                                    args.Add(exp);
+                                }
+                            }
+                            var call = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
+                            return call;
                         }
-                        var call = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
-                        return call;
+                        return Expression.Call(baseExp, mc.Method, mc.Arguments);
                     }
-                    return Expression.Call(baseExp, mc.Method, mc.Arguments);
-                }
                 default: throw new EntityGraphQLCompilerException($"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
             }
         }
@@ -115,43 +126,45 @@ namespace EntityGraphQL.Compiler.Util
             {
                 switch (exp.NodeType)
                 {
-                    case ExpressionType.Call: {
-                        endExpression = exp;
-                        var mc = (MethodCallExpression)exp;
-                        exp = mc.Object != null ? mc.Object : mc.Arguments.First();
-                        break;
-                    }
-                    default: exp = null;
+                    case ExpressionType.Call:
+                        {
+                            endExpression = exp;
+                            var mc = (MethodCallExpression)exp;
+                            exp = mc.Object != null ? mc.Object : mc.Arguments.First();
+                            break;
+                        }
+                    default:
+                        exp = null;
                         break;
                 }
             }
             return Tuple.Create(exp, endExpression);
         }
 
-        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
-        {
-            Type dynamicType;
-            var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
-            var selector = Expression.Lambda(memberInit, currentContextParam);
-            var call = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
-            return call;
-        }
+		public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+		{
+			Type dynamicType;
+			var memberInit = CreateNewExpression(fieldExpressions, out dynamicType);
+			var selector = Expression.Lambda(memberInit, currentContextParam);
+			var call = ExpressionUtil.MakeExpressionCall(typeof(Enumerable), "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+			return call;
+		}
 
-        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
-        {
-            Type dynamicType;
-            var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
-            return memberInit;
-        }
-        private static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
-        {
-            var fieldExpressionsByName = new Dictionary<String, ExpressionResult>();
-            foreach (var item in fieldExpressions)
-            {
-                // if there are dupelicate fields (looking at you ApolloClient when using fragments) they override
-                fieldExpressionsByName[item.Name] = item.NodeExpression;
-            }
-            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
+		public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+		{
+			Type dynamicType;
+			var memberInit = CreateNewExpression(fieldExpressions, out dynamicType);
+			return memberInit;
+		}
+		private static Expression CreateNewExpression(IEnumerable<IGraphQLNode> fieldExpressions, out Type dynamicType)
+		{
+			var fieldExpressionsByName = new Dictionary<String, ExpressionResult>();
+			foreach (var item in fieldExpressions)
+			{
+				// if there are dupelicate fields (looking at you ApolloClient when using fragments) they override
+				fieldExpressionsByName[item.Name] = item.NodeExpression;
+			}
+			dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
