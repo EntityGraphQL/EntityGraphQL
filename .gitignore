@@ -15,3 +15,8 @@ obj/
 .vs/
 
 node_modules/
+
+# Sonar directories 
+.sonar/
+.sonarqube/
+.sonarlint/
