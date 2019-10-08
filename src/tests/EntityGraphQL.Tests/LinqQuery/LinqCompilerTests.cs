@@ -161,11 +161,41 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void CanUseCompiledExpressionInWhereMethod()
         {
             var exp = EqlCompiler.Compile("name = \"Bob\"", SchemaBuilder.FromObject<TestEntity>());
-            var objects = new List<TestEntity> { new TestEntity { Name = "Sally" }, new TestEntity { Name = "Bob" } };
+            var objects = new List<TestEntity> { new TestEntity("Sally"), new TestEntity("Bob") };
             Assert.Equal(2, objects.Count);
             var results = objects.Where(exp.LambdaExpression);
             Assert.Single(results);
             Assert.Equal("Bob", results.ElementAt(0).Name);
+        }
+
+        [Fact]
+        public void TestLinqQueryWorks()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestEntity>();
+            var compiledResult = EqlCompiler.Compile("(relation.id = 1) or (relation.id = 2)", schemaProvider);
+            var list = new List<TestEntity> {
+                new TestEntity("bob") {
+                    Relation = new Person {
+                        Id = 1
+                    }
+                },
+                new TestEntity("mary") {
+                    Relation = new Person {
+                        Id = 2
+                    }
+                },
+                new TestEntity("Jake") {
+                    Relation = new Person {
+                        Id = 5
+                    }
+                }
+            };
+            Assert.Equal(3, list.Count());
+            var results = list.Where(compiledResult.LambdaExpression);
+
+            Assert.Equal(2, results.Count());
+            Assert.Equal("bob", results.ElementAt(0).Name);
+            Assert.Equal("mary", results.ElementAt(1).Name);
         }
 
         // This would be your Entity/Object graph you use with EntityFramework
@@ -173,23 +203,33 @@ namespace EntityGraphQL.LinqQuery.Tests
         {
             public string Hello { get { return "returned value"; } }
 
-            public TestEntity SomeRelation { get { return new TestEntity(); } }
+            public TestEntity SomeRelation { get { return new TestEntity("bob"); } }
             public IEnumerable<Person> People { get { return new List<Person>(); } }
         }
 
         private class TestEntity
         {
+            public TestEntity(string name)
+            {
+                Name = name;
+                Relation = new Person();
+            }
+
             public int Id { get { return 100; } }
             public int Field1 { get { return 2; } }
             public uint UnisgnedInt { get { return 2; } }
             public int? NullableInt { get { return 8; } }
             public string Name { get; set; }
-            public Person Relation { get { return new Person(); } }
+            public Person Relation { get; set; }
         }
 
         private class Person
         {
-            public int Id { get { return 99; } }
+            public Person()
+            {
+                Id = 99;
+            }
+            public int Id { get; set; }
             public string Name { get { return "Luke"; } }
         }
     }

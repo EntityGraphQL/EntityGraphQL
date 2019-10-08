@@ -364,7 +364,7 @@ Many tools can help you with typing or generating code from a GraphQL schema. Us
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
 ```cs
   // This might be a configured EQL statement for filtering the results. It has a context of Property
-  (type.id = 2 or type.id = 3) and type.name = "Farm"
+  (type.id = 2) or (type.id = 3) and type.name = "Farm"
 ```
 This would compile to `(Property p) => (p.Type.Id == 2 || p.Type.Id == 3) && p.Type.Name == "Farm";`
 
