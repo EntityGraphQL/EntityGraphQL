@@ -10,15 +10,15 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationNode : IGraphQLNode
     {
-        private CompiledQueryResult result;
-        private IGraphQLNode graphQLNode;
+        private readonly CompiledQueryResult result;
+        private readonly IGraphQLNode graphQLNode;
 
         public IEnumerable<IGraphQLNode> Fields { get; private set; }
 
         public string Name => graphQLNode.Name;
         public OperationType Type => OperationType.Mutation;
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => null;
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
 

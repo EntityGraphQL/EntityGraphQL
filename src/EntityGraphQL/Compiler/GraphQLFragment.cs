@@ -27,15 +27,15 @@ namespace EntityGraphQL.Compiler
 
     public class GraphQLFragmentSelect : IGraphQLBaseNode
     {
-        private string name;
+        private readonly string name;
 
         public GraphQLFragmentSelect(string name)
         {
             this.name = name;
         }
 
-        public string Name => this.name;
+        public string Name { get { return this.name; } }
 
-        public OperationType Type => OperationType.Fragment;
+        public OperationType Type { get; } = OperationType.Fragment;
     }
 }

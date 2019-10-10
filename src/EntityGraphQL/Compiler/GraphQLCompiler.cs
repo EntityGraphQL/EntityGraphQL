@@ -9,8 +9,8 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLCompiler
     {
-        private ISchemaProvider _schemaProvider;
-        private IMethodProvider _methodProvider;
+        private readonly ISchemaProvider _schemaProvider;
+        private readonly IMethodProvider _methodProvider;
         public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
             _schemaProvider = schemaProvider;
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Compiler
             {
                 variables = new QueryVariables();
             }
-            return Compile(new QueryRequest {Query = query, Variables = variables});
+            return Compile(new QueryRequest { Query = query, Variables = variables });
         }
         public GraphQLResultNode Compile(QueryRequest request)
         {
@@ -57,14 +57,12 @@ namespace EntityGraphQL.Compiler
             {
                 if (pce.InnerException != null)
                 {
-                    if (pce.InnerException is NoViableAltException)
+                    if (pce.InnerException is NoViableAltException nve)
                     {
-                        var nve = (NoViableAltException)pce.InnerException;
                         throw new EntityGraphQLCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'");
                     }
-                    else if (pce.InnerException is InputMismatchException)
+                    else if (pce.InnerException is InputMismatchException ime)
                     {
-                        var ime = (InputMismatchException)pce.InnerException;
                         var expecting = string.Join(", ", ime.GetExpectedTokens());
                         throw new EntityGraphQLCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
                     }

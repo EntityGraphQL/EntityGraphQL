@@ -195,7 +195,7 @@ namespace EntityGraphQL.Compiler
             }
 
             var parameters = Parameters.ToList();
-            if (ConstantParameters != null && ConstantParameters.Any())
+            if (ConstantParameters.Any())
             {
                 parameters.AddRange(ConstantParameters.Keys);
                 allArgs.AddRange(ConstantParameters.Values);
@@ -220,12 +220,9 @@ namespace EntityGraphQL.Compiler
         public void AddField(IGraphQLNode node)
         {
             nodeFields.Add(node);
-            if (node.ConstantParameters != null)
+            foreach (var item in node.ConstantParameters)
             {
-                foreach (var item in node.ConstantParameters)
-                {
-                    constantParameters.Add(item.Key, item.Value);
-                }
+                constantParameters.Add(item.Key, item.Value);
             }
         }
     }
