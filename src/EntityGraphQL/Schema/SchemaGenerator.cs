@@ -68,8 +68,12 @@ namespace EntityGraphQL.Schema
             var scalars = new StringBuilder();
             foreach (var item in customScalarMapping)
             {
-                scalars.AppendLine($"scalar {item.Value}");
                 combinedMapping[item.Key] = item.Value;
+            }
+
+            foreach (var item in customScalarMapping.Select(i => i.Value).Distinct())
+            {
+                scalars.AppendLine($"scalar {item}");
             }
 
             var types = BuildSchemaTypes(schema, combinedMapping);
@@ -113,10 +117,10 @@ type Mutation {{
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes())
             {
-                types.AppendLine();
-                // if (!string.IsNullOrEmpty(typeItem.Description))
-                //     types.AppendLine($"\"{typeItem.Description}\"");
+                if (typeItem.Name.StartsWith("__"))
+                    continue;
 
+                types.AppendLine();
                 types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields())
                 {

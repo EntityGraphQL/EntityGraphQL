@@ -1,3 +1,7 @@
+# 0.21.1
+- Don't output the meta information of the schema in the schema definition
+- Prevent duplicate scalar types in schema generation
+
 # 0.21.0
 - Change, make ENUMs a `Int` type as dotnet serialises them like that
 - Fix input types missing for the SDL schema generated

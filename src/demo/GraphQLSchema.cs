@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using demo.Mutations;
 using EntityGraphQL.Schema;
@@ -48,6 +48,7 @@ namespace demo
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());
             demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
+            File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
             return demoSchema;
         }
 
