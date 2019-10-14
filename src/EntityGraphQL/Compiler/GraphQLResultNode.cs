@@ -26,20 +26,15 @@ namespace EntityGraphQL.Compiler
     public class GraphQLResultNode : IGraphQLBaseNode
     {
         /// <summary>
-        /// A list of the fragments in thw query document
-        /// </summary>
-        private List<GraphQLFragment> fragments;
-        /// <summary>
         /// A list of graphql operations. THese could be mutations or queries
         /// </summary>
         /// <value></value>
         public List<IGraphQLNode> Operations { get; }
         public OperationType Type => OperationType.Result;
 
-        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations, List<GraphQLFragment> fragments)
+        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations)
         {
             this.Operations = operations.ToList();
-            this.fragments = fragments;
         }
 
         public string Name => "Query Request Root";

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler
@@ -22,13 +21,20 @@ namespace EntityGraphQL.Compiler
 
         public List<ParameterExpression> Parameters => throw new NotImplementedException();
 
-        public ExpressionResult NodeExpression { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
         public GraphQLMutationNode(CompiledQueryResult result, IGraphQLNode graphQLNode)
         {
             this.result = result;
             this.graphQLNode = graphQLNode;
             Fields = new List<IGraphQLNode>();
+        }
+
+        public ExpressionResult GetNodeExpression()
+        {
+            throw new NotImplementedException();
+        }
+        public void SetNodeExpression(ExpressionResult expr)
+        {
+            throw new NotImplementedException();
         }
 
         public object Execute(params object[] args)
@@ -61,7 +67,7 @@ namespace EntityGraphQL.Compiler
                     if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" || call.Method.Name == "Last" || call.Method.Name == "LastOrDefault")
                     {
                         var baseExp = call.Arguments.First();
-                        if (call.Arguments.Count() == 2)
+                        if (call.Arguments.Count == 2)
                         {
                             // move the fitler to a Where call
                             var filter = call.Arguments.ElementAt(1);
@@ -69,13 +75,13 @@ namespace EntityGraphQL.Compiler
                         }
 
                         // build select
-                        var selectExp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.NodeExpression.Type}, baseExp, Expression.Lambda(graphQLNode.NodeExpression, selectParam));
+                        var selectExp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
 
                         // add First/Last back
                         var firstExp = Expression.Call(typeof(Queryable), call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
                         // we're done
-                        graphQLNode.NodeExpression = (ExpressionResult)firstExp;
+                        graphQLNode.SetNodeExpression((ExpressionResult)firstExp);
                     }
                     else
                     {
@@ -84,8 +90,8 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.NodeExpression.Type}, mutationExpression, Expression.Lambda(graphQLNode.NodeExpression, selectParam));
-                    graphQLNode.NodeExpression = (ExpressionResult)exp;
+                    var exp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, mutationExpression, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
+                    graphQLNode.SetNodeExpression((ExpressionResult)exp);
                 }
 
                 // make sure we use the right parameter

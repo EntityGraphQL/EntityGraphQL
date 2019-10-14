@@ -84,7 +84,7 @@ namespace EntityGraphQL.Tests
             // Grpahql doesn't support "field overloading"
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
             // user(id: ID) already created
-            var ex = Assert.Throws<EntityQuerySchemaError>(() => schemaProvider.AddField("user", new {monkey = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddField("user", new {monkey = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
             Assert.Equal("Field user already exists on type TestSchema. Use ReplaceField() if this is intended.", ex.Message);
         }
 

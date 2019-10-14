@@ -41,9 +41,9 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// The base expression which the field seleciton is built on
         /// </summary>
-        private ExpressionResult fieldSelectionBaseExpression;
-        private List<IGraphQLNode> nodeFields;
-        private Dictionary<ParameterExpression, object> constantParameters;
+        private readonly ExpressionResult fieldSelectionBaseExpression;
+        private readonly List<IGraphQLNode> nodeFields;
+        private readonly Dictionary<ParameterExpression, object> constantParameters;
 
         public string Name { get; private set; }
         public OperationType Type => OperationType.Query;
@@ -55,87 +55,88 @@ namespace EntityGraphQL.Compiler
         /// Execute() so we can look up any query fragment selections
         /// </summary>
         /// <value></value>
-        public ExpressionResult NodeExpression
+        public ExpressionResult GetNodeExpression()
         {
-            get
+            // we might have to build the expression on request as when we prase the query
+            // document the fragment referenced might be defined later in the document
+            if (nodeExpression == null && fieldSelection != null && fieldSelection.Any())
             {
-                // we might have to build the expression on request as when we prase the query
-                // document the fragment referenced might be defined later in the document
-                if (nodeExpression == null && fieldSelection != null && fieldSelection.Any())
+                var replacer = new ParameterReplacer();
+                var selectionFields = new List<IGraphQLNode>();
+                bool isSelect = fieldSelectionBaseExpression.Type.IsEnumerableOrArray();
+
+                foreach (var field in fieldSelection)
                 {
-                    var replacer = new ParameterReplacer();
-                    var selectionFields = new List<IGraphQLNode>();
-                    bool isSelect = fieldSelectionBaseExpression.Type.IsEnumerableOrArray();
-
-                    foreach (var field in fieldSelection)
+                    if (field is GraphQLFragmentSelect)
                     {
-                        if (field is GraphQLFragmentSelect)
-                        {
-                            var fragment = queryFragments.FirstOrDefault(i => i.Name == field.Name);
-                            if (fragment == null)
-                                throw new EntityQuerySchemaError($"Fragment '{field.Name}' not found in query document");
+                        var fragment = queryFragments.FirstOrDefault(i => i.Name == field.Name);
+                        if (fragment == null)
+                            throw new EntityQuerySchemaException($"Fragment '{field.Name}' not found in query document");
 
-                            foreach (IGraphQLNode fragField in fragment.Fields)
-                            {
-                                ExpressionResult exp = null;
-                                if (isSelect)
-                                    exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldParameter);
-                                else
-                                    exp = (ExpressionResult)replacer.Replace(fragField.NodeExpression, fragment.SelectContext, fieldSelectionBaseExpression);
-                                // new object as we reuse fragments
-                                selectionFields.Add(new GraphQLNode(schemaProvider, queryFragments, fragField.Name, exp, null, null, null, null));
-
-                                // pull any constant values up
-                                foreach (var item in fragField.ConstantParameters)
-                                {
-                                    constantParameters.Add(item.Key, item.Value);
-                                }
-                            }
-                        }
-                        else
+                        foreach (IGraphQLNode fragField in fragment.Fields)
                         {
-                            var gfield = (IGraphQLNode)field;
-                            selectionFields.Add(gfield);
+                            ExpressionResult exp = null;
+                            if (isSelect)
+                                exp = (ExpressionResult)replacer.Replace(fragField.GetNodeExpression(), fragment.SelectContext, fieldParameter);
+                            else
+                                exp = (ExpressionResult)replacer.Replace(fragField.GetNodeExpression(), fragment.SelectContext, fieldSelectionBaseExpression);
+                            // new object as we reuse fragments
+                            selectionFields.Add(new GraphQLNode(schemaProvider, queryFragments, fragField.Name, exp, null, null, null, null));
+
                             // pull any constant values up
-                            foreach (var item in gfield.ConstantParameters)
+                            foreach (var item in fragField.ConstantParameters)
                             {
                                 constantParameters.Add(item.Key, item.Value);
                             }
                         }
                     }
-                    if (isSelect)
-                    {
-                        // build a .Select(...) - returning a list<>
-                        nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(fieldParameter, fieldSelectionBaseExpression, selectionFields, schemaProvider);
-                    }
                     else
                     {
-                        // build a new {...} - returning a single object {}
-                        var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
-                        var anonType = newExp.Type;
-                        // make a null check from this new expression
-                        newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldSelectionBaseExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                        nodeExpression = (ExpressionResult)newExp;
-                    }
-                    foreach (var field in selectionFields)
-                    {
-                        foreach (var cp in field.ConstantParameters)
+                        var gfield = (IGraphQLNode)field;
+                        selectionFields.Add(gfield);
+                        // pull any constant values up
+                        foreach (var item in gfield.ConstantParameters)
                         {
-                            if (!constantParameters.ContainsKey(cp.Key))
-                            {
-                                constantParameters.Add(cp.Key, cp.Value);
-                            }
+                            constantParameters.Add(item.Key, item.Value);
                         }
                     }
-
-                    foreach (var item in fieldSelectionBaseExpression.ConstantParameters)
+                }
+                if (isSelect)
+                {
+                    // build a .Select(...) - returning a list<>
+                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(fieldParameter, fieldSelectionBaseExpression, selectionFields, schemaProvider);
+                }
+                else
+                {
+                    // build a new {...} - returning a single object {}
+                    var newExp = ExpressionUtil.CreateNewExpression(fieldSelectionBaseExpression, selectionFields, schemaProvider);
+                    var anonType = newExp.Type;
+                    // make a null check from this new expression
+                    newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldSelectionBaseExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                    nodeExpression = (ExpressionResult)newExp;
+                }
+                foreach (var field in selectionFields)
+                {
+                    foreach (var cp in field.ConstantParameters)
                     {
-                        constantParameters.Add(item.Key, item.Value);
+                        if (!constantParameters.ContainsKey(cp.Key))
+                        {
+                            constantParameters.Add(cp.Key, cp.Value);
+                        }
                     }
                 }
-                return nodeExpression;
+
+                foreach (var item in fieldSelectionBaseExpression.ConstantParameters)
+                {
+                    constantParameters.Add(item.Key, item.Value);
+                }
             }
-            set => nodeExpression = value;
+            return nodeExpression;
+        }
+
+        public void SetNodeExpression(ExpressionResult expr)
+        {
+            nodeExpression = expr;
         }
 
         /// <summary>
@@ -152,7 +153,7 @@ namespace EntityGraphQL.Compiler
 
         public IEnumerable<IGraphQLNode> Fields { get => nodeFields; }
 
-        public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, CompiledQueryResult query, ExpressionResult fieldSelectionBaseExpression) : this(schemaProvider, queryFragments, name, (ExpressionResult)query.ExpressionResult, fieldSelectionBaseExpression, query.LambdaExpression.Parameters, null, null)
+        public GraphQLNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, CompiledQueryResult query, ExpressionResult fieldSelectionBaseExpression) : this(schemaProvider, queryFragments, name, query.ExpressionResult, fieldSelectionBaseExpression, query.LambdaExpression.Parameters, null, null)
         {
             foreach (var item in query.ConstantParameters)
             {
@@ -166,7 +167,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException($"fieldSelectionBaseExpression must be supplied for GraphQLNode if fieldSelection is supplied");
 
             Name = name;
-            NodeExpression = exp;
+            SetNodeExpression(exp);
             nodeFields = new List<IGraphQLNode>();
             this.schemaProvider = schemaProvider;
             this.queryFragments = queryFragments;
@@ -186,7 +187,7 @@ namespace EntityGraphQL.Compiler
             var allArgs = new List<object>(args);
 
             // build this first as NodeExpression may modify ConstantParameters
-            var expression = NodeExpression;
+            var expression = GetNodeExpression();
 
             // call tolist on to level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
@@ -214,7 +215,7 @@ namespace EntityGraphQL.Compiler
 
         public override string ToString()
         {
-            return $"Node - Name={Name}, Expression={NodeExpression}";
+            return $"Node - Name={Name}, Expression={GetNodeExpression()}";
         }
 
         public void AddField(IGraphQLNode node)

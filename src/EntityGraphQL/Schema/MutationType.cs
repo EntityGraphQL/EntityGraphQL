@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema
         private readonly ISchemaType returnType;
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
-        private Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
+        private readonly Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
         private readonly Type argInstanceType;
 
         public Type ReturnTypeClr { get { return returnType.ContextType; } }
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Schema
                 }
                 if (!foundProp)
                 {
-                    throw new EntityQuerySchemaError($"Could not find property or field {key} on schema object {argType.Name}");
+                    throw new EntityQuerySchemaException($"Could not find property or field {key} on schema object {argType.Name}");
                 }
             }
             return argInstance;
@@ -103,7 +103,6 @@ namespace EntityGraphQL.Schema
                 Type type = value.GetType();
                 if (type.IsArray && memberType.IsEnumerableOrArray())
                 {
-                    var arr = (Array)value;
                     var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
                     var generic = convertMethod.MakeGenericMethod(new[] {memberType.GetGenericArguments()[0]});
                     value = generic.Invoke(null, new object[] { value });
@@ -166,7 +165,7 @@ namespace EntityGraphQL.Schema
         {
             if (!argumentTypes.ContainsKey(argName))
             {
-                throw new EntityQuerySchemaError($"Argument type not found for argument '{argName}'");
+                throw new EntityQuerySchemaException($"Argument type not found for argument '{argName}'");
             }
             return argumentTypes[argName];
         }

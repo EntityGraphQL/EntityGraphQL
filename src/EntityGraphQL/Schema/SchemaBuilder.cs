@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema
     /// A simple schema provider to automattically create a query schema based on an object.
     /// Commonly used with a DbContext.
     /// </summary>
-    public class SchemaBuilder
+    public static class SchemaBuilder
     {
         private static readonly HashSet<string> ignoreProps = new HashSet<string> {
             "Database",
@@ -140,7 +140,6 @@ namespace EntityGraphQL.Schema
             {
                 // add type before we recurse more that may also add the type
                 // dynamcially call generic method
-                var parameters = new List<Expression> {Expression.Constant(propType.Name), Expression.Constant(""), Expression.Constant(null)};
                 // hate this, but want to build the types with the right Genenics so you can extend them later.
                 // this is not the fastest, but only done on schema creation
                 var method = schema.GetType().GetMethod("AddType", new [] {typeof(string), typeof(string)});

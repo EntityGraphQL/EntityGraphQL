@@ -7,7 +7,7 @@
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
-    public class SchemaIntrospection
+    public static class SchemaIntrospection
     {
         /// <summary>
         /// Creates an Introspection schema

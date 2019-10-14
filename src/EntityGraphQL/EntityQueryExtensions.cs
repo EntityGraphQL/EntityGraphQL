@@ -68,7 +68,7 @@ namespace EntityGraphQL
             try
             {
                 var graphQLCompiler = new GraphQLCompiler(schemaProvider, methodProvider);
-                var queryResult = (GraphQLResultNode)graphQLCompiler.Compile(request);
+                var queryResult = graphQLCompiler.Compile(request);
                 result = queryResult.ExecuteQuery(context, request.OperationName, mutationArgs);
             }
             catch (Exception ex)

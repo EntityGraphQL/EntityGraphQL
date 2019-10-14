@@ -8,7 +8,7 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util
 {
-    public class ExpressionUtil
+    public static class ExpressionUtil
     {
         public static ExpressionResult MakeExpressionCall(Type[] types, string methodName, Type[] genericTypes, params Expression[] parameters)
         {
@@ -42,12 +42,14 @@ namespace EntityGraphQL.Compiler.Util
         public static object ChangeType(object value, Type type)
         {
             var objType = value.GetType();
-            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType)) {
+            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType))
+            {
                 var newVal = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
                 return newVal;
             }
 
-            if (type != typeof(string) && objType == typeof(string)) {
+            if (type != typeof(string) && objType == typeof(string))
+            {
                 if (type == typeof(double) || type == typeof(Nullable<double>))
                     return double.Parse((string)value);
                 if (type == typeof(float) || type == typeof(Nullable<float>))
@@ -81,7 +83,8 @@ namespace EntityGraphQL.Compiler.Util
         {
             switch (nextExp.NodeType)
             {
-                case ExpressionType.Call: {
+                case ExpressionType.Call:
+                {
                     var mc = (MethodCallExpression)nextExp;
                     if (mc.Object == null)
                     {
@@ -115,7 +118,8 @@ namespace EntityGraphQL.Compiler.Util
             {
                 switch (exp.NodeType)
                 {
-                    case ExpressionType.Call: {
+                    case ExpressionType.Call:
+                    {
                         endExpression = exp;
                         var mc = (MethodCallExpression)exp;
                         exp = mc.Object != null ? mc.Object : mc.Arguments.First();
@@ -149,7 +153,7 @@ namespace EntityGraphQL.Compiler.Util
             foreach (var item in fieldExpressions)
             {
                 // if there are dupelicate fields (looking at you ApolloClient when using fragments) they override
-                fieldExpressionsByName[item.Name] = item.NodeExpression;
+                fieldExpressionsByName[item.Name] = item.GetNodeExpression();
             }
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 

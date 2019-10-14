@@ -21,7 +21,7 @@ namespace EntityGraphQL.Schema
         protected Dictionary<Type, string> _customTypeMappings = new Dictionary<Type, string>();
         private readonly string _queryContextName;
         private readonly Dictionary<Type, string> _customScalarMappings = new Dictionary<Type, string>();
-        public IEnumerable<string> CustomScalarTypes => _customScalarMappings.Values;
+        public IEnumerable<string> CustomScalarTypes { get { return _customScalarMappings.Values; } }
 
         public MappedSchemaProvider()
         {
@@ -41,11 +41,6 @@ namespace EntityGraphQL.Schema
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
 
             SetupIntrospectionTypesAndField();
-
-            // //Include default scalar types
-            // AddCustomScalarType(typeof(int), "Int");
-            // AddCustomScalarType(typeof(string), "String");
-            // AddCustomScalarType(typeof(bool), "Boolean");
         }
 
         private void SetupIntrospectionTypesAndField()
@@ -93,13 +88,6 @@ namespace EntityGraphQL.Schema
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
         {
 			var tt = new SchemaType<TBaseType>(name, description, filter);
-            _types.Add(name, tt);
-			return tt;
-        }
-
-        public SchemaType<object> AddType(Type contextType, string name, string description)
-        {
-			var tt = new SchemaType<object>(contextType, name, description, null);
             _types.Add(name, tt);
 			return tt;
         }
@@ -253,7 +241,7 @@ namespace EntityGraphQL.Schema
                     if (field != null)
                     {
                         // if there are defaults for all, continue
-                        if (field.RequiredArgumentNames.Count() > 0)
+                        if (field.RequiredArgumentNames.Any())
                         {
                             throw new EntityGraphQLCompilerException($"Field '{identifier}' missing required argument(s) '{string.Join(", ", field.RequiredArgumentNames)}'");
                         }
@@ -300,7 +288,7 @@ namespace EntityGraphQL.Schema
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)
         {
             if (!_types.ContainsKey(typeName))
-                throw new EntityQuerySchemaError($"{typeName} not found in schema.");
+                throw new EntityQuerySchemaException($"{typeName} not found in schema.");
 
             var field = _types[typeName].GetField(fieldName);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));

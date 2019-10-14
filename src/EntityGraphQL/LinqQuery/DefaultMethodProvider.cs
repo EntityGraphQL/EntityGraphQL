@@ -37,7 +37,7 @@ namespace EntityGraphQL.LinqQuery
     public class DefaultMethodProvider : IMethodProvider
     {
         // Map of the method names and a function that makes the Expression.Call
-        private Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
         {
             { "where", MakeWhereMethod },
             { "filter", MakeWhereMethod },

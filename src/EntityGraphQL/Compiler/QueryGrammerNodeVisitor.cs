@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using System.Text.RegularExpressions;
 using EntityGraphQL.LinqQuery;
+using System.Globalization;
 
 namespace EntityGraphQL.Compiler
 {
@@ -15,11 +16,11 @@ namespace EntityGraphQL.Compiler
     internal class QueryGrammerNodeVisitor : EntityGraphQLBaseVisitor<ExpressionResult>
     {
         private ExpressionResult currentContext;
-        private ISchemaProvider schemaProvider;
-        private IMethodProvider methodProvider;
+        private readonly ISchemaProvider schemaProvider;
+        private readonly IMethodProvider methodProvider;
         private readonly QueryVariables variables;
         private IMethodType fieldArgumentContext;
-        private Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
+        private readonly Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
         public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
         {
@@ -131,7 +132,7 @@ namespace EntityGraphQL.Compiler
             });
             if (schemaProvider.HasMutation(fieldName))
             {
-                return MakeMutationExpression(fieldName, (MutationType)methodType, args);
+                return MakeMutationExpression((MutationType)methodType, args);
             }
             return MakeFieldExpression(fieldName, args);
         }
@@ -215,9 +216,9 @@ namespace EntityGraphQL.Compiler
             return exp;
         }
 
-        private ExpressionResult MakeMutationExpression(string method, MutationType mutationType, Dictionary<string, ExpressionResult> args)
+        private ExpressionResult MakeMutationExpression(MutationType mutationType, Dictionary<string, ExpressionResult> args)
         {
-            return new MutationResult(method, mutationType, args);
+            return new MutationResult(mutationType, args);
         }
 
         public override ExpressionResult VisitInt(EntityGraphQLParser.IntContext context)
@@ -234,7 +235,7 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)
         {
-            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText()));
+            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
         }
 
         public override ExpressionResult VisitString(EntityGraphQLParser.StringContext context)

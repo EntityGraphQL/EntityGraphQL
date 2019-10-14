@@ -24,10 +24,17 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         IEnumerable<IGraphQLNode> Fields { get; }
         /// <summary>
-        /// The expression that would create this node. E.g. it may be db => db.Movies.Where(...)
+        /// Get the expression that would create this node. E.g. it may be db => db.Movies.Where(...)
         /// </summary>
         /// <value></value>
-        ExpressionResult NodeExpression { get; set; }
+        ExpressionResult GetNodeExpression();
+
+        /// <summary>
+        /// Set the expression that would create this node. E.g. it may be db => db.Movies.Where(...)
+        /// </summary>
+        /// <param name="expr"></param>
+        void SetNodeExpression(ExpressionResult expr);
+
         /// <summary>
         /// Any parameters used in the expression. These are parameters that need to be passed into the execution of the final query
         /// </summary>

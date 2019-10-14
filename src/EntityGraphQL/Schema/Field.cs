@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema
             {
                 if (IsEnumerable)
                 {
-                    if (!resolve.Body.Type.IsArray && resolve.Body.Type.GetGenericArguments().Count() == 0)
+                    if (!resolve.Body.Type.IsArray && !resolve.Body.Type.GetGenericArguments().Any())
                     {
                         throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
                     }
@@ -55,7 +55,7 @@ namespace EntityGraphQL.Schema
         public bool IsEnumerable { get; }
 
         public object ArgumentTypesObject { get; private set; }
-        public IDictionary<string, Type> Arguments => allArguments;
+        public IDictionary<string, Type> Arguments { get { return allArguments; } }
 
         public IEnumerable<string> RequiredArgumentNames
         {
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Type ReturnTypeClr => Resolve.Type;
+        public Type ReturnTypeClr { get { return Resolve.Type; } }
 
         public bool HasArgumentByName(string argName)
         {
