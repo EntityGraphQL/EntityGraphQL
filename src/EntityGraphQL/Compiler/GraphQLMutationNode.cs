@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler
@@ -71,14 +72,14 @@ namespace EntityGraphQL.Compiler
                         {
                             // move the fitler to a Where call
                             var filter = call.Arguments.ElementAt(1);
-                            baseExp = Expression.Call(typeof(Queryable), "Where", new Type[] { selectParam.Type }, call.Arguments.First(), filter);
+                            baseExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Where", new Type[] { selectParam.Type }, baseExp, filter);
                         }
 
                         // build select
-                        var selectExp = Expression.Call(typeof(Queryable), "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
+                        var selectExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
 
                         // add First/Last back
-                        var firstExp = Expression.Call(typeof(Queryable), call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                        var firstExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
                         // we're done
                         graphQLNode.SetNodeExpression((ExpressionResult)firstExp);

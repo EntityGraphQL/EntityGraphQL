@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
+using System.Linq.Expressions;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -56,6 +58,9 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
+            Expression<Func<TestSchema, object>> a = (TestSchema ts) => ts.People.Where(p => p.Id == 11).Select(p => new {
+                id = p.Id,
+            }).First();
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
                 Query = @"mutation AddPerson($names: [String]) {
@@ -113,7 +118,7 @@ namespace EntityGraphQL.Tests
     internal class TestSchema
     {
         public string Hello { get { return "returned value"; } }
-        public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
+        public List<Person> People { get { return new List<Person> { new Person() }; } }
         public IEnumerable<User> Users { get { return new List<User> { new User() }; } }
     }
 
@@ -143,9 +148,10 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        public Person AddPersonNames(TestSchema db, PeopleMutationsArgs args)
+        public Expression<Func<TestSchema, Person>> AddPersonNames(TestSchema db, PeopleMutationsArgs args)
         {
-            return new Person { Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(new Person { Id = 11, Name = args.Names[0], LastName = args.Names[1] });
+            return ctx => ctx.People.FirstOrDefault(p => p.Id == 11);
         }
 
         [GraphQLMutation]
