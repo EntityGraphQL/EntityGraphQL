@@ -7,6 +7,8 @@ It can also be used to execute simple LINQ-style expressions at runtime against 
 
 _Please explore, give feedback or join the development._
 
+If you're looking for a dotnet library to generate code to query an API from a GraphQL schema see https://github.com/lukemurray/DotNetGraphQLQueryGen
+
 ## Install
 Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
