@@ -132,6 +132,10 @@ namespace EntityGraphQL.Schema
         public void AddTypeMapping<TFrom>(string gqlType)
         {
             _customTypeMappings.Add(typeof(TFrom), gqlType);
+            if (!gqlType.StartsWith("["))
+            {
+                AddCustomScalarType(typeof(TFrom), gqlType);
+            }
             SetupIntrospectionTypesAndField();
         }
 
