@@ -101,7 +101,7 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties())
             {
-                if (ignoreProps.Contains(prop.Name) || prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
+                if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
                 {
                     continue;
                 }

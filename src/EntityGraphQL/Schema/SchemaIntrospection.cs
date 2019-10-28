@@ -118,16 +118,16 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    //Skip any property with special attribute
+                    // Skip any property with special attribute
                     var property = schemaType.ContextType.GetProperty(field.Name);
-                    if (property != null && property.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) != null)
+                    if (property != null && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(property))
                         continue;
 
-                    //Skipping custom fields added to schema
+                    // Skipping custom fields added to schema
                     if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
                         continue;
 
-                    //Skipping ENUM type
+                    // Skipping ENUM type
                     if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                         continue;
 
