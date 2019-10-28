@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
             var result = mutation.Execute(args);
-            if (result.GetType().GetTypeInfo().BaseType.GetTypeInfo().BaseType == typeof(LambdaExpression))
+            if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 var mutationLambda = (LambdaExpression)result;
                 var mutationContextParam = mutationLambda.Parameters.First();
