@@ -121,9 +121,22 @@ namespace EntityGraphQL.Tests
             var error = results.Errors.First();
             Assert.Equal("Error compiling query 'albums'. Field 'hiddenField' not found on current context 'Album'", error.Message);
         }
+
+        [Fact]
+        public void TestIgnoreWithSchema()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            schemaProvider.AddMutationFrom(new IgnoreTestMutations());
+            var schema = schemaProvider.GetGraphQLSchema();
+            Assert.DoesNotContain("hiddenField", schema);
+            // this exists as it is available for querying
+            Assert.Contains("type Album {\n\tid: Int\n\tname: String\n\thiddenInputField: String\n}", schema);
+            // doesn't include the hidden input fields
+            Assert.Contains("addAlbum(id: Int, name: String): Album", schema);
+        }
     }
 
-    internal class IgnoreTestMutations
+    public class IgnoreTestMutations
     {
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
@@ -138,7 +151,14 @@ namespace EntityGraphQL.Tests
         }
     }
 
-    internal class IgnoreTestSchema
+    public class MovieArgs
+    {
+        public string Name { get; set; }
+        [GraphQLIgnore(GraphQLIgnoreType.Input)]
+        public string Hidden { get; set; }
+    }
+
+    public class IgnoreTestSchema
     {
         public IgnoreTestSchema()
         {
@@ -151,7 +171,7 @@ namespace EntityGraphQL.Tests
         public List<Album> Albums { get; set; }
     }
 
-    internal class Album
+    public class Album
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -161,7 +181,7 @@ namespace EntityGraphQL.Tests
         public string HiddenAllField { get; set; }
     }
 
-    internal class Movie
+    public class Movie
     {
         public int Id { get; set; }
     }
