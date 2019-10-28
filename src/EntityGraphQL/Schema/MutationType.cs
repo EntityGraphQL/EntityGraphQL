@@ -84,6 +84,16 @@ namespace EntityGraphQL.Schema
             return argInstance;
         }
 
+        /// <summary>
+        /// Used at runtime below
+        /// </summary>
+        /// <param name="input"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        private static List<T> ConvertArray<T>(Array input)
+        {
+            return input.Cast<T>().ToList(); // Using LINQ for simplicity
+        }
 
         private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, string memberName, Type memberType)
         {

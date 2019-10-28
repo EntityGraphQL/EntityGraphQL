@@ -72,7 +72,8 @@ namespace EntityGraphQL.Tests
                     {"names", new [] {"Bill", "Frank"}}
                 }
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data;
+            var results = new TestSchema().QueryObject(gql, schemaProvider);
+            dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
