@@ -13,45 +13,45 @@ namespace EntityGraphQL.Schema
             {typeof(string), "String"},
             {typeof(RequiredField<string>), "String!"},
 
-            {typeof(Guid), "ID"},
+            {typeof(Guid), "ID!"},
             {typeof(Guid?), "ID"},
             {typeof(RequiredField<Guid>), "ID!"},
 
-            {typeof(int), "Int"},
+            {typeof(int), "Int!"},
             {typeof(int?), "Int"},
             {typeof(RequiredField<int>), "Int!"},
 
-            {typeof(Int16), "Int"},
+            {typeof(Int16), "Int!"},
             {typeof(Int16?), "Int"},
             {typeof(RequiredField<Int16>), "Int!"},
 
-            {typeof(double), "Float"},
+            {typeof(double), "Float!"},
             {typeof(double?), "Float"},
             {typeof(RequiredField<double>), "Float!"},
 
-            {typeof(float), "Float"},
+            {typeof(float), "Float!"},
             {typeof(float?), "Float"},
             {typeof(RequiredField<float>), "Float!"},
 
-            {typeof(bool), "Boolean"},
+            {typeof(bool), "Boolean!"},
             {typeof(bool?), "Boolean"},
             {typeof(RequiredField<bool>), "Boolean!"},
 
             {typeof(EntityQueryType<>), "String"},
 
-            {typeof(long), "Int"},
+            {typeof(long), "Int!"},
             {typeof(long?), "Int"},
             {typeof(RequiredField<long>), "Int!"},
 
-            {typeof(DateTime), "String"},
+            {typeof(DateTime), "String!"},
             {typeof(DateTime?), "String"},
             {typeof(RequiredField<DateTime>), "String!"},
 
-            {typeof(uint), "Int"},
+            {typeof(uint), "Int!"},
             {typeof(uint?), "Int"},
             {typeof(RequiredField<uint>), "Int!"},
 
-            {typeof(UInt16), "Int"},
+            {typeof(UInt16), "Int!"},
             {typeof(UInt16?), "Int"},
             {typeof(RequiredField<UInt16>), "Int!"},
         };
