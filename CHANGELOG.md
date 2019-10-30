@@ -1,3 +1,6 @@
+# 0.23.0
+- Output fields as required in .graphql schemas
+
 # 0.22.0
 - You can now specify if a field is ignored for queries, mutations or both (if you're sharing DTOs/objects)
 - Don't output the meta information of the schema in the schema definition

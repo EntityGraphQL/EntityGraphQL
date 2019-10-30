@@ -130,9 +130,9 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.GetGraphQLSchema();
             Assert.DoesNotContain("hiddenField", schema);
             // this exists as it is available for querying
-            Assert.Contains("type Album {\n\tid: Int\n\tname: String\n\thiddenInputField: String\n}", schema);
+            Assert.Contains("type Album {\n\tid: Int!\n\tname: String\n\thiddenInputField: String\n}", schema);
             // doesn't include the hidden input fields
-            Assert.Contains("addAlbum(id: Int, name: String): Album", schema);
+            Assert.Contains("addAlbum(id: Int!, name: String): Album", schema);
         }
     }
 
