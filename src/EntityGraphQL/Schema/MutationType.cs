@@ -143,17 +143,16 @@ namespace EntityGraphQL.Schema
             this.argInstanceType = methodArg.ParameterType;
             foreach (var item in argInstanceType.GetProperties())
             {
+                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                    continue;
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.PropertyType);
             }
             foreach (var item in argInstanceType.GetFields())
             {
+                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                    continue;
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.FieldType);
             }
-        }
-
-        public Field GetField(string identifier)
-        {
-            return ReturnType.GetField(identifier);
         }
 
         public bool HasArgumentByName(string argName)

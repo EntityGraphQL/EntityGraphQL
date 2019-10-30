@@ -1,4 +1,5 @@
-# 0.21.1
+# 0.22.0
+- You can now specify if a field is ignored for queries, mutations or both (if you're sharing DTOs/objects)
 - Don't output the meta information of the schema in the schema definition
 - Prevent duplicate scalar types in schema generation
 

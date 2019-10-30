@@ -58,9 +58,6 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
-            Expression<Func<TestSchema, object>> a = (TestSchema ts) => ts.People.Where(p => p.Id == 11).Select(p => new {
-                id = p.Id,
-            }).First();
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
                 Query = @"mutation AddPerson($names: [String]) {
@@ -72,13 +69,15 @@ namespace EntityGraphQL.Tests
                     {"names", new [] {"Bill", "Frank"}}
                 }
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data;
+            var testSchema = new TestSchema();
+            var results = testSchema.QueryObject(gql, schemaProvider);
+            dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal(0, addPersonResult.id);
+            Assert.Equal(11, addPersonResult.id);
             Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
             Assert.Equal("Bill", addPersonResult.name);
             Assert.Equal("Frank", addPersonResult.lastName);
@@ -117,8 +116,12 @@ namespace EntityGraphQL.Tests
 
     internal class TestSchema
     {
+        public TestSchema()
+        {
+            People = new List<Person> { new Person() };
+        }
         public string Hello { get { return "returned value"; } }
-        public List<Person> People { get { return new List<Person> { new Person() }; } }
+        public List<Person> People { get; set; }
         public IEnumerable<User> Users { get { return new List<User> { new User() }; } }
     }
 
@@ -151,7 +154,7 @@ namespace EntityGraphQL.Tests
         public Expression<Func<TestSchema, Person>> AddPersonNames(TestSchema db, PeopleMutationsArgs args)
         {
             db.People.Add(new Person { Id = 11, Name = args.Names[0], LastName = args.Names[1] });
-            return ctx => ctx.People.FirstOrDefault(p => p.Id == 11);
+            return ctx => ctx.People.First(p => p.Id == 11);
         }
 
         [GraphQLMutation]
