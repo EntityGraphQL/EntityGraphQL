@@ -2,6 +2,7 @@
 - You can now specify if a field is ignored for queries, mutations or both (if you're sharing DTOs/objects)
 - Don't output the meta information of the schema in the schema definition
 - Prevent duplicate scalar types in schema generation
+- Fix issue where `mutation` keyword could not have any white space before it
 
 # 0.21.0
 - Change, make ENUMs a `Int` type as dotnet serialises them like that

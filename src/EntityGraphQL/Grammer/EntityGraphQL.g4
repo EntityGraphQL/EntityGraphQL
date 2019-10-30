@@ -52,7 +52,7 @@ entityQuery     : alias=aliasType? entity=callPath ws* fields=fieldSelect ws*;
 operationName   : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
 gqlBody         : '{' ws* (comment | aliasExp | entityQuery) ( (ws* ','? ws*) (comment | aliasExp | entityQuery))* ws* '}';
 dataQuery       : ws* queryKeyword? ws* operationName? ws* gqlBody (ws* | comment*);
-mutationQuery   : mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
+mutationQuery   : ws* mutationKeyword ws* operationName ws* gqlBody (ws* | comment*);
 comment         : ws* '#' ~( '\r' | '\n' | EOF )* ( '\r' | '\n' | EOF );
 gqlFragment     : ws* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=fieldSelect ws*;
 fragmentSelect  : '...' name=identity;

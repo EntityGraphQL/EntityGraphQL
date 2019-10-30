@@ -37,7 +37,8 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
-                Query = @"mutation AddPerson($name: String) {
+                Query = @"
+                mutation AddPerson($name: String) {
   addPerson(name: $name) {
     id name
   }
