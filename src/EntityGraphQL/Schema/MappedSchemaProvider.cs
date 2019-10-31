@@ -16,18 +16,19 @@ namespace EntityGraphQL.Schema
     /// <typeparam name="TContextType">Base object graph. Ex. DbContext</typeparam>
     public class MappedSchemaProvider<TContextType> : ISchemaProvider
     {
-        protected Dictionary<string, ISchemaType> _types = new Dictionary<string, ISchemaType>();
-        protected Dictionary<string, IMethodType> _mutations = new Dictionary<string, IMethodType>();
-        protected Dictionary<Type, string> _customTypeMappings = new Dictionary<Type, string>();
-        private readonly string _queryContextName;
-        private readonly Dictionary<Type, string> _customScalarMappings = new Dictionary<Type, string>();
-        public IEnumerable<string> CustomScalarTypes { get { return _customScalarMappings.Values; } }
+        protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
+        protected Dictionary<string, IMethodType> mutations = new Dictionary<string, IMethodType>();
+        protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string>();
+
+        private readonly string queryContextName;
+        private readonly Dictionary<Type, string> customScalarTypes = new Dictionary<Type, string>();
+        public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
 
         public MappedSchemaProvider()
         {
             var queryContext = new SchemaType<TContextType>(typeof(TContextType).Name, "Query schema");
-            _queryContextName = queryContext.Name;
-            _types.Add(queryContext.Name, queryContext);
+            queryContextName = queryContext.Name;
+            types.Add(queryContext.Name, queryContext);
 
             AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
             AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
@@ -47,11 +48,11 @@ namespace EntityGraphQL.Schema
         {
             var allTypeMappings = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
-            foreach (var item in _customTypeMappings)
+            foreach (var item in customTypeMappings)
             {
                 allTypeMappings[item.Key] = item.Value;
             }
-            foreach (var item in _customScalarMappings)
+            foreach (var item in customScalarTypes)
             {
                 allTypeMappings[item.Key] = item.Value;
             }
@@ -88,20 +89,20 @@ namespace EntityGraphQL.Schema
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
         {
 			var tt = new SchemaType<TBaseType>(name, description, filter);
-            _types.Add(name, tt);
+            types.Add(name, tt);
 			return tt;
         }
         public SchemaType<object> AddType(Type contextType, string name, string description)
         {
 			var tt = new SchemaType<object>(contextType, name, description);
-            _types.Add(name, tt);
+            types.Add(name, tt);
 			return tt;
         }
 
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
             var tt = new SchemaType<TBaseType>(name, description, null, true);
-            _types.Add(name, tt);
+            types.Add(name, tt);
 			return tt;
         }
 
@@ -118,20 +119,20 @@ namespace EntityGraphQL.Schema
                 if (attribute != null)
                 {
                     string name = SchemaGenerator.ToCamelCaseStartsLower(method.Name);
-                    var mutationType = new MutationType(name, _types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description);
-                    _mutations[name] = mutationType;
+                    var mutationType = new MutationType(name, types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description);
+                    mutations[name] = mutationType;
                 }
             }
         }
 
         public bool HasMutation(string method)
         {
-            return _mutations.ContainsKey(method);
+            return mutations.ContainsKey(method);
         }
 
         public void AddTypeMapping<TFrom>(string gqlType)
         {
-            _customTypeMappings.Add(typeof(TFrom), gqlType);
+            customTypeMappings.Add(typeof(TFrom), gqlType);
             if (!gqlType.StartsWith("["))
             {
                 AddCustomScalarType(typeof(TFrom), gqlType);
@@ -216,7 +217,7 @@ namespace EntityGraphQL.Schema
         /// <param name="field"></param>
         public void AddField(Field field)
         {
-            _types[_queryContextName].AddField(field);
+            types[queryContextName].AddField(field);
         }
 
         /// <summary>
@@ -226,23 +227,23 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TType> Type<TType>()
         {
-            return (SchemaType<TType>)_types[typeof(TType).Name];
+            return (SchemaType<TType>)types[typeof(TType).Name];
         }
         public SchemaType<TType> Type<TType>(string typeName)
         {
-            return (SchemaType<TType>)_types[typeName];
+            return (SchemaType<TType>)types[typeName];
         }
         public ISchemaType Type(string typeName)
         {
-            return _types[typeName];
+            return types[typeName];
         }
         // ISchemaProvider interface
-        public Type ContextType { get { return _types[_queryContextName].ContextType; } }
+        public Type ContextType { get { return types[queryContextName].ContextType; } }
         public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs)
         {
-            if (!_types.ContainsKey(typeName))
+            if (!types.ContainsKey(typeName))
                 return false;
-            var t = _types[typeName];
+            var t = types[typeName];
             if (!t.HasField(identifier))
             {
                 if ((fieldArgs == null || !fieldArgs.Any()) && t.HasField(identifier))
@@ -273,23 +274,23 @@ namespace EntityGraphQL.Schema
         }
         public string GetActualFieldName(string typeName, string identifier)
         {
-            if (_types.ContainsKey(typeName) && _types[typeName].HasField(identifier))
-                return _types[typeName].GetField(identifier).Name;
-            if (typeName == _queryContextName && _types[_queryContextName].HasField(identifier))
-                return _types[_queryContextName].GetField(identifier).Name;
+            if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))
+                return types[typeName].GetField(identifier).Name;
+            if (typeName == queryContextName && types[queryContextName].HasField(identifier))
+                return types[queryContextName].GetField(identifier).Name;
             throw new EntityGraphQLCompilerException($"Field {identifier} not found on any type");
         }
 
         public IMethodType GetFieldType(Expression context, string fieldName)
         {
-            if (_mutations.ContainsKey(fieldName))
+            if (mutations.ContainsKey(fieldName))
             {
-                var mutation = _mutations[fieldName];
+                var mutation = mutations[fieldName];
                 return mutation;
             }
-            if (_types.ContainsKey(GetSchemaTypeNameForRealType(context.Type)))
+            if (types.ContainsKey(GetSchemaTypeNameForRealType(context.Type)))
             {
-                var field = _types[GetSchemaTypeNameForRealType(context.Type)].GetField(fieldName);
+                var field = types[GetSchemaTypeNameForRealType(context.Type)].GetField(fieldName);
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
@@ -297,10 +298,10 @@ namespace EntityGraphQL.Schema
 
         public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args)
         {
-            if (!_types.ContainsKey(typeName))
+            if (!types.ContainsKey(typeName))
                 throw new EntityQuerySchemaException($"{typeName} not found in schema.");
 
-            var field = _types[typeName].GetField(fieldName);
+            var field = types[typeName].GetField(fieldName);
             var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName));
 
             if (field.ArgumentTypesObject != null)
@@ -445,10 +446,10 @@ namespace EntityGraphQL.Schema
                     type = type.GetGenericArguments()[0];
                 }
             }
-            if (type == _types[_queryContextName].ContextType)
+            if (type == types[queryContextName].ContextType)
                 return type.Name;
 
-            foreach (var eType in _types.Values)
+            foreach (var eType in types.Values)
             {
                 if (eType.ContextType == type)
                     return eType.Name;
@@ -470,15 +471,15 @@ namespace EntityGraphQL.Schema
 
         public bool HasType(string typeName)
         {
-            return _types.ContainsKey(typeName);
+            return types.ContainsKey(typeName);
         }
 
         public bool HasType(Type type)
         {
-            if (type == _types[_queryContextName].ContextType)
+            if (type == types[queryContextName].ContextType)
                 return true;
 
-            foreach (var eType in _types.Values)
+            foreach (var eType in types.Values)
             {
                 if (eType.ContextType == type)
                     return true;
@@ -492,34 +493,31 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public string GetGraphQLSchema()
         {
-            var extraMappings = _customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
-            foreach (var item in _customScalarMappings)
-            {
-                extraMappings[item.Key] = item.Value;
-            }
-            return SchemaGenerator.Make(this, extraMappings, this._customScalarMappings);
+            var extraMappings = customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
+            return SchemaGenerator.Make(this, extraMappings, this.customScalarTypes);
         }
 
-        public void AddCustomScalarType(Type clrType, string gqlTypeName)
+        public void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false)
         {
-            this._customScalarMappings.Add(clrType, gqlTypeName);
+            this.customScalarTypes[clrType] = gqlTypeName;
+            this.customTypeMappings[clrType] = required ? gqlTypeName + "!" : gqlTypeName;
             // _customScalarMappings has change, need to make the introspectino again. Do this like this so we don't need to build the mappings inline
             SetupIntrospectionTypesAndField();
         }
 
         public IEnumerable<Field> GetQueryFields()
         {
-            return _types[_queryContextName].GetFields();
+            return types[queryContextName].GetFields();
         }
 
         public IEnumerable<ISchemaType> GetNonContextTypes()
         {
-            return _types.Values.Where(s => s.Name != _queryContextName).ToList();
+            return types.Values.Where(s => s.Name != queryContextName).ToList();
         }
 
         public IEnumerable<IMethodType> GetMutations()
         {
-            return _mutations.Values.ToList();
+            return mutations.Values.ToList();
         }
 
         /// <summary>
@@ -536,11 +534,11 @@ namespace EntityGraphQL.Schema
         /// <param name="typeName"></param>
         public void RemoveTypeAndAllFields(string typeName)
         {
-            foreach (var context in _types.Values)
+            foreach (var context in types.Values)
             {
                 RemoveFieldsOfType(typeName, context);
             }
-            _types.Remove(typeName);
+            types.Remove(typeName);
         }
 
         private void RemoveFieldsOfType(string typeName, ISchemaType contextType)

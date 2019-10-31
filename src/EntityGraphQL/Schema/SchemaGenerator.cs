@@ -66,10 +66,6 @@ namespace EntityGraphQL.Schema
             }
 
             var scalars = new StringBuilder();
-            foreach (var item in customScalarMapping)
-            {
-                combinedMapping[item.Key] = item.Value;
-            }
 
             foreach (var item in customScalarMapping.Select(i => i.Value).Distinct())
             {
@@ -178,7 +174,6 @@ type Mutation {{
                 return "String";
             }
             return combinedMapping[type];
-
         }
 
         private static string MakeQueryType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)

@@ -60,6 +60,6 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="clrType">A CLR type that you want mapped</param>
         /// <param name="gqlTypeName">A type name for the scala</param>
-        void AddCustomScalarType(Type clrType, string gqlTypeName);
+        void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false);
     }
 }

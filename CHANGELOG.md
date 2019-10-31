@@ -1,3 +1,6 @@
+# 0.23.1
+- fix issue with generated required types
+
 # 0.23.0
 - Output fields as required in .graphql schemas
 
