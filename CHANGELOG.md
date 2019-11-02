@@ -1,3 +1,6 @@
+# 0.23.2
+- fix issue with required type in an array e.g. `[ID!]`
+
 # 0.23.1
 - fix issue with generated required types
 
