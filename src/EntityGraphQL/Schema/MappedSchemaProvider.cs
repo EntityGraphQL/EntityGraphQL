@@ -132,8 +132,10 @@ namespace EntityGraphQL.Schema
 
         public void AddTypeMapping<TFrom>(string gqlType)
         {
+            // add mapping
             customTypeMappings.Add(typeof(TFrom), gqlType);
-            if (!gqlType.StartsWith("["))
+            // add scalar if needed
+            if (!HasType(gqlType) && !gqlType.StartsWith("["))
             {
                 AddCustomScalarType(typeof(TFrom), gqlType);
             }

@@ -1,3 +1,6 @@
+# 0.23.3
+- Allow adding a mapping type to a type that already exists in the schema. E.g. you might add an input type `Point` and want to map the dotnet type `Point` to it.
+
 # 0.23.2
 - fix issue with required type in an array e.g. `[ID!]`
 
