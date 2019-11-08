@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema
         private readonly ISchemaType returnType;
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
-        private readonly Dictionary<string, Type> argumentTypes = new Dictionary<string, Type>();
+        private readonly Dictionary<string, ArgType> argumentTypes = new Dictionary<string, ArgType>();
         private readonly Type argInstanceType;
 
         public Type ReturnTypeClr { get { return returnType.ContextType; } }
@@ -125,11 +125,11 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType ReturnType => returnType;
 
-        public bool IsEnumerable => ReturnType.ContextType.IsEnumerableOrArray();
+        public IDictionary<string, ArgType> Arguments => argumentTypes;
 
-        public IDictionary<string, Type> Arguments => argumentTypes;
-
-        public string ReturnTypeSingle => returnType.Name;
+        public string ReturnTypeClrSingle => returnType.Name;
+        public bool ReturnTypeNotNullable => false;
+        public bool ReturnElementTypeNullable => false;
 
         public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description)
         {
@@ -145,13 +145,21 @@ namespace EntityGraphQL.Schema
             {
                 if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                     continue;
-                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.PropertyType);
+                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                {
+                    Type = item.PropertyType,
+                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item)
+                });
             }
             foreach (var item in argInstanceType.GetFields())
             {
                 if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                     continue;
-                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), item.FieldType);
+                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                {
+                    Type = item.FieldType,
+                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item)
+                });
             }
         }
 
@@ -160,7 +168,7 @@ namespace EntityGraphQL.Schema
             return argumentTypes.ContainsKey(argName);
         }
 
-        public Type GetArgumentType(string argName)
+        public ArgType GetArgumentType(string argName)
         {
             if (!argumentTypes.ContainsKey(argName))
             {

@@ -137,7 +137,7 @@ type Mutation {{
 
         private static object GetGqlReturnType(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
-            return field.IsEnumerable ? "[" + ClrToGqlType(field.ReturnTypeClr.GetEnumerableOrArrayType(), schema, combinedMapping) + "]" : ClrToGqlType(field.ReturnTypeClr, schema, combinedMapping);
+            return ClrToGqlType(field.ReturnTypeNotNullable, field.ReturnElementTypeNullable, field.ReturnTypeClr, schema, combinedMapping);
         }
 
         private static object GetGqlArgs(IMethodType field, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string noArgs = "")
@@ -145,35 +145,47 @@ type Mutation {{
             if (field.Arguments == null || !field.Arguments.Any())
                 return noArgs;
 
-            var all = field.Arguments.Select(f => ToCamelCaseStartsLower(f.Key) + ": " + ClrToGqlType(f.Value, schema, combinedMapping));
+            var all = field.Arguments.Select(f => ToCamelCaseStartsLower(f.Key) + ": " + ClrToGqlType(f.Value.TypeNotNullable, false, f.Value.Type, schema, combinedMapping));
 
             return $"({string.Join(", ", all)})";
         }
 
-        private static string ClrToGqlType(Type type, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static string ClrToGqlType(bool typeNotNullable, bool returnElementTypeNullable, Type type, ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
+            string gqlType = null;
             if (!combinedMapping.ContainsKey(type))
             {
                 if (schema.HasType(type))
                 {
-                    return schema.GetSchemaTypeNameForRealType(type);
+                    gqlType = schema.GetSchemaTypeNameForRealType(type);
                 }
-                if (type.IsEnumerableOrArray())
+                else if (type.IsEnumerableOrArray())
                 {
-                    return "[" + ClrToGqlType(type.GetGenericArguments()[0], schema, combinedMapping) + "]";
+                    gqlType = "[" + ClrToGqlType(!returnElementTypeNullable, false, type.GetEnumerableOrArrayType(), schema, combinedMapping) + "]";
                 }
-                if (type.IsConstructedGenericType)
+                else if (type.IsConstructedGenericType)
                 {
-                    return ClrToGqlType(type.GetGenericTypeDefinition(), schema, combinedMapping);
+                    gqlType = ClrToGqlType(typeNotNullable, returnElementTypeNullable, type.GetGenericTypeDefinition(), schema, combinedMapping);
                 }
-                if (type.GetTypeInfo().IsEnum)
+                else if (type.GetTypeInfo().IsEnum)
                 {
-                    return "Int";
+                    gqlType = "Int";
                 }
-                // Default to a string type
-                return "String";
+                else
+                {
+                    // Default to a string type
+                    gqlType = "String";
+                }
             }
-            return combinedMapping[type];
+            else
+            {
+                gqlType = combinedMapping[type];
+            }
+            if (typeNotNullable && !gqlType.EndsWith("!"))
+            {
+                gqlType += "!";
+            }
+            return gqlType;
         }
 
         private static string MakeQueryType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)

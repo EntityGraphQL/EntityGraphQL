@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
             schema.RemoveTypeAndAllFields<Project>();
-            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeSingle == "project"));
+            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeClrSingle == "project"));
         }
         [Fact]
         public void RemovesTypeAndFields2()
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
             schema.RemoveTypeAndAllFields("Project");
-            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeSingle == "project"));
+            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeClrSingle == "project"));
         }
     }
 }

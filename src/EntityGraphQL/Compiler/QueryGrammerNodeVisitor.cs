@@ -164,7 +164,7 @@ namespace EntityGraphQL.Compiler
                     {
                         return ConvertToGuid(gqlVarValue);
                     }
-                    if (argType.IsConstructedGenericType && argType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    if (argType.Type.IsConstructedGenericType && argType.Type.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
                         string query = strValue;
                         if (query.StartsWith("\""))
@@ -174,7 +174,7 @@ namespace EntityGraphQL.Compiler
                         return BuildEntityQueryExpression(query);
                     }
 
-                    var argumentNonNullType = argType.IsNullableType() ? Nullable.GetUnderlyingType(argType) : argType;
+                    var argumentNonNullType = argType.Type.IsNullableType() ? Nullable.GetUnderlyingType(argType.Type) : argType.Type;
                     if (argumentNonNullType.GetTypeInfo().IsEnum)
                     {
                         var enumName = strValue;

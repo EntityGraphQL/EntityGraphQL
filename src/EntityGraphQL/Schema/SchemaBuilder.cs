@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema
         {
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
-            var schemaType = schema.Type(fieldProp.ReturnTypeSingle);
+            var schemaType = schema.Type(fieldProp.ReturnTypeClrSingle);
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
@@ -67,7 +67,7 @@ namespace EntityGraphQL.Schema
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes);
-            Type arrayContextType = schema.Type(fieldProp.ReturnTypeSingle).ContextType;
+            Type arrayContextType = schema.Type(fieldProp.ReturnTypeClrSingle).ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType);
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             Expression argId = Expression.PropertyOrField(argTypeParam, "id");
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeSingle} by its Id", fieldProp.ReturnTypeSingle, argTypesValue);
+            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeClrSingle} by its Id", fieldProp.ReturnTypeClrSingle, argTypesValue);
             schema.AddField(field);
         }
 

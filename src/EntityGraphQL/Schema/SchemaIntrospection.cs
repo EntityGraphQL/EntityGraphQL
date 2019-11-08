@@ -135,7 +135,7 @@
                     {
                         Name = field.Name,
                         Description = field.Description,
-                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping, true)
+                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping, true)
                     });
                 }
 
@@ -175,7 +175,7 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    typeElement.Name = field.ReturnTypeSingle;
+                    typeElement.Name = field.ReturnTypeClrSingle;
                     typeElement.Description = field.Description;
 
                     foreach (var fieldInfo in field.ReturnTypeClr.GetFields())
@@ -276,7 +276,7 @@
                     Description = field.Description,
                     IsDeprecated = false,
                     Name = SchemaGenerator.ToCamelCaseStartsLower(field.Name),
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
                 });
             }
             return fieldDescs.ToArray();
@@ -301,7 +301,7 @@
                     Name = field.Name,
                     Args = BuildArgs(schema, combinedMapping, field).ToArray(),
                     IsDeprecated = false,
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
                     Description = field.Description
                 });
             }
@@ -327,7 +327,7 @@
                     Name = field.Name,
                     Args = args,
                     IsDeprecated = false,
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
                     Description = field.Description
                 });
             }
@@ -339,8 +339,8 @@
             var args = new List<Models.InputValue>();
             foreach (var arg in field.Arguments)
             {
-                var gqlTypeName = arg.Value.IsEnumerableOrArray() ? arg.Value.GetEnumerableOrArrayType().Name : arg.Value.Name;
-                var type = BuildType(schema, arg.Value, gqlTypeName, combinedMapping);
+                var gqlTypeName = arg.Value.Type.IsEnumerableOrArray() ? arg.Value.Type.GetEnumerableOrArrayType().Name : arg.Value.Type.Name;
+                var type = BuildType(schema, arg.Value.Type, gqlTypeName, combinedMapping);
 
                 args.Add(new Models.InputValue
                 {

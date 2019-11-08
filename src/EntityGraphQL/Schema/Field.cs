@@ -12,31 +12,37 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class Field : IMethodType
     {
-        private readonly Dictionary<string, Type> allArguments = new Dictionary<string, Type>();
+        private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
+        public bool ReturnTypeNotNullable { get; set; }
+        public bool ReturnElementTypeNullable { get; set; }
         internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType = null)
         {
             Name = name;
             Resolve = resolve.Body;
             Description = description;
             FieldParam = resolve.Parameters.First();
-            ReturnTypeSingle = returnSchemaType;
-            IsEnumerable = resolve.Body.Type.IsEnumerableOrArray();
-            if (ReturnTypeSingle == null)
+            ReturnTypeClrSingle = returnSchemaType;
+            if (resolve.Body.NodeType == ExpressionType.MemberAccess)
             {
-                if (IsEnumerable)
+                ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
+                ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
+            }
+            if (ReturnTypeClrSingle == null)
+            {
+                if (resolve.Body.Type.IsEnumerableOrArray())
                 {
                     if (!resolve.Body.Type.IsArray && !resolve.Body.Type.GetGenericArguments().Any())
                     {
                         throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
                     }
-                    ReturnTypeSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
+                    ReturnTypeClrSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
                 }
                 else
                 {
-                    ReturnTypeSingle = resolve.Body.Type.Name;
+                    ReturnTypeClrSingle = resolve.Body.Type.Name;
                 }
             }
         }
@@ -44,18 +50,26 @@ namespace EntityGraphQL.Schema
         public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes) : this(name, resolve, description, returnSchemaType)
         {
             this.ArgumentTypesObject = argTypes;
-            this.allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => p.PropertyType);
-            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => p.FieldType).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
+            this.allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => new ArgType
+            {
+                Type = p.PropertyType,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
+            });
+            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => new ArgType
+            {
+                Type = p.FieldType,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
+            }).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
         }
 
         public Expression Resolve { get; private set; }
         public string Description { get; private set; }
-        public string ReturnTypeSingle { get; private set; }
+        public string ReturnTypeClrSingle { get; private set; }
 
         public bool IsEnumerable { get; }
 
         public object ArgumentTypesObject { get; private set; }
-        public IDictionary<string, Type> Arguments { get { return allArguments; } }
+        public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
 
         public IEnumerable<string> RequiredArgumentNames
         {
@@ -77,7 +91,7 @@ namespace EntityGraphQL.Schema
             return allArguments.ContainsKey(argName);
         }
 
-        public Type GetArgumentType(string argName)
+        public ArgType GetArgumentType(string argName)
         {
             return allArguments[argName];
         }

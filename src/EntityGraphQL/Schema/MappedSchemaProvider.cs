@@ -547,7 +547,7 @@ namespace EntityGraphQL.Schema
         {
             foreach (var field in contextType.GetFields().ToList())
             {
-                if (field.ReturnTypeSingle == typeName)
+                if (field.ReturnTypeClrSingle == typeName)
                 {
                     contextType.RemoveField(field.Name);
                 }
