@@ -1,6 +1,8 @@
 # 0.24.0
 - Add `GraphQLNotNullAttribute` to mark fields as not nullable in the graphql schema
 - By default when generating a `.schema` file `IEnumerable<T>` will generate the element type as not nullable. E.g. `[T!]`. Use `GraphQLElementTypeNullableAttribute` to mark it that the list can contain null items
+- Support mapping `decimal` to `number`
+- Better support for defining nullable or non-nullable types
 
 # 0.23.3
 - Allow adding a mapping type to a type that already exists in the schema. E.g. you might add an input type `Point` and want to map the dotnet type `Point` to it.

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
@@ -53,10 +52,10 @@ namespace EntityGraphQL.Schema
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
         /// <typeparam name="TReturn"></typeparam>
-        public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType);
+            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable);
         }
         public void AddField(Field field)
         {
@@ -67,14 +66,18 @@ namespace EntityGraphQL.Schema
             if (!_fieldsByName.ContainsKey(field.Name))
                 _fieldsByName.Add(field.Name, field);
         }
-        public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             var field = new Field(name, fieldSelection, description, returnSchemaType);
+            if (isNullable.HasValue)
+                field.ReturnTypeNotNullable = !isNullable.Value;
             this.AddField(field);
         }
-        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType);
+            if (isNullable.HasValue)
+                field.ReturnTypeNotNullable = !isNullable.Value;
             _fieldsByName[field.Name] = field;
         }
 
@@ -89,9 +92,11 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
+            if (isNullable.HasValue)
+                field.ReturnTypeNotNullable = !isNullable.Value;
             this.AddField(field);
         }
 

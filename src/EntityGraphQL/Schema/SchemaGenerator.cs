@@ -33,6 +33,10 @@ namespace EntityGraphQL.Schema
             {typeof(float?), "Float"},
             {typeof(RequiredField<float>), "Float!"},
 
+            {typeof(Decimal), "Float!"},
+            {typeof(Decimal?), "Float"},
+            {typeof(RequiredField<Decimal>), "Float!"},
+
             {typeof(bool), "Boolean!"},
             {typeof(bool?), "Boolean"},
             {typeof(RequiredField<bool>), "Boolean!"},
