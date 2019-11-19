@@ -18,31 +18,39 @@ namespace EntityGraphQL.Schema
         public ParameterExpression FieldParam { get; private set; }
         public bool ReturnTypeNotNullable { get; set; }
         public bool ReturnElementTypeNullable { get; set; }
-        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType = null)
+
+        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType = null, Type returnClrType = null)
         {
             Name = name;
-            Resolve = resolve.Body;
             Description = description;
-            FieldParam = resolve.Parameters.First();
             ReturnTypeClrSingle = returnSchemaType;
-            if (resolve.Body.NodeType == ExpressionType.MemberAccess)
+            ReturnTypeClr = returnClrType;
+
+            if (resolve != null)
             {
-                ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
-                ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
-            }
-            if (ReturnTypeClrSingle == null)
-            {
-                if (resolve.Body.Type.IsEnumerableOrArray())
+                Resolve = resolve.Body;
+                FieldParam = resolve.Parameters.First();
+                ReturnTypeClr = Resolve.Type;
+
+                if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
-                    if (!resolve.Body.Type.IsArray && !resolve.Body.Type.GetGenericArguments().Any())
-                    {
-                        throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
-                    }
-                    ReturnTypeClrSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
+                    ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
+                    ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
                 }
-                else
+                if (ReturnTypeClrSingle == null)
                 {
-                    ReturnTypeClrSingle = resolve.Body.Type.Name;
+                    if (resolve.Body.Type.IsEnumerableOrArray())
+                    {
+                        if (!resolve.Body.Type.IsArray && !resolve.Body.Type.GetGenericArguments().Any())
+                        {
+                            throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
+                        }
+                        ReturnTypeClrSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
+                    }
+                    else
+                    {
+                        ReturnTypeClrSingle = resolve.Body.Type.Name;
+                    }
                 }
             }
         }
@@ -66,8 +74,6 @@ namespace EntityGraphQL.Schema
         public string Description { get; private set; }
         public string ReturnTypeClrSingle { get; private set; }
 
-        public bool IsEnumerable { get; }
-
         public object ArgumentTypesObject { get; private set; }
         public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
 
@@ -84,7 +90,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Type ReturnTypeClr { get { return Resolve.Type; } }
+        public Type ReturnTypeClr { get; private set; }
 
         public bool HasArgumentByName(string argName)
         {

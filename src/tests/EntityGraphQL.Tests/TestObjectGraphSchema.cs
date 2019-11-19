@@ -25,6 +25,8 @@ namespace EntityGraphQL.Tests
                 var location = AddType<Location>(name: "Location", description: "A geographical location");
                 location.AddAllFields();
 
+                AddEnum("Gender", typeof(Gender), "A persons Gender");
+
                 // It's better to define the fields of each type you want to expose, so over time your data model can change and
                 // if you keep these definitions compiling you shouldn't break any API calls
                 // leaving out name will take the name of the base class type
@@ -34,6 +36,7 @@ namespace EntityGraphQL.Tests
                 person.AddField(p => p.Guid, "A Guid identifier");
                 person.AddField(p => p.Name, "Person's first name");
                 person.AddField(p => p.LastName, "Person's last name");
+                person.AddField(p => p.Gender, "Person's gender");
                 // You can provide a name for the field and in composite fields you are required to
                 person.AddField("fullName", p => p.Name + " " + p.LastName, "Person's full name");
 
@@ -45,19 +48,8 @@ namespace EntityGraphQL.Tests
                 project.AddField(p => p.Location, "The location of the project");
 
                 // If you have a Type used multiple times in the schema you will need to define the return by name
-                project.AddField("openTasks", p => p.Tasks.Where(t => t.IsActive), "All open tasks for the project", "openTask");
-                project.AddField("closedTasks", p => p.Tasks.Where(t => !t.IsActive), "All closed tasks for the project", "closedTask");
-
-                // You can define multiple types from one base type and define a filter which is applied - a poor example
-                // any time an `openTask` type is requested the filter will also be applied
-                var openTasks = AddType<Task>("OpenTask", "Details of a project", t => t.IsActive);
-                openTasks.AddField(t => t.Id, "Unique identifier for a task");
-                openTasks.AddField(t => t.Name, "Description of the task");
-                openTasks.AddField(t => t.Assignee, "Active person on the task");
-
-                var closedTasks = AddType<Task>("ClosedTask", "Details of a project", t => !t.IsActive);
-                closedTasks.AddField(t => t.Id, "Unique identifier for a task");
-                closedTasks.AddField(t => t.Name, "Description of the task");
+                project.AddField("openTasks", p => p.Tasks.Where(t => t.IsActive), "All open tasks for the project", "Task");
+                project.AddField("closedTasks", p => p.Tasks.Where(t => !t.IsActive), "All closed tasks for the project", "Task");
 
                 // Now we defined what fields are at the root of the graph
 
@@ -69,8 +61,8 @@ namespace EntityGraphQL.Tests
                 AddField("publicProjects", ctx => ctx.Projects.Where(p => p.Type == 2), "All projects marked as public");
                 AddField("privateProjects", ctx => ctx.Projects.Where(p => p.Type == 1), "All privately held projects");
                 // providing the schema type `openTask` will automatically apply the filter
-                AddField("openTasks", ctx => ctx.Tasks, "All open tasks for all projects", "openTask");
-                AddField("closedTasks", ctx => ctx.Tasks, "All closedtasks for all projects", "closedTask");
+                AddField("openTasks", ctx => ctx.Tasks.Where(t => t.IsActive), "All open tasks for all projects", "Task");
+                AddField("closedTasks", ctx => ctx.Tasks.Where(t => !t.IsActive), "All closedtasks for all projects", "Task");
                 AddField("defaultLocation", ctx => ctx.Locations.First(l => l.Id == 10), "The default location for projects");
             }
         }

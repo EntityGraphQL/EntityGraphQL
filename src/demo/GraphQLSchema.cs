@@ -34,7 +34,7 @@ namespace demo
             demoSchema.Type<Person>().ReplaceField("writerOf", m => m.WriterOf.Select(a => a.Movie), "Movies they wrote");
             demoSchema.Type<Person>().ReplaceField("actorIn", m => m.ActorIn.Select(a => a.Movie), "Movies they acted in");
 
-            var dto = demoSchema.AddType<PersonPagination>(nameof(PersonPagination), "Actor Pagination", null);
+            var dto = demoSchema.AddType<PersonPagination>(nameof(PersonPagination), "Actor Pagination");
             dto.AddField("total", x => x.Total, "total records to match search");
             dto.AddField("pageCount", x => x.PageCount, "total pages based on page size");
             dto.AddField("people", x => x.People, "collection of people");

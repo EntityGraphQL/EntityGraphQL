@@ -148,7 +148,7 @@ namespace EntityGraphQL.Schema
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
                 {
                     Type = item.PropertyType,
-                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item)
+                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.PropertyType.GetTypeInfo().IsEnum
                 });
             }
             foreach (var item in argInstanceType.GetFields())
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Schema
                 argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
                 {
                     Type = item.FieldType,
-                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item)
+                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.FieldType.GetTypeInfo().IsEnum
                 });
             }
         }

@@ -76,6 +76,7 @@ namespace EntityGraphQL.Schema
                 scalars.AppendLine($"scalar {item}");
             }
 
+            var enums = BuildEnumTypes(schema, combinedMapping);
             var types = BuildSchemaTypes(schema, combinedMapping);
             var mutations = BuildMutations(schema, combinedMapping);
 
@@ -87,6 +88,7 @@ namespace EntityGraphQL.Schema
 }}
 
 {scalars}
+{enums}
 
 type RootQuery {{
 {queryTypes}
@@ -112,15 +114,48 @@ type Mutation {{
             return mutations.ToString();
         }
 
+        private static string BuildEnumTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            var types = new StringBuilder();
+            foreach (var typeItem in schema.GetNonContextTypes())
+            {
+                if (typeItem.Name.StartsWith("__") || !typeItem.IsEnum)
+                    continue;
+
+                types.AppendLine();
+                if (!string.IsNullOrEmpty(typeItem.Description))
+                    types.AppendLine($"\t\"{typeItem.Description}\"");
+
+                types.AppendLine($"enum {typeItem.Name} {{");
+                foreach (var field in typeItem.GetFields())
+                {
+                    if (field.Name.StartsWith("__"))
+                        continue;
+
+                    if (!string.IsNullOrEmpty(field.Description))
+                        types.AppendLine($"\t\"{field.Description}\"");
+
+                    types.AppendLine($"\t{field.Name}");
+
+                }
+                types.AppendLine("}");
+            }
+
+            return types.ToString();
+        }
+
         private static string BuildSchemaTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
         {
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes())
             {
-                if (typeItem.Name.StartsWith("__"))
+                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum)
                     continue;
 
                 types.AppendLine();
+                if (!string.IsNullOrEmpty(typeItem.Description))
+                    types.AppendLine($"\"{typeItem.Description}\"");
+
                 types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields())
                 {
@@ -166,6 +201,10 @@ type Mutation {{
                 else if (type.IsEnumerableOrArray())
                 {
                     gqlType = "[" + ClrToGqlType(!returnElementTypeNullable, false, type.GetEnumerableOrArrayType(), schema, combinedMapping) + "]";
+                }
+                else if (type.IsNullableType())
+                {
+                    gqlType = ClrToGqlType(typeNotNullable, returnElementTypeNullable, Nullable.GetUnderlyingType(type), schema, combinedMapping);
                 }
                 else if (type.IsConstructedGenericType)
                 {

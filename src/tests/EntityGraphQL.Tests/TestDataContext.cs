@@ -12,12 +12,20 @@ namespace EntityGraphQL.Tests
         public IEnumerable<Person> People { get; set; }
     }
 
+    public enum Gender
+    {
+        Female,
+        Male,
+        NotSpecified
+    }
+
     internal class Person
     {
         public int Id { get; set; }
         public Guid Guid { get; set; }
         public string Name { get; set; }
         public string LastName { get; set; }
+        public Gender Gender { get; set; }
     }
 
     internal class Project

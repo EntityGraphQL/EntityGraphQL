@@ -157,42 +157,30 @@
         {
             var types = new List<Models.TypeElement>();
 
-            foreach (ISchemaType schemaType in schema.GetNonContextTypes())
+            foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsEnum))
             {
                 var typeElement = new Models.TypeElement
                 {
                     Kind = "ENUM",
-                    Name = string.Empty,
-                    Description = null,
+                    Name = schemaType.Name,
+                    Description = schemaType.Description,
                     EnumValues = new Models.EnumValue[] { }
                 };
+                if (schemaType.Name.StartsWith("__"))
+                    continue;
 
                 var enumTypes = new List<Models.EnumValue>();
 
                 //filter to ENUM type ONLY!
-                foreach (Field field in schemaType.GetFields().Where(x => x.ReturnTypeClr.GetTypeInfo().IsEnum))
+                foreach (Field field in schemaType.GetFields())
                 {
-                    if (field.Name.StartsWith("__"))
-                        continue;
-
-                    typeElement.Name = field.ReturnTypeClrSingle;
-                    typeElement.Description = field.Description;
-
-                    foreach (var fieldInfo in field.ReturnTypeClr.GetFields())
+                    enumTypes.Add(new Models.EnumValue
                     {
-                        if (fieldInfo.Name == "value__")
-                            continue;
-
-                        var attribute = (System.ComponentModel.DescriptionAttribute)fieldInfo.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute));
-
-                        enumTypes.Add(new Models.EnumValue
-                        {
-                            Name = fieldInfo.Name,
-                            Description = attribute?.Description,
-                            IsDeprecated = false,
-                            DeprecationReason = null
-                        });
-                    }
+                        Name = field.Name,
+                        Description = field.Description,
+                        IsDeprecated = false,
+                        DeprecationReason = null
+                    });
                 }
 
                 typeElement.EnumValues = enumTypes.ToArray();

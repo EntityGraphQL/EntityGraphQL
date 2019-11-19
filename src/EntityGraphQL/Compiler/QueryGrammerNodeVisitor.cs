@@ -181,7 +181,7 @@ namespace EntityGraphQL.Compiler
                         var valueIndex = Enum.GetNames(argumentNonNullType).ToList().FindIndex(n => n == enumName);
                         if (valueIndex == -1)
                         {
-                            throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield}");
+                            throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {context.gqlfield.GetText()}");
                         }
                         var enumValue = Enum.GetValues(argumentNonNullType).GetValue(valueIndex);
                         return (ExpressionResult)Expression.Constant(enumValue);

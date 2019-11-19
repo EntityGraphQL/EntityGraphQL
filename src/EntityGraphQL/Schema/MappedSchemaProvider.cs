@@ -21,7 +21,13 @@ namespace EntityGraphQL.Schema
         protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string>();
 
         private readonly string queryContextName;
-        private readonly Dictionary<Type, string> customScalarTypes = new Dictionary<Type, string>();
+        private readonly Dictionary<Type, string> customScalarTypes = new Dictionary<Type, string> {
+            {typeof(int), "Int"},
+            {typeof(float), "Float"},
+            {typeof(string), "String"},
+            {typeof(bool), "Boolean"},
+            {typeof(Guid), "ID"},
+        };
         public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
 
         public MappedSchemaProvider()
@@ -75,24 +81,12 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
-			return AddType<TBaseType>(name, description, null);
-        }
-
-        /// <summary>
-        /// Add a new type into the schema with an optional filter applied to the result
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="filter"></param>
-        /// <typeparam name="TBaseType"></typeparam>
-        /// <returns></returns>
-        public SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Expression<Func<TBaseType, bool>> filter)
-        {
-			var tt = new SchemaType<TBaseType>(name, description, filter);
+			var tt = new SchemaType<TBaseType>(name, description);
             types.Add(name, tt);
 			return tt;
         }
-        public SchemaType<object> AddType(Type contextType, string name, string description)
+
+        public ISchemaType AddType(Type contextType, string name, string description)
         {
 			var tt = new SchemaType<object>(contextType, name, description);
             types.Add(name, tt);
@@ -101,7 +95,7 @@ namespace EntityGraphQL.Schema
 
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
-            var tt = new SchemaType<TBaseType>(name, description, null, true);
+            var tt = new SchemaType<TBaseType>(name, description, true);
             types.Add(name, tt);
 			return tt;
         }
@@ -146,13 +140,12 @@ namespace EntityGraphQL.Schema
         /// Adds a new type into the schema. The name defaults to the TBaseType name
         /// </summary>
         /// <param name="description"></param>
-        /// <param name="filter"></param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns></returns>
-        public SchemaType<TBaseType> AddType<TBaseType>(string description, Expression<Func<TBaseType, bool>> filter = null)
+        public SchemaType<TBaseType> AddType<TBaseType>(string description)
         {
             var name = typeof(TBaseType).Name;
-            return AddType(name, description, filter);
+            return AddType<TBaseType>(name, description);
         }
 
         /// <summary>
@@ -459,18 +452,6 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"No mapped entity found for type '{type}'");
         }
 
-        private List<Field> BuildFields(object fieldsObj)
-        {
-            var fieldList = new List<Field>();
-            foreach (var prop in fieldsObj.GetType().GetProperties())
-            {
-                var field = prop.GetValue(fieldsObj) as Field;
-                field.Name = prop.Name;
-                fieldList.Add(field);
-            }
-            return fieldList;
-        }
-
         public bool HasType(string typeName)
         {
             return types.ContainsKey(typeName);
@@ -552,6 +533,13 @@ namespace EntityGraphQL.Schema
                     contextType.RemoveField(field.Name);
                 }
             }
+        }
+
+        public ISchemaType AddEnum(string name, Type type, string description)
+        {
+            var schemaType = new SchemaType<object>(type, name, description, false, true);
+            types.Add(name, schemaType);
+            return schemaType.AddAllFields();
         }
     }
 }

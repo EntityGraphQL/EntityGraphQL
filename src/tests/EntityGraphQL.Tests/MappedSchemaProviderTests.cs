@@ -26,10 +26,10 @@ namespace EntityGraphQL.Tests
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("OpenTask", "id", new string[0]));
-            Assert.True(provider.TypeHasField("OpenTask", "assignee", new string[0]));
+            Assert.True(provider.TypeHasField("Person", "id", new string[0]));
+            Assert.True(provider.TypeHasField("Person", "name", new string[0]));
             // Not exposed in our schema
-            Assert.False(provider.TypeHasField("OpenTask", "isActive", new string[0]));
+            Assert.True(provider.TypeHasField("Person", "fullName", new string[0]));
         }
         [Fact]
         public void ReturnsActualName()
@@ -37,6 +37,16 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
             Assert.Equal("name", schema.GetActualFieldName("Project", "name"));
+        }
+        [Fact]
+        public void SupportsEnum()
+        {
+            var schema = new TestObjectGraphSchema();
+            Assert.Equal("Gender", schema.Type("Gender").Name);
+            Assert.True(schema.Type("Gender").IsEnum);
+            Assert.Equal(4, schema.Type("Gender").GetFields().Count());
+            Assert.Equal("__typename", schema.Type("Gender").GetFields().ElementAt(0).Name);
+            Assert.Equal("Female", schema.Type("Gender").GetFields().ElementAt(1).Name);
         }
         [Fact]
         public void RemovesTypeAndFields()

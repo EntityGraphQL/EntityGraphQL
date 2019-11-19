@@ -1,9 +1,12 @@
 {
   "name": "entity-graphql-demo",
   "version": "1.0.0",
-  "scripts": {
-  },
+  "scripts": {},
   "devDependencies": {
-    "graphiql": "0.14.2"
+    "graphiql": "0.16.0",
+    "graphql": "^14.5.8",
+    "prop-types": "^15.7.2",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0"
   }
 }

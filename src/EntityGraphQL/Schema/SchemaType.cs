@@ -12,28 +12,30 @@ namespace EntityGraphQL.Schema
         public Type ContextType { get; protected set; }
         public string Name { get; protected set; }
         public bool IsInput { get; }
+        public bool IsEnum { get; }
 
         public string Description { get; protected set; }
 
         private readonly Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
 
-        public SchemaType(string name, string description, Expression<Func<TBaseType, bool>> filter = null, bool isInput = false) : this(typeof(TBaseType), name, description, isInput)
+        public SchemaType(string name, string description, bool isInput = false, bool isEnum = false) : this(typeof(TBaseType), name, description, isInput, isEnum)
         {
         }
 
-        public SchemaType(Type contextType, string name, string description, bool isInput = false)
+        public SchemaType(Type contextType, string name, string description, bool isInput = false, bool isEnum = false)
         {
             ContextType = contextType;
             Name = name;
             Description = description;
             IsInput = isInput;
+            IsEnum = isEnum;
             AddField("__typename", t => name, "Type name");
         }
 
         /// <summary>
         /// Add all public Properties and Fields from the base type
         /// </summary>
-        public SchemaType<TBaseType> AddAllFields()
+        public ISchemaType AddAllFields()
         {
             BuildFieldsFromBase();
             return this;
@@ -119,6 +121,14 @@ namespace EntityGraphQL.Schema
 
         private void BuildFieldsFromBase()
         {
+            if (IsEnum)
+            {
+                foreach (var item in Enum.GetNames(this.ContextType))
+                {
+                    this.AddField(new Field(item, null, "", Name, ContextType));
+                }
+                return;
+            }
             foreach (var f in ContextType.GetProperties())
             {
                 if (!_fieldsByName.ContainsKey(f.Name))

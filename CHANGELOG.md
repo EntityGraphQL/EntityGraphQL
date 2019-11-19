@@ -1,3 +1,8 @@
+# 0.25.0
+- Add the ability to add enum types to the schema
+- The auto schema builder now adds enum types it finds to the schema by default
+- Enum values are referenced by the string value, if using JSON.NET you will want to use `[JsonConverter(typeof(StringEnumConverter))]`
+
 # 0.24.0
 - Add `GraphQLNotNullAttribute` to mark fields as not nullable in the graphql schema
 - By default when generating a `.schema` file `IEnumerable<T>` will generate the element type as not nullable. E.g. `[T!]`. Use `GraphQLElementTypeNullableAttribute` to mark it that the list can contain null items

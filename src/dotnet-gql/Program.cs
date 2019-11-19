@@ -25,7 +25,7 @@ namespace dotnet_gql
 
         [Option(LongName = "classname", ShortName = "c", Description = "Generated class name")]
         public string OutputClassName { get; } = "GraphQLSchemaBuilder";
-        
+
         [Option(LongName = "output", ShortName = "o", Description = "Output filename")]
         public string OutputFilename { get; } = "GraphQlSchema.cs";
 
@@ -45,7 +45,7 @@ namespace dotnet_gql
 
                 // We're calling ISchemaProvider schema = SchemaBuilder.FromObject<TContext>();
                 // let's us do it with type safety
-                Expression<Func<ISchemaProvider>> call = () => SchemaBuilder.FromObject<object>(true);
+                Expression<Func<ISchemaProvider>> call = () => SchemaBuilder.FromObject<object>(true, true);
                 var method = ((MethodCallExpression)call.Body).Method;
                 method = method.GetGenericMethodDefinition().MakeGenericMethod(contextType);
                 var schema = method.Invoke(null, new object[] {true}) as ISchemaProvider;
@@ -66,7 +66,7 @@ namespace dotnet_gql
                 });
                 File.WriteAllText(OutputFilename, result);
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 Console.WriteLine("Error: " + e.ToString());
             }
