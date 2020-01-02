@@ -4,11 +4,11 @@
 using System.Linq;
 using EntityGraphQL.Schema;
 
-namespace @Model.Namespace 
+namespace @Model.Namespace
 {
     /// <summary>
     /// GraphQL schema original generated from @Model.ContextClass on @System.DateTime.Now
-    /// 
+    ///
     /// Use this to create your GraphQL schema. E.g. in ASP.NET you could services.AddSingleton(@{@Model.OutputClassName}.MakeSchema());
     /// Then use it with the QueryObject() extension method. e.g. given an instance of @Model.ContextClass call var data = context.QueryObject(query, schema);
     /// </summary>
@@ -52,7 +52,7 @@ namespace @Model.Namespace
 @:
             }
 
-            // Add any input types required in your schema using schema.AddInputType<Point>("Point", "A point with x,y").AddAllFields();
+            // Add any input types required in your schema using schema.AddInputType<Point>("Point", "A point with x,y").AddAllFields(schema);
             // Add any type mappings required for your schema with schema.AddTypeMapping<NpgsqlPolygon>("[Point]");
 
             // Add your mutations using schema.AddMutationFrom(new MyMutationClass());

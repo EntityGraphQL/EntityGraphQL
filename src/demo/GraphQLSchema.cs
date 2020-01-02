@@ -47,7 +47,7 @@ namespace demo
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddMutationFrom(new DemoMutations());
-            demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
+            demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields(demoSchema);
             File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
             return demoSchema;
         }

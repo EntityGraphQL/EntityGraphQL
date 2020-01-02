@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
                 // Without the fields argument we expose Location fields as-is. Easy and simple, but this means changes in
                 // Location data model may break API
                 var location = AddType<Location>(name: "Location", description: "A geographical location");
-                location.AddAllFields();
+                location.AddAllFields(this);
 
                 AddEnum("Gender", typeof(Gender), "A persons Gender");
 

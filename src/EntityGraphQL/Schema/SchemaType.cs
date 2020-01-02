@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
@@ -10,11 +9,11 @@ namespace EntityGraphQL.Schema
     public class SchemaType<TBaseType> : ISchemaType
     {
         public Type ContextType { get; protected set; }
-        public string Name { get; protected set; }
+        public string Name { get; internal set; }
         public bool IsInput { get; }
         public bool IsEnum { get; }
 
-        public string Description { get; protected set; }
+        public string Description { get; internal set; }
 
         private readonly Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
 
@@ -32,12 +31,20 @@ namespace EntityGraphQL.Schema
             AddField("__typename", t => name, "Type name");
         }
 
-        /// <summary>
-        /// Add all public Properties and Fields from the base type
-        /// </summary>
-        public ISchemaType AddAllFields()
+        public ISchemaType AddAllFields<TContextType>(MappedSchemaProvider<TContextType> schema, bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
         {
-            BuildFieldsFromBase();
+            if (IsEnum)
+            {
+                foreach (var item in Enum.GetNames(ContextType))
+                {
+                    AddField(new Field(item, null, "", Name, ContextType));
+                }
+            }
+            else
+            {
+                var fields = SchemaBuilder.GetFieldsFromObject(ContextType, schema, autoCreateEnumTypes, autoCreateNewComplexTypes);
+                AddFields(fields);
+            }
             return this;
         }
         public void AddFields(List<Field> fields)
@@ -117,46 +124,6 @@ namespace EntityGraphQL.Schema
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
             _fieldsByName[field.Name] = field;
-        }
-
-        private void BuildFieldsFromBase()
-        {
-            if (IsEnum)
-            {
-                foreach (var item in Enum.GetNames(this.ContextType))
-                {
-                    this.AddField(new Field(item, null, "", Name, ContextType));
-                }
-                return;
-            }
-            foreach (var f in ContextType.GetProperties())
-            {
-                if (!_fieldsByName.ContainsKey(f.Name))
-                {
-                    //Get Description from ComponentModel.DescriptionAttribute
-                    string description = string.Empty;
-                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
-                    if (d != null)
-                        description = d.Description;
-
-                    var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Property(parameter, f.Name), parameter), description, null));
-                }
-            }
-            foreach (var f in ContextType.GetFields())
-            {
-                if (!_fieldsByName.ContainsKey(f.Name))
-                {
-                    //Get Description from ComponentModel.DescriptionAttribute
-                    string description = string.Empty;
-                    var d = (System.ComponentModel.DescriptionAttribute)f.GetCustomAttribute(typeof(System.ComponentModel.DescriptionAttribute), false);
-                    if (d != null)
-                        description = d.Description;
-
-                    var parameter = Expression.Parameter(ContextType);
-                    this.AddField(new Field(SchemaGenerator.ToCamelCaseStartsLower(f.Name), Expression.Lambda(Expression.Field(parameter, f.Name), parameter), description, null));
-                }
-            }
         }
 
         public Field GetField(string identifier)

@@ -1,3 +1,9 @@
+# 0.26.0
+- `ISchemaType.AddAllFields` requires a schema as it can add newly discovered types to that schema
+- `ISchemaType.AddAllFields` by default adds new `enum` types to the schema if found as a field type
+- `ISchemaType.AddAllFields` can (off by default) add new complex types to the schema if found as a field type
+- `Schema.Type<TType>()` now searches by `TType` not `typeof(TType).Name`. Allowing you to add a type with a different name but still get the typed `SchemaType<T>` back
+
 # 0.25.0
 - Add the ability to add enum types to the schema
 - The auto schema builder now adds enum types it finds to the schema by default

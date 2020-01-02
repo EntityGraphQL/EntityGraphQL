@@ -33,11 +33,11 @@ namespace EntityGraphQL.Schema
         /// <param name="autoCreateIdArguments">If True, automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static MappedSchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool authCreateEnumTypes = true)
+        public static MappedSchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
         {
             var schema = new MappedSchemaProvider<TContextType>();
             var contextType = typeof(TContextType);
-            var rootFields = AddFieldsFromObjectToSchema<TContextType>(contextType, schema);
+            var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes);
             foreach (var f in rootFields)
             {
                 if (autoCreateIdArguments)
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Schema
             schema.AddField(field);
         }
 
-        private static List<Field> AddFieldsFromObjectToSchema<TContextType>(Type type, MappedSchemaProvider<TContextType> schema)
+        public static List<Field> GetFieldsFromObject<TContextType>(Type type, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes = true)
         {
             var fields = new List<Field>();
             // cache fields/properties
@@ -101,20 +101,20 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties())
             {
-                var f = ProcessFieldOrProperty<TContextType>(prop, prop.PropertyType, param, schema);
+                var f = ProcessFieldOrProperty(prop, prop.PropertyType, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
                     fields.Add(f);
             }
             foreach (var prop in type.GetFields())
             {
-                var f = ProcessFieldOrProperty<TContextType>(prop, prop.FieldType, param, schema);
+                var f = ProcessFieldOrProperty(prop, prop.FieldType, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
                     fields.Add(f);
             }
             return fields;
         }
 
-        private static Field ProcessFieldOrProperty<TContextType>(MemberInfo prop, Type fieldOrPropType, ParameterExpression param, MappedSchemaProvider<TContextType> schema)
+        private static Field ProcessFieldOrProperty<TContextType>(MemberInfo prop, Type fieldOrPropType, ParameterExpression param, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
             {
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Schema
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
             var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description);
-            var t = CacheType<TContextType>(fieldOrPropType, schema);
+            var t = CacheType(fieldOrPropType, schema, createEnumTypes, createNewComplexTypes);
             if (t != null && t.IsEnum && !f.ReturnTypeClr.IsNullableType())
             {
                 f.ReturnTypeNotNullable = true;
@@ -139,14 +139,14 @@ namespace EntityGraphQL.Schema
             return f;
         }
 
-        private static ISchemaType CacheType<TContextType>(Type propType,  MappedSchemaProvider<TContextType> schema)
+        private static ISchemaType CacheType<TContextType>(Type propType, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes)
         {
             if (propType.IsEnumerableOrArray())
             {
                 propType = propType.GetEnumerableOrArrayType();
             }
 
-            if (!schema.HasType(propType.Name) && !ignoreTypes.Contains(propType.Name))
+            if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
                 var typeInfo = propType.GetTypeInfo();
                 string description = "";
@@ -156,7 +156,7 @@ namespace EntityGraphQL.Schema
                     description = d.Description;
                 }
 
-                if (typeInfo.IsClass || typeInfo.IsInterface)
+                if (createNewComplexTypes && (typeInfo.IsClass || typeInfo.IsInterface))
                 {
                     // add type before we recurse more that may also add the type
                     // dynamcially call generic method
@@ -166,16 +166,16 @@ namespace EntityGraphQL.Schema
                     method = method.MakeGenericMethod(propType);
                     var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
 
-                    var fields = AddFieldsFromObjectToSchema<TContextType>(propType, schema);
+                    var fields = GetFieldsFromObject(propType, schema, createEnumTypes);
                     t.AddFields(fields);
                     return t;
                 }
-                else if (typeInfo.IsEnum && !schema.HasType(propType.Name))
+                else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
                 {
                     var t = schema.AddEnum(propType.Name, propType, description);
                     return t;
                 }
-                else if (propType.IsNullableType() && Nullable.GetUnderlyingType(propType).GetTypeInfo().IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
+                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).GetTypeInfo().IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
                 {
                     Type type = Nullable.GetUnderlyingType(propType);
                     var t = schema.AddEnum(type.Name, type, description);
