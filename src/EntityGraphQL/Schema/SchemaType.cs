@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
@@ -35,9 +37,14 @@ namespace EntityGraphQL.Schema
         {
             if (IsEnum)
             {
-                foreach (var item in Enum.GetNames(ContextType))
+                foreach (var field in ContextType.GetTypeInfo().GetFields())
                 {
-                    AddField(new Field(item, null, "", Name, ContextType));
+                    if (field.Name == "value__")
+                        continue;
+
+                    var enumName = Enum.Parse(ContextType, field.Name).ToString();
+                    var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
+                    AddField(new Field(enumName, null, description, Name, ContextType));
                 }
             }
             else

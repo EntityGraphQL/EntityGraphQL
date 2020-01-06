@@ -69,7 +69,7 @@ namespace EntityGraphQL.Schema
 
 
             ReplaceField("__schema", db => SchemaIntrospection.Make(this, allTypeMappings), "Introspection of the schema", "__Schema");
-            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, allTypeMappings).Types.Where(s => s.Name == p.name).ToList(), "Query a type by name", "__Type");
+            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, allTypeMappings).Types.Where(s => s.Name == p.name).First(), "Query a type by name", "__Type");
         }
 
         /// <summary>

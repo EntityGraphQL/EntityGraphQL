@@ -1,3 +1,8 @@
+# 0.27.0
+- Introspection query `__type(name: "")` now correctly returns an object not an array
+- `[Description("")]` attributes on `enum` fields are now read into the schema
+- Fix issue where introspection query would have dupelicate types for enum types
+
 # 0.26.0
 - `ISchemaType.AddAllFields` requires a schema as it can add newly discovered types to that schema
 - `ISchemaType.AddAllFields` by default adds new `enum` types to the schema if found as a field type
