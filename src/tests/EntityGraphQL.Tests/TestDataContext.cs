@@ -26,6 +26,8 @@ namespace EntityGraphQL.Tests
         public string Name { get; set; }
         public string LastName { get; set; }
         public Gender Gender { get; set; }
+        public List<Project> Projects { get; set; }
+        public List<Task> Tasks { get; set; }
     }
 
     internal class Project

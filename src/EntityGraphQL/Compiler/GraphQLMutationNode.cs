@@ -40,8 +40,6 @@ namespace EntityGraphQL.Compiler
 
         public object Execute(params object[] args)
         {
-            var allArgs = new List<object>(args);
-
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
             var result = mutation.Execute(args);
@@ -89,7 +87,20 @@ namespace EntityGraphQL.Compiler
                     }
                     else
                     {
-                        graphQLNode.SetNodeExpression((ExpressionResult)mutationLambda.Body);
+                        // if they just return a constant I.e the entity they just updated. It comes as a memebr access constant
+                        if (mutationLambda.Body.NodeType == ExpressionType.MemberAccess)
+                        {
+                            var me = (MemberExpression)mutationLambda.Body;
+                            if (me.Expression.NodeType == ExpressionType.Constant)
+                            {
+                                graphQLNode.AddConstantParameter(Expression.Parameter(me.Type), Expression.Lambda(me).Compile().DynamicInvoke());
+                            }
+                        }
+                        else if (mutationLambda.Body.NodeType == ExpressionType.Constant)
+                        {
+                            var ce = (ConstantExpression)mutationLambda.Body;
+                            graphQLNode.AddConstantParameter(Expression.Parameter(ce.Type), ce.Value);
+                        }
                     }
                 }
                 else
@@ -100,12 +111,18 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 graphQLNode.Parameters[0] = mutationContextParam;
-                result = graphQLNode.Execute(args[0]);
+                var executionArg = args[0];
+                result = graphQLNode.Execute(executionArg);
                 return result;
             }
             // run the query select
             result = graphQLNode.Execute(result);
             return result;
+        }
+
+        public void AddConstantParameter(ParameterExpression param, object val)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -189,7 +189,7 @@ namespace EntityGraphQL.Compiler
             // build this first as NodeExpression may modify ConstantParameters
             var expression = GetNodeExpression();
 
-            // call tolist on to level nodes to force evaluation
+            // call tolist on top level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
             {
                 expression = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
@@ -198,6 +198,11 @@ namespace EntityGraphQL.Compiler
             var parameters = Parameters.ToList();
             if (ConstantParameters.Any())
             {
+                var replacer = new ParameterReplacer();
+                foreach (var item in ConstantParameters)
+                {
+                    expression = (ExpressionResult)replacer.ReplaceByType(expression, item.Key.Type, item.Key);
+                }
                 parameters.AddRange(ConstantParameters.Keys);
                 allArgs.AddRange(ConstantParameters.Values);
             }
@@ -211,6 +216,10 @@ namespace EntityGraphQL.Compiler
             {
                 this.constantParameters.Add(item.Key, item.Value);
             }
+        }
+        public void AddConstantParameter(ParameterExpression param, object val)
+        {
+            this.constantParameters.Add(param, val);
         }
 
         public override string ToString()

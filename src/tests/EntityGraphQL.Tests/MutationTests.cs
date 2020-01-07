@@ -113,6 +113,35 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
         }
+
+        [Fact]
+        public void SupportsSelectionFromConstant()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonAdv(name: $name) {
+    id name projects { id }
+  }
+}",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+            var testSchema = new TestSchema();
+            var results = testSchema.QueryObject(gql, schemaProvider);
+            dynamic addPersonResult = results.Data;
+            addPersonResult = Enumerable.First(addPersonResult);
+            addPersonResult = addPersonResult.Value;
+            // we only have the fields requested
+            Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal("projects", addPersonResult.GetType().GetFields()[2].Name);
+            Assert.Equal(1, Enumerable.Count(addPersonResult.projects));
+            Assert.Equal("Bill", addPersonResult.name);
+        }
     }
 
     internal class TestSchema
@@ -162,6 +191,20 @@ namespace EntityGraphQL.Tests
         public Person AddPersonInput(TestSchema db, PeopleMutationsArgs args)
         {
             return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };
+        }
+
+        [GraphQLMutation]
+        public Expression<Func<TestSchema, Person>> AddPersonAdv(TestSchema db, PeopleMutationsArgs args)
+        {
+            // test returning a constant in the expression which allows graphql selection over the schema (assuming the constant is a type in the schema)
+            // Ie. in the mutation query you can select any valid fields in the schema from Person
+            var person = new Person
+            {
+                Name = args.Name,
+                Tasks = new List<Task> {new Task {Name = "A"}},
+                Projects = new List<Project> {new Project {Id = 123}}
+            };
+            return ctx => person;
         }
     }
 

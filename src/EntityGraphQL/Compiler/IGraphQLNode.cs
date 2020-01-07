@@ -45,6 +45,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; }
+        void AddConstantParameter(ParameterExpression param, object val);
     }
 
     public interface IGraphQLBaseNode
