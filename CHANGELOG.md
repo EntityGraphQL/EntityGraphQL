@@ -1,3 +1,6 @@
+# 0.27.1
+- Btter support mutations that return an object, not a list
+
 # 0.27.0
 - Introspection query `__type(name: "")` now correctly returns an object not an array
 - `[Description("")]` attributes on `enum` fields are now read into the schema
