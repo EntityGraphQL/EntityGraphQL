@@ -160,7 +160,7 @@ namespace EntityGraphQL.Compiler
                 if (gqlVarValue != null && gqlVarValue.Type == typeof(string) && gqlVarValue.NodeType == ExpressionType.Constant)
                 {
                     string strValue = (string)((ConstantExpression)gqlVarValue).Value;
-                    if (guidRegex.IsMatch(strValue))
+                    if ((argType.Type == typeof(Guid) || argType.Type == typeof(Guid?)) && guidRegex.IsMatch(strValue))
                     {
                         return ConvertToGuid(gqlVarValue);
                     }

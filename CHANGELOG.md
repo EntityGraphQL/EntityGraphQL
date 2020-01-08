@@ -1,3 +1,6 @@
+# 0.28.0
+- Only convert a string matching a `Guid` when the arg type is a `Guid` or `Guid?`
+
 # 0.27.2
 - Fix issue where a non-required EntityQueryType Filter throw an error if it wasn't supplied
 
