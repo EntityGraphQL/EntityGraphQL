@@ -1,3 +1,6 @@
+# 0.28.1
+ - Fix issue introduced in 0.28 when using the `RequiredField<>` type
+
 # 0.28.0
 - Only convert a string matching a `Guid` when the arg type is a `Guid` or `Guid?`
 
