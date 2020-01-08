@@ -418,7 +418,7 @@ namespace EntityGraphQL.Schema
             }
             else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
             {
-                return args != null ? args[argName] : null;
+                return args != null && ((BaseEntityQueryType)defaultValue).HasValue ? args[argName] : null;
             }
             else if (args != null && args.ContainsKey(argName))
             {

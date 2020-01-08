@@ -66,12 +66,6 @@ namespace EntityGraphQL.Schema
         /// <value></value>
         public Expression<Func<TType, bool>> Query { get; set; }
 
-        /// <summary>
-        /// The Compiler will set this based on supplied arguments.null You have use this in your expression to make a choice
-        /// </summary>
-        /// <value></value>
-        public bool HasValue { get; set; }
-
         public EntityQueryType()
         {
             this.QueryType = typeof(TType);
@@ -85,6 +79,11 @@ namespace EntityGraphQL.Schema
 
     public class BaseEntityQueryType
     {
+        /// <summary>
+        /// The Compiler will set this based on supplied arguments.null You have use this in your expression to make a choice
+        /// </summary>
+        /// <value></value>
+        public bool HasValue { get; set; }
         public Type QueryType { get; protected set; }
     }
 }

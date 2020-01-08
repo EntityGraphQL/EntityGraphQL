@@ -1,5 +1,8 @@
+# 0.27.2
+- Fix issue where a non-required EntityQueryType Filter throw an error if it wasn't supplied
+
 # 0.27.1
-- Btter support mutations that return an object, not a list
+- Better support mutations that return an object, not a list
 
 # 0.27.0
 - Introspection query `__type(name: "")` now correctly returns an object not an array
