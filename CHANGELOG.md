@@ -1,3 +1,6 @@
+# 0.28.2
+- Fix error with `EntityQueryType<>` as a field argument not being defined as a `String` in introspection
+
 # 0.28.1
  - Fix issue introduced in 0.28 when using the `RequiredField<>` type
 

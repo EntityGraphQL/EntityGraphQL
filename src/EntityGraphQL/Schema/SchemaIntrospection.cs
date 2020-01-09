@@ -215,7 +215,7 @@
             }
             else
             {
-                type.Kind = combinedMapping.Any(x => x.Key == clrType) ? "SCALAR" : "OBJECT";
+                type.Kind = FindTypeInMapping(clrType, combinedMapping) != null ? "SCALAR" : "OBJECT";
                 type.OfType = null;
                 if (type.Kind == "OBJECT" && isInput)
                 {
@@ -344,13 +344,19 @@
 
         private static string FindNamedMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping, string fallback = null)
         {
-            if (combinedMapping.Any(x => x.Key == name))
-                return combinedMapping[name];
+            var mappedType = FindTypeInMapping(name, combinedMapping);
+            if (mappedType != null)
+                return mappedType;
             else
                 if (string.IsNullOrEmpty(fallback))
-                    return name.Name;
-                else
-                    return fallback;
+                return name.Name;
+            else
+                return fallback;
+        }
+
+        private static string FindTypeInMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping)
+        {
+            return combinedMapping.FirstOrDefault(x => x.Key == name || (name.GetTypeInfo().IsGenericType && name.GetGenericTypeDefinition() == x.Key)).Value;
         }
 
         private static List<Models.Directives> BuildDirectives()

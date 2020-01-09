@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using demo.Mutations;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Extensions;
 
 namespace demo
 {
@@ -19,7 +20,9 @@ namespace demo
             // we can extend the schema
 
             // Add custom root fields
-            demoSchema.ReplaceField("actors", db => db.People.Where(p => p.ActorIn.Any()), "List of actors");
+            demoSchema.ReplaceField("actors", new {
+                filter = ArgumentHelper.EntityQuery<Person>()
+            }, (db, param) => db.People.Where(p => p.ActorIn.Any()).WhereWhen(param.filter, param.filter.HasValue), "List of actors");
             demoSchema.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
             demoSchema.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors");
 
