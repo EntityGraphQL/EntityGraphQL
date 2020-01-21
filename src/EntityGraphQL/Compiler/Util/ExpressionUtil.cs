@@ -132,24 +132,22 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
-        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions)
         {
-            Type dynamicType;
-            var memberInit = CreateNewExpression(currentContextParam, fieldExpressions, schemaProvider, out dynamicType);
+            var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var call = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            var call = MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
         }
 
-        public static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider)
+        public static Expression CreateNewExpression(IEnumerable<IGraphQLNode> fieldExpressions)
         {
-            Type dynamicType;
-            var memberInit = CreateNewExpression(currentContext, fieldExpressions, schemaProvider, out dynamicType);
+            var memberInit = CreateNewExpression(fieldExpressions, out _);
             return memberInit;
         }
-        private static Expression CreateNewExpression(Expression currentContext, IEnumerable<IGraphQLNode> fieldExpressions, ISchemaProvider schemaProvider, out Type dynamicType)
+        private static Expression CreateNewExpression(IEnumerable<IGraphQLNode> fieldExpressions, out Type dynamicType)
         {
-            var fieldExpressionsByName = new Dictionary<String, ExpressionResult>();
+            var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
             foreach (var item in fieldExpressions)
             {
                 // if there are dupelicate fields (looking at you ApolloClient when using fragments) they override

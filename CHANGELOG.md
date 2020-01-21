@@ -1,3 +1,6 @@
+# 0.29.0
+- Support `fragment` statements in other positions in the query
+
 # 0.28.2
 - Fix error with `EntityQueryType<>` as a field argument not being defined as a `String` in introspection
 
