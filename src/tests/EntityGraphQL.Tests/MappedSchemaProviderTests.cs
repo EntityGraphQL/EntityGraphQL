@@ -16,27 +16,27 @@ namespace EntityGraphQL.Tests
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Location", "id", new string[0]));
-            Assert.True(provider.TypeHasField("Location", "address", new string[0]));
-            Assert.True(provider.TypeHasField("Location", "state", new string[0]));
-            Assert.True(provider.TypeHasField("Location", "country", new string[0]));
-            Assert.True(provider.TypeHasField("Location", "planet", new string[0]));
+            Assert.True(provider.TypeHasField("Location", "id", new string[0], null));
+            Assert.True(provider.TypeHasField("Location", "address", new string[0], null));
+            Assert.True(provider.TypeHasField("Location", "state", new string[0], null));
+            Assert.True(provider.TypeHasField("Location", "country", new string[0], null));
+            Assert.True(provider.TypeHasField("Location", "planet", new string[0], null));
         }
         [Fact]
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Person", "id", new string[0]));
-            Assert.True(provider.TypeHasField("Person", "name", new string[0]));
+            Assert.True(provider.TypeHasField("Person", "id", new string[0], null));
+            Assert.True(provider.TypeHasField("Person", "name", new string[0], null));
             // Not exposed in our schema
-            Assert.True(provider.TypeHasField("Person", "fullName", new string[0]));
+            Assert.True(provider.TypeHasField("Person", "fullName", new string[0], null));
         }
         [Fact]
         public void ReturnsActualName()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
-            Assert.Equal("name", schema.GetActualFieldName("Project", "name"));
+            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
+            Assert.Equal("name", schema.GetActualFieldName("Project", "name", null));
         }
         [Fact]
         public void SupportsEnum()
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
         public void RemovesTypeAndFields()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
+            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
             schema.RemoveTypeAndAllFields<Project>();
             Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeClrSingle == "project"));
         }
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Tests
         public void RemovesTypeAndFields2()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id"));
+            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
             schema.RemoveTypeAndAllFields("Project");
             Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnTypeClrSingle == "project"));
         }

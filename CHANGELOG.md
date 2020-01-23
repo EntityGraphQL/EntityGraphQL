@@ -1,3 +1,6 @@
+# 0.30.0
+- Initial support for Authorization and Security in the schema - see updated readme and provide feedback
+
 # 0.29.0
 - Support `fragment` statements in other positions in the query
 

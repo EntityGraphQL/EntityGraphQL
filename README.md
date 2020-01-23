@@ -93,6 +93,7 @@ public class QueryController : Controller
 
 This sets up 1 end point:
 - `POST` at `/api/query` where the body of the post is a GraphQL query
+- You can authorize that route how you would any ASP.NET route. See Authorization below for details on having parts of the schema requiring Authorization/Claims
 
 ## 3. Build awesome applications
 
@@ -193,6 +194,7 @@ Will return the following result.
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 - Schema introspection
+- Fragments
 
 # Customizing the schema
 
@@ -342,13 +344,74 @@ Examples:
 - The mutation arguments class (`ActorArgs` above) with fields `FirstName` & `Id` will be arguments in the schema as `firstName` & `id`
 - If you're using the schema builder manually, the names you give will be the names used. E.g. `schemaProvider.AddField("someEntity", ...)` is different to `schemaProvider.AddField("SomeEntity", ...)`
 
-# Secuity
+# Authorization & Secuity
+
+You should be able to secure the route where you app/client posts request to in any ASP.NET supports. Given GraphQL works with a schema you likely want to provide security within the schema. EntityGraphQL provides support for checking claims on a `ClaimsIdentity` object.
+
+First pass in the `ClaimsIdentity` to the query call
+
+```c#
+// Assuming you're in a ASP.NET controller
+var results = _dbContext.QueryObject(query, _schemaProvider, this.User.Identities.FirstOrDefault());
+```
+
+Now if a field or mutation has `AuthorizeClaims` it will check if the supplied `ClaimsIdentity` contains any of those claims using the claim type `ClaimTypes.Role`.
+
+_Note: if you provide multiple `[GraphQLAuthorize]` attributes on a single field/mutation they are treat as or. I.e. you require any 1 of those claims.
 
 ## Mutations
-Security checks should be done in your mutation code.
+
+Mark you mutation methods with the `[GraphQLAuthorize("claim-name")]` attribute.
+
+```c#
+public class MovieMutations
+{
+  [GraphQLMutation]
+  [GraphQLAuthorize("movie-editor")]
+  public Movie AddActor(MyDbContext db, ActorArgs args)
+  {
+    // ...
+  }
+}
+```
+
+If a `ClaimsIdentity` is provided with the query call it will be required to be Authorized and have a claim of type `Role` with a value of `movie-editor` to call this mutation.
 
 ## Queries
-Coming soon. But you should have security at other layers too
+
+If you are using the `SchemaBuilder.FromObject<T>()` you can use the `[GraphQLAuthorize("claim-name")]` attribute again throughout the objects.
+
+```c#
+public class MyDbContext : DbContext {
+  protected override void OnModelCreating(ModelBuilder builder) {
+    // Set up your relations
+  }
+
+  [GraphQLAuthorize("property-role")]
+  public DbSet<Property> Properties { get; set; }
+  public DbSet<PropertyType> PropertyTypes { get; set; }
+  public DbSet<Location> Locations { get; set; }
+}
+
+public class Property {
+  public uint Id { get; set; }
+  public string Name { get; set; }
+  public PropertyType Type { get; set; }
+  [GraphQLAuthorize("property-admin")]
+  public Location Location { get; set; }
+}
+
+// ....
+```
+
+If a `ClaimsIdentity` is provided with the query call it will be required to be Authorized and have a claim of type `Role` with a value of `property-role` to query the root-level `properties` field and a claim of `property-admin` to query the `Property` field `location`.
+
+`AuthorizeClaims` can be provided in the API for add/replacing fields on the schema objact.
+
+```c#
+schemaProvider.AddField("myField", (db) => db.MyEntities, "Description", authorizeClaims: new List<string> {"admin"});
+```
+
 
 # Paging
 For paging you want to create your own fields.

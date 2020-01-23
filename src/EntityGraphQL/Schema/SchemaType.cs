@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Security.Claims;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
@@ -30,7 +32,7 @@ namespace EntityGraphQL.Schema
             Description = description;
             IsInput = isInput;
             IsEnum = isEnum;
-            AddField("__typename", t => name, "Type name");
+            AddField("__typename", t => name, "Type name", null, null, null);
         }
 
         public ISchemaType AddAllFields<TContextType>(MappedSchemaProvider<TContextType> schema, bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
@@ -44,7 +46,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(ContextType, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    AddField(new Field(enumName, null, description, Name, ContextType));
+                    AddField(new Field(enumName, null, description, Name, ContextType, null));
                 }
             }
             else
@@ -68,10 +70,10 @@ namespace EntityGraphQL.Schema
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
         /// <typeparam name="TReturn"></typeparam>
-        public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public void AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable);
+            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable, authorizeClaims);
         }
         public void AddField(Field field)
         {
@@ -82,16 +84,16 @@ namespace EntityGraphQL.Schema
             if (!_fieldsByName.ContainsKey(field.Name))
                 _fieldsByName.Add(field.Name, field);
         }
-        public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public void AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
         {
-            var field = new Field(name, fieldSelection, description, returnSchemaType);
+            var field = new Field(name, fieldSelection, description, returnSchemaType, null, authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnTypeNotNullable = !isNullable.Value;
             this.AddField(field);
         }
-        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public void ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
         {
-            var field = new Field(name, selectionExpression, description, returnSchemaType);
+            var field = new Field(name, selectionExpression, description, returnSchemaType, null, authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnTypeNotNullable = !isNullable.Value;
             _fieldsByName[field.Name] = field;
@@ -108,9 +110,9 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
         {
-            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
+            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes, authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnTypeNotNullable = !isNullable.Value;
             this.AddField(field);
@@ -127,16 +129,23 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams"></typeparam>
         /// <typeparam name="TReturn"></typeparam>
         /// <returns></returns>
-        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, IEnumerable<string> authorizeClaims = null)
         {
-            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes);
+            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes, authorizeClaims);
             _fieldsByName[field.Name] = field;
         }
 
-        public Field GetField(string identifier)
+        public Field GetField(string identifier, ClaimsIdentity claims = null)
         {
             if (_fieldsByName.ContainsKey(identifier))
+            {
+                var field = _fieldsByName[identifier];
+                if (!AuthUtil.IsAuthorized(claims, field.AuthorizeClaims))
+                {
+                    throw new EntityGraphQLCompilerException($"You do not have access to field '{identifier}' on type '{Name}'. You require any of the following security claims [{string.Join(", ", field.AuthorizeClaims)}]");
+                }
                 return _fieldsByName[identifier];
+            }
 
             throw new EntityGraphQLCompilerException($"Field {identifier} not found");
         }

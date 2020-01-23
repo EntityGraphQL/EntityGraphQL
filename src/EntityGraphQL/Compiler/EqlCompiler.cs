@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Security.Claims;
 using Antlr4.Runtime;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.LinqQuery;
@@ -19,14 +20,14 @@ namespace EntityGraphQL.Compiler
     ///   not(), !
     public static class EqlCompiler
     {
-        public static CompiledQueryResult Compile(string query)
+        public static CompiledQueryResult Compile(string query, ClaimsIdentity claims)
         {
-            return Compile(query, null, new DefaultMethodProvider(), null);
+            return Compile(query, null, claims, new DefaultMethodProvider(), null);
         }
 
-        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, ClaimsIdentity claims)
         {
-            return Compile(query, schemaProvider, new DefaultMethodProvider(), null);
+            return Compile(query, schemaProvider, claims, new DefaultMethodProvider(), null);
         }
 
         /// <summary>
@@ -36,13 +37,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, ClaimsIdentity claims, IMethodProvider methodProvider, QueryVariables variables)
         {
             ParameterExpression contextParam = null;
 
             if (schemaProvider != null)
                 contextParam = Expression.Parameter(schemaProvider.ContextType);
-            var expression = CompileQuery(query, contextParam, schemaProvider, methodProvider, variables);
+            var expression = CompileQuery(query, contextParam, schemaProvider, claims, methodProvider, variables);
 
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
@@ -50,7 +51,7 @@ namespace EntityGraphQL.Compiler
             return new CompiledQueryResult(expression, contextParams);
         }
 
-        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null, QueryVariables variables = null)
+        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, QueryVariables variables = null)
         {
             if (methodProvider == null)
             {
@@ -60,13 +61,13 @@ namespace EntityGraphQL.Compiler
             {
                 variables = new QueryVariables();
             }
-            var expression = CompileQuery(query, context, schemaProvider, methodProvider, variables);
+            var expression = CompileQuery(query, context, schemaProvider, claims, methodProvider, variables);
 
             var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
             return new CompiledQueryResult(expression, parameters);
         }
 
-        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, ClaimsIdentity claims, IMethodProvider methodProvider, QueryVariables variables)
         {
             AntlrInputStream stream = new AntlrInputStream(query);
             var lexer = new EntityGraphQLLexer(stream);
@@ -75,7 +76,7 @@ namespace EntityGraphQL.Compiler
             parser.BuildParseTree = true;
             var tree = parser.startRule();
 
-            var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables);
+            var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables, claims);
             var expression = visitor.Visit(tree);
             return expression;
         }

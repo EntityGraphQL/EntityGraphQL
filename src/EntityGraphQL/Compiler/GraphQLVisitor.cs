@@ -6,6 +6,7 @@ using EntityGraphQL.Schema;
 using System.Collections.Generic;
 using EntityGraphQL.LinqQuery;
 using EntityGraphQL.Compiler.Util;
+using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
@@ -15,6 +16,7 @@ namespace EntityGraphQL.Compiler
     /// <typeparam name="IGraphQLBaseNode"></typeparam>
     internal class GraphQLVisitor : EntityGraphQLBaseVisitor<IGraphQLBaseNode>
     {
+        private readonly ClaimsIdentity claims;
         private readonly ISchemaProvider schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly QueryVariables variables;
@@ -31,8 +33,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         private readonly List<IGraphQLNode> rootQueries = new List<IGraphQLNode>();
 
-        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        public GraphQLVisitor(ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables, ClaimsIdentity claims)
         {
+            this.claims = claims;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
             this.variables = variables;
@@ -41,8 +44,8 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitField(EntityGraphQLParser.FieldContext context)
         {
             var name = baseIdentityFinder.Visit(context);
-            var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, methodProvider, variables);
-            var actualName = schemaProvider.GetActualFieldName(schemaProvider.GetSchemaTypeNameForRealType(selectContext.Type), name);
+            var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, claims, methodProvider, variables);
+            var actualName = schemaProvider.GetActualFieldName(schemaProvider.GetSchemaTypeNameForRealType(selectContext.Type), name, claims);
             var node = new GraphQLNode(schemaProvider, fragments, actualName, result, null);
             return node;
         }
@@ -53,13 +56,13 @@ namespace EntityGraphQL.Compiler
             if (selectContext == null)
             {
                 // top level are queries on the context
-                var exp = EqlCompiler.Compile(query, schemaProvider, methodProvider, variables);
+                var exp = EqlCompiler.Compile(query, schemaProvider, claims, methodProvider, variables);
                 var node = new GraphQLNode(schemaProvider, fragments, name, exp, null);
                 return node;
             }
             else
             {
-                var result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider, variables);
+                var result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, claims, methodProvider, variables);
                 var node = new GraphQLNode(schemaProvider, fragments, name, result, null);
                 return node;
             }
@@ -95,11 +98,11 @@ namespace EntityGraphQL.Compiler
                 if (selectContext == null)
                 {
                     // top level are queries on the context
-                    result = EqlCompiler.Compile(query, schemaProvider, methodProvider, variables);
+                    result = EqlCompiler.Compile(query, schemaProvider, claims, methodProvider, variables);
                 }
                 else
                 {
-                    result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, methodProvider, variables);
+                    result = EqlCompiler.CompileWith(query, selectContext, schemaProvider, claims, methodProvider, variables);
                 }
                 var exp = result.ExpressionResult;
 
@@ -173,9 +176,9 @@ namespace EntityGraphQL.Compiler
                 selectWasNull = true;
             }
 
-            if (schemaProvider.TypeHasField(selectContext.Type.Name, name, new string[0]))
+            if (schemaProvider.TypeHasField(selectContext.Type.Name, name, new string[0], claims))
             {
-                name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name);
+                name = schemaProvider.GetActualFieldName(selectContext.Type.Name, name, claims);
             }
 
             try
@@ -282,7 +285,7 @@ namespace EntityGraphQL.Compiler
             {
                 return new GraphQLOperation();
             }
-            var visitor = new OperationVisitor(variables, schemaProvider);
+            var visitor = new OperationVisitor(variables, schemaProvider, claims);
             var op = visitor.Visit(context);
 
             return op;

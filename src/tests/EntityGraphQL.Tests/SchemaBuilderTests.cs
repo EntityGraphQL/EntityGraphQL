@@ -19,33 +19,33 @@ namespace EntityGraphQL.Tests
         public void CachesPublicProperties()
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0]));
-            Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0], null));
+            Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", new string[0], null));
         }
         [Fact]
         public void CachesPublicFields()
         {
             var schema = SchemaBuilder.FromObject<Person>();
-            Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
         }
         [Fact]
         public void CachesRecursively()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0], null));
         }
         [Fact]
         public void AllowsExtending()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().AddField("idAndName", p => p.Id + " " + p.Name, "The Id and Name");
-            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0]));
-            Assert.True(schema.TypeHasField(typeof(Person), "idAndName", new string[0]));
+            Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
+            Assert.True(schema.TypeHasField(typeof(Person), "idAndName", new string[0], null));
         }
         [Fact]
         public void CanNotOverrideExistingType()

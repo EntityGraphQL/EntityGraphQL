@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using EntityGraphQL.Grammer;
@@ -28,15 +30,15 @@ namespace EntityGraphQL.Compiler
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public GraphQLResultNode Compile(string query, QueryVariables variables = null)
+        public GraphQLResultNode Compile(string query, QueryVariables variables = null, ClaimsIdentity claims = null)
         {
             if (variables == null)
             {
                 variables = new QueryVariables();
             }
-            return Compile(new QueryRequest { Query = query, Variables = variables });
+            return Compile(new QueryRequest { Query = query, Variables = variables }, claims);
         }
-        public GraphQLResultNode Compile(QueryRequest request)
+        public GraphQLResultNode Compile(QueryRequest request, ClaimsIdentity claims = null)
         {
             // Setup our Antlr parser
             var stream = new AntlrInputStream(request.Query);
@@ -48,7 +50,7 @@ namespace EntityGraphQL.Compiler
             try
             {
                 var tree = parser.graphQL();
-                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, request.Variables);
+                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, request.Variables, claims);
                 // visit each node. it will return a linq expression for each entity requested
                 var node = visitor.Visit(tree);
                 return (GraphQLResultNode)node;

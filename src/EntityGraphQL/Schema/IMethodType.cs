@@ -12,6 +12,7 @@ namespace EntityGraphQL.Schema
         string ReturnTypeClrSingle { get; }
         bool ReturnTypeNotNullable { get; }
         bool ReturnElementTypeNullable { get; }
+        List<string> AuthorizeClaims { get; }
 
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);

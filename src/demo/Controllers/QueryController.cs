@@ -3,7 +3,6 @@ using System.Net;
 using EntityGraphQL;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace demo.Controllers
 {

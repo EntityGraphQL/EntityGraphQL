@@ -9,12 +9,14 @@ using EntityGraphQL.Schema;
 using System.Text.RegularExpressions;
 using EntityGraphQL.LinqQuery;
 using System.Globalization;
+using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
 
     internal class QueryGrammerNodeVisitor : EntityGraphQLBaseVisitor<ExpressionResult>
     {
+        private readonly ClaimsIdentity claims;
         private ExpressionResult currentContext;
         private readonly ISchemaProvider schemaProvider;
         private readonly IMethodProvider methodProvider;
@@ -22,8 +24,9 @@ namespace EntityGraphQL.Compiler
         private IMethodType fieldArgumentContext;
         private readonly Regex guidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables)
+        public QueryGrammerNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables, ClaimsIdentity claims)
         {
+            this.claims = claims;
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
@@ -118,7 +121,7 @@ namespace EntityGraphQL.Compiler
         {
             var fieldName = context.method.GetText();
             var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
-            IMethodType methodType = schemaProvider.GetFieldType(currentContext, fieldName);
+            IMethodType methodType = schemaProvider.GetFieldOnContext(currentContext, fieldName, claims);
             var args = argList.ToDictionary(a => a.gqlfield.GetText(), a => {
                 var argName = a.gqlfield.GetText();
                 if (!methodType.Arguments.ContainsKey(argName))
@@ -202,7 +205,7 @@ namespace EntityGraphQL.Compiler
             {
                 return null;
             }
-            ExpressionResult expressionResult = EqlCompiler.CompileWith(query, contextParam, schemaProvider, methodProvider, variables).ExpressionResult;
+            ExpressionResult expressionResult = EqlCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider, variables).ExpressionResult;
             expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);
             return expressionResult;
         }
@@ -210,11 +213,11 @@ namespace EntityGraphQL.Compiler
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
             string name = schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(name, field, args != null ? args.Select(d => d.Key) : new string[0]))
+            if (!schemaProvider.TypeHasField(name, field, args != null ? args.Select(d => d.Key) : new string[0], claims))
             {
                 throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{name}'");
             }
-            var exp = schemaProvider.GetExpressionForField(currentContext, name, field, args);
+            var exp = schemaProvider.GetExpressionForField(currentContext, name, field, args, claims);
             return exp;
         }
 

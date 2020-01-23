@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Security.Claims;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
@@ -19,12 +20,16 @@ namespace EntityGraphQL.Schema
         public bool ReturnTypeNotNullable { get; set; }
         public bool ReturnElementTypeNullable { get; set; }
 
-        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType = null, Type returnClrType = null)
+        public List<string> AuthorizeClaims { get; }
+
+
+        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType, Type returnClrType, IEnumerable<string> authorizeClaims)
         {
             Name = name;
             Description = description;
             ReturnTypeClrSingle = returnSchemaType;
             ReturnTypeClr = returnClrType;
+            AuthorizeClaims = authorizeClaims?.ToList();
 
             if (resolve != null)
             {
@@ -55,7 +60,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes) : this(name, resolve, description, returnSchemaType)
+        public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes, IEnumerable<string> claims) : this(name, resolve, description, returnSchemaType, null, claims)
         {
             this.ArgumentTypesObject = argTypes;
             this.allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => new ArgType

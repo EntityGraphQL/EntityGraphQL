@@ -1,16 +1,19 @@
 using System.Collections.Generic;
+using System.Security.Claims;
 using EntityGraphQL.Grammer;
 
 namespace EntityGraphQL.Compiler
 {
     internal class OperationVisitor : EntityGraphQLBaseVisitor<GraphQLOperation>
     {
+        private readonly ClaimsIdentity claims;
         private readonly QueryVariables variables;
         private readonly Schema.ISchemaProvider schemaProvider;
         private readonly GraphQLOperation operation;
 
-        public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider)
+        public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider, ClaimsIdentity claims)
         {
+            this.claims = claims;
             this.variables = variables;
             this.schemaProvider = schemaProvider;
             this.operation = new GraphQLOperation();
@@ -35,7 +38,7 @@ namespace EntityGraphQL.Compiler
             CompiledQueryResult defaultValue = null;
             if (context.defaultValue != null)
             {
-                defaultValue = EqlCompiler.CompileWith(context.defaultValue.GetText(), null, schemaProvider, null, variables);
+                defaultValue = EqlCompiler.CompileWith(context.defaultValue.GetText(), null, schemaProvider, claims, null, variables);
             }
 
             if (required && !variables.ContainsKey(argName) && defaultValue == null)

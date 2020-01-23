@@ -7,6 +7,7 @@ using EntityGraphQL.Extensions;
 using Humanizer;
 using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
+using EntityGraphQL.Authorization;
 
 namespace EntityGraphQL.Schema
 {
@@ -87,7 +88,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeClrSingle} by its Id", fieldProp.ReturnTypeClrSingle, argTypesValue);
+            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeClrSingle} by its Id", fieldProp.ReturnTypeClrSingle, argTypesValue, fieldProp.AuthorizeClaims);
             schema.AddField(field);
         }
 
@@ -130,7 +131,8 @@ namespace EntityGraphQL.Schema
             }
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
-            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description);
+            var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
+            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, null, null, attributes.Any() ? attributes.Select(a => a.Claim) : null);
             var t = CacheType(fieldOrPropType, schema, createEnumTypes, createNewComplexTypes);
             if (t != null && t.IsEnum && !f.ReturnTypeClr.IsNullableType())
             {

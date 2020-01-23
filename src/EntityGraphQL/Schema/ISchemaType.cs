@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace EntityGraphQL.Schema
 {
@@ -11,7 +12,7 @@ namespace EntityGraphQL.Schema
         bool IsInput { get; }
         bool IsEnum { get; }
 
-        Field GetField(string identifier);
+        Field GetField(string identifier, ClaimsIdentity claims);
         IEnumerable<Field> GetFields();
         bool HasField(string identifier);
         void AddFields(List<Field> fields);

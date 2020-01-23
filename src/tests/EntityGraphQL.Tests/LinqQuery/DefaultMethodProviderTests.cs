@@ -12,48 +12,48 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesFirst()
         {
-            var exp = EqlCompiler.Compile(@"people.first(guid = ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.first(guid = ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
         }
         [Fact]
         public void CompilesWhere()
         {
-            var exp = EqlCompiler.Compile(@"people.where(name = ""bob"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.where(name = ""bob"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Empty(result);
         }
         [Fact]
         public void CompilesWhere2()
         {
-            var exp = EqlCompiler.Compile(@"people.where(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.where(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
         }
         [Fact]
         public void FailsWhereNoParameter()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null));
             Assert.Equal("Method 'where' expects 1 argument(s) but 0 were supplied", ex.Message);
         }
         [Fact]
         public void FailsWhereWrongParameterType()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EqlCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null));
             Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String'", ex.Message);
         }
 
         [Fact]
         public void CompilesFirstWithPredicate()
         {
-            var exp = EqlCompiler.Compile(@"people.first(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile(@"people.first(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal("Luke", result.Name);
         }
         [Fact]
         public void CompilesFirstNoPredicate()
         {
-            var exp = EqlCompiler.Compile("people.first()", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile("people.first()", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal("Bob", result.Name);
         }
@@ -61,7 +61,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesTake()
         {
-            var exp = EqlCompiler.Compile("people.take(1)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile("people.take(1)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
             Assert.Equal("Bob", result.ElementAt(0).Name);
@@ -69,7 +69,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesSkip()
         {
-            var exp = EqlCompiler.Compile("people.Skip(1)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile("people.Skip(1)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Equal(3, result.Count());
             Assert.Equal("Luke", result.ElementAt(0).Name);
@@ -78,7 +78,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [Fact]
         public void CompilesMethodsChained()
         {
-            var exp = EqlCompiler.Compile("people.where(id = 9).take(2)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider(), null);
+            var exp = EqlCompiler.Compile("people.where(id = 9).take(2)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider(), null);
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Equal(2, result.Count());
             Assert.Equal("Bob", result.ElementAt(0).Name);

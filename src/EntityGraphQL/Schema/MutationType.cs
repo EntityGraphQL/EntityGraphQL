@@ -122,6 +122,7 @@ namespace EntityGraphQL.Schema
         public Type ContextType => ReturnType.ContextType;
 
         public string Name { get; }
+        public List<string> AuthorizeClaims { get; }
 
         public ISchemaType ReturnType => returnType;
 
@@ -131,13 +132,14 @@ namespace EntityGraphQL.Schema
         public bool ReturnTypeNotNullable => false;
         public bool ReturnElementTypeNullable => false;
 
-        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description)
+        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, IEnumerable<string> authorizeClaims)
         {
             this.Description = description;
             this.returnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             Name = methodName;
+            AuthorizeClaims = authorizeClaims?.ToList();
 
             var methodArg = method.GetParameters().Last();
             this.argInstanceType = methodArg.ParameterType;
