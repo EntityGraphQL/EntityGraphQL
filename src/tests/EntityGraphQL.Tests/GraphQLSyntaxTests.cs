@@ -311,7 +311,7 @@ fragment info on Person {
     }
     ");
             });
-            Assert.Equal(" $limit)'. No argument 'limit' found on field 'people'", e.Message);
+            Assert.Equal("No argument 'limit' found on field 'people'", e.Message);
         }
 
         [Fact]

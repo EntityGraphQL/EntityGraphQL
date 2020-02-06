@@ -56,7 +56,7 @@ namespace EntityGraphQL.Tests
             };
             var results = new IgnoreTestSchema().QueryObject(gql, schemaProvider);
             var error = results.Errors.First();
-            Assert.Equal("me: $name, hiddenInputField: $hiddenInputField)'. No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
+            Assert.Equal("No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests
             };
             var results = new IgnoreTestSchema().QueryObject(gql, schemaProvider);
             var error = results.Errors.First();
-            Assert.Equal("me: $name, hiddenField: $hiddenField)'. No argument 'hiddenField' found on field 'addAlbum'", error.Message);
+            Assert.Equal("No argument 'hiddenField' found on field 'addAlbum'", error.Message);
         }
 
         [Fact]
