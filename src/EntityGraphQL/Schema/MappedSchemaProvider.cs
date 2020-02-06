@@ -32,6 +32,8 @@ namespace EntityGraphQL.Schema
         };
         // map some types to scalar types
         protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string> {
+            {typeof(uint), "Int"},
+            {typeof(ulong), "Int"},
             {typeof(long), "Int"},
             {typeof(double), "Float"},
             {typeof(decimal), "Float"},

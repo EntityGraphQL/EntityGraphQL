@@ -49,7 +49,7 @@ namespace EntityGraphQL.Schema
         public static bool IsAuthorized(ClaimsIdentity claims, RequiredClaims authorizeClaims)
         {
             // if the list is empty it means claims.IsAuthenticated needs to be true, if full it requires certain claims
-            if (authorizeClaims != null)
+            if (authorizeClaims != null && claims != null)
             {
                 if (claims.IsAuthenticated && (!authorizeClaims.Any() || authorizeClaims.HasRequired(claims)))
                 {
