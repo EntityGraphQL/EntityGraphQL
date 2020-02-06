@@ -21,6 +21,23 @@ namespace EntityGraphQL.Schema
 
         public string Description { get; }
 
+        public Type ContextType => ReturnType.ContextType;
+
+        public string Name { get; }
+        public RequiredClaims AuthorizeClaims { get; }
+
+        public ISchemaType ReturnType => returnType;
+
+        public IDictionary<string, ArgType> Arguments => argumentTypes;
+
+        public bool ReturnTypeNotNullable => false;
+        public bool ReturnElementTypeNullable => false;
+
+        public string GetReturnType(ISchemaProvider schema)
+        {
+            return returnType.Name;
+        }
+
         public object Call(object[] args, Dictionary<string, ExpressionResult> gqlRequestArgs)
         {
             // first arg is the Context - required arg in the mutation method
@@ -119,27 +136,14 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public Type ContextType => ReturnType.ContextType;
-
-        public string Name { get; }
-        public List<string> AuthorizeClaims { get; }
-
-        public ISchemaType ReturnType => returnType;
-
-        public IDictionary<string, ArgType> Arguments => argumentTypes;
-
-        public string ReturnTypeClrSingle => returnType.Name;
-        public bool ReturnTypeNotNullable => false;
-        public bool ReturnElementTypeNullable => false;
-
-        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, IEnumerable<string> authorizeClaims)
+        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims)
         {
             this.Description = description;
             this.returnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             Name = methodName;
-            AuthorizeClaims = authorizeClaims?.ToList();
+            AuthorizeClaims = authorizeClaims;
 
             var methodArg = method.GetParameters().Last();
             this.argInstanceType = methodArg.ParameterType;

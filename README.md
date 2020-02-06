@@ -357,7 +357,7 @@ var results = _dbContext.QueryObject(query, _schemaProvider, this.User.Identitie
 
 Now if a field or mutation has `AuthorizeClaims` it will check if the supplied `ClaimsIdentity` contains any of those claims using the claim type `ClaimTypes.Role`.
 
-_Note: if you provide multiple `[GraphQLAuthorize]` attributes on a single field/mutation they are treat as or. I.e. you require any 1 of those claims.
+_Note: if you provide multiple `[GraphQLAuthorize]` attributes on a single field/mutation they are treat as `AND` meaning all claims are required. If you provide a single `[GraphQLAuthorize]` attribute with multiple claims in it they are treats as `OR` i.e. any of the claims are required.
 
 ## Mutations
 
@@ -387,7 +387,8 @@ public class MyDbContext : DbContext {
     // Set up your relations
   }
 
-  [GraphQLAuthorize("property-role")]
+  // require either claim
+  [GraphQLAuthorize("property-role", "admin-property-role")]
   public DbSet<Property> Properties { get; set; }
   public DbSet<PropertyType> PropertyTypes { get; set; }
   public DbSet<Location> Locations { get; set; }
@@ -397,7 +398,9 @@ public class Property {
   public uint Id { get; set; }
   public string Name { get; set; }
   public PropertyType Type { get; set; }
+  // require both claims
   [GraphQLAuthorize("property-admin")]
+  [GraphQLAuthorize("super-admin")]
   public Location Location { get; set; }
 }
 
@@ -409,7 +412,8 @@ If a `ClaimsIdentity` is provided with the query call it will be required to be 
 `AuthorizeClaims` can be provided in the API for add/replacing fields on the schema objact.
 
 ```c#
-schemaProvider.AddField("myField", (db) => db.MyEntities, "Description", authorizeClaims: new List<string> {"admin"});
+schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAllClaims("admin");
+schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAnyClaim("admin", "super-admin");
 ```
 
 

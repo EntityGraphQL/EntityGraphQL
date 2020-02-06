@@ -55,7 +55,7 @@ namespace EntityGraphQL.Schema
         {
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
-            var schemaType = schema.Type(fieldProp.ReturnTypeClrSingle);
+            var schemaType = schema.Type(fieldProp.GetReturnType(schema));
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Schema
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes);
-            Type arrayContextType = schema.Type(fieldProp.ReturnTypeClrSingle).ContextType;
+            Type arrayContextType = schema.Type(fieldProp.GetReturnType(schema)).ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType);
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             Expression argId = Expression.PropertyOrField(argTypeParam, "id");
@@ -88,11 +88,11 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(name, selectionExpression, $"Return a {fieldProp.ReturnTypeClrSingle} by its Id", fieldProp.ReturnTypeClrSingle, argTypesValue, fieldProp.AuthorizeClaims);
+            var field = new Field(name, selectionExpression, $"Return a {fieldProp.GetReturnType(schema)} by its Id", fieldProp.GetReturnType(schema), argTypesValue, fieldProp.AuthorizeClaims);
             schema.AddField(field);
         }
 
-        public static List<Field> GetFieldsFromObject<TContextType>(Type type, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes = true)
+        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes = true)
         {
             var fields = new List<Field>();
             // cache fields/properties
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Schema
             return fields;
         }
 
-        private static Field ProcessFieldOrProperty<TContextType>(MemberInfo prop, Type fieldOrPropType, ParameterExpression param, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes)
+        private static Field ProcessFieldOrProperty(MemberInfo prop, Type fieldOrPropType, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
             {
@@ -132,8 +132,10 @@ namespace EntityGraphQL.Schema
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, null, null, attributes.Any() ? attributes.Select(a => a.Claim) : null);
-            var t = CacheType(fieldOrPropType, schema, createEnumTypes, createNewComplexTypes);
+            var requiredClaims = new RequiredClaims(attributes);
+            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType;
+            var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes);
+            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, null, null, requiredClaims);
             if (t != null && t.IsEnum && !f.ReturnTypeClr.IsNullableType())
             {
                 f.ReturnTypeNotNullable = true;
@@ -141,7 +143,7 @@ namespace EntityGraphQL.Schema
             return f;
         }
 
-        private static ISchemaType CacheType<TContextType>(Type propType, MappedSchemaProvider<TContextType> schema, bool createEnumTypes, bool createNewComplexTypes)
+        private static ISchemaType CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes)
         {
             if (propType.IsEnumerableOrArray())
             {

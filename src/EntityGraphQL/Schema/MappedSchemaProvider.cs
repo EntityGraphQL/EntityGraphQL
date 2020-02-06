@@ -20,9 +20,9 @@ namespace EntityGraphQL.Schema
     {
         protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
         protected Dictionary<string, IMethodType> mutations = new Dictionary<string, IMethodType>();
-        protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string>();
 
         private readonly string queryContextName;
+        // we want this scalar string values to be unique
         private readonly Dictionary<Type, string> customScalarTypes = new Dictionary<Type, string> {
             {typeof(int), "Int"},
             {typeof(float), "Float"},
@@ -30,21 +30,28 @@ namespace EntityGraphQL.Schema
             {typeof(bool), "Boolean"},
             {typeof(Guid), "ID"},
         };
+        // map some types to scalar types
+        protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string> {
+            {typeof(long), "Int"},
+            {typeof(double), "Float"},
+            {typeof(decimal), "Float"},
+            {typeof(byte[]), "String"},
+        };
         public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
 
         public MappedSchemaProvider()
         {
-            var queryContext = new SchemaType<TContextType>(typeof(TContextType).Name, "Query schema");
+            var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema");
             queryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
-            AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields(this);
-            AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields(this);
-            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields(this);
-            AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields(this);
-            AddType<Models.Field>("__Field", "Information about fields").AddAllFields(this);
-            AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields(this);
-            AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields(this);
+            AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
+            AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
+            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
+            AddType<Models.Directives>("__Directive", "Information about directives").AddAllFields();
+            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
+            AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
+            AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
             Type<Models.TypeElement>("__Type").ReplaceField("enumValues", new { includeDeprecated = false },
                 (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
@@ -54,24 +61,21 @@ namespace EntityGraphQL.Schema
 
         private void SetupIntrospectionTypesAndField()
         {
-            var allTypeMappings = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value.Trim('!'));
+            var allTypeMappings = SchemaGenerator.DefaultTypeMappings.ToDictionary(k => k.Key, v => v.Value);
             // add the top level __schema field which is made _at runtime_ currently e.g. introspection could be faster
             foreach (var item in customTypeMappings)
             {
                 allTypeMappings[item.Key] = item.Value;
             }
-            foreach (var item in customScalarTypes)
-            {
-                allTypeMappings[item.Key] = item.Value;
-            }
+            var combinedMapping = new CombinedMapping(allTypeMappings, customScalarTypes);
 
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, allTypeMappings, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
+                (t, p) => SchemaIntrospection.BuildFieldsForType(this, combinedMapping, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
 
 
-            ReplaceField("__schema", db => SchemaIntrospection.Make(this, allTypeMappings), "Introspection of the schema", "__Schema");
-            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, allTypeMappings).Types.Where(s => s.Name == p.name).First(), "Query a type by name", "__Type");
+            ReplaceField("__schema", db => SchemaIntrospection.Make(this, combinedMapping), "Introspection of the schema", "__Schema");
+            ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this, combinedMapping).Types.Where(s => s.Name == p.name).First(), "Query a type by name", "__Type");
         }
 
         /// <summary>
@@ -83,21 +87,21 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
-			var tt = new SchemaType<TBaseType>(name, description);
+			var tt = new SchemaType<TBaseType>(this, name, description);
             types.Add(name, tt);
 			return tt;
         }
 
         public ISchemaType AddType(Type contextType, string name, string description)
         {
-			var tt = new SchemaType<object>(contextType, name, description);
+			var tt = new SchemaType<object>(this, contextType, name, description);
             types.Add(name, tt);
 			return tt;
         }
 
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
-            var tt = new SchemaType<TBaseType>(name, description, true);
+            var tt = new SchemaType<TBaseType>(this, name, description, true);
             types.Add(name, tt);
 			return tt;
         }
@@ -116,7 +120,8 @@ namespace EntityGraphQL.Schema
                 {
                     string name = SchemaGenerator.ToCamelCaseStartsLower(method.Name);
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
-                    var mutationType = new MutationType(name, types[GetSchemaTypeNameForRealType(method.ReturnType)], mutationClassInstance, method, attribute.Description, claims.Any() ? claims.Select(c => c.Claim) : null);
+                    var requiredClaims = new RequiredClaims(claims);
+                    var mutationType = new MutationType(name, types[GetSchemaTypeNameForClrType(method.ReturnType)], mutationClassInstance, method, attribute.Description, requiredClaims);
                     mutations[name] = mutationType;
                 }
             }
@@ -158,10 +163,10 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public void AddField(Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
+        public Field AddField(Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType, isNullable, authorizeClaims);
+            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType, isNullable);
         }
 
         /// <summary>
@@ -172,21 +177,21 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public void AddField(string name, Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
+        public Field AddField(string name, Expression<Func<TContextType, object>> selection, string description, string returnSchemaType = null, bool? isNullable = null)
         {
-            Type<TContextType>().AddField(name, selection, description, returnSchemaType, isNullable, authorizeClaims);
+            return Type<TContextType>().AddField(name, selection, description, returnSchemaType, isNullable);
         }
 
-        public void ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             Type<TContextType>().RemoveField(name);
-            Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType, isNullable, authorizeClaims);
+            return Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType, isNullable);
         }
 
-        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
+        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             Type<TContextType>().RemoveField(name);
-            Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable, authorizeClaims);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
         }
 
         /// <summary>
@@ -203,9 +208,9 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public void AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, IEnumerable<string> authorizeClaims = null)
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
-            Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable, authorizeClaims);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
         }
 
         /// <summary>
@@ -213,9 +218,9 @@ namespace EntityGraphQL.Schema
         /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
         /// </summary>
         /// <param name="field"></param>
-        public void AddField(Field field)
+        public Field AddField(Field field)
         {
-            types[queryContextName].AddField(field);
+            return types[queryContextName].AddField(field);
         }
 
         /// <summary>
@@ -287,13 +292,13 @@ namespace EntityGraphQL.Schema
                 var mutation = mutations[fieldName];
                 if (!AuthUtil.IsAuthorized(claims, mutation.AuthorizeClaims))
                 {
-                    throw new EntityGraphQLCompilerException($"You do not have access to mutation '{fieldName}'. You require any of the following security claims [{string.Join(", ", mutation.AuthorizeClaims)}]");
+                    throw new EntityGraphQLAccessException($"You do not have access to mutation '{fieldName}'. You require any of the following security claims [{string.Join(", ", mutation.AuthorizeClaims)}]");
                 }
                 return mutation;
             }
-            if (types.ContainsKey(GetSchemaTypeNameForRealType(context.Type)))
+            if (types.ContainsKey(GetSchemaTypeNameForClrType(context.Type)))
             {
-                var field = types[GetSchemaTypeNameForRealType(context.Type)].GetField(fieldName, claims);
+                var field = types[GetSchemaTypeNameForClrType(context.Type)].GetField(fieldName, claims);
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
@@ -438,7 +443,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public string GetSchemaTypeNameForRealType(Type type)
+        public string GetSchemaTypeNameForClrType(Type type)
         {
             if (type.GetTypeInfo().BaseType == typeof(LambdaExpression))
             {
@@ -449,6 +454,12 @@ namespace EntityGraphQL.Schema
                     type = type.GetGenericArguments()[0];
                 }
             }
+            if (customScalarTypes.ContainsKey(type))
+                return customScalarTypes[type];
+
+            if (customTypeMappings.ContainsKey(type))
+                return customTypeMappings[type];
+
             if (type == types[queryContextName].ContextType)
                 return type.Name;
 
@@ -536,7 +547,7 @@ namespace EntityGraphQL.Schema
         {
             foreach (var field in contextType.GetFields().ToList())
             {
-                if (field.ReturnTypeClrSingle == typeName)
+                if (field.GetReturnType(this) == typeName)
                 {
                     contextType.RemoveField(field.Name);
                 }
@@ -545,9 +556,9 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddEnum(string name, Type type, string description)
         {
-            var schemaType = new SchemaType<object>(type, name, description, false, true);
+            var schemaType = new SchemaType<object>(this, type, name, description, false, true);
             types.Add(name, schemaType);
-            return schemaType.AddAllFields(this);
+            return schemaType.AddAllFields();
         }
     }
 }

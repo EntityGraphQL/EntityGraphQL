@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
         {
             var name = baseIdentityFinder.Visit(context);
             var result = EqlCompiler.CompileWith(context.GetText(), selectContext, schemaProvider, claims, methodProvider, variables);
-            var actualName = schemaProvider.GetActualFieldName(schemaProvider.GetSchemaTypeNameForRealType(selectContext.Type), name, claims);
+            var actualName = schemaProvider.GetActualFieldName(schemaProvider.GetSchemaTypeNameForClrType(selectContext.Type), name, claims);
             var node = new GraphQLNode(schemaProvider, fragments, actualName, result, null);
             return node;
         }

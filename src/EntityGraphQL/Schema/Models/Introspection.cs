@@ -70,14 +70,14 @@ namespace EntityGraphQL.Schema.Models
         public string Name { get; set; }
         public string Description { get; set; }
         public TypeElement Type { get; set; }
-        public object DefaultValue { get; set; }
+        public string DefaultValue { get; set; }
     }
 
     public partial class Directives
     {
         public string Name { get; set; }
 
-        public object Description { get; set; }
+        public string Description { get; set; }
 
         public string[] Locations { get; set; }
 

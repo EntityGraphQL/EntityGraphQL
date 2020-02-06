@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Claims;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
@@ -14,70 +13,17 @@ namespace EntityGraphQL.Schema
     public class Field : IMethodType
     {
         private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
+        private string returnTypeSingle;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
         public bool ReturnTypeNotNullable { get; set; }
         public bool ReturnElementTypeNullable { get; set; }
 
-        public List<string> AuthorizeClaims { get; }
-
-
-        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType, Type returnClrType, IEnumerable<string> authorizeClaims)
-        {
-            Name = name;
-            Description = description;
-            ReturnTypeClrSingle = returnSchemaType;
-            ReturnTypeClr = returnClrType;
-            AuthorizeClaims = authorizeClaims?.ToList();
-
-            if (resolve != null)
-            {
-                Resolve = resolve.Body;
-                FieldParam = resolve.Parameters.First();
-                ReturnTypeClr = Resolve.Type;
-
-                if (resolve.Body.NodeType == ExpressionType.MemberAccess)
-                {
-                    ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
-                    ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
-                }
-                if (ReturnTypeClrSingle == null)
-                {
-                    if (resolve.Body.Type.IsEnumerableOrArray())
-                    {
-                        if (!resolve.Body.Type.IsArray && !resolve.Body.Type.GetGenericArguments().Any())
-                        {
-                            throw new ArgumentException($"We think {resolve.Body.Type} is IEnumerable<> or an array but didn't find it's enumerable type");
-                        }
-                        ReturnTypeClrSingle = resolve.Body.Type.GetEnumerableOrArrayType().Name;
-                    }
-                    else
-                    {
-                        ReturnTypeClrSingle = resolve.Body.Type.Name;
-                    }
-                }
-            }
-        }
-
-        public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes, IEnumerable<string> claims) : this(name, resolve, description, returnSchemaType, null, claims)
-        {
-            this.ArgumentTypesObject = argTypes;
-            this.allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => new ArgType
-            {
-                Type = p.PropertyType,
-                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
-            });
-            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => new ArgType
-            {
-                Type = p.FieldType,
-                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
-            }).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
-        }
+        public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
         public string Description { get; private set; }
-        public string ReturnTypeClrSingle { get; private set; }
 
         public object ArgumentTypesObject { get; private set; }
         public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
@@ -97,6 +43,50 @@ namespace EntityGraphQL.Schema
 
         public Type ReturnTypeClr { get; private set; }
 
+        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType, Type returnClrType, RequiredClaims authorizeClaims)
+        {
+            Name = name;
+            Description = description;
+            returnTypeSingle = returnSchemaType;
+            ReturnTypeClr = returnClrType;
+            AuthorizeClaims = authorizeClaims;
+
+            if (resolve != null)
+            {
+                Resolve = resolve.Body;
+                FieldParam = resolve.Parameters.First();
+                ReturnTypeClr = Resolve.Type;
+
+                if (resolve.Body.NodeType == ExpressionType.MemberAccess)
+                {
+                    ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
+                    ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
+                }
+            }
+        }
+
+        public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes, RequiredClaims claims) : this(name, resolve, description, returnSchemaType, null, claims)
+        {
+            ArgumentTypesObject = argTypes;
+            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => new ArgType
+            {
+                Type = p.PropertyType,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
+            });
+            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => new ArgType
+            {
+                Type = p.FieldType,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
+            }).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
+        }
+
+        public string GetReturnType(ISchemaProvider schema)
+        {
+            if (!string.IsNullOrEmpty(returnTypeSingle))
+                return returnTypeSingle;
+            return schema.GetSchemaTypeNameForClrType(ReturnTypeClr.GetNonNullableOrEnumerableType());
+        }
+
         public bool HasArgumentByName(string argName)
         {
             return allArguments.ContainsKey(argName);
@@ -105,6 +95,32 @@ namespace EntityGraphQL.Schema
         public ArgType GetArgumentType(string argName)
         {
             return allArguments[argName];
+        }
+
+        /// <summary>
+        /// To access this field all claims listed here are required
+        /// </summary>
+        /// <param name="claims"></param>
+        /// <returns></returns>
+        public Field RequiresAllClaims(params string[] claims)
+        {
+            if (AuthorizeClaims == null)
+                AuthorizeClaims = new RequiredClaims();
+            AuthorizeClaims.RequiresAllClaims(claims);
+            return this;
+        }
+        /// <summary>
+        /// To access this field any claims listed is required
+        /// </summary>
+        /// <param name="claims"></param>
+        /// <returns></returns>
+        public Field RequiresAnyClaim(params string[] claims)
+        {
+            if (AuthorizeClaims == null)
+                AuthorizeClaims = new RequiredClaims();
+            AuthorizeClaims.RequiresAnyClaim(claims);
+            return this;
+
         }
     }
 }

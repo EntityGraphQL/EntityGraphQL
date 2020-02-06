@@ -8,4 +8,11 @@ namespace EntityGraphQL.Compiler
         {
         }
     }
+
+    public class EntityGraphQLAccessException : System.Exception
+    {
+        public EntityGraphQLAccessException(string message) : base(message)
+        {
+        }
+    }
 }

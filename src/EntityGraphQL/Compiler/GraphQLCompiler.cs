@@ -81,7 +81,7 @@ namespace EntityGraphQL.Compiler
         public SchemaException(string message) : base(message) { }
         public static SchemaException MakeFieldCompileError(string query, string message)
         {
-            return new SchemaException($"Error compiling query '{query}'. {message}");
+            return new SchemaException($"{message}");
         }
     }
 }

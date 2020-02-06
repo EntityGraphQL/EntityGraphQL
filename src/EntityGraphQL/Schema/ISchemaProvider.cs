@@ -39,7 +39,7 @@ namespace EntityGraphQL.Schema
         /// <param name="args"></param>
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
-        string GetSchemaTypeNameForRealType(Type type);
+        string GetSchemaTypeNameForClrType(Type type);
         IMethodType GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
         string GetGraphQLSchema();
@@ -62,5 +62,6 @@ namespace EntityGraphQL.Schema
         /// <param name="clrType">A CLR type that you want mapped</param>
         /// <param name="gqlTypeName">A type name for the scala</param>
         void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false);
+        ISchemaType AddEnum(string name, Type type, string description);
     }
 }

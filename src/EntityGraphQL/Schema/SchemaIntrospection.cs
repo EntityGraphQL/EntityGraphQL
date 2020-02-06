@@ -15,7 +15,7 @@
         /// <param name="schema"></param>
         /// <param name="typeMappings"></param>
         /// <returns></returns>
-        public static Models.Schema Make(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        public static Schema Make(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var types = new List<TypeElement>
             {
@@ -39,7 +39,7 @@
             types.AddRange(BuildEnumTypes(schema, combinedMapping));
             types.AddRange(BuildScalarTypes(schema, combinedMapping));
 
-            var schemaDescription = new Models.Schema
+            var schemaDescription = new Schema
             {
                 QueryType = new TypeElement
                 {
@@ -56,7 +56,7 @@
             return schemaDescription;
         }
 
-        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var types = new List<TypeElement>();
 
@@ -75,7 +75,7 @@
             return types;
         }
 
-        private static List<TypeElement> BuildQueryTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<TypeElement> BuildQueryTypes(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var types = new List<TypeElement>();
 
@@ -103,7 +103,7 @@
         /// Since Types and Inputs cannot have the same name, camelCase the name to prevent duplicates.
         /// </remarks>
         /// <returns></returns>
-        private static List<TypeElement> BuildInputTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<TypeElement> BuildInputTypes(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var types = new List<TypeElement>();
 
@@ -112,7 +112,7 @@
                 if (schemaType.Name.StartsWith("__"))
                     continue;
 
-                var inputValues = new List<Models.InputValue>();
+                var inputValues = new List<InputValue>();
                 foreach (Field field in schemaType.GetFields())
                 {
                     if (field.Name.StartsWith("__"))
@@ -131,11 +131,11 @@
                     if (field.ReturnTypeClr.GetTypeInfo().IsEnum)
                         continue;
 
-                    inputValues.Add(new Models.InputValue
+                    inputValues.Add(new InputValue
                     {
                         Name = field.Name,
                         Description = field.Description,
-                        Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping, true)
+                        Type = BuildType(schema, field.ReturnTypeClr, field.GetReturnType(schema), combinedMapping, true)
                     });
                 }
 
@@ -153,7 +153,7 @@
             return types;
         }
 
-        private static List<TypeElement> BuildEnumTypes(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<TypeElement> BuildEnumTypes(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var types = new List<TypeElement>();
 
@@ -191,7 +191,7 @@
             return types;
         }
 
-        private static TypeElement BuildType(ISchemaProvider schema, Type clrType, string gqlTypeName, IReadOnlyDictionary<Type, string> combinedMapping, bool isInput = false)
+        private static TypeElement BuildType(ISchemaProvider schema, Type clrType, string gqlTypeName, CombinedMapping combinedMapping, bool isInput = false)
         {
             // Is collection of objects?
             var type = new TypeElement();
@@ -207,6 +207,12 @@
                 type.Name = null;
                 type.OfType = BuildType(schema, clrType.GetGenericArguments()[0], gqlTypeName, combinedMapping, isInput);
             }
+            else if (clrType.Name == "EntityQueryType`1")
+            {
+                type.Kind = "SCALAR";
+                type.Name = "String";
+                type.OfType = null;
+            }
             else if (clrType.GetTypeInfo().IsEnum)
             {
                 type.Kind = "ENUM";
@@ -215,16 +221,63 @@
             }
             else
             {
-                type.Kind = FindTypeInMapping(clrType, combinedMapping) != null ? "SCALAR" : "OBJECT";
+                if (clrType.IsNullableType())
+                {
+                    clrType = clrType.GetGenericArguments()[0];
+                }
+                type.Kind = combinedMapping.TypeIsScalar(clrType) ? "SCALAR" : "OBJECT";
                 type.OfType = null;
                 if (type.Kind == "OBJECT" && isInput)
                 {
-                    type.Name = SchemaGenerator.ToCamelCaseStartsLower(FindNamedMapping(clrType, combinedMapping, gqlTypeName));
+                    type.Kind = "INPUT_OBJECT";
                 }
-                else
-                    type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
+                type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
+
+                type = ConvertGqlRequiredOrList(type);
             }
 
+            if (type.Name != null && type.Name.Contains("float")) {
+                var t = 0;
+                t++;
+            }
+
+            return type;
+        }
+
+        /// <summary>
+        /// mapped types are in GQL form e.g. [int!]!
+        /// this could be a lot better
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        private static TypeElement ConvertGqlRequiredOrList(TypeElement type)
+        {
+            if (type.Name.EndsWith("!"))
+            {
+                return new TypeElement
+                {
+                    Kind = "NON_NULL",
+                    Name = null,
+                    OfType = ConvertGqlRequiredOrList(new TypeElement
+                    {
+                        Kind = type.Kind,
+                        Name = type.Name.TrimEnd('!')
+                    })
+                };
+            }
+            else if (type.Name.EndsWith("]"))
+            {
+                return new TypeElement
+                {
+                    Kind = "LIST",
+                    Name = null,
+                    OfType = ConvertGqlRequiredOrList(new TypeElement
+                    {
+                        Kind = type.Kind,
+                        Name = type.Name.TrimStart('[').TrimEnd(']')
+                    })
+                };
+            }
             return type;
         }
 
@@ -235,7 +288,7 @@
         /// <param name="combinedMapping"></param>
         /// <param name="typeName"></param>
         /// <returns></returns>
-        public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, string typeName)
+        public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, CombinedMapping combinedMapping, string typeName)
         {
             if (typeName == "Query")
             {
@@ -264,13 +317,13 @@
                     Description = field.Description,
                     IsDeprecated = false,
                     Name = SchemaGenerator.ToCamelCaseStartsLower(field.Name),
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.GetReturnType(schema), combinedMapping),
                 });
             }
             return fieldDescs.ToArray();
         }
 
-        private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var rootFields = new List<Models.Field>();
 
@@ -289,14 +342,14 @@
                     Name = field.Name,
                     Args = BuildArgs(schema, combinedMapping, field).ToArray(),
                     IsDeprecated = false,
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.GetReturnType(schema), combinedMapping),
                     Description = field.Description
                 });
             }
             return rootFields.ToArray();
         }
 
-        private static Models.Field[] BuildMutationFields(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static Models.Field[] BuildMutationFields(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
             var rootFields = new List<Models.Field>();
 
@@ -315,22 +368,23 @@
                     Name = field.Name,
                     Args = args,
                     IsDeprecated = false,
-                    Type = BuildType(schema, field.ReturnTypeClr, field.ReturnTypeClrSingle, combinedMapping),
+                    Type = BuildType(schema, field.ReturnTypeClr, field.GetReturnType(schema), combinedMapping),
                     Description = field.Description
                 });
             }
             return rootFields.ToArray();
         }
 
-        private static List<Models.InputValue> BuildArgs(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping, IMethodType field)
+        private static List<InputValue> BuildArgs(ISchemaProvider schema, CombinedMapping combinedMapping, IMethodType field)
         {
-            var args = new List<Models.InputValue>();
+            var args = new List<InputValue>();
             foreach (var arg in field.Arguments)
             {
-                var gqlTypeName = arg.Value.Type.IsEnumerableOrArray() ? arg.Value.Type.GetEnumerableOrArrayType().Name : arg.Value.Type.Name;
-                var type = BuildType(schema, arg.Value.Type, gqlTypeName, combinedMapping);
+                Type clrType = arg.Value.Type.GetNonNullableType();
+                var gqlTypeName = clrType.IsEnumerableOrArray() ? clrType.GetEnumerableOrArrayType().Name : clrType.Name;
+                var type = BuildType(schema, clrType, gqlTypeName, combinedMapping, true);
 
-                args.Add(new Models.InputValue
+                args.Add(new InputValue
                 {
                     Name = arg.Key,
                     Type = type,
@@ -342,26 +396,21 @@
             return args;
         }
 
-        private static string FindNamedMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping, string fallback = null)
+        private static string FindNamedMapping(Type type, CombinedMapping combinedMapping, string fallback = null)
         {
-            var mappedType = FindTypeInMapping(name, combinedMapping);
+            var mappedType = combinedMapping.GetMappedType(type);
             if (mappedType != null)
                 return mappedType;
-            else
-                if (string.IsNullOrEmpty(fallback))
-                return name.Name;
-            else
-                return fallback;
+
+            if (string.IsNullOrEmpty(fallback))
+                return type.Name;
+
+            return fallback;
         }
 
-        private static string FindTypeInMapping(Type name, IReadOnlyDictionary<Type, string> combinedMapping)
+        private static List<Directives> BuildDirectives()
         {
-            return combinedMapping.FirstOrDefault(x => x.Key == name || (name.GetTypeInfo().IsGenericType && name.GetGenericTypeDefinition() == x.Key)).Value;
-        }
-
-        private static List<Models.Directives> BuildDirectives()
-        {
-            var directives = new List<Models.Directives> {
+            var directives = new List<Directives> {
                 // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the dierectives users add
                 // new Models.Directives
                 // {
@@ -416,5 +465,31 @@
             return directives;
         }
 
+    }
+
+    public class CombinedMapping
+    {
+        private Dictionary<Type, string> typeMappings;
+        private Dictionary<Type, string> scalarTypes;
+
+        public CombinedMapping(Dictionary<Type, string> typeMappings, Dictionary<Type, string> scalarTypes)
+        {
+            this.typeMappings = typeMappings;
+            this.scalarTypes = scalarTypes;
+        }
+
+        public bool TypeIsScalar(Type clrType)
+        {
+            return scalarTypes.Any(x => x.Key == clrType || (clrType.GetTypeInfo().IsGenericType && clrType.GetGenericTypeDefinition() == x.Key));
+        }
+
+        public string GetMappedType(Type type)
+        {
+            if (scalarTypes.ContainsKey(type))
+                return scalarTypes[type];
+            if (typeMappings.ContainsKey(type))
+                return typeMappings[type];
+            return null;
+        }
     }
 }

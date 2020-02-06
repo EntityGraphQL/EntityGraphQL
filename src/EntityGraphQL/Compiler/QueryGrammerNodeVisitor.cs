@@ -212,7 +212,7 @@ namespace EntityGraphQL.Compiler
 
         private ExpressionResult MakeFieldExpression(string field, Dictionary<string, ExpressionResult> args)
         {
-            string name = schemaProvider.GetSchemaTypeNameForRealType(currentContext.Type);
+            string name = schemaProvider.GetSchemaTypeNameForClrType(currentContext.Type);
             if (!schemaProvider.TypeHasField(name, field, args != null ? args.Select(d => d.Key) : new string[0], claims))
             {
                 throw new EntityGraphQLCompilerException($"Field '{field}' not found on current context '{name}'");

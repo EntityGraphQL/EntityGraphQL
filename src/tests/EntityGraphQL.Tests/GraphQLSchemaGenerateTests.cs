@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
             };
             dynamic results = new IgnoreTestSchema().QueryObject(gql, schemaProvider).Errors;
             var err = Enumerable.First(results);
-            Assert.Equal("Error compiling query 'movies'. Field 'movies' not found on current context 'IgnoreTestSchema'", err.Message);
+            Assert.Equal("Error with query 'movies'. Field 'movies' not found on current context 'IgnoreTestSchema'", err.Message);
         }
         [Fact]
         public void TestIgnoreQueryPasses()
@@ -56,7 +56,7 @@ namespace EntityGraphQL.Tests
             };
             var results = new IgnoreTestSchema().QueryObject(gql, schemaProvider);
             var error = results.Errors.First();
-            Assert.Equal("Error compiling query 'addAlbum(name: $name, hiddenInputField: $hiddenInputField)'. No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
+            Assert.Equal("Error with query 'addAlbum(name: $name, hiddenInputField: $hiddenInputField)'. No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests
             };
             var results = new IgnoreTestSchema().QueryObject(gql, schemaProvider);
             var error = results.Errors.First();
-            Assert.Equal("Error compiling query 'addAlbum(name: $name, hiddenField: $hiddenField)'. No argument 'hiddenField' found on field 'addAlbum'", error.Message);
+            Assert.Equal("Error with query 'addAlbum(name: $name, hiddenField: $hiddenField)'. No argument 'hiddenField' found on field 'addAlbum'", error.Message);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
             };
             var results = new IgnoreTestSchema().QueryObject(gql, schemaProvider);
             var error = results.Errors.First();
-            Assert.Equal("Error compiling query 'albums'. Field 'hiddenField' not found on current context 'Album'", error.Message);
+            Assert.Equal("Error with query 'albums'. Field 'hiddenField' not found on current context 'Album'", error.Message);
         }
 
         [Fact]

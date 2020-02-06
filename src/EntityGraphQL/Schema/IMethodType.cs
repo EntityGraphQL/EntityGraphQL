@@ -9,10 +9,15 @@ namespace EntityGraphQL.Schema
         string Name { get; }
         Type ReturnTypeClr { get; }
         string Description { get; }
-        string ReturnTypeClrSingle { get; }
+        /// <summary>
+        /// Get the GQL return type of the field or call
+        /// </summary>
+        /// <param name="schema"></param>
+        /// <returns></returns>
+        string GetReturnType(ISchemaProvider schema);
         bool ReturnTypeNotNullable { get; }
         bool ReturnElementTypeNullable { get; }
-        List<string> AuthorizeClaims { get; }
+        RequiredClaims AuthorizeClaims { get; }
 
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);

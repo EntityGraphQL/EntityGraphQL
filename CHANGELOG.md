@@ -1,3 +1,11 @@
+# 0.31.0
+- Breaking change - Multiple `[GraphQLAuthorize]` mean all polcies are required and supplying multiple in a single `[GraphQLAuthorize]` mean any
+- Do not generate an empty mutation type if there are no mutations
+- Fix query introspection to output mapped types correctly
+- Support multiple queries in a request with the operation name of which one to run - e.g. how GraphiQL handles multiple queries
+- Update error messages
+- Clean up some APIs - `SchemaType.AddAllFields()`, `Field.RequiresAllClaims()`, `Field.RequiresAnyClaim()`
+
 # 0.30.0
 - Initial support for Authorization and Security in the schema - see updated readme and provide feedback
 

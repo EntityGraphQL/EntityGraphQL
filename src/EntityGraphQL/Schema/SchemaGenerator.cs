@@ -79,12 +79,13 @@ namespace EntityGraphQL.Schema
             var enums = BuildEnumTypes(schema, combinedMapping);
             var types = BuildSchemaTypes(schema, combinedMapping);
             var mutations = BuildMutations(schema, combinedMapping);
+            var hasMutations = mutations.Any();
 
             var queryTypes = MakeQueryType(schema, combinedMapping);
 
-            return $@"schema {{
+            var schemaStr = $@"schema {{
     query: RootQuery
-    mutation: Mutation
+    {(hasMutations ? "mutation: Mutation" : "")}
 }}
 
 {scalars}
@@ -94,10 +95,14 @@ type RootQuery {{
 {queryTypes}
 }}
 {types}
-
-type Mutation {{
+";
+            if (hasMutations)
+            {
+                schemaStr += $@"type Mutation {{
 {mutations}
 }}";
+            }
+            return schemaStr;
         }
 
         private static string BuildMutations(ISchemaProvider schema, IReadOnlyDictionary<Type, string> combinedMapping)
@@ -196,7 +201,7 @@ type Mutation {{
             {
                 if (schema.HasType(type))
                 {
-                    gqlType = schema.GetSchemaTypeNameForRealType(type);
+                    gqlType = schema.GetSchemaTypeNameForClrType(type);
                 }
                 else if (type.IsEnumerableOrArray())
                 {

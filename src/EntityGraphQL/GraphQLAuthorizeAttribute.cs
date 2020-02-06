@@ -1,5 +1,7 @@
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL.Authorization
 {
@@ -20,14 +22,14 @@ namespace EntityGraphQL.Authorization
         // Parameters:
         //   policy:
         //     The name of the policy to require for authorization.
-        public GraphQLAuthorizeAttribute(string claim)
+        public GraphQLAuthorizeAttribute(params string[] claims)
         {
-            Claim = claim;
+            Claims = claims.ToList();
         }
 
         //
         // Summary:
         //     Gets or sets the policy name that determines access to the resource.
-        public string Claim { get; set; }
+        public List<string> Claims { get; set; }
     }
 }
