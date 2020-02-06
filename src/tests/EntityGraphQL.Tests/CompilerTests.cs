@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests
 {
 	people { id }
 }");});
-            Assert.Equal("Error with query 'people'. Field 'id' not found on current context 'Person'", ex.Message);
+            Assert.Equal("Field 'id' not found on current context 'Person'", ex.Message);
         }
 
         [Fact]
@@ -325,7 +325,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error with query 'blahs'. Field 'blahs' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Field 'blahs' not found on current context 'Project'", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -338,7 +338,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Error with query 'projects'. Field 'name3' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Field 'name3' not found on current context 'Project'", ex.Message);
         }
 
         [Fact]

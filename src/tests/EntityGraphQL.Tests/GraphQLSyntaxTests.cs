@@ -97,7 +97,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Error with query 'user'. Field 'user' missing required argument 'id'", ex.Message);
+            Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Error with query 'user'. Field 'user' missing required argument 'id'", ex.Message);
+            Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]
@@ -311,7 +311,7 @@ fragment info on Person {
     }
     ");
             });
-            Assert.Equal("Error with query 'people(limit: $limit)'. No argument 'limit' found on field 'people'", e.Message);
+            Assert.Equal(" $limit)'. No argument 'limit' found on field 'people'", e.Message);
         }
 
         [Fact]
