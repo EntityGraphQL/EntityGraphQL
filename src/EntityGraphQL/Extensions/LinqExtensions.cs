@@ -2,48 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Extensions
 {
     /// <summary>
-    /// Extension methods to allow EQL compiled expression to easily be used in LINQ methods. Also helpers to work with nullable parmaeters
+    /// Extension methods to allow to allow you to build queries and reuse expressions/filters
     /// </summary>
     public static class LinqExtensions
     {
-        public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
+        /// <summary>
+        /// Applies the LambdaExpression as an Expression<Func<TSource, bool>> predicate expression on source.Where()
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="predicate"></param>
+        /// <typeparam name="TSource"></typeparam>
+        /// <returns></returns>
+
+        public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter)
         {
-            var call = Expression.Call(typeof(Enumerable), "Where", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> Any<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "Any", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> Count<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "Count", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> First<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "First", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> FirstOrDefault<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "FirstOrDefault", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> Last<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "Last", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
-        }
-        public static IEnumerable<TSource> LastOrDefault<TSource>(this IEnumerable<TSource> source, LambdaExpression predicate)
-        {
-            var call = Expression.Call(typeof(Enumerable), "LastOrDefault", new[] { typeof(TSource) }, Expression.Constant(source), predicate);
-            return (IEnumerable<TSource>)Expression.Lambda(call).Compile().DynamicInvoke();
+            if (filter.HasValue)
+                return Queryable.Where(source.AsQueryable(), filter.Query);
+            return source;
         }
 
         public static IQueryable<TSource> Take<TSource>(this IQueryable<TSource> source, int? count)

@@ -1,3 +1,6 @@
+# 0.32.0
+- Clean up `LinqExtensions`, removing the overloads that take `LambdaExpression`s. Use `.AsQueryable().Where(someExpressionVar)` instead. It works better with EF and other LinqProviders.
+
 # 0.31.0
 - Breaking change - Multiple `[GraphQLAuthorize]` mean all polcies are required and supplying multiple in a single `[GraphQLAuthorize]` mean any
 - Do not generate an empty mutation type if there are no mutations

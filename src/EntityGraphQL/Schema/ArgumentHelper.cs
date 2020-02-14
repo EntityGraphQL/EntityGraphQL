@@ -65,6 +65,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <value></value>
         public Expression<Func<TType, bool>> Query { get; set; }
+        public override bool HasValue { get => Query != null; }
 
         public EntityQueryType()
         {
@@ -77,13 +78,13 @@ namespace EntityGraphQL.Schema
         }
     }
 
-    public class BaseEntityQueryType
+    public abstract class BaseEntityQueryType
     {
         /// <summary>
-        /// The Compiler will set this based on supplied arguments.null You have use this in your expression to make a choice
+        /// Use this in your expression to make a choice
         /// </summary>
         /// <value></value>
-        public bool HasValue { get; set; }
+        public abstract bool HasValue { get; }
         public Type QueryType { get; protected set; }
     }
 }

@@ -89,23 +89,23 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
-			var tt = new SchemaType<TBaseType>(this, name, description);
+            var tt = new SchemaType<TBaseType>(this, name, description);
             types.Add(name, tt);
-			return tt;
+            return tt;
         }
 
         public ISchemaType AddType(Type contextType, string name, string description)
         {
-			var tt = new SchemaType<object>(this, contextType, name, description);
+            var tt = new SchemaType<object>(this, contextType, name, description);
             types.Add(name, tt);
-			return tt;
+            return tt;
         }
 
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
             var tt = new SchemaType<TBaseType>(this, name, description, true);
             types.Add(name, tt);
-			return tt;
+            return tt;
         }
 
         /// <summary>
@@ -233,7 +233,7 @@ namespace EntityGraphQL.Schema
         public SchemaType<TType> Type<TType>()
         {
             // look up by the actual type not the name
-            return (SchemaType<TType>) types.Values.Where(t => t.ContextType == typeof(TType)).First();
+            return (SchemaType<TType>)types.Values.Where(t => t.ContextType == typeof(TType)).First();
         }
         public SchemaType<TType> Type<TType>(string typeName)
         {
@@ -330,12 +330,10 @@ namespace EntityGraphQL.Schema
                         var queryVal = argField.GetValue(field.ArgumentTypesObject);
                         // set HasValue
                         var hasValue = val != null;
-                        var genericProp = queryVal.GetType().GetProperty("HasValue");
-                        genericProp.SetValue(queryVal, hasValue);
                         if (hasValue)
                         {
                             // set Query
-                            genericProp = queryVal.GetType().GetProperty("Query");
+                            var genericProp = queryVal.GetType().GetProperty("Query");
                             genericProp.SetValue(queryVal, ((dynamic)val).Expression);
                         }
 
@@ -406,7 +404,7 @@ namespace EntityGraphQL.Schema
                     throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
                 }
                 var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
-                var constructor = memberType.GetConstructor(new [] {item.GetType()});
+                var constructor = memberType.GetConstructor(new[] { item.GetType() });
                 if (constructor == null)
                 {
                     // we might need to change the type
@@ -416,7 +414,7 @@ namespace EntityGraphQL.Schema
                         if (parameters.Count() == 1)
                         {
                             item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType);
-                            constructor = memberType.GetConstructor(new [] {item.GetType()});
+                            constructor = memberType.GetConstructor(new[] { item.GetType() });
                             break;
                         }
                     }
@@ -427,7 +425,7 @@ namespace EntityGraphQL.Schema
                     throw new EntityGraphQLCompilerException($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
                 }
 
-                var typedVal = constructor.Invoke(new [] {item});
+                var typedVal = constructor.Invoke(new[] { item });
                 return typedVal;
             }
             else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))

@@ -163,7 +163,7 @@ namespace EntityGraphQL.LinqQuery.Tests
             var exp = EqlCompiler.Compile("name = \"Bob\"", SchemaBuilder.FromObject<TestEntity>(), null);
             var objects = new List<TestEntity> { new TestEntity("Sally"), new TestEntity("Bob") };
             Assert.Equal(2, objects.Count);
-            var results = objects.Where(exp.LambdaExpression);
+            var results = objects.Where((Func<TestEntity, bool>)exp.LambdaExpression.Compile());
             Assert.Single(results);
             Assert.Equal("Bob", results.ElementAt(0).Name);
         }
@@ -191,7 +191,7 @@ namespace EntityGraphQL.LinqQuery.Tests
                 }
             };
             Assert.Equal(3, list.Count());
-            var results = list.Where(compiledResult.LambdaExpression);
+            var results = list.Where((Func<TestEntity, bool>)compiledResult.LambdaExpression.Compile());
 
             Assert.Equal(2, results.Count());
             Assert.Equal("bob", results.ElementAt(0).Name);
