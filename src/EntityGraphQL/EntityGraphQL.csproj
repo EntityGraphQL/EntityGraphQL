@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/lukemurray/EntityGraphQL</RepositoryUrl>
     <PackageTags>GraphQL;data query;expression;language</PackageTags>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <PackageLicense>MIT</PackageLicense>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.6" />
