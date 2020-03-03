@@ -1,3 +1,6 @@
+# 0.32.1
+- Add `ContextId` to the ignored list in `SchemaBuilder` for EF 3.1
+
 # 0.32.0
 - Clean up `LinqExtensions`, removing the overloads that take `LambdaExpression`s. Use `.AsQueryable().Where(someExpressionVar)` instead. It works better with EF and other LinqProviders.
 

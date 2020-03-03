@@ -20,7 +20,8 @@ namespace EntityGraphQL.Schema
         private static readonly HashSet<string> ignoreProps = new HashSet<string> {
             "Database",
             "Model",
-            "ChangeTracker"
+            "ChangeTracker",
+            "ContextId"
         };
 
         private static readonly HashSet<string> ignoreTypes = new HashSet<string> {
