@@ -12,13 +12,12 @@ namespace EntityGraphQL.Extensions
     public static class LinqExtensions
     {
         /// <summary>
-        /// Applies the LambdaExpression as an Expression<Func<TSource, bool>> predicate expression on source.Where()
+        /// Applies the EntityQueryType<> filter expression against the source
         /// </summary>
         /// <param name="source"></param>
-        /// <param name="predicate"></param>
+        /// <param name="filter"></param>
         /// <typeparam name="TSource"></typeparam>
         /// <returns></returns>
-
         public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter)
         {
             if (filter.HasValue)

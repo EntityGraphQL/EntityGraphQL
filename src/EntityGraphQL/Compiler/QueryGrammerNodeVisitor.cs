@@ -122,7 +122,8 @@ namespace EntityGraphQL.Compiler
             var fieldName = context.method.GetText();
             var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
             IMethodType methodType = schemaProvider.GetFieldOnContext(currentContext, fieldName, claims);
-            var args = argList.ToDictionary(a => a.gqlfield.GetText(), a => {
+            var args = argList.ToDictionary(a => a.gqlfield.GetText(), a =>
+            {
                 var argName = a.gqlfield.GetText();
                 if (!methodType.Arguments.ContainsKey(argName))
                 {
@@ -167,7 +168,7 @@ namespace EntityGraphQL.Compiler
                         (argType.Type == typeof(Guid) || argType.Type == typeof(Guid?) ||
                         argType.Type == typeof(RequiredField<Guid>) || argType.Type == typeof(RequiredField<Guid?>)) && guidRegex.IsMatch(strValue))
                     {
-                        return ConvertToGuid(gqlVarValue);
+                        return (ExpressionResult)Expression.Constant(Guid.Parse(strValue));
                     }
                     if (argType.Type.IsConstructedGenericType && argType.Type.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
@@ -247,10 +248,10 @@ namespace EntityGraphQL.Compiler
         {
             // we may need to convert a string into a DateTime or Guid type
             string value = context.GetText().Substring(1, context.GetText().Length - 2).Replace("\\\"", "\"");
-            var exp = (ExpressionResult)Expression.Constant(value);
             if (guidRegex.IsMatch(value))
-                exp = ConvertToGuid(exp);
-            return exp;
+                return (ExpressionResult)Expression.Constant(Guid.Parse(value));
+
+            return (ExpressionResult)Expression.Constant(value);
         }
 
         public override ExpressionResult VisitNull(EntityGraphQLParser.NullContext context)
@@ -306,9 +307,9 @@ namespace EntityGraphQL.Compiler
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
                 left = (ExpressionResult)Expression.Convert(left, right.Type);
 
-            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64) ))
+            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
                 right = (ExpressionResult)Expression.Convert(right, left.Type);
-            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64) ))
+            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
                 left = (ExpressionResult)Expression.Convert(left, right.Type);
 
             return (ExpressionResult)Expression.MakeBinary(op, left, right);
