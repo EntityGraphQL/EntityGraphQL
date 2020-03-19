@@ -177,7 +177,7 @@ namespace EntityGraphQL.Compiler
                         {
                             query = query.Substring(1, context.gqlvalue.GetText().Length - 2);
                         }
-                        return BuildEntityQueryExpression(query);
+                        return BuildEntityQueryExpression(fieldArgumentContext.Name, argName, query);
                     }
 
                     var argumentNonNullType = argType.Type.IsNullableType() ? Nullable.GetUnderlyingType(argType.Type) : argType.Type;
@@ -197,15 +197,18 @@ namespace EntityGraphQL.Compiler
             return gqlVarValue;
         }
 
-        private ExpressionResult BuildEntityQueryExpression(string query)
+        private ExpressionResult BuildEntityQueryExpression(string fieldName, string argName, string query)
         {
-            var prop = ((Schema.Field)fieldArgumentContext).ArgumentTypesObject.GetType().GetProperties().FirstOrDefault(p => p.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
-            var eqlt = prop.GetValue(((Schema.Field)fieldArgumentContext).ArgumentTypesObject) as BaseEntityQueryType;
-            var contextParam = Expression.Parameter(eqlt.QueryType);
             if (string.IsNullOrEmpty(query))
             {
                 return null;
             }
+            var prop = ((Field)fieldArgumentContext).ArgumentTypesObject.GetType().GetProperties().FirstOrDefault(p => p.Name == argName && p.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
+            if (prop == null)
+                throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
+
+            var eqlt = prop.GetValue(((Field)fieldArgumentContext).ArgumentTypesObject) as BaseEntityQueryType;
+            var contextParam = Expression.Parameter(eqlt.QueryType);
             ExpressionResult expressionResult = EqlCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider, variables).ExpressionResult;
             expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);
             return expressionResult;

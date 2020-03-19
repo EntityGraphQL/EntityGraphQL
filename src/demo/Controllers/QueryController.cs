@@ -10,12 +10,14 @@ namespace demo.Controllers
     public class QueryController : Controller
     {
         private readonly DemoContext _dbContext;
-        private readonly MappedSchemaProvider<DemoContext> _schemaProvider;
+        private readonly SchemaProvider<DemoContext, IServiceProvider> _schemaProvider;
+        private readonly IServiceProvider _serviceProvider;
 
-        public QueryController(DemoContext dbContext, MappedSchemaProvider<DemoContext> schemaProvider)
+        public QueryController(DemoContext dbContext, SchemaProvider<DemoContext, IServiceProvider> schemaProvider, IServiceProvider serviceProvider)
         {
             this._dbContext = dbContext;
             this._schemaProvider = schemaProvider;
+            this._serviceProvider = serviceProvider;
         }
 
         [HttpGet]
@@ -34,7 +36,9 @@ namespace demo.Controllers
         {
             try
             {
-                var data = _dbContext.QueryObject(query, _schemaProvider);
+                // _serviceProvider is passed to mutations and field selections at run time which opens a lot of flexibility
+                // last argument can be claims to implement security checks
+                var data = _schemaProvider.ExecuteQuery(query, _dbContext, _serviceProvider, null);
                 return data;
             }
             catch (Exception)

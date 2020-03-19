@@ -9,9 +9,9 @@ using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema
 {
-    public class SchemaType<TBaseType> : ISchemaType
+    public class SchemaType<TBaseType, TArgType> : ISchemaType
     {
-        private ISchemaProvider schema;
+        private readonly ISchemaProvider schema;
         public Type ContextType { get; protected set; }
         public string Name { get; internal set; }
         public bool IsInput { get; }
@@ -76,6 +76,12 @@ namespace EntityGraphQL.Schema
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
             return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable, authorizeClaims);
         }
+        public Field AddField<TReturn>(Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        {
+            var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
+            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable, authorizeClaims);
+        }
+
         public Field AddField(Field field)
         {
             if (_fieldsByName.ContainsKey(field.Name))
@@ -87,6 +93,14 @@ namespace EntityGraphQL.Schema
             return field;
         }
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        {
+            var field = new Field(name, fieldSelection, description, returnSchemaType, null, authorizeClaims);
+            if (isNullable.HasValue)
+                field.ReturnTypeNotNullable = !isNullable.Value;
+            this.AddField(field);
+            return field;
+        }
+        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
             var field = new Field(name, fieldSelection, description, returnSchemaType, null, authorizeClaims);
             if (isNullable.HasValue)
@@ -115,6 +129,14 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
         public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        {
+            var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes, authorizeClaims);
+            if (isNullable.HasValue)
+                field.ReturnTypeNotNullable = !isNullable.Value;
+            this.AddField(field);
+            return field;
+        }
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TArgType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes, authorizeClaims);
             if (isNullable.HasValue)

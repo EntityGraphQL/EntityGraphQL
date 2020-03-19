@@ -79,7 +79,7 @@ public class QueryController : Controller
     {
         try
         {
-            var results = _dbContext.QueryObject(query, _schemaProvider);
+            var results = _schemaProvider.ExecuteQuery(query, _dbContext null, null);
             // gql compile errors show up in results.Errors
             return results
         }
@@ -203,6 +203,9 @@ You can customise the default schema, or create one from stratch exposing only t
 // Build from object
 var schema = SchemaBuilder.FromObject<MyDbContext>();
 
+// Or create one from scratch (no default fields etc.)
+var schema = SchemaBuilder.Create<MyDbContext>();
+
 // custom fields on existing type
 schema.Type<Person>().AddField("totalChildren", p => p.Children.Count(), "Number of children");
 
@@ -210,14 +213,15 @@ schema.Type<Person>().AddField("totalChildren", p => p.Children.Count(), "Number
 schema.AddType<TBaseEntity>("name", "description");
 // e.g. add a new type based on Person filtered by an expression
 var type = schema.AddType<Person>("peopleOnMars", "All people on mars", person => person.Location.Name == "Mars");
-type.AddPublicProperties(); // add the C# properties
+type.AddAllFields(); // add the C# properties
 // or select the fields
 type.AddField(p => p.Id, "The unique identifier");
 // Add fields with _required_ arguments - include `using static EntityGraphQL.Schema.ArgumentHelper;`
 schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
+// Or with an optional argument
+schemaProvider.AddField("user", new {id = int? = null}, (ctx, param) => ctx.Users.WhereWhen(u => u.Id == param.id.Value, params.id.HasValue), "description");
 
 // Here the type schema of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
-// You can also use default()
 var paramTypes = new {id = Required<Guid>()};
 
 // If you use a value, the argument will not be required and the value used as a default
@@ -289,10 +293,10 @@ To add this mutation to your schema, call
 schemaProvider.AddMutationFrom(new MovieMutations());
 ```
 
-- All `public` methods marked with the `GraphQLMutation` attribute will be added to the schema
+- All `public` methods marked with the `[GraphQLMutation]` attribute will be added to the schema
 - Parameters for the method should be
   - First - the base context that your schema is built from
-  - Optionally, any other items you have passed to `QueryObject` (see below for example)
+  - Optionally, an instance of your `TArg` defined in the schema (more on that below)
   - Last - a class that defines each available parameter (and type)
 - Variables from the GraphQL request are mapped into the args (last) parameter
 
@@ -314,14 +318,50 @@ With variables
 }
 ```
 
-## Accessing other services in your mutation
-`QueryObject` supports `mutationArgs` as parameters which can be 0+ variables that will be resolved to your mutation method.
-
-A big use case is `IServiceProvider`. When you call `QueryObject` you can pass any number of other variables in e.g. `var data = dbContext.QueryObject(gql, schemaProvider, serviceProvider);`
-
-If you define a mutation method that requires that parameter type it will be resolved to the value you passed `QueryObject`. Note EntityGraphQL will not use `IServiceProvider` to resolve _any_ parameter. This is just an example of getting the `IServiceProvider` to your mutation for those who use it.
+# Accessing other services in your mutation or field selections
+A great way to access other services in mutations or even a field selection is to use the `TArg` type in the schema. This can be any type but a great use is `IServiceProvider`.
 
 ```csharp
+public class Startup {
+  public void ConfigureServices(IServiceCollection services)
+  {
+      // ...
+      // Tell schema the type of TArg
+      services.AddSingleton(SchemaBuilder.FromObject<MyDbContext, IServiceProvider>());
+  }
+}
+
+[Route("api/[controller]")]
+public class QueryController : Controller
+{
+    private readonly MyDbContext _dbContext;
+    private readonly MappedSchemaProvider<MyDbContext> _schemaProvider;
+    private readonly IServiceProvider _serviceProvider;
+
+    public QueryController(MyDbContext dbContext, MappedSchemaProvider<MyDbContext> schemaProvider, IServiceProvider serviceProvider)
+    {
+        this._dbContext = dbContext;
+        this._schemaProvider = schemaProvider;
+        this._serviceProvider = serviceProvider;
+    }
+
+    [HttpPost]
+    public object Post([FromBody]QueryRequest query)
+    {
+        try
+        {
+            // pass the TArg instance as the 3rd parameter
+            var results = _schemaProvider.ExecuteQuery(query, _dbContext _serviceProvider, null);
+            // gql compile errors show up in results.Errors
+            return results
+        }
+        catch (Exception)
+        {
+            return HttpStatusCode.InternalServerError;
+        }
+    }
+}
+
 public class MovieMutations
 {
   [GraphQLMutation]
@@ -332,6 +372,12 @@ public class MovieMutations
     return ctx => ctx.Movies.First(m => m.Id == movie.Id);
   }
 }
+```
+
+We can also access the `IServiceProvider` (Or the value) in field selections
+
+```c#
+schema.AddField("Field", new { search = (string)null }, (db, p, services) => services.GetService<MyService>().ReturnNonDbData(p.search), "Description")
 ```
 
 # A note on case matching
@@ -352,7 +398,7 @@ First pass in the `ClaimsIdentity` to the query call
 
 ```c#
 // Assuming you're in a ASP.NET controller
-var results = _dbContext.QueryObject(query, _schemaProvider, this.User.Identities.FirstOrDefault());
+var results = _schemaProvider.ExecuteQuery(query, _dbContext, _schemaProvider, this.User.Identities.FirstOrDefault());
 ```
 
 Now if a field or mutation has `AuthorizeClaims` it will check if the supplied `ClaimsIdentity` contains any of those claims using the claim type `ClaimTypes.Role`.
@@ -379,7 +425,7 @@ If a `ClaimsIdentity` is provided with the query call it will be required to be 
 
 ## Queries
 
-If you are using the `SchemaBuilder.FromObject<T>()` you can use the `[GraphQLAuthorize("claim-name")]` attribute again throughout the objects.
+If you are using the `SchemaBuilder.FromObject<TContext, TArg>()` you can use the `[GraphQLAuthorize("claim-name")]` attribute again throughout the objects.
 
 ```c#
 public class MyDbContext : DbContext {
@@ -415,7 +461,6 @@ If a `ClaimsIdentity` is provided with the query call it will be required to be 
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAllClaims("admin");
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAnyClaim("admin", "super-admin");
 ```
-
 
 # Paging
 For paging you want to create your own fields.

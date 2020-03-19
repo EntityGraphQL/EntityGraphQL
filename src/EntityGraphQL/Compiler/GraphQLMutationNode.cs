@@ -38,11 +38,11 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        public object Execute(params object[] args)
+        public object Execute<TContext, TArg>(TContext context, TArg arg)
         {
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
-            var result = mutation.Execute(args);
+            var result = mutation.Execute(new object[] {context, arg});
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 var mutationLambda = (LambdaExpression)result;
@@ -111,12 +111,11 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 graphQLNode.Parameters[0] = mutationContextParam;
-                var executionArg = args[0];
-                result = graphQLNode.Execute(executionArg);
+                result = graphQLNode.Execute(context, arg);
                 return result;
             }
             // run the query select
-            result = graphQLNode.Execute(result);
+            result = graphQLNode.Execute(result, arg);
             return result;
         }
 

@@ -13,7 +13,7 @@ namespace EntityGraphQL.Schema
     public class Field : IMethodType
     {
         private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
-        private string returnTypeSingle;
+        private readonly string returnTypeSingle;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }

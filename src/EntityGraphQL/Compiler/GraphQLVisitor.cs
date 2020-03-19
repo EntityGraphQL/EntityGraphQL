@@ -116,7 +116,7 @@ namespace EntityGraphQL.Compiler
                     // Could be a list.First() that we need to turn into a select, or
                     // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
                     // Can we turn a list.First() into and list.Select().First()
-                    var listExp = Compiler.Util.ExpressionUtil.FindIEnumerable(result.ExpressionResult);
+                    var listExp = ExpressionUtil.FindIEnumerable(result.ExpressionResult);
                     if (listExp.Item1 != null)
                     {
                         // yes we can
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Compiler
                         var item1 = (ExpressionResult)listExp.Item1;
                         item1.AddConstantParameters(result.ExpressionResult.ConstantParameters);
                         graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context);
-                        graphQLNode.SetNodeExpression((ExpressionResult)Compiler.Util.ExpressionUtil.CombineExpressions(graphQLNode.GetNodeExpression(), listExp.Item2));
+                        graphQLNode.SetNodeExpression((ExpressionResult)ExpressionUtil.CombineExpressions(graphQLNode.GetNodeExpression(), listExp.Item2));
                     }
                     else
                     {
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Compiler
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] {rootFieldParam} : rootField.ContextParams.ToArray()), fieldExpressions, null);
+                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] { rootFieldParam } : rootField.ContextParams.ToArray()), fieldExpressions, null);
                 if (rootField != null && rootField.ConstantParameters != null)
                 {
                     graphQLNode.AddConstantParameters(rootField.ConstantParameters);

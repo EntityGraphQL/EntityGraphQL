@@ -182,9 +182,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public object Execute(params object[] args)
+        public object Execute<TContext, TArg>(TContext context, TArg arg)
         {
-            var allArgs = new List<object>(args);
+            var allArgs = new List<object> { context, arg };
 
             // build this first as NodeExpression may modify ConstantParameters
             var expression = GetNodeExpression();
@@ -192,13 +192,17 @@ namespace EntityGraphQL.Compiler
             // call tolist on top level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
             {
-                expression = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
+                expression = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
             }
 
             var parameters = Parameters.ToList();
+            var argParam = Expression.Parameter(typeof(TArg), $"argtype_{typeof(TArg).Name}");
+            parameters.Add(argParam);
+            var replacer = new ParameterReplacer();
+            expression = (ExpressionResult)replacer.ReplaceByType(expression, argParam.Type, argParam);
+
             if (ConstantParameters.Any())
             {
-                var replacer = new ParameterReplacer();
                 foreach (var item in ConstantParameters)
                 {
                     expression = (ExpressionResult)replacer.ReplaceByType(expression, item.Key.Type, item.Key);
@@ -219,7 +223,7 @@ namespace EntityGraphQL.Compiler
         }
         public void AddConstantParameter(ParameterExpression param, object val)
         {
-            this.constantParameters.Add(param, val);
+            constantParameters.Add(param, val);
         }
 
         public override string ToString()

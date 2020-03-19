@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -43,10 +40,11 @@ namespace EntityGraphQL.Compiler
         /// Executes the compiled GraphQL document adding data results into QueryResult.
         /// If no OperationName is supplied the first operation in the query document is executed
         /// </summary>
-        /// <param name="context">The context object to apply the compiled Lambda to. E.g. a DbContext</param>
-        /// <param name="operationName">Optional, the operation name to execute from in the query. If null or empty the first operation is executed</param>
+        /// <param name="context">Instance of the context tyoe of the schema</param>
+        /// <param name="arg">Instance of the argument type of the schema</param>
+        /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public QueryResult ExecuteQuery(object context, string operationName = null, params object[] mutationArgs)
+        public QueryResult ExecuteQuery<TContext, TArg>(TContext context, TArg arg, string operationName = null)
         {
             var result = new QueryResult();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
@@ -60,12 +58,7 @@ namespace EntityGraphQL.Compiler
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var args = new List<object> {context};
-                if (node.Type == OperationType.Mutation)
-                {
-                    args.AddRange(mutationArgs);
-                }
-                var data = node.Execute(args.ToArray());
+                var data = node.Execute(context, arg);
                 result.Data[node.Name] = data;
             }
 

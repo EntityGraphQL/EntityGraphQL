@@ -1,3 +1,13 @@
+# 0.40.0
+- Breaking changes
+  - Trying to clean up the interface for careting a schema and allowing an easier way to get services in mutations and field selections
+  - Rename `MappedSchemaProvider` to `SchemaProvider`
+  - Remove extension `object.QueryObject()` and require a more specific call to `SchmeaProvider.ExecuteQuery()`
+  - `SchmeaProvider.ExecuteQuery()` takes a `TArg` type which is an argument that will be passed to all field selections and mutation methods. This replaces `mutationArgs` in `object.QueryObject()` and lets both mutations and field selections access other services non-statically (e.g. via `TArg` being an `IServiceProvider`). See updated readme and demo project
+  - `SchemaProvider` is now create using `SchemaBuilder.Create<TContext, TArg>()` or `SchemaBuilder.Create<TContext>()` giving you a short cut for not providing a `TArg`
+  - `SchemaBuilder.FromObject<TContext, TArg>()` now takes second type argument for the `TArg` value. Also `SchemaBuilder.FromObject<TContext>()` shortcut
+- Fix bug where EntityQuery arguments were being cached in the schema
+
 # 0.32.1
 - Add `ContextId` to the ignored list in `SchemaBuilder` for EF 3.1
 

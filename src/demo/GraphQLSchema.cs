@@ -9,10 +9,10 @@ namespace demo
 {
     public class GraphQLSchema
     {
-        public static MappedSchemaProvider<DemoContext> MakeSchema()
+        public static SchemaProvider<DemoContext, IServiceProvider> MakeSchema()
         {
             // build our schema directly from the DB Context
-            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
+            var demoSchema = SchemaBuilder.FromObject<DemoContext, IServiceProvider>();
 
             demoSchema.AddCustomScalarType(typeof(DateTime), "Date");
             demoSchema.AddCustomScalarType(typeof(DateTime?), "Date");

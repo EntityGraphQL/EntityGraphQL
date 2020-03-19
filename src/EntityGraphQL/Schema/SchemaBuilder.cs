@@ -29,15 +29,25 @@ namespace EntityGraphQL.Schema
             "Byte[]"
         };
 
+
+        public static SchemaProvider<TContext, TArg> Create<TContext, TArg>()
+        {
+            return new SchemaProvider<TContext, TArg>();
+        }
+        public static SchemaProvider<TContext, object> Create<TContext>()
+        {
+            return new SchemaProvider<TContext, object>();
+        }
+
         /// <summary>
         /// Given the type TContextType recursively create a query schema based on the public properties of the object.
         /// </summary>
         /// <param name="autoCreateIdArguments">If True, automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static MappedSchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
+        public static SchemaProvider<TContextType, TArgType> FromObject<TContextType, TArgType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
         {
-            var schema = new MappedSchemaProvider<TContextType>();
+            var schema = new SchemaProvider<TContextType, TArgType>();
             var contextType = typeof(TContextType);
             var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes);
             foreach (var f in rootFields)
@@ -52,7 +62,12 @@ namespace EntityGraphQL.Schema
             return schema;
         }
 
-        private static void AddFieldWithIdArgumentIfExists<TContextType>(MappedSchemaProvider<TContextType> schema, Type contextType, Field fieldProp)
+        public static SchemaProvider<TContextType, object> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
+        {
+            return FromObject<TContextType, object>(autoCreateIdArguments, autoCreateEnumTypes);
+        }
+
+        private static void AddFieldWithIdArgumentIfExists<TContextType, TArgType>(SchemaProvider<TContextType, TArgType> schema, Type contextType, Field fieldProp)
         {
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
@@ -167,7 +182,7 @@ namespace EntityGraphQL.Schema
                     // dynamcially call generic method
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
-                    var method = schema.GetType().GetMethod("AddType", new [] {typeof(string), typeof(string)});
+                    var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
                     method = method.MakeGenericMethod(propType);
                     var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
 

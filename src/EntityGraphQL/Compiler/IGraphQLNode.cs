@@ -11,9 +11,8 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Execute this node with the supplied arguments. This is used for top level fields (that are each a query/mutation themselves)
         /// </summary>
-        /// <param name="args"></param>
         /// <returns></returns>
-        object Execute(params object[] args);
+        object Execute<TContext, TArg>(TContext context, TArg arg);
         /// <summary>
         /// List of fields in the current node. E.g.
         /// {

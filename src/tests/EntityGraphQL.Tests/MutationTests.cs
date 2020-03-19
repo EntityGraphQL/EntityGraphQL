@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void MissingRequiredVar()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables{{"na", "Frank"}}
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Errors;
+            dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null).Errors;
             var err = Enumerable.First(addPersonResult);
             Assert.Equal("Missing required variable 'name' on query 'AddPerson'", err.Message);
         }
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportsMutationOptional()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables {}
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider).Data["addPerson"];
+            dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null).Data["addPerson"];
             // we only have the fields requested
             Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportsMutationArray()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var testSchema = new TestSchema();
-            var results = testSchema.QueryObject(gql, schemaProvider);
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
             dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportsMutationObject()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests
                     {"names", Newtonsoft.Json.JsonConvert.DeserializeObject("{\"name\": \"Lisa\", \"lastName\": \"Simpson\"}")}
                 }
             };
-            dynamic addPersonResult = new TestSchema().QueryObject(gql, schemaProvider);
+            dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
             Assert.Empty(addPersonResult.Errors);
             addPersonResult = Enumerable.First(addPersonResult.Data);
             addPersonResult = addPersonResult.Value;
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportsSelectionFromConstant()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var testSchema = new TestSchema();
-            var results = testSchema.QueryObject(gql, schemaProvider);
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
             dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
             addPersonResult = addPersonResult.Value;

@@ -38,6 +38,17 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
+        public static MemberExpression CheckAndGetMemberExpression<TBaseType, TArgType, TReturn>(Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection)
+        {
+            var exp = fieldSelection.Body;
+            if (exp.NodeType == ExpressionType.Convert)
+                exp = ((UnaryExpression)exp).Operand;
+
+            if (exp.NodeType != ExpressionType.MemberAccess)
+                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", "fieldSelection");
+            return (MemberExpression)exp;
+        }
+
         public static object ChangeType(object value, Type type)
         {
             var objType = value.GetType();
@@ -83,23 +94,23 @@ namespace EntityGraphQL.Compiler.Util
             switch (nextExp.NodeType)
             {
                 case ExpressionType.Call:
-                {
-                    var mc = (MethodCallExpression)nextExp;
-                    if (mc.Object == null)
                     {
-                        var args = new List<Expression> { baseExp };
-                        var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
-                        foreach (var item in mc.Arguments.Skip(1))
+                        var mc = (MethodCallExpression)nextExp;
+                        if (mc.Object == null)
                         {
-                            var lambda = (LambdaExpression)item;
-                            var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
-                            args.Add(exp);
+                            var args = new List<Expression> { baseExp };
+                            var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
+                            foreach (var item in mc.Arguments.Skip(1))
+                            {
+                                var lambda = (LambdaExpression)item;
+                                var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
+                                args.Add(exp);
+                            }
+                            var call = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
+                            return call;
                         }
-                        var call = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
-                        return call;
+                        return Expression.Call(baseExp, mc.Method, mc.Arguments);
                     }
-                    return Expression.Call(baseExp, mc.Method, mc.Arguments);
-                }
                 default: throw new EntityGraphQLCompilerException($"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
             }
         }
@@ -118,13 +129,14 @@ namespace EntityGraphQL.Compiler.Util
                 switch (exp.NodeType)
                 {
                     case ExpressionType.Call:
-                    {
-                        endExpression = exp;
-                        var mc = (MethodCallExpression)exp;
-                        exp = mc.Object != null ? mc.Object : mc.Arguments.First();
-                        break;
-                    }
-                    default: exp = null;
+                        {
+                            endExpression = exp;
+                            var mc = (MethodCallExpression)exp;
+                            exp = mc.Object != null ? mc.Object : mc.Arguments.First();
+                            break;
+                        }
+                    default:
+                        exp = null;
                         break;
                 }
             }
@@ -135,7 +147,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var call = MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            var call = MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
         }
 
