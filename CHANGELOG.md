@@ -3,7 +3,7 @@
 - Breaking changes
   - Using DI inspired design now instead of the `TArg`
   - Use `WithService` helper to let EntityGraphQL know which services you require e.g. in an `AddField` use `(db, p) => WithService<IUserProvider>(users => users.Load(p.id))`
-  - For mutations just add the services as arguments as you typically do in dotnet
+  - For mutations just add the services as arguments (at the end) as you typically do in dotnet
   - `schema.ExecuteQuery()` takes an `IServiceProvider` which it uses to look up required services like `IUserProvider` above
 
 # 0.40.0

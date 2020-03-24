@@ -38,17 +38,6 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static MemberExpression CheckAndGetMemberExpression<TBaseType, TArgType, TReturn>(Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection)
-        {
-            var exp = fieldSelection.Body;
-            if (exp.NodeType == ExpressionType.Convert)
-                exp = ((UnaryExpression)exp).Operand;
-
-            if (exp.NodeType != ExpressionType.MemberAccess)
-                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", "fieldSelection");
-            return (MemberExpression)exp;
-        }
-
         public static object ChangeType(object value, Type type)
         {
             var objType = value.GetType();

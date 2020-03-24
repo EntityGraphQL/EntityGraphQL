@@ -221,11 +221,11 @@ schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.
 // Or with an optional argument
 schemaProvider.AddField("user", new {id = int? = null}, (ctx, param) => ctx.Users.WhereWhen(u => u.Id == param.id.Value, params.id.HasValue), "description");
 
-// Here the type schema of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
-var paramTypes = new {id = Required<Guid>()};
+// Here the type of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
+var paramTypes = new { id = Required<Guid>() };
 
 // If you use a value, the argument will not be required and the value used as a default
-var paramTypes = new {unit = "meter"};
+var paramTypes = new { unit = "meter" };
 ```
 
 ## LINQ Helper Methods
@@ -237,7 +237,7 @@ EntityGraphQL provides a few extension methods to help with building queries wit
 # Mutations
 Mutations allow you to make changes to data while selecting some data to return from the result. See the [GraphQL documentation](https://graphql.org/learn/queries/#mutations) for more information on the syntax.
 
-The main concept behind this is you create a class (or many) to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
+In EntityGraphQL you create a class (or many) to encapsulate all your mutations. This lets you break them up into multiple classes by functionality or just entity type.
 
 Although you can just return an object and the GraphQL query will be executed against that object. The suggested way is to return an `Expression`. This lets you access deep levels of the object model that may not be loaded in memory in the case you are using an ORM.
 
@@ -265,7 +265,7 @@ public class PropertyArgs
 }
 ```
 
-Not here, we did not `Include()` the current actors. If the query of the GraphQL mutation was `{ name actors { name id } }`, we would only get data that is loaded in memory of the `movie` variable.
+Note here, we did not `Include()` the current actors. If the query of the GraphQL mutation was `{ name actors { name id } }`, we would only get data that is loaded in memory of the `movie` variable.
 
 To support access to the full graph, regardless of if it is already loaded or via an ORM (like EF). It is reccomended to return an expression like so.
 
@@ -285,7 +285,7 @@ public class MovieMutations
 }
 ```
 
-Note the return signature change and the result we return is a `Func` that selects the movie we just modified.
+Note the return signature change and the result we return is an `Expression<Func<>>` that selects the movie we just modified.
 
 To add this mutation to your schema, call
 
@@ -296,8 +296,8 @@ schemaProvider.AddMutationFrom(new MovieMutations());
 - All `public` methods marked with the `[GraphQLMutation]` attribute will be added to the schema
 - Parameters for the method should be
   - First - the base context that your schema is built from
-  - Optionally, an instance of your `TArg` defined in the schema (more on that below)
-  - Last - a class that defines each available parameter (and type)
+  - Second - a class that defines each available parameter (and type)
+  - Third...n - Optionally any dependencies you want injected
 - Variables from the GraphQL request are mapped into the args (last) parameter
 
 You can now request a mutation
@@ -319,30 +319,19 @@ With variables
 ```
 
 # Accessing other services in your mutation or field selections
-A great way to access other services in mutations or even a field selection is to use the `TArg` type in the schema. This can be any type but a great use is `IServiceProvider`.
+EntityGraphQL uses a `IServiceProvider` that you provide to resolve any services you require outside of the `TContext`. You provide an instance of the `IServiceProvider` when you call `ExecuteQuery()`.
 
 ```csharp
-public class Startup {
-  public void ConfigureServices(IServiceCollection services)
-  {
-      // ...
-      // Tell schema the type of TArg
-      services.AddSingleton(SchemaBuilder.FromObject<MyDbContext, IServiceProvider>());
-  }
-}
-
 [Route("api/[controller]")]
 public class QueryController : Controller
 {
     private readonly MyDbContext _dbContext;
     private readonly MappedSchemaProvider<MyDbContext> _schemaProvider;
-    private readonly IServiceProvider _serviceProvider;
 
-    public QueryController(MyDbContext dbContext, MappedSchemaProvider<MyDbContext> schemaProvider, IServiceProvider serviceProvider)
+    public QueryController(MyDbContext dbContext, MappedSchemaProvider<MyDbContext> schemaProvider)
     {
         this._dbContext = dbContext;
         this._schemaProvider = schemaProvider;
-        this._serviceProvider = serviceProvider;
     }
 
     [HttpPost]
@@ -350,8 +339,8 @@ public class QueryController : Controller
     {
         try
         {
-            // pass the TArg instance as the 3rd parameter
-            var results = _schemaProvider.ExecuteQuery(query, _dbContext _serviceProvider, null);
+            // pass the ServiceProvider instance as the 3rd parameter
+            var results = _schemaProvider.ExecuteQuery(query, _dbContext HttpContext.RequestServices, null);
             // gql compile errors show up in results.Errors
             return results
         }
@@ -361,24 +350,33 @@ public class QueryController : Controller
         }
     }
 }
+```
 
+For mutations you add the services from the 3 argument on, e.g.
+
+```csharp
 public class MovieMutations
 {
   [GraphQLMutation]
-  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, IServiceProvider serviceProvider, ActorArgs args)
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, IMyService1 ser1, IMyService2 ser2)
   {
-    var myService = serviceProvider.GetService<...>();
-    myService.DoSomething();
+    ser1.DoSomething();
+    ser2.DoSomethingElse();
     return ctx => ctx.Movies.First(m => m.Id == movie.Id);
   }
 }
 ```
 
-We can also access the `IServiceProvider` (Or the value) in field selections
+We can also inject services in field selections with the helper `WithService<T>()`
 
 ```c#
-schema.AddField("Field", new { search = (string)null }, (db, p, services) => services.GetService<MyService>().ReturnNonDbData(p.search), "Description")
+schema.AddField("Field", new { search = (string)null }, (db, p) => WithService<IMyService>(mySer => mySer.ReturnNonDbData(p.search), "Description")
+
+// or a field on a typoe
+schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p) => WithService<IMyService>(mySer => mySer.ReturnNonDbData(p.search, movie.Id), "Description")
 ```
+
+Using the wrapper inside the field selection expression lets us still use the anonymous type for the parameter definition.
 
 # A note on case matching
 
@@ -398,7 +396,7 @@ First pass in the `ClaimsIdentity` to the query call
 
 ```c#
 // Assuming you're in a ASP.NET controller
-var results = _schemaProvider.ExecuteQuery(query, _dbContext, _schemaProvider, this.User.Identities.FirstOrDefault());
+var results = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, this.User.Identities.FirstOrDefault());
 ```
 
 Now if a field or mutation has `AuthorizeClaims` it will check if the supplied `ClaimsIdentity` contains any of those claims using the claim type `ClaimTypes.Role`.
@@ -425,7 +423,7 @@ If a `ClaimsIdentity` is provided with the query call it will be required to be 
 
 ## Queries
 
-If you are using the `SchemaBuilder.FromObject<TContext, TArg>()` you can use the `[GraphQLAuthorize("claim-name")]` attribute again throughout the objects.
+If you are using the `SchemaBuilder.FromObject<TContext>()` you can use the `[GraphQLAuthorize("claim-name")]` attribute again throughout the objects.
 
 ```c#
 public class MyDbContext : DbContext {

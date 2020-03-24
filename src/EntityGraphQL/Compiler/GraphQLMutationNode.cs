@@ -42,14 +42,14 @@ namespace EntityGraphQL.Compiler
         /// Execute the current mutation
         /// </summary>
         /// <param name="context">The context instance that will be used</param>
-        /// <param name="services">A service provider to look up any dependencies</param>
+        /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        public object Execute<TContext>(TContext context, IServiceProvider services)
+        public object Execute<TContext>(TContext context, IServiceProvider serviceProvider)
         {
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
-            var result = mutation.Execute(new object[] {context});
+            var result = mutation.Execute(context, serviceProvider);
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 var mutationLambda = (LambdaExpression)result;
@@ -79,14 +79,14 @@ namespace EntityGraphQL.Compiler
                             {
                                 // move the fitler to a Where call
                                 var filter = call.Arguments.ElementAt(1);
-                                baseExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Where", new Type[] { selectParam.Type }, baseExp, filter);
+                                baseExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { selectParam.Type }, baseExp, filter);
                             }
 
                             // build select
-                            var selectExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
+                            var selectExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type }, baseExp, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
 
                             // add First/Last back
-                            var firstExp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                            var firstExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
                             // we're done
                             graphQLNode.SetNodeExpression(firstExp);
@@ -112,17 +112,17 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = ExpressionUtil.MakeExpressionCall(new [] {typeof(Queryable), typeof(Enumerable)}, "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type}, mutationExpression, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
+                    var exp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[] { selectParam.Type, graphQLNode.GetNodeExpression().Type }, mutationExpression, Expression.Lambda(graphQLNode.GetNodeExpression(), selectParam));
                     graphQLNode.SetNodeExpression(exp);
                 }
 
                 // make sure we use the right parameter
                 graphQLNode.Parameters[0] = mutationContextParam;
-                result = graphQLNode.Execute(context, services);
+                result = graphQLNode.Execute(context, serviceProvider);
                 return result;
             }
             // run the query select
-            result = graphQLNode.Execute(result, services);
+            result = graphQLNode.Execute(result, serviceProvider);
             return result;
         }
 

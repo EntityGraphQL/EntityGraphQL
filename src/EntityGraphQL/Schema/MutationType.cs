@@ -11,13 +11,12 @@ namespace EntityGraphQL.Schema
 {
     public class MutationType : IMethodType
     {
-        private readonly ISchemaType returnType;
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private readonly Dictionary<string, ArgType> argumentTypes = new Dictionary<string, ArgType>();
         private readonly Type argInstanceType;
 
-        public Type ReturnTypeClr { get { return returnType.ContextType; } }
+        public Type ReturnTypeClr { get { return ReturnType.ContextType; } }
 
         public string Description { get; }
 
@@ -26,7 +25,7 @@ namespace EntityGraphQL.Schema
         public string Name { get; }
         public RequiredClaims AuthorizeClaims { get; }
 
-        public ISchemaType ReturnType => returnType;
+        public ISchemaType ReturnType { get; }
 
         public IDictionary<string, ArgType> Arguments => argumentTypes;
 
@@ -35,29 +34,28 @@ namespace EntityGraphQL.Schema
 
         public string GetReturnType(ISchemaProvider schema)
         {
-            return returnType.Name;
+            return ReturnType.Name;
         }
 
-        public object Call(object[] args, Dictionary<string, ExpressionResult> gqlRequestArgs)
+        public object Call(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, IServiceProvider serviceProvider)
         {
             // first arg is the Context - required arg in the mutation method
-            var allArgs = new List<object> { args.First() };
+            var allArgs = new List<object> { context };
 
-            // are they asking for any other args and do we have them
-            var parameterInfo = method.GetParameters();
-            foreach (var p in parameterInfo.Skip(1).Take(parameterInfo.Length - 2))
-            {
-                var match = args.FirstOrDefault(a => p.ParameterType.IsAssignableFrom(a.GetType()));
-                if (match == null)
-                {
-                    throw new EntityGraphQLCompilerException($"Mutation {method.Name} expecting parameter {p.Name} of type {p.ParameterType}, but no arguments suuplied to GraphQL QueryObject of that type");
-                }
-                allArgs.Add(match);
-            }
-
-            // last arg is the arguments for the mutation - required as last arg in the mutation method
+            // second arg is the arguments for the mutation - required as last arg in the mutation method
             var argInstance = AssignArgValues(gqlRequestArgs);
             allArgs.Add(argInstance);
+
+            // add any DI services
+            foreach (var p in method.GetParameters().Skip(2))
+            {
+                var service = serviceProvider.GetService(p.ParameterType);
+                if (service == null)
+                {
+                    throw new EntityGraphQLCompilerException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                }
+                allArgs.Add(service);
+            }
 
             var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
             return result;
@@ -121,7 +119,7 @@ namespace EntityGraphQL.Schema
                 if (type.IsArray && memberType.IsEnumerableOrArray())
                 {
                     var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
-                    var generic = convertMethod.MakeGenericMethod(new[] {memberType.GetGenericArguments()[0]});
+                    var generic = convertMethod.MakeGenericMethod(new[] { memberType.GetGenericArguments()[0] });
                     value = generic.Invoke(null, new object[] { value });
                 }
                 else if (type == typeof(Newtonsoft.Json.Linq.JObject))
@@ -139,13 +137,13 @@ namespace EntityGraphQL.Schema
         public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims)
         {
             this.Description = description;
-            this.returnType = returnType;
+            this.ReturnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             Name = methodName;
             AuthorizeClaims = authorizeClaims;
 
-            var methodArg = method.GetParameters().Last();
+            var methodArg = method.GetParameters().ElementAt(1);
             this.argInstanceType = methodArg.ParameterType;
             foreach (var item in argInstanceType.GetProperties())
             {
