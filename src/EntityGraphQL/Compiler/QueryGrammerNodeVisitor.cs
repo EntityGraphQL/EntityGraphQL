@@ -103,6 +103,7 @@ namespace EntityGraphQL.Compiler
                 if (exp != null)
                 {
                     r.AddConstantParameters(exp.ConstantParameters);
+                    r.AddServices(exp.Services);
                 }
                 exp = r;
                 currentContext = exp;

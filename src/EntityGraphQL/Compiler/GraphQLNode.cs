@@ -44,6 +44,12 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionResult fieldSelectionBaseExpression;
         private readonly List<IGraphQLNode> nodeFields;
         private readonly Dictionary<ParameterExpression, object> constantParameters;
+        private readonly List<Type> services = new List<Type>();
+        /// <summary>
+        /// List of services other than the context required to execute this node
+        /// </summary>
+        /// <value></value>
+        public IEnumerable<Type> Services { get => services; }
 
         public string Name { get; private set; }
         public OperationType Type => OperationType.Query;
@@ -77,9 +83,13 @@ namespace EntityGraphQL.Compiler
                         {
                             ExpressionResult exp = null;
                             if (isSelect)
+                            {
                                 exp = (ExpressionResult)replacer.Replace(fragField.GetNodeExpression(), fragment.SelectContext, fieldParameter);
+                            }
                             else
+                            {
                                 exp = (ExpressionResult)replacer.Replace(fragField.GetNodeExpression(), fragment.SelectContext, fieldSelectionBaseExpression);
+                            }
                             // new object as we reuse fragments
                             selectionFields.Add(new GraphQLNode(schemaProvider, queryFragments, fragField.Name, exp, null, null, null, null));
 
@@ -180,11 +190,24 @@ namespace EntityGraphQL.Compiler
             {
                 Parameters = new List<ParameterExpression>();
             }
+            services = new List<Type>();
+            if (exp != null)
+            {
+                AddServices(exp.Services);
+            }
+            if (fieldSelection != null)
+            {
+                AddServices(fieldSelection.SelectMany(s => s.GetType() == typeof(GraphQLNode) ? ((GraphQLNode)s).Services : new List<Type>()));
+            }
+            if (fieldSelectionBaseExpression != null)
+            {
+                AddServices(fieldSelectionBaseExpression.Services);
+            }
         }
 
-        public object Execute<TContext, TArg>(TContext context, TArg arg)
+        public object Execute<TContext>(TContext context, IServiceProvider serviceProvider)
         {
-            var allArgs = new List<object> { context, arg };
+            var allArgs = new List<object> { context };
 
             // build this first as NodeExpression may modify ConstantParameters
             var expression = GetNodeExpression();
@@ -196,10 +219,29 @@ namespace EntityGraphQL.Compiler
             }
 
             var parameters = Parameters.ToList();
-            var argParam = Expression.Parameter(typeof(TArg), $"argtype_{typeof(TArg).Name}");
-            parameters.Add(argParam);
+            var contextParam = Parameters.First(p => p.Type == context.GetType());
+
             var replacer = new ParameterReplacer();
-            expression = (ExpressionResult)replacer.ReplaceByType(expression, argParam.Type, argParam);
+            // inject dependencies
+            if (services != null)
+            {
+                foreach (var serviceType in services.Distinct())
+                {
+                    if (serviceType == context.GetType())
+                    {
+                        // inject the current context. As ReplaceByType will replace the context param too!
+                        expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, contextParam);
+                    }
+                    else
+                    {
+                        var service = serviceProvider.GetService(serviceType);
+                        // var argParam = Expression.Parameter(serviceType, $"argtype_{serviceType.Name}");
+                        // parameters.Add(argParam);
+                        expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, Expression.Constant(service));
+                        // allArgs.Add(service);
+                    }
+                }
+            }
 
             if (ConstantParameters.Any())
             {
@@ -224,6 +266,12 @@ namespace EntityGraphQL.Compiler
         public void AddConstantParameter(ParameterExpression param, object val)
         {
             constantParameters.Add(param, val);
+        }
+        public void AddServices(IEnumerable<Type> services)
+        {
+            if (services == null)
+                return;
+            this.services.AddRange(services);
         }
 
         public override string ToString()

@@ -72,8 +72,10 @@ namespace EntityGraphQL.Compiler
             AntlrInputStream stream = new AntlrInputStream(query);
             var lexer = new EntityGraphQLLexer(stream);
             var tokens = new CommonTokenStream(lexer);
-            var parser = new EntityGraphQLParser(tokens);
-            parser.BuildParseTree = true;
+            var parser = new EntityGraphQLParser(tokens)
+            {
+                BuildParseTree = true
+            };
             var tree = parser.startRule();
 
             var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables, claims);

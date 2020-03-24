@@ -23,6 +23,11 @@ namespace EntityGraphQL.Schema
         public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
+        /// <summary>
+        /// Services required to be injected for this fields selection
+        /// </summary>
+        /// <value></value>
+        public IEnumerable<Type> Services { get; private set; }
         public string Description { get; private set; }
 
         public object ArgumentTypesObject { get; private set; }
@@ -53,7 +58,18 @@ namespace EntityGraphQL.Schema
 
             if (resolve != null)
             {
-                Resolve = resolve.Body;
+                if (resolve.Body.NodeType == ExpressionType.Call && ((MethodCallExpression)resolve.Body).Method.DeclaringType == typeof(ArgumentHelper) && ((MethodCallExpression)resolve.Body).Method.Name == "WithService")
+                {
+                    // they are wanting services injected
+                    var call = (MethodCallExpression)resolve.Body;
+                    var lambdaExpression = (LambdaExpression)((UnaryExpression)call.Arguments.First()).Operand;
+                    Resolve = lambdaExpression.Body;
+                    Services = lambdaExpression.Parameters.Select(p => p.Type).ToList();
+                }
+                else
+                {
+                    Resolve = resolve.Body;
+                }
                 FieldParam = resolve.Parameters.First();
                 ReturnTypeClr = Resolve.Type;
 

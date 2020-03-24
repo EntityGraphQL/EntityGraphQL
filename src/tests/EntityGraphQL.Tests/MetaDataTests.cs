@@ -16,13 +16,13 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void Supports__typename()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	users { __typename id }
 }");
 
-            var users = tree.ExecuteQuery(new TestSchema(), (object) null);
+            var users = tree.ExecuteQuery(new TestSchema(), null);
             var user = Enumerable.First((dynamic)users.Data["users"]);
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);

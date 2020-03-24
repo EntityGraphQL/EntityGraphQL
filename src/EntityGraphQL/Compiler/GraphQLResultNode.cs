@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -41,10 +42,10 @@ namespace EntityGraphQL.Compiler
         /// If no OperationName is supplied the first operation in the query document is executed
         /// </summary>
         /// <param name="context">Instance of the context tyoe of the schema</param>
-        /// <param name="arg">Instance of the argument type of the schema</param>
+        /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public QueryResult ExecuteQuery<TContext, TArg>(TContext context, TArg arg, string operationName = null)
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null)
         {
             var result = new QueryResult();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
@@ -58,7 +59,7 @@ namespace EntityGraphQL.Compiler
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var data = node.Execute(context, arg);
+                var data = node.Execute(context, services);
                 result.Data[node.Name] = data;
             }
 

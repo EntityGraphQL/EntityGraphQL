@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -12,7 +13,7 @@ namespace EntityGraphQL.Compiler
         /// Execute this node with the supplied arguments. This is used for top level fields (that are each a query/mutation themselves)
         /// </summary>
         /// <returns></returns>
-        object Execute<TContext, TArg>(TContext context, TArg arg);
+        object Execute<TContext>(TContext context, IServiceProvider services);
         /// <summary>
         /// List of fields in the current node. E.g.
         /// {

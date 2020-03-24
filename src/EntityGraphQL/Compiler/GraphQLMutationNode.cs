@@ -38,11 +38,18 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        public object Execute<TContext, TArg>(TContext context, TArg arg)
+        /// <summary>
+        /// Execute the current mutation
+        /// </summary>
+        /// <param name="context">The context instance that will be used</param>
+        /// <param name="services">A service provider to look up any dependencies</param>
+        /// <typeparam name="TContext"></typeparam>
+        /// <returns></returns>
+        public object Execute<TContext>(TContext context, IServiceProvider services)
         {
             // run the mutation to get the context for the query select
             var mutation = (MutationResult)this.result.ExpressionResult;
-            var result = mutation.Execute(new object[] {context, arg});
+            var result = mutation.Execute(new object[] {context});
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 var mutationLambda = (LambdaExpression)result;
@@ -111,11 +118,11 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 graphQLNode.Parameters[0] = mutationContextParam;
-                result = graphQLNode.Execute(context, arg);
+                result = graphQLNode.Execute(context, services);
                 return result;
             }
             // run the query select
-            result = graphQLNode.Execute(result, arg);
+            result = graphQLNode.Execute(result, services);
             return result;
         }
 

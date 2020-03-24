@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsOpenBrace()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
             Assert.Equal("Error: line 2:19 no viable alternative at input 'field2'", ex.Message);
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsOpenBraceForEntity()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@" {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity field1 field2 }
 }"));
             Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ExpectsCloseBraceForEntity()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@" {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
 	myEntity {field1 field2 }"));
             Assert.Equal("Error: line 2:26 no viable alternative at input '<EOF>'", ex.Message);
         }
@@ -42,14 +42,14 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseSimpleQuery()
         {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema, object>();
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
 	people { id name }
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -61,14 +61,14 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseSimpleQueryOptionalComma()
         {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema, object>();
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
 	people { id, name }
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseScalar()
         {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema, object>();
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
 	people { id name }
@@ -88,14 +88,14 @@ namespace EntityGraphQL.Tests
 }");
             Assert.Single(tree.Operations);
             Assert.Equal(2, tree.Operations.First().Fields.Count());
-            var result = tree.Operations.First().Fields.ElementAt(1).Execute(new TestSchema(), (object)null) as int?;
+            var result = tree.Operations.First().Fields.ElementAt(1).Execute(new TestSchema(), null) as int?;
             Assert.True(result.HasValue);
             Assert.Equal(1, result.Value);
         }
         [Fact]
         public void CanQueryExtendedFields()
         {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema, object>();
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             objectSchemaProvider.Type<Person>().AddField("thing", p => p.Id + " - " + p.Name, "A weird field I want");
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
 {
@@ -103,7 +103,7 @@ namespace EntityGraphQL.Tests
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanRemoveFields()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().RemoveField(p => p.Id);
             var ex = Assert.Throws<SchemaException>(() => { var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
 {
@@ -127,36 +127,36 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseSimpleQuery2()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people.where(id = 9) { id name }
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Empty((dynamic)result.Data["people"]);
         }
         [Fact]
         public void CanParseAliasQuery()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	luke: people.where(id = 99) { id name }
 }");
             Assert.Equal("luke", tree.Operations.First().Fields.ElementAt(0).Name);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single((dynamic)result.Data["luke"]);
         }
         [Fact]
         public void CanParseAliasQueryComplexExpression()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id fullName: name + "" "" + lastName }
 }");
             Assert.Single(tree.Operations.First().Fields);
             Assert.Equal("people", tree.Operations.First().Fields.ElementAt(0).Name);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsBinaryAsQuery()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people.id = 9 { id name }
 }"));
@@ -177,7 +177,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseMultipleEntityQuery()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id name },
 	users { id }
@@ -185,7 +185,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(tree.Operations);
             Assert.Equal(2, tree.Operations.First().Fields.Count());
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -203,12 +203,12 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithRelation()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id name user { field1 } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -225,7 +225,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithRelationDeep()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id name
 		user {
@@ -235,7 +235,7 @@ namespace EntityGraphQL.Tests
 	}
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -257,12 +257,12 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithCollection()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id name projects { name } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -281,7 +281,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithCollectionDeep()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id
 		projects {
@@ -290,7 +290,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }");
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -316,7 +316,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsNonExistingField()
         {
-            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id
 		projects {
@@ -330,7 +330,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsNonExistingField2()
         {
-            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id
 		projects {
@@ -344,7 +344,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanExecuteRequiredParameter()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema, object>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	project(id: 55) {
 		name
@@ -352,7 +352,7 @@ namespace EntityGraphQL.Tests
 }");
 
             Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), (object)null);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal("Project 3", ((dynamic)result.Data["project"]).name);
         }
 

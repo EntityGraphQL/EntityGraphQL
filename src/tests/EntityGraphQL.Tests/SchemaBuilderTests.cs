@@ -12,13 +12,13 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ReadsContextType()
         {
-            var schema = SchemaBuilder.FromObject<TestEntity, object>();
+            var schema = SchemaBuilder.FromObject<TestEntity>();
             Assert.Equal(typeof(TestEntity), schema.ContextType);
         }
         [Fact]
         public void CachesPublicProperties()
         {
-            var schema = SchemaBuilder.FromObject<TestEntity, object>();
+            var schema = SchemaBuilder.FromObject<TestEntity>();
             Assert.True(schema.TypeHasField(typeof(TestEntity), "id", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", new string[0], null));
@@ -27,14 +27,14 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CachesPublicFields()
         {
-            var schema = SchemaBuilder.FromObject<Person, object>();
+            var schema = SchemaBuilder.FromObject<Person>();
             Assert.True(schema.TypeHasField(typeof(Person), "id", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
         }
         [Fact]
         public void CachesRecursively()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema>();
             Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", new string[0], null));
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void AllowsExtending()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().AddField("idAndName", p => p.Id + " " + p.Name, "The Id and Name");
             Assert.True(schema.TypeHasField(typeof(Person), "name", new string[0], null));
             Assert.True(schema.TypeHasField(typeof(Person), "idAndName", new string[0], null));
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanNotOverrideExistingType()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema>();
             var ex = Assert.Throws<ArgumentException>(() => {
                 // Type "person" was auto created from the TestSchema
                 var t = schema.AddType<Person>("Person", description: "duplicate type");
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void AutoAddArgumentForId()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema>();
             var argumentTypes = schema.Type<TestSchema>().GetField("person").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void AutoAddArgumentForIdGuid()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema2, object>();
+            var schema = SchemaBuilder.FromObject<TestSchema2>();
             var argumentTypes = schema.Type<TestSchema2>().GetField("property").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);

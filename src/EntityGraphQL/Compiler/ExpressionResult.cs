@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,16 +12,27 @@ namespace EntityGraphQL.Compiler
     public class ExpressionResult
     {
         private readonly Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
+        private readonly List<Type> services;
 
         public ExpressionResult(Expression value)
         {
             this.Expression = value;
+            services = new List<Type>();
+        }
+        public ExpressionResult(Expression value, IEnumerable<Type> services) : this(value)
+        {
+            AddServices(services);
         }
 
         public virtual Expression Expression { get; internal set; }
         public Type Type { get { return Expression.Type; } }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
+        /// <summary>
+        /// Services (DI) required by these expresion other than the schema context
+        /// </summary>
+        /// <value></value>
+        public IEnumerable<Type> Services { get => services; }
         public ExpressionType NodeType { get { return Expression.NodeType; } }
 
         public static implicit operator Expression(ExpressionResult field)
@@ -50,6 +60,13 @@ namespace EntityGraphQL.Compiler
             {
                 AddConstantParameter(item.Key, item.Value);
             }
+        }
+        internal void AddServices(IEnumerable<Type> services)
+        {
+            if (services == null)
+                return;
+
+            this.services.AddRange(services);
         }
     }
 }

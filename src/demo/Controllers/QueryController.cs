@@ -10,10 +10,10 @@ namespace demo.Controllers
     public class QueryController : Controller
     {
         private readonly DemoContext _dbContext;
-        private readonly SchemaProvider<DemoContext, IServiceProvider> _schemaProvider;
+        private readonly SchemaProvider<DemoContext> _schemaProvider;
         private readonly IServiceProvider _serviceProvider;
 
-        public QueryController(DemoContext dbContext, SchemaProvider<DemoContext, IServiceProvider> schemaProvider, IServiceProvider serviceProvider)
+        public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider, IServiceProvider serviceProvider)
         {
             this._dbContext = dbContext;
             this._schemaProvider = schemaProvider;

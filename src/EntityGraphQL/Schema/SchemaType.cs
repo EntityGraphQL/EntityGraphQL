@@ -9,7 +9,7 @@ using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema
 {
-    public class SchemaType<TBaseType, TArgType> : ISchemaType
+    public class SchemaType<TBaseType> : ISchemaType
     {
         private readonly ISchemaProvider schema;
         public Type ContextType { get; protected set; }
@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
             return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable, authorizeClaims);
         }
-        public Field AddField<TReturn>(Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        public Field AddField<TService, TReturn>(Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
             return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable, authorizeClaims);
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Schema
             this.AddField(field);
             return field;
         }
-        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TArgType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
             var field = new Field(name, fieldSelection, description, returnSchemaType, null, authorizeClaims);
             if (isNullable.HasValue)
@@ -136,7 +136,7 @@ namespace EntityGraphQL.Schema
             this.AddField(field);
             return field;
         }
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TArgType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
+        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
             var field = new Field(name, selectionExpression, description, returnSchemaType, argTypes, authorizeClaims);
             if (isNullable.HasValue)

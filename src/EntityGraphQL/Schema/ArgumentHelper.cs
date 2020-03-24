@@ -1,6 +1,5 @@
 using System;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
@@ -18,6 +17,37 @@ namespace EntityGraphQL.Schema
         public static EntityQueryType<TType> EntityQuery<TType>()
         {
             return new EntityQueryType<TType>();
+        }
+
+        /// <summary>
+        /// Helper to inject services into you GraphQL field selection expressions.
+        /// </summary>
+        /// <param name="selection"></param>
+        /// <typeparam name="TService"></typeparam>
+        /// <returns></returns>
+        public static LambdaExpression WithService<TService>(Expression<Func<TService, object>> selection)
+        {
+            return selection;
+        }
+        /// <summary>
+        /// Helper to inject services into you GraphQL field selection expressions.
+        /// </summary>
+        /// <param name="selection"></param>
+        /// <typeparam name="TService"></typeparam>
+        /// <returns></returns>
+        public static LambdaExpression WithService<TService1, TService2>(Expression<Func<TService1, TService2, object>> selection)
+        {
+            return selection;
+        }
+        /// <summary>
+        /// Helper to inject services into you GraphQL field selection expressions.
+        /// </summary>
+        /// <param name="selection"></param>
+        /// <typeparam name="TService"></typeparam>
+        /// <returns></returns>
+        public static LambdaExpression WithService<TService1, TService2, TService3>(Expression<Func<TService1, TService2, TService3, object>> selection)
+        {
+            return selection;
         }
     }
 

@@ -45,7 +45,7 @@ namespace dotnet_gql
 
                 // We're calling ISchemaProvider schema = SchemaBuilder.FromObject<TContext>();
                 // let's us do it with type safety
-                Expression<Func<ISchemaProvider>> call = () => SchemaBuilder.FromObject<object, object>(true, true);
+                Expression<Func<ISchemaProvider>> call = () => SchemaBuilder.FromObject<object>(true, true);
                 var method = ((MethodCallExpression)call.Body).Method;
                 method = method.GetGenericMethodDefinition().MakeGenericMethod(contextType);
                 var schema = method.Invoke(null, new object[] {true}) as ISchemaProvider;

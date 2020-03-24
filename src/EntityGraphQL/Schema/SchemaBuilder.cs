@@ -30,13 +30,9 @@ namespace EntityGraphQL.Schema
         };
 
 
-        public static SchemaProvider<TContext, TArg> Create<TContext, TArg>()
+        public static SchemaProvider<TContext> Create<TContext>()
         {
-            return new SchemaProvider<TContext, TArg>();
-        }
-        public static SchemaProvider<TContext, object> Create<TContext>()
-        {
-            return new SchemaProvider<TContext, object>();
+            return new SchemaProvider<TContext>();
         }
 
         /// <summary>
@@ -45,9 +41,9 @@ namespace EntityGraphQL.Schema
         /// <param name="autoCreateIdArguments">If True, automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType, TArgType> FromObject<TContextType, TArgType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
         {
-            var schema = new SchemaProvider<TContextType, TArgType>();
+            var schema = new SchemaProvider<TContextType>();
             var contextType = typeof(TContextType);
             var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes);
             foreach (var f in rootFields)
@@ -62,12 +58,7 @@ namespace EntityGraphQL.Schema
             return schema;
         }
 
-        public static SchemaProvider<TContextType, object> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
-        {
-            return FromObject<TContextType, object>(autoCreateIdArguments, autoCreateEnumTypes);
-        }
-
-        private static void AddFieldWithIdArgumentIfExists<TContextType, TArgType>(SchemaProvider<TContextType, TArgType> schema, Type contextType, Field fieldProp)
+        private static void AddFieldWithIdArgumentIfExists<TContextType>(SchemaProvider<TContextType> schema, Type contextType, Field fieldProp)
         {
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;

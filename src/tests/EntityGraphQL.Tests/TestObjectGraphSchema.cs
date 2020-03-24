@@ -14,7 +14,7 @@ namespace EntityGraphQL.Tests
     /// </summary>
     namespace ApiVersion1
     {
-        internal class TestObjectGraphSchema : SchemaProvider<TestDataContext, object>
+        internal class TestObjectGraphSchema : SchemaProvider<TestDataContext>
         {
             public TestObjectGraphSchema()
             {

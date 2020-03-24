@@ -123,6 +123,7 @@ namespace EntityGraphQL.Compiler
                         // rebuild the ExpressionResult so we keep any ConstantParameters
                         var item1 = (ExpressionResult)listExp.Item1;
                         item1.AddConstantParameters(result.ExpressionResult.ConstantParameters);
+                        item1.AddServices(result.ExpressionResult.Services);
                         graphQLNode = BuildDynamicSelectOnCollection(new CompiledQueryResult(item1, result.ContextParams), name, context);
                         graphQLNode.SetNodeExpression((ExpressionResult)ExpressionUtil.CombineExpressions(graphQLNode.GetNodeExpression(), listExp.Item2));
                     }
@@ -183,19 +184,18 @@ namespace EntityGraphQL.Compiler
 
             try
             {
-                var exp = (Expression)rootField.ExpressionResult;
-
                 var oldContext = selectContext;
-                var rootFieldParam = Expression.Parameter(exp.Type);
-                selectContext = rootField.IsMutation ? rootFieldParam : exp;
+                var rootFieldParam = Expression.Parameter(rootField.ExpressionResult.Type);
+                selectContext = rootField.IsMutation ? rootFieldParam : rootField.ExpressionResult.Expression;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, (rootField.IsMutation ? new ParameterExpression[] { rootFieldParam } : rootField.ContextParams.ToArray()), fieldExpressions, null);
+                var graphQLNode = new GraphQLNode(schemaProvider, fragments, name, null, (ExpressionResult)selectContext, rootField.IsMutation ? new ParameterExpression[] { rootFieldParam } : rootField.ContextParams.ToArray(), fieldExpressions, null);
                 if (rootField != null && rootField.ConstantParameters != null)
                 {
                     graphQLNode.AddConstantParameters(rootField.ConstantParameters);
                 }
+                graphQLNode.AddServices(rootField.ExpressionResult.Services);
 
                 selectContext = oldContext;
 

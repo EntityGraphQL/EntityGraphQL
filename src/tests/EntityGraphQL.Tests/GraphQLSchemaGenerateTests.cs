@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreQueryFails()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
                 Query = @"query Test { movies { id } }",
@@ -28,7 +28,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreQueryPasses()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
                 Query = @"query Test { albums { id } }",
@@ -40,7 +40,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreInputFails()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -62,7 +62,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreInputPasses()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -85,7 +85,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreAllInInput()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreAllInQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest {
                 Query = @"query Test {
@@ -125,7 +125,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreWithSchema()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             Assert.DoesNotContain("hiddenField", schema);
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNullableEnumInType()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
             Assert.Contains("type Artist {\n\tid: Int!\n\ttype: ArtistType\n}", schema);
@@ -155,7 +155,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullArgs()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
@@ -164,7 +164,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullEnumerableElementByDefault()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNullEnumerableElement()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema, object>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
