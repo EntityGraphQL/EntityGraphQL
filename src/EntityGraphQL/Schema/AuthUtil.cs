@@ -10,6 +10,7 @@ namespace EntityGraphQL.Schema
     {
         // each item in the "first" list is AND claims and each in the inner list is OR claims
         private List<List<string>> requiredClaims;
+        public IEnumerable<IEnumerable<string>> Claims { get => requiredClaims; }
 
         public RequiredClaims()
         {
@@ -49,9 +50,9 @@ namespace EntityGraphQL.Schema
         public static bool IsAuthorized(ClaimsIdentity claims, RequiredClaims authorizeClaims)
         {
             // if the list is empty it means claims.IsAuthenticated needs to be true, if full it requires certain claims
-            if (authorizeClaims != null && claims != null)
+            if (authorizeClaims != null && claims != null && authorizeClaims.Any())
             {
-                if (claims.IsAuthenticated && (!authorizeClaims.Any() || authorizeClaims.HasRequired(claims)))
+                if (claims.IsAuthenticated && authorizeClaims.HasRequired(claims))
                 {
                     return true;
                 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Claims;
@@ -164,7 +165,7 @@ namespace EntityGraphQL.Schema
                 var field = _fieldsByName[identifier];
                 if (!AuthUtil.IsAuthorized(claims, field.AuthorizeClaims))
                 {
-                    throw new EntityGraphQLAccessException($"You do not have access to field '{identifier}' on type '{Name}'. You require any of the following security claims [{string.Join(", ", field.AuthorizeClaims)}]");
+                    throw new EntityGraphQLAccessException($"You do not have access to field '{identifier}' on type '{Name}'. You require any of the following security claims [{string.Join(", ", field.AuthorizeClaims.Claims.SelectMany(r => r))}]");
                 }
                 return _fieldsByName[identifier];
             }

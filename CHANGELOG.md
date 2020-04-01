@@ -1,4 +1,8 @@
 # 0.50.0
+- Fix claims check when required claims are empty
+- Fix error message state which claims are required for the given access error
+
+# 0.50.0-beta1
 - Sorry about the quick turn around
 - Breaking changes
   - Using DI inspired design now instead of the `TArg`

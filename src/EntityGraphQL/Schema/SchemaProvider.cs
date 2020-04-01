@@ -337,7 +337,7 @@ namespace EntityGraphQL.Schema
                 var mutation = mutations[fieldName];
                 if (!AuthUtil.IsAuthorized(claims, mutation.AuthorizeClaims))
                 {
-                    throw new EntityGraphQLAccessException($"You do not have access to mutation '{fieldName}'. You require any of the following security claims [{string.Join(", ", mutation.AuthorizeClaims)}]");
+                    throw new EntityGraphQLAccessException($"You do not have access to mutation '{fieldName}'. You require any of the following security claims [{string.Join(", ", mutation.AuthorizeClaims.Claims.SelectMany(r => r))}]");
                 }
                 return mutation;
             }
