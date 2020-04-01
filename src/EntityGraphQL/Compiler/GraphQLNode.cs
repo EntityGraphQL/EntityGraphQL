@@ -235,10 +235,7 @@ namespace EntityGraphQL.Compiler
                     else
                     {
                         var service = serviceProvider.GetService(serviceType);
-                        // var argParam = Expression.Parameter(serviceType, $"argtype_{serviceType.Name}");
-                        // parameters.Add(argParam);
                         expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, Expression.Constant(service));
-                        // allArgs.Add(service);
                     }
                 }
             }

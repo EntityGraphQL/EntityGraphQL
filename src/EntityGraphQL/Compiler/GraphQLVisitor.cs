@@ -150,7 +150,7 @@ namespace EntityGraphQL.Compiler
         private IGraphQLNode BuildDynamicSelectOnCollection(CompiledQueryResult queryResult, string name, EntityGraphQLParser.EntityQueryContext context)
         {
             var elementType = queryResult.BodyType.GetEnumerableOrArrayType();
-            var contextParameter = Expression.Parameter(elementType, $"param_{elementType}");
+            var contextParameter = Expression.Parameter(elementType, $"p_{elementType}");
 
             var exp = queryResult.ExpressionResult;
 
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Compiler
             var selectWasNull = false;
             if (selectContext == null)
             {
-                selectContext = Expression.Parameter(schemaProvider.ContextType);
+                selectContext = Expression.Parameter(schemaProvider.ContextType, $"cxt_{schemaProvider.ContextType.Name}");
                 selectWasNull = true;
             }
 
@@ -185,7 +185,7 @@ namespace EntityGraphQL.Compiler
             try
             {
                 var oldContext = selectContext;
-                var rootFieldParam = Expression.Parameter(rootField.ExpressionResult.Type);
+                var rootFieldParam = Expression.Parameter(rootField.ExpressionResult.Type, $"p_{rootField.ExpressionResult.Type.Name}");
                 selectContext = rootField.IsMutation ? rootFieldParam : rootField.ExpressionResult.Expression;
                 // visit child fields. Will be field or entityQueries again
                 var fieldExpressions = context.fields.children.Select(c => Visit(c)).Where(n => n != null).ToList();
@@ -295,7 +295,7 @@ namespace EntityGraphQL.Compiler
         {
             // top level syntax part. Add to the fragrments and return null
             var typeName = context.fragmentType.GetText();
-            selectContext = Expression.Parameter(schemaProvider.Type(typeName).ContextType, $"fragment_{typeName}");
+            selectContext = Expression.Parameter(schemaProvider.Type(typeName).ContextType, $"frag_{typeName}");
             var fields = new List<IGraphQLBaseNode>();
             foreach (var item in context.fields.children)
             {

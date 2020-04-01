@@ -425,7 +425,7 @@ namespace EntityGraphQL.Schema
                     }
                 }
                 // tell them this expression has another parameter
-                var argParam = Expression.Parameter(argType);
+                var argParam = Expression.Parameter(argType, $"arg_{argType.Name}");
                 result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
                 result.AddConstantParameter(argParam, parameters);
             }

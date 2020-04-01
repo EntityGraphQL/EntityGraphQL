@@ -88,7 +88,8 @@ namespace EntityGraphQL.Compiler.Util
                         if (mc.Object == null)
                         {
                             var args = new List<Expression> { baseExp };
-                            var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
+                            var type = baseExp.Type.GetGenericArguments().First();
+                            var newParam = Expression.Parameter(type, $"p_{type.Name}");
                             foreach (var item in mc.Arguments.Skip(1))
                             {
                                 var lambda = (LambdaExpression)item;

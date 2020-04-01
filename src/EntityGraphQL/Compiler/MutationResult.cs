@@ -15,7 +15,7 @@ namespace EntityGraphQL.Compiler
         {
             this.mutationType = mutationType;
             this.gqlRequestArgs = args;
-            paramExp = Expression.Parameter(mutationType.ContextType);
+            paramExp = Expression.Parameter(mutationType.ContextType, $"mcxt_{mutationType.ContextType.Name}");
         }
 
         public override Expression Expression { get { return paramExp; } }

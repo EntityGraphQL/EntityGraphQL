@@ -100,13 +100,13 @@ namespace EntityGraphQL.Compiler
                             var me = (MemberExpression)mutationLambda.Body;
                             if (me.Expression.NodeType == ExpressionType.Constant)
                             {
-                                graphQLNode.AddConstantParameter(Expression.Parameter(me.Type), Expression.Lambda(me).Compile().DynamicInvoke());
+                                graphQLNode.AddConstantParameter(Expression.Parameter(me.Type, $"const_{me.Type.Name}"), Expression.Lambda(me).Compile().DynamicInvoke());
                             }
                         }
                         else if (mutationLambda.Body.NodeType == ExpressionType.Constant)
                         {
                             var ce = (ConstantExpression)mutationLambda.Body;
-                            graphQLNode.AddConstantParameter(Expression.Parameter(ce.Type), ce.Value);
+                            graphQLNode.AddConstantParameter(Expression.Parameter(ce.Type, $"const_{ce.Type.Name}"), ce.Value);
                         }
                     }
                 }

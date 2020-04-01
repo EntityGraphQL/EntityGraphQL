@@ -209,7 +209,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
 
             var eqlt = prop.GetValue(((Field)fieldArgumentContext).ArgumentTypesObject) as BaseEntityQueryType;
-            var contextParam = Expression.Parameter(eqlt.QueryType);
+            var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
             ExpressionResult expressionResult = EqlCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider, variables).ExpressionResult;
             expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);
             return expressionResult;

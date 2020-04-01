@@ -151,11 +151,12 @@ namespace EntityGraphQL.LinqQuery
         {
             if (context.Type.IsEnumerableOrArray())
             {
-                return (ExpressionResult)Expression.Parameter(context.Type.GetGenericArguments()[0]);
+                Type type = context.Type.GetGenericArguments()[0];
+                return (ExpressionResult)Expression.Parameter(type, $"p_{type.Name}");
             }
             var t = context.Type.GetEnumerableOrArrayType();
             if (t != null)
-                return (ExpressionResult)Expression.Parameter(t);
+                return (ExpressionResult)Expression.Parameter(t, $"p_{t.Name}");
             return context;
         }
 

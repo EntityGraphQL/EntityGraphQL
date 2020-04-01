@@ -1,3 +1,6 @@
+# 0.50.1
+- Name all `ParameterExpression`s as EF 3.1 expects a name (can throw an error)
+
 # 0.50.0
 - Fix claims check when required claims are empty
 - Fix error message state which claims are required for the given access error

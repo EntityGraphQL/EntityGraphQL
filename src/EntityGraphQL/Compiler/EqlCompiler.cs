@@ -42,7 +42,7 @@ namespace EntityGraphQL.Compiler
             ParameterExpression contextParam = null;
 
             if (schemaProvider != null)
-                contextParam = Expression.Parameter(schemaProvider.ContextType);
+                contextParam = Expression.Parameter(schemaProvider.ContextType, $"cxt_{schemaProvider.ContextType.Name}");
             var expression = CompileQuery(query, contextParam, schemaProvider, claims, methodProvider, variables);
 
             var contextParams = new List<ParameterExpression>();
