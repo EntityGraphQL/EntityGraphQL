@@ -12,6 +12,8 @@ If you're looking for a dotnet library to generate code to query an API from a G
 ## Install
 Via Nuget https://www.nuget.org/packages/EntityGraphQL
 
+It recommended to use Newtonsoft.Json when using using .NET Core 3.1+ due to problems with the serialization: [Nuget](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson)
+
 # Getting up and running with EF
 
 _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object should work - although EF well is tested._
@@ -20,6 +22,10 @@ _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IE
 
 ```csharp
 public class MyDbContext : DbContext {
+  public MyDbContext(DbContextOptions options) : base(options)
+  {
+  }
+    
   protected override void OnModelCreating(ModelBuilder builder) {
     // Set up your relations
   }
@@ -49,12 +55,13 @@ public class Location {
 ```
 ## 2. Create a route
 
-Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller
+Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller.
 
 ```csharp
 public class Startup {
   public void ConfigureServices(IServiceCollection services)
   {
+      services.AddControllers().AddNewtonsoftJson();
       services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
       // add schema provider so we don't need to create it everytime
       // Also for this demo we expose all fields on MyDbContext. See below for details on building custom fields etc.
@@ -66,9 +73,9 @@ public class Startup {
 public class QueryController : Controller
 {
     private readonly MyDbContext _dbContext;
-    private readonly MappedSchemaProvider<MyDbContext> _schemaProvider;
+    private readonly SchemaProvider<MyDbContext> _schemaProvider;
 
-    public QueryController(MyDbContext dbContext, MappedSchemaProvider<MyDbContext> schemaProvider)
+    public QueryController(MyDbContext dbContext, SchemaProvider<MyDbContext> schemaProvider)
     {
         this._dbContext = dbContext;
         this._schemaProvider = schemaProvider;
@@ -79,9 +86,9 @@ public class QueryController : Controller
     {
         try
         {
-            var results = _schemaProvider.ExecuteQuery(query, _dbContext null, null);
+            var results = _schemaProvider.ExecuteQuery(query, _dbContext, null, null);
             // gql compile errors show up in results.Errors
-            return results
+            return results;
         }
         catch (Exception)
         {
