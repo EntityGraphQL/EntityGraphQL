@@ -68,5 +68,16 @@ namespace EntityGraphQL.Compiler
 
             this.services.AddRange(services);
         }
+
+        /// <summary>
+        /// If this expression is a ParameterExpression it returns a typed ParameterExpresion otherwise null
+        /// </summary>
+        /// <returns></returns>
+        public ParameterExpression AsParameter()
+        {
+            if (Expression.NodeType == ExpressionType.Parameter)
+                return (ParameterExpression)Expression;
+            return null;
+        }
     }
 }

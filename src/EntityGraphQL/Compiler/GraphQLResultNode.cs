@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -24,18 +25,23 @@ namespace EntityGraphQL.Compiler
     public class GraphQLResultNode : IGraphQLBaseNode
     {
         /// <summary>
-        /// A list of graphql operations. THese could be mutations or queries
+        /// A list of graphql operations. These could be mutations or queries
         /// </summary>
         /// <value></value>
-        public List<IGraphQLNode> Operations { get; }
-        public OperationType Type => OperationType.Result;
+        public List<GraphQLQueryNode> Operations { get; }
 
-        public GraphQLResultNode(IEnumerable<IGraphQLNode> operations)
+        public GraphQLResultNode()
         {
-            this.Operations = operations.ToList();
+            this.Operations = new List<GraphQLQueryNode>();
         }
 
-        public string Name => "Query Request Root";
+        public string Name
+        {
+            get => "Query Request Root";
+            set => throw new NotImplementedException();
+        }
+
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => throw new NotImplementedException();
 
         /// <summary>
         /// Executes the compiled GraphQL document adding data results into QueryResult.
@@ -55,15 +61,25 @@ namespace EntityGraphQL.Compiler
             //      movies { released name }
             // }
             // people & movies will be the 2 fields that will be executed
-            foreach (var node in op.Fields)
+            foreach (var node in op.QueryFields)
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var data = node.Execute(context, services);
+                var data = ((GraphQLExecutableNode)node).Execute(context, services);
                 result.Data[node.Name] = data;
             }
 
             return result;
+        }
+
+        public ExpressionResult GetNodeExpression()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetNodeExpression(ExpressionResult expressionResult)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,3 +1,11 @@
+# 0.60.0
+- Add support for directives. Supported by default are `@include(if: Boolean!)` and `@skip(if: Boolean!)`.
+- Can now mark fields or enum values as deprecated
+- Schema generation with output deprecated fields marked with `@deprecated(reason)`
+- Added syntax support for subscription queries (they compile but do not execute or work)
+- Removed support for older syntax of complex queries that is not GQL standard
+- Refactored `GraphQLVistor` and friends to make it easier to follow what is happening (I hope). See CONTRIBUTING.md for some notes
+
 # 0.50.1
 - Name all `ParameterExpression`s as EF 3.1 expects a name (can throw an error)
 

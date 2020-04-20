@@ -10,6 +10,7 @@ namespace EntityGraphQL.Compiler
         private readonly QueryVariables variables;
         private readonly Schema.ISchemaProvider schemaProvider;
         private readonly GraphQLOperation operation;
+        private readonly ConstantVisitor constantVisitor = new ConstantVisitor();
 
         public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider, ClaimsIdentity claims)
         {
@@ -35,10 +36,10 @@ namespace EntityGraphQL.Compiler
             var isArray = context.arrayType != null;
             var type = isArray ? context.arrayType.type.GetText() : context.type.GetText();
             var required = context.required != null;
-            CompiledQueryResult defaultValue = null;
+            ExpressionResult defaultValue = null;
             if (context.defaultValue != null)
             {
-                defaultValue = EqlCompiler.CompileWith(context.defaultValue.GetText(), null, schemaProvider, claims, null, variables);
+                defaultValue = constantVisitor.Visit(context.defaultValue);
             }
 
             if (required && !variables.ContainsKey(argName) && defaultValue == null)
@@ -46,7 +47,7 @@ namespace EntityGraphQL.Compiler
                 throw new QueryException($"Missing required variable '{argName}' on query '{this.operation.Name}'");
             }
 
-            this.operation.AddArgument(argName, type, isArray, required, defaultValue != null ? defaultValue.ExpressionResult : null);
+            this.operation.AddArgument(argName, type, isArray, required, defaultValue != null ? defaultValue : null);
 
             return this.operation;
         }

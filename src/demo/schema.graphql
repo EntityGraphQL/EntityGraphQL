@@ -112,7 +112,6 @@ input Detail {
 	description: String
 }
 
-
 type Mutation {
 	"Add a new Movie object"
 	addMovie(name: String, rating: Float!, details: [Detail!], genre: Genre!, released: Date): Movie

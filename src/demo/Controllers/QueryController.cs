@@ -21,7 +21,7 @@ namespace demo.Controllers
         }
 
         [HttpGet]
-        public object Get(string query)
+        public object Get([FromQuery]string query)
         {
             return RunDataQuery(new QueryRequest { Query = query });
         }
@@ -36,7 +36,7 @@ namespace demo.Controllers
         {
             try
             {
-                // _serviceProvider is passed to mutations and field selections at run time which opens a lot of flexibility
+                // _serviceProvider is passed to resovle dependencies in mutations and field selections at run time which opens a lot of flexibility
                 // last argument can be claims to implement security checks
                 var data = _schemaProvider.ExecuteQuery(query, _dbContext, _serviceProvider, null);
                 return data;

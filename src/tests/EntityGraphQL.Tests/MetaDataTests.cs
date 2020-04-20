@@ -11,7 +11,7 @@ namespace EntityGraphQL.Tests
     /// <summary>
     /// Tests graphql metadata
     /// </summary>
-    public class MetaDataTests
+    public class MetadataTests
     {
         [Fact]
         public void Supports__typename()
