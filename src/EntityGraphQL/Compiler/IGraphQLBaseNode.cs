@@ -22,6 +22,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="expressionResult"></param>
         void SetNodeExpression(ExpressionResult expressionResult);
+        void SetCombineExpression(Expression item2);
     }
 
     public enum OperationType

@@ -53,20 +53,19 @@ directiveCall       : ws* '@' name=identity (ws* '(' ws* directiveArgs=gqlargs w
 aliasType           : name=identity ws* ':' ws*;
 field               : alias=aliasType? fieldDef=identity argsCall=gqlCall? ws* directive=directiveCall? ws* select=objectSelection?;
 fragmentSelect      : '...' name=identity;
-objectSelection     : ws* '{' wsc* (field | fragmentSelect) ((ws* ','? wsc*) (field | fragmentSelect) wsc*)* wsc* '}' ws*;
+objectSelection     : ws* '{' wsc* (field | fragmentSelect) ((ws* ','? wsc*) (field | fragmentSelect) wsc*)* wsc* '}' wsc*;
 operationName       : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
-gqlBody             : '{' wsc* field (ws* ','? wsc* field)* wsc* '}';
-dataQuery           : wsc* (queryKeyword | (queryKeyword ws* operationName))? ws* gqlBody wsc*;
-mutationQuery       : wsc* mutationKeyword ws* operationName ws* gqlBody wsc*;
-subscriptionQuery   : wsc* subscriptionKeyword ws* operationName ws* gqlBody wsc*;
-gqlFragment         : wsc* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=objectSelection wsc*;
+dataQuery           : wsc* (queryKeyword | (queryKeyword ws* operationName))? ws* objectSelection;
+mutationQuery       : wsc* mutationKeyword ws* operationName ws* objectSelection;
+subscriptionQuery   : wsc* subscriptionKeyword ws* operationName ws* objectSelection;
+gqlFragment         : wsc* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=objectSelection;
 
 comment         : ws* (singleLineDoc | multiLineDoc | ignoreComment) ws*;
 ignoreComment   : '#' ~('\n' | '\r')* ('\n' | '\r' | EOF);
 multiLineDoc    : '"""' ~'"""'* '"""';
 singleLineDoc   : '"' ~('\n' | '\r')* '"';
 
-graphQL             : ( gqlFragment* (dataQuery | mutationQuery | subscriptionQuery) gqlFragment* )+;
+graphQL             : gqlFragment* (dataQuery | mutationQuery | subscriptionQuery) (dataQuery | mutationQuery | subscriptionQuery | gqlFragment)*;
 
 // This is EntityQuery expression language
 args        : expression (',' ws* expression)*;

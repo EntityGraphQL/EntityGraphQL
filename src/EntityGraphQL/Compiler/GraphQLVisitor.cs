@@ -141,7 +141,7 @@ namespace EntityGraphQL.Compiler
                         item1.AddConstantParameters(expContext.ConstantParameters);
                         item1.AddServices(expContext.Services);
                         graphQLNode = BuildDynamicSelectOnCollection(item1, name, context);
-                        graphQLNode.SetNodeExpression((ExpressionResult)ExpressionUtil.CombineExpressions(graphQLNode.GetNodeExpression(), listExp.Item2));
+                        graphQLNode.SetCombineExpression(listExp.Item2);
                     }
                     else
                     {
@@ -332,7 +332,7 @@ namespace EntityGraphQL.Compiler
             this.currentExpressionContext = (ExpressionResult)Expression.Parameter(schemaProvider.ContextType, $"ctx");
             var rootFields = new List<GraphQLQueryNode>();
             // Just visit each child node. All top level will be entityQueries
-            foreach (var c in context.gqlBody().children)
+            foreach (var c in context.objectSelection().children)
             {
                 var n = Visit(c);
                 if (n != null)
@@ -356,13 +356,11 @@ namespace EntityGraphQL.Compiler
             }
             this.currentExpressionContext = (ExpressionResult)Expression.Parameter(schemaProvider.ContextType, $"ctx");
             var mutateFields = new List<IGraphQLBaseNode>();
-            foreach (var c in context.gqlBody().children)
+            foreach (var c in context.objectSelection().children)
             {
                 var n = Visit(c);
                 if (n != null)
-                {
                     mutateFields.Add(n);
-                }
             }
             var mutation = new GraphQLQueryNode(schemaProvider, fragments, operation.Name, null, null, mutateFields, null);
             return mutation;

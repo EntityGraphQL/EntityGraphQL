@@ -81,5 +81,10 @@ namespace EntityGraphQL.Compiler
         {
             throw new NotImplementedException();
         }
+
+        public void SetCombineExpression(Expression item2)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

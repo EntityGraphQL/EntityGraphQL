@@ -38,6 +38,7 @@ namespace EntityGraphQL.Compiler
         /// Holds the node's dotnet Expression
         /// </summary>
         private ExpressionResult nodeExpression;
+        private Expression combineExpression;
         private readonly List<IGraphQLBaseNode> nodeFields;
 
         /// <summary>
@@ -181,6 +182,12 @@ namespace EntityGraphQL.Compiler
                         }
                     }
                 }
+                if (combineExpression != null) {
+                    var exp = (ExpressionResult)ExpressionUtil.CombineExpressions(nodeExpression, combineExpression);
+                    exp.AddConstantParameters(nodeExpression.ConstantParameters);
+                    exp.AddServices(nodeExpression.Services);
+                    nodeExpression = exp;
+                }
                 return nodeExpression;
             }
             else if (nodeExpression != null && nodeFields != null && nodeFields.Any())
@@ -277,6 +284,11 @@ namespace EntityGraphQL.Compiler
             {
                 constantParameters.Add(item.Key, item.Value);
             }
+        }
+
+        public void SetCombineExpression(Expression combineExpression)
+        {
+            this.combineExpression = combineExpression;
         }
     }
 }

@@ -43,6 +43,11 @@ namespace EntityGraphQL.Compiler
             throw new System.NotImplementedException();
         }
 
+        public void SetCombineExpression(Expression item2)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public void SetNodeExpression(ExpressionResult expressionResult)
         {
             throw new System.NotImplementedException();
