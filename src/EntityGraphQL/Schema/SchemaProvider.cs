@@ -89,12 +89,8 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                var timer2 = new Stopwatch();
-                timer2.Start();
                 var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
                 var queryResult = graphQLCompiler.Compile(gql, claims);
-                timer2.Stop();
-                System.Console.WriteLine($"Compiler {timer2.ElapsedMilliseconds}");
                 result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName);
             }
             catch (Exception ex)
