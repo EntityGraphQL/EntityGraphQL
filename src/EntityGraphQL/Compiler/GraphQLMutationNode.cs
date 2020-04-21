@@ -84,14 +84,14 @@ namespace EntityGraphQL.Compiler
                                 // this is a ctx.Something.First(f => ...)
                                 // move the fitler to a Where call
                                 var filter = call.Arguments.ElementAt(1);
-                                baseExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Where", new Type[] { selectParam.Type }, baseExp, filter);
+                                baseExp = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { selectParam.Type }, baseExp, filter);
                             }
 
                             // build select
-                            var selectExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, baseExp, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
+                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, baseExp, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
 
                             // add First/Last back
-                            var firstExp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                            var firstExp = ExpressionUtil.MakeCallOnQueryable(call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
                             // we're done
                             resultSelection.SetNodeExpression(firstExp);
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, mutationExpression, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
+                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, mutationExpression, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
                     resultSelection.SetNodeExpression(exp);
                 }
 

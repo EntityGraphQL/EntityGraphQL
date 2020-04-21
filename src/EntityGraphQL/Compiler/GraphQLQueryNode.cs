@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
@@ -182,7 +183,8 @@ namespace EntityGraphQL.Compiler
                         }
                     }
                 }
-                if (combineExpression != null) {
+                if (combineExpression != null)
+                {
                     var exp = (ExpressionResult)ExpressionUtil.CombineExpressions(nodeExpression, combineExpression);
                     exp.AddConstantParameters(nodeExpression.ConstantParameters);
                     exp.AddServices(nodeExpression.Services);
@@ -212,7 +214,7 @@ namespace EntityGraphQL.Compiler
             // call tolist on top level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
             {
-                expression = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
+                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
             }
 
             var parameters = new List<ParameterExpression> { FieldParameter };
@@ -250,6 +252,7 @@ namespace EntityGraphQL.Compiler
                 parameters.AddRange(constantParameters.Keys);
                 allArgs.AddRange(constantParameters.Values);
             }
+
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
             return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }

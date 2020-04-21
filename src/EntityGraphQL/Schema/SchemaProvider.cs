@@ -81,33 +81,26 @@ namespace EntityGraphQL.Schema
         /// <param name="includeDebugInfo"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
-            Stopwatch timer = null;
-            if (includeDebugInfo)
-            {
-                timer = new Stopwatch();
-                timer.Start();
-            }
 
             QueryResult result;
             try
             {
+                var timer2 = new Stopwatch();
+                timer2.Start();
                 var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
                 var queryResult = graphQLCompiler.Compile(gql, claims);
+                timer2.Stop();
+                System.Console.WriteLine($"Compiler {timer2.ElapsedMilliseconds}");
                 result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName);
             }
             catch (Exception ex)
             {
                 // error with the whole query
                 result = new QueryResult { Errors = { new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message) } };
-            }
-            if (includeDebugInfo && timer != null)
-            {
-                timer.Stop();
-                result.SetDebug(new { TotalMilliseconds = timer.ElapsedMilliseconds });
             }
 
             return result;
