@@ -336,9 +336,29 @@ query MyQuery($limit: Int = 6) {
             // we only have the fields requested
             Assert.Equal(6, Enumerable.Count(people));
         }
+        [Fact]
+        public void TestTopLevelScalar()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var gql = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+query {
+    totalPeople
+}");
 
+            var context = new TestSchema();
+            context.People.Clear();
+            for (int i = 0; i < 15; i++)
+            {
+                context.People.Add(new Person());
+            }
+            var qr = gql.ExecuteQuery(context, null);
+            dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
+            // we only have the fields requested
+            Assert.Equal(15, totalPeople);
+        }
         private class TestSchema
         {
+            public int TotalPeople { get => People.Count(); }
             public string Hello { get { return "returned value"; } }
             public List<Person> People { get; set; } = new List<Person> { new Person() };
             public IEnumerable<User> Users { get { return new List<User> { new User(9), new User(1, "2") }; } }

@@ -49,8 +49,8 @@
                 {
                     Name = "Mutation"
                 },
-                Types = types.OrderBy(x => x.Name).ToArray(),
-                Directives = BuildDirectives().ToArray()
+                Types = types.OrderBy(x => x.Name).ToList(),
+                Directives = BuildDirectives()
             };
 
             return schemaDescription;
@@ -411,7 +411,6 @@
         private static List<Directives> BuildDirectives()
         {
             var directives = new List<Directives> {
-                // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the dierectives users add
                 // new Models.Directives
                 // {
                 //     Name = "include",

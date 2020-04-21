@@ -25,11 +25,11 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         private readonly ISchemaProvider schemaProvider;
         /// <summary>
-        /// The ParameterExpression used to build the Select object
+        /// The Expression (usually a ParameterExpression or MemberExpression) used to build the Select object
         /// If the field is not IEnumerable e.g. param.Name, this is not used as the selection will be built using param.Name
         /// If the field is IEnumerable e.g. param.People, this will be a ParameterExpression of the element type of People.
         /// </summary>
-        private readonly ParameterExpression selectionParameter;
+        private readonly ExpressionResult selectionContext;
         /// <summary>
         /// A list of query fragments defined in the query document. Used to look up a fragment selection
         /// </summary>
@@ -83,15 +83,15 @@ namespace EntityGraphQL.Compiler
         /// <param name="name">Name of the field. Could be the alais that the user provided</param>
         /// <param name="fieldExpression">The expression that makes the field. e.g. movie => movie.Name</param>
         /// <param name="fieldSelection">Any fields that will be selected from this field e.g. (in GQL) { thisField { fieldSelection1 fieldSelection2 } }</param>
-        /// <param name="selectionParameter">The ExpressionParameter used to build the fieldSelection expressions</param>
-        public GraphQLQueryNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, ExpressionResult fieldExpression, ParameterExpression fieldParameter, IEnumerable<IGraphQLBaseNode> fieldSelection, ParameterExpression selectionParameter)
+        /// <param name="selectionContext">The Expression used to build the fieldSelection expressions</param>
+        public GraphQLQueryNode(ISchemaProvider schemaProvider, IEnumerable<GraphQLFragment> queryFragments, string name, ExpressionResult fieldExpression, ParameterExpression fieldParameter, IEnumerable<IGraphQLBaseNode> fieldSelection, ExpressionResult selectionContext)
         {
             Name = name;
             this.fieldExpression = fieldExpression;
             nodeFields = fieldSelection?.ToList() ?? new List<IGraphQLBaseNode>();
             this.schemaProvider = schemaProvider;
             this.queryFragments = queryFragments;
-            this.selectionParameter = selectionParameter;
+            this.selectionContext = selectionContext;
             this.FieldParameter = fieldParameter;
             constantParameters = new Dictionary<ParameterExpression, object>();
             services = new List<Type>();
@@ -140,9 +140,10 @@ namespace EntityGraphQL.Compiler
 
                         foreach (IGraphQLBaseNode fragField in fragment.Fields)
                         {
-                            var exp = (ExpressionResult)replacer.Replace(fragField.GetNodeExpression(), fragment.SelectContext, selectionParameter);
+                            var fieldExp = fragField.GetNodeExpression();
+                            var exp = (ExpressionResult)replacer.Replace(fieldExp, fragment.SelectContext, selectionContext);
                             // new object as we reuse fragments
-                            selectionFields.Add(new GraphQLQueryNode(schemaProvider, queryFragments, fragField.Name, exp, selectionParameter, null, null));
+                            selectionFields.Add(new GraphQLQueryNode(schemaProvider, queryFragments, fragField.Name, exp, selectionContext.AsParameter(), null, null));
 
                             // pull any constant values up
                             foreach (var item in fragField.ConstantParameters)
@@ -159,7 +160,7 @@ namespace EntityGraphQL.Compiler
                 if (isSelectOnList)
                 {
                     // build a .Select(...) - returning a list<>
-                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionParameter, fieldExpression, selectionFields);
+                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionContext.AsParameter(), fieldExpression, selectionFields);
                 }
                 else
                 {

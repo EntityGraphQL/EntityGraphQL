@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
 
-        [Fact]
+        [Fact(Skip="Not implemented yet")]
         public void TestDirectiveOnResult()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();

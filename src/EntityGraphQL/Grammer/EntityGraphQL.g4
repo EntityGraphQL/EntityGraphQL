@@ -1,15 +1,28 @@
 grammar EntityGraphQL;
 
 // Core building blocks
-ID          : [a-z_A-Z]+[a-z_A-Z0-9-]*;
+ID          : [a-z_A-Z]+ [a-z_A-Z0-9-]*;
 DIGIT       : [0-9];
 STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"'\u005B\u005D;<>?,./-];
 
-identity    : ID;
+// identity includes keywords too
+identity    : ID | 'true'
+                | 'false'
+                | 'null'
+                | 'query'
+                | 'mutation'
+                | 'subscription'
+                | 'fragment'
+                | 'on'
+                | 'and'
+                | 'if'
+                | 'then'
+                | 'else';
+
 int         : '-'? DIGIT+;
 decimal     : '-'? DIGIT+'.'DIGIT+;
 boolean     : 'true' | 'false';
-string      : '"' ( '"' | ~('\n'|'\r') | STRING_CHARS )*? '"';
+string      : '"' ( '"' | ~('\n' | '\r') | STRING_CHARS )*? '"';
 null        : 'null';
 constant    : string | int | decimal | boolean | null;
 
@@ -17,7 +30,7 @@ ws          : ' ' | '\t' | '\n' | '\r';
 
 // Core building blocks for parsing GQL
 varArray    : '[' type=identity required='!'? ']';
-wsc         : ' ' | '\t' | '\n' | '\r' | comment;
+wsc         : comment | ws;
 
 // this is a data query (graphQL inspired)
 // # my comment
@@ -40,14 +53,18 @@ directiveCall       : ws* '@' name=identity (ws* '(' ws* directiveArgs=gqlargs w
 aliasType           : name=identity ws* ':' ws*;
 field               : alias=aliasType? fieldDef=identity argsCall=gqlCall? ws* directive=directiveCall? ws* select=objectSelection?;
 fragmentSelect      : '...' name=identity;
-objectSelection     : ws* '{' wsc* (field | fragmentSelect) ((ws* ','? wsc*) (field | fragmentSelect) wsc*)* '}' ws*;
+objectSelection     : ws* '{' wsc* (field | fragmentSelect) ((ws* ','? wsc*) (field | fragmentSelect) wsc*)* wsc* '}' ws*;
 operationName       : operation=identity ('(' (operationArgs=gqlTypeDefs)? ')')?;
 gqlBody             : '{' wsc* field (ws* ','? wsc* field)* wsc* '}';
 dataQuery           : wsc* (queryKeyword | (queryKeyword ws* operationName))? ws* gqlBody wsc*;
 mutationQuery       : wsc* mutationKeyword ws* operationName ws* gqlBody wsc*;
 subscriptionQuery   : wsc* subscriptionKeyword ws* operationName ws* gqlBody wsc*;
-comment             : '#' ~( '\r' | '\n' | EOF )* ( '\r' | '\n' | EOF );
 gqlFragment         : wsc* 'fragment' ws+ fragmentName=identity ws+ 'on' ws+ fragmentType=identity ws* fields=objectSelection wsc*;
+
+comment         : ws* (singleLineDoc | multiLineDoc | ignoreComment) ws*;
+ignoreComment   : '#' ~('\n' | '\r')* ('\n' | '\r' | EOF);
+multiLineDoc    : '"""' ~'"""'* '"""';
+singleLineDoc   : '"' ~('\n' | '\r')* '"';
 
 graphQL             : ( gqlFragment* (dataQuery | mutationQuery | subscriptionQuery) gqlFragment* )+;
 
