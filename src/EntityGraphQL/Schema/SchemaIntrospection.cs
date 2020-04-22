@@ -49,8 +49,8 @@
                 {
                     Name = "Mutation"
                 },
-                Types = types.OrderBy(x => x.Name).ToArray(),
-                Directives = BuildDirectives().ToArray()
+                Types = types.OrderBy(x => x.Name).ToList(),
+                Directives = BuildDirectives()
             };
 
             return schemaDescription;
@@ -201,12 +201,6 @@
                 type.Name = null;
                 type.OfType = BuildType(schema, clrType.GetEnumerableOrArrayType(), gqlTypeName, combinedMapping, isInput);
             }
-            else if (clrType.Name == "RequiredField`1")
-            {
-                type.Kind = "NON_NULL";
-                type.Name = null;
-                type.OfType = BuildType(schema, clrType.GetGenericArguments()[0], gqlTypeName, combinedMapping, isInput);
-            }
             else if (clrType.Name == "EntityQueryType`1")
             {
                 type.Kind = "SCALAR";
@@ -221,10 +215,12 @@
             }
             else
             {
-                if (clrType.IsNullableType())
+                // ConvertGqlRequiredOrList below handles NON_NULL by type mappings
+                if (clrType.IsNullableType() || clrType.Name == "RequiredField`1")
                 {
                     clrType = clrType.GetGenericArguments()[0];
                 }
+
                 type.Kind = combinedMapping.TypeIsScalar(clrType) ? "SCALAR" : "OBJECT";
                 type.OfType = null;
                 if (type.Kind == "OBJECT" && isInput)
@@ -411,7 +407,6 @@
         private static List<Directives> BuildDirectives()
         {
             var directives = new List<Directives> {
-                // TODO - we could have defaults in the future (currently no directives support). But likely this will be read from the dierectives users add
                 // new Models.Directives
                 // {
                 //     Name = "include",

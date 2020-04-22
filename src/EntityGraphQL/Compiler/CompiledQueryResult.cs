@@ -23,8 +23,6 @@ namespace EntityGraphQL.Compiler
 
         public ExpressionResult ExpressionResult { get; private set; }
 
-        public bool IsMutation { get { return typeof(MutationResult) == ExpressionResult.GetType(); } }
-
         public List<ParameterExpression> ContextParams { get { return contextParams; } }
 
         public CompiledQueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams)

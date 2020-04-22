@@ -17,10 +17,5 @@ namespace EntityGraphQL
             dataResults["errors"] = new List<GraphQLError>();
             dataResults["data"] = new ConcurrentDictionary<string, object>();
         }
-
-        internal void SetDebug(object debugData)
-        {
-            dataResults["_debug"] = debugData;
-        }
     }
 }

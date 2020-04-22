@@ -34,8 +34,23 @@ namespace EntityGraphQL.Compiler
             this.name = name;
         }
 
-        public string Name { get { return this.name; } }
+        public string Name { get { return this.name; } set => throw new System.NotImplementedException(); }
 
-        public OperationType Type { get; } = OperationType.Fragment;
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
+
+        public ExpressionResult GetNodeExpression()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void SetCombineExpression(Expression item2)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void SetNodeExpression(ExpressionResult expressionResult)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

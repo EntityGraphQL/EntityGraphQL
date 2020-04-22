@@ -77,26 +77,9 @@ namespace EntityGraphQL.Extensions
                 return null;
             }
             if (type.IsArray)
-            {
                 return type.GetElementType();
-            }
-            if (type.GetTypeInfo().IsGenericType && (
-                type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ||
-                type.GetGenericTypeDefinition() == typeof(IList<>) ||
-                type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
-                type.GetGenericTypeDefinition() == typeof(List<>) ||
-                type.GetGenericTypeDefinition() == typeof(ICollection<>) ||
-                type.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
-            {
+            if (type.GenericTypeArguments.Count() == 1)
                 return type.GetGenericArguments()[0];
-            }
-            foreach (var intType in type.GetInterfaces())
-            {
-                if (intType.IsEnumerableOrArray())
-                {
-                    return intType.GetEnumerableOrArrayType();
-                }
-            }
             return null;
         }
 

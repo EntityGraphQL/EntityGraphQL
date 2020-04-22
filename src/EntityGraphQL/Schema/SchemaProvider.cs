@@ -8,6 +8,7 @@ using System.Security.Claims;
 using EntityGraphQL.Authorization;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.LinqQuery;
 
@@ -21,7 +22,13 @@ namespace EntityGraphQL.Schema
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
         protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
-        protected Dictionary<string, IMethodType> mutations = new Dictionary<string, IMethodType>();
+        protected Dictionary<string, MutationType> mutations = new Dictionary<string, MutationType>();
+        protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>
+        {
+            // the 2 inbuilt directives defined by gql
+            {"include", new IncludeDirectiveProcessor()},
+            {"skip", new SkipDirectiveProcessor()},
+        };
 
         private readonly string queryContextName;
         // we want this scalar string values to be unique
@@ -34,11 +41,11 @@ namespace EntityGraphQL.Schema
         };
         // map some types to scalar types
         protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string> {
-            {typeof(uint), "Int"},
-            {typeof(ulong), "Int"},
-            {typeof(long), "Int"},
-            {typeof(double), "Float"},
-            {typeof(decimal), "Float"},
+            {typeof(uint), "Int!"},
+            {typeof(ulong), "Int!"},
+            {typeof(long), "Int!"},
+            {typeof(double), "Float!"},
+            {typeof(decimal), "Float!"},
             {typeof(byte[]), "String"},
         };
         public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
@@ -74,16 +81,10 @@ namespace EntityGraphQL.Schema
         /// <param name="includeDebugInfo"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool includeDebugInfo = false)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
-            Stopwatch timer = null;
-            if (includeDebugInfo)
-            {
-                timer = new Stopwatch();
-                timer.Start();
-            }
 
             QueryResult result;
             try
@@ -96,11 +97,6 @@ namespace EntityGraphQL.Schema
             {
                 // error with the whole query
                 result = new QueryResult { Errors = { new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message) } };
-            }
-            if (includeDebugInfo && timer != null)
-            {
-                timer.Stop();
-                result.SetDebug(new { TotalMilliseconds = timer.ElapsedMilliseconds });
             }
 
             return result;
@@ -325,9 +321,14 @@ namespace EntityGraphQL.Schema
         {
             if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))
                 return types[typeName].GetField(identifier, claims).Name;
+
             if (typeName == queryContextName && types[queryContextName].HasField(identifier))
                 return types[queryContextName].GetField(identifier, claims).Name;
-            throw new EntityGraphQLCompilerException($"Field {identifier} not found on any type");
+
+            if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
+                return mutations.Keys.First(k => k.ToLower() == identifier.ToLower());
+
+            throw new EntityGraphQLCompilerException($"Field {identifier} not found on type {typeName}");
         }
 
         public IMethodType GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims)
@@ -561,7 +562,7 @@ namespace EntityGraphQL.Schema
             return types.Values.Where(s => s.Name != queryContextName).ToList();
         }
 
-        public IEnumerable<IMethodType> GetMutations()
+        public IEnumerable<MutationType> GetMutations()
         {
             return mutations.Values.ToList();
         }
@@ -603,6 +604,19 @@ namespace EntityGraphQL.Schema
             var schemaType = new SchemaType<object>(this, type, name, description, false, true);
             types.Add(name, schemaType);
             return schemaType.AddAllFields();
+        }
+
+        public IDirectiveProcessor GetDirective(string name)
+        {
+            if (directives.ContainsKey(name))
+                return directives[name];
+            throw new EntityGraphQLCompilerException($"Directive {name} not defined in schema");
+        }
+        public void AddDirective(string name, IDirectiveProcessor directive)
+        {
+            if (directives.ContainsKey(name))
+                throw new EntityGraphQLCompilerException($"Directive {name} already exists on schema");
+            directives.Add(name, directive);
         }
     }
 }

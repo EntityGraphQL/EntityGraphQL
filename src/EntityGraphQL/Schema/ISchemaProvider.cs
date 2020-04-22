@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Security.Claims;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -54,7 +55,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         IEnumerable<ISchemaType> GetNonContextTypes();
 
-        IEnumerable<IMethodType> GetMutations();
+        IEnumerable<MutationType> GetMutations();
         /// <summary>
         /// Add custom scalar types that the schema will know about when generating schema and introspection.
         /// e.g. schema.AddCustomScalarType(typeof(DateTime), "Date");
@@ -63,5 +64,12 @@ namespace EntityGraphQL.Schema
         /// <param name="gqlTypeName">A type name for the scala</param>
         void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false);
         ISchemaType AddEnum(string name, Type type, string description);
+        /// <summary>
+        /// Get a directive by name. A directive is used to manipulate or customise a query and/or result
+        /// </summary>
+        /// <param name="name">name of the directive</param>
+        /// <returns></returns>
+        IDirectiveProcessor GetDirective(string name);
+        void AddDirective(string name, IDirectiveProcessor directive);
     }
 }

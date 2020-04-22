@@ -2,6 +2,8 @@
 // Built using quicktype
 // https://app.quicktype.io/#l=cs&r=json2csharp
 //
+using System.Collections.Generic;
+
 namespace EntityGraphQL.Schema.Models
 {
     public partial class Schema
@@ -12,9 +14,9 @@ namespace EntityGraphQL.Schema.Models
 
         public SubscriptionType SubscriptionType { get; set; }
 
-        public TypeElement[] Types { get; set; }
+        public List<TypeElement> Types { get; set; }
 
-        public Directives[] Directives { get; set; }
+        public List<Directives> Directives { get; set; }
     }
 
     public partial class SubscriptionType

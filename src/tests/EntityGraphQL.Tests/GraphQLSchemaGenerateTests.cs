@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
             };
             dynamic results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null).Errors;
             var err = Enumerable.First(results);
-            Assert.Equal("Field 'movies' not found on current context 'IgnoreTestSchema'", err.Message);
+            Assert.Equal("Field movies not found on type IgnoreTestSchema", err.Message);
         }
         [Fact]
         public void TestIgnoreQueryPasses()
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
             };
             var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
-            Assert.Equal("Field 'hiddenField' not found on current context 'Album'", error.Message);
+            Assert.Equal("Field hiddenField not found on type Album", error.Message);
         }
 
         [Fact]
