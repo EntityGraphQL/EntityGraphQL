@@ -5,6 +5,7 @@
 - Refactored `GraphQLVistor` and friends to make it easier to follow what is happening (I hope). See CONTRIBUTING.md for some notes
 - From my testing the compiling and expression building is 15-20% faster than before (still network and or the DB calls are the largest)
 - Allow `enum` values in the query schema (e.g. as an argument)
+- Ignore static properties & fields on the object passed to `SchemaBuilder.FromObject` - they were not supported and threw errors anyway
 
 # 0.50.1
 - Name all `ParameterExpression`s as EF 3.1 expects a name (can throw an error)
