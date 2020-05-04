@@ -32,7 +32,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+            schemaProvider.AddField("user", new { id = Required<int>() }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	user(id: 1) { id }
 }").Operations.First();
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             // Grpahql doesn't support "field overloading"
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
             // user(id: ID) already created
-            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddField("user", new {monkey = Required<int>()}, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddField("user", new { monkey = Required<int>() }, (ctx, param) => ctx.Users.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
             Assert.Equal("Field user already exists on type TestSchema. Use ReplaceField() if this is intended.", ex.Message);
         }
 
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            schemaProvider.AddField("user", new { id = Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            schemaProvider.AddField("user", new {id = Required<int>(), h = Required<string>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            schemaProvider.AddField("user", new { id = Required<int>(), h = Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 user { id }
             }"));
@@ -84,7 +84,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a default parameter
-            schemaProvider.AddField("me", new {id = 9}, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
+            schemaProvider.AddField("me", new { id = 9 }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 me { id }
             }").Operations.First();
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void SupportsDefaultArgumentsInNonRoot()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
+            schemaProvider.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var result = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { id height }
             }").ExecuteQuery(new TestSchema(), null);
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void SupportsArgumentsInNonRoot()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            schemaProvider.Type<Person>().ReplaceField("height", new {unit = HeightUnit.Cm}, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
+            schemaProvider.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { height(unit: ""Meter"") }
             }").ExecuteQuery(new TestSchema(), null);
@@ -185,7 +185,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void SupportsArgumentsComplexInGraph()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            schemaProvider.Type<Person>().AddField("project", new {pid = Required<Guid>()}, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
+            schemaProvider.Type<Person>().AddField("project", new { pid = Required<Guid>() }, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id project(pid: ""aaaaaaaa-bbbb-4444-1111-ccddeeff0022"") { id name } }
@@ -277,7 +277,8 @@ fragment info on Person {
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
-            var e = Assert.Throws<EntityGraphQLCompilerException>(() => {
+            var e = Assert.Throws<EntityGraphQLCompilerException>(() =>
+            {
                 var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
     query MyQuery($limit: Int = 10) {
         people(limit: $limit) { id name projects { id name } }
@@ -355,6 +356,33 @@ query {
             dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
             // we only have the fields requested
             Assert.Equal(15, totalPeople);
+        }
+        [Fact]
+        public void QueryWithEnumAsArg()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            schema.AddEnum("UserType", typeof(UserType), "Testing enums!");
+            schema.ReplaceField("users", new
+            {
+                enumVal = (UserType?)null,
+            },
+            (db, p) => db.Users, "Testing enum");
+
+            var gql = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+query {
+    users(enumVal: Admin)
+}");
+            var context = new TestSchema();
+            var qr = gql.ExecuteQuery(context, null);
+            dynamic users = (dynamic)qr.Data["users"];
+            // we only have the fields requested
+            Assert.Equal(2, Enumerable.Count(users));
+        }
+
+        private enum UserType
+        {
+            Admin,
+            User
         }
         private class TestSchema
         {

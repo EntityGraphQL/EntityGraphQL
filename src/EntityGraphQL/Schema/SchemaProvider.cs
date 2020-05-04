@@ -317,6 +317,12 @@ namespace EntityGraphQL.Schema
         {
             return TypeHasField(type.Name, identifier, fieldArgs, claims);
         }
+
+        public List<ISchemaType> EnumTypes()
+        {
+            return types.Values.Where(t => t.IsEnum).ToList();
+        }
+
         public string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims)
         {
             if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))

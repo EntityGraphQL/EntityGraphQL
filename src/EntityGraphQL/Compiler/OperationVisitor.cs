@@ -8,16 +8,15 @@ namespace EntityGraphQL.Compiler
     {
         private readonly ClaimsIdentity claims;
         private readonly QueryVariables variables;
-        private readonly Schema.ISchemaProvider schemaProvider;
         private readonly GraphQLOperation operation;
-        private readonly ConstantVisitor constantVisitor = new ConstantVisitor();
+        private readonly ConstantVisitor constantVisitor;
 
         public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider, ClaimsIdentity claims)
         {
             this.claims = claims;
             this.variables = variables;
-            this.schemaProvider = schemaProvider;
             this.operation = new GraphQLOperation();
+            this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
         public override GraphQLOperation VisitOperationName(EntityGraphQLParser.OperationNameContext context)

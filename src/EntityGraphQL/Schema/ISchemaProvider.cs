@@ -28,6 +28,7 @@ namespace EntityGraphQL.Schema
         bool HasType(string typeName);
         bool HasType(Type type);
         ISchemaType Type(string name);
+        List<ISchemaType> EnumTypes();
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
         string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims);
 
