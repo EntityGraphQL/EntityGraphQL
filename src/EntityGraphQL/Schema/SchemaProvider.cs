@@ -224,6 +224,14 @@ namespace EntityGraphQL.Schema
             return Type<TContextType>().AddField(name, selection, description, returnSchemaType, isNullable);
         }
 
+        public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        {
+            var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
+            var name = SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name);
+            Type<TContextType>().RemoveField(name);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
+        }
+
         public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
         {
             Type<TContextType>().RemoveField(name);
