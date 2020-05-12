@@ -11,14 +11,14 @@ namespace EntityGraphQL.Compiler
 {
     /// Simple language to write queries against an object schema.
     ///
-    /// myEntity.where(field = 'value') { my, field, selection, orRelation { field1 } }
+    /// myEntity.where(field = 'value')
     ///
     ///   (primary_key) - e.g. myEntity(12)
     /// Binary Operators
     ///   =, !=, <, <=, >, >=, +, -, *, %, /, in
     /// Urnary Operators
     ///   not(), !
-    public static class EqlCompiler
+    public static class EntityQueryCompiler
     {
         public static CompiledQueryResult Compile(string query, ClaimsIdentity claims)
         {
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Compiler
             ParameterExpression contextParam = null;
 
             if (schemaProvider != null)
-                contextParam = Expression.Parameter(schemaProvider.ContextType);
+                contextParam = Expression.Parameter(schemaProvider.ContextType, $"cxt_{schemaProvider.ContextType.Name}");
             var expression = CompileQuery(query, contextParam, schemaProvider, claims, methodProvider, variables);
 
             var contextParams = new List<ParameterExpression>();
@@ -76,9 +76,9 @@ namespace EntityGraphQL.Compiler
             {
                 BuildParseTree = true
             };
-            var tree = parser.startRule();
+            var tree = parser.eqlStart();
 
-            var visitor = new QueryGrammerNodeVisitor(context, schemaProvider, methodProvider, variables, claims);
+            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, variables, claims);
             var expression = visitor.Visit(tree);
             return expression;
         }

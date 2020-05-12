@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
-    public class MappedSchemaProviderTests
+    public class SchemaProviderTests
     {
         [Fact]
         public void ReadsContextType()

@@ -9,22 +9,30 @@ namespace EntityGraphQL.Compiler.Util
 {
     public static class ExpressionUtil
     {
-        public static ExpressionResult MakeExpressionCall(Type[] types, string methodName, Type[] genericTypes, params Expression[] parameters)
+        public static ExpressionResult MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
-            foreach (var t in types)
+            var type = typeof(IQueryable).IsAssignableFrom(parameters.First().Type) ? typeof(Queryable) : typeof(Enumerable);
+            try
             {
-                // Please tell me a better way to do this!
-                try
-                {
-                    return (ExpressionResult)Expression.Call(t, methodName, genericTypes, parameters);
-                }
-                catch (InvalidOperationException)
-                {
-                    continue; // to next type
-                }
+                return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
             }
-            var typesStr = string.Join<Type>(", ", types);
-            throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {typesStr}");
+            catch (InvalidOperationException)
+            {
+                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}");
+            }
+        }
+
+        public static ExpressionResult MakeCallOnEnumerable(string methodName, Type[] genericTypes, params Expression[] parameters)
+        {
+            var type = typeof(Enumerable);
+            try
+            {
+                return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
+            }
+            catch (InvalidOperationException)
+            {
+                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}");
+            }
         }
 
         public static MemberExpression CheckAndGetMemberExpression<TBaseType, TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection)
@@ -88,14 +96,15 @@ namespace EntityGraphQL.Compiler.Util
                         if (mc.Object == null)
                         {
                             var args = new List<Expression> { baseExp };
-                            var newParam = Expression.Parameter(baseExp.Type.GetGenericArguments().First());
+                            var type = baseExp.Type.GetGenericArguments().First();
+                            var newParam = Expression.Parameter(type, $"p_{type.Name}");
                             foreach (var item in mc.Arguments.Skip(1))
                             {
                                 var lambda = (LambdaExpression)item;
                                 var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
                                 args.Add(exp);
                             }
-                            var call = ExpressionUtil.MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
+                            var call = ExpressionUtil.MakeCallOnQueryable(mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
                             return call;
                         }
                         return Expression.Call(baseExp, mc.Method, mc.Arguments);
@@ -132,20 +141,20 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
-        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLNode> fieldExpressions)
+        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLBaseNode> fieldExpressions)
         {
             var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var call = MakeExpressionCall(new[] { typeof(Queryable), typeof(Enumerable) }, "Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            var call = MakeCallOnQueryable("Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
         }
 
-        public static Expression CreateNewExpression(IEnumerable<IGraphQLNode> fieldExpressions)
+        public static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions)
         {
             var memberInit = CreateNewExpression(fieldExpressions, out _);
             return memberInit;
         }
-        private static Expression CreateNewExpression(IEnumerable<IGraphQLNode> fieldExpressions, out Type dynamicType)
+        private static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions, out Type dynamicType)
         {
             var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
             foreach (var item in fieldExpressions)

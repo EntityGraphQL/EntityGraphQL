@@ -1,12 +1,10 @@
 using Xunit;
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.LinqQuery;
 
-namespace EntityGraphQL.Tests
+namespace EntityGraphQL.Tests.GqlCompiling
 {
     /// <summary>
     /// Tests the extended (non-GraphQL - came first) LINQ style querying functionality
@@ -19,16 +17,16 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 	myEntity { field1 field2 }
 }"));
-            Assert.Equal("Error: line 2:19 no viable alternative at input 'field2'", ex.Message);
+            Assert.Equal("Error: line 2:1 no viable alternative at input 'myEntity'", ex.Message);
         }
 
         [Fact]
         public void ExpectsOpenBraceForEntity()
         {
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@" {
-	myEntity field1 field2 }
+	people name lastName }
 }"));
-            Assert.Equal("Error: line 2:10 no viable alternative at input 'field1'", ex.Message);
+            Assert.Equal("Field name not found on type TestSchema", ex.Message);
         }
 
         [Fact]
@@ -48,7 +46,7 @@ namespace EntityGraphQL.Tests
 	people { id name }
 }");
             Assert.Single(tree.Operations);
-            Assert.Single(tree.Operations.First().Fields);
+            Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
@@ -67,7 +65,7 @@ namespace EntityGraphQL.Tests
 	people { id, name }
 }");
             Assert.Single(tree.Operations);
-            Assert.Single(tree.Operations.First().Fields);
+            Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
@@ -78,21 +76,6 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void CanParseScalar()
-        {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
-{
-	people { id name }
-    total: people.count()
-}");
-            Assert.Single(tree.Operations);
-            Assert.Equal(2, tree.Operations.First().Fields.Count());
-            var result = tree.Operations.First().Fields.ElementAt(1).Execute(new TestSchema(), null) as int?;
-            Assert.True(result.HasValue);
-            Assert.Equal(1, result.Value);
-        }
-        [Fact]
         public void CanQueryExtendedFields()
         {
             var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
@@ -102,7 +85,7 @@ namespace EntityGraphQL.Tests
 	people { id thing }
 }");
             Assert.Single(tree.Operations);
-            Assert.Single(tree.Operations.First().Fields);
+            Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
@@ -121,47 +104,7 @@ namespace EntityGraphQL.Tests
 {
 	people { id }
 }");});
-            Assert.Equal("Field 'id' not found on current context 'Person'", ex.Message);
-        }
-
-        [Fact]
-        public void CanParseSimpleQuery2()
-        {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
-{
-	people.where(id = 9) { id name }
-}");
-            Assert.Single(tree.Operations);
-            Assert.Single(tree.Operations.First().Fields);
-            var result = tree.ExecuteQuery(new TestSchema(), null);
-            Assert.Empty((dynamic)result.Data["people"]);
-        }
-        [Fact]
-        public void CanParseAliasQuery()
-        {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
-{
-	luke: people.where(id = 99) { id name }
-}");
-            Assert.Equal("luke", tree.Operations.First().Fields.ElementAt(0).Name);
-            var result = tree.ExecuteQuery(new TestSchema(), null);
-            Assert.Single((dynamic)result.Data["luke"]);
-        }
-        [Fact]
-        public void CanParseAliasQueryComplexExpression()
-        {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
-{
-	people { id fullName: name + "" "" + lastName }
-}");
-            Assert.Single(tree.Operations.First().Fields);
-            Assert.Equal("people", tree.Operations.First().Fields.ElementAt(0).Name);
-            var result = tree.ExecuteQuery(new TestSchema(), null);
-            Assert.Single(result.Data);
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
-            Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("fullName", person.GetType().GetFields()[1].Name);
+            Assert.Equal("Field id not found on type Person", ex.Message);
         }
 
         [Fact]
@@ -169,9 +112,9 @@ namespace EntityGraphQL.Tests
         {
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people.id = 9 { id name }
+	people = 9 { id name }
 }"));
-            Assert.Equal("Error: line 3:11 extraneous input '=' expecting 38", ex.Message);
+            Assert.Equal("Error: line 3:8 no viable alternative at input '='", ex.Message);
         }
 
         [Fact]
@@ -184,7 +127,7 @@ namespace EntityGraphQL.Tests
 }");
 
             Assert.Single(tree.Operations);
-            Assert.Equal(2, tree.Operations.First().Fields.Count());
+            Assert.Equal(2, tree.Operations.First().QueryFields.Count());
             var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
@@ -227,7 +170,8 @@ namespace EntityGraphQL.Tests
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
-	people { id name
+	people {
+        id name
 		user {
 			field1
 			nestedRelation { id name }
@@ -325,7 +269,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Field 'blahs' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Field blahs not found on type Project", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -338,7 +282,7 @@ namespace EntityGraphQL.Tests
 		}
 	}
 }"));
-            Assert.Equal("Field 'name3' not found on current context 'Project'", ex.Message);
+            Assert.Equal("Field name3 not found on type Project", ex.Message);
         }
 
         [Fact]
@@ -351,54 +295,40 @@ namespace EntityGraphQL.Tests
 	}
 }");
 
-            Assert.Single(tree.Operations.First().Fields);
+            Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestSchema(), null);
             Assert.Equal("Project 3", ((dynamic)result.Data["project"]).name);
         }
-
-        private class TestSchema
+        [Fact]
+        public void TestAlias()
         {
-            public string Hello { get { return "returned value"; } }
-            public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
-            public IEnumerable<User> Users { get { return new List<User> { new User() }; } }
-            public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+{
+	project(id: 55) {
+		n: name
+	}
+}");
+
+            Assert.Single(tree.Operations.First().QueryFields);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
+            Assert.Equal("Project 3", ((dynamic)result.Data["project"]).n);
         }
 
-        private class DbTestSchema
+        [Fact]
+        public void TestAliasDeep()
         {
-            public string Hello { get { return "returned value"; } }
-            public DbSet<Person> People { get; }
-            public DbSet<User> Users { get; }
-        }
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+{
+people { id
+		projects {
+			n: name
+		}
+	}
+}");
 
-
-        private class User
-        {
-            public int Id { get { return 100; } }
-            public int Field1 { get { return 2; } }
-            public string Field2 { get { return "2"; } }
-            public Person Relation { get { return new Person(); } }
-            public Task NestedRelation { get { return new Task(); } }
-        }
-
-        private class Person
-        {
-            public int Id { get { return 99; } }
-            public string Name { get { return "Luke"; } }
-            public string LastName { get { return "Last Name"; } }
-            public User User { get { return new User(); } }
-            public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
-        }
-        private class Project
-        {
-            public uint Id { get { return 55; } }
-            public string Name { get { return "Project 3"; } }
-            public IEnumerable<Task> Tasks { get { return new List<Task> { new Task() }; } }
-        }
-        private class Task
-        {
-            public int Id { get { return 33; } }
-            public string Name { get { return "Task 1"; } }
+            Assert.Single(tree.Operations.First().QueryFields);
+            var result = tree.ExecuteQuery(new TestSchema(), null);
+            Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data["people"]).projects).n);
         }
     }
 }
