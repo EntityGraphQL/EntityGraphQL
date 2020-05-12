@@ -17,8 +17,7 @@ namespace EntityGraphQL.Compiler
         private ExpressionResult currentContext;
         private readonly ISchemaProvider schemaProvider;
         private readonly IMethodProvider methodProvider;
-        private readonly QueryVariables variables;
-        private readonly ConstantVisitor constantVisitor = new ConstantVisitor();
+        private readonly ConstantVisitor constantVisitor;
 
         public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryVariables variables, ClaimsIdentity claims)
         {
@@ -26,7 +25,7 @@ namespace EntityGraphQL.Compiler
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
-            this.variables = variables;
+            this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
         public override ExpressionResult VisitBinary(EntityGraphQLParser.BinaryContext context)

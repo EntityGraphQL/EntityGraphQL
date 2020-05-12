@@ -37,7 +37,7 @@ namespace EntityGraphQL.Compiler
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
             this.variables = variables;
-            this.constantVisitor = new ConstantVisitor();
+            this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
         public override IGraphQLBaseNode VisitField(EntityGraphQLParser.FieldContext context)

@@ -107,13 +107,13 @@ namespace EntityGraphQL.Schema
             if (type.IsArray || type.IsEnumerableOrArray())
                 return fields;
 
-            foreach (var prop in type.GetProperties())
+            foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 var f = ProcessFieldOrProperty(prop, prop.PropertyType, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
                     fields.Add(f);
             }
-            foreach (var prop in type.GetFields())
+            foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
                 var f = ProcessFieldOrProperty(prop, prop.FieldType, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
