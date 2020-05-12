@@ -44,6 +44,7 @@ namespace EntityGraphQL.Schema
 
             // second arg is the arguments for the mutation - required as last arg in the mutation method
             var argInstance = AssignArgValues(gqlRequestArgs);
+            VaildateModelBinding(argInstance);
             allArgs.Add(argInstance);
 
             // add any DI services
@@ -180,5 +181,41 @@ namespace EntityGraphQL.Schema
             }
             return argumentTypes[argName];
         }
+
+        private void VaildateModelBinding(object entity)
+        {
+            Type argType = entity.GetType();
+            foreach (var prop in argType.GetProperties())
+            {
+                object value = prop.GetValue(entity, null);
+
+                //Did this way so we won't have to reference the DLL
+                if (prop.CustomAttributes.Any(x => x.AttributeType.FullName.Contains("System.ComponentModel.DataAnnotations.Required")))
+                {
+                    //set default message in-case user didn't provide a custom one
+                    string error = $"{prop.Name} is required";
+
+                    CustomAttributeData attributeData = prop.CustomAttributes
+                        .Where(x => x.AttributeType.FullName.Contains("System.ComponentModel.DataAnnotations.Required"))
+                        .FirstOrDefault();
+
+                    if (attributeData.NamedArguments.Count > 0)
+                    {
+                        CustomAttributeNamedArgument ErrorMessage = attributeData.NamedArguments.Where(x => x.MemberName == "ErrorMessage").FirstOrDefault();
+                        CustomAttributeNamedArgument AllowEmptyStrings = attributeData.NamedArguments.Where(x => x.MemberName == "AllowEmptyStrings").FirstOrDefault();
+
+                        if (ErrorMessage != null)
+                            error = ErrorMessage.TypedValue.Value.ToString();
+
+                        if (AllowEmptyStrings != null && (bool)AllowEmptyStrings.TypedValue.Value == false && (value == null || value.ToString().Trim() == string.Empty))
+                            GraphQLVaildation.Errors.Add(new GraphQLError(error));
+                    }
+
+                    if (value == null && GraphQLVaildation.Errors.Any(x => x.Message != error))
+                        GraphQLVaildation.Errors.Add(new GraphQLError(error));
+                }
+            }
+        }
+
     }
 }

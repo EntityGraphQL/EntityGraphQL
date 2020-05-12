@@ -89,6 +89,7 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
+                GraphQLVaildation.Errors = new List<GraphQLError>(); //clear existing errors
                 var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
                 var queryResult = graphQLCompiler.Compile(gql, claims);
                 result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName);
@@ -619,6 +620,20 @@ namespace EntityGraphQL.Schema
             types.Add(name, schemaType);
             return schemaType.AddAllFields();
         }
+
+        /// <summary>
+        /// Add a graphql error
+        /// </summary>
+        /// <param name="message"></param>
+        public void AddError(string message)
+        {
+            GraphQLVaildation.Errors.Add(new GraphQLError(message));
+        }
+
+        /// <summary>
+        /// Check if any GraphQL vaildation error
+        /// </summary>
+        public bool IsVaild { get => GraphQLVaildation.Errors.Count == 0; }
 
         public IDirectiveProcessor GetDirective(string name)
         {

@@ -69,6 +69,9 @@ namespace EntityGraphQL.Compiler
                 result.Data[node.Name] = data;
             }
 
+            if (GraphQLVaildation.Errors.Count > 0)
+                result.Errors.AddRange(GraphQLVaildation.Errors);
+
             return result;
         }
 
