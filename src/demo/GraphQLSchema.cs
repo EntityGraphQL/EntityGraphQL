@@ -20,7 +20,8 @@ namespace demo
             // we can extend the schema
 
             // Add custom root fields
-            demoSchema.ReplaceField("actors", new {
+            demoSchema.ReplaceField("actors", new
+            {
                 filter = ArgumentHelper.EntityQuery<Person>()
             }, (db, param) => db.People.Where(p => p.ActorIn.Any()).WhereWhen(param.filter, param.filter.HasValue), "List of actors");
             demoSchema.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");

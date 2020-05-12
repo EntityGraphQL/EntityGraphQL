@@ -16,12 +16,12 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQuery()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.ReplaceField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	users(filter: ""field2 = ""2"" "") { field2 }
 }").Operations.First();
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), null);
+            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
             Assert.Equal(1, Enumerable.Count(result.users));
             var user = Enumerable.First(result.users);
             Assert.Equal("2", user.field2);
@@ -31,12 +31,13 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQueryArgument()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.ReplaceField("users", new {filter = EntityQuery<User>()}, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
-            var gql = new QueryRequest {
+            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            var gql = new QueryRequest
+            {
                 Query = @"query {
                     users(filter: $filter) { field2 }
                 }",
-                Variables = new QueryVariables { {"filter", "field2 = \"2\""} }
+                Variables = new QueryVariables { { "filter", "field2 = \"2\"" } }
             };
             var tree = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
