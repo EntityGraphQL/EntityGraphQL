@@ -420,11 +420,18 @@ public class MovieMutations
 
 We can also inject services in field selections with the helper `WithService<T>()`
 
+_Note as `WithService` has a typed return `WithService<TService, Treturn>` you can let the compiler figure out the return type by typing the arguments. e.g.
+
 ```c#
-schema.AddField("Field", new { search = (string)null }, (db, p) => WithService<IMyService>(mySer => mySer.ReturnNonDbData(p.search), "Description")
+WithService((IMyService mySer) => mySer.Something())
+// vs
+WithService<IMyService, Int>(mySer => mySer.Something())
+
+```c#
+schema.AddField("Field", new { search = (string)null }, (db, p) => WithService((IMyService mySer) => mySer.ReturnNonDbData(p.search), "Description")
 
 // or a field on a typoe
-schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p) => WithService<IMyService>(mySer => mySer.ReturnNonDbData(p.search, movie.Id), "Description")
+schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p) => WithService((IMyService mySer) => mySer.ReturnNonDbData(p.search, movie.Id), "Description")
 ```
 
 Using the wrapper inside the field selection expression lets us still use the anonymous type for the parameter definition.

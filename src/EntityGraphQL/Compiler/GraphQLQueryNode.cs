@@ -159,8 +159,10 @@ namespace EntityGraphQL.Compiler
                     else
                     {
                         selectionFields.Add(field);
+                        AddServices(field.GetNodeExpression().Services);
                     }
                 }
+
                 if (isSelectOnList)
                 {
                     // build a .Select(...) - returning a list<>
@@ -192,6 +194,7 @@ namespace EntityGraphQL.Compiler
                     exp.AddServices(nodeExpression.Services);
                     nodeExpression = exp;
                 }
+                nodeExpression.AddServices(services);
                 return nodeExpression;
             }
             else if (nodeExpression != null && nodeFields != null && nodeFields.Any())

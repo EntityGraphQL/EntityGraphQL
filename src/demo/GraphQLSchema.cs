@@ -28,8 +28,11 @@ namespace demo
             demoSchema.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors");
 
             // Add calculated fields to a type
-            demoSchema.Type<Person>().AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
             demoSchema.Type<Person>().AddField("name", l => $"{l.FirstName} {l.LastName}", "Person's name");
+            // really poor example of using services e.g. you should just do below but pretend the service does something crazy like calls an API
+            // demoSchema.Type<Person>().AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
+            // AgeService needs to be added to the ServiceProvider
+            demoSchema.Type<Person>().AddField("age", person => ArgumentHelper.WithService((AgeService ageService) => ageService.Calc(person)), "Show the person's age");
 
             // replace fields. e.g. remove a many-to-many relationships
             demoSchema.Type<Movie>().ReplaceField("actors", m => m.Actors.Select(a => a.Person), "Actors in the movie");

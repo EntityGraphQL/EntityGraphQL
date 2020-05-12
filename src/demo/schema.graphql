@@ -84,10 +84,10 @@ type Person {
 	directorOf: [Movie!]
 	died: Date
 	isDeleted: Boolean!
-	"Show the person's age"
-	age: Int!
 	"Person's name"
 	name: String
+	"Show the person's age"
+	age: Int!
 }
 
 type Writer {
