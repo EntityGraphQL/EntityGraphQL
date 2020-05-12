@@ -31,11 +31,11 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        private object ExecuteMutation<TContext>(TContext context, IServiceProvider serviceProvider)
+        private object ExecuteMutation<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             try
             {
-                return mutationType.Call(context, args, serviceProvider);
+                return mutationType.Call(context, args, validator, serviceProvider);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -50,10 +50,12 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        public override object Execute<TContext>(TContext context, IServiceProvider serviceProvider)
+        public override object Execute<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // run the mutation to get the context for the query select
-            var result = ExecuteMutation(context, serviceProvider);
+            var result = ExecuteMutation(context, validator, serviceProvider);
+            if (result == null)
+                return null;
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 var mutationLambda = (LambdaExpression)result;
@@ -123,11 +125,11 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 resultSelection.FieldParameter = mutationContextParam;
-                result = resultSelection.Execute(context, serviceProvider);
+                result = resultSelection.Execute(context, validator, serviceProvider);
                 return result;
             }
             // run the query select
-            result = resultSelection.Execute(result, serviceProvider);
+            result = resultSelection.Execute(result, validator, serviceProvider);
             return result;
         }
 

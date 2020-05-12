@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL
 {
-    internal static class GraphQLVaildation
+    public class GraphQLValidator
     {
-        public static List<GraphQLError> Errors { get; set; } = new List<GraphQLError>();
+        public List<GraphQLError> Errors { get; set; } = new List<GraphQLError>();
+        public bool HasErrors => Errors.Any();
+
+        public void AddError(string error) => Errors.Add(new GraphQLError(error));
     }
 }

@@ -152,6 +152,8 @@ namespace EntityGraphQL.Compiler
                             {
                                 constantParameters.Add(item.Key, item.Value);
                             }
+                            // pull up any services
+                            AddServices(fieldExp.Services);
                         }
                     }
                     else
@@ -204,7 +206,7 @@ namespace EntityGraphQL.Compiler
             nodeExpression = expr;
         }
 
-        public override object Execute<TContext>(TContext context, IServiceProvider serviceProvider)
+        public override object Execute<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             var allArgs = new List<object> { context };
 

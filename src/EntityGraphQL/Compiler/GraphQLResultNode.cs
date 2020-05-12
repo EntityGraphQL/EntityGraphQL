@@ -54,6 +54,7 @@ namespace EntityGraphQL.Compiler
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null)
         {
             var result = new QueryResult();
+            var validator = new GraphQLValidator();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
             // execute all root level nodes in the op
             // e.g. op = query Op1 {
@@ -65,12 +66,12 @@ namespace EntityGraphQL.Compiler
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var data = ((GraphQLExecutableNode)node).Execute(context, services);
+                var data = ((GraphQLExecutableNode)node).Execute(context, validator, services);
                 result.Data[node.Name] = data;
             }
 
-            if (GraphQLVaildation.Errors.Count > 0)
-                result.Errors.AddRange(GraphQLVaildation.Errors);
+            if (validator.Errors.Count > 0)
+                result.Errors.AddRange(validator.Errors);
 
             return result;
         }

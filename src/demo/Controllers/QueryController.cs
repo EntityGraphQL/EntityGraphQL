@@ -11,23 +11,21 @@ namespace demo.Controllers
     {
         private readonly DemoContext _dbContext;
         private readonly SchemaProvider<DemoContext> _schemaProvider;
-        private readonly IServiceProvider _serviceProvider;
 
-        public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider, IServiceProvider serviceProvider)
+        public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
         {
             this._dbContext = dbContext;
             this._schemaProvider = schemaProvider;
-            this._serviceProvider = serviceProvider;
         }
 
         [HttpGet]
-        public object Get([FromQuery]string query)
+        public object Get([FromQuery] string query)
         {
             return RunDataQuery(new QueryRequest { Query = query });
         }
 
         [HttpPost]
-        public object Post([FromBody]QueryRequest query)
+        public object Post([FromBody] QueryRequest query)
         {
             return RunDataQuery(query);
         }
@@ -38,7 +36,7 @@ namespace demo.Controllers
             {
                 // _serviceProvider is passed to resovle dependencies in mutations and field selections at run time which opens a lot of flexibility
                 // last argument can be claims to implement security checks
-                var data = _schemaProvider.ExecuteQuery(query, _dbContext, _serviceProvider, null);
+                var data = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null);
                 return data;
             }
             catch (Exception)

@@ -37,25 +37,34 @@ namespace EntityGraphQL.Schema
             return ReturnType.Name;
         }
 
-        public object Call(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, IServiceProvider serviceProvider)
+        public object Call(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // first arg is the Context - required arg in the mutation method
             var allArgs = new List<object> { context };
 
             // second arg is the arguments for the mutation - required as last arg in the mutation method
             var argInstance = AssignArgValues(gqlRequestArgs);
-            VaildateModelBinding(argInstance);
+            VaildateModelBinding(argInstance, validator);
+            if (validator.Errors.Any())
+                return null;
+
             allArgs.Add(argInstance);
 
             // add any DI services
             foreach (var p in method.GetParameters().Skip(2))
             {
-                var service = serviceProvider.GetService(p.ParameterType);
-                if (service == null)
+                // todo we should put this in the IServiceCollection actually...
+                if (p.ParameterType == typeof(GraphQLValidator))
+                    allArgs.Add(validator);
+                else
                 {
-                    throw new EntityGraphQLCompilerException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                    var service = serviceProvider.GetService(p.ParameterType);
+                    if (service == null)
+                    {
+                        throw new EntityGraphQLCompilerException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                    }
+                    allArgs.Add(service);
                 }
-                allArgs.Add(service);
             }
 
             var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
@@ -182,37 +191,28 @@ namespace EntityGraphQL.Schema
             return argumentTypes[argName];
         }
 
-        private void VaildateModelBinding(object entity)
+        private void VaildateModelBinding(object entity, GraphQLValidator validator)
         {
             Type argType = entity.GetType();
             foreach (var prop in argType.GetProperties())
             {
                 object value = prop.GetValue(entity, null);
 
-                //Did this way so we won't have to reference the DLL
-                if (prop.CustomAttributes.Any(x => x.AttributeType.FullName.Contains("System.ComponentModel.DataAnnotations.Required")))
+                // set default message in-case user didn't provide a custom one
+                string error = $"{prop.Name} is required";
+
+                if (validator.Errors.Any(x => x.Message == error))
+                    return;
+
+                if (prop.GetCustomAttribute(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute)) is System.ComponentModel.DataAnnotations.RequiredAttribute attr)
                 {
-                    //set default message in-case user didn't provide a custom one
-                    string error = $"{prop.Name} is required";
+                    if (attr.ErrorMessage != null)
+                        error = attr.ErrorMessage;
 
-                    CustomAttributeData attributeData = prop.CustomAttributes
-                        .Where(x => x.AttributeType.FullName.Contains("System.ComponentModel.DataAnnotations.Required"))
-                        .FirstOrDefault();
-
-                    if (attributeData.NamedArguments.Count > 0)
-                    {
-                        CustomAttributeNamedArgument ErrorMessage = attributeData.NamedArguments.Where(x => x.MemberName == "ErrorMessage").FirstOrDefault();
-                        CustomAttributeNamedArgument AllowEmptyStrings = attributeData.NamedArguments.Where(x => x.MemberName == "AllowEmptyStrings").FirstOrDefault();
-
-                        if (ErrorMessage != null)
-                            error = ErrorMessage.TypedValue.Value.ToString();
-
-                        if (AllowEmptyStrings != null && (bool)AllowEmptyStrings.TypedValue.Value == false && (value == null || value.ToString().Trim() == string.Empty))
-                            GraphQLVaildation.Errors.Add(new GraphQLError(error));
-                    }
-
-                    if (value == null && GraphQLVaildation.Errors.Any(x => x.Message != error))
-                        GraphQLVaildation.Errors.Add(new GraphQLError(error));
+                    if (value == null)
+                        validator.AddError(error);
+                    else if (!attr.AllowEmptyStrings && prop.PropertyType == typeof(string) && ((string)value).Length == 0)
+                        validator.AddError(error);
                 }
             }
         }

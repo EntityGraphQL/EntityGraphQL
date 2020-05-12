@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL;
@@ -42,15 +43,27 @@ namespace demo.Mutations
         }
 
         [GraphQLMutation]
-        public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, AddActorArgs args)
+        public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, AddActorArgs args, GraphQLValidator validator)
         {
-            var person = new Person {
+            if (string.IsNullOrEmpty(args.FirstName))
+                validator.AddError("Name argument is required");
+            if (db.Movies.FirstOrDefault(m => m.Id == args.MovieId) == null)
+                validator.AddError("MovieId not found");
+            // ... do more validation
+
+            if (validator.HasErrors)
+                return null;
+
+            //  we're here and valid
+            var person = new Person
+            {
                 Id = (uint)new Random().Next(),
                 FirstName = args.FirstName,
                 LastName = args.LastName,
             };
             db.People.Add(person);
-            var actor = new Actor {
+            var actor = new Actor
+            {
                 MovieId = args.MovieId,
                 Person = person,
             };
@@ -69,13 +82,15 @@ namespace demo.Mutations
         [GraphQLMutation]
         public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor2(DemoContext db, AddActorArgs args)
         {
-            var person = new Person {
+            var person = new Person
+            {
                 Id = (uint)new Random().Next(),
                 FirstName = args.FirstName,
                 LastName = args.LastName,
             };
             db.People.Add(person);
-            var actor = new Actor {
+            var actor = new Actor
+            {
                 MovieId = args.MovieId,
                 Person = person,
             };
@@ -92,6 +107,7 @@ namespace demo.Mutations
     public class AddMovieArgs
     {
         public Genre Genre;
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Movie Name is required")]
         public string Name { get; set; }
         public double Rating { get; set; }
         public DateTime Released;

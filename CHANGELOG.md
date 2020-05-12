@@ -1,3 +1,7 @@
+# 0.61.0
+- Add model validation for mutation arguments. See updated readme
+- Fix issue with services not correctly being included when the field is used in a fragment
+
 # 0.60.0
 - Add support for directives. Supported by default are `@include(if: Boolean!)` and `@skip(if: Boolean!)`. You can add your own that make changes to the expression pre-execution
 - Added syntax support for subscription queries (they compile/no error but do not execute or work)

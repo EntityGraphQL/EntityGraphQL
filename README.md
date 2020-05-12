@@ -25,7 +25,7 @@ public class MyDbContext : DbContext {
   public MyDbContext(DbContextOptions options) : base(options)
   {
   }
-    
+
   protected override void OnModelCreating(ModelBuilder builder) {
     // Set up your relations
   }
@@ -265,10 +265,10 @@ public class MovieMutations
   }
 }
 
-public class PropertyArgs
+public class ActorArgs
 {
   public string Name { get; set; }
-  public Decimal Cost { get; set; }
+  public int Age { get; set; }
 }
 ```
 
@@ -324,6 +324,50 @@ With variables
   "movieId": 2
 }
 ```
+
+## Validation
+You can use the `System.ComponentModel.DataAnnotations.Required` attribute to add validaiton to your mutation arguments. Example
+
+```c#
+public class ActorArgs
+{
+  [Required(AllowEmptyStrings = false, ErrorMessage = "Actor Name is required")]
+  public string Name { get; set; }
+  public int Age { get; set; }
+}
+```
+
+If you do not supply a non empty string as the `name` argument for the mutation you'll get an error message.
+
+If your model validation fails from a `RequiredAttribute` you mutation method _will not be called_.
+
+You can also add multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
+
+```csharp
+public class MovieMutations
+{
+  [GraphQLMutation]
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, GraphQLValidator validator)
+  {
+    if (string.IsNullOrEmpty(args.Name))
+      validator.AddError("Name argument is required");
+    if (args.age <= 0)
+      validator.AddError("Age argument must be positive");
+
+    if (validator.HasErrors)
+      return null;
+
+    // do your magic here. e.g. with EF or other business logic
+    var movie = db.Movies.First(m => m.Id == args.Id);
+    var actor = new Person { Name = args.Name, ... };
+    movie.Actors.Add(actor);
+    db.SaveChanges();
+    return ctx => ctx.Movies.First(m => m.Id == movie.Id);
+  }
+}
+```
+
+Of course if you opt to throw an exception it will be caught and included in the error results.
 
 # Accessing other services in your mutation or field selections
 EntityGraphQL uses a `IServiceProvider` that you provide to resolve any services you require outside of the `TContext`. You provide an instance of the `IServiceProvider` when you call `ExecuteQuery()`.
