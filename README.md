@@ -218,15 +218,16 @@ schema.Type<Person>().AddField("totalChildren", p => p.Children.Count(), "Number
 
 // custom type
 schema.AddType<TBaseEntity>("name", "description");
-// e.g. add a new type based on Person filtered by an expression
-var type = schema.AddType<Person>("peopleOnMars", "All people on mars", person => person.Location.Name == "Mars");
-type.AddAllFields(); // add the C# properties
-// or select the fields
+// add the public C# properties
+type.AddAllFields();
+// or add only select fields
 type.AddField(p => p.Id, "The unique identifier");
 // Add fields with _required_ arguments - include `using static EntityGraphQL.Schema.ArgumentHelper;`
 schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "description");
 // Or with an optional argument
 schemaProvider.AddField("user", new {id = int? = null}, (ctx, param) => ctx.Users.WhereWhen(u => u.Id == param.id.Value, params.id.HasValue), "description");
+
+// You can do the above with ReplaceField() to replace a field already defined in the schema (e.g. generated from SchemaBuilder.FromObject<MyDbContext>())
 
 // Here the type of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
 var paramTypes = new { id = Required<Guid>() };
@@ -554,19 +555,6 @@ var eql = @"if location.name = ""Mars"" then (cost + 5) * type.premium else (cos
 var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
-
-## Supported LINQ methods (non-GraphQL compatible)
-**On top of** GraphQL syntax, any list/array supports some of the standard .NET LINQ methods.
-- `array.where(filter)`
-- `array.filter(filter)`
-- `array.first(filter?)`
-- `array.last(filter?)`
-- `array.count(filter?)`
-  - `filter` is an expression that can be `true` or `false`, written from the context of the array item
-- `array.take(int)`
-- `array.skip(int)`
-- `array.orderBy(field)`
-- `array.orderByDesc(field)`
 
 # Contribute
 Please do. Pull requests are very welcome. See the open issues for bugs or features that would be useful
