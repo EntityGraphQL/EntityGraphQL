@@ -1,3 +1,6 @@
+# 0.62.0
+- Support async mutation methods
+
 # 0.61.0
 - Add model validation for mutation arguments. See updated readme
 - Fix issue with services not correctly being included when the field is used in a fragment

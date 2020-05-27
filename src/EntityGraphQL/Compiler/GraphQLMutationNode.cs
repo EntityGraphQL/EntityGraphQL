@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -31,11 +32,11 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        private object ExecuteMutation<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
+        private async Task<object> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             try
             {
-                return mutationType.Call(context, args, validator, serviceProvider);
+                return await mutationType.CallAsync(context, args, validator, serviceProvider);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -53,7 +54,7 @@ namespace EntityGraphQL.Compiler
         public override object Execute<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // run the mutation to get the context for the query select
-            var result = ExecuteMutation(context, validator, serviceProvider);
+            var result = ExecuteMutationAsync(context, validator, serviceProvider).Result;
             if (result == null)
                 return null;
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))

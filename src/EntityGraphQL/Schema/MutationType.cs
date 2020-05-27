@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -15,6 +16,7 @@ namespace EntityGraphQL.Schema
         private readonly MethodInfo method;
         private readonly Dictionary<string, ArgType> argumentTypes = new Dictionary<string, ArgType>();
         private readonly Type argInstanceType;
+        private readonly bool isAsync;
 
         public Type ReturnTypeClr { get { return ReturnType.ContextType; } }
 
@@ -24,7 +26,6 @@ namespace EntityGraphQL.Schema
 
         public string Name { get; }
         public RequiredClaims AuthorizeClaims { get; }
-
         public ISchemaType ReturnType { get; }
 
         public IDictionary<string, ArgType> Arguments => argumentTypes;
@@ -37,7 +38,7 @@ namespace EntityGraphQL.Schema
             return ReturnType.Name;
         }
 
-        public object Call(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
+        public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // first arg is the Context - required arg in the mutation method
             var allArgs = new List<object> { context };
@@ -67,7 +68,15 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            var result = method.Invoke(mutationClassInstance, allArgs.ToArray());
+            object result;
+            if (isAsync)
+            {
+                result = await (dynamic)method.Invoke(mutationClassInstance, allArgs.ToArray());
+            }
+            else
+            {
+                result = method.Invoke(mutationClassInstance, allArgs.ToArray());
+            }
             return result;
         }
 
@@ -144,7 +153,7 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims)
+        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync)
         {
             this.Description = description;
             this.ReturnType = returnType;
@@ -152,6 +161,7 @@ namespace EntityGraphQL.Schema
             this.method = method;
             Name = methodName;
             AuthorizeClaims = authorizeClaims;
+            this.isAsync = isAsync;
 
             var methodArg = method.GetParameters().ElementAt(1);
             this.argInstanceType = methodArg.ParameterType;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using EntityGraphQL.Authorization;
 using EntityGraphQL.Compiler;
@@ -159,11 +160,12 @@ namespace EntityGraphQL.Schema
             {
                 if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
                 {
+                    var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
                     string name = SchemaGenerator.ToCamelCaseStartsLower(method.Name);
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
                     var requiredClaims = new RequiredClaims(claims);
-                    var typeName = GetSchemaTypeNameForClrType(method.ReturnType);
-                    var mutationType = new MutationType(name, types.ContainsKey(typeName) ? types[typeName] : null, mutationClassInstance, method, attribute.Description, requiredClaims);
+                    var typeName = GetSchemaTypeNameForClrType(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
+                    var mutationType = new MutationType(name, types.ContainsKey(typeName) ? types[typeName] : null, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync);
                     mutations[name] = mutationType;
                 }
             }
