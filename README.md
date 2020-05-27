@@ -197,7 +197,6 @@ Will return the following result.
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
   - Add fields that take required or optional arguments to fullfill the query
-  - By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will create a `person(id)` graphql field so you can query `{ person(id: 1234) { name email } }` to select a single person
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 - Schema introspection
@@ -205,7 +204,47 @@ Will return the following result.
 
 # Customizing the schema
 
-You can customise the default schema, or create one from stratch exposing only the fields you want.
+When you start your schema with `SchemaBuilder.FromObject<T>()` this only generates fields for public properties in that object graph. The one "smart" thing it does is to add an extra field for any root level property that is of type `IEnumerable<T>` where `T` has a property name `Id`. The extra field is a field that takes an id argument.
+
+Example, given the following context
+
+```c#
+public class MyContext
+{
+    public List<Property> Properties { get; set; }
+}
+public class Property
+{
+    public uint Id { get; set; }
+    public string Name { get; set; }
+    public PropertyType Type { get; set; }
+    public Location Location { get; set; }
+}
+```
+
+If you use `SchemaBuilder.FromObject<MyContext>()` it will generate 2 fields at the root which you can query.
+
+```gql
+{
+    # field auto generated - return a list of properties
+    properties { id name }
+    # field auto generated - return a single property by ID
+    property(id: 3232) { name id }
+}
+```
+
+You can easily extend the generated schema (or start one from scratch). Below is an example of replacing the generated `properties` field with one that allows a `name` argument.
+
+```c#
+var schema = SchemaBuilder.FromObject<MyContext>();
+// replace properties field with one that takes an optional name argument
+schema.ReplaceField("properties", new { name = (string)null }, (ctx, args) => ctx.Properties.WhereWhen(p => p.Name.ToLower().Contains(args.name.ToLower()), !string.IsNullOrEmpty(args.name)), "Return a list of properties optionally filtered by name");
+```
+
+You can change `ctx.Properties.WhereWhen(p => p.Name.ToLower().Contains(args.name), !string.IsNullOrEmpty(args.name))` to whatever logic you need to filter/search.
+
+Below is some more examples of customising fields.
+
 ```csharp
 // Build from object
 var schema = SchemaBuilder.FromObject<MyDbContext>();
@@ -216,9 +255,9 @@ var schema = SchemaBuilder.Create<MyDbContext>();
 // custom fields on existing type
 schema.Type<Person>().AddField("totalChildren", p => p.Children.Count(), "Number of children");
 
-// custom type
+// add a custom type
 schema.AddType<TBaseEntity>("name", "description");
-// add the public C# properties
+// add all the public C# properties as fields
 type.AddAllFields();
 // or add only select fields
 type.AddField(p => p.Id, "The unique identifier");
@@ -227,8 +266,6 @@ schemaProvider.AddField("user", new {id = Required<int>()}, (ctx, param) => ctx.
 // Or with an optional argument
 schemaProvider.AddField("user", new {id = int? = null}, (ctx, param) => ctx.Users.WhereWhen(u => u.Id == param.id.Value, params.id.HasValue), "description");
 
-// You can do the above with ReplaceField() to replace a field already defined in the schema (e.g. generated from SchemaBuilder.FromObject<MyDbContext>())
-
 // Here the type of the parameters are defined with the anonymous type allowing you to write the selection query with compile time safety
 var paramTypes = new { id = Required<Guid>() };
 
@@ -236,11 +273,24 @@ var paramTypes = new { id = Required<Guid>() };
 var paramTypes = new { unit = "meter" };
 ```
 
+You can do the above with `ReplaceField()` to replace a field already defined in the schema (e.g. generated from `SchemaBuilder.FromObject<MyDbContext>()`).
+
 ## LINQ Helper Methods
 EntityGraphQL provides a few extension methods to help with building queries with optional parameters.
 
-- `Take(int?)` - Only apply the `Take()` method if the argument has a value. Usage: `schema.AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description")`
-- `WhereWhen(predicate, when)` - Only apply the `Where()` method is `when` is true. Usage: `schema.AddField("Field", new { search = (string)null }, (db, p) => db.Entity.WhereWhen(s => s.Name.ToLower().Contains(p.search.ToLower()), !string.IsNullOrEmpty(p.search)), "Description")`
+### `Take(int?)`
+Only apply the `Take()` method if the argument has a value.
+
+```c#
+schema.AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description");
+```
+### `WhereWhen(predicate, when)`
+
+Only apply the `Where()` method if `when` is `true`.
+
+```c#
+schema.AddField("Field", new { search = (string)null }, (db, p) => db.Entity.WhereWhen(s => s.Name.ToLower().Contains(p.search.ToLower()), !string.IsNullOrEmpty(p.search)), "Description");
+```
 
 # Mutations
 Mutations allow you to make changes to data while selecting some data to return from the result. See the [GraphQL documentation](https://graphql.org/learn/queries/#mutations) for more information on the syntax.
@@ -254,7 +304,7 @@ I.e if you have a mutation adds an actor to a movie entity and you want to retur
 ```csharp
 public class MovieMutations
 {
-  [GraphQLMutation]
+  [GraphQLMutation("Add a new actor")]
   public Movie AddActor(MyDbContext db, ActorArgs args)
   {
     // do your magic here. e.g. with EF or other business logic
@@ -308,8 +358,8 @@ schemaProvider.AddMutationFrom(new MovieMutations());
   - Third...n - Optionally any dependencies you want injected
 - Variables from the GraphQL request are mapped into the args (last) parameter
 
-You can now request a mutation
-```
+You can now run a mutation
+```gql
 mutation AddActor($name: String!, $movieId: int!) {
   addMovie(name: $name, id: $movieId) {
     id name
