@@ -13,13 +13,13 @@ namespace EntityGraphQL.Tests.GqlCompiling
     public class GraphQLSyntaxTests
     {
         [Fact]
-        public void SupportsQueryKeyword()
+        public async void SupportsQueryKeyword()
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"query {
 	people { id }
 }").Operations.First();
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             Assert.Equal(1, Enumerable.Count(result.people));
             var person = Enumerable.ElementAt(result.people, 0);
             // we only have the fields requested
@@ -28,7 +28,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
-        public void SupportsArguments()
+        public async void SupportsArguments()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
 }").Operations.First();
             // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             // we only have the fields requested
             Assert.Equal(1, result.user.GetType().GetFields().Length);
             Assert.Equal("id", result.user.GetType().GetFields()[0].Name);
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
-        public void SupportsArgumentsDefaultValue()
+        public async void SupportsArgumentsDefaultValue()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a default parameter
@@ -90,7 +90,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             }").Operations.First();
 
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             // we only have the fields requested
             Assert.Equal(1, result.me.GetType().GetFields().Length);
             Assert.Equal("id", result.me.GetType().GetFields()[0].Name);
@@ -132,7 +132,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
-        public void SupportsArgumentsAuto()
+        public async void SupportsArgumentsAuto()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
@@ -141,7 +141,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             }").Operations.First();
 
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             // we only have the fields requested
             Assert.Equal(1, result.user.GetType().GetFields().Length);
             Assert.Equal("id", result.user.GetType().GetFields()[0].Name);
@@ -149,7 +149,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
-        public void SupportsArgumentsAutoWithGuid()
+        public async void SupportsArgumentsAutoWithGuid()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             }").Operations.First();
 
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             // we only have the fields requested
             Assert.Equal(1, result.project.GetType().GetFields().Length);
             Assert.Equal("id", result.project.GetType().GetFields()[0].Name);
@@ -200,7 +200,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
-        public void SupportsComments()
+        public async void SupportsComments()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // Add a argument field with a require parameter
@@ -219,7 +219,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
 # no thanks!").Operations.First();
 
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             // we only have the fields requested
             Assert.Equal(1, result.GetType().GetFields().Length);
             Assert.Equal(2, result.person.GetType().GetFields().Length);

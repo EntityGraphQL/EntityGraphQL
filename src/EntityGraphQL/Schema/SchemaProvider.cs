@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using EntityGraphQL.Authorization;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -70,6 +71,11 @@ namespace EntityGraphQL.Schema
             SetupIntrospectionTypesAndField();
         }
 
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        {
+            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider).Result;
+        }
+
         /// <summary>
         /// Execute a query using this schema.
         /// </summary>
@@ -81,7 +87,7 @@ namespace EntityGraphQL.Schema
         /// <param name="includeDebugInfo"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
@@ -91,7 +97,7 @@ namespace EntityGraphQL.Schema
             {
                 var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
                 var queryResult = graphQLCompiler.Compile(gql, claims);
-                result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName);
+                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName);
             }
             catch (Exception ex)
             {

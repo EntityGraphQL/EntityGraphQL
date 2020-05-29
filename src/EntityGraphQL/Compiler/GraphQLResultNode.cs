@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Compiler
 {
@@ -43,6 +44,11 @@ namespace EntityGraphQL.Compiler
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => throw new NotImplementedException();
 
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null)
+        {
+            return ExecuteQueryAsync(context, services, operationName).Result;
+        }
+
         /// <summary>
         /// Executes the compiled GraphQL document adding data results into QueryResult.
         /// If no OperationName is supplied the first operation in the query document is executed
@@ -51,7 +57,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName = null)
         {
             var result = new QueryResult();
             var validator = new GraphQLValidator();
@@ -66,7 +72,7 @@ namespace EntityGraphQL.Compiler
             {
                 result.Data[node.Name] = null;
                 // request.Variables are already compiled into the expression
-                var data = ((GraphQLExecutableNode)node).Execute(context, validator, services);
+                var data = await ((GraphQLExecutableNode)node).ExecuteAsync(context, validator, services);
                 result.Data[node.Name] = data;
             }
 

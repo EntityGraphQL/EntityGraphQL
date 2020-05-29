@@ -51,10 +51,10 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        public override object Execute<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
+        public override async Task<object> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // run the mutation to get the context for the query select
-            var result = ExecuteMutationAsync(context, validator, serviceProvider).Result;
+            var result = await ExecuteMutationAsync(context, validator, serviceProvider);
             if (result == null)
                 return null;
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
@@ -126,11 +126,11 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 resultSelection.FieldParameter = mutationContextParam;
-                result = resultSelection.Execute(context, validator, serviceProvider);
+                result = await resultSelection.ExecuteAsync(context, validator, serviceProvider);
                 return result;
             }
             // run the query select
-            result = resultSelection.Execute(result, validator, serviceProvider);
+            result = await resultSelection.ExecuteAsync(result, validator, serviceProvider);
             return result;
         }
 

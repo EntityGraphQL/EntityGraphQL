@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
     public class EntityQueryExtensionTests
     {
         [Fact]
-        public void SupportEntityQuery()
+        public async void SupportEntityQuery()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests
 	users(filter: ""field2 = ""2"" "") { field2 }
 }").Operations.First();
             Assert.Single(tree.QueryFields);
-            dynamic result = tree.Execute(new TestSchema(), new GraphQLValidator(), null);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
             Assert.Equal(1, Enumerable.Count(result.users));
             var user = Enumerable.First(result.users);
             Assert.Equal("2", user.field2);
