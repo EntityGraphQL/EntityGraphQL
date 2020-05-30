@@ -19,11 +19,12 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation AddPerson($name: String!) {
   addPerson(name: $name) { id name }
 }",
-                Variables = new QueryVariables{{"na", "Frank"}}
+                Variables = new QueryVariables { { "na", "Frank" } }
             };
             dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null).Errors;
             var err = Enumerable.First(addPersonResult);
@@ -36,14 +37,15 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"
                 mutation AddPerson($name: String) {
   addPerson(name: $name) {
     id name
   }
 }",
-                Variables = new QueryVariables {}
+                Variables = new QueryVariables { }
             };
             dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null).Data["addPerson"];
             // we only have the fields requested
@@ -60,7 +62,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation AddPerson($names: [String]) {
   addPersonNames(names: $names) {
     id name lastName
@@ -88,7 +91,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation AddPerson($names: [String]) {
   addPersonInput(nameInput: $names) {
     id name lastName
@@ -118,7 +122,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation AddPerson($name: String) {
   addPersonAdv(name: $name) {
     id name projects { id }
@@ -173,7 +178,7 @@ namespace EntityGraphQL.Tests
     internal class PeopleMutations
     {
         [GraphQLMutation]
-        public Person AddPerson(TestSchema db, PeopleMutationsArgs args)
+        public Person AddPerson(PeopleMutationsArgs args)
         {
             return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555 };
         }
@@ -186,27 +191,27 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        public Person AddPersonInput(TestSchema db, PeopleMutationsArgs args)
+        public Person AddPersonInput(PeopleMutationsArgs args)
         {
             return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };
         }
 
         [GraphQLMutation]
-        public Expression<Func<TestSchema, Person>> AddPersonAdv(TestSchema db, PeopleMutationsArgs args)
+        public Expression<Func<TestSchema, Person>> AddPersonAdv(PeopleMutationsArgs args)
         {
             // test returning a constant in the expression which allows graphql selection over the schema (assuming the constant is a type in the schema)
             // Ie. in the mutation query you can select any valid fields in the schema from Person
             var person = new Person
             {
                 Name = args.Name,
-                Tasks = new List<Task> {new Task {Name = "A"}},
-                Projects = new List<Project> {new Project {Id = 123}}
+                Tasks = new List<Task> { new Task { Name = "A" } },
+                Projects = new List<Project> { new Project { Id = 123 } }
             };
             return ctx => person;
         }
     }
 
-    internal class PeopleMutationsArgs
+    internal class PeopleMutationsArgs : IMutationArguments
     {
         public string Name { get; set; }
         public List<string> Names { get; set; }

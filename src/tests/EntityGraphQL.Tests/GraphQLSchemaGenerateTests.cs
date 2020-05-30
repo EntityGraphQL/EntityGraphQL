@@ -18,7 +18,8 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"query Test { movies { id } }",
             };
             dynamic results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null).Errors;
@@ -30,7 +31,8 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"query Test { albums { id } }",
             };
             var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
@@ -43,7 +45,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation Test($name: String, $hiddenInputField: String) {
   addAlbum(name: $name, hiddenInputField: $hiddenInputField) {
     id
@@ -65,7 +68,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation Test($name: String) {
   addAlbum(name: $name) {
     id name hiddenInputField
@@ -88,7 +92,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation Test($name: String, $hiddenField: String) {
   addAlbum(name: $name, hiddenField: $hiddenField) {
     id
@@ -109,13 +114,14 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             // Add a argument field with a require parameter
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"query Test {
   albums {
     id hiddenInputField hiddenField
   }
 }",
-                Variables = new QueryVariables {}
+                Variables = new QueryVariables { }
             };
             var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
@@ -230,7 +236,7 @@ namespace EntityGraphQL.Tests
         Pop
     }
 
-    public class Album
+    public class Album : IMutationArguments
     {
         public int Id { get; set; }
         [GraphQLNotNull]
