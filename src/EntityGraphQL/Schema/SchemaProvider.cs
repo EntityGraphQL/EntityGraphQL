@@ -32,14 +32,7 @@ namespace EntityGraphQL.Schema
         };
 
         private readonly string queryContextName;
-        // we want this scalar string values to be unique
-        private readonly Dictionary<Type, string> customScalarTypes = new Dictionary<Type, string> {
-            {typeof(int), "Int"},
-            {typeof(float), "Float"},
-            {typeof(string), "String"},
-            {typeof(bool), "Boolean"},
-            {typeof(Guid), "ID"},
-        };
+
         // map some types to scalar types
         protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string> {
             {typeof(uint), "Int!"},
@@ -50,17 +43,17 @@ namespace EntityGraphQL.Schema
             {typeof(byte[]), "String"},
             {typeof(bool), "Boolean"},
         };
-        public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
-
         public SchemaProvider()
         {
             var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema");
             queryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
-            types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar"));
-            types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar"));
-            types.Add("Boolean", new SchemaType<double>(this, "Boolean", "Boolean scalar"));
-            types.Add("String", new SchemaType<double>(this, "String", "String scalar"));
+            // default GQL scalar types
+            types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar") { IsScalar = true });
+            types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar") { IsScalar = true });
+            types.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar") { IsScalar = true });
+            types.Add("String", new SchemaType<string>(this, "String", "String scalar") { IsScalar = true });
+            types.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar") { IsScalar = true });
 
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
             AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
@@ -121,7 +114,7 @@ namespace EntityGraphQL.Schema
             {
                 allTypeMappings[item.Key] = item.Value;
             }
-            var combinedMapping = new CombinedMapping(allTypeMappings, customScalarTypes);
+            var combinedMapping = new CombinedMapping(allTypeMappings, GetScalarTypes().ToDictionary(t => t.ContextType, t => t.Name));
 
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
@@ -202,7 +195,7 @@ namespace EntityGraphQL.Schema
             // add scalar if needed
             if (!HasType(gqlType) && !gqlType.StartsWith("["))
             {
-                AddCustomScalarType(typeof(TFrom), gqlType);
+                AddScalarType<TFrom>(gqlType, "");
             }
             SetupIntrospectionTypesAndField();
         }
@@ -534,9 +527,6 @@ namespace EntityGraphQL.Schema
                     type = type.GetGenericArguments()[0];
                 }
             }
-            if (customScalarTypes.ContainsKey(type))
-                return customScalarTypes[type];
-
             if (customTypeMappings.ContainsKey(type))
                 return customTypeMappings[type];
 
@@ -576,15 +566,41 @@ namespace EntityGraphQL.Schema
         public string GetGraphQLSchema()
         {
             var extraMappings = customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
-            return SchemaGenerator.Make(this, extraMappings, this.customScalarTypes);
+            return SchemaGenerator.Make(this, extraMappings, GetScalarTypes().ToDictionary(t => t.ContextType, t => t.Name));
         }
 
-        public void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false)
+        [Obsolete("Use AddScalarType")]
+        public void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false)
         {
-            this.customScalarTypes[clrType] = gqlTypeName;
+            this.types.Add(gqlTypeName, new SchemaType<object>(this, gqlTypeName, description) { IsScalar = true });
             this.customTypeMappings[clrType] = required ? gqlTypeName + "!" : gqlTypeName;
-            // _customScalarMappings has change, need to make the introspectino again. Do this like this so we don't need to build the mappings inline
-            SetupIntrospectionTypesAndField();
+            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
+            // SetupIntrospectionTypesAndField();
+        }
+
+        [Obsolete("Use AddScalarType")]
+        public void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false)
+        {
+            this.types.Add(gqlTypeName, new SchemaType<TType>(this, gqlTypeName, description) { IsScalar = true });
+            this.customTypeMappings[typeof(TType)] = required ? gqlTypeName + "!" : gqlTypeName;
+            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
+            // SetupIntrospectionTypesAndField();
+        }
+
+        public void AddScalarType(Type clrType, string gqlTypeName, string description, bool required = false)
+        {
+            this.types.Add(gqlTypeName, new SchemaType<object>(this, gqlTypeName, description) { IsScalar = true });
+            this.customTypeMappings[clrType] = required ? gqlTypeName + "!" : gqlTypeName;
+            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
+            // SetupIntrospectionTypesAndField();
+        }
+
+        public void AddScalarType<TType>(string gqlTypeName, string description, bool required = false)
+        {
+            this.types.Add(gqlTypeName, new SchemaType<TType>(this, gqlTypeName, description) { IsScalar = true });
+            this.customTypeMappings[typeof(TType)] = required ? gqlTypeName + "!" : gqlTypeName;
+            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
+            // SetupIntrospectionTypesAndField();
         }
 
         public IEnumerable<Field> GetQueryFields()
@@ -595,6 +611,11 @@ namespace EntityGraphQL.Schema
         public IEnumerable<ISchemaType> GetNonContextTypes()
         {
             return types.Values.Where(s => s.Name != queryContextName).ToList();
+        }
+
+        public IEnumerable<ISchemaType> GetScalarTypes()
+        {
+            return types.Values.Where(t => t.IsScalar);
         }
 
         public IEnumerable<MutationType> GetMutations()

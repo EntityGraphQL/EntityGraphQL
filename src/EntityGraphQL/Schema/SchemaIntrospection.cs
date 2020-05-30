@@ -60,12 +60,12 @@
         {
             var types = new List<TypeElement>();
 
-            foreach (var customScalar in schema.CustomScalarTypes)
+            foreach (var customScalar in schema.GetScalarTypes())
             {
                 var typeElement = new TypeElement
                 {
                     Kind = "SCALAR",
-                    Name = customScalar,
+                    Name = customScalar.Name,
                     Description = null,
                 };
 
@@ -230,11 +230,6 @@
                 type.Name = FindNamedMapping(clrType, combinedMapping, gqlTypeName);
 
                 type = ConvertGqlRequiredOrList(type);
-            }
-
-            if (type.Name != null && type.Name.Contains("float")) {
-                var t = 0;
-                t++;
             }
 
             return type;
@@ -406,7 +401,8 @@
 
         private static List<Directives> BuildDirectives()
         {
-            var directives = new List<Directives> {
+            var directives = new List<Directives>
+            {
                 // new Models.Directives
                 // {
                 //     Name = "include",
@@ -472,7 +468,6 @@
             this.typeMappings = typeMappings;
             this.scalarTypes = scalarTypes;
         }
-
         public bool TypeIsScalar(Type clrType)
         {
             return scalarTypes.Any(x => x.Key == clrType || (clrType.GetTypeInfo().IsGenericType && clrType.GetGenericTypeDefinition() == x.Key));

@@ -5,8 +5,8 @@ schema {
 
 scalar Int
 scalar Float
-scalar String
 scalar Boolean
+scalar String
 scalar ID
 scalar Date
 
@@ -43,22 +43,6 @@ type RootQuery {
 	"List of writers"
 	writers: [Person!]
 
-}
-
-"Int scalar"
-type Int {
-}
-
-"Float scalar"
-type Float {
-}
-
-"Boolean scalar"
-type Boolean {
-}
-
-"String scalar"
-type String {
 }
 
 "Information about subscriptions"

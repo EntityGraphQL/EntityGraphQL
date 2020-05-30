@@ -19,7 +19,6 @@ namespace EntityGraphQL.Schema
     {
         /// The base context type that expression will be built from. For example your DbContext
         Type ContextType { get; }
-        IEnumerable<string> CustomScalarTypes { get; }
 
         /// Checks if the given type has the given field identifier
         bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims);
@@ -41,6 +40,7 @@ namespace EntityGraphQL.Schema
         /// <param name="args"></param>
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
+        IEnumerable<ISchemaType> GetScalarTypes();
         string GetSchemaTypeNameForClrType(Type type);
         IMethodType GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
@@ -63,7 +63,12 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="clrType">A CLR type that you want mapped</param>
         /// <param name="gqlTypeName">A type name for the scala</param>
-        void AddCustomScalarType(Type clrType, string gqlTypeName, bool required = false);
+        [Obsolete("Use AddScalarType")]
+        void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
+        [Obsolete("Use AddScalarType")]
+        void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false);
+        void AddScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
+        void AddScalarType<TType>(string gqlTypeName, string description, bool required = false);
         ISchemaType AddEnum(string name, Type type, string description);
         /// <summary>
         /// Get a directive by name. A directive is used to manipulate or customise a query and/or result

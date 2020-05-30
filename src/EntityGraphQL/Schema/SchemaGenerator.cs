@@ -154,7 +154,7 @@ type RootQuery {{
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes())
             {
-                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum)
+                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar)
                     continue;
 
                 types.AppendLine();

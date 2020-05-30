@@ -11,6 +11,7 @@ namespace EntityGraphQL.Schema
         string Description { get; }
         bool IsInput { get; }
         bool IsEnum { get; }
+        bool IsScalar { get; }
 
         Field GetField(string identifier, ClaimsIdentity claims);
         IEnumerable<Field> GetFields();

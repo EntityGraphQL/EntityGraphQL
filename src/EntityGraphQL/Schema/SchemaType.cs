@@ -17,6 +17,7 @@ namespace EntityGraphQL.Schema
         public string Name { get; internal set; }
         public bool IsInput { get; }
         public bool IsEnum { get; }
+        public bool IsScalar { get; internal set; }
 
         public string Description { get; internal set; }
 

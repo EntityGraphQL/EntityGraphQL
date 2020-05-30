@@ -14,10 +14,10 @@ namespace demo
             // build our schema directly from the DB Context
             var demoSchema = SchemaBuilder.FromObject<DemoContext>();
 
-            demoSchema.AddCustomScalarType(typeof(DateTime), "Date");
-            demoSchema.AddCustomScalarType(typeof(DateTime?), "Date");
-
             // we can extend the schema
+
+            demoSchema.AddScalarType<DateTime>("Date", "Represents a date");
+            demoSchema.AddTypeMapping<DateTime?>("Date");
 
             // Add custom root fields
             demoSchema.ReplaceField("actors", new
