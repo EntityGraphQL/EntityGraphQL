@@ -79,7 +79,7 @@
         {
             var types = new List<TypeElement>();
 
-            foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum))
+            foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
             {
                 var typeElement = new TypeElement
                 {
