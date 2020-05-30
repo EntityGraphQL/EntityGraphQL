@@ -1,3 +1,9 @@
+# 0.63.0
+- Expose a `SchemaProvider.ExecuteQueryAsync()`
+- Fix #53 support mutations with no arguments
+- With the above fix the context and/or the mutation arguments parameters are optional in your mutation method
+- Breaking change, the parameters in the mutation methods are no longer required to follow a position. For this the class the represents the mutation arguments must implement the `IMutationArguments` interface
+
 # 0.62.0
 - Support async mutation methods
 

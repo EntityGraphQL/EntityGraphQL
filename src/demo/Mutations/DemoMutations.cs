@@ -10,8 +10,20 @@ namespace demo.Mutations
 {
     public class DemoMutations
     {
-        public DemoMutations()
+        [GraphQLMutation("Example of a mutation that takes 0 arguments")]
+        public Expression<Func<DemoContext, Movie>> ExampleNoArgs(DemoContext db)
         {
+            // do something smart here with db
+
+            return ctx => ctx.Movies.First();
+        }
+
+        [GraphQLMutation("Example of a mutation that does not use the context or argments but does use registered services")]
+        public int ExampleNoArgsWithService(AgeService ageService)
+        {
+            // we returning a scalar, you do not require the Expression<>
+            // AgeService registered in DI. Use it here
+            return ageService.Calc(new Person());
         }
 
         /// <summary>
@@ -104,7 +116,7 @@ namespace demo.Mutations
     /// <summary>
     /// Must be a public class. Public fields and Properties are the mutation's arguments
     /// </summary>
-    public class AddMovieArgs
+    public class AddMovieArgs : IMutationArguments
     {
         public Genre Genre;
         [Required(AllowEmptyStrings = false, ErrorMessage = "Movie Name is required")]
@@ -119,7 +131,7 @@ namespace demo.Mutations
         public string Description { get; set; }
     }
 
-    public class AddActorArgs
+    public class AddActorArgs : IMutationArguments
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }

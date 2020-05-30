@@ -48,6 +48,7 @@ namespace EntityGraphQL.Schema
             {typeof(double), "Float!"},
             {typeof(decimal), "Float!"},
             {typeof(byte[]), "String"},
+            {typeof(bool), "Boolean"},
         };
         public IEnumerable<string> CustomScalarTypes { get { return customScalarTypes.Values; } }
 
@@ -56,6 +57,10 @@ namespace EntityGraphQL.Schema
             var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema");
             queryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
+            types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar"));
+            types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar"));
+            types.Add("Boolean", new SchemaType<double>(this, "Boolean", "Boolean scalar"));
+            types.Add("String", new SchemaType<double>(this, "String", "String scalar"));
 
             AddType<Models.TypeElement>("__Type", "Information about types").AddAllFields();
             AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
@@ -171,10 +176,18 @@ namespace EntityGraphQL.Schema
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
                     var requiredClaims = new RequiredClaims(claims);
                     var typeName = GetSchemaTypeNameForClrType(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
-                    var mutationType = new MutationType(name, types.ContainsKey(typeName) ? types[typeName] : null, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync);
+                    var mutationType = new MutationType(name, GetReturnType(typeName), mutationClassInstance, method, attribute.Description, requiredClaims, isAsync);
                     mutations[name] = mutationType;
                 }
             }
+        }
+
+        private ISchemaType GetReturnType(string typeName)
+        {
+            if (types.ContainsKey(typeName))
+                return types[typeName];
+
+            return null;
         }
 
         public bool HasMutation(string method)

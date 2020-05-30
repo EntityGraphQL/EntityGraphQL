@@ -40,23 +40,35 @@ namespace EntityGraphQL.Schema
 
         public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
-            // first arg is the Context - required arg in the mutation method
-            var allArgs = new List<object> { context };
+            // args in the mutation method
+            var allArgs = new List<object>();
 
-            // second arg is the arguments for the mutation - required as last arg in the mutation method
-            var argInstance = AssignArgValues(gqlRequestArgs);
-            VaildateModelBinding(argInstance, validator);
-            if (validator.Errors.Any())
-                return null;
-
-            allArgs.Add(argInstance);
-
-            // add any DI services
-            foreach (var p in method.GetParameters().Skip(2))
+            object argInstance = null;
+            if (gqlRequestArgs != null)
             {
+                // second arg is the arguments for the mutation - required as last arg in the mutation method
+                argInstance = AssignArgValues(gqlRequestArgs);
+                VaildateModelBinding(argInstance, validator);
+                if (validator.Errors.Any())
+                    return null;
+            }
+
+            // add parameters and any DI services
+            foreach (var p in method.GetParameters())
+            {
+                if (p.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))
+                {
+                    allArgs.Add(argInstance);
+                }
+                else if (p.ParameterType == context.GetType())
+                {
+                    allArgs.Add(context);
+                }
                 // todo we should put this in the IServiceCollection actually...
-                if (p.ParameterType == typeof(GraphQLValidator))
+                else if (p.ParameterType == typeof(GraphQLValidator))
+                {
                     allArgs.Add(validator);
+                }
                 else
                 {
                     var service = serviceProvider.GetService(p.ParameterType);
@@ -163,27 +175,29 @@ namespace EntityGraphQL.Schema
             AuthorizeClaims = authorizeClaims;
             this.isAsync = isAsync;
 
-            var methodArg = method.GetParameters().ElementAt(1);
-            this.argInstanceType = methodArg.ParameterType;
-            foreach (var item in argInstanceType.GetProperties())
+            this.argInstanceType = method.GetParameters().FirstOrDefault(a => a.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))?.ParameterType;
+            if (argInstanceType != null)
             {
-                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                    continue;
-                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                foreach (var item in argInstanceType.GetProperties())
                 {
-                    Type = item.PropertyType,
-                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.PropertyType.GetTypeInfo().IsEnum
-                });
-            }
-            foreach (var item in argInstanceType.GetFields())
-            {
-                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                    continue;
-                argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                        continue;
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                    {
+                        Type = item.PropertyType,
+                        TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.PropertyType.GetTypeInfo().IsEnum
+                    });
+                }
+                foreach (var item in argInstanceType.GetFields())
                 {
-                    Type = item.FieldType,
-                    TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.FieldType.GetTypeInfo().IsEnum
-                });
+                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                        continue;
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
+                    {
+                        Type = item.FieldType,
+                        TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.FieldType.GetTypeInfo().IsEnum
+                    });
+                }
             }
         }
 

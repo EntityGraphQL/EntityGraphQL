@@ -316,7 +316,7 @@ public class MovieMutations
   }
 }
 
-public class ActorArgs
+public class ActorArgs : IMutationArguments
 {
   public string Name { get; set; }
   public int Age { get; set; }
@@ -352,13 +352,14 @@ schemaProvider.AddMutationFrom(new MovieMutations());
 ```
 
 - All `public` methods marked with the `[GraphQLMutation]` attribute will be added to the schema
-- Parameters for the method should be
-  - First - the base context that your schema is built from
-  - Second - a class that defines each available parameter (and type)
-  - Third...n - Optionally any dependencies you want injected
-- Variables from the GraphQL request are mapped into the args (last) parameter
+- Parameters for the mutation method _can_ be
+  - the base context that your schema is built from - the instance passed in will be the same one passed into `schema.ExecuteQuery()`
+  - a class that defines each available mutation argument (and type - `ActorArgs` in the above example). This must implement the `IMutationArguments` interface
+  - Any dependencies you want that have been registered in the `IServiceProvider` passed into `schema.ExecuteQuery()`
+- Variables from the GraphQL request are mapped into the args parameter (the `IMutationArguments` one)
 
 You can now run a mutation
+
 ```gql
 mutation AddActor($name: String!, $movieId: int!) {
   addMovie(name: $name, id: $movieId) {

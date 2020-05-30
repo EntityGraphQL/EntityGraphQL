@@ -45,6 +45,22 @@ type RootQuery {
 
 }
 
+"Int scalar"
+type Int {
+}
+
+"Float scalar"
+type Float {
+}
+
+"Boolean scalar"
+type Boolean {
+}
+
+"String scalar"
+type String {
+}
+
 "Information about subscriptions"
 type SubscriptionType {
 	name: String
@@ -83,7 +99,7 @@ type Person {
 	writerOf: [Movie!]
 	directorOf: [Movie!]
 	died: Date
-	isDeleted: Boolean!
+	isDeleted: Boolean
 	"Person's name"
 	name: String
 	"Show the person's age"
@@ -113,6 +129,10 @@ input Detail {
 }
 
 type Mutation {
+	"Example of a mutation that takes 0 arguments"
+	exampleNoArgs(): Movie
+	"Example of a mutation that does not use the context or argments but does use registered services"
+	exampleNoArgsWithService(): Int!
 	"Add a new Movie object"
 	addMovie(name: String, rating: Float!, details: [Detail!], genre: Genre!, released: Date): Movie
 	addActor(firstName: String, lastName: String, movieId: Int!): Person

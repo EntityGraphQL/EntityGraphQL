@@ -15,4 +15,11 @@ namespace EntityGraphQL.Schema
 
         public string Description { get; set; }
     }
+
+    /// <summary>
+    /// Have your mutation argument class implement this interface.
+    /// Allows EntityGraphQL to know which argument of the mutation needs to be
+    /// populated with the mutation arguments from the query
+    /// </summary>
+    public interface IMutationArguments { }
 }

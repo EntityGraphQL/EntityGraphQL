@@ -16,9 +16,9 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<string, ExpressionResult> args;
         private readonly GraphQLQueryNode resultSelection;
 
-        public string Name { get => resultSelection.Name; set => throw new NotImplementedException(); }
+        public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection.ConstantParameters;
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 
         public GraphQLMutationNode(MutationType mutationType, Dictionary<string, ExpressionResult> args, GraphQLQueryNode resultSelection)
         {
@@ -129,6 +129,10 @@ namespace EntityGraphQL.Compiler
                 result = await resultSelection.ExecuteAsync(context, validator, serviceProvider);
                 return result;
             }
+
+            if (resultSelection == null) // mutation must return a scalar type
+                return result;
+
             // run the query select
             result = await resultSelection.ExecuteAsync(result, validator, serviceProvider);
             return result;

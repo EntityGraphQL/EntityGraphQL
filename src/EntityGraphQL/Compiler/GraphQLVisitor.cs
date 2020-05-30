@@ -52,8 +52,6 @@ namespace EntityGraphQL.Compiler
             if (schemaProvider.HasMutation(actualFieldName))
             {
                 var mutationType = schemaProvider.GetMutations().First(m => m.Name == actualFieldName);
-                if (args == null)
-                    throw new EntityGraphQLCompilerException($"Missing bracets for mutation call {alias ?? fieldName}");
                 if (context.select != null)
                 {
                     var expContext = (ExpressionResult)Expression.Parameter(mutationType.ReturnTypeClr, $"mut_{actualFieldName}");
