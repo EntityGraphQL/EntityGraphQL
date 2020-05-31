@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace EntityGraphQL.Schema
 {
@@ -25,7 +27,43 @@ namespace EntityGraphQL.Schema
 
     public class ArgType
     {
+        public string Name { get; set; }
+        public string Description { get; set; }
         public Type Type { get; set; }
         public bool TypeNotNullable { get; set; }
+
+        public static ArgType FromProperty(PropertyInfo prop)
+        {
+            var arg = new ArgType
+            {
+                Type = prop.PropertyType,
+                Name = prop.Name,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(prop) || prop.PropertyType.GetTypeInfo().IsEnum
+            };
+
+            if (prop.GetCustomAttribute(typeof(DescriptionAttribute), false) is DescriptionAttribute d)
+            {
+                arg.Description = d.Description;
+            }
+
+            return arg;
+        }
+
+        public static ArgType FromField(FieldInfo field)
+        {
+            var arg = new ArgType
+            {
+                Type = field.FieldType,
+                Name = field.Name,
+                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field) || field.FieldType.GetTypeInfo().IsEnum
+            };
+
+            if (field.GetCustomAttribute(typeof(DescriptionAttribute), false) is DescriptionAttribute d)
+            {
+                arg.Description = d.Description;
+            }
+
+            return arg;
+        }
     }
 }

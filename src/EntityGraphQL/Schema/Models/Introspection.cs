@@ -16,7 +16,7 @@ namespace EntityGraphQL.Schema.Models
 
         public List<TypeElement> Types { get; set; }
 
-        public List<Directives> Directives { get; set; }
+        public List<Directive> Directives { get; set; }
     }
 
     public partial class SubscriptionType
@@ -28,10 +28,10 @@ namespace EntityGraphQL.Schema.Models
     {
         public TypeElement()
         {
-            EnumValues = new Models.EnumValue[] {};
-            Interfaces = new TypeElement[] {};
-            PossibleTypes = new TypeElement[] {};
-            InputFields = new InputValue[] {};
+            EnumValues = new Models.EnumValue[] { };
+            Interfaces = new TypeElement[] { };
+            PossibleTypes = new TypeElement[] { };
+            InputFields = new InputValue[] { };
         }
 
         public string Kind { get; set; }
@@ -75,7 +75,7 @@ namespace EntityGraphQL.Schema.Models
         public string DefaultValue { get; set; }
     }
 
-    public partial class Directives
+    public partial class Directive
     {
         public string Name { get; set; }
 

@@ -50,7 +50,7 @@
                     Name = "Mutation"
                 },
                 Types = types.OrderBy(x => x.Name).ToList(),
-                Directives = BuildDirectives()
+                Directives = BuildDirectives(schema, combinedMapping)
             };
 
             return schemaDescription;
@@ -164,17 +164,17 @@
                     Kind = "ENUM",
                     Name = schemaType.Name,
                     Description = schemaType.Description,
-                    EnumValues = new Models.EnumValue[] { }
+                    EnumValues = new EnumValue[] { }
                 };
                 if (schemaType.Name.StartsWith("__"))
                     continue;
 
-                var enumTypes = new List<Models.EnumValue>();
+                var enumTypes = new List<EnumValue>();
 
                 //filter to ENUM type ONLY!
                 foreach (Field field in schemaType.GetFields())
                 {
-                    enumTypes.Add(new Models.EnumValue
+                    enumTypes.Add(new EnumValue
                     {
                         Name = field.Name,
                         Description = field.Description,
@@ -399,59 +399,21 @@
             return fallback;
         }
 
-        private static List<Directives> BuildDirectives()
+        private static List<Directive> BuildDirectives(ISchemaProvider schema, CombinedMapping combinedMapping)
         {
-            var directives = new List<Directives>
+            var directives = schema.GetDirectives().Select(directive => new Directive
             {
-                // new Models.Directives
-                // {
-                //     Name = "include",
-                //     Description = "Directs the executor to include this field or fragment only when the `if` argument is true.",
-                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                //     Args = new Models.Arg[] {
-                //         new Models.Arg {
-                //             Name = "if",
-                //             Description = "Included when true.",
-                //             DefaultValue = null,
-                //             Type = new TypeElement
-                //             {
-                //                 Kind = "NON_NULL",
-                //                 Name = null,
-                //                 OfType = new TypeElement
-                //                 {
-                //                     Kind = "SCALAR",
-                //                     Name = "Boolean",
-                //                     OfType = null
-                //                 }
-                //             }
-                //         }
-                //     }
-                // },
-                // new Models.Directives
-                // {
-                //     Name = "skip",
-                //     Description = "Directs the executor to skip this field or fragment when the `if` argument is true.",
-                //     Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                //     Args = new Models.Arg[] {
-                //         new Models.Arg {
-                //             Name = "if",
-                //             Description = "Skipped when true.",
-                //             DefaultValue = null,
-                //             Type = new TypeElement
-                //             {
-                //                 Kind = "NON_NULL",
-                //                 Name = null,
-                //                 OfType = new TypeElement
-                //                 {
-                //                     Kind = "SCALAR",
-                //                     Name = "Boolean",
-                //                     OfType = null
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-            };
+                Name = directive.Name,
+                Description = directive.Description,
+                Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
+                Args = directive.GetArguments().Select(arg => new InputValue
+                {
+                    Name = arg.Name,
+                    Description = arg.Description,
+                    DefaultValue = null,
+                    Type = BuildType(schema, arg.Type, schema.GetSchemaTypeNameForClrType(arg.Type.GetNonNullableOrEnumerableType()), combinedMapping, true),
+                }).ToArray()
+            }).ToList();
 
             return directives;
         }

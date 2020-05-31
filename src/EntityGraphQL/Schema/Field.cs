@@ -84,16 +84,8 @@ namespace EntityGraphQL.Schema
         public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes, RequiredClaims claims) : this(name, resolve, description, returnSchemaType, null, claims)
         {
             ArgumentTypesObject = argTypes;
-            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => new ArgType
-            {
-                Type = p.PropertyType,
-                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
-            });
-            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => new ArgType
-            {
-                Type = p.FieldType,
-                TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(p),
-            }).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
+            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => ArgType.FromProperty(p));
+            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => ArgType.FromField(p)).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
         }
 
         public string GetReturnType(ISchemaProvider schema)

@@ -182,21 +182,13 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
-                    {
-                        Type = item.PropertyType,
-                        TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.PropertyType.GetTypeInfo().IsEnum
-                    });
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromProperty(item));
                 }
                 foreach (var item in argInstanceType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), new ArgType
-                    {
-                        Type = item.FieldType,
-                        TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(item) || item.FieldType.GetTypeInfo().IsEnum
-                    });
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromField(item));
                 }
             }
         }

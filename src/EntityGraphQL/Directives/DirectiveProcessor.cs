@@ -1,11 +1,16 @@
 using System;
-using System.Linq.Expressions;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
 {
     public interface IDirectiveProcessor
     {
+        string Name { get; }
+        string Description { get; }
         /// <summary>
         /// Return the Type used for the directive arguments
         /// </summary>
@@ -17,6 +22,7 @@ namespace EntityGraphQL.Directives
         /// <value></value>
         bool ProcessesResult { get; }
         IGraphQLBaseNode ProcessQueryInternal(GraphQLQueryNode fieldResult, object arguments);
+        IEnumerable<ArgType> GetArguments();
     }
 
     /// <summary>
@@ -28,6 +34,8 @@ namespace EntityGraphQL.Directives
     {
         public abstract Type GetArgumentsType();
         public abstract bool ProcessesResult { get; }
+        public abstract string Name { get; }
+        public abstract string Description { get; }
 
         /// <summary>
         /// Implement this to make changes to the item marked with the directive.
@@ -63,6 +71,11 @@ namespace EntityGraphQL.Directives
                 // field.Wrap(exp => Expression.Call(Expression.Constant(this), "ProcessResult", null, exp, arguments));
             }
             return result;
+        }
+
+        public IEnumerable<ArgType> GetArguments()
+        {
+            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(prop)).ToList();
         }
     }
 }

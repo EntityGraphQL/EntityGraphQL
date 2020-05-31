@@ -4,6 +4,7 @@
 - With the above fix the context and/or the mutation arguments parameters are optional in your mutation method
 - the parameters in the mutation methods are no longer required to follow a position
 - `SchemaProvider.AddCustomScalarType()` is deprecated, use `AddScalarType`
+- Directvies are now included in schema introspection
 
 *Breaking changes*
 - The class that represents the mutation arguments must implement the `IMutationArguments` interface

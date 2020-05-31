@@ -1,11 +1,15 @@
 using System;
-using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Directives
 {
     public class FormatDateDirective : DirectiveProcessor<FormatDate>
     {
         public override bool ProcessesResult { get => true; }
+
+        public override string Name => "formatDate";
+
+        public override string Description => "Format the value in the field with the given date format";
+
         public override Type GetArgumentsType()
         {
             return typeof(FormatDate);

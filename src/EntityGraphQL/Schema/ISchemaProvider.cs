@@ -41,6 +41,11 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
         IEnumerable<ISchemaType> GetScalarTypes();
+        /// <summary>
+        /// Get the GQL (from schema) type name for a given CLR/dotnet type. Examples int -> Int, int? -> Int
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         string GetSchemaTypeNameForClrType(Type type);
         IMethodType GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
@@ -77,5 +82,6 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         IDirectiveProcessor GetDirective(string name);
         void AddDirective(string name, IDirectiveProcessor directive);
+        IEnumerable<IDirectiveProcessor> GetDirectives();
     }
 }
