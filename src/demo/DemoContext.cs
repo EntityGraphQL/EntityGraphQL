@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace demo
@@ -45,17 +46,17 @@ namespace demo
 
     public class Actor
     {
-        public uint PersonId { get;  set; }
-        public Person Person { get;  set; }
-        public uint MovieId { get;  set; }
-        public Movie Movie { get;  set; }
+        public uint PersonId { get; set; }
+        public Person Person { get; set; }
+        public uint MovieId { get; set; }
+        public Movie Movie { get; set; }
     }
     public class Writer
     {
-        public uint PersonId { get;  set; }
-        public Person Person { get;  set; }
-        public uint MovieId { get;  set; }
-        public Movie Movie { get;  set; }
+        public uint PersonId { get; set; }
+        public Person Person { get; set; }
+        public uint MovieId { get; set; }
+        public Movie Movie { get; set; }
     }
 
     public enum Genre
@@ -75,7 +76,9 @@ namespace demo
     public class Person
     {
         public uint Id { get; set; }
+        [GraphQLNotNull]
         public string FirstName { get; set; }
+        [GraphQLNotNull]
         public string LastName { get; set; }
         public DateTime Dob { get; set; }
         public List<Actor> ActorIn { get; set; }

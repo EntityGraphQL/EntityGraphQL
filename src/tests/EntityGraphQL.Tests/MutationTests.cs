@@ -17,6 +17,7 @@ namespace EntityGraphQL.Tests
         public void MissingRequiredVar()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -35,6 +36,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationOptional()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -60,6 +62,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationArray()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -89,6 +92,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationObject()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -120,6 +124,7 @@ namespace EntityGraphQL.Tests
         public void SupportsSelectionFromConstant()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest

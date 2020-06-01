@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
         public override IGraphQLBaseNode VisitField(EntityGraphQLParser.FieldContext context)
         {
             var fieldName = context.fieldDef.GetText();
-            string schemaTypeName = schemaProvider.GetSchemaTypeNameForClrType(currentExpressionContext.Type);
+            string schemaTypeName = schemaProvider.GetSchemaTypeNameForDotnetType(currentExpressionContext.Type);
             var actualFieldName = schemaProvider.GetActualFieldName(schemaTypeName, fieldName, claims);
 
             var args = context.argsCall != null ? ParseGqlCall(actualFieldName, context.argsCall) : null;
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
                 var mutationType = schemaProvider.GetMutations().First(m => m.Name == actualFieldName);
                 if (context.select != null)
                 {
-                    var expContext = (ExpressionResult)Expression.Parameter(mutationType.ReturnTypeClr, $"mut_{actualFieldName}");
+                    var expContext = (ExpressionResult)Expression.Parameter(mutationType.ReturnType.TypeDotnet, $"mut_{actualFieldName}");
                     var oldContext = currentExpressionContext;
                     currentExpressionContext = expContext;
                     var select = ParseFieldSelect(expContext, actualFieldName, context.select);
@@ -157,7 +157,7 @@ namespace EntityGraphQL.Compiler
         public Dictionary<string, ExpressionResult> ParseGqlCall(string fieldName, EntityGraphQLParser.GqlCallContext context)
         {
             var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
-            IMethodType methodType = schemaProvider.GetFieldOnContext(currentExpressionContext, fieldName, claims);
+            IField methodType = schemaProvider.GetFieldOnContext(currentExpressionContext, fieldName, claims);
             var args = argList.ToDictionary(a => a.gqlfield.GetText(), a =>
             {
                 var argName = a.gqlfield.GetText();
@@ -171,7 +171,7 @@ namespace EntityGraphQL.Compiler
             return args;
         }
 
-        public ExpressionResult ParseGqlarg(IMethodType fieldArgumentContext, EntityGraphQLParser.GqlargContext context)
+        public ExpressionResult ParseGqlarg(IField fieldArgumentContext, EntityGraphQLParser.GqlargContext context)
         {
             ExpressionResult gqlVarValue = null;
             if (context.gqlVar() != null)
@@ -195,12 +195,12 @@ namespace EntityGraphQL.Compiler
                 {
                     string strValue = (string)((ConstantExpression)gqlVarValue).Value;
                     if (
-                        (argType.Type == typeof(Guid) || argType.Type == typeof(Guid?) ||
-                        argType.Type == typeof(RequiredField<Guid>) || argType.Type == typeof(RequiredField<Guid?>)) && ConstantVisitor.GuidRegex.IsMatch(strValue))
+                        (argType.Type.TypeDotnet == typeof(Guid) || argType.Type.TypeDotnet == typeof(Guid?) ||
+                        argType.Type.TypeDotnet == typeof(RequiredField<Guid>) || argType.Type.TypeDotnet == typeof(RequiredField<Guid?>)) && ConstantVisitor.GuidRegex.IsMatch(strValue))
                     {
                         return (ExpressionResult)Expression.Constant(Guid.Parse(strValue));
                     }
-                    if (argType.Type.IsConstructedGenericType && argType.Type.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    if (argType.Type.TypeDotnet.IsConstructedGenericType && argType.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
                         string query = strValue;
                         if (query.StartsWith("\""))
@@ -210,7 +210,7 @@ namespace EntityGraphQL.Compiler
                         return BuildEntityQueryExpression(fieldArgumentContext, fieldArgumentContext.Name, argName, query);
                     }
 
-                    var argumentNonNullType = argType.Type.IsNullableType() ? Nullable.GetUnderlyingType(argType.Type) : argType.Type;
+                    var argumentNonNullType = argType.Type.TypeDotnet.IsNullableType() ? Nullable.GetUnderlyingType(argType.Type.TypeDotnet) : argType.Type.TypeDotnet;
                     if (argumentNonNullType.GetTypeInfo().IsEnum)
                     {
                         var enumName = strValue;
@@ -227,7 +227,7 @@ namespace EntityGraphQL.Compiler
             return gqlVarValue;
         }
 
-        private ExpressionResult BuildEntityQueryExpression(IMethodType fieldArgumentContext, string fieldName, string argName, string query)
+        private ExpressionResult BuildEntityQueryExpression(IField fieldArgumentContext, string fieldName, string argName, string query)
         {
             if (string.IsNullOrEmpty(query))
             {

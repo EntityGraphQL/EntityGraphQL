@@ -10,15 +10,12 @@ namespace EntityGraphQL.Schema
     /// <summary>
     /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
     /// </summary>
-    public class Field : IMethodType
+    public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
-        private readonly string returnTypeSingle;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
-        public bool ReturnTypeNotNullable { get; set; }
-        public bool ReturnElementTypeNullable { get; set; }
 
         public RequiredClaims AuthorizeClaims { get; private set; }
 
@@ -46,15 +43,14 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Type ReturnTypeClr { get; private set; }
+        public GqlTypeInfo ReturnType { get; }
 
-        internal Field(string name, LambdaExpression resolve, string description, string returnSchemaType, Type returnClrType, RequiredClaims authorizeClaims)
+        internal Field(string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
         {
             Name = name;
             Description = description;
-            returnTypeSingle = returnSchemaType;
-            ReturnTypeClr = returnClrType;
             AuthorizeClaims = authorizeClaims;
+            ReturnType = returnType;
 
             if (resolve != null)
             {
@@ -71,28 +67,21 @@ namespace EntityGraphQL.Schema
                     Resolve = resolve.Body;
                 }
                 FieldParam = resolve.Parameters.First();
-                ReturnTypeClr = Resolve.Type;
+                ReturnType.TypeDotnet = Resolve.Type;
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
-                    ReturnTypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member);
-                    ReturnElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member);
+                    ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member) || ReturnType.TypeNotNullable;
+                    ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member) || ReturnType.ElementTypeNullable;
                 }
             }
         }
 
-        public Field(string name, LambdaExpression resolve, string description, string returnSchemaType, object argTypes, RequiredClaims claims) : this(name, resolve, description, returnSchemaType, null, claims)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims) : this(name, resolve, description, returnType, claims)
         {
             ArgumentTypesObject = argTypes;
-            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => ArgType.FromProperty(p));
-            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => ArgType.FromField(p)).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
-        }
-
-        public string GetReturnType(ISchemaProvider schema)
-        {
-            if (!string.IsNullOrEmpty(returnTypeSingle))
-                return returnTypeSingle;
-            return schema.GetSchemaTypeNameForClrType(ReturnTypeClr.GetNonNullableOrEnumerableType());
+            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => ArgType.FromProperty(schema, p));
+            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => ArgType.FromField(schema, p)).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
         }
 
         public bool HasArgumentByName(string argName)

@@ -5,9 +5,13 @@
 - the parameters in the mutation methods are no longer required to follow a position
 - `SchemaProvider.AddCustomScalarType()` is deprecated, use `AddScalarType`
 - Directvies are now included in schema introspection
+- Fix #52 - sometimes incorrect types generated for schema intropection or the GraphQL schema file format
+- Refactor type information held in the schema. This mean return types etc are evaluated at schema creation time not execution. If you add a field that requires a type as an Arg ument or return type, that type must already be in the schema
 
 *Breaking changes*
 - The class that represents the mutation arguments must implement the `IMutationArguments` interface
+- `SchemaProvider` now adds a default `DateTime` scalar type in the schema that maps to/from the C# `DateTime` class. If you were previously adding that you'll get an error on type existing. Use `SchemaProvider.RemoveType<DateTime>()` to remove it and add it with a different name
+- Type information on arguments and return types are evaluated at schema creation time. You may need to change the order you add types to the schema
 
 # 0.62.0
 - Support async mutation methods

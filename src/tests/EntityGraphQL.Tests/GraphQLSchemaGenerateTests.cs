@@ -142,6 +142,15 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestMutationWithListReturnType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
+            schemaProvider.AddMutationFrom(new IgnoreTestMutations());
+            var schema = schemaProvider.GetGraphQLSchema();
+            Assert.Contains("addAlbum2(id: Int!, name: String!, genre: Genre!): [Album!]", schema);
+        }
+
+        [Fact]
         public void TestNotNullTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
@@ -200,6 +209,18 @@ namespace EntityGraphQL.Tests
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
+
+        [GraphQLMutation("Test correct generation of return type for a list")]
+        public Expression<Func<IgnoreTestSchema, IEnumerable<Album>>> AddAlbum2(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums;
+        }
     }
 
     public class MovieArgs
@@ -245,6 +266,7 @@ namespace EntityGraphQL.Tests
         public string HiddenInputField { get; set; }
         [GraphQLIgnore(GraphQLIgnoreType.All)] // default
         public string HiddenAllField { get; set; }
+        [GraphQLNotNull]
         public Genre Genre { get; set; }
     }
 

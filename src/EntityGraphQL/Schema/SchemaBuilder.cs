@@ -62,7 +62,7 @@ namespace EntityGraphQL.Schema
         {
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
-            var schemaType = schema.Type(fieldProp.GetReturnType(schema));
+            var schemaType = fieldProp.ReturnType.SchemaType;
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
@@ -75,7 +75,7 @@ namespace EntityGraphQL.Schema
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
-            Type arrayContextType = schema.Type(fieldProp.GetReturnType(schema)).ContextType;
+            Type arrayContextType = schemaType.ContextType;
             var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             Expression argId = Expression.PropertyOrField(argTypeParam, "id");
@@ -95,7 +95,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(name, selectionExpression, $"Return a {fieldProp.GetReturnType(schema)} by its Id", fieldProp.GetReturnType(schema), argTypesValue, fieldProp.AuthorizeClaims);
+            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaType, fieldProp.ReturnType.TypeDotnet), fieldProp.AuthorizeClaims);
             schema.AddField(field);
         }
 
@@ -109,20 +109,20 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, prop.PropertyType, param, schema, createEnumTypes, createNewComplexTypes);
+                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
                     fields.Add(f);
             }
             foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, prop.FieldType, param, schema, createEnumTypes, createNewComplexTypes);
+                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes);
                 if (f != null)
                     fields.Add(f);
             }
             return fields;
         }
 
-        private static Field ProcessFieldOrProperty(MemberInfo prop, Type fieldOrPropType, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes)
+        private static Field ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
             {
@@ -142,10 +142,10 @@ namespace EntityGraphQL.Schema
             var requiredClaims = new RequiredClaims(attributes);
             var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType;
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes);
-            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, null, null, requiredClaims);
-            if (t != null && t.IsEnum && !f.ReturnTypeClr.IsNullableType())
+            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, new GqlTypeInfo(schema.Type(returnType.GetNonNullableOrEnumerableType()), le.Body.Type), requiredClaims);
+            if (t != null && t.IsEnum)
             {
-                f.ReturnTypeNotNullable = true;
+                f.ReturnType.TypeNotNullable = true;
             }
             return f;
         }

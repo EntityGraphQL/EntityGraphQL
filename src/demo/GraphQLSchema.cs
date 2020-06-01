@@ -16,9 +16,6 @@ namespace demo
 
             // we can extend the schema
 
-            demoSchema.AddScalarType<DateTime>("Date", "Represents a date");
-            demoSchema.AddTypeMapping<DateTime?>("Date");
-
             // Add custom root fields
             demoSchema.ReplaceField("actors", new
             {
@@ -53,8 +50,8 @@ namespace demo
                 "PersonPagination");
 
             // add some mutations (always last, or after the types they require have been added)
-            demoSchema.AddMutationFrom(new DemoMutations());
             demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
+            demoSchema.AddMutationFrom(new DemoMutations());
             File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
             return demoSchema;
         }
@@ -89,12 +86,15 @@ namespace demo
 
     public class PersonPagination : Pagination
     {
+        [GraphQLNotNull]
         public IQueryable<Person> People { get; set; }
     }
 
     public class Pagination
     {
+        [GraphQLNotNull]
         public int Total { get; set; }
+        [GraphQLNotNull]
 
         public int PageCount { get; set; }
     }

@@ -25,9 +25,9 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static LambdaExpression WithService<TService, TReturn>(Expression<Func<TService, TReturn>> selection)
+        public static TReturn WithService<TService, TReturn>(Expression<Func<TService, TReturn>> selection)
         {
-            return selection;
+            return default;
         }
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
@@ -35,9 +35,9 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static LambdaExpression WithService<TService1, TService2, TReturn>(Expression<Func<TService1, TService2, TReturn>> selection)
+        public static TReturn WithService<TService1, TService2, TReturn>(Expression<Func<TService1, TService2, TReturn>> selection)
         {
-            return selection;
+            return default;
         }
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
@@ -45,9 +45,9 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static LambdaExpression WithService<TService1, TService2, TService3, TReturn>(Expression<Func<TService1, TService2, TService3, TReturn>> selection)
+        public static TReturn WithService<TService1, TService2, TService3, TReturn>(Expression<Func<TService1, TService2, TService3, TReturn>> selection)
         {
-            return selection;
+            return default;
         }
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
@@ -55,9 +55,9 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static LambdaExpression WithService<TService1, TService2, TService3, TService4, TReturn>(Expression<Func<TService1, TService2, TService3, TService4, TReturn>> selection)
+        public static TReturn WithService<TService1, TService2, TService3, TService4, TReturn>(Expression<Func<TService1, TService2, TService3, TService4, TReturn>> selection)
         {
-            return selection;
+            return default;
         }
     }
 
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Schema
         public RequiredField()
         {
             Type = typeof(TType);
-            Value = default(TType);
+            Value = default;
         }
 
         public RequiredField(TType value)

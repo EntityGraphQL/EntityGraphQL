@@ -10,7 +10,7 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
-    public class MutationType : IMethodType
+    public class MutationType : IField
     {
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
@@ -18,25 +18,14 @@ namespace EntityGraphQL.Schema
         private readonly Type argInstanceType;
         private readonly bool isAsync;
 
-        public Type ReturnTypeClr { get { return ReturnType.ContextType; } }
-
         public string Description { get; }
-
-        public Type ContextType => ReturnType.ContextType;
 
         public string Name { get; }
         public RequiredClaims AuthorizeClaims { get; }
-        public ISchemaType ReturnType { get; }
 
         public IDictionary<string, ArgType> Arguments => argumentTypes;
 
-        public bool ReturnTypeNotNullable => false;
-        public bool ReturnElementTypeNullable => false;
-
-        public string GetReturnType(ISchemaProvider schema)
-        {
-            return ReturnType.Name;
-        }
+        public GqlTypeInfo ReturnType { get; }
 
         public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
@@ -165,30 +154,30 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public MutationType(string methodName, ISchemaType returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync)
+        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync)
         {
-            this.Description = description;
-            this.ReturnType = returnType;
+            Description = description;
+            ReturnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             Name = methodName;
             AuthorizeClaims = authorizeClaims;
             this.isAsync = isAsync;
 
-            this.argInstanceType = method.GetParameters().FirstOrDefault(a => a.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))?.ParameterType;
+            argInstanceType = method.GetParameters().FirstOrDefault(a => a.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))?.ParameterType;
             if (argInstanceType != null)
             {
                 foreach (var item in argInstanceType.GetProperties())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromProperty(item));
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromProperty(schema, item));
                 }
                 foreach (var item in argInstanceType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromField(item));
+                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromField(schema, item));
                 }
             }
         }

@@ -22,7 +22,7 @@ namespace EntityGraphQL.Directives
         /// <value></value>
         bool ProcessesResult { get; }
         IGraphQLBaseNode ProcessQueryInternal(GraphQLQueryNode fieldResult, object arguments);
-        IEnumerable<ArgType> GetArguments();
+        IEnumerable<ArgType> GetArguments(ISchemaProvider schema);
     }
 
     /// <summary>
@@ -73,9 +73,9 @@ namespace EntityGraphQL.Directives
             return result;
         }
 
-        public IEnumerable<ArgType> GetArguments()
+        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema)
         {
-            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(prop)).ToList();
+            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop)).ToList();
         }
     }
 }

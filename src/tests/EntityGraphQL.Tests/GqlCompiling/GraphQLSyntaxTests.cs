@@ -101,6 +101,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void SupportsDefaultArgumentsInNonRoot()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
             schemaProvider.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var result = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { id height }
@@ -119,6 +120,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void SupportsArgumentsInNonRoot()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            schemaProvider.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
             schemaProvider.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
                 people { height(unit: ""Meter"") }

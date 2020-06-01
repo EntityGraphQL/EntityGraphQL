@@ -51,7 +51,8 @@ namespace EntityGraphQL.Tests
         public void CanNotOverrideExistingType()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            var ex = Assert.Throws<ArgumentException>(() => {
+            var ex = Assert.Throws<ArgumentException>(() =>
+            {
                 // Type "person" was auto created from the TestSchema
                 var t = schema.AddType<Person>("Person", description: "duplicate type");
                 t.AddField(p => p.Id, "The unique identifier");
@@ -67,7 +68,7 @@ namespace EntityGraphQL.Tests
             var argumentTypes = schema.Type<TestSchema>().GetField("person").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
-            Assert.Equal(typeof(RequiredField<int>), argumentTypes.First().Value.Type);
+            Assert.Equal(typeof(RequiredField<int>), argumentTypes.First().Value.Type.TypeDotnet);
         }
         [Fact]
         public void AutoAddArgumentForIdGuid()
@@ -76,7 +77,7 @@ namespace EntityGraphQL.Tests
             var argumentTypes = schema.Type<TestSchema2>().GetField("property").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
-            Assert.Equal(typeof(RequiredField<Guid>), argumentTypes.First().Value.Type);
+            Assert.Equal(typeof(RequiredField<Guid>), argumentTypes.First().Value.Type.TypeDotnet);
         }
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema

@@ -61,7 +61,7 @@ namespace EntityGraphQL.Compiler
                 .Where(f => f != null)
                 .FirstOrDefault();
 
-            var exp = (ExpressionResult)Expression.Constant(Enum.Parse(enumField.ReturnTypeClr, enumField.Name));
+            var exp = (ExpressionResult)Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
             return exp;
         }
     }

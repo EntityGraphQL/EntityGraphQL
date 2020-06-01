@@ -47,9 +47,11 @@ namespace EntityGraphQL.Tests
                 // Returning a Location type object will automatically map to the defined location schema above as it is the only one
                 project.AddField(p => p.Location, "The location of the project");
 
+                var task = AddType<Task>("Task", "Details of a task");
+
                 // If you have a Type used multiple times in the schema you will need to define the return by name
-                project.AddField("openTasks", p => p.Tasks.Where(t => t.IsActive), "All open tasks for the project", "Task");
-                project.AddField("closedTasks", p => p.Tasks.Where(t => !t.IsActive), "All closed tasks for the project", "Task");
+                project.AddField("openTasks", p => p.Tasks.Where(t => t.IsActive), "All open tasks for the project");
+                project.AddField("closedTasks", p => p.Tasks.Where(t => !t.IsActive), "All closed tasks for the project");
 
                 // Now we defined what fields are at the root of the graph
 
@@ -61,8 +63,8 @@ namespace EntityGraphQL.Tests
                 AddField("publicProjects", ctx => ctx.Projects.Where(p => p.Type == 2), "All projects marked as public");
                 AddField("privateProjects", ctx => ctx.Projects.Where(p => p.Type == 1), "All privately held projects");
                 // providing the schema type `openTask` will automatically apply the filter
-                AddField("openTasks", ctx => ctx.Tasks.Where(t => t.IsActive), "All open tasks for all projects", "Task");
-                AddField("closedTasks", ctx => ctx.Tasks.Where(t => !t.IsActive), "All closedtasks for all projects", "Task");
+                AddField("openTasks", ctx => ctx.Tasks.Where(t => t.IsActive), "All open tasks for all projects");
+                AddField("closedTasks", ctx => ctx.Tasks.Where(t => !t.IsActive), "All closedtasks for all projects");
                 AddField("defaultLocation", ctx => ctx.Locations.First(l => l.Id == 10), "The default location for projects");
             }
         }

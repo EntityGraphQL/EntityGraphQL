@@ -8,7 +8,7 @@ scalar Float
 scalar Boolean
 scalar String
 scalar ID
-scalar Date
+scalar DateTime
 
 
 enum Genre {
@@ -55,7 +55,7 @@ type Movie {
 	name: String
 	"Enum of Genre"
 	genre: Genre!
-	released: Date
+	released: DateTime!
 	"Actors in the movie"
 	actors: [Person!]
 	"Writers in the movie"
@@ -74,16 +74,16 @@ type Actor {
 
 type Person {
 	id: Int!
-	firstName: String
-	lastName: String
-	dob: Date
+	firstName: String!
+	lastName: String!
+	dob: DateTime!
 	"Movies they acted in"
 	actorIn: [Movie!]
 	"Movies they wrote"
 	writerOf: [Movie!]
 	directorOf: [Movie!]
-	died: Date
-	isDeleted: Boolean
+	died: DateTime
+	isDeleted: Boolean!
 	"Person's name"
 	name: String
 	"Show the person's age"
@@ -104,7 +104,7 @@ type PersonPagination {
 	"total pages based on page size"
 	pageCount: Int!
 	"collection of people"
-	people: [Person!]
+	people: [Person!]!
 }
 
 "Detail item"
@@ -118,8 +118,8 @@ type Mutation {
 	"Example of a mutation that does not use the context or argments but does use registered services"
 	exampleNoArgsWithService(): Int!
 	"Add a new Movie object"
-	addMovie(name: String, rating: Float!, details: [Detail!], genre: Genre!, released: Date): Movie
+	addMovie(name: String!, rating: Float!, details: [Detail!], genre: Genre!, released: DateTime!): Movie
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
-	addActor2(firstName: String, lastName: String, movieId: Int!): Person
+	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
 
 }

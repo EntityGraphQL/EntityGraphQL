@@ -27,6 +27,7 @@ namespace EntityGraphQL.Schema
         bool HasType(string typeName);
         bool HasType(Type type);
         ISchemaType Type(string name);
+        ISchemaType Type(Type dotnetType);
         List<ISchemaType> EnumTypes();
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
         string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims);
@@ -46,8 +47,8 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        string GetSchemaTypeNameForClrType(Type type);
-        IMethodType GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
+        string GetSchemaTypeNameForDotnetType(Type type);
+        IField GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
         string GetGraphQLSchema();
         /// <summary>
@@ -75,6 +76,9 @@ namespace EntityGraphQL.Schema
         void AddScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
         void AddScalarType<TType>(string gqlTypeName, string description, bool required = false);
         ISchemaType AddEnum(string name, Type type, string description);
+
+        ISchemaProvider RemoveType<TType>();
+        ISchemaProvider RemoveType(string schemaType);
         /// <summary>
         /// Get a directive by name. A directive is used to manipulate or customise a query and/or result
         /// </summary>
