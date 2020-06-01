@@ -143,10 +143,6 @@ namespace EntityGraphQL.Schema
             var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType;
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes);
             var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, new GqlTypeInfo(schema.Type(returnType.GetNonNullableOrEnumerableType()), le.Body.Type), requiredClaims);
-            if (t != null && t.IsEnum)
-            {
-                f.ReturnType.TypeNotNullable = true;
-            }
             return f;
         }
 

@@ -102,7 +102,6 @@ namespace EntityGraphQL.Schema
                 Name = field.Name,
             };
             arg.Type.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field)
-                || type.GetTypeInfo().IsEnum
                 || arg.Type.TypeNotNullable
                 || field.GetCustomAttribute(typeof(RequiredAttribute), false) != null;
 
