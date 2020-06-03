@@ -745,9 +745,9 @@ namespace EntityGraphQL.Schema
             directives.Add(name, directive);
         }
 
-        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)
+        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<MemberInfo, string> fieldNamer = null)
         {
-            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes);
+            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
         }
     }
 }

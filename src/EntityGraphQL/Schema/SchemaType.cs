@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema
                 AddField("__typename", t => name, "Type name", null, false, null);
         }
 
-        public ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
+        public ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
         {
             if (IsEnum)
             {
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                var fields = SchemaBuilder.GetFieldsFromObject(ContextType, schema, autoCreateEnumTypes, autoCreateNewComplexTypes);
+                var fields = SchemaBuilder.GetFieldsFromObject(ContextType, schema, autoCreateEnumTypes, fieldNamer, autoCreateNewComplexTypes);
                 AddFields(fields);
             }
             return this;

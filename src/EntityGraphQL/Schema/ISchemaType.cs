@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace EntityGraphQL.Schema
@@ -19,13 +20,14 @@ namespace EntityGraphQL.Schema
         void AddFields(List<Field> fields);
         Field AddField(Field field);
         void RemoveField(string name);
+
         /// <summary>
-        /// Add all public Properties and Fields from the DotNet type to the schema type.
+        /// Add all public properties and fields from the dotnet type to the schema for this schema type
         /// </summary>
-        /// <param name="autoCreateNewComplexTypes">Default false. If true creates new schema types for any complex dotnet types found.false Also adding all it's fields</param>
-        /// <param name="autoCreateEnumTypes">Default true. If true creates new Enum types in the schema for any enums found as field types</param>
-        /// <typeparam name="TContextType"></typeparam>
+        /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
+        /// <param name="autoCreateIdArguments">If true (default), automatically create ENUM types for enums found in the context object graph</param>
+        /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <returns></returns>
-        ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true);
+        ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null);
     }
 }
