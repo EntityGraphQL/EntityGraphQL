@@ -10,8 +10,8 @@
 
 *Breaking changes*
 - The class that represents the mutation arguments must implement the `IMutationArguments` interface
-- `SchemaProvider` now adds a default `DateTime` scalar type in the schema that maps to/from the C# `DateTime` class. If you were previously adding that you'll get an error on type existing. Use `SchemaProvider.RemoveType<DateTime>()` to remove it and add it with a different name
-- Type information on arguments and return types are evaluated at schema creation time. You may need to change the order you add types to the schema
+- `SchemaProvider` now adds a default `Date` scalar type in the schema that maps to/from the C# `DateTime` class. If you were previously adding that you'll get an error on type existing. Use `SchemaProvider.RemoveType<DateTime>()` to remove it and add it with a different name
+- Type mapping information (`AddTypeMapping()`) are evaluated at schema creation time. You may need to add mappings before creating the rest of your schema
 
 # 0.62.0
 - Support async mutation methods

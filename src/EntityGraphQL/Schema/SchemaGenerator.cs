@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -7,13 +5,13 @@ namespace EntityGraphQL.Schema
 {
     public class SchemaGenerator
     {
-        internal static string Make(ISchemaProvider schema, Dictionary<Type, string> customScalarMapping)
+        internal static string Make(ISchemaProvider schema)
         {
             var scalars = new StringBuilder();
 
-            foreach (var item in customScalarMapping.Select(i => i.Value).Distinct())
+            foreach (var item in schema.GetScalarTypes().Distinct())
             {
-                scalars.AppendLine($"scalar {item}");
+                scalars.AppendLine($"scalar {item.Name}");
             }
 
             var enums = BuildEnumTypes(schema);
@@ -111,7 +109,6 @@ type RootQuery {{
                         types.AppendLine($"\t\"{field.Description}\"");
 
                     types.AppendLine($"\t{ToCamelCaseStartsLower(field.Name)}{GetGqlArgs(field)}: {field.ReturnType.GqlTypeForReturnOrArgument}");
-
                 }
                 types.AppendLine("}");
             }

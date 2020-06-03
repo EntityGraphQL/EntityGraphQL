@@ -246,8 +246,19 @@ You can change `ctx.Properties.WhereWhen(p => p.Name.ToLower().Contains(args.nam
 Below is some more examples of customising fields.
 
 ```csharp
-// Build from object
-var schema = SchemaBuilder.FromObject<MyDbContext>();
+// New schema
+var schema = new SchemaProvider<MyDbContext>();
+// add custom typemappings, need to be done before we add types/fields that use them
+schema.AddScalarType<Point<double>>("Point", "Represents a point in 2D space (x,y)");
+schema.AddTypeMapping<NpgsqlPoint>("Point"); // when we see dotnet type NpgsqlPoint it will be a Point type in the schema
+schema.AddTypeMapping<NpgsqlPolygon>("[Point!]!"); // when we see dotnet type NpgsqlPolygon it will be a [Point!]! type in the schema
+
+// build the rest of the schema from our context. This is the same as SchemaBuilder.FromObject<MyContext>(); except now we have some type mappings set up
+schema.PopulateFromContext(
+    autoCreateIdArguments: true,
+    autoCreateEnumTypes: true
+);
+
 
 // Or create one from scratch (no default fields etc.)
 var schema = SchemaBuilder.Create<MyDbContext>();

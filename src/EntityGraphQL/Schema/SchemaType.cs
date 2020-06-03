@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(ContextType, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    AddField(new Field(enumName, null, description, new GqlTypeInfo(schema.Type(ContextType), ContextType), null));
+                    AddField(new Field(enumName, null, description, new GqlTypeInfo(() => schema.Type(ContextType), ContextType), null));
                 }
             }
             else
@@ -94,7 +94,7 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(name, fieldSelection, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(name, fieldSelection, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
@@ -102,7 +102,7 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(schema, name, fieldSelection, description, null, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(schema, name, fieldSelection, description, null, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
@@ -110,7 +110,7 @@ namespace EntityGraphQL.Schema
         }
         public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(name, selectionExpression, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(name, selectionExpression, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnType.TypeNotNullable = !isNullable.Value;
             _fieldsByName[field.Name] = field;
@@ -130,7 +130,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             if (isNullable.HasValue)
                 field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, RequiredClaims authorizeClaims = null)
         {
-            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? schema.Type(returnSchemaType) : schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
             _fieldsByName[field.Name] = field;
         }
 

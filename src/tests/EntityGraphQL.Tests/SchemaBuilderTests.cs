@@ -68,7 +68,8 @@ namespace EntityGraphQL.Tests
             var argumentTypes = schema.Type<TestSchema>().GetField("person").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
-            Assert.Equal(typeof(RequiredField<int>), argumentTypes.First().Value.Type.TypeDotnet);
+            Assert.Equal(typeof(int), argumentTypes.First().Value.Type.TypeDotnet);
+            Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
         [Fact]
         public void AutoAddArgumentForIdGuid()
@@ -77,7 +78,8 @@ namespace EntityGraphQL.Tests
             var argumentTypes = schema.Type<TestSchema2>().GetField("property").Arguments;
             Assert.Single(argumentTypes);
             Assert.Equal("id", argumentTypes.First().Key);
-            Assert.Equal(typeof(RequiredField<Guid>), argumentTypes.First().Value.Type.TypeDotnet);
+            Assert.Equal(typeof(Guid), argumentTypes.First().Value.Type.TypeDotnet);
+            Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema

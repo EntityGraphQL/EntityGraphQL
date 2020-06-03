@@ -50,7 +50,7 @@ namespace EntityGraphQL.Schema
             Name = name;
             Description = description;
             AuthorizeClaims = authorizeClaims;
-            ReturnType = returnType;
+            ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
 
             if (resolve != null)
             {
@@ -67,7 +67,6 @@ namespace EntityGraphQL.Schema
                     Resolve = resolve.Body;
                 }
                 FieldParam = resolve.Parameters.First();
-                ReturnType.TypeDotnet = Resolve.Type;
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {

@@ -27,18 +27,33 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class GqlTypeInfo
     {
-        public GqlTypeInfo(ISchemaType schemaType, Type typeDotnet)
+        private readonly bool nullableValueTypes;
+
+        /// <summary>
+        /// New GqlTypeInfo object that represents information about the return/argument type
+        /// </summary>
+        /// <param name="schemaTypeGetter">Func to get the ISchemaType</param>
+        /// <param name="typeDotnet">The dotnet type as it is</param>
+        /// <param name="nullableValueTypes">value types are nullable. Used for arguments where they may have default values</param>
+        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, bool nullableValueTypes = false)
         {
-            SchemaType = schemaType;
+            SchemaTypeGetter = schemaTypeGetter;
             TypeDotnet = typeDotnet;
-            TypeNotNullable = typeDotnet.GetTypeInfo().IsValueType && !typeDotnet.IsNullableType();
+            this.nullableValueTypes = nullableValueTypes;
+            Init();
+        }
+
+        private void Init()
+        {
+            TypeNotNullable = !nullableValueTypes && TypeDotnet.GetTypeInfo().IsValueType && !TypeDotnet.IsNullableType();
+            IsList = TypeDotnet.IsEnumerableOrArray();
         }
 
         /// <summary>
         /// The schema type
         /// </summary>
         /// <value></value>
-        public ISchemaType SchemaType { get; }
+        public ISchemaType SchemaType => SchemaTypeGetter();
         /// <summary>
         /// Type described as type as a full GraphQL type. e.g. [Int!]!
         /// </summary>
@@ -58,16 +73,32 @@ namespace EntityGraphQL.Schema
         /// The Type is a list/array ([] in gql)
         /// </summary>
         /// <value></value>
-        public bool IsList => TypeDotnet.IsEnumerableOrArray();
+        public bool IsList { get; set; }
+
+        public Func<ISchemaType> SchemaTypeGetter { get; }
+
         /// <summary>
         /// Mapped type in dotnet
         /// </summary>
         /// <value></value>
-        public Type TypeDotnet { get; set; }
+        public Type TypeDotnet { get; }
 
         public override string ToString()
         {
             return GqlTypeForReturnOrArgument;
+        }
+
+        public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
+        {
+            var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
+            var typeInfo = new GqlTypeInfo(() => schema.Type(strippedType), dotnetType)
+            {
+                TypeNotNullable = gqlType.EndsWith("!"),
+                IsList = gqlType.Contains("["),
+            };
+            typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith("!"));
+
+            return typeInfo;
         }
     }
 
@@ -96,16 +127,24 @@ namespace EntityGraphQL.Schema
 
         private static ArgType MakeArgType(ISchemaProvider schema, Type type, MemberInfo field)
         {
+            var markedRequired = false;
+            var typeToUse = type;
+            if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(RequiredField<>))
+            {
+                markedRequired = true;
+                typeToUse = type.GetGenericArguments()[0];
+            }
+
             var arg = new ArgType
             {
-                Type = new GqlTypeInfo(schema.Type(type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : type.GetNonNullableOrEnumerableType()), type),
+                Type = new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse),
                 Name = field.Name,
             };
+
             arg.Type.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field)
                 || arg.Type.TypeNotNullable
                 || field.GetCustomAttribute(typeof(RequiredAttribute), false) != null;
-
-            if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(RequiredField<>))
+            if (markedRequired)
                 arg.Type.TypeNotNullable = true;
 
             if (field.GetCustomAttribute(typeof(DescriptionAttribute), false) is DescriptionAttribute d)

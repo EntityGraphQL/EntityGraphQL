@@ -34,17 +34,7 @@ namespace EntityGraphQL.Schema
         private readonly string queryContextName;
 
         // map some types to scalar types
-        protected Dictionary<Type, string> customTypeMappings = new Dictionary<Type, string> {
-            {typeof(short), "Int"},
-            {typeof(ushort), "Int"},
-            {typeof(uint), "Int"},
-            {typeof(ulong), "Int"},
-            {typeof(long), "Int"},
-            {typeof(float), "Float"},
-            {typeof(decimal), "Float"},
-            {typeof(byte[]), "String"},
-            {typeof(bool), "Boolean"},
-        };
+        protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
         public SchemaProvider()
         {
             // default GQL scalar types
@@ -55,7 +45,19 @@ namespace EntityGraphQL.Schema
             types.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", false, false, true));
 
             // default custom scalar for DateTime
-            types.Add("DateTime", new SchemaType<DateTime>(this, "DateTime", "DateTime scalar", false, false, true));
+            types.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", false, false, true));
+
+            customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
+                {typeof(short), new GqlTypeInfo(() => Type("Int"), typeof(short))},
+                {typeof(ushort), new GqlTypeInfo(() => Type("Int"), typeof(ushort))},
+                {typeof(uint), new GqlTypeInfo(() => Type("Int"), typeof(uint))},
+                {typeof(ulong), new GqlTypeInfo(() => Type("Int"), typeof(ulong))},
+                {typeof(long), new GqlTypeInfo(() => Type("Int"), typeof(long))},
+                {typeof(float), new GqlTypeInfo(() => Type("Float"), typeof(float))},
+                {typeof(decimal), new GqlTypeInfo(() => Type("Float"), typeof(decimal))},
+                {typeof(byte[]), new GqlTypeInfo(() => Type("String"), typeof(byte[]))},
+                {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
+            };
 
             var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema");
             queryContextName = queryContext.Name;
@@ -165,6 +167,13 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
+        /// <summary>
+        /// Add a GQL Input type to the schema. Input types are objects used in arguments of fields or mutations
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <typeparam name="TBaseType"></typeparam>
+        /// <returns></returns>
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
             var tt = new SchemaType<TBaseType>(this, name, description, true);
@@ -189,7 +198,7 @@ namespace EntityGraphQL.Schema
                     var requiredClaims = new RequiredClaims(claims);
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
                     var typeName = GetSchemaTypeNameForDotnetType(actualReturnType);
-                    var returnType = new GqlTypeInfo(GetReturnType(typeName), actualReturnType);
+                    var returnType = new GqlTypeInfo(() => GetReturnType(typeName), actualReturnType);
                     var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync);
                     mutations[name] = mutationType;
                 }
@@ -209,16 +218,25 @@ namespace EntityGraphQL.Schema
             return mutations.ContainsKey(method);
         }
 
+        /// <summary>
+        /// Add a mapping from a Dotnet type to a GQL schema type. Make sure you have added the GQL type
+        /// in the schema as a Scalar type or full type
+        /// </summary>
+        /// <param name="gqlType">The GQL schema type in full form. E.g. [Int!]!, [Int], Int, etc.</param>
+        /// <typeparam name="TFrom"></typeparam>
         public void AddTypeMapping<TFrom>(string gqlType)
         {
+            var typeInfo = GqlTypeInfo.FromGqlType(this, typeof(TFrom), gqlType);
             // add mapping
-            customTypeMappings.Add(typeof(TFrom), gqlType);
-            // add scalar if needed
-            if (!HasType(gqlType) && !gqlType.StartsWith("["))
-            {
-                AddScalarType<TFrom>(gqlType, "");
-            }
+            customTypeMappings.Add(typeof(TFrom), typeInfo);
             SetupIntrospectionTypesAndField();
+        }
+
+        public GqlTypeInfo GetCustomTypeMapping(Type dotnetType)
+        {
+            if (customTypeMappings.ContainsKey(dotnetType))
+                return customTypeMappings[dotnetType];
+            return null;
         }
 
         /// <summary>
@@ -324,7 +342,7 @@ namespace EntityGraphQL.Schema
             var schemaType = types.Values.FirstOrDefault(t => t.ContextType == dotnetType);
             if (schemaType == null && customTypeMappings.ContainsKey(dotnetType))
             {
-                schemaType = Type(customTypeMappings[dotnetType]);
+                schemaType = customTypeMappings[dotnetType].SchemaType;
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
@@ -568,7 +586,7 @@ namespace EntityGraphQL.Schema
             }
 
             if (customTypeMappings.ContainsKey(type))
-                return customTypeMappings[type];
+                return customTypeMappings[type].SchemaType.Name;
 
             if (type == types[queryContextName].ContextType)
                 return type.Name;
@@ -622,37 +640,33 @@ namespace EntityGraphQL.Schema
         public string GetGraphQLSchema()
         {
             var extraMappings = customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
-            return SchemaGenerator.Make(this, GetScalarTypes().ToDictionary(t => t.ContextType, t => t.Name));
+            return SchemaGenerator.Make(this);
         }
 
         [Obsolete("Use AddScalarType")]
         public void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false)
         {
-            types.Add(gqlTypeName, new SchemaType<object>(this, gqlTypeName, description, false, false, true));
-            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
-            // SetupIntrospectionTypesAndField();
+            AddScalarType(clrType, gqlTypeName, description);
         }
 
         [Obsolete("Use AddScalarType")]
         public void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false)
         {
-            types.Add(gqlTypeName, new SchemaType<TType>(this, gqlTypeName, description, false, false, true));
-            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
-            // SetupIntrospectionTypesAndField();
+            AddScalarType<TType>(gqlTypeName, description);
         }
 
-        public void AddScalarType(Type clrType, string gqlTypeName, string description, bool required = false)
+        public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description)
         {
-            types.Add(gqlTypeName, new SchemaType<object>(this, gqlTypeName, description, false, false, true));
-            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
-            // SetupIntrospectionTypesAndField();
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, false, false, true);
+            types.Add(gqlTypeName, schemaType);
+            return schemaType;
         }
 
-        public void AddScalarType<TType>(string gqlTypeName, string description, bool required = false)
+        public ISchemaType AddScalarType<TType>(string gqlTypeName, string description)
         {
-            types.Add(gqlTypeName, new SchemaType<TType>(this, gqlTypeName, description, false, false, true));
-            // _customScalarMappings has change, need to make the introspection again. Do this like this so we don't need to build the mappings inline
-            // SetupIntrospectionTypesAndField();
+            var schemaType = new SchemaType<TType>(this, gqlTypeName, description, false, false, true);
+            types.Add(gqlTypeName, schemaType);
+            return schemaType;
         }
 
         public IEnumerable<Field> GetQueryFields()
@@ -729,6 +743,11 @@ namespace EntityGraphQL.Schema
             if (directives.ContainsKey(name))
                 throw new EntityGraphQLCompilerException($"Directive {name} already exists on schema");
             directives.Add(name, directive);
+        }
+
+        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)
+        {
+            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes);
         }
     }
 }

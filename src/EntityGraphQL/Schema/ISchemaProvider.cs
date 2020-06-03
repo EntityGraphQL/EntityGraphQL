@@ -73,8 +73,8 @@ namespace EntityGraphQL.Schema
         void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
         [Obsolete("Use AddScalarType")]
         void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false);
-        void AddScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
-        void AddScalarType<TType>(string gqlTypeName, string description, bool required = false);
+        ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description);
+        ISchemaType AddScalarType<TType>(string gqlTypeName, string description);
         ISchemaType AddEnum(string name, Type type, string description);
 
         ISchemaProvider RemoveType<TType>();
@@ -87,5 +87,6 @@ namespace EntityGraphQL.Schema
         IDirectiveProcessor GetDirective(string name);
         void AddDirective(string name, IDirectiveProcessor directive);
         IEnumerable<IDirectiveProcessor> GetDirectives();
+        GqlTypeInfo GetCustomTypeMapping(Type dotnetType);
     }
 }

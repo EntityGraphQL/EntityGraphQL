@@ -44,6 +44,11 @@ namespace EntityGraphQL.Schema
         public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
         {
             var schema = new SchemaProvider<TContextType>();
+            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes);
+        }
+
+        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true)
+        {
             var contextType = typeof(TContextType);
             var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes);
             foreach (var f in rootFields)
@@ -95,7 +100,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaType, fieldProp.ReturnType.TypeDotnet), fieldProp.AuthorizeClaims);
+            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.AuthorizeClaims);
             schema.AddField(field);
         }
 
@@ -140,9 +145,13 @@ namespace EntityGraphQL.Schema
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             var requiredClaims = new RequiredClaims(attributes);
-            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType;
+            // get the object type returned (ignoring list etc) so we know the context to find fields etc
+            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType.GetNonNullableType();
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes);
-            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, new GqlTypeInfo(schema.Type(returnType.GetNonNullableOrEnumerableType()), le.Body.Type), requiredClaims);
+            // see if there is a direct type mapping from the expression return to to something.
+            // otherwise build the type info
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
+            var f = new Field(SchemaGenerator.ToCamelCaseStartsLower(prop.Name), le, description, returnTypeInfo, requiredClaims);
             return f;
         }
 
