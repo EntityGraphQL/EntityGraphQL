@@ -7,7 +7,7 @@
 - Directvies are now included in schema introspection
 - Fix #52 - sometimes incorrect types generated for schema intropection or the GraphQL schema file format
 - Refactor type information held in the schema. This mean return types etc are evaluated at schema creation time not execution. If you add a field that requires a type as an Arg ument or return type, that type must already be in the schema
-- You can now provide a field namer function to name you generated fields when using `SchemaBuilder.FromObject()`, `ISchemaType.AddAllFields()` or `SchemaProvider.PopulateFromContext()`
+- You can now provide a field namer function to name the generated fields when using `SchemaBuilder.FromObject()`, `ISchemaType.AddAllFields()` or `SchemaProvider.PopulateFromContext()`
 
 *Breaking changes*
 - The class that represents the mutation arguments must be marked with the `MutationArgumentsAttribute` either at the class level or the parameter
