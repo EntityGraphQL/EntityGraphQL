@@ -184,7 +184,6 @@ namespace EntityGraphQL.Tests
     {
         [GraphQLMutation]
 
-        [MutationArguments]
         public Person AddPerson(PeopleMutationsArgs args)
         {
             return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555 };
@@ -192,7 +191,6 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
-        [MutationArguments]
         public Expression<Func<TestSchema, Person>> AddPersonNames(TestSchema db, PeopleMutationsArgs args)
         {
             db.People.Add(new Person { Id = 11, Name = args.Names[0], LastName = args.Names[1] });
@@ -201,7 +199,6 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
-        [MutationArguments]
         public Person AddPersonInput(PeopleMutationsArgs args)
         {
             return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };

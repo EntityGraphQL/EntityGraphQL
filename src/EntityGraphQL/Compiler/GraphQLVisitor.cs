@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
                 var mutationType = schemaProvider.GetMutations().First(m => m.Name == actualFieldName);
                 if (context.select != null)
                 {
-                    var expContext = (ExpressionResult)Expression.Parameter(mutationType.ReturnType.TypeDotnet, $"mut_{actualFieldName}");
+                    var expContext = (ExpressionResult)Expression.Parameter(mutationType.ReturnType.SchemaType.ContextType, $"mut_{actualFieldName}");
                     var oldContext = currentExpressionContext;
                     currentExpressionContext = expContext;
                     var select = ParseFieldSelect(expContext, actualFieldName, context.select);

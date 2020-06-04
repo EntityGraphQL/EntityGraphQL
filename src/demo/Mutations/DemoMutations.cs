@@ -92,7 +92,7 @@ namespace demo.Mutations
         /// <param name="args"></param>
         /// <returns></returns>
         [GraphQLMutation]
-        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor2(DemoContext db, AddActorArgs args)
+        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor2(DemoContext db, [MutationArguments] AddActorArgs args)
         {
             var person = new Person
             {
@@ -132,10 +132,10 @@ namespace demo.Mutations
         public string Description { get; set; }
     }
 
-    public class [MutationArguments] AddActorArgs
+    public class AddActorArgs
     {
         public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public uint MovieId { get; set; }
-}
+        public string LastName { get; set; }
+        public uint MovieId { get; set; }
+    }
 }
