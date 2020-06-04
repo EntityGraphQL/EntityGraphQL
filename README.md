@@ -327,7 +327,8 @@ public class MovieMutations
   }
 }
 
-public class ActorArgs : IMutationArguments
+[MutationArguments]
+public class ActorArgs
 {
   public string Name { get; set; }
   public int Age { get; set; }
@@ -365,9 +366,9 @@ schemaProvider.AddMutationFrom(new MovieMutations());
 - All `public` methods marked with the `[GraphQLMutation]` attribute will be added to the schema
 - Parameters for the mutation method _can_ be
   - the base context that your schema is built from - the instance passed in will be the same one passed into `schema.ExecuteQuery()`
-  - a class that defines each available mutation argument (and type - `ActorArgs` in the above example). This must implement the `IMutationArguments` interface
+  - a class that defines each available mutation argument (and type - `ActorArgs` in the above example). This must be marked with the `MutationArgumentsAttribute`
   - Any dependencies you want that have been registered in the `IServiceProvider` passed into `schema.ExecuteQuery()`
-- Variables from the GraphQL request are mapped into the args parameter (the `IMutationArguments` one)
+- Variables from the GraphQL request are mapped into the `MutationArgumentsAttribute` parameter
 
 You can now run a mutation
 

@@ -10,9 +10,12 @@
 - You can now provide a field namer function to name you generated fields when using `SchemaBuilder.FromObject()`, `ISchemaType.AddAllFields()` or `SchemaProvider.PopulateFromContext()`
 
 *Breaking changes*
-- The class that represents the mutation arguments must implement the `IMutationArguments` interface
+- The class that represents the mutation arguments must be marked with the `MutationArgumentsAttribute` either at the class level or the parameter
 - `SchemaProvider` now adds a default `Date` scalar type in the schema that maps to/from the C# `DateTime` class. If you were previously adding that you'll get an error on type existing. Use `SchemaProvider.RemoveType<DateTime>()` to remove it and add it with a different name
 - Type mapping information (`AddTypeMapping()`) are evaluated at schema creation time. You may need to add mappings before creating the rest of your schema
+
+## 0.63.0-beta1 to 0.63.0-beta2
+- Removed the empty `IMutationArguments` in favor for a `MutationArgumentsAttribute` on the parameter or the class
 
 # 0.62.0
 - Support async mutation methods

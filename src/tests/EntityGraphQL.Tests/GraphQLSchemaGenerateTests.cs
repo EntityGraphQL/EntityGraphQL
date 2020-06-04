@@ -257,7 +257,8 @@ namespace EntityGraphQL.Tests
         Pop
     }
 
-    public class Album : IMutationArguments
+    [MutationArguments]
+    public class Album
     {
         public int Id { get; set; }
         [GraphQLNotNull]

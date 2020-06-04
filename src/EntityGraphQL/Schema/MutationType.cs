@@ -45,7 +45,7 @@ namespace EntityGraphQL.Schema
             // add parameters and any DI services
             foreach (var p in method.GetParameters())
             {
-                if (p.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))
+                if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
                 {
                     allArgs.Add(argInstance);
                 }
@@ -164,7 +164,8 @@ namespace EntityGraphQL.Schema
             AuthorizeClaims = authorizeClaims;
             this.isAsync = isAsync;
 
-            argInstanceType = method.GetParameters().FirstOrDefault(a => a.ParameterType.GetInterfaces().Any(i => i == typeof(IMutationArguments)))?.ParameterType;
+            argInstanceType = method.GetParameters()
+                .FirstOrDefault(p => p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)?.ParameterType;
             if (argInstanceType != null)
             {
                 foreach (var item in argInstanceType.GetProperties())
