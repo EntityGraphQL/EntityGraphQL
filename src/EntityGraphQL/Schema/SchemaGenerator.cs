@@ -49,7 +49,7 @@ type RootQuery {{
             foreach (var item in schema.GetMutations())
             {
                 if (!string.IsNullOrEmpty(item.Description))
-                    mutations.AppendLine($"\t\"{item.Description}\"");
+                    mutations.AppendLine($"\t\"{item.Description.Replace("\"", "\\\"")}\"");
 
                 mutations.AppendLine($"\t{ToCamelCaseStartsLower(item.Name)}{GetGqlArgs(item, "()")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
             }
@@ -67,7 +67,7 @@ type RootQuery {{
 
                 types.AppendLine();
                 if (!string.IsNullOrEmpty(typeItem.Description))
-                    types.AppendLine($"\t\"{typeItem.Description}\"");
+                    types.AppendLine($"\t\"{typeItem.Description.Replace("\"", "\\\"")}\"");
 
                 types.AppendLine($"enum {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields())
@@ -76,7 +76,7 @@ type RootQuery {{
                         continue;
 
                     if (!string.IsNullOrEmpty(field.Description))
-                        types.AppendLine($"\t\"{field.Description}\"");
+                        types.AppendLine($"\t\"{field.Description.Replace("\"", "\\\"")}\"");
 
                     types.AppendLine($"\t{field.Name}");
 
@@ -97,7 +97,7 @@ type RootQuery {{
 
                 types.AppendLine();
                 if (!string.IsNullOrEmpty(typeItem.Description))
-                    types.AppendLine($"\"{typeItem.Description}\"");
+                    types.AppendLine($"\"{typeItem.Description.Replace("\"", "\\\"")}\"");
 
                 types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields())
@@ -106,7 +106,7 @@ type RootQuery {{
                         continue;
 
                     if (!string.IsNullOrEmpty(field.Description))
-                        types.AppendLine($"\t\"{field.Description}\"");
+                        types.AppendLine($"\t\"{field.Description.Replace("\"", "\\\"")}\"");
 
                     types.AppendLine($"\t{ToCamelCaseStartsLower(field.Name)}{GetGqlArgs(field)}: {field.ReturnType.GqlTypeForReturnOrArgument}");
                 }
@@ -135,7 +135,7 @@ type RootQuery {{
                 if (t.Name.StartsWith("__"))
                     continue;
                 if (!string.IsNullOrEmpty(t.Description))
-                    sb.AppendLine($"\t\"{t.Description}\"");
+                    sb.AppendLine($"\t\"{t.Description.Replace("\"", "\\\"")}\"");
                 sb.AppendLine($"\t{ToCamelCaseStartsLower(t.Name)}{GetGqlArgs(t)}: {t.ReturnType.GqlTypeForReturnOrArgument}");
             }
 
