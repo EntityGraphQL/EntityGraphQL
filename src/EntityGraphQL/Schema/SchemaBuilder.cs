@@ -46,7 +46,7 @@ namespace EntityGraphQL.Schema
         public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
         {
             var schema = new SchemaProvider<TContextType>();
-            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes);
+            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
         }
 
         /// <summary>
