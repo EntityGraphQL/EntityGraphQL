@@ -56,7 +56,7 @@ type RootQuery {{
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"{EscapeString(item.Description)}\"");
 
-                mutations.AppendLine($"\t{ToCamelCaseStartsLower(item.Name)}{GetGqlArgs(item, "()")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
+                mutations.AppendLine($"\t{ToCamelCaseStartsLower(item.Name)}{GetGqlArgs(item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
             }
 
             return mutations.ToString();
@@ -128,7 +128,8 @@ type RootQuery {{
 
             var all = field.Arguments.Select(f => ToCamelCaseStartsLower(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
 
-            return $"({string.Join(", ", all)})";
+            var args = string.Join(", ", all);
+            return string.IsNullOrEmpty(args) ? "" : $"({args})";
         }
 
         private static string MakeQueryType(ISchemaProvider schema)

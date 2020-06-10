@@ -114,9 +114,9 @@ input Detail {
 
 type Mutation {
 	"Example of a mutation that takes 0 arguments"
-	exampleNoArgs(): Movie
+	exampleNoArgs: Movie
 	"Example of a mutation that does not use the context or argments but does use registered services"
-	exampleNoArgsWithService(): Int!
+	exampleNoArgsWithService: Int!
 	"Add a new Movie object"
 	addMovie(name: String!, rating: Float!, details: [Detail!], genre: Genre!, released: Date!): Movie
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
