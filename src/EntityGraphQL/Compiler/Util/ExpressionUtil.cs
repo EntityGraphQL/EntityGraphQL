@@ -100,8 +100,13 @@ namespace EntityGraphQL.Compiler.Util
                             var newParam = Expression.Parameter(type, $"p_{type.Name}");
                             foreach (var item in mc.Arguments.Skip(1))
                             {
-                                var lambda = (LambdaExpression)item;
-                                var exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
+                                var exp = item;
+                                if (exp.NodeType == ExpressionType.Quote)
+                                {
+                                    exp = ((UnaryExpression)item).Operand;
+                                }
+                                var lambda = (LambdaExpression)exp;
+                                exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
                                 args.Add(exp);
                             }
                             var call = ExpressionUtil.MakeCallOnQueryable(mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());

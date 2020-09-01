@@ -1,3 +1,7 @@
+# 0.64.0
+- Change - descriptions generated for a `.graphql` schema file now use the multiple line triple-quote `"""`
+- Fix issue where an `WithService()` expression is wrapped in a `UnaryExpression` and we fail to get the lambda
+
 # 0.63.0
 - Expose a `SchemaProvider.ExecuteQueryAsync()`
 - Fix #53 support mutations with no arguments
