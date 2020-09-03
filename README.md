@@ -606,7 +606,7 @@ This can then be used in various Linq functions either in memory or against an O
 ```csharp
 // we create a schema provider to compile the statement against our Property type
 var schemaProvider = SchemaBuilder.FromObject<Property>();
-var compiledResult = EqlCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
+var compiledResult = EntityQueryCompiler.Compile(myConfigurationEqlStatement, schemaProvider);
 // you get your list of Properties from you DB
 var thingsToShow = myProperties.Where(compiledResult.LambdaExpression);
 ```
@@ -615,7 +615,7 @@ Another example is you want a customised calculated field. You can execute a com
 ```csharp
 // You'd take this from some configuration
 var eql = @"if location.name = ""Mars"" then (cost + 5) * type.premium else (cost * type.premium) / 3"
-var compiledResult = EqlCompiler.Compile(eql, schemaProvider);
+var compiledResult = EntityQueryCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
 
