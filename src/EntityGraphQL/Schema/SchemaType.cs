@@ -181,10 +181,10 @@ namespace EntityGraphQL.Schema
         /// Get a field by an expression selection on the real type. The name is changed to lowerCaseCamel
         /// </summary>
         /// <param name="fieldSelection"></param>
-        public void GetField(Expression<Func<TBaseType, object>> fieldSelection, ClaimsIdentity claims = null)
+        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, ClaimsIdentity claims = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            GetField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), claims);
+            return GetField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), claims);
         }
 
         public IEnumerable<Field> GetFields()
