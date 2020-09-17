@@ -176,6 +176,16 @@ namespace EntityGraphQL.Schema
 
             throw new EntityGraphQLCompilerException($"Field {identifier} not found");
         }
+        
+        /// <summary>
+        /// Get a field by an expression selection on the real type. The name is changed to lowerCaseCamel
+        /// </summary>
+        /// <param name="fieldSelection"></param>
+        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, ClaimsIdentity claims = null)
+        {
+            var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
+            return GetField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), claims);
+        }
 
         public IEnumerable<Field> GetFields()
         {
