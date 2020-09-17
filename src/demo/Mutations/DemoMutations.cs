@@ -14,6 +14,7 @@ namespace demo.Mutations
         public Expression<Func<DemoContext, Movie>> ExampleNoArgs(DemoContext db)
         {
             // do something smart here with db
+            db.Movies.Add(new Movie());
 
             return ctx => ctx.Movies.First();
         }

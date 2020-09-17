@@ -1,5 +1,4 @@
 bin/
-package-lock.json
 .idea/
 obj/
 .DS_Store

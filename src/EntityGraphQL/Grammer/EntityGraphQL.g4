@@ -67,8 +67,8 @@ objectSelection:
 	)* wsc* '}' wsc*;
 operationName: operation = identity ('(' (operationArgs = gqlTypeDefs)? ')')?;
 dataQuery: wsc* (queryKeyword | (queryKeyword ws* operationName))? ws* objectSelection;
-mutationQuery: wsc* mutationKeyword ws* operationName ws* objectSelection;
-subscriptionQuery: wsc* subscriptionKeyword ws* operationName ws* objectSelection;
+mutationQuery: wsc* mutationKeyword ws* operationName? ws* objectSelection;
+subscriptionQuery: wsc* subscriptionKeyword ws* operationName? ws* objectSelection;
 gqlFragment: wsc* 'fragment' ws+ fragmentName = identity ws+ 'on' ws+ fragmentType = identity ws* fields=objectSelection;
 
 comment: ws* (singleLineDoc | multiLineDoc | ignoreComment) ws*;

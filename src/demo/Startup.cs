@@ -11,7 +11,7 @@ namespace demo
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IWebHostEnvironment env)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
@@ -30,22 +30,29 @@ namespace demo
 
             services.AddSingleton<AgeService>();
 
+            services.AddLogging(logging =>
+                {
+                    logging.AddConsole(configure => Configuration.GetSection("Logging"));
+                    logging.AddDebug();
+                });
             // add schema provider so we don't need to create it everytime
             services.AddSingleton(GraphQLSchema.MakeSchema());
-            services.AddMvc();
+            services.AddRouting();
+            services.AddControllers().AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory, DemoContext db)
+        public void Configure(IApplicationBuilder app, DemoContext db)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-
             CreateData(db);
 
             app.UseFileServer();
 
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(configure =>
+            {
+                configure.MapControllers();
+            });
         }
 
         private static void CreateData(DemoContext db)

@@ -12,40 +12,40 @@ scalar Date
 
 
 enum Genre {
-	"Action movie type"
+	"""Action movie type"""
 	Action
-	"Drama movie type"
+	"""Drama movie type"""
 	Drama
-	"Comedy movie type"
+	"""Comedy movie type"""
 	Comedy
-	"Horror movie type"
+	"""Horror movie type"""
 	Horror
-	"Scifi movie type"
+	"""Scifi movie type"""
 	Scifi
 }
 
 
 type RootQuery {
-	"Pagination. [defaults: page = 1, pagesize = 10]"
+	"""Pagination. [defaults: page = 1, pagesize = 10]"""
 	actorPager(page: Int!, pagesize: Int!, search: String): PersonPagination
-	"List of actors"
+	"""List of actors"""
 	actors(filter: String): [Person!]
-	"List of directors"
+	"""List of directors"""
 	directors: [Person!]
-	"Return a Movie by its Id"
+	"""Return a Movie by its Id"""
 	movie(id: Int!): Movie
-	"Collection of Movies"
+	"""Collection of Movies"""
 	movies: [Movie!]
-	"Collection of Peoples"
+	"""Collection of Peoples"""
 	people: [Person!]
-	"Return a Person by its Id"
+	"""Return a Person by its Id"""
 	person(id: Int!): Person
-	"List of writers"
+	"""List of writers"""
 	writers: [Person!]
 
 }
 
-"Information about subscriptions"
+"""Information about subscriptions"""
 type SubscriptionType {
 	name: String
 }
@@ -53,12 +53,12 @@ type SubscriptionType {
 type Movie {
 	id: Int!
 	name: String
-	"Enum of Genre"
+	"""Enum of Genre"""
 	genre: Genre!
 	released: Date!
-	"Actors in the movie"
+	"""Actors in the movie"""
 	actors: [Person!]
-	"Writers in the movie"
+	"""Writers in the movie"""
 	writers: [Person!]
 	director: Person
 	directorId: Int
@@ -77,16 +77,16 @@ type Person {
 	firstName: String!
 	lastName: String!
 	dob: Date!
-	"Movies they acted in"
+	"""Movies they acted in"""
 	actorIn: [Movie!]
-	"Movies they wrote"
+	"""Movies they wrote"""
 	writerOf: [Movie!]
 	directorOf: [Movie!]
 	died: Date
 	isDeleted: Boolean!
-	"Person's name"
+	"""Person's name"""
 	name: String
-	"Show the person's age"
+	"""Show the person's age"""
 	age: Int!
 }
 
@@ -97,27 +97,27 @@ type Writer {
 	movie: Movie
 }
 
-"Actor Pagination"
+"""Actor Pagination"""
 type PersonPagination {
-	"total records to match search"
+	"""total records to match search"""
 	total: Int!
-	"total pages based on page size"
+	"""total pages based on page size"""
 	pageCount: Int!
-	"collection of people"
+	"""collection of people"""
 	people: [Person!]!
 }
 
-"Detail item"
+"""Detail item"""
 input Detail {
 	description: String
 }
 
 type Mutation {
-	"Example of a mutation that takes 0 arguments"
+	"""Example of a mutation that takes 0 arguments"""
 	exampleNoArgs: Movie
-	"Example of a mutation that does not use the context or argments but does use registered services"
+	"""Example of a mutation that does not use the context or argments but does use registered services"""
 	exampleNoArgsWithService: Int!
-	"Add a new Movie object"
+	"""Add a new Movie object"""
 	addMovie(name: String!, rating: Float!, details: [Detail!], genre: Genre!, released: Date!): Movie
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
 	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
