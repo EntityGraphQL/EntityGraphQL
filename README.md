@@ -523,7 +523,7 @@ var results = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.Reques
 
 Now if a field or mutation has `AuthorizeClaims` it will check if the supplied `ClaimsIdentity` contains any of those claims using the claim type `ClaimTypes.Role`.
 
-_Note: if you provide multiple `[GraphQLAuthorize]` attributes on a single field/mutation they are treat as `AND` meaning all claims are required. If you provide a single `[GraphQLAuthorize]` attribute with multiple claims in it they are treats as `OR` i.e. any of the claims are required.
+_Note: if you provide multiple `[GraphQLAuthorize]` attributes on a single field/mutation they are treated as `AND` meaning all claims are required. If you provide a single `[GraphQLAuthorize]` attribute with multiple claims in it they are treated as `OR` i.e. having any of the claims listed will grant access.
 
 ## Mutations
 
@@ -573,6 +573,18 @@ public class Property {
 // ....
 ```
 
+You can secure whole types with the attribute too.
+
+```c#
+[GraphQLAuthorize("property-user")]
+public class Property {
+  public uint Id { get; set; }
+  public string Name { get; set; }
+  public PropertyType Type { get; set; }
+  public Location Location { get; set; }
+}
+```
+
 If a `ClaimsIdentity` is provided with the query call it will be required to be Authorized and have a claim of type `Role` with a value of `property-role` to query the root-level `properties` field and a claim of `property-admin` to query the `Property` field `location`.
 
 `AuthorizeClaims` can be provided in the API for add/replacing fields on the schema objact.
@@ -580,7 +592,12 @@ If a `ClaimsIdentity` is provided with the query call it will be required to be 
 ```c#
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAllClaims("admin");
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAnyClaim("admin", "super-admin");
+
+schemaProvider.AddType<Property>("properties", (db) => db.Properties, "Description").RequiresAllClaims("property-user");
+schemaProvider.AddType<Property>("properties", (db) => db.Properties, "Description").RequiresAnyClaims("property-user", "property-admin");
 ```
+
+Note when using `AddField()` and `AddType()` these functions will automatically search for `[GraphQLAuthorize()]` attributes on the fields and types.
 
 # Paging
 For paging you want to create your own fields.

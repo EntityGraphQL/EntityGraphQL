@@ -9,7 +9,7 @@ namespace EntityGraphQL.Schema
     public class RequiredClaims
     {
         // each item in the "first" list is AND claims and each in the inner list is OR claims
-        private List<List<string>> requiredClaims;
+        private readonly List<List<string>> requiredClaims;
         public IEnumerable<IEnumerable<string>> Claims { get => requiredClaims; }
 
         public RequiredClaims()
@@ -38,6 +38,11 @@ namespace EntityGraphQL.Schema
         public void RequiresAnyClaim(string[] claims)
         {
             requiredClaims.Add(claims.ToList());
+        }
+
+        internal void Add(IEnumerable<GraphQLAuthorizeAttribute> attributes)
+        {
+            requiredClaims.AddRange(attributes.Select(c => c.Claims).ToList());
         }
     }
     public static class AuthUtil

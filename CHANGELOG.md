@@ -1,6 +1,8 @@
 # 0.65.0
+- You can now secure whole types in the schema. Add the `[GraphQLAuthorize("claim-name")]` to the class or use `schema.AddType(...).RequiresAllClaims("some-claim")`, `schema.AddType(...).RequiresAnyClaim("some-claim")`
 - Add `GetField(Expression<Func<TBaseType, object>>)` overload
 - operation name is optional for a `query` operation as per GraphQL spec if it is the only operation in the request
+- Breaking - removed the `authorizeClaims` argument from `AddField()`. Please use `field.RequiresAllClaims("some-claim")`, `field.RequiresAnyClaim("some-claim")`
 
 # 0.64.0
 - Change - descriptions generated for a `.graphql` schema file now use the multiple line triple-quote `"""`

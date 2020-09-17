@@ -59,6 +59,11 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName = null)
         {
+            // check operation names
+            if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
+            {
+                throw new EntityGraphQLCompilerException("An operation name must be defined for all operations if there are multiple operations in the request");
+            }
             var result = new QueryResult();
             var validator = new GraphQLValidator();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);

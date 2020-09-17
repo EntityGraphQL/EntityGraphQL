@@ -197,6 +197,8 @@ namespace EntityGraphQL.Schema
                     var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
                     method = method.MakeGenericMethod(propType);
                     var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
+                    var attributes = propType.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
+                    t.AuthorizeClaims = new RequiredClaims(attributes);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
                     t.AddFields(fields);

@@ -13,6 +13,7 @@ namespace EntityGraphQL.Schema
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
+        RequiredClaims AuthorizeClaims { get; set; }
 
         Field GetField(string identifier, ClaimsIdentity claims);
         IEnumerable<Field> GetFields();
