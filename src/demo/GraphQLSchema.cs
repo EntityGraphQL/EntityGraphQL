@@ -38,14 +38,14 @@ namespace demo
             demoSchema.Type<Person>().ReplaceField("writerOf", m => m.WriterOf.Select(a => a.Movie), "Movies they wrote");
             demoSchema.Type<Person>().ReplaceField("actorIn", m => m.ActorIn.Select(a => a.Movie), "Movies they acted in");
 
-            var dto = demoSchema.AddType<PersonPagination>(nameof(PersonPagination), "Actor Pagination");
+            var dto = demoSchema.AddType<Pagination<Person>>("PersonPagination", "Actor Pagination");
             dto.AddField("total", x => x.Total, "total records to match search");
             dto.AddField("pageCount", x => x.PageCount, "total pages based on page size");
-            dto.AddField("people", x => x.People, "collection of people");
+            dto.AddField("people", x => x.Items, "collection of people");
 
             demoSchema.AddField("actorPager",
                 new { page = 1, pagesize = 10, search = "" },
-                (db, p) => PaginateActors(db, p),
+                (db, p) => ArgumentHelper.WithService((PageService srv) => srv.PaginateActors(db, p)),
                 "Pagination. [defaults: page = 1, pagesize = 10]",
                 "PersonPagination");
 
@@ -55,8 +55,11 @@ namespace demo
             File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
             return demoSchema;
         }
+    }
 
-        public static PersonPagination PaginateActors(DemoContext db, dynamic arg)
+    public class PageService
+    {
+        public Pagination<Person> PaginateActors(DemoContext db, dynamic arg)
         {
             int page = (int)arg.page;
             int pagesize = (int)arg.pagesize;
@@ -70,8 +73,8 @@ namespace demo
 
             //Pagination
             int total = db.People.Where(predicate).Count();
-            int pagecount = ((total + pagesize) / pagesize);
-            int skipTo = (page * pagesize) - (pagesize);
+            int pagecount = total + pagesize / pagesize;
+            int skipTo = (page * pagesize) - pagesize;
 
             //Data
             var people = db.People
@@ -80,18 +83,14 @@ namespace demo
                 .Skip(skipTo)
                 .Take(pagesize);
 
-            return new PersonPagination { Total = total, PageCount = pagecount, People = people };
+            return new Pagination<Person> { Total = total, PageCount = pagecount, Items = people };
         }
     }
 
-    public class PersonPagination : Pagination
+    public class Pagination<TEntity>
     {
         [GraphQLNotNull]
-        public IQueryable<Person> People { get; set; }
-    }
-
-    public class Pagination
-    {
+        public IQueryable<TEntity> Items { get; set; }
         [GraphQLNotNull]
         public int Total { get; set; }
         [GraphQLNotNull]

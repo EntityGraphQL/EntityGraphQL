@@ -35,6 +35,7 @@ namespace demo
                     logging.AddConsole(configure => Configuration.GetSection("Logging"));
                     logging.AddDebug();
                 });
+            services.AddSingleton(new PageService());
             // add schema provider so we don't need to create it everytime
             services.AddSingleton(GraphQLSchema.MakeSchema());
             services.AddRouting();
