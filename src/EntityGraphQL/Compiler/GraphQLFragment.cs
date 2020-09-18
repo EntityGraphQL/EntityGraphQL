@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -5,8 +6,6 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragment
     {
-        private string TypeName { get; }
-
         public string Name { get; }
 
         public IEnumerable<IGraphQLBaseNode> Fields { get; }
@@ -16,10 +15,9 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public ParameterExpression SelectContext { get; }
 
-        public GraphQLFragment(string name, string typeName, IEnumerable<IGraphQLBaseNode> fields, ParameterExpression selectContext)
+        public GraphQLFragment(string name, IEnumerable<IGraphQLBaseNode> fields, ParameterExpression selectContext)
         {
             Name = name;
-            TypeName = typeName;
             Fields = fields;
             SelectContext = selectContext;
         }
@@ -28,6 +26,8 @@ namespace EntityGraphQL.Compiler
     public class GraphQLFragmentSelect : IGraphQLBaseNode
     {
         private readonly string name;
+
+        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
 
         public GraphQLFragmentSelect(string name)
         {
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
-        public ExpressionResult GetNodeExpression()
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
         {
             throw new System.NotImplementedException();
         }

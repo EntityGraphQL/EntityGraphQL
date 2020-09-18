@@ -1,3 +1,79 @@
+# 0.66.0
+- When using services other than the schema context in fields (that return a single object not a Enumerable) the methods/services are no longer executed multiple times. (issue #36). Notes below
+
+## Notes
+If you build a field like so
+```c#
+schema.AddField("myField", ctx => WithService((IMyService srv) => srv.DoSomething(ctx)));
+
+// Register the service with DI somewhere
+public class MyService: IMyService {
+  public SomeObject DoSomething(Context ctx)
+  {
+    // do something
+    return data;
+  }
+}
+```
+
+With a query like
+```gql
+{
+  myField { field1 field 2 }
+}
+```
+
+We use to build an expression like so
+
+```c#
+srv.DoSomething(ctx) == null ? null : new {
+  field1 = srv.DoSomething(ctx).field1,
+  field2 = srv.DoSomething(ctx).field2
+}
+```
+
+We now wrap this in a method call that only calls `DoSomething(ctx)` a single time Which looks like this
+```c#
+(ctx, srv) => NullCheckWrapper(srv.DoSomething(ctx), parameterValues, selection); // simplifying here
+
+// Again a simified example of what NullCheckWrapper does
+public object NullCheckWrapper(Expression<Func<Context, IMyService>> baseValue, object[] values, LambdaExpression selection)
+{
+  // null check
+  if (baseValue == null)
+    return null;
+  // build the select on the object
+  var result = selection.Compile().DynamicInvoke(baseValue);
+}
+```
+
+This works with services used deeper inthe graph too. Example
+```c#
+schema.Type<Person>().AddField("complexField", (person) => DoSomething(person.Id));
+```
+
+GraphQL
+```gql
+{
+  people {
+    complexField {
+      field1
+      field1
+    }
+  }
+}
+```
+
+The wrapped expression looks like this
+
+```c#
+(ctx, srv) => ctx.People.Select(person => new {
+  complexField = NullCheckWrapper(srv.DoSomething(person.Id), parameterValues, selection); // simplifying here
+})
+```
+
+This has been tested with EF Core and works well.
+
 # 0.65.0
 - You can now secure whole types in the schema. Add the `[GraphQLAuthorize("claim-name")]` to the class or use `schema.AddType(...).RequiresAllClaims("some-claim")`, `schema.AddType(...).RequiresAnyClaim("some-claim")`
 - Add `GetField(Expression<Func<TBaseType, object>>)` overload

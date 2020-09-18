@@ -78,6 +78,13 @@ namespace EntityGraphQL.Compiler
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => constantParameters;
 
         /// <summary>
+        /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
+        /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
+        /// </summary>
+        /// <value></value>
+        public bool IsWrapped { get; internal set; }
+
+        /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
         /// <param name="schemaProvider">The schema provider used to build the expressions</param>
@@ -122,7 +129,7 @@ namespace EntityGraphQL.Compiler
         /// Execute() so we can look up any query fragment selections
         /// </summary>
         /// <value></value>
-        public ExpressionResult GetNodeExpression()
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
         {
             // we might have to build the expression on request as when we prase the query
             // document the fragment referenced might be defined later in the document
@@ -142,7 +149,7 @@ namespace EntityGraphQL.Compiler
 
                         foreach (IGraphQLBaseNode fragField in fragment.Fields)
                         {
-                            var fieldExp = fragField.GetNodeExpression();
+                            var fieldExp = fragField.GetNodeExpression(contextValue, serviceProvider);
                             var exp = (ExpressionResult)replacer.Replace(fieldExp, fragment.SelectContext, selectionContext);
                             // new object as we reuse fragments
                             selectionFields.Add(new GraphQLQueryNode(schemaProvider, queryFragments, fragField.Name, exp, selectionContext.AsParameter(), null, null));
@@ -159,7 +166,7 @@ namespace EntityGraphQL.Compiler
                     else
                     {
                         selectionFields.Add(field);
-                        AddServices(field.GetNodeExpression().Services);
+                        AddServices(field.GetNodeExpression(contextValue, serviceProvider).Services);
                     }
                 }
 
@@ -170,12 +177,33 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    // build a new {...} - returning a single object {}
-                    var newExp = ExpressionUtil.CreateNewExpression(selectionFields);
-                    var anonType = newExp.Type;
-                    // make a null check from this new expression
-                    newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                    nodeExpression = (ExpressionResult)newExp;
+                    if (IsWrapped)
+                    {
+                        // selectionFields is set up but we need to wrap
+                        // we wrap here as we have access to the values and services etc
+                        var fieldParamValues = new List<object> { contextValue };
+                        fieldParamValues.AddRange(ConstantParameters.Values);
+                        var fieldParams = new List<ParameterExpression> { FieldParameter };
+                        fieldParams.AddRange(ConstantParameters.Keys);
+
+                        var updatedExpression = InjectServices(contextValue, serviceProvider, fieldParamValues, fieldExpression, fieldParams, FieldParameter, replacer);
+
+                        var selectionParams = new List<ParameterExpression> { selectionFields.First().FieldParameter };
+                        selectionParams.AddRange(selectionFields.SelectMany(f => f.ConstantParameters.Keys));
+                        var selectionParamValues = new List<object>(selectionFields.SelectMany(f => f.ConstantParameters.Values));
+                        updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams, selectionFields, selectionParamValues);
+
+                        nodeExpression = updatedExpression;
+                    }
+                    else
+                    {
+                        // build a new {...} - returning a single object {}
+                        var newExp = ExpressionUtil.CreateNewExpression(selectionFields);
+                        var anonType = newExp.Type;
+                        // make a null check from this new expression
+                        newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                        nodeExpression = (ExpressionResult)newExp;
+                    }
                 }
                 foreach (var field in selectionFields)
                 {
@@ -214,7 +242,7 @@ namespace EntityGraphQL.Compiler
             var allArgs = new List<object> { context };
 
             // build this first as NodeExpression may modify ConstantParameters
-            var expression = GetNodeExpression();
+            var expression = GetNodeExpression(context, serviceProvider);
 
             // call tolist on top level nodes to force evaluation
             if (expression.Type.IsEnumerableOrArray())
@@ -230,22 +258,7 @@ namespace EntityGraphQL.Compiler
             // inject dependencies
             if (services != null)
             {
-                foreach (var serviceType in services.Distinct())
-                {
-                    if (serviceType == context.GetType())
-                    {
-                        // inject the current context. As ReplaceByType will replace the context param too!
-                        expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, contextParam);
-                    }
-                    else
-                    {
-                        var srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
-                        expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, srvParam);
-                        parameters.Add(srvParam);
-                        var service = serviceProvider.GetService(serviceType);
-                        allArgs.Add(service);
-                    }
-                }
+                expression = InjectServices(context, serviceProvider, allArgs, expression, parameters, contextParam, replacer);
             }
 
             if (constantParameters.Any())
@@ -260,6 +273,28 @@ namespace EntityGraphQL.Compiler
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
             return Task.FromResult(lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()));
+        }
+
+        private ExpressionResult InjectServices<TContext>(TContext context, IServiceProvider serviceProvider, List<object> allArgs, ExpressionResult expression, List<ParameterExpression> parameters, ParameterExpression contextParam, ParameterReplacer replacer)
+        {
+            foreach (var serviceType in services.Distinct())
+            {
+                if (serviceType == context.GetType())
+                {
+                    // inject the current context. As ReplaceByType will replace the context param too!
+                    expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, contextParam);
+                }
+                else
+                {
+                    var srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
+                    expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, srvParam);
+                    parameters.Add(srvParam);
+                    var service = serviceProvider.GetService(serviceType);
+                    allArgs.Add(service);
+                }
+            }
+
+            return expression;
         }
 
         public void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)

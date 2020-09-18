@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -11,12 +12,13 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         string Name { get; set; }
         IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; }
+        ParameterExpression FieldParameter { get; }
 
         /// <summary>
         /// Get the expression that would create this node. E.g. it may be db => db.Movies.Where(...) or a field selection movie => movie.Name
         /// </summary>
         /// <value></value>
-        ExpressionResult GetNodeExpression();
+        ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider);
         /// <summary>
         /// Update the expression that creates this node
         /// </summary>

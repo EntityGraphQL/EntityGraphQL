@@ -4,7 +4,7 @@ using System;
 // This is a mock datamodel, what would be your real datamodel and EF context
 namespace EntityGraphQL.Tests
 {
-    internal class TestDataContext
+    public class TestDataContext
     {
         public IEnumerable<Project> Projects { get; set; }
         public IEnumerable<Task> Tasks { get; set; }
@@ -19,7 +19,7 @@ namespace EntityGraphQL.Tests
         NotSpecified
     }
 
-    internal class Person
+    public class Person
     {
         public int Id { get; set; }
         public Guid Guid { get; set; }
@@ -30,7 +30,7 @@ namespace EntityGraphQL.Tests
         public List<Task> Tasks { get; set; }
     }
 
-    internal class Project
+    public class Project
     {
         public int Id { get; set; }
         public int Type { get; set; }
@@ -39,14 +39,14 @@ namespace EntityGraphQL.Tests
         public Person Owner { get; set; }
     }
 
-    internal class Task
+    public class Task
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public bool IsActive { get; set; }
         public Person Assignee { get; set; }
     }
-    internal class Location
+    public class Location
     {
         public int Id { get; set; }
         public string Address { get; set; }

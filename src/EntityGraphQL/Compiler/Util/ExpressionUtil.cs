@@ -109,7 +109,7 @@ namespace EntityGraphQL.Compiler.Util
                                 exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
                                 args.Add(exp);
                             }
-                            var call = ExpressionUtil.MakeCallOnQueryable(mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
+                            var call = MakeCallOnQueryable(mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());
                             return call;
                         }
                         return Expression.Call(baseExp, mc.Method, mc.Arguments);
@@ -135,7 +135,7 @@ namespace EntityGraphQL.Compiler.Util
                         {
                             endExpression = exp;
                             var mc = (MethodCallExpression)exp;
-                            exp = mc.Object != null ? mc.Object : mc.Arguments.First();
+                            exp = mc.Object ?? mc.Arguments.First();
                             break;
                         }
                     default:
@@ -165,7 +165,7 @@ namespace EntityGraphQL.Compiler.Util
             foreach (var item in fieldExpressions)
             {
                 // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
-                fieldExpressionsByName[item.Name] = item.GetNodeExpression();
+                fieldExpressionsByName[item.Name] = item.GetNodeExpression(null, null);
             }
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
@@ -173,6 +173,49 @@ namespace EntityGraphQL.Compiler.Util
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
+        }
+
+        /// <summary>
+        /// Wrap a field expression in a method that does a null check for us and avoid calling the field multiple times.
+        /// E.g. if the field is (db) => CallSomeService(db) and the result is an object (not IEnumerable) we do not want to generate
+        ///     CallSomeService(db) == null ? null : new {
+        ///         field1 = CallSomeService(db).field1,
+        ///         field2 = CallSomeService(db).field2
+        //      }
+        /// As that will call the function 3 times (or 1 + number of fields selected)
+        ///
+        /// This wraps the field expression that does the call once
+        /// </summary>
+        /// <param name="selectFromExp"></param>
+        /// <param name="replacementParameter"></param>
+        /// <param name="fieldExpressions"></param>
+        /// <returns></returns>
+        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult selectFromExp, IEnumerable<ParameterExpression> paramsForFieldExpressions, List<IGraphQLBaseNode> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        {
+            var arguments = new List<Expression> {
+                selectFromExp,
+                Expression.Constant(paramsForFieldExpressions),
+                Expression.Constant(fieldExpressions),
+                Expression.Constant(fieldSelectParamValues)
+            };
+            var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
+            return (ExpressionResult)call;
+        }
+
+        /// <summary>
+        /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
+        /// </summary>
+        /// <returns></returns>
+        public static object WrapFieldForNullCheckExec(object selectFromValue, IEnumerable<ParameterExpression> paramsForFieldExpressions, List<IGraphQLBaseNode> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        {
+            if (selectFromValue == null)
+                return null;
+
+            var newExp = CreateNewExpression(fieldExpressions);
+            var args = new List<object> { selectFromValue };
+            args.AddRange(fieldSelectParamValues);
+            var result = Expression.Lambda(newExp, paramsForFieldExpressions.ToArray()).Compile().DynamicInvoke(args.ToArray());
+            return result;
         }
     }
 }

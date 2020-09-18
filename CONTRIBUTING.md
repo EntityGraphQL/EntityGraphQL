@@ -8,10 +8,10 @@ Check out any open issues, or dive in to add some functionality. Below I'll try 
 # GraphQLVisitor
 `GraphQLVisitor` builds on pre-generated visitors from Antlr4.
 
-In `GraphQLVisitor` we visit all the tokens defined in our grammer ans process them. Basically we turn them into .Net expressions.
+In `GraphQLVisitor` we visit all the tokens defined in our grammer and process them. Basically we turn them into .Net expressions.
 
 Example, GQL
-```
+```gql
 query {
     movies {
         id name
@@ -29,12 +29,14 @@ The final result of `GraphQLVisitor` is a `GraphQLResultNode` which just holds e
 `GraphQLMutationNode` wraps up calling the mutation with the arguments and wraps any result selection (the thing in `{}` after your mutation call and arguments) in a `GraphQLQueryNode`. Before executing the resulting selection it does some expression manipulation to have a better formed query for ORMs.
 
 # GraphQLQueryNode
-Apart from `GraphQLVisitor`, `GraphQLQueryNode` is where a majority of the magic happens. It is responsible for putting all the field expression together. It builds the `Select()` calls and does other expression manipulations like
-- Replaces `ExpressionParameter`s with the correct ones
+Apart from `GraphQLVisitor`, `GraphQLQueryNode` this is where a majority of the magic happens. It is responsible for putting all the field expressions together. It builds the `Select()` calls and does other expression manipulations like
+- Replaces `ParameterExpression`s with the correct ones
 - Replaces any fragment fields with the expanded field selection from the `GraphQLFragmentNode`
 - Injects services
 
 # GraphQLSubscriptionNode
 Not currently implemented.
 
-The reason we build the final expression here is it is after the completion of the visitor and we no have access to fragments that may have been define after we first see them used.
+# Why 2 Steps?
+
+The reason we have 2 steps (first building each field expression in `GraphQLVisitor` and then putting it all together in `GraphQLQueryNode`) is because `GraphQLVisitor` visits each token in order. This means we may not have access to fragments defined below a query in the GQL document.

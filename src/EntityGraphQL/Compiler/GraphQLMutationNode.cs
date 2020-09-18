@@ -17,6 +17,7 @@ namespace EntityGraphQL.Compiler
         private readonly GraphQLQueryNode resultSelection;
 
         public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
+        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 
@@ -27,7 +28,7 @@ namespace EntityGraphQL.Compiler
             this.resultSelection = resultSelection;
         }
 
-        public ExpressionResult GetNodeExpression()
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
         {
             throw new NotImplementedException();
         }
@@ -91,7 +92,7 @@ namespace EntityGraphQL.Compiler
                             }
 
                             // build select
-                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, baseExp, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
+                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression(context, serviceProvider).Type }, baseExp, Expression.Lambda(resultSelection.GetNodeExpression(context, serviceProvider), selectParam));
 
                             // add First/Last back
                             var firstExp = ExpressionUtil.MakeCallOnQueryable(call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
@@ -120,7 +121,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression().Type }, mutationExpression, Expression.Lambda(resultSelection.GetNodeExpression(), selectParam));
+                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, resultSelection.GetNodeExpression(context, serviceProvider).Type }, mutationExpression, Expression.Lambda(resultSelection.GetNodeExpression(context, serviceProvider), selectParam));
                     resultSelection.SetNodeExpression(exp);
                 }
 

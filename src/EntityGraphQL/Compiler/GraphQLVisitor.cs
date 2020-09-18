@@ -281,10 +281,30 @@ namespace EntityGraphQL.Compiler
                 // These expression will be built on the element type
                 var oldContext = currentExpressionContext;
                 currentExpressionContext = selectFromExp;
+                ParameterExpression replacementParameter = null;
+                // we might be using a service i.e. ctx => WithService((T r) => r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()))
+                // if we can we want to avoid calling that multiple times with a expression like
+                // r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()) == null ? null : new {
+                //      Field = r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()).Blah
+                // }
+                // by wrapping the whole thing in a method that does the null check once.
+                // This means we build the fieldExpressions on a parameter of the result type
+                // We can only do that if it doesn't use the oldContext unless the oldContext is the root context
+                // i.e we can't do this on a field on a type because we don't have that value as it might be a selection from an ORM
+                bool wrapField = (oldContext.Type == schemaProvider.ContextType || oldContext.NodeType == ExpressionType.Parameter) && currentExpressionContext.Services.Any();
+                if (wrapField)
+                {
+                    // replace with a parameter. The expression is compiled at execution time once
+                    replacementParameter = Expression.Parameter(selectFromExp.Type, "null_wrap");
+                    currentExpressionContext = (ExpressionResult)replacementParameter;
+                }
                 var fieldExpressions = context.children.Select(c => Visit(c)).Where(n => n != null).ToList();
                 currentExpressionContext = oldContext;
 
-                var graphQLNode = new GraphQLQueryNode(schemaProvider, fragments, name, selectFromExp, selectFromParam, fieldExpressions, selectFromExp);
+                var graphQLNode = new GraphQLQueryNode(schemaProvider, fragments, name, selectFromExp, selectFromParam, fieldExpressions, selectFromExp)
+                {
+                    IsWrapped = wrapField
+                };
                 return graphQLNode;
             }
             catch (EntityGraphQLCompilerException ex)
@@ -388,7 +408,7 @@ namespace EntityGraphQL.Compiler
                 if (f != null) // white space etc
                     fields.Add(f);
             }
-            fragments.Add(new GraphQLFragment(context.fragmentName.GetText(), typeName, fields, (ParameterExpression)currentExpressionContext));
+            fragments.Add(new GraphQLFragment(context.fragmentName.GetText(), fields, (ParameterExpression)currentExpressionContext));
             currentExpressionContext = null;
             return null;
         }
