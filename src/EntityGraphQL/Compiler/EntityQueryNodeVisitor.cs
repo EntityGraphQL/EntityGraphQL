@@ -113,7 +113,10 @@ namespace EntityGraphQL.Compiler
             string name = schemaProvider.GetSchemaTypeNameForDotnetType(currentContext.Type);
             if (!schemaProvider.TypeHasField(name, field, null, claims))
             {
-                throw new EntityGraphQLCompilerException($"Field {field} not found on type {name}");
+                var enumOrConstantValue = constantVisitor.Visit(context);
+                if (enumOrConstantValue == null)
+                    throw new EntityGraphQLCompilerException($"Field {field} not found on type {name}");
+                return enumOrConstantValue;
             }
             var exp = schemaProvider.GetExpressionForField(currentContext, name, field, null, claims);
             return exp;

@@ -248,6 +248,43 @@ namespace EntityGraphQL.LinqQuery.Tests
             Assert.Equal("Third", results.ElementAt(0).Message);
         }
 
+        [Fact]
+        public void CompilesEnum()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            // schema.AddEnum("Gender", typeof(Gender), "My enum type");
+            var exp = EntityQueryCompiler.Compile("people.where(gender == Female)", schema, null);
+            var res = (IEnumerable<Person>)exp.Execute(new TestSchema());
+            Assert.Empty(res);
+        }
+
+        [Fact]
+        public void CompilesEnum2()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var exp = EntityQueryCompiler.Compile("people.where(gender == Other)", schema, null);
+            var res = (IEnumerable<Person>)exp.Execute(new TestSchema
+            {
+                People = new List<Person> {
+                    new Person {
+                        Gender = Gender.Female
+                    },
+                    new Person {
+                        Gender = Gender.Other
+                    }
+
+                }
+            });
+            Assert.Single(res);
+        }
+
+        public enum Gender
+        {
+            Female,
+            Male,
+            Other
+        }
+
         private class Entry
         {
             public Entry(string message)
@@ -264,7 +301,7 @@ namespace EntityGraphQL.LinqQuery.Tests
             public string Hello { get { return "returned value"; } }
 
             public TestEntity SomeRelation { get { return new TestEntity("bob"); } }
-            public IEnumerable<Person> People { get { return new List<Person>(); } }
+            public IEnumerable<Person> People { get; set; } = new List<Person>();
         }
 
         private class TestEntity
@@ -291,6 +328,7 @@ namespace EntityGraphQL.LinqQuery.Tests
             }
             public int Id { get; set; }
             public string Name { get { return "Luke"; } }
+            public Gender Gender { get; set; }
         }
     }
 }

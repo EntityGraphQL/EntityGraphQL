@@ -64,6 +64,8 @@ namespace EntityGraphQL.Compiler
                 .Select(e => e.GetFields().FirstOrDefault(f => f.Name == enumVal))
                 .Where(f => f != null)
                 .FirstOrDefault();
+            if (enumField == null)
+                return null;
 
             var exp = (ExpressionResult)Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
             return exp;
