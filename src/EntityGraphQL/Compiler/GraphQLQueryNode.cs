@@ -297,13 +297,6 @@ namespace EntityGraphQL.Compiler
             return expression;
         }
 
-        public void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
-        {
-            foreach (var item in constantParameters)
-            {
-                this.constantParameters.Add(item.Key, item.Value);
-            }
-        }
         public void AddConstantParameter(ParameterExpression param, object val)
         {
             constantParameters.Add(param, val);
@@ -318,15 +311,6 @@ namespace EntityGraphQL.Compiler
         public override string ToString()
         {
             return $"Node - Name={Name}, Expression={nodeExpression.ToString() ?? "not built yet"}";
-        }
-
-        public void AddField(IGraphQLBaseNode node)
-        {
-            nodeFields.Add(node);
-            foreach (var item in node.ConstantParameters)
-            {
-                constantParameters.Add(item.Key, item.Value);
-            }
         }
 
         public void SetCombineExpression(Expression combineExpression)

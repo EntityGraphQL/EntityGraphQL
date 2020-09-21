@@ -191,6 +191,73 @@ namespace EntityGraphQL.LinqQuery.Tests
             Assert.Equal("mary", results.ElementAt(1).Name);
         }
 
+        [Theory]
+        [InlineData("\"2020-08-11T00:00:00\"")]
+        [InlineData("\"2020-08-11 00:00:00\"")]
+        [InlineData("\"2020-08-11\"")]
+        public void TestLinqQueryWorksWithDates(string dateValue)
+        {
+            var schemaProvider = SchemaBuilder.FromObject<Entry>();
+            schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
+            var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, null);
+            var list = new List<Entry> {
+                new Entry("First") {
+                    When = new DateTime(2020, 08, 10)
+                },
+                new Entry("Second") {
+                    When = new DateTime(2020, 08, 11)
+                },
+                new Entry("Third") {
+                    When = new DateTime(2020, 08, 12)
+                }
+            };
+            Assert.Equal(3, list.Count());
+            var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+
+            Assert.Equal(2, results.Count());
+            Assert.Equal("Second", results.ElementAt(0).Message);
+            Assert.Equal("Third", results.ElementAt(1).Message);
+        }
+
+        [Theory]
+        [InlineData("\"2020-08-11T13:22:11\"")]
+        [InlineData("\"2020-08-11 13:22:11\"")]
+        [InlineData("\"2020-08-11 13:22:11.1\"")]
+        [InlineData("\"2020-08-11 13:22:11.3000003\"")]
+        [InlineData("\"2020-08-11 13:22:11.3000003+000\"")]
+        public void TestLinqQueryWorksWithDateTimes(string dateValue)
+        {
+            var schemaProvider = SchemaBuilder.FromObject<Entry>();
+            schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
+            var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, null);
+            var list = new List<Entry> {
+                new Entry("First") {
+                    When = new DateTime(2020, 08, 10)
+                },
+                new Entry("Second") {
+                    When = new DateTime(2020, 08, 11, 13, 21, 11)
+                },
+                new Entry("Third") {
+                    When = new DateTime(2020, 08, 12, 13, 22, 11)
+                }
+            };
+            Assert.Equal(3, list.Count());
+            var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+
+            Assert.Single(results);
+            Assert.Equal("Third", results.ElementAt(0).Message);
+        }
+
+        private class Entry
+        {
+            public Entry(string message)
+            {
+                Message = message;
+            }
+            public DateTime When { get; set; }
+            public string Message { get; set; }
+        }
+
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
