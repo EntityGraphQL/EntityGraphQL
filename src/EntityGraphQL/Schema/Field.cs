@@ -119,5 +119,17 @@ namespace EntityGraphQL.Schema
             return this;
 
         }
+
+        /// <summary>
+        /// Define if the return type of this field is nullable or not.
+        /// </summary>
+        /// <param name="nullable"></param>
+        /// <returns></returns>
+        public Field IsNullable(bool nullable)
+        {
+            ReturnType.TypeNotNullable = !nullable;
+
+            return this;
+        }
     }
 }

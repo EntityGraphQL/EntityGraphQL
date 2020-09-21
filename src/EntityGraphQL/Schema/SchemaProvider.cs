@@ -269,10 +269,10 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType, isNullable);
+            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType);
         }
 
         /// <summary>
@@ -283,29 +283,29 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public Field AddField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
         {
-            return Type<TContextType>().AddField(name, selection, description, returnSchemaType, isNullable);
+            return Type<TContextType>().AddField(name, selection, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
             var name = SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name);
             Type<TContextType>().RemoveField(name);
-            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
-            return Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType, isNullable);
+            return Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
-            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
 
         /// <summary>
@@ -322,9 +322,9 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType, isNullable);
+            return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
         /// <summary>
         /// Add a field to the root query.

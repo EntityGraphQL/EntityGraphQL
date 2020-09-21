@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema
             IsScalar = isScalar;
             AuthorizeClaims = authorizeClaims;
             if (!isScalar)
-                AddField("__typename", t => name, "Type name", null, false);
+                AddField("__typename", t => name, "Type name", null).IsNullable(false);
         }
 
         public ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
@@ -80,10 +80,10 @@ namespace EntityGraphQL.Schema
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
         /// <typeparam name="TReturn"></typeparam>
-        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType, isNullable);
+            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), fieldSelection, description, returnSchemaType);
         }
 
         public Field AddField(Field field)
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Schema
                 _fieldsByName.Add(field.Name, field);
             return field;
         }
-        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             RequiredClaims authorizeClaims = null;
             if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
@@ -106,12 +106,10 @@ namespace EntityGraphQL.Schema
             }
 
             var field = new Field(name, fieldSelection, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
-            if (isNullable.HasValue)
-                field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
             return field;
         }
-        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
             RequiredClaims authorizeClaims = null;
             if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
@@ -121,12 +119,10 @@ namespace EntityGraphQL.Schema
             }
 
             var field = new Field(schema, name, fieldSelection, description, null, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
-            if (isNullable.HasValue)
-                field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
             return field;
         }
-        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             RequiredClaims authorizeClaims = null;
             if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -136,8 +132,6 @@ namespace EntityGraphQL.Schema
             }
 
             var field = new Field(name, selectionExpression, description, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
-            if (isNullable.HasValue)
-                field.ReturnType.TypeNotNullable = !isNullable.Value;
             _fieldsByName[field.Name] = field;
             return field;
         }
@@ -153,7 +147,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             RequiredClaims authorizeClaims = null;
             if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -163,12 +157,10 @@ namespace EntityGraphQL.Schema
             }
 
             var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
-            if (isNullable.HasValue)
-                field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
             return field;
         }
-        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null, bool? isNullable = null)
+        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             RequiredClaims authorizeClaims = null;
             if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
@@ -178,8 +170,6 @@ namespace EntityGraphQL.Schema
             }
 
             var field = new Field(schema, name, selectionExpression, description, argTypes, new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn)), authorizeClaims);
-            if (isNullable.HasValue)
-                field.ReturnType.TypeNotNullable = !isNullable.Value;
             this.AddField(field);
             return field;
         }

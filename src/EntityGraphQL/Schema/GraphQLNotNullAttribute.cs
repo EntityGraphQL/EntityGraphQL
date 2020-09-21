@@ -19,8 +19,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static bool IsMemberMarkedNotNull(MemberInfo prop)
         {
-            var attribute = prop.GetCustomAttribute(typeof(GraphQLNotNullAttribute)) as GraphQLNotNullAttribute;
-            if (attribute != null)
+            if (prop.GetCustomAttribute(typeof(GraphQLNotNullAttribute)) is GraphQLNotNullAttribute)
             {
                 return true;
             }

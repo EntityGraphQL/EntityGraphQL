@@ -2,7 +2,10 @@
 - When using services other than the schema context in fields (that return a single object not a Enumerable) the methods/services are no longer executed multiple times. (issue #36). Notes below
 - When a string matches a date time regex it will be converted to `DateTime` object. Useful when using the `ArgumentHelper.EntityQuery` for advanced filtering. Regex matches `"yyyy-MM-dd HH:mm:ss.fffffffzzz"`, `"yyyy-MM-dd HH:mm:ss"`, `"yyyy-MM-dd"` with the separator between date and time being wither ` ` or `T`
 
-## Notes
+*Breaking changes*
+- Cleaning up the API some. optional `isNullable` argument removed from the `AddField()` methods. Use `IsNullable(bool)` method on the `Field` class or the `[GraphQLNotNull]` attribute.
+
+## Notes of services fix
 If you build a field like so
 ```c#
 schema.AddField("myField", ctx => WithService((IMyService srv) => srv.DoSomething(ctx)));
