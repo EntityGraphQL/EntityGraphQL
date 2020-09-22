@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema
             "String",
             "Byte[]"
         };
-        private static readonly Func<MemberInfo, string> defaultNamer = mi => SchemaGenerator.ToCamelCaseStartsLower(mi.Name);
+        public static readonly Func<MemberInfo, string> DefaultNamer = mi => SchemaGenerator.ToCamelCaseStartsLower(mi.Name);
 
         public static SchemaProvider<TContext> Create<TContext>()
         {
@@ -39,14 +39,13 @@ namespace EntityGraphQL.Schema
         /// Given the type TContextType recursively create a query schema based on the public properties of the object.
         /// </summary>
         /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create ENUM types for enums found in the context object graph</param>
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
         public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
         {
-            var schema = new SchemaProvider<TContextType>();
-            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            var schema = new SchemaProvider<TContextType>(fieldNamer ?? DefaultNamer);
+            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
         }
 
         /// <summary>
@@ -54,14 +53,13 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="schema">Schema tp add types to.</param>
         /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create ENUM types for enums found in the context object graph</param>
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
         public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
         {
             if (fieldNamer == null)
-                fieldNamer = defaultNamer;
+                fieldNamer = DefaultNamer;
             var contextType = typeof(TContextType);
             var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes, fieldNamer);
             foreach (var f in rootFields)
@@ -120,7 +118,7 @@ namespace EntityGraphQL.Schema
         public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<MemberInfo, string> fieldNamer, bool createNewComplexTypes = true)
         {
             if (fieldNamer == null)
-                fieldNamer = defaultNamer;
+                fieldNamer = DefaultNamer;
 
             var fields = new List<Field>();
             // cache fields/properties

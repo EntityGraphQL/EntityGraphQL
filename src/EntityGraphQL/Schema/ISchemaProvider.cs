@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Security.Claims;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Directives;
@@ -17,6 +18,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface ISchemaProvider
     {
+        Func<MemberInfo, string> SchemaFieldNamer { get; }
         /// The base context type that expression will be built from. For example your DbContext
         Type ContextType { get; }
 

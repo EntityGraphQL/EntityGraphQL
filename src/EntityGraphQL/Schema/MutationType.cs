@@ -154,7 +154,7 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync)
+        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync, Func<MemberInfo, string> fieldNamer)
         {
             Description = description;
             ReturnType = returnType;
@@ -172,13 +172,13 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromProperty(schema, item));
+                    argumentTypes.Add(fieldNamer(item), ArgType.FromProperty(schema, item));
                 }
                 foreach (var item in argInstanceType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(SchemaGenerator.ToCamelCaseStartsLower(item.Name), ArgType.FromField(schema, item));
+                    argumentTypes.Add(fieldNamer(item), ArgType.FromField(schema, item));
                 }
             }
         }

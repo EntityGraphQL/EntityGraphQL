@@ -2,9 +2,11 @@
 - When using services other than the schema context in fields (that return a single object not a Enumerable) the methods/services are no longer executed multiple times. (issue #36). Notes below
 - When a string matches a date time it will be converted to a `DateTime` object. Useful when using the `ArgumentHelper.EntityQuery` for advanced filtering. Regex matches `"yyyy-MM-dd HH:mm:ss.fffffffzzz"`, `"yyyy-MM-dd HH:mm:ss"`, `"yyyy-MM-dd"` with the separator between date and time being either ` ` or `T`
 - `EntityQueryCompiler` (used in `ArgumentHelper.EntityQuery`) supports Enums
+- `fieldNamer` used in mutations too
 
 *Breaking changes*
 - Cleaning up the API. The optional `isNullable` argument is removed from the `AddField()` methods. Use `IsNullable(bool)` method on the `Field` class or the `[GraphQLNotNull]` attribute.
+- Cleaning up the API. `fieldNamer` argument removed from methods in `SchemaProvider` and `SchemaType`. Pass in a `fieldNamer` func to the constructor of `SchemaProvider` which will be used when it is auto creating fields. If you pass it in via `SchemaBuilder.FromObject` it will set it on the `SchemaProvider` created.
 
 ## Notes of services fix
 If you build a field like so

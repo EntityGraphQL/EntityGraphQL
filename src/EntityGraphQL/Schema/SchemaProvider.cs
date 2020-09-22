@@ -22,6 +22,7 @@ namespace EntityGraphQL.Schema
     /// <typeparam name="TContextType">Base object graph. Ex. DbContext</typeparam>
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
+        public Func<MemberInfo, string> SchemaFieldNamer { get; }
         protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
         protected Dictionary<string, MutationType> mutations = new Dictionary<string, MutationType>();
         protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>
@@ -35,8 +36,13 @@ namespace EntityGraphQL.Schema
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
-        public SchemaProvider()
+        /// <summary>
+        /// Create a new GraphQL Schema provider that defines all the types and fields etc.
+        /// </summary>
+        /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
+        public SchemaProvider(Func<MemberInfo, string> fieldNamer = null)
         {
+            SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
             // default GQL scalar types
             types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, false, false, true));
             types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, false, false, true));
@@ -210,7 +216,7 @@ namespace EntityGraphQL.Schema
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
                     var typeName = GetSchemaTypeNameForDotnetType(actualReturnType);
                     var returnType = new GqlTypeInfo(() => GetReturnType(typeName), actualReturnType);
-                    var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync);
+                    var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync, SchemaFieldNamer);
                     mutations[name] = mutationType;
                 }
             }
@@ -768,9 +774,9 @@ namespace EntityGraphQL.Schema
             directives.Add(name, directive);
         }
 
-        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<MemberInfo, string> fieldNamer = null)
+        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)
         {
-            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes, SchemaFieldNamer);
         }
     }
 }
