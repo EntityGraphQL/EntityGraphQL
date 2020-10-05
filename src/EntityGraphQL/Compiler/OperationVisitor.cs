@@ -6,14 +6,12 @@ namespace EntityGraphQL.Compiler
 {
     internal class OperationVisitor : EntityGraphQLBaseVisitor<GraphQLOperation>
     {
-        private readonly ClaimsIdentity claims;
         private readonly QueryVariables variables;
         private readonly GraphQLOperation operation;
         private readonly ConstantVisitor constantVisitor;
 
-        public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider, ClaimsIdentity claims)
+        public OperationVisitor(QueryVariables variables, Schema.ISchemaProvider schemaProvider)
         {
-            this.claims = claims;
             this.variables = variables;
             this.operation = new GraphQLOperation();
             this.constantVisitor = new ConstantVisitor(schemaProvider);
@@ -46,7 +44,7 @@ namespace EntityGraphQL.Compiler
                 throw new QueryException($"Missing required variable '{argName}' on query '{this.operation.Name}'");
             }
 
-            this.operation.AddArgument(argName, type, isArray, required, defaultValue != null ? defaultValue : null);
+            this.operation.AddArgument(argName, type, isArray, required, defaultValue ?? null);
 
             return this.operation;
         }

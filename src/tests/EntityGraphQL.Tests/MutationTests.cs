@@ -171,7 +171,7 @@ namespace EntityGraphQL.Tests
     }
 
 
-    internal class User
+    public class User
     {
         public int Id { get { return 100; } }
         public int Field1 { get { return 2; } }

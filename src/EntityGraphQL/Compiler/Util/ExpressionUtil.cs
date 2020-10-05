@@ -146,28 +146,44 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
-        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLBaseNode> fieldExpressions)
+        public static Expression SelectDynamicToList(ParameterExpression currentContextParam, Expression baseExp, IEnumerable<IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider)
         {
-            var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
+            var memberInit = CreateNewExpression(fieldExpressions, serviceProvider, out Type dynamicType);
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var call = MakeCallOnQueryable("Select", new Type[2] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
         }
 
-        public static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions)
+        public static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider)
         {
-            var memberInit = CreateNewExpression(fieldExpressions, out _);
+            var memberInit = CreateNewExpression(fieldExpressions, serviceProvider, out _);
             return memberInit;
         }
-        private static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions, out Type dynamicType)
+        private static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider, out Type dynamicType)
         {
             var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
             foreach (var item in fieldExpressions)
             {
                 // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
-                fieldExpressionsByName[item.Name] = item.GetNodeExpression(null, null);
+                fieldExpressionsByName[item.Name] = item.GetNodeExpression(null, serviceProvider);
             }
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
+
+            var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
+            var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
+            var mi = Expression.MemberInit(newExp, bindings);
+            return mi;
+        }
+
+        private static Expression CreateNewExpression(Dictionary<string, ExpressionResult> fieldExpressions)
+        {
+            var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
+            foreach (var item in fieldExpressions)
+            {
+                // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
+                fieldExpressionsByName[item.Key] = item.Value;
+            }
+            var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
@@ -190,13 +206,13 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="replacementParameter"></param>
         /// <param name="fieldExpressions"></param>
         /// <returns></returns>
-        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult selectFromExp, IEnumerable<ParameterExpression> paramsForFieldExpressions, List<IGraphQLBaseNode> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult selectFromExp, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
         {
             var arguments = new List<Expression> {
                 selectFromExp,
                 Expression.Constant(paramsForFieldExpressions),
                 Expression.Constant(fieldExpressions),
-                Expression.Constant(fieldSelectParamValues)
+                Expression.Constant(fieldSelectParamValues),
             };
             var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
             return (ExpressionResult)call;
@@ -206,7 +222,7 @@ namespace EntityGraphQL.Compiler.Util
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
         /// <returns></returns>
-        public static object WrapFieldForNullCheckExec(object selectFromValue, IEnumerable<ParameterExpression> paramsForFieldExpressions, List<IGraphQLBaseNode> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        public static object WrapFieldForNullCheckExec(object selectFromValue, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
         {
             if (selectFromValue == null)
                 return null;

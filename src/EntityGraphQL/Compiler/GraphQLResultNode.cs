@@ -30,7 +30,8 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public List<GraphQLQueryNode> Operations { get; }
-        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
+        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public IEnumerable<Type> Services => throw new NotImplementedException();
 
         public GraphQLResultNode()
         {

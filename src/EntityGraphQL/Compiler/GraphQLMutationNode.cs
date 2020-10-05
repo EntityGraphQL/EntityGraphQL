@@ -17,7 +17,8 @@ namespace EntityGraphQL.Compiler
         private readonly GraphQLQueryNode resultSelection;
 
         public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
-        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
+        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public IEnumerable<Type> Services => throw new NotImplementedException();
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 

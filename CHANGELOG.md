@@ -1,3 +1,6 @@
+# 0.66.1
+- Fix bug with using `WithService()` when you require the schema context service again to create a link between services
+
 # 0.66.0
 - When using services other than the schema context in fields (that return a single object not a Enumerable) the methods/services are no longer executed multiple times. (issue #36). Notes below
 - When a string matches a date time it will be converted to a `DateTime` object. Useful when using the `ArgumentHelper.EntityQuery` for advanced filtering. Regex matches `"yyyy-MM-dd HH:mm:ss.fffffffzzz"`, `"yyyy-MM-dd HH:mm:ss"`, `"yyyy-MM-dd"` with the separator between date and time being either ` ` or `T`

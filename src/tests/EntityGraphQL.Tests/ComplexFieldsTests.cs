@@ -4,6 +4,7 @@ using EntityGraphQL.Schema;
 using System.Linq;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -72,11 +73,48 @@ namespace EntityGraphQL.Tests
             Assert.Empty(res.Errors);
         }
 
+        [Fact]
+        public void TestServicesReconnectToSchemaContext()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // Linking a type from a service back to the schema context
+            schema.AddType<User>("User").AddAllFields();
+            schema.Type<User>().AddField("projects",
+                (user) => WithService((TestDataContext db) => db.Projects.Where(p => p.Owner.Id == user.Id)),
+                "Peoples projects");
+
+            schema.AddField("user", ctx => WithService((UserService users) => users.GetUser()), "Get current user");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ user { projects { id } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Projects = new List<Project>()
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton(new UserService());
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Empty(res.Errors);
+        }
+
         public class EntityPager
         {
             public Pagination<Project> PageProjects(TestDataContext db, dynamic arg)
             {
-                System.Console.WriteLine("called");
+                Console.WriteLine("called");
                 int page = (int)arg.page;
                 int pagesize = (int)arg.pagesize;
 
@@ -122,6 +160,14 @@ namespace EntityGraphQL.Tests
             [GraphQLNotNull]
 
             public int PageCount { get; set; }
+        }
+    }
+
+    public class UserService
+    {
+        public User GetUser()
+        {
+            return new User();
         }
     }
 }

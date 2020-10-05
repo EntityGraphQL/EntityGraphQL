@@ -173,7 +173,7 @@ namespace EntityGraphQL.Compiler
                 if (isSelectOnList)
                 {
                     // build a .Select(...) - returning a list<>
-                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionContext.AsParameter(), fieldExpression, selectionFields);
+                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionContext.AsParameter(), fieldExpression, selectionFields, serviceProvider);
                 }
                 else
                 {
@@ -181,24 +181,26 @@ namespace EntityGraphQL.Compiler
                     {
                         // selectionFields is set up but we need to wrap
                         // we wrap here as we have access to the values and services etc
-                        var fieldParamValues = new List<object> { contextValue };
-                        fieldParamValues.AddRange(ConstantParameters.Values);
-                        var fieldParams = new List<ParameterExpression> { FieldParameter };
-                        fieldParams.AddRange(ConstantParameters.Keys);
+                        var fieldParamValues = new List<object>(ConstantParameters.Values);
+                        var fieldParams = new List<ParameterExpression>(ConstantParameters.Keys);
 
-                        var updatedExpression = InjectServices(contextValue, serviceProvider, fieldParamValues, fieldExpression, fieldParams, FieldParameter, replacer);
+                        var updatedExpression = InjectServices(serviceProvider, services, fieldParamValues, fieldExpression, fieldParams, replacer);
 
+                        // we need to make sure the wrap can resolve any services in the select
+                        var selectionExpressions = selectionFields.ToDictionary(f => f.Name, f => InjectServices(serviceProvider, f.Services, fieldParamValues, f.GetNodeExpression(contextValue, serviceProvider), fieldParams, replacer));
                         var selectionParams = new List<ParameterExpression> { selectionFields.First().FieldParameter };
                         selectionParams.AddRange(selectionFields.SelectMany(f => f.ConstantParameters.Keys));
                         var selectionParamValues = new List<object>(selectionFields.SelectMany(f => f.ConstantParameters.Values));
-                        updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams, selectionFields, selectionParamValues);
+                        selectionParamValues.AddRange(fieldParamValues);
+                        selectionParams.AddRange(fieldParams);
+                        updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams, selectionExpressions, selectionParamValues);
 
                         nodeExpression = updatedExpression;
                     }
                     else
                     {
                         // build a new {...} - returning a single object {}
-                        var newExp = ExpressionUtil.CreateNewExpression(selectionFields);
+                        var newExp = ExpressionUtil.CreateNewExpression(selectionFields, serviceProvider);
                         var anonType = newExp.Type;
                         // make a null check from this new expression
                         newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
@@ -241,6 +243,10 @@ namespace EntityGraphQL.Compiler
         {
             var allArgs = new List<object> { context };
 
+            // should only be calling Execute at the top level
+            var contextParam = FieldParameter;
+            var parameters = new List<ParameterExpression> { contextParam };
+
             // build this first as NodeExpression may modify ConstantParameters
             var expression = GetNodeExpression(context, serviceProvider);
 
@@ -250,15 +256,11 @@ namespace EntityGraphQL.Compiler
                 expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
             }
 
-            var parameters = new List<ParameterExpression> { FieldParameter };
-            // should only be calling Execute at the top level
-            var contextParam = FieldParameter;
-
             var replacer = new ParameterReplacer();
             // inject dependencies
             if (services != null)
             {
-                expression = InjectServices(context, serviceProvider, allArgs, expression, parameters, contextParam, replacer);
+                expression = InjectServices(serviceProvider, services, allArgs, expression, parameters, replacer);
             }
 
             if (constantParameters.Any())
@@ -275,23 +277,20 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()));
         }
 
-        private ExpressionResult InjectServices<TContext>(TContext context, IServiceProvider serviceProvider, List<object> allArgs, ExpressionResult expression, List<ParameterExpression> parameters, ParameterExpression contextParam, ParameterReplacer replacer)
+        private static ExpressionResult InjectServices(IServiceProvider serviceProvider, IEnumerable<Type> services, List<object> allArgs, ExpressionResult expression, List<ParameterExpression> parameters, ParameterReplacer replacer)
         {
             foreach (var serviceType in services.Distinct())
             {
-                if (serviceType == context.GetType())
+                var srvParam = parameters.FirstOrDefault(p => p.Type == serviceType);
+                if (srvParam == null)
                 {
-                    // inject the current context. As ReplaceByType will replace the context param too!
-                    expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, contextParam);
-                }
-                else
-                {
-                    var srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
-                    expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, srvParam);
+                    srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
                     parameters.Add(srvParam);
                     var service = serviceProvider.GetService(serviceType);
                     allArgs.Add(service);
                 }
+
+                expression = (ExpressionResult)replacer.ReplaceByType(expression, serviceType, srvParam);
             }
 
             return expression;
