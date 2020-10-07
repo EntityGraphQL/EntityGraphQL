@@ -35,7 +35,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(new EntityPager());
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
-            Assert.Empty(res.Errors);
+            Assert.Null(res.Errors);
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(new EntityPager());
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
-            Assert.Empty(res.Errors);
+            Assert.Null(res.Errors);
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(context);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
-            Assert.Empty(res.Errors);
+            Assert.Null(res.Errors);
         }
 
         public class EntityPager

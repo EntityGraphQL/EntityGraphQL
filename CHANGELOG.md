@@ -1,3 +1,7 @@
+# 0.67.0
+*Breaking changes*
+- errors property on query result should not be present on the response if there are no errors per the graphQL specification.
+
 # 0.66.1
 - Fix bug with using `WithService()` when you require the schema context service again to create a link between services
 

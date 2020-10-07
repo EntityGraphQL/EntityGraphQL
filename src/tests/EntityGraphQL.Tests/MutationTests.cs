@@ -108,7 +108,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
-            Assert.Empty(addPersonResult.Errors);
+            Assert.Null(addPersonResult.Errors);
             addPersonResult = Enumerable.First(addPersonResult.Data);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
