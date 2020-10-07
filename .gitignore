@@ -12,4 +12,10 @@ obj/
 # Visual Studio 2015 cache/options directory
 .vs/
 
+# Visual Studio Launch Settings
+**/Properties/launchSettings.json
+
 node_modules/
+
+# Database files
+*.db
