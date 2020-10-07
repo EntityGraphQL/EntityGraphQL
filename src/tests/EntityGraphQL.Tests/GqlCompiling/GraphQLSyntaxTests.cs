@@ -28,6 +28,22 @@ namespace EntityGraphQL.Tests.GqlCompiling
         }
 
         [Fact]
+        public async void SupportsOptionalCommaInFieldList()
+        {
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"query {
+	people { id, name }
+}").Operations.First();
+            Assert.Single(tree.QueryFields);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
+            Assert.Equal(1, Enumerable.Count(result.people));
+            var person = Enumerable.ElementAt(result.people, 0);
+            // we only have the fields requested
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
         public async void SupportsArguments()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
@@ -35,6 +51,42 @@ namespace EntityGraphQL.Tests.GqlCompiling
             schemaProvider.AddField("user", new { id = Required<int>() }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
 	user(id: 1) { id }
+}").Operations.First();
+            // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
+            Assert.Single(tree.QueryFields);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
+            // we only have the fields requested
+            Assert.Equal(1, result.user.GetType().GetFields().Length);
+            Assert.Equal("id", result.user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, result.user.id);
+        }
+
+        [Fact]
+        public async void SupportsManyArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            // Add a argument field with a require parameter
+            schemaProvider.AddField("user", new { id = Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+	user(id: 1, something: false) { id }
+}").Operations.First();
+            // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
+            Assert.Single(tree.QueryFields);
+            dynamic result = await tree.ExecuteAsync(new TestSchema(), new GraphQLValidator(), null);
+            // we only have the fields requested
+            Assert.Equal(1, result.user.GetType().GetFields().Length);
+            Assert.Equal("id", result.user.GetType().GetFields()[0].Name);
+            Assert.Equal(1, result.user.id);
+        }
+
+        [Fact]
+        public async void SupportsManyArgumentsOptionalComma()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            // Add a argument field with a require parameter
+            schemaProvider.AddField("user", new { id = Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+	user(id: 1 something: false) { id }
 }").Operations.First();
             // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
             Assert.Single(tree.QueryFields);

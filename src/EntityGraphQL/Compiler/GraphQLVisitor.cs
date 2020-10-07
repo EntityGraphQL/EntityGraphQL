@@ -177,6 +177,10 @@ namespace EntityGraphQL.Compiler
             if (context.gqlVar() != null)
             {
                 string varKey = context.gqlVar().GetText().TrimStart('$');
+                if (variables == null)
+                {
+                    throw new EntityGraphQLCompilerException($"Missing variable {varKey}");
+                }
                 object value = variables.GetValueFor(varKey);
                 gqlVarValue = (ExpressionResult)Expression.Constant(value);
             }

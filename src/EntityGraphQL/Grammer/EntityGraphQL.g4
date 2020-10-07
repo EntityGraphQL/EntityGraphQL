@@ -44,8 +44,8 @@ mutationKeyword: 'mutation';
 subscriptionKeyword: 'subscription';
 
 gqlCall: '(' ws* gqlarguments = gqlargs ws* ')';
-gqlargs: gqlarg (ws* ',' ws* gqlarg)*;
-gqlTypeDefs: gqlTypeDef (',' ws* gqlTypeDef)*;
+gqlargs: gqlarg (ws* ','? ws* gqlarg)*;
+gqlTypeDefs: gqlTypeDef (','? ws* gqlTypeDef)*;
 gqlTypeDef:
 	gqlVar ws* ':' ws* (type = identity | arrayType = varArray) required = '!'? (
 		ws* '=' ws* defaultValue = constant

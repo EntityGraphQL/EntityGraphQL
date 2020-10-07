@@ -1,4 +1,6 @@
 # 0.67.0
+- As per GraphQL spec commas are optional (previously EntityGraphQL expected them in field/mutation arguments)
+
 *Breaking changes*
 - errors property on query result should not be present on the response if there are no errors per the graphQL specification.
 
