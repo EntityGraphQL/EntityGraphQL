@@ -124,7 +124,7 @@ namespace EntityGraphQL.Schema
             catch (Exception ex)
             {
                 // error with the whole query
-                result = new QueryResult { Errors = { new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message) } };
+                result = new QueryResult(new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message));
             }
 
             return result;

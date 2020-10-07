@@ -84,7 +84,7 @@ namespace EntityGraphQL.Compiler
             }
 
             if (validator.Errors.Count > 0)
-                result.Errors.AddRange(validator.Errors);
+                result.AddErrors(validator.Errors);
 
             return result;
         }
