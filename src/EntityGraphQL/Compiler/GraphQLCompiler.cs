@@ -60,17 +60,17 @@ namespace EntityGraphQL.Compiler
                 {
                     if (pce.InnerException is NoViableAltException nve)
                     {
-                        throw new EntityGraphQLCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'");
+                        throw new EntityGraphQLCompilerException($"Error: line {nve.OffendingToken.Line}:{nve.OffendingToken.Column} no viable alternative at input '{nve.OffendingToken.Text}'", pce);
                     }
                     else if (pce.InnerException is InputMismatchException ime)
                     {
                         var expecting = string.Join(", ", ime.GetExpectedTokens());
-                        throw new EntityGraphQLCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}");
+                        throw new EntityGraphQLCompilerException($"Error: line {ime.OffendingToken.Line}:{ime.OffendingToken.Column} extraneous input '{ime.OffendingToken.Text}' expecting {expecting}", pce);
                     }
                     System.Console.WriteLine(pce.InnerException.GetType());
-                    throw new EntityGraphQLCompilerException(pce.InnerException.Message);
+                    throw new EntityGraphQLCompilerException(pce.InnerException.Message, pce);
                 }
-                throw new EntityGraphQLCompilerException(pce.Message);
+                throw new EntityGraphQLCompilerException(pce.Message, pce);
             }
         }
     }

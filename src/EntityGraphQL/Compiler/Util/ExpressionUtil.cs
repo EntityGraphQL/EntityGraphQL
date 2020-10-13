@@ -16,9 +16,9 @@ namespace EntityGraphQL.Compiler.Util
             {
                 return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}");
+                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}", ex);
             }
         }
 
@@ -29,9 +29,9 @@ namespace EntityGraphQL.Compiler.Util
             {
                 return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}");
+                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}", ex);
             }
         }
 

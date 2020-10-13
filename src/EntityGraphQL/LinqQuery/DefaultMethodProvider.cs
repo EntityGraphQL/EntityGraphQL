@@ -180,9 +180,9 @@ namespace EntityGraphQL.LinqQuery
                 {
                     return (ExpressionResult)Expression.Convert(argExp, expected);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'");
+                    throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'", ex);
                 }
             }
             return argExp;

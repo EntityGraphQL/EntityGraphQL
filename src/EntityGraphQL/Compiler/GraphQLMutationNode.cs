@@ -41,7 +41,7 @@ namespace EntityGraphQL.Compiler
             }
             catch (EntityQuerySchemaException e)
             {
-                throw new EntityQuerySchemaException($"Error applying mutation: {e.Message}");
+                throw new EntityQuerySchemaException($"Error applying mutation: {e.Message}", e);
             }
         }
 
