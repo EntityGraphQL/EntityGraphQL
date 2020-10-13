@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Authorization;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
@@ -71,8 +70,8 @@ namespace EntityGraphQL.Schema
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
-                    ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member) || ReturnType.TypeNotNullable;
-                    ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member) || ReturnType.ElementTypeNullable;
+                    ReturnType.TypeNotNullable = ((MemberExpression)resolve.Body).Member.HasRequiredAttribute() || ReturnType.TypeNotNullable;
+                    ReturnType.ElementTypeNullable = ((MemberExpression)resolve.Body).Member.HasRequiredAttribute() || ReturnType.ElementTypeNullable;
                 }
             }
         }

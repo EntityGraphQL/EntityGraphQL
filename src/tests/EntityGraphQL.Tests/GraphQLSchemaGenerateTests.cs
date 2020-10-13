@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.ComponentModel.DataAnnotations;
 
 namespace EntityGraphQL.Tests
 {
@@ -225,7 +226,7 @@ namespace EntityGraphQL.Tests
 
     public class MovieArgs
     {
-        [GraphQLNotNull]
+        [Required]
         public string Name { get; set; }
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public string Hidden { get; set; }
@@ -243,7 +244,7 @@ namespace EntityGraphQL.Tests
         [GraphQLIgnore(GraphQLIgnoreType.Query)]
         public List<Movie> Movies { get; set; }
         public List<Album> Albums { get; set; }
-        [GraphQLElementTypeNullable]
+        [Required]
         public List<Album> NullAlbums { get; set; }
         public List<Artist> Artists { get; set; }
     }
@@ -261,13 +262,13 @@ namespace EntityGraphQL.Tests
     public class Album
     {
         public int Id { get; set; }
-        [GraphQLNotNull]
+        [Required]
         public string Name { get; set; }
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public string HiddenInputField { get; set; }
         [GraphQLIgnore(GraphQLIgnoreType.All)] // default
         public string HiddenAllField { get; set; }
-        [GraphQLNotNull]
+        [Required]
         public Genre Genre { get; set; }
     }
 

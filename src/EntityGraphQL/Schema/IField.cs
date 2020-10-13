@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using EntityGraphQL.Extensions;
 
@@ -141,9 +140,9 @@ namespace EntityGraphQL.Schema
                 Name = field.Name,
             };
 
-            arg.Type.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field)
+            arg.Type.TypeNotNullable = field.HasRequiredAttribute()
                 || arg.Type.TypeNotNullable
-                || field.GetCustomAttribute(typeof(RequiredAttribute), false) != null;
+                || field.HasRequiredAttribute(false);
             if (markedRequired)
                 arg.Type.TypeNotNullable = true;
 

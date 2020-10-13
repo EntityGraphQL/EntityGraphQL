@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using EntityGraphQL.Schema;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace demo
@@ -76,9 +76,9 @@ namespace demo
     public class Person
     {
         public uint Id { get; set; }
-        [GraphQLNotNull]
+        [Required]
         public string FirstName { get; set; }
-        [GraphQLNotNull]
+        [Required]
         public string LastName { get; set; }
         public DateTime Dob { get; set; }
         public List<Actor> ActorIn { get; set; }

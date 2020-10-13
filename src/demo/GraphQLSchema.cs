@@ -4,6 +4,7 @@ using System.Linq;
 using demo.Mutations;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
+using System.ComponentModel.DataAnnotations;
 
 namespace demo
 {
@@ -89,11 +90,11 @@ namespace demo
 
     public class Pagination<TEntity>
     {
-        [GraphQLNotNull]
+        [Required]
         public IQueryable<TEntity> Items { get; set; }
-        [GraphQLNotNull]
+        [Required]
         public int Total { get; set; }
-        [GraphQLNotNull]
+        [Required]
 
         public int PageCount { get; set; }
     }

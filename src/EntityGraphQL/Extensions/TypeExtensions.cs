@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace EntityGraphQL.Extensions
 {
@@ -87,5 +88,9 @@ namespace EntityGraphQL.Extensions
         {
             return t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
+
+        public static bool HasRequiredAttribute(this MemberInfo prop) => prop.GetCustomAttribute(typeof(RequiredAttribute)) != null;
+        public static bool HasRequiredAttribute(this MemberInfo prop, bool inherit) => prop.GetCustomAttribute(typeof(RequiredAttribute), inherit) != null;
+
     }
 }
