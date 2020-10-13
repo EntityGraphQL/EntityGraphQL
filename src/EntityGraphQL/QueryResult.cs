@@ -1,21 +1,47 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace EntityGraphQL
 {
     public class QueryResult
     {
+        private List<GraphQLError> errors = null;
         [JsonProperty("errors")]
-        public List<GraphQLError> Errors => (List<GraphQLError>)dataResults["errors"];
+        public ReadOnlyCollection<GraphQLError> Errors => errors?.AsReadOnly();
         [JsonProperty("data")]
-        public ConcurrentDictionary<string, object> Data => (ConcurrentDictionary<string, object>)dataResults["data"];
-        private readonly ConcurrentDictionary<string, object> dataResults = new ConcurrentDictionary<string, object>();
+        public readonly ConcurrentDictionary<string, object> Data = new ConcurrentDictionary<string, object>();
 
-        public QueryResult()
+        public QueryResult() { }
+        public QueryResult(GraphQLError error)
         {
-            dataResults["errors"] = new List<GraphQLError>();
-            dataResults["data"] = new ConcurrentDictionary<string, object>();
+            errors = new List<GraphQLError> { error };
+        }
+        public QueryResult(IEnumerable<GraphQLError> errors)
+        {
+            this.errors = errors.ToList();
+        }
+
+        public void AddError(GraphQLError error)
+        {
+            if (errors == null)
+            {
+                errors = new List<GraphQLError>();
+            }
+
+            errors.Add(error);
+        }
+
+        public void AddErrors(IEnumerable<GraphQLError> errors)
+        {
+            if (errors == null)
+            {
+                errors = new List<GraphQLError>();
+            }
+
+            this.errors.AddRange(errors);
         }
     }
 }

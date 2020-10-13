@@ -30,7 +30,8 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public List<GraphQLQueryNode> Operations { get; }
-        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
+        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public IEnumerable<Type> Services => throw new NotImplementedException();
 
         public GraphQLResultNode()
         {
@@ -83,7 +84,7 @@ namespace EntityGraphQL.Compiler
             }
 
             if (validator.Errors.Count > 0)
-                result.Errors.AddRange(validator.Errors);
+                result.AddErrors(validator.Errors);
 
             return result;
         }

@@ -13,6 +13,7 @@ namespace EntityGraphQL.Compiler
         string Name { get; set; }
         IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; }
         ParameterExpression FieldParameter { get; }
+        IEnumerable<Type> Services { get; }
 
         /// <summary>
         /// Get the expression that would create this node. E.g. it may be db => db.Movies.Where(...) or a field selection movie => movie.Name

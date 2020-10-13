@@ -289,9 +289,7 @@ namespace EntityGraphQL.Compiler
                 // }
                 // by wrapping the whole thing in a method that does the null check once.
                 // This means we build the fieldExpressions on a parameter of the result type
-                // We can only do that if it doesn't use the oldContext unless the oldContext is the root context
-                // i.e we can't do this on a field on a type because we don't have that value as it might be a selection from an ORM
-                bool wrapField = (oldContext.Type == schemaProvider.ContextType || oldContext.NodeType == ExpressionType.Parameter) && currentExpressionContext.Services.Any();
+                bool wrapField = currentExpressionContext.Services.Any();
                 if (wrapField)
                 {
                     // replace with a parameter. The expression is compiled at execution time once
@@ -390,7 +388,7 @@ namespace EntityGraphQL.Compiler
             {
                 return new GraphQLOperation();
             }
-            var visitor = new OperationVisitor(variables, schemaProvider, claims);
+            var visitor = new OperationVisitor(variables, schemaProvider);
             var op = visitor.Visit(context);
 
             return op;

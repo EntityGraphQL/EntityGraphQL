@@ -27,25 +27,27 @@ namespace EntityGraphQL.Compiler
     {
         private readonly string name;
 
-        public ParameterExpression FieldParameter => throw new System.NotImplementedException();
+        public ParameterExpression FieldParameter => throw new NotImplementedException();
 
         public GraphQLFragmentSelect(string name)
         {
             this.name = name;
         }
 
-        public string Name { get { return this.name; } set => throw new System.NotImplementedException(); }
+        public string Name { get { return name; } set => throw new NotImplementedException(); }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
+        public IEnumerable<Type> Services => throw new NotImplementedException();
+
         public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void SetCombineExpression(Expression item2)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void SetNodeExpression(ExpressionResult expressionResult)

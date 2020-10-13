@@ -93,7 +93,7 @@ namespace EntityGraphQL.Tests
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type") }, "authed");
             result = schema.ExecuteQuery(gql, new ClaimsDataContext(), null, claims);
 
-            Assert.Empty(result.Errors);
+            Assert.Null(result.Errors);
         }
 
         [Fact]
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteQuery(gql, new ClaimsDataContext(), null, claims);
 
-            Assert.Empty(result.Errors);
+            Assert.Null(result.Errors);
         }
 
         [Fact]
@@ -139,7 +139,7 @@ namespace EntityGraphQL.Tests
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteQuery(gql, new ClaimsDataContext(), null, claims);
 
-            Assert.Empty(result.Errors);
+            Assert.Null(result.Errors);
         }
 
         internal class ClaimsDataContext

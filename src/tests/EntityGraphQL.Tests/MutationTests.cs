@@ -108,7 +108,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             dynamic addPersonResult = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
-            Assert.Empty(addPersonResult.Errors);
+            Assert.Null(addPersonResult.Errors);
             addPersonResult = Enumerable.First(addPersonResult.Data);
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
@@ -171,7 +171,7 @@ namespace EntityGraphQL.Tests
     }
 
 
-    internal class User
+    public class User
     {
         public int Id { get { return 100; } }
         public int Field1 { get { return 2; } }
