@@ -210,7 +210,7 @@ namespace EntityGraphQL.Schema
                 if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
                 {
                     var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
-                    string name = SchemaGenerator.ToCamelCaseStartsLower(method.Name);
+                    string name = this.SchemaFieldNamer(method);
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
                     var requiredClaims = new RequiredClaims(claims);
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
@@ -278,7 +278,7 @@ namespace EntityGraphQL.Schema
         public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            return AddField(SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name), selection, description, returnSchemaType);
+            return AddField(this.SchemaFieldNamer(exp.Member), selection, description, returnSchemaType);
         }
 
         /// <summary>
@@ -297,7 +297,7 @@ namespace EntityGraphQL.Schema
         public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            var name = SchemaGenerator.ToCamelCaseStartsLower(exp.Member.Name);
+            var name = this.SchemaFieldNamer(exp.Member);
             Type<TContextType>().RemoveField(name);
             return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
