@@ -12,6 +12,7 @@ namespace EntityGraphQL.Schema
 {
     public class MutationType : IField
     {
+        private readonly ISchemaProvider schema;
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private readonly Dictionary<string, ArgType> argumentTypes = new Dictionary<string, ArgType>();
@@ -90,7 +91,7 @@ namespace EntityGraphQL.Schema
                 var foundProp = false;
                 foreach (var prop in argType.GetProperties())
                 {
-                    var propName = SchemaGenerator.ToCamelCaseStartsLower(prop.Name);
+                    var propName = schema.SchemaFieldNamer(prop);
                     if (key == propName)
                     {
                         object value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
@@ -102,7 +103,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var field in argType.GetFields())
                     {
-                        var fieldName = SchemaGenerator.ToCamelCaseStartsLower(field.Name);
+                        var fieldName = schema.SchemaFieldNamer(field);
                         if (key == fieldName)
                         {
                             object value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
@@ -156,6 +157,7 @@ namespace EntityGraphQL.Schema
 
         public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync, Func<MemberInfo, string> fieldNamer)
         {
+            this.schema = schema;
             Description = description;
             ReturnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
