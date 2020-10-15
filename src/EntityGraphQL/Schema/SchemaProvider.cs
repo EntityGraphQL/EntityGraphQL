@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
     /// <typeparam name="TContextType">Base object graph. Ex. DbContext</typeparam>
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
-        public Func<MemberInfo, string> SchemaFieldNamer { get; }
+        public Func<string, string> SchemaFieldNamer { get; }
         protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
         protected Dictionary<string, MutationType> mutations = new Dictionary<string, MutationType>();
         protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>
@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
         /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
-        public SchemaProvider(Func<MemberInfo, string> fieldNamer = null)
+        public SchemaProvider(Func<string, string> fieldNamer = null)
         {
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
             // default GQL scalar types
@@ -210,7 +210,7 @@ namespace EntityGraphQL.Schema
                 if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
                 {
                     var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
-                    string name = this.SchemaFieldNamer(method);
+                    string name = SchemaFieldNamer(method.Name);
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
                     var requiredClaims = new RequiredClaims(claims);
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
@@ -270,7 +270,7 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a field to the root type. This is where you define top level objects/names that you can query.
-        /// The name defaults to the MemberExpression from selection modified to lowerCamelCase
+        /// The name defaults to the MemberExpression from selection modified by the FieldNamer
         /// </summary>
         /// <param name="selection"></param>
         /// <param name="description"></param>
@@ -278,7 +278,7 @@ namespace EntityGraphQL.Schema
         public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            return AddField(this.SchemaFieldNamer(exp.Member), selection, description, returnSchemaType);
+            return AddField(SchemaFieldNamer(exp.Member.Name), selection, description, returnSchemaType);
         }
 
         /// <summary>
@@ -297,7 +297,7 @@ namespace EntityGraphQL.Schema
         public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
-            var name = this.SchemaFieldNamer(exp.Member);
+            var name = SchemaFieldNamer(exp.Member.Name);
             Type<TContextType>().RemoveField(name);
             return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }

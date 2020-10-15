@@ -56,7 +56,7 @@ type RootQuery {{
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"\"\"{EscapeString(item.Description)}\"\"\"");
 
-                mutations.AppendLine($"\t{ToCamelCaseStartsLower(item.Name)}{GetGqlArgs(item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
+                mutations.AppendLine($"\t{schema.SchemaFieldNamer(item.Name)}{GetGqlArgs(schema, item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
             }
 
             return mutations.ToString();
@@ -113,7 +113,7 @@ type RootQuery {{
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
-                    types.AppendLine($"\t{ToCamelCaseStartsLower(field.Name)}{GetGqlArgs(field)}: {field.ReturnType.GqlTypeForReturnOrArgument}");
+                    types.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}");
                 }
                 types.AppendLine("}");
             }
@@ -121,12 +121,12 @@ type RootQuery {{
             return types.ToString();
         }
 
-        private static object GetGqlArgs(IField field, string noArgs = "")
+        private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
         {
             if (field.Arguments == null || !field.Arguments.Any())
                 return noArgs;
 
-            var all = field.Arguments.Select(f => ToCamelCaseStartsLower(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
+            var all = field.Arguments.Select(f => schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
 
             var args = string.Join(", ", all);
             return string.IsNullOrEmpty(args) ? "" : $"({args})";
@@ -142,15 +142,10 @@ type RootQuery {{
                     continue;
                 if (!string.IsNullOrEmpty(t.Description))
                     sb.AppendLine($"\t\"\"\"{EscapeString(t.Description)}\"\"\"");
-                sb.AppendLine($"\t{ToCamelCaseStartsLower(t.Name)}{GetGqlArgs(t)}: {t.ReturnType.GqlTypeForReturnOrArgument}");
+                sb.AppendLine($"\t{schema.SchemaFieldNamer(t.Name)}{GetGqlArgs(schema, t)}: {t.ReturnType.GqlTypeForReturnOrArgument}");
             }
 
             return sb.ToString();
-        }
-
-        public static string ToCamelCaseStartsLower(string name)
-        {
-            return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
         }
     }
 }

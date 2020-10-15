@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; }
 
-        public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider)
+        public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
             // args in the mutation method
             var allArgs = new List<object>();
@@ -37,7 +37,7 @@ namespace EntityGraphQL.Schema
             if (gqlRequestArgs != null)
             {
                 // second arg is the arguments for the mutation - required as last arg in the mutation method
-                argInstance = AssignArgValues(gqlRequestArgs);
+                argInstance = AssignArgValues(gqlRequestArgs, fieldNamer);
                 VaildateModelBinding(argInstance, validator);
                 if (validator.Errors.Any())
                     return null;
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        private object AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs)
+        private object AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs, Func<string, string> fieldNamer)
         {
             var argInstance = Activator.CreateInstance(this.argInstanceType);
             Type argType = this.argInstanceType;
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Schema
                 var foundProp = false;
                 foreach (var prop in argType.GetProperties())
                 {
-                    var propName = schema.SchemaFieldNamer(prop);
+                    var propName = fieldNamer(prop.Name);
                     if (key == propName)
                     {
                         object value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
@@ -103,7 +103,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var field in argType.GetFields())
                     {
-                        var fieldName = schema.SchemaFieldNamer(field);
+                        var fieldName = fieldNamer(field.Name);
                         if (key == fieldName)
                         {
                             object value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
@@ -155,7 +155,7 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync, Func<MemberInfo, string> fieldNamer)
+        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync, Func<string, string> fieldNamer)
         {
             this.schema = schema;
             Description = description;
@@ -174,13 +174,13 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(fieldNamer(item), ArgType.FromProperty(schema, item));
+                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item));
                 }
                 foreach (var item in argInstanceType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(fieldNamer(item), ArgType.FromField(schema, item));
+                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromField(schema, item));
                 }
             }
         }

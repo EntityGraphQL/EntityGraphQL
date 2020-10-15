@@ -270,7 +270,7 @@
                     DeprecationReason = "",
                     Description = field.Description,
                     IsDeprecated = false,
-                    Name = SchemaGenerator.ToCamelCaseStartsLower(field.Name),
+                    Name = schema.SchemaFieldNamer(field.Name),
                     Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                 });
             }

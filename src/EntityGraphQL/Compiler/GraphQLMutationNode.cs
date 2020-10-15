@@ -15,6 +15,7 @@ namespace EntityGraphQL.Compiler
         private readonly MutationType mutationType;
         private readonly Dictionary<string, ExpressionResult> args;
         private readonly GraphQLQueryNode resultSelection;
+        private readonly Func<string, string> fieldNamer;
 
         public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
         public ParameterExpression FieldParameter => throw new NotImplementedException();
@@ -22,11 +23,12 @@ namespace EntityGraphQL.Compiler
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 
-        public GraphQLMutationNode(MutationType mutationType, Dictionary<string, ExpressionResult> args, GraphQLQueryNode resultSelection)
+        public GraphQLMutationNode(MutationType mutationType, Dictionary<string, ExpressionResult> args, GraphQLQueryNode resultSelection, Func<string, string> fieldNamer)
         {
             this.mutationType = mutationType;
             this.args = args;
             this.resultSelection = resultSelection;
+            this.fieldNamer = fieldNamer;
         }
 
         public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
@@ -34,11 +36,11 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        private async Task<object> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
+        private async Task<object> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
             try
             {
-                return await mutationType.CallAsync(context, args, validator, serviceProvider);
+                return await mutationType.CallAsync(context, args, validator, serviceProvider, fieldNamer);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -56,7 +58,7 @@ namespace EntityGraphQL.Compiler
         public override async Task<object> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
             // run the mutation to get the context for the query select
-            var result = await ExecuteMutationAsync(context, validator, serviceProvider);
+            var result = await ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer);
             if (result == null)
                 return null;
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))

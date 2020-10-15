@@ -28,7 +28,10 @@ namespace EntityGraphQL.Schema
             "String",
             "Byte[]"
         };
-        public static readonly Func<MemberInfo, string> DefaultNamer = mi => SchemaGenerator.ToCamelCaseStartsLower(mi.Name);
+        public static readonly Func<string, string> DefaultNamer = name =>
+        {
+            return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
+        };
 
         public static SchemaProvider<TContext> Create<TContext>()
         {
@@ -42,7 +45,7 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
         {
             var schema = new SchemaProvider<TContextType>(fieldNamer ?? DefaultNamer);
             return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
@@ -56,7 +59,7 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<MemberInfo, string> fieldNamer = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
         {
             if (fieldNamer == null)
                 fieldNamer = DefaultNamer;
@@ -115,7 +118,7 @@ namespace EntityGraphQL.Schema
             schema.AddField(field);
         }
 
-        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<MemberInfo, string> fieldNamer, bool createNewComplexTypes = true)
+        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<string, string> fieldNamer, bool createNewComplexTypes = true)
         {
             if (fieldNamer == null)
                 fieldNamer = DefaultNamer;
@@ -141,7 +144,7 @@ namespace EntityGraphQL.Schema
             return fields;
         }
 
-        private static Field ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<MemberInfo, string> fieldNamer)
+        private static Field ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
             {
@@ -165,11 +168,11 @@ namespace EntityGraphQL.Schema
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
-            var f = new Field(fieldNamer(prop), le, description, returnTypeInfo, requiredClaims);
+            var f = new Field(fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
             return f;
         }
 
-        private static ISchemaType CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<MemberInfo, string> fieldNamer)
+        private static ISchemaType CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
             if (propType.IsEnumerableOrArray())
             {
