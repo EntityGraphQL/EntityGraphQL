@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -65,7 +65,19 @@ namespace EntityGraphQL.Compiler.Util
                     return int.Parse((string)value);
                 if (type == typeof(uint) || type == typeof(Nullable<uint>))
                     return uint.Parse((string)value);
+                if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
+                    return DateTime.Parse((string)value);
+                if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
+                    return DateTimeOffset.Parse((string)value);
             }
+            else if (type != typeof(long) && objType == typeof(long))
+            {
+                if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
+                    return new DateTime((long)value);
+                if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
+                    return new DateTimeOffset((long)value, TimeSpan.Zero);
+            }
+
             var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
             var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
             if (argumentNonNullType.GetTypeInfo().IsEnum)
