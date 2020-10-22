@@ -1,6 +1,7 @@
 # 0.68.0
 - Fix issue where `FieldNamer` was not being consistently used. Thanks @AnderssonPeter
 - Make sure we include inner exceptions on errors. Thanks @AnderssonPeter
+- Added string and long parsing for DateTime and DateTimeOffset. Thanks @GravlLift
 
 # 0.67.0
 - As per GraphQL spec commas are optional (previously EntityGraphQL expected them in field/mutation arguments)
