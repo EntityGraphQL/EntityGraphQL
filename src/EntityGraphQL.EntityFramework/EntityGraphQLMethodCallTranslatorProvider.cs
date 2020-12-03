@@ -2,17 +2,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace EntityGraphQL.EntityFramework.Extensions
 {
     /// <summary>
-    /// Tell EF how to translate the WhereWhen which is just selectively passing through the predicate expression
+    /// This is where we can collect all our method translators
     /// </summary>
-    public class WhereWhenMethodCallTranslator : IMethodCallTranslator
+    public class EntityGraphQLMethodCallTranslatorProvider : IMethodCallTranslatorProvider
     {
-        public SqlExpression Translate(SqlExpression instance, MethodInfo method, IReadOnlyList<SqlExpression> arguments)
+        public SqlExpression Translate(IModel model, SqlExpression instance, MethodInfo method, IReadOnlyList<SqlExpression> arguments)
         {
             if (method.Name != "WhereWhen")// || method.DeclaringType != typeof(LinqExtensions))
                 return null;

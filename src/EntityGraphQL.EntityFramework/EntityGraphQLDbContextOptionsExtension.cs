@@ -31,7 +31,7 @@ namespace EntityGraphQL.EntityFramework.Extensions
 
         public void ApplyServices(IServiceCollection services)
         {
-            services.AddSingleton<IMethodCallTranslatorPlugin, EntityGraphQLMethodCallTranslatorPlugin>();
+            services.AddSingleton<IMethodCallTranslatorProvider, EntityGraphQLMethodCallTranslatorProvider>();
         }
 
         public void Validate(IDbContextOptions options)

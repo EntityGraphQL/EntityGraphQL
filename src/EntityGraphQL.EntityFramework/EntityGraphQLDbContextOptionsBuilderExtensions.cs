@@ -24,21 +24,5 @@ namespace EntityGraphQL.EntityFramework.Extensions
 
             return optionsBuilder;
         }
-
-        public static ModelBuilder AddEntityGraphQLSupport(this ModelBuilder modelBuilder)
-        {
-            modelBuilder.HasDbFunction(whereWhenMethod)
-                        .HasTranslation(expressions =>
-                                     {
-                                         var apply = Expression.Lambda(expressions.Last()).Compile().DynamicInvoke() as bool?;
-                                         if (apply.HasValue && apply.Value == true)
-                                         {
-                                             return expressions.ElementAt(1);
-                                         }
-                                         return expressions.First();
-                                     });
-
-            return modelBuilder;
-        }
     }
 }
