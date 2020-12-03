@@ -43,9 +43,11 @@ namespace EntityGraphQL.Compiler
             var stream = new AntlrInputStream(request.Query);
             var lexer = new EntityGraphQLLexer(stream);
             var tokens = new CommonTokenStream(lexer);
-            var parser = new EntityGraphQLParser(tokens);
-            parser.BuildParseTree = true;
-            parser.ErrorHandler = new BailErrorStrategy();
+            var parser = new EntityGraphQLParser(tokens)
+            {
+                BuildParseTree = true,
+                ErrorHandler = new BailErrorStrategy()
+            };
             try
             {
                 var tree = parser.graphQL();

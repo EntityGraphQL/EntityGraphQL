@@ -30,6 +30,12 @@ namespace demo
             // demoSchema.Type<Person>().AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
             // AgeService needs to be added to the ServiceProvider
             demoSchema.Type<Person>().AddField("age", person => ArgumentHelper.WithService((AgeService ageService) => ageService.Calc(person)), "Show the person's age");
+            demoSchema.Type<Person>().AddField("filteredDirectorOf", new
+            {
+                filter = ArgumentHelper.EntityQuery<Movie>()
+            },
+            (person, args) => person.DirectorOf.WhereWhen(args.filter, args.filter.HasValue).OrderBy(a => a.Name),
+            "Get Director of based on filter");
 
             // replace fields. e.g. remove a many-to-many relationships
             demoSchema.Type<Movie>().ReplaceField("actors", m => m.Actors.Select(a => a.Person), "Actors in the movie");

@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
       name @include(if: $include)
     }
 }",
-                Variables = new QueryVariables { {"include", true} }
+                Variables = new QueryVariables { { "include", true } }
             };
             var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
@@ -113,7 +113,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
       name @skip(if: $skip)
     }
 }",
-                Variables = new QueryVariables { {"skip", true} }
+                Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
 
-        [Fact(Skip="Not implemented yet")]
+        [Fact(Skip = "Not implemented yet")]
         public void TestDirectiveOnResult()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
@@ -133,7 +133,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
       birthday @format(as: ""MMM"")
     }
 }",
-                Variables = new QueryVariables { {"skip", true} }
+                Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];

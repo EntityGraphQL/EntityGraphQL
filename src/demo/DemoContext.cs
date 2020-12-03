@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using EntityGraphQL.EntityFramework.Extensions;
 using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,14 @@ namespace demo
         public DemoContext(DbContextOptions<DemoContext> opts) : base(opts)
         {
         }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+
+            optionsBuilder.AddEntityGraphQLExtensions();
+        }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
