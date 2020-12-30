@@ -25,6 +25,7 @@ namespace EntityGraphQL.Tests
         public Guid Guid { get; set; }
         public string Name { get; set; }
         public string LastName { get; set; }
+        public Person Manager { get; set; }
         public Gender Gender { get; set; }
         public List<Project> Projects { get; set; }
         public List<Task> Tasks { get; set; }

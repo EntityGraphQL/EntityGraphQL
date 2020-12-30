@@ -20,6 +20,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
         public ParameterExpression FieldParameter => throw new NotImplementedException();
         public IEnumerable<Type> Services => throw new NotImplementedException();
+        public bool HasWrappedService { get; } = false;
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 
@@ -155,6 +156,10 @@ namespace EntityGraphQL.Compiler
         public void SetCombineExpression(Expression item2)
         {
             throw new NotImplementedException();
+        }
+        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        {
+            return new List<IGraphQLBaseNode>();
         }
     }
 }

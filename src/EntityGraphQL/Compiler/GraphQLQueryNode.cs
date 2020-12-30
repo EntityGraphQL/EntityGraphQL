@@ -82,7 +82,7 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public bool IsWrapped { get; internal set; }
+        public bool HasWrappedService { get; internal set; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -173,11 +173,11 @@ namespace EntityGraphQL.Compiler
                 if (isSelectOnList)
                 {
                     // build a .Select(...) - returning a list<>
-                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionContext.AsParameter(), fieldExpression, selectionFields, serviceProvider);
+                    nodeExpression = (ExpressionResult)ExpressionUtil.SelectDynamicToList(selectionContext.AsParameter(), fieldExpression, selectionFields, serviceProvider, replacer);
                 }
                 else
                 {
-                    if (IsWrapped)
+                    if (HasWrappedService)
                     {
                         // selectionFields is set up but we need to wrap
                         // we wrap here as we have access to the values and services etc
@@ -188,11 +188,13 @@ namespace EntityGraphQL.Compiler
 
                         // we need to make sure the wrap can resolve any services in the select
                         var selectionExpressions = selectionFields.ToDictionary(f => f.Name, f => InjectServices(serviceProvider, f.Services, fieldParamValues, f.GetNodeExpression(contextValue, serviceProvider), fieldParams, replacer));
+                        // This is the var the we use in the select - the result of the service at runtime
                         var selectionParams = new List<ParameterExpression> { selectionFields.First().FieldParameter };
                         selectionParams.AddRange(selectionFields.SelectMany(f => f.ConstantParameters.Keys));
                         var selectionParamValues = new List<object>(selectionFields.SelectMany(f => f.ConstantParameters.Values));
                         selectionParamValues.AddRange(fieldParamValues);
                         selectionParams.AddRange(fieldParams);
+
                         updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams, selectionExpressions, selectionParamValues);
 
                         nodeExpression = updatedExpression;
@@ -241,40 +243,47 @@ namespace EntityGraphQL.Compiler
 
         public override Task<object> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider)
         {
-            var allArgs = new List<object> { context };
-
-            // should only be calling Execute at the top level
-            var contextParam = FieldParameter;
-            var parameters = new List<ParameterExpression> { contextParam };
-
-            // build this first as NodeExpression may modify ConstantParameters
-            var expression = GetNodeExpression(context, serviceProvider);
-
-            // call tolist on top level nodes to force evaluation
-            if (expression.Type.IsEnumerableOrArray())
+            try
             {
-                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
-            }
+                var allArgs = new List<object> { context };
 
-            var replacer = new ParameterReplacer();
-            // inject dependencies
-            if (services != null)
-            {
-                expression = InjectServices(serviceProvider, services, allArgs, expression, parameters, replacer);
-            }
+                // should only be calling Execute at the top level
+                var contextParam = FieldParameter;
+                var parameters = new List<ParameterExpression> { contextParam };
 
-            if (constantParameters.Any())
-            {
-                foreach (var item in constantParameters)
+                // build this first as NodeExpression may modify ConstantParameters
+                var expression = GetNodeExpression(context, serviceProvider);
+
+                // call tolist on top level nodes to force evaluation
+                if (expression.Type.IsEnumerableOrArray())
                 {
-                    expression = (ExpressionResult)replacer.ReplaceByType(expression, item.Key.Type, item.Key);
+                    expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType() }, expression);
                 }
-                parameters.AddRange(constantParameters.Keys);
-                allArgs.AddRange(constantParameters.Values);
-            }
 
-            var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
-            return Task.FromResult(lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()));
+                var replacer = new ParameterReplacer();
+                // inject dependencies
+                if (services != null)
+                {
+                    expression = InjectServices(serviceProvider, services, allArgs, expression, parameters, replacer);
+                }
+
+                if (constantParameters.Any())
+                {
+                    foreach (var item in constantParameters)
+                    {
+                        expression = (ExpressionResult)replacer.ReplaceByType(expression, item.Key.Type, item.Key);
+                    }
+                    parameters.AddRange(constantParameters.Keys);
+                    allArgs.AddRange(constantParameters.Values);
+                }
+
+                var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+                return Task.FromResult(lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()));
+            }
+            catch (Exception)
+            {
+                throw new EntityGraphQLCompilerException($"Error executing query field {Name}");
+            }
         }
 
         private static ExpressionResult InjectServices(IServiceProvider serviceProvider, IEnumerable<Type> services, List<object> allArgs, ExpressionResult expression, List<ParameterExpression> parameters, ParameterReplacer replacer)
@@ -315,6 +324,21 @@ namespace EntityGraphQL.Compiler
         public void SetCombineExpression(Expression combineExpression)
         {
             this.combineExpression = combineExpression;
+        }
+
+        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        {
+            if (!HasWrappedService)
+                new List<IGraphQLBaseNode>();
+
+            var extractor = new ExpressionExtractor();
+
+            return extractor.Extract(fieldExpression, contextParam)
+                .Select(e =>
+                {
+                    var node = new GraphQLQueryNode(schemaProvider, null, e.Key, (ExpressionResult)e.Value, null, null, null);
+                    return node;
+                });
         }
     }
 }

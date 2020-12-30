@@ -32,6 +32,7 @@ namespace EntityGraphQL.Compiler
         public List<GraphQLQueryNode> Operations { get; }
         public ParameterExpression FieldParameter => throw new NotImplementedException();
         public IEnumerable<Type> Services => throw new NotImplementedException();
+        public bool HasWrappedService { get; } = false;
 
         public GraphQLResultNode()
         {
@@ -102,6 +103,11 @@ namespace EntityGraphQL.Compiler
         public void SetCombineExpression(Expression item2)
         {
             throw new NotImplementedException();
+        }
+
+        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        {
+            return new List<IGraphQLBaseNode>();
         }
     }
 }

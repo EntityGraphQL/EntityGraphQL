@@ -35,6 +35,7 @@ namespace EntityGraphQL.Compiler
         }
 
         public string Name { get { return name; } set => throw new NotImplementedException(); }
+        public bool HasWrappedService { get; } = false;
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
@@ -52,7 +53,12 @@ namespace EntityGraphQL.Compiler
 
         public void SetNodeExpression(ExpressionResult expressionResult)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        {
+            return new List<IGraphQLBaseNode>();
         }
     }
 }

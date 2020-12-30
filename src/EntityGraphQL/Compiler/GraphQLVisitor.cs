@@ -293,8 +293,8 @@ namespace EntityGraphQL.Compiler
                 // }
                 // by wrapping the whole thing in a method that does the null check once.
                 // This means we build the fieldExpressions on a parameter of the result type
-                bool wrapField = currentExpressionContext.Services.Any();
-                if (wrapField)
+                bool shouldWrapField = currentExpressionContext.Services.Any();
+                if (shouldWrapField)
                 {
                     // replace with a parameter. The expression is compiled at execution time once
                     replacementParameter = Expression.Parameter(selectFromExp.Type, "null_wrap");
@@ -305,7 +305,7 @@ namespace EntityGraphQL.Compiler
 
                 var graphQLNode = new GraphQLQueryNode(schemaProvider, fragments, name, selectFromExp, selectFromParam, fieldExpressions, selectFromExp)
                 {
-                    IsWrapped = wrapField
+                    HasWrappedService = shouldWrapField
                 };
                 return graphQLNode;
             }

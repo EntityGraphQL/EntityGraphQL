@@ -136,7 +136,6 @@ namespace EntityGraphQL.Schema
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
                 (t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
 
-
             ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema", "__Schema");
             ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(), "Query a type by name", "__Type");
         }

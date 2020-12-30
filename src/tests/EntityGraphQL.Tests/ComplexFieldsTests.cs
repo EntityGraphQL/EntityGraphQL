@@ -4,7 +4,6 @@ using EntityGraphQL.Schema;
 using System.Linq;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -32,10 +31,12 @@ namespace EntityGraphQL.Tests
                 Projects = new List<Project>()
             };
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton(new EntityPager());
+            var pager = new EntityPager(null);
+            serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
         }
 
         [Fact]
@@ -67,10 +68,150 @@ namespace EntityGraphQL.Tests
                 }
             };
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton(new EntityPager());
+            EntityPager pager = new EntityPager(null);
+            serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
+            dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+            Assert.Single(person.GetType().GetFields());
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void TestServicesNonRootWithOtherFields()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
+
+            schema.Type<Person>().ReplaceField("projects",
+                new { page = 1, pagesize = 10 },
+                (person, p) => WithService((EntityPager pager) => pager.PageProjects(person.Projects, p)),
+                "Pagination. [defaults: page = 1, pagesize = 10]");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ people { projects { total items { id } } name } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Name = "Alyssa",
+                        Projects = new List<Project>()
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            EntityPager pager = new EntityPager(null);
+            serviceCollection.AddSingleton(pager);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
+            var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestServicesNonRootWithOtherFieldsAndRelation()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
+
+            schema.Type<Person>().ReplaceField("projects",
+                new { page = 1, pagesize = 10 },
+                (person, p) => WithService((EntityPager pager) => pager.PageProjects(person.Projects, p)),
+                "Pagination. [defaults: page = 1, pagesize = 10]");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ people { projects { total items { id } } manager { name } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Name = "Alyssa",
+                        Projects = new List<Project>(),
+                        Manager = new Person
+                        {
+                            Name = "Jennifer"
+                        }
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            EntityPager pager = new EntityPager(null);
+            serviceCollection.AddSingleton(pager);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
+            var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.Equal("manager", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestServicesNonRootWithOtherFieldsAndRelation2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
+
+            schema.Type<Person>().ReplaceField("projects",
+                new { page = 1, pagesize = 10 },
+                // use a filed not another relation/entity
+                (person, p) => WithService((EntityPager pager) => pager.PageProjects(person.Id, p)),
+                "Pagination. [defaults: page = 1, pagesize = 10]");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ people { projects { total items { id } } manager { name } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Name = "Alyssa",
+                        Projects = new List<Project>(),
+                        Manager = new Person
+                        {
+                            Name = "Jennifer"
+                        }
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            EntityPager pager = new EntityPager(context);
+            serviceCollection.AddSingleton(pager);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
+            var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.Equal("manager", person.GetType().GetFields()[1].Name);
         }
 
         [Fact]
@@ -88,7 +229,7 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"{ user { projects { id } } }"
+                Query = @"{ user { id projects { id } } }"
             };
 
             var context = new TestDataContext
@@ -103,18 +244,32 @@ namespace EntityGraphQL.Tests
                 },
             };
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton(new UserService());
+            UserService userService = new UserService();
+            serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            Assert.Equal(2, res.Data["user"].GetType().GetFields().Count());
+            Assert.Equal("id", res.Data["user"].GetType().GetFields().ElementAt(0).Name);
+            Assert.Equal("projects", res.Data["user"].GetType().GetFields().ElementAt(1).Name);
         }
 
         public class EntityPager
         {
+            private readonly TestDataContext dbContext;
+
+            public EntityPager(TestDataContext dbContext)
+            {
+                CallCount = 0;
+                this.dbContext = dbContext;
+            }
+
+            public int CallCount { get; private set; }
             public Pagination<Project> PageProjects(TestDataContext db, dynamic arg)
             {
-                Console.WriteLine("called");
+                CallCount += 1;
                 int page = (int)arg.page;
                 int pagesize = (int)arg.pagesize;
 
@@ -130,9 +285,27 @@ namespace EntityGraphQL.Tests
 
                 return new Pagination<Project> { Total = total, PageCount = pagecount, Items = projects };
             }
+            public Pagination<Project> PageProjects(int personId, dynamic arg)
+            {
+                CallCount += 1;
+                int page = (int)arg.page;
+                int pagesize = (int)arg.pagesize;
+
+                //Pagination
+                int total = dbContext.Projects.Count();
+                int pagecount = total + pagesize / pagesize;
+                int skipTo = (page * pagesize) - pagesize;
+
+                //Data
+                var projects = dbContext.Projects
+                    .Skip(skipTo)
+                    .Take(pagesize);
+
+                return new Pagination<Project> { Total = total, PageCount = pagecount, Items = projects };
+            }
             public Pagination<Project> PageProjects(IEnumerable<Project> projects, dynamic arg)
             {
-                System.Console.WriteLine("called");
+                CallCount += 1;
                 int page = (int)arg.page;
                 int pagesize = (int)arg.pagesize;
 
@@ -165,8 +338,15 @@ namespace EntityGraphQL.Tests
 
     public class UserService
     {
+        public UserService()
+        {
+            CallCount = 0;
+        }
+
+        public int CallCount { get; private set; }
         public User GetUser()
         {
+            CallCount += 1;
             return new User();
         }
     }
