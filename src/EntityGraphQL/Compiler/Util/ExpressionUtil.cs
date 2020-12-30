@@ -268,36 +268,6 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        /// <summary>
-        /// Wrap a field expression in a method that does a null check for us and avoid calling the field multiple times.
-        /// E.g. if the field is (item) => CallSomeService(item) and the result is an object (not IEnumerable) we do not want to generate
-        ///     CallSomeService(item) == null ? null : new {
-        ///         field1 = CallSomeService(item).field1,
-        ///         field2 = CallSomeService(item).field2
-        //      }
-        /// As that will call the function 3 times (or 1 + number of fields selected)
-        ///
-        /// This wraps the field expression that does the call once
-        /// </summary>
-        /// <param name="selectFromExp"></param>
-        /// <param name="replacementParameter"></param>
-        /// <param name="fieldExpressions"></param>
-        /// <returns></returns>
-        // internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult selectFromExp, ParameterExpression selectFromParam, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
-        // {
-        //     var arguments = new List<Expression> {
-        //         selectFromExp,
-        //         Expression.Constant(selectFromParam),
-        //         Expression.NewArrayInit(typeof(ParameterExpression), paramsForFieldExpressions.Select(Expression.Constant)),
-        //         Expression.Constant(fieldExpressions),
-        //         Expression.Constant(fieldSelectParamValues),
-        //     };
-        //     // This is kind of where the magic happens. When this CallExpression is resolved it will resolve selectFromExp
-        //     // into the result of the service - note the arguments of WrapFieldForNullCheckExec are the resolved Expressions from here
-        //     var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
-        //     return (ExpressionResult)call;
-        // }
-
         internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult selectFromExp, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
         {
             var arguments = new List<Expression> {
@@ -309,24 +279,6 @@ namespace EntityGraphQL.Compiler.Util
             var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
             return (ExpressionResult)call;
         }
-
-        /// <summary>
-        /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
-        /// </summary>
-        /// <returns></returns>
-        // public static object WrapFieldForNullCheckExec(object selectFromValue, object selectFromParam, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
-        // {
-        //     if (selectFromValue == null)
-        //         return null;
-
-        //     var newExp = CreateNewExpression(fieldExpressions);
-        //     var args = new List<object> { selectFromValue };
-        //     args.AddRange(fieldSelectParamValues);
-        //     var parameters = new List<ParameterExpression> { selectFromParam as ParameterExpression };
-        //     parameters.AddRange(paramsForFieldExpressions);
-        //     var result = Expression.Lambda(newExp, parameters).Compile().DynamicInvoke(args.ToArray());
-        //     return result;
-        // }
 
         // public static object WrapFieldForNullCheckExec(object selectFromValue, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
         public static object WrapFieldForNullCheckExec(object selectFromValue, WrapExpression wrap)
