@@ -29,6 +29,7 @@ namespace EntityGraphQL.Tests
         public Gender Gender { get; set; }
         public List<Project> Projects { get; set; }
         public List<Task> Tasks { get; set; }
+        public DateTime? Birthday { get; set; }
     }
 
     public class Project

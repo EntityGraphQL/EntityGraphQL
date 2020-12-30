@@ -4,6 +4,7 @@ using EntityGraphQL.Schema;
 using System.Linq;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -31,7 +32,7 @@ namespace EntityGraphQL.Tests
                 Projects = new List<Project>()
             };
             var serviceCollection = new ServiceCollection();
-            var pager = new EntityPager(null);
+            var pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -68,7 +69,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager(null);
+            EntityPager pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -109,7 +110,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager(null);
+            EntityPager pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -155,7 +156,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager(null);
+            EntityPager pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -174,15 +175,14 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
 
-            schema.Type<Person>().ReplaceField("projects",
-                new { page = 1, pagesize = 10 },
+            schema.Type<Person>().AddField("age",
                 // use a filed not another relation/entity
-                (person, p) => WithService((EntityPager pager) => pager.PageProjects(person.Id, p)),
-                "Pagination. [defaults: page = 1, pagesize = 10]");
+                (person) => WithService((AgeService ager) => ager.GetAge(person.Birthday)),
+                "Persons age");
 
             var gql = new QueryRequest
             {
-                Query = @"{ people { projects { total items { id } } manager { name } } }"
+                Query = @"{ people { age manager { name } } }"
             };
 
             var context = new TestDataContext
@@ -202,15 +202,15 @@ namespace EntityGraphQL.Tests
                 }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager(context);
-            serviceCollection.AddSingleton(pager);
+            var ager = new AgeService();
+            serviceCollection.AddSingleton(ager);
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
-            Assert.Equal(1, pager.CallCount);
+            Assert.Equal(1, ager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.Equal("age", person.GetType().GetFields()[0].Name);
             Assert.Equal("manager", person.GetType().GetFields()[1].Name);
         }
 
@@ -256,14 +256,28 @@ namespace EntityGraphQL.Tests
             Assert.Equal("projects", res.Data["user"].GetType().GetFields().ElementAt(1).Name);
         }
 
-        public class EntityPager
+        public class AgeService
         {
-            private readonly TestDataContext dbContext;
-
-            public EntityPager(TestDataContext dbContext)
+            public AgeService()
             {
                 CallCount = 0;
-                this.dbContext = dbContext;
+            }
+
+            public int CallCount { get; private set; }
+
+            public int GetAge(DateTime? birthday)
+            {
+                CallCount += 1;
+                // you could do smarter things here like use other services
+                return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
+            }
+        }
+
+        public class EntityPager
+        {
+            public EntityPager()
+            {
+                CallCount = 0;
             }
 
             public int CallCount { get; private set; }
@@ -280,24 +294,6 @@ namespace EntityGraphQL.Tests
 
                 //Data
                 var projects = db.Projects
-                    .Skip(skipTo)
-                    .Take(pagesize);
-
-                return new Pagination<Project> { Total = total, PageCount = pagecount, Items = projects };
-            }
-            public Pagination<Project> PageProjects(int personId, dynamic arg)
-            {
-                CallCount += 1;
-                int page = (int)arg.page;
-                int pagesize = (int)arg.pagesize;
-
-                //Pagination
-                int total = dbContext.Projects.Count();
-                int pagecount = total + pagesize / pagesize;
-                int skipTo = (page * pagesize) - pagesize;
-
-                //Data
-                var projects = dbContext.Projects
                     .Skip(skipTo)
                     .Take(pagesize);
 
