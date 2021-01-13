@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler.Util
             currentExpression = null;
             contextParamFieldName = null;
             Visit(node);
-            return extractedExpressions;
+            return extractedExpressions.Count > 0 ? extractedExpressions : null;
         }
 
         protected override Expression VisitParameter(ParameterExpression node)
@@ -31,26 +31,28 @@ namespace EntityGraphQL.Compiler.Util
             if (rootContext == currentExpression)
                 throw new EntityGraphQLCompilerException($"The context parameter {node.Name} used in a WithService() field is not allowed. Please select the specific fields required from the context parameter.");
             if (rootContext == node && currentExpression != null)
-                extractedExpressions.Add(contextParamFieldName, currentExpression);
+                extractedExpressions[contextParamFieldName] = currentExpression;
             return base.VisitParameter(node);
         }
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (currentExpression != null)
+            if (currentExpression == null)
+            {
                 currentExpression = node;
-            contextParamFieldName = node.Member.Name;
+                contextParamFieldName = node.Member.Name;
+            }
             return base.VisitMember(node);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if (currentExpression != null)
+            if (currentExpression == null)
                 currentExpression = node;
             Visit(node.Object);
+            currentExpression = null;
             foreach (var arg in node.Arguments)
             {
-                currentExpression = arg;
                 Visit(arg);
             }
             return node;

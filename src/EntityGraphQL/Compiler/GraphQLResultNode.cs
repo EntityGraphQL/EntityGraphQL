@@ -30,9 +30,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public List<GraphQLQueryNode> Operations { get; }
-        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public ParameterExpression RootFieldParameter => throw new NotImplementedException();
         public IEnumerable<Type> Services => throw new NotImplementedException();
-        public bool HasWrappedService { get; } = false;
+        public bool HasAnyServices { get; } = false;
 
         public GraphQLResultNode()
         {
@@ -90,7 +90,7 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithType = null)
         {
             throw new NotImplementedException();
         }
@@ -105,9 +105,13 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        public IEnumerable<IGraphQLBaseNode> GetFieldsWithoutServices(ParameterExpression contextParam)
         {
             return new List<IGraphQLBaseNode>();
+        }
+        public ParameterExpression FindRootParameterExpression()
+        {
+            throw new NotImplementedException();
         }
     }
 }

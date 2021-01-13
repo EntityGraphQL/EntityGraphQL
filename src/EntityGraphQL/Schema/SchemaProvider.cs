@@ -111,14 +111,10 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
         {
-            if (methodProvider == null)
-                methodProvider = new DefaultMethodProvider();
-
             QueryResult result;
             try
             {
-                var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
-                var queryResult = graphQLCompiler.Compile(gql, claims);
+                var queryResult = CompileQuery(gql, claims, methodProvider);
                 result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName);
             }
             catch (Exception ex)
@@ -128,6 +124,16 @@ namespace EntityGraphQL.Schema
             }
 
             return result;
+        }
+
+        public GraphQLResultNode CompileQuery(QueryRequest gql, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        {
+            if (methodProvider == null)
+                methodProvider = new DefaultMethodProvider();
+
+            var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
+            var queryResult = graphQLCompiler.Compile(gql, claims);
+            return queryResult;
         }
 
         private void SetupIntrospectionTypesAndField()

@@ -18,9 +18,9 @@ namespace EntityGraphQL.Compiler
         private readonly Func<string, string> fieldNamer;
 
         public string Name { get => mutationType.Name; set => throw new NotImplementedException(); }
-        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public ParameterExpression RootFieldParameter => throw new NotImplementedException();
         public IEnumerable<Type> Services => throw new NotImplementedException();
-        public bool HasWrappedService { get; } = false;
+        public bool HasAnyServices { get; } = false;
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => resultSelection?.ConstantParameters ?? new Dictionary<ParameterExpression, object>();
 
@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
             this.fieldNamer = fieldNamer;
         }
 
-        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithType = null)
         {
             throw new NotImplementedException();
         }
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler
                 // E.g  we want db => db.Entity.Select(e => new {name = e.Name, ...}).First(filter)
                 // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
 
-                var selectParam = resultSelection.FieldParameter;
+                var selectParam = resultSelection.RootFieldParameter;
 
                 if (!mutationLambda.ReturnType.IsEnumerableOrArray())
                 {
@@ -130,7 +130,7 @@ namespace EntityGraphQL.Compiler
                 }
 
                 // make sure we use the right parameter
-                resultSelection.FieldParameter = mutationContextParam;
+                resultSelection.RootFieldParameter = mutationContextParam;
                 result = await resultSelection.ExecuteAsync(context, validator, serviceProvider);
                 return result;
             }
@@ -157,9 +157,13 @@ namespace EntityGraphQL.Compiler
         {
             throw new NotImplementedException();
         }
-        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        public IEnumerable<IGraphQLBaseNode> GetFieldsWithoutServices(ParameterExpression contextParam)
         {
             return new List<IGraphQLBaseNode>();
+        }
+        public ParameterExpression FindRootParameterExpression()
+        {
+            throw new NotImplementedException();
         }
     }
 }

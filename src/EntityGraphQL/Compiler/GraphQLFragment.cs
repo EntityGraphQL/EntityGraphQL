@@ -27,7 +27,7 @@ namespace EntityGraphQL.Compiler
     {
         private readonly string name;
 
-        public ParameterExpression FieldParameter => throw new NotImplementedException();
+        public ParameterExpression RootFieldParameter => throw new NotImplementedException();
 
         public GraphQLFragmentSelect(string name)
         {
@@ -35,13 +35,13 @@ namespace EntityGraphQL.Compiler
         }
 
         public string Name { get { return name; } set => throw new NotImplementedException(); }
-        public bool HasWrappedService { get; } = false;
+        public bool HasAnyServices { get; } = false;
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
         public IEnumerable<Type> Services => throw new NotImplementedException();
 
-        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider)
+        public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithType = null)
         {
             throw new NotImplementedException();
         }
@@ -56,9 +56,14 @@ namespace EntityGraphQL.Compiler
             throw new NotImplementedException();
         }
 
-        public IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam)
+        public IEnumerable<IGraphQLBaseNode> GetFieldsWithoutServices(ParameterExpression contextParam)
         {
             return new List<IGraphQLBaseNode>();
+        }
+
+        public ParameterExpression FindRootParameterExpression()
+        {
+            throw new NotImplementedException();
         }
     }
 }

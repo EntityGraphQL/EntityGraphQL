@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -18,6 +17,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
+            this.toReplaceType = null;
             return Visit(node);
         }
 
@@ -25,6 +25,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
+            this.toReplace = null;
             return Visit(node);
         }
 

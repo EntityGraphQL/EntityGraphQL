@@ -12,15 +12,15 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         string Name { get; set; }
         IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; }
-        ParameterExpression FieldParameter { get; }
+        ParameterExpression RootFieldParameter { get; }
         IEnumerable<Type> Services { get; }
-        bool HasWrappedService { get; }
+        bool HasAnyServices { get; }
 
         /// <summary>
         /// Get the expression that would create this node. E.g. it may be db => db.Movies.Where(...) or a field selection movie => movie.Name
         /// </summary>
         /// <value></value>
-        ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider);
+        ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithType = null);
         /// <summary>
         /// Update the expression that creates this node
         /// </summary>
@@ -33,7 +33,13 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="contextParam"></param>
         /// <returns></returns>
-        IEnumerable<IGraphQLBaseNode> GetSubExpressionForParameter(ParameterExpression contextParam);
+        IEnumerable<IGraphQLBaseNode> GetFieldsWithoutServices(ParameterExpression contextParam);
+        /// <summary>
+        /// For this field find it's root ParameterExpression
+        /// param.Person.Name - field is Name, context is Person, root ParameterExpression is param
+        /// </summary>
+        /// <returns></returns>
+        ParameterExpression FindRootParameterExpression();
     }
 
     public enum OperationType
