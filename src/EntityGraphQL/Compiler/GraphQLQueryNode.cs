@@ -85,7 +85,7 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public bool HasAnyServices { get => hasWrappedService || QueryFields.Any(q => q.HasAnyServices) || Services.Any() || QueryFields.Any(q => q.Services.Any()); internal set => hasWrappedService = value; }
+        public bool HasAnyServices { get => hasWrappedService || QueryFields.Any(q => q.HasAnyServices) || Services?.Any() == true || QueryFields.Any(q => q.Services?.Any() == true); internal set => hasWrappedService = value; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -407,7 +407,14 @@ namespace EntityGraphQL.Compiler
             if (call.Method.Name != "Select")
                 throw new Exception($"Unexpected method {call.Method.Name}");
 
-            var selection = (LambdaExpression)replacer.Replace(call.Arguments[1], QueryFields.First().RootFieldParameter, newContextParam);
+            var newExp = replacer.Replace(call.Arguments[1], QueryFields.First().RootFieldParameter, newContextParam);
+            if (newExp.NodeType == ExpressionType.Quote)
+                newExp = ((UnaryExpression)newExp).Operand;
+
+            if (newExp.NodeType != ExpressionType.Lambda)
+                throw new EntityGraphQLCompilerException($"Error compling query. Unexpected expression type {newExp.NodeType}");
+
+            var selection = (LambdaExpression)newExp;
             var newCall = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { newContextParam.Type, selection.ReturnType }, expression, selection);
             return newCall;
         }

@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => new Dictionary<ParameterExpression, object>();
 
-        public IEnumerable<Type> Services => throw new NotImplementedException();
+        public IEnumerable<Type> Services => null;
 
         public ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithType = null)
         {
