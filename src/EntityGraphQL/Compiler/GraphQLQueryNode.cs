@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
         private ExpressionResult nodeExpressionNoServiceFields;
         private Expression combineExpression;
         private bool hasWrappedService;
-        private readonly List<IGraphQLBaseNode> nodeFields;
+        private readonly List<IGraphQLBaseNode> queryFields;
 
         /// <summary>
         /// Any values for a parameter that had a constant value in the query document.
@@ -76,7 +76,7 @@ namespace EntityGraphQL.Compiler
         ///     rootField { queryField1 queryField2 ... }
         // }
         /// </summary>
-        public IEnumerable<IGraphQLBaseNode> QueryFields { get => nodeFields; }
+        public IEnumerable<IGraphQLBaseNode> QueryFields { get => queryFields; }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters => constantParameters;
 
@@ -86,6 +86,8 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public bool HasAnyServices { get => hasWrappedService || QueryFields.Any(q => q.HasAnyServices) || Services?.Any() == true || QueryFields.Any(q => q.Services?.Any() == true); internal set => hasWrappedService = value; }
+
+        public ExpressionResult SelectionContext => selectionContext;
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -101,7 +103,7 @@ namespace EntityGraphQL.Compiler
         {
             Name = name;
             this.fieldExpression = fieldExpression;
-            nodeFields = fieldSelection?.ToList() ?? new List<IGraphQLBaseNode>();
+            queryFields = fieldSelection?.ToList() ?? new List<IGraphQLBaseNode>();
             this.schemaProvider = schemaProvider;
             this.queryFragments = queryFragments;
             this.selectionContext = selectionContext;
@@ -137,7 +139,7 @@ namespace EntityGraphQL.Compiler
             // we might have to build the expression on request as when we prase the query
             // document the fragment referenced might be defined later in the document
             // buildServiceWrapWithParam forces a rebuild as it is a new type for the selection including services
-            if ((buildServiceWrapWithParam != null && fullNodeExpression != null) || (fullNodeExpression == null && nodeFields != null && nodeFields.Any()))
+            if ((nodeExpressionNoServiceFields == null && withoutServiceFields == true) || (buildServiceWrapWithParam != null && fullNodeExpression != null) || (fullNodeExpression == null && queryFields != null && queryFields.Any()))
             {
                 var replacer = new ParameterReplacer();
                 var selectionFields = new Dictionary<string, IGraphQLBaseNode>();
@@ -145,7 +147,7 @@ namespace EntityGraphQL.Compiler
                 var isSelectOnList = fieldExpression.Type.IsEnumerableOrArray();
                 var extractor = new ExpressionExtractor();
 
-                foreach (var field in nodeFields)
+                foreach (var field in queryFields)
                 {
                     if (field is GraphQLFragmentSelect)
                     {
@@ -156,15 +158,16 @@ namespace EntityGraphQL.Compiler
                         foreach (IGraphQLBaseNode fragField in fragment.Fields)
                         {
                             var fieldExp = fragField.GetNodeExpression(contextValue, serviceProvider, false);
-                            var exp = (ExpressionResult)replacer.Replace(fieldExp, fragment.SelectContext, selectionContext);
+                            var exp = (ExpressionResult)replacer.Replace(fieldExp, fragment.SelectContext, SelectionContext);
                             // new object as we reuse fragments
-                            selectionFields[fragField.Name] = new GraphQLQueryNode(schemaProvider, queryFragments, fragField.Name, exp, selectionContext.AsParameter(), null, null);
+                            selectionFields[fragField.Name] = new GraphQLQueryNode(schemaProvider, queryFragments, fragField.Name, exp, SelectionContext.AsParameter(), null, null);
                             if (fragField.HasAnyServices && withoutServiceFields)
                             {
-                                extractor.Extract(exp, selectionContext.AsParameter()).ToList()
+                                extractor.Extract(exp, SelectionContext.AsParameter()).ToList()
                                     .ForEach(e =>
                                     {
-                                        IGraphQLBaseNode node = new GraphQLQueryNode(schemaProvider, null, e.Key, (ExpressionResult)e.Value, null, null, null);
+                                        var node = new GraphQLQueryNode(schemaProvider, null, e.Key, (ExpressionResult)e.Value, null, (field as GraphQLQueryNode)?.QueryFields, (field as GraphQLQueryNode)?.SelectionContext);
+                                        node.AddServices(field.Services);
                                         selectionFieldsNoService[fragField.Name] = node;
                                     });
                             }
@@ -186,14 +189,20 @@ namespace EntityGraphQL.Compiler
                             // selectionFieldsNoService[field.Name] = field;
                             // if selectionContext isn't a ParameterExpression they are using a service as the context
                             // TODO - need to test more edge cases
-                            if (selectionContext.AsParameter() != null)
+                            if (SelectionContext.AsParameter() != null)
                             {
                                 var fieldExp = field.GetNodeExpression(contextValue, serviceProvider);
-                                extractor.Extract(fieldExp, selectionContext.AsParameter()).ToList()
+                                extractor.Extract(fieldExp, SelectionContext.AsParameter()).ToList()
                                         .ForEach(e =>
                                         {
-                                            IGraphQLBaseNode node = new GraphQLQueryNode(schemaProvider, null, e.Key, (ExpressionResult)e.Value, null, null, null);
-                                            selectionFieldsNoService[field.Name] = node;
+                                            // need to add the fields this field may further select
+                                            var isSelectable = e.Value.Type.IsEnumerableOrArray();
+                                            var newFieldQueryFields = isSelectable ? (field as GraphQLQueryNode)?.QueryFields : null;
+                                            var newFieldSelectionContext = isSelectable ? (field as GraphQLQueryNode)?.SelectionContext : null;
+                                            var node = new GraphQLQueryNode(schemaProvider, queryFragments, e.Key, (ExpressionResult)e.Value, null, newFieldQueryFields, newFieldSelectionContext);
+                                            // if (isSelectable)
+                                            //     node.AddServices(field.Services);
+                                            selectionFieldsNoService[e.Key] = node;
                                         });
                             }
                         }
@@ -204,9 +213,9 @@ namespace EntityGraphQL.Compiler
                 if (isSelectOnList)
                 {
                     // build a .Select(...) - returning a IEnumerable<>
-                    fullNodeExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(selectionContext != null ? selectionContext.AsParameter() : RootFieldParameter, fieldExpression, selectionFields, serviceProvider, false, buildServiceWrapWithParam);
+                    fullNodeExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(SelectionContext != null ? SelectionContext.AsParameter() : RootFieldParameter, fieldExpression, selectionFields, serviceProvider, false, buildServiceWrapWithParam);
                     if (withoutServiceFields && selectionFieldsNoService.Any())
-                        nodeExpressionNoServiceFields = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(selectionContext.AsParameter(), fieldExpression, selectionFieldsNoService, serviceProvider, withoutServiceFields);
+                        nodeExpressionNoServiceFields = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(SelectionContext.AsParameter(), fieldExpression, selectionFieldsNoService, serviceProvider, withoutServiceFields);
                 }
                 else
                 {
@@ -232,7 +241,7 @@ namespace EntityGraphQL.Compiler
 
                         selectionExpressions = selectionExpressions.ToDictionary(e => e.Key, e => (ExpressionResult)replacer.Replace(e.Value.Expression, originalParam, buildServiceWrapWithParam));
 
-                        updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams.First(), selectionParams, selectionExpressions, selectionParamValues, selectionContext?.AsParameter());
+                        updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams.First(), selectionParams, selectionExpressions, selectionParamValues, SelectionContext?.AsParameter());
 
                         fullNodeExpression = updatedExpression;
                     }
@@ -245,6 +254,7 @@ namespace EntityGraphQL.Compiler
                             var anonType = newExp.Type;
                             // make a null check from this new expression
                             newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                            // TODO need to return true
                             fullNodeExpression = (ExpressionResult)newExp;
                         }
                         if (withoutServiceFields && selectionFieldsNoService.Any())
@@ -274,21 +284,15 @@ namespace EntityGraphQL.Compiler
                     fullNodeExpression = exp;
                 }
                 fullNodeExpression?.AddServices(services);
-
-                if (withoutServiceFields)
-                    return nodeExpressionNoServiceFields;
-
-                return fullNodeExpression;
             }
-            else if (fullNodeExpression != null && nodeFields != null && nodeFields.Any())
-            {
-                if (withoutServiceFields)
-                    return nodeExpressionNoServiceFields;
 
-                return fullNodeExpression;
-            }
+            // above has built the expressions
             if (withoutServiceFields)
-                return nodeExpressionNoServiceFields;
+                return nodeExpressionNoServiceFields ?? fieldExpression;
+
+            if (fullNodeExpression != null && queryFields != null && queryFields.Any())
+                return fullNodeExpression;
+
             return fieldExpression;
         }
 

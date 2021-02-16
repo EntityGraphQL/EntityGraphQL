@@ -86,6 +86,65 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestServicesNonRootDeeper()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ people { projects { config { type } } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 4,
+                            }
+                        }
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            // Builds - (ctx, srv, args) => ctx.People
+            //              .Select(p => new {
+            //                  projects = p.Projects.Select(p => new {
+            //                      Id = p.Id
+            //                  })
+            //              })
+            //              .ToList()
+            //              .Select(p => new {
+            //                  projects = p.Projects.Select(p => new {
+            //                      config = wrapservice...(p.Id)
+            //                  })
+            //              })
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+            Assert.Single(person.GetType().GetFields());
+            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            dynamic project = Enumerable.ElementAt((dynamic)person.projects, 0);
+            Assert.Equal("config", project.GetType().GetFields()[0].Name);
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
         public void TestServicesNonRootWithOtherFields()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -328,6 +387,25 @@ namespace EntityGraphQL.Tests
             }
         }
 
+        public class ConfigService
+        {
+            public ConfigService()
+            {
+                CallCount = 0;
+            }
+
+            public int CallCount { get; set; }
+
+            public ProjectConfig Get(int id)
+            {
+                CallCount += 1;
+                return new ProjectConfig
+                {
+                    Type = "Something"
+                };
+            }
+        }
+
         public class EntityPager
         {
             public EntityPager()
@@ -406,5 +484,10 @@ namespace EntityGraphQL.Tests
             CallCount += 1;
             return new User();
         }
+    }
+
+    public class ProjectConfig
+    {
+        public string Type { get; set; }
     }
 }
