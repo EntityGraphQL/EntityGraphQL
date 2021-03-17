@@ -41,6 +41,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
 }"
             };
             var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            Assert.Null(result.Errors);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
             Assert.Equal("id", person.GetType().GetFields()[0].Name);

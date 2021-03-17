@@ -131,7 +131,7 @@ namespace EntityGraphQL.Compiler.Util
         }
 
         /// <summary>
-        /// Naviagtes back through an expression to see if there was a point where we had a IEnumerable object so we can "edit" it (so a .Select() etc.)
+        /// Navigates back through an expression to see if there was a point where we had a IEnumerable object so we can "edit" it (so a .Select() etc.)
         /// </summary>
         /// <param name="baseExpression"></param>
         /// <returns></returns>
@@ -161,104 +161,28 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider, bool withoutServiceFields, ParameterExpression buildServiceWrapWithParam = null)
+        public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, ExpressionResult> fieldExpressions)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
 
-            var memberInit = CreateNewExpression(fieldExpressions.Values, serviceProvider, withoutServiceFields, buildServiceWrapWithParam, out Type dynamicType);
+            var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
             if (memberInit == null) // nothing to select
                 return baseExp;
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var call = MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
-
-            // make expression like ctx.Select(/* no service fields */) // allows ORMs/EF to optimise a select
-            //                         .ToList() // forces ORMs/EF to fetch data
-            //                         .Select(/* all fields */) // new projection selecting the same data plus the fields built using services
-
-            // var fieldWithoutServices = new Dictionary<string, IGraphQLBaseNode>(StringComparer.OrdinalIgnoreCase);
-            // // These are the fields we need for the last select. Some fields need to be replace from the original
-            // // e.g. original might be fieldName = some.Conplex.Relation.Name
-            // // Which in the last select needs to be obj.fieldName not the full expression as we are
-            // // selecting from the result of the first select
-            // var fieldsToReplace = new HashSet<string>();
-            // var resultFields = fieldExpressions.ToDictionary(i => i.Key, i => i.Value);
-            // var fieldsWithoutServicesCount = 0;
-            // foreach (var fieldExp in fieldExpressions.Values)
-            // {
-            //     if (!fieldExp.HasWrappedService)
-            //     {
-            //         // we need to replace the expression as it might be complex selection that follows relations
-            //         // and the last select only has the first Select result
-            //         // replace it below when we have type infomation
-            //         fieldsToReplace.Add(fieldExp.Name);
-
-            //         fieldWithoutServices[fieldExp.Name] = fieldExp;
-            //         fieldsWithoutServicesCount += 1;
-            //     }
-            //     else
-            //     {
-            //         // figure out if we need to include a field on currentContextParam required by this service
-            //         foreach (var item in fieldExp.GetFieldsWithoutServices(currentContextParam))
-            //         {
-            //             // If they use the context parameter we can't just select the whole object as we don't know
-            //             // what other objects in the graph they might be using in the service - which may not be loaded by EF
-            //             // GetSubExpressionForParameter() above will throw an exception
-
-            //             if (!fieldWithoutServices.ContainsKey(item.Name))
-            //                 fieldWithoutServices[item.Name] = item;
-            //         }
-            //     }
-            // }
-
-            // Expression result = baseExp;
-            // Type dynamicTypeNoServices = currentContextParam.Type;
-            // if (fieldWithoutServices.Any())
-            // {
-            //     // create a select with all the non-service fields built of the original currentContextParam
-            //     var memberInit = CreateNewExpression(fieldWithoutServices.Values, serviceProvider, out dynamicTypeNoServices);
-            //     var selector = Expression.Lambda(memberInit, currentContextParam);
-            //     result = MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicTypeNoServices }, result, selector);
-            // }
-
-            // if (fieldsWithoutServicesCount != resultFields.Count())
-            // {
-            //     // we have selected all fields without services (means it'll work with Entity Framework)
-            //     // Now call ToList() to force Evaluation with ORMs
-            //     result = MakeCallOnEnumerable("ToList", new Type[] { dynamicTypeNoServices }, result);
-
-            //     // call Select() with all originally requested fields - includes those that use services
-            //     var withServicesParameter = Expression.Parameter(dynamicTypeNoServices);
-            //     // Build new selection now we have type and parameter
-            //     foreach (var fieldName in fieldsToReplace)
-            //     {
-            //         resultFields[fieldName] = new GraphQLQueryNode(null, null, fieldName, (ExpressionResult)Expression.Field(withServicesParameter, fieldName), null, null, null);
-            //     }
-            //     var allMembersInit = CreateNewExpression(resultFields.Values, serviceProvider, out Type dynamicTypeWithServices);
-            //     allMembersInit = replacer.Replace(allMembersInit, currentContextParam, withServicesParameter);
-            //     var selectorAllFields = Expression.Lambda(allMembersInit, withServicesParameter);
-            //     result = MakeCallOnEnumerable("Select", new Type[] { dynamicTypeNoServices, dynamicTypeWithServices }, result, selectorAllFields);
-            // }
-
-            // return result;
         }
 
-        public static Expression CreateNewExpression(IDictionary<string, IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider, bool withoutServiceFields, ParameterExpression buildServiceWrapWithParam)
-        {
-            var memberInit = CreateNewExpression(fieldExpressions.Values, serviceProvider, withoutServiceFields, buildServiceWrapWithParam, out _);
-            return memberInit;
-        }
-
-        private static Expression CreateNewExpression(IEnumerable<IGraphQLBaseNode> fieldExpressions, IServiceProvider serviceProvider, bool withoutServiceFields, ParameterExpression buildServiceWrapWithParam, out Type dynamicType)
+        public static Expression CreateNewExpression(IDictionary<string, ExpressionResult> fieldExpressions, out Type dynamicType)
         {
             var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
+
             foreach (var item in fieldExpressions)
             {
                 // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
-                var expressionResult = item.GetNodeExpression(null, serviceProvider, withoutServiceFields, buildServiceWrapWithParam);
-                if (expressionResult != null)
-                    fieldExpressionsByName[item.Name] = expressionResult;
+                if (item.Value != null)
+                    fieldExpressionsByName[item.Key] = item.Value;
             }
 
             dynamicType = null;

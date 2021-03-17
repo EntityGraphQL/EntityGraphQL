@@ -8,12 +8,12 @@ namespace EntityGraphQL.Compiler.Util
     /// As people build schema fields they may be against different parameters, this visitor lets us change it to the one used in compiling the EQL.
     /// I.e. in (p_0) => p_0.blah `p_0` needs to be the same object otherwise it expects 2 values passed in.
     /// </summary>
-    internal class ParameterReplacer : ExpressionVisitor
+    public class ParameterReplacer : ExpressionVisitor
     {
         private Expression newParam;
         private Type toReplaceType;
         private ParameterExpression toReplace;
-        internal Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam)
+        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam)
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
@@ -21,7 +21,7 @@ namespace EntityGraphQL.Compiler.Util
             return Visit(node);
         }
 
-        internal Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
+        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;

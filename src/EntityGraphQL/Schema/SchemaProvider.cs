@@ -126,7 +126,7 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        public GraphQLResultNode CompileQuery(QueryRequest gql, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsIdentity claims, IMethodProvider methodProvider = null)
         {
             if (methodProvider == null)
                 methodProvider = new DefaultMethodProvider();
