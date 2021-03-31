@@ -54,7 +54,10 @@ namespace EntityGraphQL.Compiler.Util
                 var exp = Expression.PropertyOrField(newParam, node.Member.Name);
                 return exp;
             }
-            return base.VisitMember(node);
+            // returned expression may have been modified and we need to rebuild
+            var nodeExp = base.Visit(node.Expression);
+            nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+            return nodeExp;
         }
     }
 }

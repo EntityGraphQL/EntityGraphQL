@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -18,6 +20,8 @@ namespace EntityGraphQL.Compiler
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
         private readonly ExpressionResult fieldExpression;
+
+        public override bool IsScalar { get => false; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -60,17 +64,35 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithParam = null)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
         {
-            if (ShouldRebuildExpression(withoutServiceFields, buildServiceWrapWithParam))
+            if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
-                var selectionFields = GetSelectionFields(contextValue, serviceProvider, fragments, withoutServiceFields, buildServiceWrapWithParam);
+                var currentContextParam = SelectionContext != null ? SelectionContext.AsParameter() : RootFieldParameter;
+                var listContext = fieldExpression;
+                if (replaceContextWith != null)
+                {
+                    var fieldType = isRoot ? replaceContextWith.Type : replaceContextWith.Type.GetField(Name)?.FieldType;
+                    // if null we're in a service returned object and no longer need to replace the parameters
+                    if (fieldType != null)
+                    {
+                        if (fieldType.IsEnumerableOrArray())
+                            fieldType = fieldType.GetEnumerableOrArrayType();
+
+                        currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
+                        var replacer = new ParameterReplacer();
+                        listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
+                        listContext.AddServices(fieldExpression.Services);
+                    }
+                }
+
+                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null);
 
                 if (!selectionFields.Any())
                     return null;
 
                 // build a .Select(...) - returning a IEnumerable<>
-                var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(SelectionContext != null ? SelectionContext.AsParameter() : RootFieldParameter, fieldExpression, selectionFields.ExpressionOnly());
+                var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
 
                 if (combineExpression != null)
                 {
@@ -86,6 +108,16 @@ namespace EntityGraphQL.Compiler
                 else
                     fullNodeExpression = resultExpression;
             }
+
+            if (fullNodeExpression != null)
+            {
+                fullNodeExpression.AddServices(this.Services);
+                // if selecting final graph make sure lists are evaluated
+                if (replaceContextWith != null && !isRoot)
+                    fullNodeExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { fullNodeExpression.Type.GetEnumerableOrArrayType() }, fullNodeExpression);
+            }
+
+            fullNodeExpression?.AddServices(this.Services);
 
             // above has built the expressions
             if (withoutServiceFields)

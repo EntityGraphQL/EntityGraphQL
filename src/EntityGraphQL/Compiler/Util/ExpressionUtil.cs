@@ -248,7 +248,7 @@ namespace EntityGraphQL.Compiler.Util
                 return null;
 
             var newExp = CreateNewExpression(fieldExpressions);
-            var args = new List<object> { selectionContext };
+            var args = new List<object>();
             args.AddRange(fieldSelectParamValues);
             if (nullWrapParam != null)
             {

@@ -482,9 +482,9 @@ public class MovieMutations
 }
 ```
 
-# Accessing other services in your fields
+# Accessing other data/services in your fields
 
-We can also inject services in field definitions with the helper `WithService<T>()`
+We can also inject services in field definitions with the helper method `WithService<T>()`
 
 _Note as `WithService` has a typed return `WithService<TService, TReturn>` you can let the compiler figure out the return type by typing the arguments. e.g.
 
@@ -505,16 +505,18 @@ schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p)
 
 ## How EntityGraphQL handles WithService()
 
-Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core and allow it to perform an optimal SQL statement. For example if EF core 2.x couldn't translate a the LINQ query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` in memory. EF core 3.1+ will throw an error. We build an expression to _try_ avoid either of those.
+Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core and allow it to perform an optimal SQL statement. For example if EF core 2.x couldn't translate a the LINQ query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` calls in memory. EF core 3.1+ will throw an error by default. To support EF performing optimal queries EntityGraphQL builds the expressions in 2 parts.
 
 If you encounter any issues with using `WithService()` and EF Core 3.1+ please raise an issue.
 
-Example of what we do, which might help inform how you build/use other services.
+Example of how EntityGraphQL handles `WithService()`, which can help inform how you build/use other services.
 
 Given the following GQL
 
 ```gql
-{ people { age manager { name } } }
+{
+  people { age manager { name } }
+}
 ```
 
 Where `age` is defined as
@@ -525,20 +527,27 @@ schema.Type<Person>().AddField("age",
     "Persons age");
 ```
 
-EntityGraphQL will build a LINQ query that will look like the below. Everything before the `ToList()` should be fine for EF Core 3.1+ to handle and then after that things are run in memory (which the services should expect).
+EntityGraphQL will build a LINQ query that first selects everything from the base context (DBContext in the case) that EF can execute. Then another LINQ query that runs on top of that result which includes the `WithService()` fields. This means EF can optimise your query and return all the data requested and in memory we then merge that with data from your services.
+
+An example in C# of what this ends up looking like.
 
 ```c#
-(DbContext context, AgeService ager) => context.People.Select(p => new {
+var dbResultFunc = (DbContext context) => context.People.Select(p => new {
     Birthday = p.Birthday, // extracted from the WithService call as it is needed in the in-memory resolution
     manager = new {
         name = p.Manager.Name
     }
 })
-.ToList() // EF will fetch data
-.Select(p => { // runs in memory from the result of EF
+.ToList(); // EF will fetch data
+var dbResult = dbResultFunc(dbContext);
+
+// note dbResult is an anonymous type known at runtime
+var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
     age = ager.GetAge(p.Birthday)), // passing in data we selected just for this
     manager = p.manager // simple selection from the previous result
-});
+})
+.ToList();
+var results = resultsFunc(dbResult, ager);
 ```
 
 This allows EF Core to make it's optimisations and prevent over fetching of data when using EntityGraphQL against an EF DbContext.

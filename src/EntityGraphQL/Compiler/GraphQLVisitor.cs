@@ -95,7 +95,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(resultName, result, currentExpressionContext.AsParameter());
+                    fieldResult = new GraphQLScalarField(resultName, result, currentExpressionContext.AsParameter() ?? rootParameterContext);
                 }
 
                 if (context.directive != null)

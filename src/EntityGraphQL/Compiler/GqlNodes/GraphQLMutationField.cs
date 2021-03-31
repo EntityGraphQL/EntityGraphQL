@@ -19,12 +19,14 @@ namespace EntityGraphQL.Compiler
 
         public BaseGraphQLQueryField ResultSelection { get => resultSelection; }
 
+        public override bool IsScalar { get => false; }
+
         public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, ExpressionResult> args, BaseGraphQLQueryField resultSelection, Func<string, string> fieldNamer)
         {
             Name = name;
             this.mutationType = mutationType;
             this.args = args;
-            this.resultSelection = resultSelection; 
+            this.resultSelection = resultSelection;
             this.fieldNamer = fieldNamer;
         }
 
@@ -40,9 +42,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithParam = null)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
         {
-            return resultSelection.GetNodeExpression(contextValue, serviceProvider, fragments, withoutServiceFields, buildServiceWrapWithParam);
+            return resultSelection.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
         }
     }
 }

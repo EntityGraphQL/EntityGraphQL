@@ -90,7 +90,7 @@ namespace EntityGraphQL.Compiler
                             }
 
                             // build select
-                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(context, serviceProvider, fragments).Type }, baseExp, Expression.Lambda(node.ResultSelection.GetNodeExpression(context, serviceProvider, fragments), selectParam));
+                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(serviceProvider, fragments).Type }, baseExp, Expression.Lambda(node.ResultSelection.GetNodeExpression(serviceProvider, fragments), selectParam));
 
                             // add First/Last back
                             var firstExp = ExpressionUtil.MakeCallOnQueryable(call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(context, serviceProvider, fragments).Type }, mutationExpression, Expression.Lambda(node.ResultSelection.GetNodeExpression(context, serviceProvider, fragments), selectParam));
+                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(serviceProvider, fragments).Type }, mutationExpression, Expression.Lambda(node.ResultSelection.GetNodeExpression(serviceProvider, fragments), selectParam));
                     node.ResultSelection.SetNodeExpression(exp);
                 }
 

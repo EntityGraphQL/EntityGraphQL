@@ -1,8 +1,9 @@
 # 0.69.0
+*Breaking changes*
 - Big refactor/clean - hopefully easier to follow the post Antlr output - see `GraphQL*Field` classes
 - Support for dotnet Entity Framework Core 3.1+ when using other services in the schema
 
-To support EF 3.x as a base schema context we now build expression is 2 stages. See the updated readme section _______
+To support EF 3.x as a base schema context we now build and execute expressions in 2 stages. See the updated readme section How EntityGraphQL handles WithService().
 
 # 0.68.1
 - Update Humanizer.Core dependency which resolves issue with newer dotnet core

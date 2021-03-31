@@ -54,13 +54,13 @@ namespace EntityGraphQL.Compiler
 
 
 
-        protected bool ShouldRebuildExpression(bool withoutServiceFields, ParameterExpression buildServiceWrapWithParam)
+        protected bool ShouldRebuildExpression(bool withoutServiceFields, ParameterExpression replaceContextWith)
         {
             return (nodeExpressionNoServiceFields == null && withoutServiceFields) ||
-                                        (buildServiceWrapWithParam != null && fullNodeExpression != null) ||
+                                        (replaceContextWith != null && fullNodeExpression != null) ||
                                         (fullNodeExpression == null && queryFields.Any());
         }
-        protected Dictionary<string, CompiledField> GetSelectionFields(object contextValue, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression buildServiceWrapWithParam)
+        protected Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression replaceContextWith)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -72,12 +72,12 @@ namespace EntityGraphQL.Compiler
             foreach (var field in queryFields)
             {
                 // Might be a fragment that expands into many fields hence the Expand
-                foreach (var subField in field.Expand(fragments))
+                foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
-                    if (withoutServiceFields && subField.HasAnyServices)
+                    if (withoutServiceFields && subField.HasAnyServices && subField.IsScalar)
                         continue;
 
-                    var fieldExp = subField.GetNodeExpression(contextValue, serviceProvider, fragments, withoutServiceFields, buildServiceWrapWithParam);
+                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
 
                     // be nice not to have to handle this here...
                     if (SelectionContext != null && field is GraphQLFragmentField fragField)
@@ -93,7 +93,7 @@ namespace EntityGraphQL.Compiler
                             constantParameters.Add(item.Key, item.Value);
                     }
                     // pull up any services
-                    AddServices(fieldExp.Services);
+                    AddServices(fieldExp?.Services);
                 }
             }
 

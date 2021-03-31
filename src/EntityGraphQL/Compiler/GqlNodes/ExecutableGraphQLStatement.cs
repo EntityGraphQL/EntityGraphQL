@@ -44,57 +44,54 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(result);
         }
 
-        protected object CompileAndExecuteNode<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node)
+        protected object CompileAndExecuteNode(object context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node)
         {
-            var lambdaExpression = Compile(node, context, validator, serviceProvider, fragments, out List<object> allArgs);
-            var data = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
-            return data;
-        }
-
-        protected LambdaExpression Compile<TContext>(BaseGraphQLField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, out List<object> allArgs)
-        {
-            allArgs = new List<object> { context };
-
-            // should only be calling Execute at the top level
-            var contextParam = node.RootFieldParameter;
-            var parameters = new List<ParameterExpression> { contextParam };
-
+            var replacer = new ParameterReplacer();
             // For root/top level fields we need to first select the whole graph without fields that require services
-            // so that EF Core 3.1+ can run and optimise the query
+            // so that EF Core 3.1+ can run and optimise the query against the DB
             // We then select the full graph from that context
 
-            var replacer = new ParameterReplacer();
             ExpressionResult expression = null;
+            var contextParam = node.RootFieldParameter;
 
             if (node.HasAnyServices)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(context, serviceProvider, fragments, withoutServiceFields: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, withoutServiceFields: true);
                 if (expression != null)
                 {
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                    var newContext = Expression.Parameter(expression.Type);
-                    // call ToList() on top level nodes to force evaluation
-                    if (expression.Type.IsEnumerableOrArray())
-                    {
-                        newContext = Expression.Parameter(expression.Type.GetEnumerableOrArrayType());
-                        expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { newContext.Type }, expression);
-                    }
-                    // we now know the selection type without services and need to build the full select on that type
-                    // need to rebuild it
-                    var fullSelection = node.GetNodeExpression(context, serviceProvider, fragments, buildServiceWrapWithParam: newContext);
+                    var newContextType = Expression.Parameter(expression.Type);
+                    // if (expression.Type.IsEnumerableOrArray())
+                    //     newContextType = Expression.Parameter(expression.Type.GetEnumerableOrArrayType());
 
-                    // replace anything that required the normal root level param type with the new type selected above (without service fields)
-                    expression = CombineNodeExpressionWithSelection(expression, fullSelection, replacer, newContext);
+                    // execute expression now and get a result that we will then perform a full select over
+                    // This part is happening via EntityFramework if you use it
+                    context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
+
+                    // we now know the selection type without services and need to build the full select on that type
+                    // need to rebuild the full query
+                    expression = node.GetNodeExpression(serviceProvider, fragments, replaceContextWith: newContextType, isRoot: true);
+                    contextParam = newContextType;
                 }
             }
 
-            if (expression == null) // just do things normally
+            if (expression == null)
             {
-                // this is already evaluated and will just return the expression
-                expression = node.GetNodeExpression(context, serviceProvider, fragments);
+                // just do things normally
+                expression = node.GetNodeExpression(serviceProvider, fragments);
             }
+
+            var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
+            return data;
+        }
+
+        private object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer)
+        {
+            var allArgs = new List<object> { context };
+
+            var parameters = new List<ParameterExpression> { contextParam };
 
             // this is the full requested graph
             // inject dependencies into the fullSelection
@@ -120,7 +117,7 @@ namespace EntityGraphQL.Compiler
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
-            return lambdaExpression;
+            return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
 
         /// <summary>

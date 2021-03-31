@@ -34,6 +34,11 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression RootFieldParameter { get; set; }
         public List<Type> Services { get; } = new List<Type>();
         public abstract bool HasAnyServices { get; set; }
+        /// <summary>
+        /// Field returns a value. I.e. it is not a selection on an object or array of objects
+        /// </summary>
+        /// <value></value>
+        public abstract bool IsScalar { get; }
 
         protected Expression combineExpression;
 
@@ -43,9 +48,9 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public abstract ExpressionResult GetNodeExpression(object contextValue, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression buildServiceWrapWithParam = null);
+        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false);
 
-        public virtual IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments) => new List<BaseGraphQLField> { this };
+        public virtual IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
         internal void SetCombineExpression(Expression combineExpression)
         {
