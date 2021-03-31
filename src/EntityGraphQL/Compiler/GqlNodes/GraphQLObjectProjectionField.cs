@@ -162,7 +162,7 @@ namespace EntityGraphQL.Compiler
                 var finder = new ParameterFinder();
                 foreach (var arg in ((MethodCallExpression)fieldExpression).Arguments)
                 {
-                    if (finder.Find(arg, RootFieldParameter))
+                    if (arg != RootFieldParameter && finder.Find(arg, RootFieldParameter))
                     {
                         var me = (MemberExpression)arg;
                         fields.Add(new GraphQLScalarField(me.Member.Name, (ExpressionResult)me, RootFieldParameter));
