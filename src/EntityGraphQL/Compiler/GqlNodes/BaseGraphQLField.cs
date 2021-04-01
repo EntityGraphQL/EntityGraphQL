@@ -56,5 +56,13 @@ namespace EntityGraphQL.Compiler
         {
             this.combineExpression = combineExpression;
         }
+
+        public void AddServices(IEnumerable<Type> services)
+        {
+            if (services == null)
+                return;
+            Services.AddRange(services);
+        }
+
     }
 }

@@ -100,13 +100,6 @@ namespace EntityGraphQL.Compiler
             return selectionFields;
         }
 
-        public void AddServices(IEnumerable<Type> services)
-        {
-            if (services == null)
-                return;
-            Services.AddRange(services);
-        }
-
         public void SetNodeExpression(ExpressionResult expr)
         {
             fullNodeExpression = expr;

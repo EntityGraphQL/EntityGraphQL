@@ -19,12 +19,16 @@ namespace EntityGraphQL.Compiler
             this.expression = expression;
             RootFieldParameter = contextParameter;
             constantParameters = expression.ConstantParameters.ToDictionary(i => i.Key, i => i.Value);
+            AddServices(expression.Services);
         }
 
         public override bool HasAnyServices { get => Services.Any() || hasAnyServices; set => hasAnyServices = value; }
 
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
         {
+            if (withoutServiceFields && HasAnyServices)
+                return null;
+
             if (replaceContextWith != null)
             {
                 var replacer = new ParameterReplacer();
