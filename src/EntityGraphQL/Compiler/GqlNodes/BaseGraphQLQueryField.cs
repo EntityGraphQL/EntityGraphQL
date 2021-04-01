@@ -27,21 +27,22 @@ namespace EntityGraphQL.Compiler
         /// Holds the expression without any fields that use services
         /// </summary>
         protected ExpressionResult nodeExpressionNoServiceFields;
-        protected bool hasWrappedService;
 
         /// <summary>
         /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public override bool HasAnyServices { get => hasWrappedService || QueryFields.Any(q => q.HasAnyServices) || Services?.Any() == true || QueryFields.Any(q => q.Services?.Any() == true); set => hasWrappedService = value; }
+        public override bool HasAnyServices { get => Services?.Any() == true; }
 
         protected List<BaseGraphQLField> queryFields;
+        protected readonly ParameterReplacer replacer;
 
         protected BaseGraphQLQueryField()
         {
             if (selectionContext != null)
                 Services.AddRange(selectionContext.Services);
+            replacer = new ParameterReplacer();
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public IEnumerable<BaseGraphQLField> QueryFields { get => queryFields; }
 
-
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
         protected bool ShouldRebuildExpression(bool withoutServiceFields, ParameterExpression replaceContextWith)
         {
@@ -67,16 +68,13 @@ namespace EntityGraphQL.Compiler
                 return null;
 
             var selectionFields = new Dictionary<string, CompiledField>();
-            var replacer = new ParameterReplacer();
 
             foreach (var field in queryFields)
             {
                 // Might be a fragment that expands into many fields hence the Expand
+                // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
-                    if (withoutServiceFields && subField.HasAnyServices && subField.IsScalar)
-                        continue;
-
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
 
                     // be nice not to have to handle this here...

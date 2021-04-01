@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
         public ParameterExpression RootFieldParameter { get; set; }
         public List<Type> Services { get; } = new List<Type>();
-        public abstract bool HasAnyServices { get; set; }
+        public abstract bool HasAnyServices { get; }
         /// <summary>
         /// Field returns a value. I.e. it is not a selection on an object or array of objects
         /// </summary>
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false);
 
-        public virtual IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
+        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 
         internal void SetCombineExpression(Expression combineExpression)
         {

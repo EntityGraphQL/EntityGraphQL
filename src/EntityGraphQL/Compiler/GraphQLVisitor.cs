@@ -318,10 +318,7 @@ namespace EntityGraphQL.Compiler
 
                 var fieldExpressions = context.children.Select(c => (BaseGraphQLField)Visit(c)).Where(n => n != null).ToList();
 
-                var graphQLNode = new GraphQLObjectProjectionField(name, selectFromExp, selectFromParam, fieldExpressions, currentExpressionContext)
-                {
-                    HasAnyServices = shouldWrapField
-                };
+                var graphQLNode = new GraphQLObjectProjectionField(name, selectFromExp, selectFromParam, fieldExpressions, currentExpressionContext);
 
                 currentExpressionContext = oldContext;
                 rootParameterContext = oldRootParam;

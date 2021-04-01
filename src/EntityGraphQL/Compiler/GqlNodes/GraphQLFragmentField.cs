@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler
             Name = name;
         }
 
-        public override bool HasAnyServices { get; set; } = false;
+        public override bool HasAnyServices { get => false; }
         public GraphQLFragmentStatement Fragment { get; private set; }
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)

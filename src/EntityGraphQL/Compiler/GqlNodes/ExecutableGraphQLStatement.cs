@@ -61,14 +61,12 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(serviceProvider, fragments, withoutServiceFields: true);
                 if (expression != null)
                 {
-                    // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                    var newContextType = Expression.Parameter(expression.Type);
-                    // if (expression.Type.IsEnumerableOrArray())
-                    //     newContextType = Expression.Parameter(expression.Type.GetEnumerableOrArrayType());
-
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
                     context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
+
+                    // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
+                    var newContextType = Expression.Parameter(context.GetType());
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query

@@ -252,7 +252,8 @@ namespace EntityGraphQL.Compiler.Util
             args.AddRange(fieldSelectParamValues);
             if (nullWrapParam != null)
             {
-                paramsForFieldExpressions.Add(nullWrapParam);
+                if (!paramsForFieldExpressions.Contains(nullWrapParam))
+                    paramsForFieldExpressions.Add(nullWrapParam);
                 args.Add(nullCheck);
             }
             var result = Expression.Lambda(newExp, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());

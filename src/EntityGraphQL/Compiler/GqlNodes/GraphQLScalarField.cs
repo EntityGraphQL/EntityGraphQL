@@ -11,7 +11,9 @@ namespace EntityGraphQL.Compiler
         public override bool IsScalar { get => true; }
 
         private readonly ExpressionResult expression;
-        private bool hasAnyServices;
+        private readonly ExpressionExtractor extractor;
+        private readonly ParameterReplacer replacer;
+        private List<GraphQLScalarField> extractedFields;
 
         public GraphQLScalarField(string name, ExpressionResult expression, ParameterExpression contextParameter)
         {
@@ -20,9 +22,27 @@ namespace EntityGraphQL.Compiler
             RootFieldParameter = contextParameter;
             constantParameters = expression.ConstantParameters.ToDictionary(i => i.Key, i => i.Value);
             AddServices(expression.Services);
+            extractor = new ExpressionExtractor();
+            replacer = new ParameterReplacer();
         }
 
-        public override bool HasAnyServices { get => Services.Any() || hasAnyServices; set => hasAnyServices = value; }
+        public override bool HasAnyServices { get => Services.Any(); }
+
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
+        {
+            if (withoutServiceFields && HasAnyServices)
+                return ExtractFields();
+            return new List<BaseGraphQLField> { this };
+        }
+
+        private IEnumerable<BaseGraphQLField> ExtractFields()
+        {
+            if (extractedFields != null)
+                return extractedFields;
+
+            extractedFields = extractor.Extract(expression, RootFieldParameter).Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter)).ToList();
+            return extractedFields;
+        }
 
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
         {
@@ -31,7 +51,6 @@ namespace EntityGraphQL.Compiler
 
             if (replaceContextWith != null)
             {
-                var replacer = new ParameterReplacer();
                 var newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith);
                 newExpression.AddServices(expression.Services);
                 return newExpression;

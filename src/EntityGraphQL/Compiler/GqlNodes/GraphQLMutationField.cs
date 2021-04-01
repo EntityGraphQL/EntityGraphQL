@@ -13,9 +13,8 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<string, ExpressionResult> args;
         private readonly BaseGraphQLQueryField resultSelection;
         private readonly Func<string, string> fieldNamer;
-        private bool hasAnyServices;
 
-        public override bool HasAnyServices { get => Services.Any() || hasAnyServices; set => hasAnyServices = value; }
+        public override bool HasAnyServices { get => Services.Any(); }
 
         public BaseGraphQLQueryField ResultSelection { get => resultSelection; }
 

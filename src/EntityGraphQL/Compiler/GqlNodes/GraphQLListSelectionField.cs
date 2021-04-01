@@ -80,7 +80,6 @@ namespace EntityGraphQL.Compiler
                             fieldType = fieldType.GetEnumerableOrArrayType();
 
                         currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
-                        var replacer = new ParameterReplacer();
                         listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
                         listContext.AddServices(fieldExpression.Services);
                     }

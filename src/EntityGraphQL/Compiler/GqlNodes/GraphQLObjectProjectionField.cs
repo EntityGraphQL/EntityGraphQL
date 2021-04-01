@@ -53,7 +53,6 @@ namespace EntityGraphQL.Compiler
             }
             if (fieldSelection != null)
             {
-                AddServices(fieldSelection.SelectMany(s => s.GetType() == typeof(GraphQLListSelectionField) ? ((GraphQLListSelectionField)s).Services : new List<Type>()));
                 foreach (var item in fieldSelection.SelectMany(fs => fs.ConstantParameters))
                 {
                     constantParameters.Add(item.Key, item.Value);
@@ -78,8 +77,6 @@ namespace EntityGraphQL.Compiler
                 if (selectionFields == null || !selectionFields.Any())
                     return null;
 
-                var replacer = new ParameterReplacer();
-
                 if (needsServiceWrap)
                 {
                     // selectionFields is set up but we need to wrap
@@ -91,6 +88,8 @@ namespace EntityGraphQL.Compiler
 
                     // we need to make sure the wrap can resolve any services in the select
                     var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Expression.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+                    // if the selection is myService(p.Field).ServiceField
+                    // we need to make sure myService(p.Field) is replaced with the single call to the service result
                     var originalParam = selectionFields.First().Value.Field.RootFieldParameter;
                     // This is the var the we use in the select - the result of the service at runtime
                     var selectionParams = new List<ParameterExpression>();
