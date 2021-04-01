@@ -23,6 +23,7 @@ namespace EntityGraphQL.Compiler
     public class GraphQLObjectProjectionField : BaseGraphQLQueryField
     {
         private readonly ExpressionResult fieldExpression;
+        private readonly ExpressionExtractor extractor;
 
         public override bool IsScalar { get => false; }
 
@@ -43,6 +44,8 @@ namespace EntityGraphQL.Compiler
             this.selectionContext = selectionContext;
             this.RootFieldParameter = fieldParameter;
             constantParameters = new Dictionary<ParameterExpression, object>();
+            extractor = new ExpressionExtractor();
+
             if (fieldExpression != null)
             {
                 AddServices(fieldExpression.Services);
@@ -157,20 +160,11 @@ namespace EntityGraphQL.Compiler
             // fieldExpression might be a service method call and the arguments might have fields we need to select out
             if (withoutServiceFields && fieldExpression.NodeType == ExpressionType.Call)
             {
-                var fields = new List<BaseGraphQLField>();
-                var finder = new ParameterFinder();
-                foreach (var arg in ((MethodCallExpression)fieldExpression).Arguments)
-                {
-                    if (arg != RootFieldParameter && finder.Find(arg, RootFieldParameter))
-                    {
-                        var me = (MemberExpression)arg;
-                        fields.Add(new GraphQLScalarField(me.Member.Name, (ExpressionResult)me, RootFieldParameter));
-                    }
-                }
+                var fields = extractor.Extract(fieldExpression, RootFieldParameter)
+                    .Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter)).ToList();
+
                 if (fields.Any())
-                {
                     return fields;
-                }
             }
             return base.Expand(fragments, withoutServiceFields);
         }
