@@ -77,10 +77,14 @@ namespace EntityGraphQL.Compiler
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
 
+                    // pull up any services
+                    AddServices(fieldExp?.Services);
+
                     // be nice not to have to handle this here...
                     if (SelectionContext != null && field is GraphQLFragmentField fragField)
                     {
-                        fieldExp.Expression = replacer.Replace(fieldExp.Expression, fragField.Fragment.SelectContext, SelectionContext);
+                        // don't just update fieldExp.Expression as if the fragment is used else where the parameter won't match
+                        fieldExp = (ExpressionResult)replacer.Replace(fieldExp.Expression, fragField.Fragment.SelectContext, SelectionContext);
                     }
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
@@ -90,8 +94,6 @@ namespace EntityGraphQL.Compiler
                         if (!constantParameters.ContainsKey(item.Key))
                             constantParameters.Add(item.Key, item.Value);
                     }
-                    // pull up any services
-                    AddServices(fieldExp?.Services);
                 }
             }
 

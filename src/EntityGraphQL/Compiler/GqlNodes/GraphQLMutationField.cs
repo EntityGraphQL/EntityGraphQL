@@ -18,8 +18,6 @@ namespace EntityGraphQL.Compiler
 
         public BaseGraphQLQueryField ResultSelection { get => resultSelection; }
 
-        public override bool IsScalar { get => false; }
-
         public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, ExpressionResult> args, BaseGraphQLQueryField resultSelection, Func<string, string> fieldNamer)
         {
             Name = name;

@@ -8,8 +8,6 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLScalarField : BaseGraphQLField
     {
-        public override bool IsScalar { get => true; }
-
         private readonly ExpressionResult expression;
         private readonly ExpressionExtractor extractor;
         private readonly ParameterReplacer replacer;

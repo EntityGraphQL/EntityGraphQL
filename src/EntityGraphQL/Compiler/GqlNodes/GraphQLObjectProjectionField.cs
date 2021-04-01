@@ -25,8 +25,6 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionResult fieldExpression;
         private readonly ExpressionExtractor extractor;
 
-        public override bool IsScalar { get => false; }
-
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>

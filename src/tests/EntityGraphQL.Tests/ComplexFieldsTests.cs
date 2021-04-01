@@ -418,6 +418,55 @@ namespace EntityGraphQL.Tests
             Assert.Equal("allowComments", project.tasks[0].settings.GetType().GetFields()[0].Name);
         }
 
+        [Fact]
+        public void TestReuseFragment()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddField("activeProjects",
+                ctx => ctx.Projects, // pretent you id some filtering here
+                "Active projects").IsNullable(false);
+            schema.AddField("oldProjects",
+                ctx => ctx.Projects, // pretent you id some filtering here
+                "Old projects").IsNullable(false);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  activeProjects {
+    ...frag
+  }
+  oldProjects {
+    ...frag
+  }
+}
+
+fragment frag on Project {
+  id
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 9,
+                        Tasks = new List<Task> { new Task() }
+                    },
+                    new Project
+                    {
+                        Id = 2,
+                        Tasks = new List<Task> { new Task() }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(res.Errors);
+        }
+
         public class AgeService
         {
             public AgeService()

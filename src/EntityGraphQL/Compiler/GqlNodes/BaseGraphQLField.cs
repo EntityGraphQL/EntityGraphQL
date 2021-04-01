@@ -38,11 +38,6 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public abstract bool HasAnyServices { get; }
-        /// <summary>
-        /// Field returns a value. I.e. it is not a selection on an object or array of objects
-        /// </summary>
-        /// <value></value>
-        public abstract bool IsScalar { get; }
 
         protected Expression combineExpression;
 

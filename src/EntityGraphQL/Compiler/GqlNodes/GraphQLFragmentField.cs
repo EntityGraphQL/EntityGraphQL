@@ -7,8 +7,6 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentField : BaseGraphQLField
     {
-        public override bool IsScalar { get => false; }
-
         public GraphQLFragmentField(string name)
         {
             Name = name;
@@ -19,10 +17,15 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
-            var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
-            Fragment = fragment;
+            if (Fragment == null)
+            {
+                var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+                Fragment = fragment;
+            }
 
-            return fragment.Fields;
+            if (withoutServiceFields)
+                return Fragment.Fields.Where(f => !f.Services.Any());
+            return Fragment.Fields;
         }
 
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
