@@ -87,7 +87,7 @@ namespace EntityGraphQL.Compiler
 
                 var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null);
 
-                if (!selectionFields.Any())
+                if (selectionFields == null || !selectionFields.Any())
                     return null;
 
                 // build a .Select(...) - returning a IEnumerable<>
