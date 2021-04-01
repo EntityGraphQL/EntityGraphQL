@@ -370,6 +370,54 @@ namespace EntityGraphQL.Tests
             Assert.Equal("projects", res.Data["user"].GetType().GetFields().ElementAt(1).Name);
         }
 
+        [Fact]
+        public void TestSelectFromServiceDeepInLists()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Settings>("Settings", "The settings").AddAllFields();
+            schema.Type<Task>().AddField("settings",
+                (t) => WithService((SettingsService settings) => settings.Get(t.Id, false)),
+                "Task settings").IsNullable(false);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  projects {
+    tasks {
+      settings {
+        allowComments
+      }
+    }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task> { new Task() }
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            var settings = new SettingsService();
+            serviceCollection.AddSingleton(settings);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Null(res.Errors);
+            Assert.Equal(1, settings.CallCount);
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("tasks", projectType.GetFields()[0].Name);
+            Assert.Equal("settings", project.tasks.GetType().GetGenericArguments()[0].GetFields()[0].Name);
+            Assert.Equal("allowComments", project.tasks[0].settings.GetType().GetFields()[0].Name);
+        }
+
         public class AgeService
         {
             public AgeService()
@@ -463,6 +511,22 @@ namespace EntityGraphQL.Tests
 
             public int PageCount { get; set; }
         }
+    }
+
+    public class SettingsService
+    {
+        public int CallCount { get; internal set; }
+
+        public Settings Get(int id, bool someBool)
+        {
+            CallCount += 1;
+            return new Settings();
+        }
+    }
+
+    public class Settings
+    {
+        public bool AllowComments { get; set; } = false;
     }
 
     internal class PagerArgs

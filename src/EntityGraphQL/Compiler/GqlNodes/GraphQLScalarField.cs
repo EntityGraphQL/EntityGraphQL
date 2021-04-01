@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
-            if (withoutServiceFields && HasAnyServices)
+            if (withoutServiceFields && Services.Any())
                 return ExtractFields();
             return new List<BaseGraphQLField> { this };
         }
@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
 
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
         {
-            if (withoutServiceFields && HasAnyServices)
+            if (withoutServiceFields && Services.Any())
                 return null;
 
             if (replaceContextWith != null)

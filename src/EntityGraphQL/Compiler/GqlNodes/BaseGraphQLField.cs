@@ -33,6 +33,10 @@ namespace EntityGraphQL.Compiler
         internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
         public ParameterExpression RootFieldParameter { get; set; }
         public List<Type> Services { get; } = new List<Type>();
+        /// <summary>
+        /// If this node has any services at all in its graph
+        /// </summary>
+        /// <value></value>
         public abstract bool HasAnyServices { get; }
         /// <summary>
         /// Field returns a value. I.e. it is not a selection on an object or array of objects

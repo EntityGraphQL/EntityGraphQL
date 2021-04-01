@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public override bool HasAnyServices { get => Services?.Any() == true; }
+        public override bool HasAnyServices { get => Services?.Any() == true || queryFields?.Any(f => f.HasAnyServices) == true; }
 
         protected List<BaseGraphQLField> queryFields;
         protected readonly ParameterReplacer replacer;

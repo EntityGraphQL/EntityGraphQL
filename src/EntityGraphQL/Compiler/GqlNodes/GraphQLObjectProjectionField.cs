@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
-                bool needsServiceWrap = HasAnyServices && !withoutServiceFields;
+                bool needsServiceWrap = Services.Any() && !withoutServiceFields;
                 // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the coorect context
                 var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, needsServiceWrap ? null : replaceContextWith);
 
