@@ -55,13 +55,13 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
-        protected bool ShouldRebuildExpression(bool withoutServiceFields, ParameterExpression replaceContextWith)
+        protected bool ShouldRebuildExpression(bool withoutServiceFields, Expression replaceContextWith)
         {
             return (nodeExpressionNoServiceFields == null && withoutServiceFields) ||
                                         (replaceContextWith != null && fullNodeExpression != null) ||
                                         (fullNodeExpression == null && queryFields.Any());
         }
-        protected Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression replaceContextWith)
+        protected Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -71,6 +71,11 @@ namespace EntityGraphQL.Compiler
 
             foreach (var field in queryFields)
             {
+                if (SelectionContext != null && field is GraphQLFragmentField fragField)
+                {
+                    replaceContextWith = replaceContextWith != null ? replacer.Replace(SelectionContext, RootFieldParameter, replaceContextWith) : SelectionContext;
+                }
+
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
@@ -80,12 +85,6 @@ namespace EntityGraphQL.Compiler
                     // pull up any services
                     AddServices(fieldExp?.Services);
 
-                    // be nice not to have to handle this here...
-                    if (SelectionContext != null && field is GraphQLFragmentField fragField)
-                    {
-                        // don't just update fieldExp.Expression as if the fragment is used else where the parameter won't match
-                        fieldExp = (ExpressionResult)replacer.Replace(fieldExp.Expression, fragField.Fragment.SelectContext, SelectionContext);
-                    }
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
                     // pull any constant values up

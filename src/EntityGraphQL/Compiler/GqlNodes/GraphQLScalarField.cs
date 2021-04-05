@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
             return extractedFields;
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;

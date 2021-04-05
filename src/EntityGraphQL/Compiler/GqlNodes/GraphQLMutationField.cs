@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, ParameterExpression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
         {
             return resultSelection.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
         }
