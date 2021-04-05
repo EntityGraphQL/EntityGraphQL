@@ -388,6 +388,7 @@ namespace EntityGraphQL.Tests
       settings {
         allowComments
       }
+      id # the service field below requires id. Make sure we don't select it twice
     }
   }
 }"
@@ -465,6 +466,54 @@ fragment frag on Project {
 
             var res = schema.ExecuteQuery(gql, context, null, null);
             Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestComplexFieldWithServiceField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Settings>("Settings", "The settings").AddAllFields();
+            schema.Type<Project>().AddField("settings",
+                (t) => WithService((SettingsService settings) => settings.Get(t.Id, false)),
+                "Project settings").IsNullable(false);
+            schema.Type<Project>().AddField("totalTasks", p => p.Tasks.Count(), "Total tasks");
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  projects {
+    totalTasks
+    settings {
+      allowComments
+    }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task> { new Task() }
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            var settings = new SettingsService();
+            serviceCollection.AddSingleton(settings);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Null(res.Errors);
+            Assert.Equal(1, settings.CallCount);
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("totalTasks", projectType.GetFields()[0].Name);
+            Assert.Equal("settings", projectType.GetFields()[1].Name);
+            Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
         }
 
         public class AgeService

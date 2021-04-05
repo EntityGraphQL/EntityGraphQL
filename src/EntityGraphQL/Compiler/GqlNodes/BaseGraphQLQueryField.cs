@@ -67,7 +67,7 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var selectionFields = new Dictionary<string, CompiledField>();
+            var selectionFields = new Dictionary<string, CompiledField>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var field in queryFields)
             {

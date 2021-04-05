@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Compiler
@@ -49,7 +50,13 @@ namespace EntityGraphQL.Compiler
 
             if (replaceContextWith != null)
             {
-                var newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith);
+                ExpressionResult newExpression;
+                var selectedField = replaceContextWith.Type.GetFields().Where(f => f.Name == Name).FirstOrDefault();
+                if (!Services.Any() && selectedField != null)
+                    newExpression = (ExpressionResult)Expression.Field(replaceContextWith, Name);
+                else
+                    newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith);
+
                 newExpression.AddServices(expression.Services);
                 return newExpression;
             }
