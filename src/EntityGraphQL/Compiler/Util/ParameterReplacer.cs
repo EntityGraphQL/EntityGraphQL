@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -13,11 +14,25 @@ namespace EntityGraphQL.Compiler.Util
         private Expression newParam;
         private Type toReplaceType;
         private ParameterExpression toReplace;
-        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam)
+        private string newFieldName;
+        private bool finished;
+
+        /// <summary>
+        /// Rebuilds the expression by replacing toReplace with newParam. Optionally looks for newFieldName as it is rebuilding.
+        /// Used when rebuilding expressions to happen from the sans-services results
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="toReplace"></param>
+        /// <param name="newParam"></param>
+        /// <param name="newFieldName"></param>
+        /// <returns></returns>
+        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, string newFieldName = null)
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
             this.toReplaceType = null;
+            this.newFieldName = newFieldName;
+            finished = false;
             return Visit(node);
         }
 
@@ -26,6 +41,8 @@ namespace EntityGraphQL.Compiler.Util
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
             this.toReplace = null;
+            this.newFieldName = null;
+            finished = false;
             return Visit(node);
         }
 
@@ -47,18 +64,26 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (node.Expression != null && node.Expression.NodeType == ExpressionType.Parameter && (node.Expression == toReplace || node.Expression.Type == toReplaceType))
-            {
-                // we may have replaced this parameter and the new type (anonymous) might have fields not properties
-                var newParam = base.Visit(node.Expression);
-                var exp = Expression.PropertyOrField(newParam, node.Member.Name);
-                return exp;
-            }
             // returned expression may have been modified and we need to rebuild
             if (node.Expression != null)
             {
                 var nodeExp = base.Visit(node.Expression);
-                nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                if (finished)
+                    return nodeExp;
+
+                if (newFieldName != null)
+                {
+                    var field = nodeExp.Type.GetField(newFieldName);
+                    if (field != null)
+                    {
+                        finished = true;
+                        nodeExp = Expression.Field(nodeExp, field);
+                    }
+                    else
+                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                }
+                else
+                    nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
                 return nodeExp;
             }
             return base.VisitMember(node);

@@ -516,6 +516,63 @@ fragment frag on Project {
             Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
         }
 
+        [Fact]
+        public void TestComplexFieldInObjectWithServiceField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Settings>("Settings", "The settings").AddAllFields();
+            schema.Type<Project>().AddField("settings",
+                (t) => WithService((SettingsService settings) => settings.Get(t.Id, false)),
+                "Project settings").IsNullable(false);
+            schema.Type<Project>().AddField("totalTasks", p => p.Tasks.Count(), "Total tasks");
+            schema.Type<Person>().AddField("managerId", p => p.Manager.Id, "Persons managers ID");
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  projects {
+    owner {
+        managerId
+    }
+    settings {
+      allowComments
+    }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task> { new Task() },
+                        Owner = new Person
+                        {
+                            Id = 77,
+                            Manager = new Person { Id = 99 }
+                        }
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            var settings = new SettingsService();
+            serviceCollection.AddSingleton(settings);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Equal(1, settings.CallCount);
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("owner", projectType.GetFields()[0].Name);
+            Assert.Equal("managerId", project.owner.GetType().GetFields()[0].Name);
+            Assert.Equal("settings", projectType.GetFields()[1].Name);
+            Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
+        }
+
         public class AgeService
         {
             public AgeService()

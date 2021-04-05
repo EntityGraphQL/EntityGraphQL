@@ -51,11 +51,11 @@ namespace EntityGraphQL.Compiler
             if (replaceContextWith != null)
             {
                 ExpressionResult newExpression;
-                var selectedField = replaceContextWith.Type.GetFields().Where(f => f.Name == Name).FirstOrDefault();
+                var selectedField = replaceContextWith.Type.GetField(Name);
                 if (!Services.Any() && selectedField != null)
                     newExpression = (ExpressionResult)Expression.Field(replaceContextWith, Name);
                 else
-                    newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith);
+                    newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith, Name);
 
                 newExpression.AddServices(expression.Services);
                 return newExpression;
