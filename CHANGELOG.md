@@ -1,3 +1,6 @@
+# 0.68.1
+- Update Humanizer.Core dependency which resolves issue with newer dotnet core
+
 # 0.68.0
 - Fix issue where `FieldNamer` was not being consistently used. Thanks @AnderssonPeter
 - Make sure we include inner exceptions on errors. Thanks @AnderssonPeter
