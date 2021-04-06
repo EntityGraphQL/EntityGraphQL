@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler
                         var fieldExpressionToUse = fieldExpression;
                         if (replaceContextWith != null)
                         {
-                            fieldExpressionToUse = (ExpressionResult)replacer.Replace(fieldExpressionToUse, RootFieldParameter, replaceContextWith);
+                            fieldExpressionToUse = (ExpressionResult)replacer.Replace(fieldExpressionToUse, RootFieldParameter, replaceContextWith, Name);
                             fieldExpressionToUse.AddServices(fieldExpression.Services);
                         }
                         if (!withoutServiceFields)

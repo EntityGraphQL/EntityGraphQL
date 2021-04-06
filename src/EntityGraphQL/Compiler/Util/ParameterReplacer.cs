@@ -71,16 +71,12 @@ namespace EntityGraphQL.Compiler.Util
                 if (finished)
                     return nodeExp;
 
-                if (newFieldName != null)
+                var nextField = (MemberInfo)nodeExp.Type.GetProperties().Where(p => p.Name.ToLower() == node.Member.Name.ToLower()).FirstOrDefault() ??
+                    nodeExp.Type.GetFields().Where(f => f.Name.ToLower() == node.Member.Name.ToLower()).FirstOrDefault();
+                if (newFieldName != null && nextField == null)
                 {
-                    var field = nodeExp.Type.GetField(newFieldName);
-                    if (field != null)
-                    {
-                        finished = true;
-                        nodeExp = Expression.Field(nodeExp, field);
-                    }
-                    else
-                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                    finished = true;
+                    nodeExp = Expression.PropertyOrField(nodeExp, newFieldName);
                 }
                 else
                     nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
