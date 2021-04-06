@@ -79,8 +79,12 @@ namespace EntityGraphQL.Compiler
 
                         currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
                         listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
-                        listContext.AddServices(fieldExpression.Services);
                     }
+                    else
+                    {
+                        listContext = (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
+                    }
+                    listContext.AddServices(fieldExpression.Services);
                 }
 
                 var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null);
