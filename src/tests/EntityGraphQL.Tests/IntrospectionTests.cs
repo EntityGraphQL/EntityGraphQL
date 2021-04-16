@@ -124,5 +124,43 @@ fragment TypeRef on __Type {
             var res = schema.ExecuteQuery(gql, context, null, null);
             Assert.Null(res.Errors);
         }
+
+        [Fact]
+        public void TestGraphiQLIntrospectionFragInFrag()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __schema {
+            directives {
+              args {
+                ...InputValue
+              }
+            }
+          }
+        }
+
+        fragment InputValue on __InputValue {
+          type {
+            ...TypeRef
+          }
+        }
+
+        fragment TypeRef on __Type {
+          name
+        }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(res.Errors);
+        }
     }
 }

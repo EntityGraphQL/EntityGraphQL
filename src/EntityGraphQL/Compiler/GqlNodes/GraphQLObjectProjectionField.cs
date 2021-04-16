@@ -71,27 +71,38 @@ namespace EntityGraphQL.Compiler
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
-                bool needsServiceWrap = Services.Any() && !withoutServiceFields;
-                // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the coorect context
-                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, needsServiceWrap ? null : replaceContextWith);
-
-                if (selectionFields == null || !selectionFields.Any())
-                    return null;
+                bool needsServiceWrap = (Services.Any() || QueryFields.Any(f => f.Services.Any())) && !withoutServiceFields;
 
                 if (needsServiceWrap)
                 {
+                    // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the correct context
+                    var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, null);
+
+                    if (selectionFields == null || !selectionFields.Any())
+                        return null;
+
                     // selectionFields is set up but we need to wrap
                     // we wrap here as we have access to the values and services etc
                     var fieldParamValues = new List<object>(ConstantParameters.Values);
                     var fieldParams = new List<ParameterExpression>(ConstantParameters.Keys);
 
-                    var updatedExpression = GraphQLHelper.InjectServices(serviceProvider, Services, fieldParamValues, fieldExpression, fieldParams, replacer);
+                    var updatedExpression = Services.Any() ? GraphQLHelper.InjectServices(serviceProvider, Services, fieldParamValues, fieldExpression, fieldParams, replacer) : fieldExpression;
+                    // SelectionContext will be null_wrap made in visitor
+                    var nullWrapParam = SelectionContext?.AsParameter() ?? Expression.Parameter(updatedExpression.Type, "nullwrap");
+
+                    if (replaceContextWith != null)
+                    {
+                        updatedExpression = (ExpressionResult)replacer.Replace(updatedExpression, RootFieldParameter, replaceContextWith);
+                        nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
+
+                        foreach (var item in selectionFields)
+                        {
+                            item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, fieldExpression.Type, nullWrapParam, false);
+                        }
+                    }
 
                     // we need to make sure the wrap can resolve any services in the select
-                    var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Expression.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
-                    // if the selection is myService(p.Field).ServiceField
-                    // we need to make sure myService(p.Field) is replaced with the single call to the service result
-                    var originalParam = selectionFields.First().Value.Field.RootFieldParameter;
+                    var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
                     // This is the var the we use in the select - the result of the service at runtime
                     var selectionParams = new List<ParameterExpression>();
                     selectionParams.AddRange(selectionFields.Values.SelectMany(f => f.Expression.ConstantParameters.Keys));
@@ -99,26 +110,29 @@ namespace EntityGraphQL.Compiler
                     selectionParamValues.AddRange(fieldParamValues);
                     selectionParams.AddRange(fieldParams);
 
-                    if (replaceContextWith != null)
-                        updatedExpression = (ExpressionResult)replacer.Replace(updatedExpression, RootFieldParameter, replaceContextWith);
-
-                    var nullWrapParam = SelectionContext?.AsParameter();
                     updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams.First(), selectionParams, selectionExpressions, selectionParamValues, nullWrapParam);
 
                     fullNodeExpression = updatedExpression;
                 }
                 else
                 {
+                    var fieldExpressionToUse = fieldExpression;
+                    if (replaceContextWith != null)
+                    {
+                        fieldExpressionToUse = (ExpressionResult)replacer.Replace(fieldExpressionToUse, RootFieldParameter, replaceContextWith, Name);
+                        fieldExpressionToUse.AddServices(fieldExpression.Services);
+                    }
+
+                    // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the coorect context
+                    var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? fieldExpressionToUse.Expression : null);
+
+                    if (selectionFields == null || !selectionFields.Any())
+                        return null;
+
                     if (selectionFields.Any())
                     {
-                        var fieldExpressionToUse = fieldExpression;
-                        if (replaceContextWith != null)
-                        {
-                            fieldExpressionToUse = (ExpressionResult)replacer.Replace(fieldExpressionToUse, RootFieldParameter, replaceContextWith, Name);
-                            fieldExpressionToUse.AddServices(fieldExpression.Services);
-                        }
                         if (!withoutServiceFields)
-                        {
+                        { //{p_Floor.Customer.OverrideSettings.EnableDevMode}
                             // build a new {...} - returning a single object {}
                             var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
                             // make a null check from this new expression

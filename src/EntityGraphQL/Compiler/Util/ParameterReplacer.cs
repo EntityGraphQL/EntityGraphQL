@@ -15,6 +15,7 @@ namespace EntityGraphQL.Compiler.Util
         private Type toReplaceType;
         private ParameterExpression toReplace;
         private string newFieldName;
+        private bool replaceByTypeParamOnly;
         private bool finished;
 
         /// <summary>
@@ -33,15 +34,17 @@ namespace EntityGraphQL.Compiler.Util
             this.toReplaceType = null;
             this.newFieldName = newFieldName;
             finished = false;
+            this.replaceByTypeParamOnly = true;
             return Visit(node);
         }
 
-        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
+        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, bool replaceByTypeParamOnly = true)
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
             this.toReplace = null;
             this.newFieldName = null;
+            this.replaceByTypeParamOnly = replaceByTypeParamOnly;
             finished = false;
             return Visit(node);
         }
@@ -67,16 +70,26 @@ namespace EntityGraphQL.Compiler.Util
             // returned expression may have been modified and we need to rebuild
             if (node.Expression != null)
             {
-                var nodeExp = base.Visit(node.Expression);
+                Expression nodeExp;
+                if (!replaceByTypeParamOnly && node.Expression.Type == toReplaceType)
+                    nodeExp = newParam;
+                else
+                    nodeExp = base.Visit(node.Expression);
+
                 if (finished)
                     return nodeExp;
 
-                var nextField = (MemberInfo)nodeExp.Type.GetProperties().Where(p => p.Name.ToLower() == node.Member.Name.ToLower()).FirstOrDefault() ??
-                    nodeExp.Type.GetFields().Where(f => f.Name.ToLower() == node.Member.Name.ToLower()).FirstOrDefault();
-                if (newFieldName != null && nextField == null)
+
+                if (newFieldName != null)
                 {
-                    finished = true;
-                    nodeExp = Expression.PropertyOrField(nodeExp, newFieldName);
+                    var newField = nodeExp.Type.GetField(newFieldName);
+                    if (newField != null)
+                    {
+                        finished = true;
+                        nodeExp = Expression.Field(nodeExp, newField);
+                    }
+                    else
+                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
                 }
                 else
                     nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
