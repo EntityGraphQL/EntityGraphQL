@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -15,7 +17,6 @@ namespace EntityGraphQL.Compiler.Util
         private Type toReplaceType;
         private ParameterExpression toReplace;
         private string newFieldName;
-        private bool replaceByTypeParamOnly;
         private bool finished;
 
         /// <summary>
@@ -34,17 +35,15 @@ namespace EntityGraphQL.Compiler.Util
             this.toReplaceType = null;
             this.newFieldName = newFieldName;
             finished = false;
-            this.replaceByTypeParamOnly = true;
             return Visit(node);
         }
 
-        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, bool replaceByTypeParamOnly = true)
+        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
             this.toReplace = null;
             this.newFieldName = null;
-            this.replaceByTypeParamOnly = replaceByTypeParamOnly;
             finished = false;
             return Visit(node);
         }
@@ -71,7 +70,7 @@ namespace EntityGraphQL.Compiler.Util
             if (node.Expression != null)
             {
                 Expression nodeExp;
-                if (!replaceByTypeParamOnly && node.Expression.Type == toReplaceType)
+                if (node.Expression.Type == toReplaceType)
                     nodeExp = newParam;
                 else
                     nodeExp = base.Visit(node.Expression);
@@ -96,6 +95,38 @@ namespace EntityGraphQL.Compiler.Util
                 return nodeExp;
             }
             return base.VisitMember(node);
+        }
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
+            {
+                // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
+                var callBase = base.Visit(node.Arguments[0]);
+                var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType() : callBase.Type;
+                var oldCallBaseType = node.Arguments[0].Type.IsEnumerableOrArray() ? node.Arguments[0].Type.GetEnumerableOrArrayType() : node.Arguments[0].Type;
+                if (callBaseType != oldCallBaseType)
+                {
+                    var replaceAgain = new ParameterReplacer();
+                    var newTypeArgs = new List<Type> { callBaseType };
+                    var newArgs = new List<Expression>();
+                    var oldTypeArgs = node.Method.GetGenericArguments();
+                    foreach (var oldArg in node.Arguments.Skip(1))
+                    {
+                        var newArg = replaceAgain.ReplaceByType(oldArg, oldCallBaseType, Expression.Parameter(callBaseType));
+                        newArgs.Add(newArg);
+                        if (oldTypeArgs.Contains(oldArg.Type))
+                            newTypeArgs.Add(newArg.Type);
+                        else if (newArg.NodeType == ExpressionType.Lambda && oldTypeArgs.Contains(((LambdaExpression)newArg).ReturnType))
+                            newTypeArgs.Add(((LambdaExpression)newArg).ReturnType);
+                    }
+                    if (oldTypeArgs.Length != newTypeArgs.Count)
+                        throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");
+                    var newCall = Expression.Call(node.Method.DeclaringType, node.Method.Name, newTypeArgs.ToArray(), (new[] { callBase }).Concat(newArgs).ToArray());
+                    return newCall;
+                }
+            }
+            return base.VisitMethodCall(node);
         }
     }
 }

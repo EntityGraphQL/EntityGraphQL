@@ -12,13 +12,15 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionResult expression;
         private readonly ExpressionExtractor extractor;
         private readonly ParameterReplacer replacer;
+        private readonly Expression fieldContext;
         private List<GraphQLScalarField> extractedFields;
 
-        public GraphQLScalarField(string name, ExpressionResult expression, ParameterExpression contextParameter)
+        public GraphQLScalarField(string name, ExpressionResult expression, ParameterExpression contextParameter, Expression fieldContext)
         {
             Name = name;
             this.expression = expression;
             RootFieldParameter = contextParameter;
+            this.fieldContext = fieldContext;
             constantParameters = expression.ConstantParameters.ToDictionary(i => i.Key, i => i.Value);
             AddServices(expression.Services);
             extractor = new ExpressionExtractor();
@@ -39,7 +41,7 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(expression, RootFieldParameter).Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter)).ToList();
+            extractedFields = extractor.Extract(expression, RootFieldParameter).Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, fieldContext)).ToList();
             return extractedFields;
         }
 
@@ -55,7 +57,7 @@ namespace EntityGraphQL.Compiler
                 if (!Services.Any() && selectedField != null)
                     newExpression = (ExpressionResult)Expression.Field(replaceContextWith, Name);
                 else
-                    newExpression = (ExpressionResult)replacer.Replace(expression, RootFieldParameter, replaceContextWith, Name);
+                    newExpression = (ExpressionResult)replacer.ReplaceByType(expression, fieldContext.Type, replaceContextWith);
 
                 newExpression.AddServices(expression.Services);
                 return newExpression;

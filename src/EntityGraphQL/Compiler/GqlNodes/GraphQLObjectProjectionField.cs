@@ -97,7 +97,7 @@ namespace EntityGraphQL.Compiler
 
                         foreach (var item in selectionFields)
                         {
-                            item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, fieldExpression.Type, nullWrapParam, false);
+                            item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, fieldExpression.Type, nullWrapParam);
                         }
                     }
 
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && fieldExpression.NodeType == ExpressionType.Call)
             {
                 var fields = extractor.Extract(fieldExpression, RootFieldParameter)
-                    .Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter)).ToList();
+                    .Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, RootFieldParameter)).ToList();
 
                 if (fields.Any())
                     return fields;

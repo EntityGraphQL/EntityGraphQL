@@ -5,6 +5,7 @@ using System.Linq;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Tests
 {
@@ -571,6 +572,301 @@ fragment frag on Project {
             Assert.Equal("managerId", project.owner.GetType().GetFields()[0].Name);
             Assert.Equal("settings", projectType.GetFields()[1].Name);
             Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void TestUseConstFilter()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.ReplaceField("projects",
+                new
+                {
+                    search = (string)null
+                },
+                (ctx, args) => ctx.Projects.OrderBy(p => p.Id),
+                "List of projects");
+
+            Func<Task, bool> TaskFilter = t => t.IsActive == true;
+            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(TaskFilter), "Active tasks");
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  projects {
+    tasks { id }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task> { new Task() },
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("tasks", projectType.GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void TestServiceThenSubSelectWithWhere()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+            // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
+            // the type of t will not match, need to be replaced
+            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+    config { type }
+    tasks { id }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 98
+                            }
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            Assert.Equal("tasks", projectType.GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestServiceThenSubSelectWithWhereAlreadySelectedFieldInWhere()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+            // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
+            // the type of t will not match, need to be replaced
+            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+    config { type }
+    tasks { id isActive }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task>
+                        {
+                            new Task { Id = 98 }
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            Assert.Equal("tasks", projectType.GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestServiceThenSubSelectWithWhereDuplicateFieldNames()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+            // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
+            // the type of t will not match, need to be replaced
+            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+    config { type }
+    tasks { isActive project { isActive } }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task>
+                        {
+                            new Task { Id = 98, IsActive = true }
+                        }
+                    }
+                },
+            };
+            context.Projects.First().Tasks.First().Project = context.Projects.First();
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            Assert.Equal("tasks", projectType.GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestServiceThenSubOrderBy()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+            // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
+            // the type of t will not match, need to be replaced
+            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.OrderBy(t => t.IsActive), "Ordered tasks");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+    config { type }
+    tasks { isActive }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = new List<Task>
+                        {
+                            new Task { Id = 98, IsActive = true }
+                        }
+                    }
+                },
+            };
+            context.Projects.First().Tasks.First().Project = context.Projects.First();
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            Assert.Equal("tasks", projectType.GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestWhereWhenNullResult()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.ReplaceField("projects",
+                new
+                {
+                    search = (string)null,
+                    someFilter = (bool?)null,
+                    anotherFilter = (bool?)null,
+
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .WhereWhen(p => p.Owner != null, args.someFilter == true)
+                    .WhereWhen(p => p.Location != null, args.anotherFilter == true)
+                    .OrderBy(p => p.Description),
+                "List of projects");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+    tasks { id }
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = null
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(res.Errors);
+            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("tasks", projectType.GetFields()[0].Name);
         }
 
         public class AgeService

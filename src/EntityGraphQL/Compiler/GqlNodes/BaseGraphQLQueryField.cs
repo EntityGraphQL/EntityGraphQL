@@ -61,7 +61,7 @@ namespace EntityGraphQL.Compiler
                                         (replaceContextWith != null && fullNodeExpression != null) ||
                                         (fullNodeExpression == null && queryFields.Any());
         }
-        protected Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
+        protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())

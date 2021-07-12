@@ -15,13 +15,15 @@ namespace EntityGraphQL.Compiler.Util
         private Dictionary<string, Expression> extractedExpressions;
         private Expression currentExpression;
         private string contextParamFieldName;
+        private bool matchByType;
 
-        internal IDictionary<string, Expression> Extract(Expression node, ParameterExpression rootContext)
+        internal IDictionary<string, Expression> Extract(Expression node, ParameterExpression rootContext, bool matchByType = false)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, Expression>();
             currentExpression = null;
             contextParamFieldName = null;
+            this.matchByType = matchByType;
             Visit(node);
             return extractedExpressions.Count > 0 ? extractedExpressions : null;
         }
@@ -30,7 +32,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             if (rootContext == currentExpression)
                 throw new EntityGraphQLCompilerException($"The context parameter {node.Name} used in a WithService() field is not allowed. Please select the specific fields required from the context parameter.");
-            if (rootContext == node && currentExpression != null)
+            if ((rootContext == node || (matchByType && rootContext.Type == node.Type)) && currentExpression != null)
                 extractedExpressions[contextParamFieldName] = currentExpression;
             return base.VisitParameter(node);
         }
@@ -42,7 +44,8 @@ namespace EntityGraphQL.Compiler.Util
                 currentExpression = node;
                 contextParamFieldName = node.Member.Name;
             }
-            return base.VisitMember(node);
+            var result = base.VisitMember(node);
+            return result;
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -50,11 +53,12 @@ namespace EntityGraphQL.Compiler.Util
             if (currentExpression == null)
                 currentExpression = node;
             Visit(node.Object);
-            currentExpression = null;
             foreach (var arg in node.Arguments)
             {
+                currentExpression = null;
                 Visit(arg);
             }
+            currentExpression = null;
             return node;
         }
     }

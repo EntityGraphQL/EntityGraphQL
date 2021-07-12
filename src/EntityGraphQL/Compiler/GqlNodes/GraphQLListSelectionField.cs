@@ -20,6 +20,7 @@ namespace EntityGraphQL.Compiler
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
         private readonly ExpressionResult fieldExpression;
+        private readonly ExpressionExtractor extractor;
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -38,6 +39,7 @@ namespace EntityGraphQL.Compiler
             this.selectionContext = selectionContext;
             this.RootFieldParameter = fieldParameter;
             constantParameters = new Dictionary<ParameterExpression, object>();
+            extractor = new ExpressionExtractor();
             if (fieldExpression != null)
             {
                 AddServices(fieldExpression.Services);
@@ -71,6 +73,10 @@ namespace EntityGraphQL.Compiler
                 if (replaceContextWith != null)
                 {
                     var fieldType = isRoot ? replaceContextWith.Type : replaceContextWith.Type.GetField(Name)?.FieldType;
+                    // we are in the second select (which contains services somewhere in the graph)
+                    // Where() etc. have already been applied and the fields used may not be in the first select
+                    // we need to remove them
+                    // listContext
                     // if null we're in a service returned object and no longer need to replace the parameters
                     if (fieldType != null)
                     {
@@ -114,7 +120,7 @@ namespace EntityGraphQL.Compiler
             {
                 fullNodeExpression.AddServices(this.Services);
                 // if selecting final graph make sure lists are evaluated
-                if (replaceContextWith != null && !isRoot)
+                if (replaceContextWith != null && !isRoot && fullNodeExpression.Type.IsEnumerableOrArray())
                     fullNodeExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { fullNodeExpression.Type.GetEnumerableOrArrayType() }, fullNodeExpression);
             }
 
@@ -128,6 +134,31 @@ namespace EntityGraphQL.Compiler
                 return fullNodeExpression;
 
             return fieldExpression;
+        }
+
+        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
+        {
+            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
+
+            // extract possible fields from listContext (might be .Where(), OrderBy() etc)
+            if (withoutServiceFields)
+            {
+                var extractedFields = extractor.Extract(fieldExpression, SelectionContext.AsParameter(), true);
+                if (extractedFields != null)
+                    extractedFields.ToDictionary(i => i.Key, i =>
+                    {
+                        var replaced = (ExpressionResult)replacer.ReplaceByType(i.Value, SelectionContext.Type, SelectionContext);
+                        return new CompiledField(new GraphQLScalarField(i.Key, replaced, RootFieldParameter, RootFieldParameter), replaced);
+                    })
+                    .ToList()
+                    .ForEach(i =>
+                    {
+                        if (!fields.ContainsKey(i.Key))
+                            fields.Add(i.Key, i.Value);
+                    });
+            }
+
+            return fields;
         }
 
         public override string ToString()
