@@ -32,7 +32,11 @@ namespace EntityGraphQL.Compiler
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
             if (withoutServiceFields && Services.Any())
-                return ExtractFields();
+            {
+                var extractedFields = ExtractFields();
+                if (extractedFields != null)
+                    return extractedFields;
+            }
             return new List<BaseGraphQLField> { this };
         }
 
@@ -41,7 +45,7 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(expression, RootFieldParameter).Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, fieldContext)).ToList();
+            extractedFields = extractor.Extract(expression, RootFieldParameter)?.Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, fieldContext)).ToList();
             return extractedFields;
         }
 

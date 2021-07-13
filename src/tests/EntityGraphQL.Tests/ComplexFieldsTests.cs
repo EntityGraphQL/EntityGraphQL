@@ -869,6 +869,57 @@ fragment frag on Project {
             Assert.Equal("tasks", projectType.GetFields()[0].Name);
         }
 
+        [Fact]
+        public void TestWhereWhenWithServiceField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("configType",
+                (p) => WithService((ConfigService srv) => srv.Get(0).Type),
+                "Get project config");
+
+            schema.ReplaceField("projects",
+                new
+                {
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .OrderBy(p => p.Description),
+                "List of projects");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    projects {
+        configType
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = null
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = (dynamic)res.Data["configType"];
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("type", projectType.GetFields()[0].Name);
+        }
+
         public class AgeService
         {
             public AgeService()
