@@ -50,9 +50,13 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if (currentExpression == null)
-                currentExpression = node;
-            Visit(node.Object);
+            if (node.Object != null)
+            {
+                var prevExp = currentExpression;
+                currentExpression = null;
+                Visit(node.Object);
+                currentExpression = prevExp;
+            }
             foreach (var arg in node.Arguments)
             {
                 currentExpression = null;

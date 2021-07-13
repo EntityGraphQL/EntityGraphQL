@@ -907,17 +907,18 @@ fragment frag on Project {
                 {
                     new Project
                     {
-                        Tasks = null
+                        Tasks = null,
+                        Description = "Hello"
                     }
                 },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
-            dynamic project = (dynamic)res.Data["configType"];
+            dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
             Type projectType = project.GetType();
             Assert.Single(projectType.GetFields());
-            Assert.Equal("type", projectType.GetFields()[0].Name);
+            Assert.Equal("configType", projectType.GetFields()[0].Name);
         }
 
         public class AgeService
