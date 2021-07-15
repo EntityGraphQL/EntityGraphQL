@@ -505,9 +505,9 @@ schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p)
 
 ## How EntityGraphQL handles WithService()
 
-Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core and allow it to perform an optimal SQL statement. For example if EF core 2.x couldn't translate a the LINQ query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` calls in memory. EF core 3.1+ will throw an error by default. To support EF performing optimal queries EntityGraphQL builds the expressions in 2 parts.
+Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core and allow it to perform an optimal SQL statement. For example if EF core 2.x couldn't translate the query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` calls in memory. EF core 3.1+ will throw an error by default if it can't translate. To support EF 3.1+ performing optimal queries EntityGraphQL builds the expressions in 2 parts.
 
-If you encounter any issues with using `WithService()` and EF Core 3.1+ please raise an issue.
+If you encounter any issues when using `WithService()` and EF Core 3.1+ please raise an issue.
 
 Example of how EntityGraphQL handles `WithService()`, which can help inform how you build/use other services.
 
@@ -519,7 +519,7 @@ Given the following GQL
 }
 ```
 
-Where `age` is defined as
+Where `age` is defined with a service as
 
 ```c#
 schema.Type<Person>().AddField("age",
@@ -527,7 +527,7 @@ schema.Type<Person>().AddField("age",
     "Persons age");
 ```
 
-EntityGraphQL will build a LINQ query that first selects everything from the base context (DBContext in the case) that EF can execute. Then another LINQ query that runs on top of that result which includes the `WithService()` fields. This means EF can optimise your query and return all the data requested and in memory we then merge that with data from your services.
+EntityGraphQL will build an expression query that first selects everything from the base context (DBContext in the case) that EF can execute. Then another expression query that runs on top of that result which includes the `WithService()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
 
 An example in C# of what this ends up looking like.
 
@@ -562,9 +562,9 @@ Examples:
 - The mutation arguments class (`ActorArgs` above) with fields `FirstName` & `Id` will be arguments in the schema as `firstName` & `id`
 - If you're using the schema builder manually, the names you give will be the names used. E.g. `schemaProvider.AddField("someEntity", ...)` is different to `schemaProvider.AddField("SomeEntity", ...)`
 
-# Authorization & Secuity
+# Authorization & Security
 
-You should be able to secure the route where you app/client posts request to in any ASP.NET supports. Given GraphQL works with a schema you likely want to provide security within the schema. EntityGraphQL provides support for checking claims on a `ClaimsIdentity` object.
+You should secure the route where you app/client posts request to in any ASP.NET supports. Given GraphQL works with a schema you likely want to provide security within the schema. EntityGraphQL provides support for checking claims on a `ClaimsIdentity` object.
 
 First pass in the `ClaimsIdentity` to the query call
 
