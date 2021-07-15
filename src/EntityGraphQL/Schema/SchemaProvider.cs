@@ -70,25 +70,20 @@ namespace EntityGraphQL.Schema
             types.Add(queryContext.Name, queryContext);
 
             // add types first as fields from the other types may refer to these types
-            AddType<Models.TypeElement>("__Type", "Information about types");
-            AddType<Models.EnumValue>("__EnumValue", "Information about enums");
-            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.");
-            AddType<Models.Directive>("__Directive", "Information about directives");
-            AddType<Models.Field>("__Field", "Information about fields");
-            AddType<Models.SubscriptionType>("Information about subscriptions");
-            AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.");
-
-            // add the fields
-            Type<Models.TypeElement>().AddAllFields();
-            Type<Models.EnumValue>().AddAllFields();
-            Type<Models.InputValue>().AddAllFields();
-            Type<Models.Directive>().AddAllFields();
-            Type<Models.Field>().AddAllFields();
-            Type<Models.SubscriptionType>().AddAllFields();
-            Type<Models.Schema>().AddAllFields();
-
-            Type<Models.TypeElement>("__Type").ReplaceField("enumValues", new { includeDeprecated = false },
-                (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Enum values available on type");
+            AddType<Models.TypeElement>("__Type", "Information about types", type =>
+                {
+                    type.AddAllFields();
+                    type.ReplaceField("enumValues",
+                        new { includeDeprecated = false },
+                        (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
+                        "Enum values available on type");
+                });
+            AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
+            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
+            AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
+            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
+            AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
+            AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
             SetupIntrospectionTypesAndField();
         }
@@ -162,6 +157,11 @@ namespace EntityGraphQL.Schema
 
             types.Add(name, tt);
             return tt;
+        }
+
+        public void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc)
+        {
+            updateFunc(AddType<TBaseType>(name, description));
         }
 
         public ISchemaType AddType(Type contextType, string name, string description)
@@ -358,6 +358,9 @@ namespace EntityGraphQL.Schema
             var schemaType = (SchemaType<TType>)Type(typeof(TType));
             return schemaType;
         }
+
+        public void UpdateType<TType>(Action<SchemaType<TType>> updateFunc) => updateFunc(Type<TType>());
+
         public ISchemaType Type(Type dotnetType)
         {
             // look up by the actual type not the name
