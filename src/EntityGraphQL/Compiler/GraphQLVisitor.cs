@@ -161,7 +161,7 @@ namespace EntityGraphQL.Compiler
             }
             catch (EntityGraphQLCompilerException ex)
             {
-                throw SchemaException.MakeFieldCompileError($"Error compiling field {name}", ex.Message);
+                throw new SchemaException($"Error compiling field {name}", ex);
             }
         }
 
@@ -254,7 +254,7 @@ namespace EntityGraphQL.Compiler
 
             var eqlt = prop.GetValue(((Field)fieldArgumentContext).ArgumentTypesObject) as BaseEntityQueryType;
             var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
-            ExpressionResult expressionResult = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider, variables).ExpressionResult;
+            ExpressionResult expressionResult = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider).ExpressionResult;
             expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);
             return expressionResult;
         }
@@ -327,7 +327,7 @@ namespace EntityGraphQL.Compiler
             }
             catch (EntityGraphQLCompilerException ex)
             {
-                throw SchemaException.MakeFieldCompileError($"Failed compiling field {name}", ex.Message);
+                throw new SchemaException($"Failed compiling field {name}", ex);
             }
         }
 

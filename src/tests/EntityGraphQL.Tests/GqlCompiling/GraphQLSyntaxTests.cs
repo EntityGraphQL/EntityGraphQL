@@ -471,13 +471,13 @@ query {
 
             public double GetHeight(HeightUnit unit)
             {
-                switch (unit)
+                return unit switch
                 {
-                    case HeightUnit.Cm: return Height;
-                    case HeightUnit.Meter: return Height / 100;
-                    case HeightUnit.Feet: return Height * 0.0328;
-                    default: throw new NotSupportedException($"Height unit {unit} not supported");
-                }
+                    HeightUnit.Cm => Height,
+                    HeightUnit.Meter => Height / 100,
+                    HeightUnit.Feet => Height * 0.0328,
+                    _ => throw new NotSupportedException($"Height unit {unit} not supported"),
+                };
             }
         }
         private class Project

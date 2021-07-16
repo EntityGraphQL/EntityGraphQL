@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
             {
                 if (SelectionContext != null && field is GraphQLFragmentField fragField)
                 {
-                    replaceContextWith = replaceContextWith ?? SelectionContext;
+                    replaceContextWith ??= SelectionContext;
                 }
 
                 // Might be a fragment that expands into many fields hence the Expand

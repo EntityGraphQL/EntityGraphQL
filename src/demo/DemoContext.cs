@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using EntityGraphQL.EntityFramework.Extensions;
 using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
 

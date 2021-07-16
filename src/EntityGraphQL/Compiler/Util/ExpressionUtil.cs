@@ -242,7 +242,7 @@ namespace EntityGraphQL.Compiler.Util
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
         /// <returns></returns>
-        public static object WrapFieldForNullCheckExec(object nullCheck, object selectionContext, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
         {
             if (nullCheck == null)
                 return null;
