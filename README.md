@@ -660,7 +660,7 @@ schemaProvider.AddField("myEntities", new {take = 10, skip = 0}, (db, param) => 
 
 Open to ideas for making this easier.
 
-# Intergrating with other tools
+# Integrating with other tools
 Many tools can help you with typing or generating code from a GraphQL schema. Use `schema.GetGraphQLSchema()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
 
 # Using expressions else where (EQL)
