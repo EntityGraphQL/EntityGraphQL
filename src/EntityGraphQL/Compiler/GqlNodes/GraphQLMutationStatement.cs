@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
             QueryFields = mutationFields.ToList();
         }
 
-        public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer)
+        public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately)
         {
             var result = new ConcurrentDictionary<string, object>();
             foreach (GraphQLMutationField node in QueryFields)
@@ -26,7 +26,7 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
-                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer);
+                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, executeServiceFieldsSeparately);
 
                     result[node.Name] = data;
                 }
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer)
+        private async Task<object> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately)
         {
             // run the mutation to get the context for the query select
             var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer);
@@ -125,12 +125,12 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 node.ResultSelection.RootFieldParameter = mutationContextParam;
-                result = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node.ResultSelection);
+                result = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
                 return result;
             }
 
             // run the query select
-            result = CompileAndExecuteNode(result, validator, serviceProvider, fragments, node.ResultSelection);
+            result = CompileAndExecuteNode(result, validator, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
             return result;
         }
     }

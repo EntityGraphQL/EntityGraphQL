@@ -505,9 +505,11 @@ schema.Type<Movie>().AddField("Field", new { search = (string)null }, (movie, p)
 
 ## How EntityGraphQL handles WithService()
 
-Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core and allow it to perform an optimal SQL statement. For example if EF core 2.x couldn't translate the query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` calls in memory. EF core 3.1+ will throw an error by default if it can't translate. To support EF 3.1+ performing optimal queries EntityGraphQL builds the expressions in 2 parts.
+Since using EntityGraphQL against an EF Core `DbContext` is highly supported we handle `WithService()` in a way that will work with EF core (and possibly other IQueryable ORMs) and allow it to perform an optimal SQL statement. Previously with EF core 2.x, if it couldn't translate the query into SQL it would automatically fall back to selecting all the data (whole tables) and running the `Where()` and/or `Select()` calls in memory. EF core 3.1+ will throw an error by default if it can't translate. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds the expressions in 2 parts.
 
-If you encounter any issues when using `WithService()` and EF Core 3.1+ please raise an issue.
+_This can be disabled by setting the argument `executeServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
+
+If you encounter any issues when using `WithService()` on fields and EF Core 3.1+ please raise an issue.
 
 Example of how EntityGraphQL handles `WithService()`, which can help inform how you build/use other services.
 
@@ -551,6 +553,34 @@ var results = resultsFunc(dbResult, ager);
 ```
 
 This allows EF Core to make it's optimisations and prevent over fetching of data when using EntityGraphQL against an EF DbContext.
+
+## Limitations with using `GetService()` & EF
+
+If you are using the above functionality where the query will be completed in 2 parts, below are the current limitations to think about when building fields using services.
+
+Do not traverse through a relation in your field expression.
+
+An example of what will not work.
+
+```c#
+schema.UpdateType<Floor>(type => {
+  type.AddField("floorUrl",
+    f => WithService((IFloorUrlService s) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id)),
+    "Current floor url", "String");
+});
+```
+
+This will trigger the expression we build for EF to select `floor.SomeRelation` which errors in EF because of [this issue](https://github.com/dotnet/efcore/issues/23205) (or related).
+
+For now you can modify you field to only select fields on the context and update the service to load anything it needs to return the correct data. Remember you services can access the DB context or anything else it needs.
+
+```c#
+schema.UpdateType<Floor>(type => {
+  type.AddField("floorUrl",
+    f => WithService((IFloorPlanUrlService s) => s.BuildFloorUrlFromFloorId(f.Id)),
+    "Current floor url", "String");
+});
+```
 
 # A note on case matching
 

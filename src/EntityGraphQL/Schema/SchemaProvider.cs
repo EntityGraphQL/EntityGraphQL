@@ -88,9 +88,9 @@ namespace EntityGraphQL.Schema
             SetupIntrospectionTypesAndField();
         }
 
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true)
         {
-            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider).Result;
+            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider, executeServiceFieldsSeparately).Result;
         }
 
         /// <summary>
@@ -104,13 +104,13 @@ namespace EntityGraphQL.Schema
         /// <param name="includeDebugInfo"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true)
         {
             QueryResult result;
             try
             {
                 var queryResult = CompileQuery(gql, claims, methodProvider);
-                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName);
+                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, executeServiceFieldsSeparately);
             }
             catch (Exception ex)
             {

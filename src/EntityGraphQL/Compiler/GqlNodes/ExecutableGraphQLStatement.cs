@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; protected set; }
         public IEnumerable<BaseGraphQLField> QueryFields { get; protected set; }
 
-        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer)
+        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately = true)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
-                    var data = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node);
+                    var data = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node, executeServiceFieldsSeparately);
 
                     result[node.Name] = data;
                 }
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(result);
         }
 
-        protected object CompileAndExecuteNode(object context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node)
+        protected object CompileAndExecuteNode(object context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, bool executeServiceFieldsSeparately)
         {
             var replacer = new ParameterReplacer();
             // For root/top level fields we need to first select the whole graph without fields that require services
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
             ExpressionResult expression = null;
             var contextParam = node.RootFieldParameter;
 
-            if (node.HasAnyServices)
+            if (node.HasAnyServices && executeServiceFieldsSeparately)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services

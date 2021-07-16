@@ -45,9 +45,9 @@ namespace EntityGraphQL.Compiler
             get => "Query Request Root";
         }
 
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null)
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null, bool executeServiceFieldsSeparately = true)
         {
-            return ExecuteQueryAsync(context, services, operationName).Result;
+            return ExecuteQueryAsync(context, services, operationName, executeServiceFieldsSeparately).Result;
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName, bool executeServiceFieldsSeparately)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Compiler
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
             // execute the selected operation
-            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer);
+            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, executeServiceFieldsSeparately);
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);
