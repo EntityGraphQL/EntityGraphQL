@@ -84,7 +84,8 @@ namespace EntityGraphQL.Compiler
                             fieldType = fieldType.GetEnumerableOrArrayType();
 
                         currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
-                        listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
+                        // the pre services select has created the field by the Name already we just need to select that from the new context
+                        listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
                     }
                     else
                     {
@@ -101,7 +102,8 @@ namespace EntityGraphQL.Compiler
                 // build a .Select(...) - returning a IEnumerable<>
                 var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
 
-                if (combineExpression != null)
+                // only rebuild the .First/FirstOrDefault/etc if we are not later selecting service fields as the second pass will expect an array
+                if (!withoutServiceFields && combineExpression != null)
                 {
                     var exp = (ExpressionResult)ExpressionUtil.CombineExpressions(resultExpression, combineExpression);
                     exp.AddConstantParameters(resultExpression.ConstantParameters);
@@ -141,7 +143,7 @@ namespace EntityGraphQL.Compiler
             var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
-            if (withoutServiceFields)
+            if (withoutServiceFields && fields != null)
             {
                 var extractedFields = extractor.Extract(fieldExpression, SelectionContext.AsParameter(), true);
                 if (extractedFields != null)

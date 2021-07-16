@@ -823,53 +823,6 @@ fragment frag on Project {
         }
 
         [Fact]
-        public void TestWhereWhenNullResult()
-        {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("projects",
-                new
-                {
-                    search = (string)null,
-                    someFilter = (bool?)null,
-                    anotherFilter = (bool?)null,
-
-                },
-                (ctx, args) => ctx.Projects
-                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
-                    .WhereWhen(p => p.Owner != null, args.someFilter == true)
-                    .WhereWhen(p => p.Location != null, args.anotherFilter == true)
-                    .OrderBy(p => p.Description),
-                "List of projects");
-
-            var gql = new QueryRequest
-            {
-                Query = @"{
-  projects {
-    tasks { id }
-  }
-}"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = null
-                    }
-                },
-            };
-
-            var res = schema.ExecuteQuery(gql, context, null, null);
-            Assert.Null(res.Errors);
-            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
-            Type projectType = project.GetType();
-            Assert.Single(projectType.GetFields());
-            Assert.Equal("tasks", projectType.GetFields()[0].Name);
-        }
-
-        [Fact]
         public void TestWhereWhenWithServiceField()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -916,6 +869,58 @@ fragment frag on Project {
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("configType", projectType.GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void TestWhereWhenWithServiceFieldAndArgument()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("configType",
+                (p) => WithService((ConfigService srv) => srv.Get(0).Type),
+                "Get project config");
+
+            schema.ReplaceField("projects",
+                new
+                {
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .OrderBy(p => p.Description),
+                "List of projects");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    project(id: 0) {
+        configType
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Tasks = null,
+                        Description = "Hello"
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            dynamic project = (dynamic)res.Data["project"];
             Type projectType = project.GetType();
             Assert.Single(projectType.GetFields());
             Assert.Equal("configType", projectType.GetFields()[0].Name);

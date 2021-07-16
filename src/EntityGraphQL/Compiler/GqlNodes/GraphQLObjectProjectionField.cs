@@ -97,7 +97,11 @@ namespace EntityGraphQL.Compiler
 
                         foreach (var item in selectionFields)
                         {
-                            item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, fieldExpression.Type, nullWrapParam);
+                            if (item.Value.Expression.Services.Any())
+                                item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, fieldExpression.Type, nullWrapParam);
+                            else if (item.Key != "__typename") // this is a static selection of the type name
+                                // pre service selection has selected the fields as the names we expect already
+                                item.Value.Expression = (ExpressionResult)Expression.PropertyOrField(nullWrapParam, item.Key);
                         }
                     }
 
@@ -119,7 +123,8 @@ namespace EntityGraphQL.Compiler
                     var fieldExpressionToUse = fieldExpression;
                     if (replaceContextWith != null)
                     {
-                        fieldExpressionToUse = (ExpressionResult)replacer.Replace(fieldExpressionToUse, RootFieldParameter, replaceContextWith, Name);
+                        // pre services select has created the field Name in the new context
+                        fieldExpressionToUse = (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
                         fieldExpressionToUse.AddServices(fieldExpression.Services);
                     }
 
