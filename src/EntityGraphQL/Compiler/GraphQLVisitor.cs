@@ -72,11 +72,11 @@ namespace EntityGraphQL.Compiler
                     var select = ParseFieldSelect(expContext, actualFieldName, context.select);
                     currentExpressionContext = oldContext;
                     rootParameterContext = oldRootParam;
-                    return new GraphQLMutationField(resultName, mutationType, args, select, schemaProvider.SchemaFieldNamer);
+                    return new GraphQLMutationField(resultName, mutationType, args, select);
                 }
                 else
                 {
-                    return new GraphQLMutationField(resultName, mutationType, args, null, schemaProvider.SchemaFieldNamer);
+                    return new GraphQLMutationField(resultName, mutationType, args, null);
                 }
             }
             else
@@ -161,7 +161,7 @@ namespace EntityGraphQL.Compiler
             }
             catch (EntityGraphQLCompilerException ex)
             {
-                throw new SchemaException($"Error compiling field {name}", ex);
+                throw new SchemaException(ex.Message);
             }
         }
 
