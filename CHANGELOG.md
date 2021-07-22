@@ -47,6 +47,7 @@ To support EF 3.x as a base schema context we now build and execute expressions 
 *Breaking changes*
 - Cleaning up the API. The optional `isNullable` argument is removed from the `AddField()` methods. Use `IsNullable(bool)` method on the `Field` class or the `[GraphQLNotNull]` attribute.
 - Cleaning up the API. `fieldNamer` argument removed from methods in `SchemaProvider` and `SchemaType`. Pass in a `fieldNamer` func to the constructor of `SchemaProvider` which will be used when it is auto creating fields. If you pass it in via `SchemaBuilder.FromObject` it will set it on the `SchemaProvider` created.
+- `AddCustomScalarType()` removed. Previously marked as obsolete. Use `AddScalarType()`
 
 ## Notes of services fix
 If you build a field like so

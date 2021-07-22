@@ -677,18 +677,6 @@ namespace EntityGraphQL.Schema
             return SchemaGenerator.Make(this);
         }
 
-        [Obsolete("Use AddScalarType")]
-        public void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false)
-        {
-            AddScalarType(clrType, gqlTypeName, description);
-        }
-
-        [Obsolete("Use AddScalarType")]
-        public void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false)
-        {
-            AddScalarType<TType>(gqlTypeName, description);
-        }
-
         public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, false, false, true);
