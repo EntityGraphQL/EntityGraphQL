@@ -83,7 +83,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name">name of the directive</param>
         /// <returns></returns>
         IDirectiveProcessor GetDirective(string name);
-        void AddDirective(string name, IDirectiveProcessor directive);
+        void AddDirective(IDirectiveProcessor directive);
         IEnumerable<IDirectiveProcessor> GetDirectives();
         GqlTypeInfo GetCustomTypeMapping(Type dotnetType);
     }

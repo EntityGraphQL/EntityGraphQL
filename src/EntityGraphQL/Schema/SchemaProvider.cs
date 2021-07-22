@@ -25,12 +25,7 @@ namespace EntityGraphQL.Schema
         public Func<string, string> SchemaFieldNamer { get; }
         protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
         protected Dictionary<string, MutationType> mutations = new Dictionary<string, MutationType>();
-        protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>
-        {
-            // the 2 inbuilt directives defined by gql
-            {"include", new IncludeDirectiveProcessor()},
-            {"skip", new SkipDirectiveProcessor()},
-        };
+        protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>();
 
         private readonly string queryContextName;
 
@@ -86,6 +81,12 @@ namespace EntityGraphQL.Schema
             AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
             SetupIntrospectionTypesAndField();
+
+
+            var include = new IncludeDirectiveProcessor();
+            var skip = new SkipDirectiveProcessor();
+            directives.Add(include.Name, include);
+            directives.Add(skip.Name, skip);
         }
 
         public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true)
@@ -763,11 +764,11 @@ namespace EntityGraphQL.Schema
         {
             return directives.Values.ToList();
         }
-        public void AddDirective(string name, IDirectiveProcessor directive)
+        public void AddDirective(IDirectiveProcessor directive)
         {
-            if (directives.ContainsKey(name))
-                throw new EntityGraphQLCompilerException($"Directive {name} already exists on schema");
-            directives.Add(name, directive);
+            if (directives.ContainsKey(directive.Name))
+                throw new EntityGraphQLCompilerException($"Directive {directive.Name} already exists on schema");
+            directives.Add(directive.Name, directive);
         }
 
         public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)

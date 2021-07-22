@@ -126,20 +126,20 @@ namespace EntityGraphQL.Tests.GqlCompiling
         public void TestDirectiveOnResult()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            schemaProvider.AddDirective("format", new FormatDateDirective());
+            schemaProvider.AddDirective(new FormatDateDirective());
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($skip: Boolean!){
+                Query = @"query MyQuery {
   people {
-      birthday @format(as: ""MMM"")
+      birthday @formatDate(as: ""MMM"")
     }
 }",
-                Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("birthday", person.GetType().GetFields()[0].Name);
+            Assert.Equal("Jan", person.birthday);
         }
     }
 }
