@@ -143,7 +143,10 @@ For example
 ```
   POST localhost:5000/api/query
   {
-    properties { id name }
+    "query": "{
+      properties { id name }
+    }",
+    "variables": null
   }
 ```
 
