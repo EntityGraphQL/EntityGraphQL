@@ -2,8 +2,9 @@
 ## A GraphQL library for .NET Core
 
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
+[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
 
-Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to query your data using the GraphQL syntax.
+Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
 
 It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
 
@@ -12,17 +13,19 @@ _Please explore, give feedback or join the development._
 If you're looking for a dotnet library to generate code to query an API from a GraphQL schema see https://github.com/lukemurray/DotNetGraphQLQueryGen
 
 ## Install
-Via Nuget https://www.nuget.org/packages/EntityGraphQL
+Via Nuget
 
-It recommended to use Newtonsoft.Json when using using .NET Core 3.1+ due to problems with the serialization: [Nuget](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson)
+[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
+
+It recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1+ due to problems with the default serialization in .NET Core 3.1.
 
 # Getting up and running with EF
 
-_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object should work - although EF well is tested._
+_Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object will work - although EF well is tested._
 
 ## 1. Define your data context (in this example an EF context)
 
-```csharp
+```c#
 public class MyDbContext : DbContext {
   public MyDbContext(DbContextOptions options) : base(options)
   {
@@ -59,13 +62,13 @@ public class Location {
 
 Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller.
 
-```csharp
+```c#
 public class Startup {
   public void ConfigureServices(IServiceCollection services)
   {
       services.AddControllers().AddNewtonsoftJson();
       services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
-      // add schema provider so we don't need to create it everytime
+      // add schema provider so we don't need to create it every time
       // Also for this demo we expose all fields on MyDbContext. See below for details on building custom fields etc.
       services.AddSingleton(SchemaBuilder.FromObject<MyDbContext>());
   }
@@ -198,7 +201,7 @@ Will return the following result.
 - Fields - the core part, select the fields you want, including selecting the fields of sub-objects in the object graph
 - Aliases (`{ cheapProperties: properties(maxCost: 100) { id name } }`)
 - Arguments
-  - Add fields that take required or optional arguments to fullfill the query
+  - Add fields that take required or optional arguments
   - See `schemaProvider.AddField("name", paramTypes, selectionExpression, "description");` in "Customizing the schema" below for more on custom fields
 - Mutations - see `AddMutationFrom<TType>(TType mutationClassInstance)` and details below under Mutation
 - Schema introspection
@@ -721,4 +724,4 @@ var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
 
 # Contribute
-Please do. Pull requests are very welcome. See the open issues for bugs or features that would be useful
+Please do. Pull requests are very welcome. See the open issues for bugs or features that would be useful.
