@@ -144,7 +144,7 @@ For example
   POST localhost:5000/api/query
   {
     "query": "{
-      properties { id name }
+      movies { id name }
     }",
     "variables": null
   }
@@ -152,17 +152,17 @@ For example
 
 Will return the following result (depending on the data in you DB).
 
-```json
+```
 {
   "data": {
-    "properties": [
+    "movies": [
       {
         "id": 11,
-        "name": "My Beach Pad"
+        "name": "Inception"
       },
       {
         "id": 12,
-        "name": "My Other Beach Pad"
+        "name": "Star Wars: Episode IV - A New Hope"
       }
     ]
   }
@@ -171,18 +171,18 @@ Will return the following result (depending on the data in you DB).
 Maybe you only want a specific property **(request body only from now on)**
 ```
   {
-    property(id: 11) {
+    movie(id: 11) {
       id name
     }
   }
 ```
 Will return the following result.
-```json
+```
 {
   "data": {
-    "property": {
+    "movie": {
       "id": 11,
-      "name": "My Beach Pad"
+      "name": "Inception"
     }
   }
 }
@@ -190,42 +190,42 @@ Will return the following result.
 If you need other fields or relations, just ask
 ```
   {
-    properties {
+    movies {
       id
       name
-      location {
+      director {
         name
       }
-      type {
-        premium
+      writers {
+        name
       }
     }
   }
 ```
 Will return the following result.
-```json
+```
 {
   "data": {
-    "properties": [
+    "movies": [
       {
         "id": 11,
-        "name": "My Beach Pad",
-        "location": {
-          "name": "Greece"
+        "name": "Inception",
+        "director": {
+          "name": "Christopher Nolan"
         },
-        "type": {
-          "premium": 1.2
-        }
+        "writers": [{
+          "name": "Christopher Nolan"
+        }]
       },
       {
         "id": 12,
-        "name": "My Other Beach Pad",
-        "location": {
-          "name": "Spain"
+        "name": "Star Wars: Episode IV - A New Hope",
+        "director": {
+          "name": "George Lucas"
         },
-        "type": {
-          "premium": 1.25
-        }
+        "writers": [{
+          "name": "George Lucas"
+        }]
       }
     ]
   }
