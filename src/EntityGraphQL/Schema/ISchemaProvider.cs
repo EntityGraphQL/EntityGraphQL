@@ -66,15 +66,11 @@ namespace EntityGraphQL.Schema
 
         IEnumerable<MutationType> GetMutations();
         /// <summary>
-        /// Add custom scalar types that the schema will know about when generating schema and introspection.
-        /// e.g. schema.AddCustomScalarType(typeof(DateTime), "Date");
+        /// Add scalar types that the schema will know about when generating schema and introspection.
+        /// e.g. schema.AddScalarType(typeof(DateTime), "Date");
         /// </summary>
         /// <param name="clrType">A CLR type that you want mapped</param>
         /// <param name="gqlTypeName">A type name for the scala</param>
-        [Obsolete("Use AddScalarType")]
-        void AddCustomScalarType(Type clrType, string gqlTypeName, string description, bool required = false);
-        [Obsolete("Use AddScalarType")]
-        void AddCustomScalarType<TType>(string gqlTypeName, string description, bool required = false);
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description);
         ISchemaType AddScalarType<TType>(string gqlTypeName, string description);
         ISchemaType AddEnum(string name, Type type, string description);
@@ -87,7 +83,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name">name of the directive</param>
         /// <returns></returns>
         IDirectiveProcessor GetDirective(string name);
-        void AddDirective(string name, IDirectiveProcessor directive);
+        void AddDirective(IDirectiveProcessor directive);
         IEnumerable<IDirectiveProcessor> GetDirectives();
         GqlTypeInfo GetCustomTypeMapping(Type dotnetType);
     }
