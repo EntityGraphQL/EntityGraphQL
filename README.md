@@ -4,7 +4,7 @@
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
 
-Jump into the [documentation](https://lukemurray.github.io/EntityGraphQL) to get started.
+Jump into the [documentation](https://entitygraphql.github.io/) to get started.
 
 Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
 
@@ -199,7 +199,7 @@ Will return the following result.
 }
 ```
 
-Visit [documentation](https://lukemurray.github.io/EntityGraphQL) for more information.
+Visit [documentation](https://entitygraphql.github.io/) for more information.
 
 # Using expressions else where (EQL)
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.

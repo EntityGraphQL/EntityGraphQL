@@ -71,7 +71,7 @@ schema.AddField(
 
 # Helper methods
 
-## `WhereWhen()`
+## WhereWhen()
 
 The conditional statement we saw above - `!string.IsNullOrEmpty(args.firstName) ? ctx.People.Where(p => p.FirstName == args.firstName) : ctx.People` - can start to get messy when you have multiple optional arguments. It is common to have multiple arguments on fields that return a list of items to filter for different uses. To aid this EntityGraphQL has a helper method `WhereWhen()` that only applies a `Where()` method if a given statement returns `true`.
 
@@ -90,7 +90,7 @@ schema.AddField(
 );
 ```
 
-## `Take(int?)`
+## Take(int?)
 
 Only apply the `Take()` method if the argument has a value.
 
