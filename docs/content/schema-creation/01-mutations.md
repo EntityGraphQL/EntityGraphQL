@@ -100,8 +100,6 @@ Using the `Expression<Func<>>` as a return type allows EntityGraphQL to build an
 
 This means we have access to the full schema graph from the core context of the schema and if you are using an ORM like Entity Framework it will load the requested data for you.
 
-For more information see the [How it Works](/how-it-works) section.
-
 # Dependencies Injection & Services
 
 You likely want to access some services in your mutations. EntityGraphQL supports dependency injection. When you execute a query you can pass in an `IServiceProvider`. Here is an example with ASP.NET.

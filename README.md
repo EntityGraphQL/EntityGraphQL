@@ -4,7 +4,7 @@
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
 
-Jump into the [documentation](https://entitygraphql.github.io/) to get started.
+Jump into the [https://entitygraphql.github.io/](https://entitygraphql.github.io/) for documentation and to get started.
 
 Entity GraphQL is a .NET Core (netstandard 1.6) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
 

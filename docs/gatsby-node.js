@@ -9,6 +9,8 @@ const config = require('./config');
 exports.createPages = ({ graphql, actions }) => {
   const { createPage, createRedirect } = actions;
 
+  console.log(graphql)
+
   createRedirect({
     fromPath: `/`,
     isPermanent: true,

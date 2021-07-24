@@ -80,10 +80,6 @@ const Header = ({ location, isDarkThemeActive, toggleActiveTheme }) => (
 
       const twitter = require('./images/twitter.svg');
 
-      const discordBrandsBlock = require('./images/discord-brands-block.svg');
-
-      const twitterBrandsBlock = require('./images/twitter-brands-block.svg');
-
       const {
         site: {
           siteMetadata: { headerTitle, githubUrl, helpUrl, tweetText, logo, headerLinks },
@@ -99,7 +95,8 @@ const Header = ({ location, isDarkThemeActive, toggleActiveTheme }) => (
               <Link to={finalLogoLink} className={'navBarBrand'}>
                 <img
                   className={'img-responsive displayInline'}
-                  src={logo.image !== '' ? logo.image : logoImg}
+                  height="50"
+                  src={logo.image !== '' ? logo.image : logoImg.default}
                   alt={'logo'}
                 />
               </Link>
