@@ -224,7 +224,7 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult nullCheckExpression, ParameterExpression selectionContextExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam)
+        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam)
         {
             var arguments = new List<Expression> {
                 nullCheckExpression,

@@ -125,12 +125,12 @@ namespace EntityGraphQL.Compiler
 
                 // make sure we use the right parameter
                 node.ResultSelection.RootFieldParameter = mutationContextParam;
-                result = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
+                result = CompileAndExecuteNode(context, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
                 return result;
             }
 
             // run the query select
-            result = CompileAndExecuteNode(result, validator, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
+            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
             return result;
         }
     }

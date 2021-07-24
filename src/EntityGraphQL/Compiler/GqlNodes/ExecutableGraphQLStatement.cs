@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
-                    var data = CompileAndExecuteNode(context, validator, serviceProvider, fragments, node, executeServiceFieldsSeparately);
+                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, node, executeServiceFieldsSeparately);
 
                     result[node.Name] = data;
                 }
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(result);
         }
 
-        protected object CompileAndExecuteNode(object context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, bool executeServiceFieldsSeparately)
+        protected object CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, bool executeServiceFieldsSeparately)
         {
             var replacer = new ParameterReplacer();
             // For root/top level fields we need to first select the whole graph without fields that require services

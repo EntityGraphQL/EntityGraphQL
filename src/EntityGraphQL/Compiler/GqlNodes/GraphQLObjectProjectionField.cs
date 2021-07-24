@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler
                     selectionParamValues.AddRange(fieldParamValues);
                     selectionParams.AddRange(fieldParams);
 
-                    updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams.First(), selectionParams, selectionExpressions, selectionParamValues, nullWrapParam);
+                    updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, selectionParams, selectionExpressions, selectionParamValues, nullWrapParam);
 
                     fullNodeExpression = updatedExpression;
                 }
