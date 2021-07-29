@@ -26,10 +26,12 @@ enum Genre {
 
 
 type RootQuery {
-	"""Pagination. [defaults: page = 1, pagesize = 10]"""
-	actorPager(page: Int!, pagesize: Int!, search: String): PersonPagination
 	"""List of actors"""
 	actors(filter: String): [Person!]
+	"""actors paged by connection & edges"""
+	actorsConnection(first: Int, after: String, last: Int, before: String): PersonConnection
+	"""actors paged by connection & edges"""
+	actorsConnection2(first: Int, after: String, last: Int, before: String): PersonConnection
 	"""List of directors"""
 	directors: [Person!]
 	"""Return a Movie by its Id"""
@@ -99,14 +101,35 @@ type Writer {
 	movie: Movie
 }
 
-"""Actor Pagination"""
-type PersonPagination {
-	"""total records to match search"""
-	total: Int!
-	"""total pages based on page size"""
-	pageCount: Int!
-	"""collection of people"""
-	people: [Person!]!
+"""Metadata about a page of data"""
+type PageInfo {
+	"""Last cursor in the page. Use this as the next from argument"""
+	endCursor: String!
+	"""Start cursor in the page. Use this to go backwards with the before argument"""
+	startCursor: String!
+	"""If there is more data after this page"""
+	hasNextPage: Boolean!
+	"""If there is data previous to this page"""
+	hasPreviousPage: Boolean!
+}
+
+"""Metadata about an edge of page result"""
+type PersonEdge {
+	"""The item of the collection"""
+	node: Person!
+	"""The cursor for this items position within the collection"""
+	cursor: String!
+	id: Int!
+}
+
+"""Metadata about a person connection (paging over people)"""
+type PersonConnection {
+	"""Edge information about each node in the collection"""
+	edges: [PersonEdge!]!
+	"""Total count of items in the collection"""
+	totalCount: Int!
+	"""Information about this page of data"""
+	pageInfo: PageInfo!
 }
 
 """Detail item"""

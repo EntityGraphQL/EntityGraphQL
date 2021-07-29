@@ -1,4 +1,5 @@
 # 0.69.0
+- New docs https://entitygraphql.github.io/introduction
 - Added `SchemaProvider.UpdateType<T>(Action<SchemaType<T>> updateFunc)` to better help "contain" schema types. Instead of
 ```
 schema.Type<MyType>().AddField(...);

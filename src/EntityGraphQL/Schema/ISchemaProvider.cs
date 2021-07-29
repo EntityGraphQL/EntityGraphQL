@@ -35,14 +35,13 @@ namespace EntityGraphQL.Schema
         string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims);
 
         /// <summary>
-        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
+        /// Get a field object by name on a given type. Checks auth against claims
         /// </summary>
-        /// <param name="context"></param>
         /// <param name="typeName"></param>
         /// <param name="fieldName"></param>
-        /// <param name="args"></param>
+        /// <param name="claims"></param>
         /// <returns></returns>
-        ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
+        Field GetFieldForType(string typeName, string fieldName, ClaimsIdentity claims);
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>
         /// Get the GQL (from schema) type name for a given CLR/dotnet type. Examples int -> Int, int? -> Int

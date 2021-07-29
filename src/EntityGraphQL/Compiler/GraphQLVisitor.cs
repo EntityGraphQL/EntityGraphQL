@@ -89,18 +89,23 @@ namespace EntityGraphQL.Compiler
                 if (!schemaProvider.TypeHasField(schemaTypeName, actualFieldName, args != null ? args.Select(d => d.Key) : new string[0], claims))
                     throw new EntityGraphQLCompilerException($"Field {actualFieldName} not found on type {schemaTypeName}");
 
-                var result = schemaProvider.GetExpressionForField(currentExpressionContext, schemaTypeName, actualFieldName, args, claims);
+                var field = schemaProvider.GetFieldForType(schemaTypeName, actualFieldName, claims);
 
                 BaseGraphQLField fieldResult;
                 var resultName = alias ?? actualFieldName;
 
                 if (context.select != null)
                 {
-                    fieldResult = ParseFieldSelect(result, resultName, context.select);
+                    fieldResult = ParseFieldSelect((ExpressionResult)(field.PreSelectionResolve ?? field.Resolve), resultName, context.select);
+                    if (field.PreSelectionResolve != null)
+                    {
+                        var postSelection = ParseFieldSelect((ExpressionResult)field.Resolve, resultName, context.select);
+                        fieldResult.AddPostSelectionExpression(postSelection);
+                    }
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(resultName, result, currentExpressionContext.AsParameter() ?? rootParameterContext, currentExpressionContext);
+                    fieldResult = new GraphQLScalarField(resultName, field, currentExpressionContext.AsParameter() ?? rootParameterContext, currentExpressionContext);
                 }
 
                 if (context.directive != null)

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Authorization;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
@@ -14,6 +13,7 @@ namespace EntityGraphQL.Schema
     public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
+        // private ISchemaProvider schema;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
@@ -21,6 +21,7 @@ namespace EntityGraphQL.Schema
         public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
+        public Expression PreSelectionResolve { get; private set; }
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
@@ -46,8 +47,9 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; }
 
-        internal Field(string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
+        internal Field(/*ISchemaProvider schema, */string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
         {
+            // this.schema = schema;
             Name = name;
             Description = description;
             AuthorizeClaims = authorizeClaims;
@@ -77,11 +79,18 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims) : this(name, resolve, description, returnType, claims)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
+            : this(name, resolve, description, returnType, claims)
         {
             ArgumentTypesObject = argTypes;
             allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => ArgType.FromProperty(schema, p));
             argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => ArgType.FromField(schema, p)).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
+        }
+
+        public Field(ISchemaProvider schema, string name, LambdaExpression preSelectionResolve, LambdaExpression postSelectionResolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
+            : this(schema, name, postSelectionResolve, description, argTypes, returnType, claims)
+        {
+            PreSelectionResolve = preSelectionResolve.Body;
         }
 
         public bool HasArgumentByName(string argName)

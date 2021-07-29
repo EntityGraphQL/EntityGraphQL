@@ -293,7 +293,7 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a field to the root type. This is where you define top level objects/names that you can query.
-        /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
+        /// Note the name you use is case sensitive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
         /// </summary>
         /// <param name="name"></param>
         /// <param name="selection"></param>
@@ -329,7 +329,7 @@ namespace EntityGraphQL.Schema
         /// {
         ///     field(arg: val) {}
         /// }
-        /// Note the name you use is case sensistive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
+        /// Note the name you use is case sensitive. We recommend following GraphQL and useCamelCase as this library will for methods that use Expressions.
         /// </summary>
         /// <param name="name">Field name</param>
         /// <param name="argTypes">Anonymous object defines the names and types of each argument</param>
@@ -463,23 +463,38 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
         }
 
-        public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
+        // Move thee out to the execution.
+        // Just GetField
+        // Later we build and join together
+
+        public ExpressionResult GetExpressionForFieldPostSelection(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
         {
-            if (!types.ContainsKey(typeName))
-                throw new EntityQuerySchemaException($"{typeName} not found in schema.");
+            var field = GetFieldForType(typeName, fieldName, claims);
+            // if pre selection is null we already have the expression required
+            if (field.PreSelectionResolve == null)
+                return null;
+            var result = new ExpressionResult(field.Resolve, field.Services);
+            PrepareExpressionResult(args, field, result);
+            // Our new context in the previous selection
+            // var paramExp = field.PreSelectionResolve;
+            // result.Expression = new ParameterReplacer().Replace(result.Expression, paramExp, context);
+            return result;
+        }
 
-            ISchemaType schemaType = types[typeName];
+        public ExpressionResult GetExpressionForFieldPreSelection(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
+        {
+            var field = GetFieldForType(typeName, fieldName, claims);
 
-            if (!AuthUtil.IsAuthorized(claims, schemaType.AuthorizeClaims))
-                throw new EntityGraphQLAccessException($"You do not have access to the '{typeName}' type. You require any of the following security claims [{string.Join(", ", schemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
+            var result = new ExpressionResult(field.PreSelectionResolve ?? field.Resolve ?? Expression.Property(context, fieldName), field.Services);
+            PrepareExpressionResult(args, field, result);
+            // the expressions we collect have a different starting parameter. We need to change that
+            var paramExp = field.FieldParam;
+            result.Expression = new ParameterReplacer().Replace(result.Expression, paramExp, context);
+            return result;
+        }
 
-            var field = schemaType.GetField(fieldName, claims);
-
-            if (!AuthUtil.IsAuthorized(claims, field.ReturnType.SchemaType.AuthorizeClaims))
-                throw new EntityGraphQLAccessException($"You do not have access to the '{field.ReturnType.SchemaType.Name}' type. You require any of the following security claims [{string.Join(", ", field.ReturnType.SchemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
-
-            var result = new ExpressionResult(field.Resolve ?? Expression.Property(context, fieldName), field.Services);
-
+        private static void PrepareExpressionResult(Dictionary<string, ExpressionResult> args, Field field, ExpressionResult result)
+        {
             if (field.ArgumentTypesObject != null)
             {
                 var argType = field.ArgumentTypesObject.GetType();
@@ -552,12 +567,24 @@ namespace EntityGraphQL.Schema
                 result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
                 result.AddConstantParameter(argParam, parameters);
             }
+        }
 
-            // the expressions we collect have a different starting parameter. We need to change that
-            var paramExp = field.FieldParam;
-            result.Expression = new ParameterReplacer().Replace(result.Expression, paramExp, context);
+        public Field GetFieldForType(string typeName, string fieldName, ClaimsIdentity claims)
+        {
+            if (!types.ContainsKey(typeName))
+                throw new EntityQuerySchemaException($"{typeName} not found in schema.");
 
-            return result;
+            ISchemaType schemaType = types[typeName];
+
+            if (!AuthUtil.IsAuthorized(claims, schemaType.AuthorizeClaims))
+                throw new EntityGraphQLAccessException($"You do not have access to the '{typeName}' type. You require any of the following security claims [{string.Join(", ", schemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
+
+            var field = schemaType.GetField(fieldName, claims);
+
+            if (!AuthUtil.IsAuthorized(claims, field.ReturnType.SchemaType.AuthorizeClaims))
+                throw new EntityGraphQLAccessException($"You do not have access to the '{field.ReturnType.SchemaType.Name}' type. You require any of the following security claims [{string.Join(", ", field.ReturnType.SchemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
+
+            return field;
         }
 
         private static object BuildArgumentFromMember(Dictionary<string, ExpressionResult> args, Field field, string memberName, Type memberType, object defaultValue)
@@ -778,6 +805,11 @@ namespace EntityGraphQL.Schema
         public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)
         {
             SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes, SchemaFieldNamer);
+        }
+
+        public void UpdateQueryType(Action<SchemaType<TContextType>> updateFunc)
+        {
+            updateFunc(Type<TContextType>());
         }
     }
 }

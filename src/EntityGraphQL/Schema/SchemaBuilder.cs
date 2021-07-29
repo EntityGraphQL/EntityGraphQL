@@ -169,7 +169,7 @@ namespace EntityGraphQL.Schema
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
-            var f = new Field(fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
+            var f = new Field(/*schema, */fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
             return f;
         }
 
