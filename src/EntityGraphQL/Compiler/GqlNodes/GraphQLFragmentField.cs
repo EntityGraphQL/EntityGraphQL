@@ -12,7 +12,10 @@ namespace EntityGraphQL.Compiler
             Name = name;
         }
 
-        public override bool HasAnyServices { get => false; }
+        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        {
+            return fragments.FirstOrDefault(f => f.Name == Name).Fields.Any(f => f.HasAnyServices(fragments));
+        }
         public GraphQLFragmentStatement Fragment { get; private set; }
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
@@ -28,7 +31,7 @@ namespace EntityGraphQL.Compiler
             return Fragment.Fields;
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

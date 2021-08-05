@@ -972,6 +972,54 @@ fragment frag on Project {
             Assert.Equal("configType", projectType.GetFields()[0].Name);
         }
 
+        [Fact]
+        public void TestFragmentWithFieldThatSkipsARelation()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.UpdateType<Project>(projectType =>
+            {
+                projectType.AddField("manager", p => p.Owner.Manager, "The manager of the owner");
+            });
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+  projects {
+      ...frag
+  }
+}
+
+fragment frag on Project {
+  manager {
+      name
+  }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 9,
+                        Owner = new Person
+                        {
+                            Name = "Bill",
+                            Manager = new Person
+                            {
+                                Name = "Jill"
+                            }
+                        },
+                        Tasks = new List<Task> { new Task() }
+                    },
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(res.Errors);
+        }
+
         public class AgeService
         {
             public AgeService()

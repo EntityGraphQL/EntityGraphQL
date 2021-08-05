@@ -12,10 +12,13 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
+        private readonly ParameterReplacer replacer;
+
         public GraphQLMutationStatement(string name, IEnumerable<GraphQLMutationField> mutationFields)
         {
             Name = name;
             QueryFields = mutationFields.ToList();
+            replacer = new ParameterReplacer();
         }
 
         public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately)
@@ -30,9 +33,9 @@ namespace EntityGraphQL.Compiler
 
                     result[node.Name] = data;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Error executing query field {node.Name}");
+                    throw new EntityGraphQLCompilerException($"Error executing query field {node.Name}", ex);
                 }
             }
             return result;
@@ -56,47 +59,53 @@ namespace EntityGraphQL.Compiler
 
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
-                var mutationLambda = (LambdaExpression)result;
-                var mutationContextParam = mutationLambda.Parameters.First();
-                var mutationExpression = mutationLambda.Body;
+                // If they have returned an Expression, we need to join the select Expression with the
+                // expression they returned which gives us the full Expression executable over the whole
+                // GraphQL schema
 
                 // this will typically be similar to
                 // db => db.Entity.Where(filter) or db => db.Entity.First(filter)
                 // i.e. they'll be returning a list of items or a specific item
                 // We want to take the field selection from the GraphQL query and add a LINQ Select() onto the expression
-                // In the case of a First() we need to insert that select before the first
-                // This is all to have 1 nice expression that can work with ORMs (like EF)
-                // E.g  we want db => db.Entity.Select(e => new {name = e.Name, ...}).First(filter)
-                // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
 
-                var selectParam = node.ResultSelection.RootFieldParameter;
+                var mutationLambda = (LambdaExpression)result;
+                var mutationContextParam = mutationLambda.Parameters.First();
+
+                var mutationContextExpression = mutationLambda.Body;
+
+                ParameterExpression resultContextParam = node.ResultSelection.RootFieldParameter;
+                var selectContext = resultContextParam.Type;
+                string capMethod = null;
 
                 if (!mutationLambda.ReturnType.IsEnumerableOrArray())
                 {
-                    if (mutationExpression.NodeType == ExpressionType.Call)
+                    if (mutationContextExpression.NodeType == ExpressionType.Call)
                     {
-                        var call = (MethodCallExpression)mutationExpression;
+                        // In the case of a First() we need to insert that select before the first
+                        // This is all to have 1 nice expression that can work with ORMs (like EF)
+                        // E.g  we want db => db.Entity.Select(e => new {name = e.Name, ...}).First(filter)
+                        // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
+
+                        var call = (MethodCallExpression)mutationContextExpression;
                         if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" ||
                             call.Method.Name == "Last" || call.Method.Name == "LastOrDefault" ||
                             call.Method.Name == "Single" || call.Method.Name == "SingleOrDefault")
                         {
-                            var baseExp = call.Arguments.First();
+                            // Get the expression that we can add the Select() too
+                            mutationContextExpression = call.Arguments.First();
                             if (call.Arguments.Count == 2)
                             {
                                 // this is a ctx.Something.First(f => ...)
-                                // move the filter to a Where call
+                                // move the filter to a Where call so we can use .Select() to get the fields requested
                                 var filter = call.Arguments.ElementAt(1);
-                                baseExp = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { selectParam.Type }, baseExp, filter);
+                                mutationContextExpression = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { resultContextParam.Type }, mutationContextExpression, filter);
                             }
 
-                            // build select
-                            var selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(serviceProvider, fragments).Type }, baseExp, Expression.Lambda(node.ResultSelection.GetNodeExpression(serviceProvider, fragments), selectParam));
-
-                            // add First/Last back
-                            var firstExp = ExpressionUtil.MakeCallOnQueryable(call.Method.Name, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
-
-                            // we're done
-                            node.ResultSelection.SetNodeExpression(firstExp);
+                            capMethod = call.Method.Name;
+                        }
+                        else
+                        {
+                            throw new EntityGraphQLCompilerException($"Mutation return expression type not supported. {call}");
                         }
                     }
                     else
@@ -117,19 +126,45 @@ namespace EntityGraphQL.Compiler
                         }
                     }
                 }
-                else
+
+                ExpressionResult selectExp = null;
+                // We now have the expression to build the select on
+                // first without service fields
+                object dataContext = context;
+                if (node.ResultSelection.HasAnyServices(fragments) && executeServiceFieldsSeparately)
                 {
-                    var exp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectParam.Type, node.ResultSelection.GetNodeExpression(serviceProvider, fragments).Type }, mutationExpression, Expression.Lambda(node.ResultSelection.GetNodeExpression(serviceProvider, fragments), selectParam));
-                    node.ResultSelection.SetNodeExpression(exp);
+                    selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, true);
+                    if (capMethod != null && selectExp != null)
+                    {
+                        selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
+
+                        // materialize expression (could be EF/ORM) with our capMethod
+                        selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+
+                        dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
+                        mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
+
+                        // Add Select with service fields
+                        selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
+                    }
+                }
+                if (selectExp == null)
+                {
+                    selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false);
+                    if (capMethod != null)
+                    {
+                        selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
+
+                        // materialize expression (could be EF/ORM) with our capMethod
+                        selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                    }
                 }
 
-                // make sure we use the right parameter
-                node.ResultSelection.RootFieldParameter = mutationContextParam;
-                result = CompileAndExecuteNode(context, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
-                return result;
+                var data = ExecuteExpression(selectExp, dataContext, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
+                return data;
             }
 
-            // run the query select
+            // run the query select against the object they have returned directly from the mutation
             result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
             return result;
         }

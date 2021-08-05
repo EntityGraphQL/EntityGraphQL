@@ -27,18 +27,18 @@ namespace EntityGraphQL.Compiler
             // }
             // people & movies will be the 2 fields that will be 2 separate expressions
             var result = new ConcurrentDictionary<string, object>();
-            foreach (var node in QueryFields)
+            foreach (var fieldNode in QueryFields)
             {
-                result[node.Name] = null;
+                result[fieldNode.Name] = null;
                 try
                 {
-                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, node, executeServiceFieldsSeparately);
+                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, executeServiceFieldsSeparately);
 
-                    result[node.Name] = data;
+                    result[fieldNode.Name] = data;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Error executing query field {node.Name}");
+                    throw new EntityGraphQLCompilerException($"Error executing query field {fieldNode.Name}", ex);
                 }
             }
             return Task.FromResult(result);
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
             ExpressionResult expression = null;
             var contextParam = node.RootFieldParameter;
 
-            if (node.HasAnyServices && executeServiceFieldsSeparately)
+            if (node.HasAnyServices(fragments) && executeServiceFieldsSeparately)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
@@ -85,7 +85,7 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
-        private object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer)
+        protected object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer)
         {
             var allArgs = new List<object> { context };
 

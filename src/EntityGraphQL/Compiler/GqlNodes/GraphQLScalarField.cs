@@ -27,7 +27,10 @@ namespace EntityGraphQL.Compiler
             replacer = new ParameterReplacer();
         }
 
-        public override bool HasAnyServices { get => Services.Any(); }
+        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        {
+            return Services.Any();
+        }
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
@@ -49,7 +52,7 @@ namespace EntityGraphQL.Compiler
             return extractedFields;
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;

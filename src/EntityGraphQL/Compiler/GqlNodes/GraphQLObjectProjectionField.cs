@@ -67,7 +67,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
@@ -120,12 +120,20 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    var fieldExpressionToUse = fieldExpression;
+                    ExpressionResult fieldExpressionToUse = fieldExpression;
                     if (replaceContextWith != null)
                     {
-                        // pre services select has created the field Name in the new context
-                        fieldExpressionToUse = (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
-                        fieldExpressionToUse.AddServices(fieldExpression.Services);
+                        if (isMutationResult)
+                        {
+                            fieldExpressionToUse = (ExpressionResult)replaceContextWith;
+                        }
+                        else
+                        {
+                            // pre services select has created the field Name in the new context
+                            // although this may not have had a pre services select done as we use replaceContextWith for selection contet too
+                            fieldExpressionToUse = (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
+                            fieldExpressionToUse.AddServices(fieldExpression.Services);
+                        }
                     }
 
                     // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the coorect context
@@ -134,21 +142,18 @@ namespace EntityGraphQL.Compiler
                     if (selectionFields == null || !selectionFields.Any())
                         return null;
 
-                    if (selectionFields.Any())
+                    if (selectionFields.Any() && !withoutServiceFields)
                     {
-                        if (!withoutServiceFields)
-                        { //{p_Floor.Customer.OverrideSettings.EnableDevMode}
-                            // build a new {...} - returning a single object {}
-                            var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
-                            // make a null check from this new expression
-                            newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpressionToUse, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                            fullNodeExpression = (ExpressionResult)newExp;
-                        }
-                        else
-                        {
-                            var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
-                            nodeExpressionNoServiceFields = (ExpressionResult)Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpressionToUse, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                        }
+                        // build a new {...} - returning a single object {}
+                        var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
+                        // make a null check from this new expression
+                        newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpressionToUse, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                        fullNodeExpression = (ExpressionResult)newExp;
+                    }
+                    else
+                    {
+                        var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
+                        nodeExpressionNoServiceFields = (ExpressionResult)Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, fieldExpressionToUse, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
                     }
                 }
 

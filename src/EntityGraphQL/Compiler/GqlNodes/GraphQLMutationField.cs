@@ -13,8 +13,6 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<string, ExpressionResult> args;
         private readonly BaseGraphQLQueryField resultSelection;
 
-        public override bool HasAnyServices { get => Services.Any(); }
-
         public BaseGraphQLQueryField ResultSelection { get => resultSelection; }
 
         public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, ExpressionResult> args, BaseGraphQLQueryField resultSelection)
@@ -37,7 +35,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)
         {
             return resultSelection.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
         }

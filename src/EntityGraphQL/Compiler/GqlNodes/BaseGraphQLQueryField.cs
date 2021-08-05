@@ -33,7 +33,10 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public override bool HasAnyServices { get => Services?.Any() == true || queryFields?.Any(f => f.HasAnyServices) == true; }
+        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        {
+            return Services?.Any() == true || queryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+        }
 
         protected List<BaseGraphQLField> queryFields;
         protected readonly ParameterReplacer replacer;
@@ -71,16 +74,17 @@ namespace EntityGraphQL.Compiler
 
             foreach (var field in queryFields)
             {
-                if (SelectionContext != null && field is GraphQLFragmentField fragField)
-                {
-                    replaceContextWith ??= SelectionContext;
-                }
-
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
+
+                    // if this came from a fragment we need to fix the expression context
+                    if (SelectionContext != null && field is GraphQLFragmentField fragField)
+                    {
+                        fieldExp = (ExpressionResult)replacer.Replace(fieldExp, subField.RootFieldParameter, SelectionContext);
+                    }
 
                     // pull up any services
                     AddServices(fieldExp?.Services);
