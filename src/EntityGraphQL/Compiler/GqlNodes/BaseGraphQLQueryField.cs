@@ -80,14 +80,14 @@ namespace EntityGraphQL.Compiler
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
 
+                    // pull up any services
+                    AddServices(fieldExp?.Services);
+
                     // if this came from a fragment we need to fix the expression context
                     if (SelectionContext != null && field is GraphQLFragmentField fragField)
                     {
                         fieldExp = (ExpressionResult)replacer.Replace(fieldExp, subField.RootFieldParameter, SelectionContext);
                     }
-
-                    // pull up any services
-                    AddServices(fieldExp?.Services);
 
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 

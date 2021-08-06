@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using System.Linq.Expressions;
 using System;
+using static EntityGraphQL.Tests.ComplexFieldsTests;
+using static EntityGraphQL.Schema.ArgumentHelper;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -149,6 +152,48 @@ namespace EntityGraphQL.Tests
             Assert.Equal("projects", addPersonResult.GetType().GetFields()[2].Name);
             Assert.Equal(1, Enumerable.Count(addPersonResult.projects));
             Assert.Equal("Bill", addPersonResult.name);
+        }
+
+        [Fact]
+        public void SupportsSelectionWithServiceFieldInFragment()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+            schemaProvider.UpdateType<Person>(type =>
+            {
+                type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
+            });
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonAdv(name: $name) {
+    ...frag
+  }
+}
+fragment frag on Person {
+    id age
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestSchema();
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data;
+            addPersonResult = Enumerable.First(addPersonResult);
+            addPersonResult = addPersonResult.Value;
+            // we only have the fields requested
+            Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
         }
     }
 

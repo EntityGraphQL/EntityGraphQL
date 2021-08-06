@@ -26,9 +26,7 @@ namespace EntityGraphQL.Compiler
                 Fragment = fragment;
             }
 
-            if (withoutServiceFields)
-                return Fragment.Fields.Where(f => !f.Services.Any());
-            return Fragment.Fields;
+            return Fragment.Fields.SelectMany(f => f.Expand(fragments, withoutServiceFields));
         }
 
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)

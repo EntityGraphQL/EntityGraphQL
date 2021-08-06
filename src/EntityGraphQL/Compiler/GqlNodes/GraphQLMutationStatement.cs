@@ -134,18 +134,30 @@ namespace EntityGraphQL.Compiler
                 if (node.ResultSelection.HasAnyServices(fragments) && executeServiceFieldsSeparately)
                 {
                     selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, true);
-                    if (capMethod != null && selectExp != null)
+                    if (selectExp != null)
                     {
-                        selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
+                        if (capMethod != null)
+                        {
+                            selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
 
-                        // materialize expression (could be EF/ORM) with our capMethod
-                        selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                            // materialize expression (could be EF/ORM) with our capMethod
+                            selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
 
-                        dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
-                        mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
+                            dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
+                            mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
 
-                        // Add Select with service fields
-                        selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
+                            // Add Select with service fields
+                            selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
+                        }
+                        else
+                        {
+                            // Not working on an enerumable but still need to execute and select the service fields
+                            dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
+                            mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
+
+                            // Add Select with service fields
+                            selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
+                        }
                     }
                 }
                 if (selectExp == null)
