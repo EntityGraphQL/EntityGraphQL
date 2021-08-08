@@ -76,6 +76,7 @@ namespace EntityGraphQL.Compiler
                 ParameterExpression resultContextParam = node.ResultSelection.RootFieldParameter;
                 var selectContext = resultContextParam.Type;
                 string capMethod = null;
+                var canCallToList = false;
 
                 if (!mutationLambda.ReturnType.IsEnumerableOrArray())
                 {
@@ -99,6 +100,8 @@ namespace EntityGraphQL.Compiler
                                 // move the filter to a Where call so we can use .Select() to get the fields requested
                                 var filter = call.Arguments.ElementAt(1);
                                 mutationContextExpression = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { resultContextParam.Type }, mutationContextExpression, filter);
+                                // we can first call ToList() as the data is filtered so risk of over fetching is low
+                                canCallToList = true;
                             }
 
                             capMethod = call.Method.Name;
@@ -140,8 +143,13 @@ namespace EntityGraphQL.Compiler
                         {
                             selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
 
+                            var genericType = selectExp.Type.GetEnumerableOrArrayType();
                             // materialize expression (could be EF/ORM) with our capMethod
-                            selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
+                            // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
+                            if (canCallToList)
+                                selectExp = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { genericType }, selectExp);
+
+                            selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { genericType }, selectExp);
 
                             dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
                             mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
