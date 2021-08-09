@@ -195,6 +195,46 @@ fragment frag on Person {
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
             Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
         }
+
+        [Fact]
+        public void MutationReturnsCollectionExpression()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.UpdateType<Person>(type =>
+            {
+                type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
+            });
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonReturnAll(name: $name) {
+    id age
+  }
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestSchema();
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data;
+            addPersonResult = Enumerable.First(addPersonResult);
+            addPersonResult = addPersonResult.Value;
+            Assert.Equal(2, Enumerable.Count(addPersonResult));
+            addPersonResult = Enumerable.First(addPersonResult);
+            // we only have the fields requested
+            Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
+        }
     }
 
     internal class TestSchema
@@ -261,6 +301,13 @@ fragment frag on Person {
                 Projects = new List<Project> { new Project { Id = 123 } }
             };
             return ctx => person;
+        }
+
+        [GraphQLMutation]
+        public Expression<Func<TestSchema, IEnumerable<Person>>> AddPersonReturnAll(TestSchema db, PeopleMutationsArgs args)
+        {
+            db.People.Add(new Person { Id = 11, Name = args.Name });
+            return ctx => ctx.People;
         }
     }
 

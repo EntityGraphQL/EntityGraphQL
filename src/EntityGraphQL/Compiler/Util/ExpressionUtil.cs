@@ -93,7 +93,44 @@ namespace EntityGraphQL.Compiler.Util
         }
 
         /// <summary>
-        /// Trys to take 2 expressions returned from FindIEnumerable and join them together. I.e. If we Split list.First() with FindIEnumerable, we can join it back together with newList.First()
+        /// If the combineExpression is a First()/etc. with a filter, pull the filter back to a Where() in the collection field expression
+        /// </summary>
+        /// <param name="collectionSelectionNode"></param>
+        /// <param name="combineExpression"></param>
+        public static string UpdateCollectionNodeFieldExpression(GraphQLListSelectionField collectionSelectionNode, Expression combineExpression)
+        {
+            string capMethod = null;
+            if (combineExpression.NodeType == ExpressionType.Call)
+            {
+                // In the case of a First() we need to insert that select before the first
+                // This is all to have 1 nice expression that can work with ORMs (like EF)
+                // E.g  we want db => db.Entity.Select(e => new {name = e.Name, ...}).First(filter)
+                // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
+
+                var call = (MethodCallExpression)combineExpression;
+                if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" ||
+                    call.Method.Name == "Last" || call.Method.Name == "LastOrDefault" ||
+                    call.Method.Name == "Single" || call.Method.Name == "SingleOrDefault")
+                {
+                    // Get the expression that we can add the Select() too
+                    var contextExpression = collectionSelectionNode.FieldExpression;
+                    if (contextExpression != null && call.Arguments.Count == 2)
+                    {
+                        // this is a ctx.Something.First(f => ...)
+                        // move the filter to a Where call so we can use .Select() to get the fields requested
+                        var filter = call.Arguments.ElementAt(1);
+                        contextExpression = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { combineExpression.Type }, contextExpression, filter);
+                        // we can first call ToList() as the data is filtered so risk of over fetching is low
+                        capMethod = call.Method.Name;
+                        collectionSelectionNode.FieldExpression = contextExpression;
+                    }
+                }
+            }
+            return capMethod;
+        }
+
+        /// <summary>
+        /// Tries to take 2 expressions returned from FindIEnumerable and join them together. I.e. If we Split list.First() with FindIEnumerable, we can join it back together with newList.First()
         /// </summary>
         /// <param name="baseExp"></param>
         /// <param name="nextExp"></param>
@@ -135,7 +172,7 @@ namespace EntityGraphQL.Compiler.Util
         /// </summary>
         /// <param name="baseExpression"></param>
         /// <returns></returns>
-        public static Tuple<Expression, Expression> FindIEnumerable(Expression baseExpression)
+        public static Tuple<Expression, Expression> FindEnumerable(Expression baseExpression)
         {
             var exp = baseExpression;
             Expression endExpression = null;

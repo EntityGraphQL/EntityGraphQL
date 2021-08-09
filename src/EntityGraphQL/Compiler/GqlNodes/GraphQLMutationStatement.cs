@@ -12,13 +12,10 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        private readonly ParameterReplacer replacer;
-
         public GraphQLMutationStatement(string name, IEnumerable<GraphQLMutationField> mutationFields)
         {
             Name = name;
             QueryFields = mutationFields.ToList();
-            replacer = new ParameterReplacer();
         }
 
         public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately)
@@ -57,6 +54,8 @@ namespace EntityGraphQL.Compiler
                 node.ResultSelection == null) // mutation must return a scalar type
                 return result;
 
+            var resultExp = node.ResultSelection;
+
             if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
             {
                 // If they have returned an Expression, we need to join the select Expression with the
@@ -73,120 +72,59 @@ namespace EntityGraphQL.Compiler
 
                 var mutationContextExpression = mutationLambda.Body;
 
-                ParameterExpression resultContextParam = node.ResultSelection.RootFieldParameter;
-                var selectContext = resultContextParam.Type;
-                string capMethod = null;
-                var canCallToList = false;
-
-                if (!mutationLambda.ReturnType.IsEnumerableOrArray())
+                if (!mutationContextExpression.Type.IsEnumerableOrArray())
                 {
-                    if (mutationContextExpression.NodeType == ExpressionType.Call)
+                    var listExp = ExpressionUtil.FindEnumerable(mutationContextExpression);
+                    if (listExp.Item1 != null && mutationContextExpression.NodeType == ExpressionType.Call)
                     {
-                        // In the case of a First() we need to insert that select before the first
-                        // This is all to have 1 nice expression that can work with ORMs (like EF)
-                        // E.g  we want db => db.Entity.Select(e => new {name = e.Name, ...}).First(filter)
-                        // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
-
-                        var call = (MethodCallExpression)mutationContextExpression;
-                        if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" ||
-                            call.Method.Name == "Last" || call.Method.Name == "LastOrDefault" ||
-                            call.Method.Name == "Single" || call.Method.Name == "SingleOrDefault")
-                        {
-                            // Get the expression that we can add the Select() too
-                            mutationContextExpression = call.Arguments.First();
-                            if (call.Arguments.Count == 2)
-                            {
-                                // this is a ctx.Something.First(f => ...)
-                                // move the filter to a Where call so we can use .Select() to get the fields requested
-                                var filter = call.Arguments.ElementAt(1);
-                                mutationContextExpression = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { resultContextParam.Type }, mutationContextExpression, filter);
-                                // we can first call ToList() as the data is filtered so risk of over fetching is low
-                                canCallToList = true;
-                            }
-
-                            capMethod = call.Method.Name;
-                        }
-                        else
-                        {
-                            throw new EntityGraphQLCompilerException($"Mutation return expression type not supported. {call}");
-                        }
+                        // yes we can
+                        // rebuild the ExpressionResult so we keep any ConstantParameters
+                        var item1 = (ExpressionResult)listExp.Item1;
+                        var collectionNode = new GraphQLListSelectionField(Name, item1, node.ResultSelection.RootFieldParameter, node.ResultSelection.QueryFields, (ExpressionResult)node.ResultSelection.RootFieldParameter);
+                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)node.ResultSelection, listExp.Item2);
+                        resultExp = newNode;
                     }
                     else
                     {
-                        // if they just return a constant I.e the entity they just updated. It comes as a member access constant
-                        if (mutationLambda.Body.NodeType == ExpressionType.MemberAccess)
-                        {
-                            var me = (MemberExpression)mutationLambda.Body;
-                            if (me.Expression.NodeType == ExpressionType.Constant)
-                            {
-                                node.ResultSelection.ConstantParameters[Expression.Parameter(me.Type, $"const_{me.Type.Name}")] = Expression.Lambda(me).Compile().DynamicInvoke();
-                            }
-                        }
-                        else if (mutationLambda.Body.NodeType == ExpressionType.Constant)
-                        {
-                            var ce = (ConstantExpression)mutationLambda.Body;
-                            node.ResultSelection.ConstantParameters[Expression.Parameter(ce.Type, $"const_{ce.Type.Name}")] = ce.Value;
-                        }
+                        SetupConstants(resultExp, mutationContextExpression);
                     }
                 }
-
-                ExpressionResult selectExp = null;
-                // We now have the expression to build the select on
-                // first without service fields
-                object dataContext = context;
-                if (node.ResultSelection.HasAnyServices(fragments) && executeServiceFieldsSeparately)
+                else
                 {
-                    selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, true);
-                    if (selectExp != null)
+                    // we now know the context as it is dynamically returned in a mutation
+                    if (resultExp is GraphQLListSelectionField field)
                     {
-                        if (capMethod != null)
-                        {
-                            selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
-
-                            var genericType = selectExp.Type.GetEnumerableOrArrayType();
-                            // materialize expression (could be EF/ORM) with our capMethod
-                            // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
-                            if (canCallToList)
-                                selectExp = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { genericType }, selectExp);
-
-                            selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { genericType }, selectExp);
-
-                            dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
-                            mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
-
-                            // Add Select with service fields
-                            selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
-                        }
-                        else
-                        {
-                            // Not working on an enerumable but still need to execute and select the service fields
-                            dataContext = ExecuteExpression(selectExp, context, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
-                            mutationContextParam = Expression.Parameter(dataContext.GetType(), "_ctx");
-
-                            // Add Select with service fields
-                            selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false, mutationContextParam, isMutationResult: true);
-                        }
+                        field.FieldExpression = (ExpressionResult)mutationContextExpression;
                     }
+                    SetupConstants(resultExp, mutationContextExpression);
                 }
-                if (selectExp == null)
-                {
-                    selectExp = node.ResultSelection.GetNodeExpression(serviceProvider, fragments, false);
-                    if (capMethod != null)
-                    {
-                        selectExp = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { selectContext, selectExp.Type }, mutationContextExpression, Expression.Lambda(selectExp, resultContextParam));
+                resultExp.RootFieldParameter = mutationContextParam;
 
-                        // materialize expression (could be EF/ORM) with our capMethod
-                        selectExp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { selectExp.Type.GetGenericArguments()[0] }, selectExp);
-                    }
-                }
-
-                var data = ExecuteExpression(selectExp, dataContext, mutationContextParam, serviceProvider, node.ResultSelection, replacer);
-                return data;
+                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, executeServiceFieldsSeparately);
+                return result;
             }
 
             // run the query select against the object they have returned directly from the mutation
             result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, executeServiceFieldsSeparately);
             return result;
+        }
+
+        private static void SetupConstants(BaseGraphQLQueryField resultExp, Expression mutationContextExpression)
+        {
+            // if they just return a constant I.e the entity they just updated. It comes as a member access constant
+            if (mutationContextExpression.NodeType == ExpressionType.MemberAccess)
+            {
+                var me = (MemberExpression)mutationContextExpression;
+                if (me.Expression.NodeType == ExpressionType.Constant)
+                {
+                    resultExp.ConstantParameters[Expression.Parameter(me.Type, $"const_{me.Type.Name}")] = Expression.Lambda(me).Compile().DynamicInvoke();
+                }
+            }
+            else if (mutationContextExpression.NodeType == ExpressionType.Constant)
+            {
+                var ce = (ConstantExpression)mutationContextExpression;
+                resultExp.ConstantParameters[Expression.Parameter(ce.Type, $"const_{ce.Type.Name}")] = ce.Value;
+            }
         }
     }
 }

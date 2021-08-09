@@ -19,8 +19,10 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
-        private readonly ExpressionResult fieldExpression;
+        private ExpressionResult fieldExpression;
         private readonly ExpressionExtractor extractor;
+
+        public ExpressionResult FieldExpression { get => fieldExpression; internal set => fieldExpression = value; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -64,7 +66,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
@@ -102,14 +104,6 @@ namespace EntityGraphQL.Compiler
                 // build a .Select(...) - returning a IEnumerable<>
                 var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
 
-                // only rebuild the .First/FirstOrDefault/etc if we are not later selecting service fields as the second pass will expect an array
-                if (!withoutServiceFields && combineExpression != null)
-                {
-                    var exp = (ExpressionResult)ExpressionUtil.CombineExpressions(resultExpression, combineExpression);
-                    exp.AddConstantParameters(resultExpression.ConstantParameters);
-                    exp.AddServices(resultExpression.Services);
-                    resultExpression = exp;
-                }
                 Services.AddRange(resultExpression?.Services);
 
                 if (withoutServiceFields)

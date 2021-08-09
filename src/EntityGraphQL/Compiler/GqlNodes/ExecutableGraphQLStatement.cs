@@ -58,19 +58,19 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(serviceProvider, fragments, withoutServiceFields: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, withoutServiceFields: true, isRoot: true);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    context = ExecuteExpression(expression, context, contextParam, null, node, replacer);
+                    context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                    var newContextType = Expression.Parameter(context.GetType());
+                    var newContextType = Expression.Parameter(context.GetType(), "_ctx");
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, replaceContextWith: newContextType, isRoot: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, false, replaceContextWith: newContextType, isRoot: true, useReplaceContextDirectly: true);
                     contextParam = newContextType;
                 }
             }
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(serviceProvider, fragments);
+                expression = node.GetNodeExpression(serviceProvider, fragments, isRoot: true);
             }
 
             var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);

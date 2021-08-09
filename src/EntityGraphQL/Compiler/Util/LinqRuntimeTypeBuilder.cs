@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler.Util
     /// </summary>
     public static class LinqRuntimeTypeBuilder
     {
-        private static readonly AssemblyName assemblyName = new AssemblyName() { Name = "EntityGraphQL.DynamicTypes" };
+        private static readonly AssemblyName assemblyName = new AssemblyName { Name = "EntityGraphQL.DynamicTypes" };
         private static readonly ModuleBuilder moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(assemblyName.Name);
         private static readonly Dictionary<string, Type> builtTypes = new Dictionary<string, Type>();
         // We build a class name based on all the selected fields so we can cache the anonymous types we built
@@ -22,9 +22,8 @@ namespace EntityGraphQL.Compiler.Util
 
         private static string GetTypeKey(Dictionary<string, Type> fields)
         {
-            // TODO: optimize the type caching -- if fields are simply reordered, that doesn't mean that they're actually different types, so this needs to be smarter
             string key = string.Empty;
-            foreach (var field in fields)
+            foreach (var field in fields.OrderBy(f => f.Key))
             {
                 key = MakeKey(key, field.Key, field.Value);
             }
@@ -80,7 +79,7 @@ namespace EntityGraphQL.Compiler.Util
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine(ex);
+                Console.WriteLine(ex);
             }
             finally
             {

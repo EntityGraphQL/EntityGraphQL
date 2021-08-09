@@ -70,6 +70,11 @@ namespace EntityGraphQL.Compiler
                     var oldContext = currentExpressionContext;
                     currentExpressionContext = expContext;
                     var select = ParseFieldSelect(expContext, actualFieldName, context.select);
+                    if (mutationType.ReturnType.IsList)
+                    {
+                        // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
+                        select = new GraphQLListSelectionField(actualFieldName, null, null, select.QueryFields, expContext);
+                    }
                     currentExpressionContext = oldContext;
                     rootParameterContext = oldRootParam;
                     return new GraphQLMutationField(resultName, mutationType, args, select);
@@ -131,31 +136,26 @@ namespace EntityGraphQL.Compiler
         {
             try
             {
-                BaseGraphQLQueryField graphQLNode = null;
                 if (expContext.Type.IsEnumerableOrArray())
                 {
-                    graphQLNode = BuildDynamicSelectOnCollection(expContext, name, context);
+                    return BuildDynamicSelectOnCollection(expContext, name, context);
                 }
-                else
+
+                var graphQLNode = BuildDynamicSelectForObjectGraph(expContext, currentExpressionContext.AsParameter(), name, context);
+
+                // Could be a list.First().Blah that we need to turn into a select, or
+                // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
+                // Can we turn a list.First().Blah into and list.Select(i => new {i.Blah}).First()
+                var listExp = ExpressionUtil.FindEnumerable(expContext);
+                if (listExp.Item1 != null)
                 {
-                    // Could be a list.First().Blah that we need to turn into a select, or
-                    // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
-                    // Can we turn a list.First().Blah into and list.Select(i => new {i.Blah}).First()
-                    var listExp = ExpressionUtil.FindIEnumerable(expContext);
-                    if (listExp.Item1 != null)
-                    {
-                        // yes we can
-                        // rebuild the ExpressionResult so we keep any ConstantParameters
-                        var item1 = (ExpressionResult)listExp.Item1;
-                        item1.AddConstantParameters(expContext.ConstantParameters);
-                        item1.AddServices(expContext.Services);
-                        graphQLNode = BuildDynamicSelectOnCollection(item1, name, context);
-                        graphQLNode.SetCombineExpression(listExp.Item2);
-                    }
-                    else
-                    {
-                        graphQLNode = BuildDynamicSelectForObjectGraph(expContext, currentExpressionContext.AsParameter(), name, context);
-                    }
+                    // yes we can
+                    // rebuild the ExpressionResult so we keep any ConstantParameters
+                    var item1 = (ExpressionResult)listExp.Item1;
+                    item1.AddConstantParameters(expContext.ConstantParameters);
+                    item1.AddServices(expContext.Services);
+                    var collectionNode = BuildDynamicSelectOnCollection(item1, name, context);
+                    return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2);
                 }
                 return graphQLNode;
             }
@@ -261,7 +261,7 @@ namespace EntityGraphQL.Compiler
 
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerables
-        private BaseGraphQLQueryField BuildDynamicSelectOnCollection(ExpressionResult queryResult, string resultName, EntityGraphQLParser.ObjectSelectionContext context)
+        private GraphQLListSelectionField BuildDynamicSelectOnCollection(ExpressionResult queryResult, string resultName, EntityGraphQLParser.ObjectSelectionContext context)
         {
             var elementType = queryResult.Type.GetEnumerableOrArrayType();
             var oldRootParam = rootParameterContext;
@@ -290,7 +290,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="context"></param>
         /// <param name="selectContext"></param>
         /// <returns></returns>
-        private BaseGraphQLQueryField BuildDynamicSelectForObjectGraph(ExpressionResult selectFromExp, ParameterExpression selectFromParam, string name, EntityGraphQLParser.ObjectSelectionContext context)
+        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(ExpressionResult selectFromExp, ParameterExpression selectFromParam, string name, EntityGraphQLParser.ObjectSelectionContext context)
         {
             try
             {

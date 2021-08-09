@@ -39,8 +39,6 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public abstract bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments);
 
-        protected Expression combineExpression;
-
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
         /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()
@@ -52,16 +50,11 @@ namespace EntityGraphQL.Compiler
         /// <param name="withoutServiceFields">If true th expression builds selection without fields that require services</param>
         /// <param name="replaceContextWith">A replacement context from a selection without service fields</param>
         /// <param name="isRoot">If this field is a Query root field</param>
-        /// <param name="isMutationResult">If this field is a mutation result</param>
+        /// <param name="useReplaceContextDirectly">Use the replaceContextWith instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
         /// <returns></returns>
-        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool isMutationResult = false);
+        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
-
-        internal void SetCombineExpression(Expression combineExpression)
-        {
-            this.combineExpression = combineExpression;
-        }
 
         public void AddServices(IEnumerable<Type> services)
         {
