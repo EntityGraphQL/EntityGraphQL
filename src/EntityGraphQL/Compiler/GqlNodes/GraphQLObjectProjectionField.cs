@@ -23,24 +23,26 @@ namespace EntityGraphQL.Compiler
     public class GraphQLObjectProjectionField : BaseGraphQLQueryField
     {
         private readonly ExpressionResult fieldExpression;
+        private readonly ExpressionResult fieldExpressionBase;
         private readonly ExpressionExtractor extractor;
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
-        /// <param name="schemaProvider">The schema provider used to build the expressions</param>
         /// <param name="name">Name of the field. Could be the alias that the user provided</param>
+        /// <param name="fieldExpressionBase">Base expression that the field expression is built from</param>
         /// <param name="fieldExpression">The expression that makes the field. e.g. movie => movie.Name</param>
-        /// <param name="fieldParameter">The ParameterExpression used for the field expression if required.</param>
+        /// <param name="rootFieldParameter">The ParameterExpression used for the field expression if required.</param>
         /// <param name="fieldSelection">Any fields that will be selected from this field e.g. (in GQL) { thisField { fieldSelection1 fieldSelection2 } }</param>
         /// <param name="selectionContext">The Expression used to build the fieldSelection expressions</param>
-        public GraphQLObjectProjectionField(string name, ExpressionResult fieldExpression, ParameterExpression fieldParameter, IEnumerable<BaseGraphQLField> fieldSelection, ExpressionResult selectionContext)
+        public GraphQLObjectProjectionField(string name, ExpressionResult fieldExpressionBase, ExpressionResult fieldExpression, ParameterExpression rootFieldParameter, IEnumerable<BaseGraphQLField> fieldSelection, ExpressionResult selectionContext)
         {
             Name = name;
             this.fieldExpression = fieldExpression;
+            this.fieldExpressionBase = fieldExpressionBase;
             queryFields = fieldSelection?.ToList() ?? new List<BaseGraphQLField>();
             this.selectionContext = selectionContext;
-            this.RootFieldParameter = fieldParameter;
+            this.RootFieldParameter = rootFieldParameter;
             constantParameters = new Dictionary<ParameterExpression, object>();
             extractor = new ExpressionExtractor();
 
@@ -95,7 +97,7 @@ namespace EntityGraphQL.Compiler
                         if (useReplaceContextDirectly)
                             updatedExpression = (ExpressionResult)replaceContextWith;
                         else
-                            updatedExpression = (ExpressionResult)replacer.Replace(updatedExpression, RootFieldParameter, replaceContextWith);
+                            updatedExpression = (ExpressionResult)replacer.ReplaceByType(updatedExpression, fieldExpressionBase.Type, replaceContextWith);
 
                         nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
 
@@ -179,11 +181,16 @@ namespace EntityGraphQL.Compiler
             // fieldExpression might be a service method call and the arguments might have fields we need to select out
             if (withoutServiceFields && fieldExpression.NodeType == ExpressionType.Call)
             {
-                var fields = extractor.Extract(fieldExpression, RootFieldParameter)
-                    .Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, RootFieldParameter)).ToList();
+                IDictionary<string, Expression> fieldsRequiredForServices = extractor.Extract(fieldExpression, RootFieldParameter);
+                if (fieldsRequiredForServices != null)
+                {
+                    var fields = fieldsRequiredForServices
+                        .Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, RootFieldParameter))
+                        .ToList();
 
-                if (fields.Any())
-                    return fields;
+                    if (fields.Any())
+                        return fields;
+                }
             }
             return base.Expand(fragments, withoutServiceFields);
         }

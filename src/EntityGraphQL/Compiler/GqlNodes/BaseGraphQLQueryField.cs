@@ -79,6 +79,8 @@ namespace EntityGraphQL.Compiler
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
+                    if (fieldExp == null)
+                        continue;
 
                     // pull up any services
                     AddServices(fieldExp?.Services);
@@ -100,7 +102,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            return selectionFields;
+            return selectionFields.Count == 0 ? null : selectionFields;
         }
 
         public void SetNodeExpression(ExpressionResult expr)

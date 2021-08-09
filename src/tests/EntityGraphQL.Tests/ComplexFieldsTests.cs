@@ -1094,6 +1094,150 @@ query {
             dynamic project = (dynamic)res.Data["project"];
         }
 
+        [Fact]
+        public void TestCollectionToSingleWithServiceInCollection()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("configType",
+                (p) => WithService((ConfigService srv) => srv.Get(0).Type),
+                "Get project config");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService configSrv = new ConfigService();
+            serviceCollection.AddSingleton(configSrv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+    task(id: 1) { # context collection to single
+        project {
+            configType
+        }
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Project = new Project
+                        {
+                            Id = 0,
+                            Description = "Hello",
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, configSrv.CallCount);
+            dynamic project = (dynamic)res.Data["task"];
+        }
+
+        [Fact]
+        public void TestCollectionToSingleWithServiceTypeInCollection()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<ProjectConfig>("ProjectConfig", "Config for the project").AddAllFields();
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(0)),
+                "Get project config");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService configSrv = new ConfigService();
+            serviceCollection.AddSingleton(configSrv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+    task(id: 1) { # context collection to single
+        project {
+            config {
+                type
+            }
+        }
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Project = new Project
+                        {
+                            Id = 0,
+                            Description = "Hello",
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, configSrv.CallCount);
+            dynamic project = (dynamic)res.Data["task"];
+        }
+
+        [Fact]
+        public void TestCollectionToSingleWithServiceTypeInCollectionThatUsesAContextField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<ProjectConfig>("ProjectConfig", "Config for the project").AddAllFields();
+            schema.Type<Project>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get project config");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService configSrv = new ConfigService();
+            serviceCollection.AddSingleton(configSrv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+    task(id: 1) { # context collection to single
+        project {
+            config {
+                type
+            }
+        }
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Project = new Project
+                        {
+                            Id = 0,
+                            Description = "Hello",
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, configSrv.CallCount);
+            dynamic project = (dynamic)res.Data["task"];
+        }
+
         public class AgeService
         {
             public AgeService()
