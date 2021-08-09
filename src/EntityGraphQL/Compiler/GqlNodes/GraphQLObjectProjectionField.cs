@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
-                bool needsServiceWrap = (Services.Any() || QueryFields.Any(f => f.Services.Any())) && !withoutServiceFields;
+                bool needsServiceWrap = !useReplaceContextDirectly && !withoutServiceFields && (Services.Any() || QueryFields.Any(f => f.Services.Any()));
 
                 if (needsServiceWrap)
                 {
@@ -96,6 +96,7 @@ namespace EntityGraphQL.Compiler
                             updatedExpression = (ExpressionResult)replaceContextWith;
                         else
                             updatedExpression = (ExpressionResult)replacer.Replace(updatedExpression, RootFieldParameter, replaceContextWith);
+
                         nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
 
                         foreach (var item in selectionFields)

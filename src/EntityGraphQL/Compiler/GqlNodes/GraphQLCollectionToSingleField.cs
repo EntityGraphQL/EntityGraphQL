@@ -63,6 +63,7 @@ namespace EntityGraphQL.Compiler
             }
             else
             {
+                // second / last pass
                 exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
             }
             if (exp == null)

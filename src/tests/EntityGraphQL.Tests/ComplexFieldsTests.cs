@@ -1020,6 +1020,80 @@ fragment frag on Project {
             Assert.Null(res.Errors);
         }
 
+        [Fact]
+        public void TestCollectionToSingleWithServiceAndCollectionFragmentWithServiceAndSkippedRelation()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("configType",
+                (p) => WithService((ConfigService srv) => srv.Get(0).Type),
+                "Get project config");
+
+            schema.Type<Task>().AddField("assigneeProjects", t => t.Assignee.Projects, "All projects for assignee");
+            schema.Type<Person>().AddField("age",
+                // use a filed not another relation/entity
+                (person) => WithService((AgeService ager) => ager.GetAge(person.Birthday)),
+                "Persons age");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService configSrv = new ConfigService();
+            serviceCollection.AddSingleton(configSrv);
+            AgeService ageSrv = new AgeService();
+            serviceCollection.AddSingleton(ageSrv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+fragment taskFrag on Task {
+    assigneeProjects { # skips relation in context
+        id
+    }
+    assignee { # relation
+        age # service
+    }
+}
+
+query {
+    project(id: 0) { # context collection to single
+        description
+        configType # service field
+        tasks {
+            ...taskFrag
+        }
+    }
+}"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 0,
+                        Description = "Hello",
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Assignee = new Person
+                                {
+                                    Name = "Billy",
+                                    Projects = new List<Project>()
+                                }
+                            }
+                        },
+                    }
+                },
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, configSrv.CallCount);
+            Assert.Equal(1, ageSrv.CallCount);
+            dynamic project = (dynamic)res.Data["project"];
+        }
+
         public class AgeService
         {
             public AgeService()
