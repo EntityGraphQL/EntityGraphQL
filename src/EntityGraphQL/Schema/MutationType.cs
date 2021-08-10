@@ -76,7 +76,16 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                result = method.Invoke(mutationClassInstance, allArgs.ToArray());
+                try
+                {
+                    result = method.Invoke(mutationClassInstance, allArgs.ToArray());
+                }
+                catch (TargetInvocationException ex)
+                {
+                    if (ex.InnerException != null)
+                        throw ex.InnerException;
+                    throw ex;
+                }
             }
             return result;
         }

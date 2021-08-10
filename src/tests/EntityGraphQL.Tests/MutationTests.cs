@@ -235,6 +235,61 @@ fragment frag on Person {
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
             Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
         }
+
+        [Fact]
+        public void MutationReturnsCollectionConst()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonReturnAllConst(name: $name) {
+    id
+  }
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+
+            var testSchema = new TestSchema();
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data;
+            addPersonResult = Enumerable.First(addPersonResult);
+            addPersonResult = addPersonResult.Value;
+            Assert.Equal(2, Enumerable.Count(addPersonResult));
+            addPersonResult = Enumerable.First(addPersonResult);
+            // we only have the fields requested
+            Assert.Equal(1, addPersonResult.GetType().GetFields().Length);
+            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void MutationReportsError()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonError(name: $name)
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+
+            var testSchema = new TestSchema();
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Name can not be null (Parameter 'name')", results.Errors[0].Message);
+        }
     }
 
     internal class TestSchema
@@ -308,6 +363,19 @@ fragment frag on Person {
         {
             db.People.Add(new Person { Id = 11, Name = args.Name });
             return ctx => ctx.People;
+        }
+
+        [GraphQLMutation]
+        public IEnumerable<Person> AddPersonReturnAllConst(TestSchema db, PeopleMutationsArgs args)
+        {
+            db.People.Add(new Person { Id = 11, Name = args.Name });
+            return db.People.ToList();
+        }
+
+        [GraphQLMutation]
+        public int AddPersonError(PeopleMutationsArgs args)
+        {
+            throw new ArgumentNullException("name", "Name can not be null");
         }
     }
 

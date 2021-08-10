@@ -92,9 +92,9 @@ namespace EntityGraphQL.Compiler
                 else
                 {
                     // we now know the context as it is dynamically returned in a mutation
-                    if (resultExp is GraphQLListSelectionField field)
+                    if (resultExp is GraphQLListSelectionField listField)
                     {
-                        field.FieldExpression = (ExpressionResult)mutationContextExpression;
+                        listField.FieldExpression = (ExpressionResult)mutationContextExpression;
                     }
                     SetupConstants(resultExp, mutationContextExpression);
                 }
@@ -102,6 +102,13 @@ namespace EntityGraphQL.Compiler
 
                 result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, executeServiceFieldsSeparately);
                 return result;
+            }
+            // we now know the context as it is dynamically returned in a mutation
+            if (resultExp is GraphQLListSelectionField field)
+            {
+                var contextParam = Expression.Parameter(result.GetType());
+                resultExp.RootFieldParameter = contextParam;
+                field.FieldExpression = (ExpressionResult)contextParam;
             }
 
             // run the query select against the object they have returned directly from the mutation
