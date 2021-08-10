@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Error executing query field {fieldNode.Name}", ex);
+                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex);
                 }
             }
             return Task.FromResult(result);
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Compiler
                 newExp = ((UnaryExpression)newExp).Operand;
 
             if (newExp.NodeType != ExpressionType.Lambda)
-                throw new EntityGraphQLCompilerException($"Error compling query. Unexpected expression type {newExp.NodeType}");
+                throw new EntityGraphQLExecutionException($"Error executing query. Unexpected expression type {newExp.NodeType}");
 
             var selection = (LambdaExpression)newExp;
             var newCall = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { newContextParam.Type, selection.ReturnType }, expression, selection);

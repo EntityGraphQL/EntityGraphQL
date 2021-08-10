@@ -63,7 +63,7 @@ namespace EntityGraphQL.Schema
                     var service = serviceProvider.GetService(p.ParameterType);
                     if (service == null)
                     {
-                        throw new EntityGraphQLCompilerException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
                     }
                     allArgs.Add(service);
                 }
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Schema
             object result;
             if (isAsync)
             {
-                result = await (dynamic)method.Invoke(mutationClassInstance, allArgs.ToArray());
+                result = await (Task<object>)method.Invoke(mutationClassInstance, allArgs.ToArray());
             }
             else
             {

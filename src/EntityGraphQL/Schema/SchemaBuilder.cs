@@ -8,6 +8,7 @@ using Humanizer;
 using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
 using EntityGraphQL.Authorization;
+using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema
 {
@@ -33,9 +34,9 @@ namespace EntityGraphQL.Schema
             return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
         };
 
-        public static SchemaProvider<TContext> Create<TContext>()
+        public static SchemaProvider<TContext> Create<TContext>(Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)
         {
-            return new SchemaProvider<TContext>();
+            return new SchemaProvider<TContext>(fieldNamer, logger);
         }
 
         /// <summary>

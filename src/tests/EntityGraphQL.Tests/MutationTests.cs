@@ -267,29 +267,6 @@ fragment frag on Person {
             Assert.Equal(1, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
         }
-
-        [Fact]
-        public void MutationReportsError()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
-            // Add a argument field with a require parameter
-            var gql = new QueryRequest
-            {
-                Query = @"mutation AddPerson($name: String) {
-  addPersonError(name: $name)
-}
-",
-                Variables = new QueryVariables {
-                    {"name", "Bill"}
-                }
-            };
-
-            var testSchema = new TestSchema();
-            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
-            Assert.NotNull(results.Errors);
-            Assert.Equal("Name can not be null (Parameter 'name')", results.Errors[0].Message);
-        }
     }
 
     internal class TestSchema

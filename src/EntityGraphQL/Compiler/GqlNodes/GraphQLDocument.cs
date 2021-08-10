@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
             {
-                throw new EntityGraphQLCompilerException("An operation name must be defined for all operations if there are multiple operations in the request");
+                throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
             }
             var result = new QueryResult();
             var validator = new GraphQLValidator();

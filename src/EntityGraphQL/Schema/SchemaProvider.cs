@@ -12,6 +12,7 @@ using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.LinqQuery;
+using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema
 {
@@ -28,6 +29,7 @@ namespace EntityGraphQL.Schema
         protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>();
 
         private readonly string queryContextName;
+        private readonly ILogger<SchemaProvider<TContextType>> logger;
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -35,9 +37,10 @@ namespace EntityGraphQL.Schema
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
         /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
-        public SchemaProvider(Func<string, string> fieldNamer = null)
+        public SchemaProvider(Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContextType>> logger = null)
         {
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
+            this.logger = logger;
             // default GQL scalar types
             types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, false, false, true));
             types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, false, false, true));
@@ -115,8 +118,9 @@ namespace EntityGraphQL.Schema
             }
             catch (Exception ex)
             {
+                logger?.LogError(ex, "Error executing QueryRequest");
                 // error with the whole query
-                result = new QueryResult(new GraphQLError(ex.InnerException != null ? ex.InnerException.Message : ex.Message));
+                result = new QueryResult(new GraphQLError(ex.InnerException != null ? $"{ex.Message} - {ex.InnerException.Message}" : ex.Message));
             }
 
             return result;

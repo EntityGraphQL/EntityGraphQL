@@ -30,6 +30,8 @@ namespace EntityGraphQL.Tests
         public List<Project> Projects { get; set; }
         public List<Task> Tasks { get; set; }
         public DateTime? Birthday { get; set; }
+        // fake an error
+        public string Error { get => throw new Exception("Field failed to execute"); set => throw new Exception("Field failed to execute"); }
     }
 
     public class Project

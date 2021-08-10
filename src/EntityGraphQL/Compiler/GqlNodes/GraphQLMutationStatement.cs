@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Error executing query field {node.Name}", ex);
+                    throw new EntityGraphQLExecutionException(node.Name, ex);
                 }
             }
             return result;
