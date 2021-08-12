@@ -156,27 +156,28 @@ namespace EntityGraphQL.Schema
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
             var tt = new SchemaType<TBaseType>(this, name, description, null);
-            var attributes = typeof(TBaseType).GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
+            FinishAddingType(typeof(TBaseType), name, tt);
+            return tt;
+        }
+
+        public ISchemaType AddType(Type contextType, string name, string description)
+        {
+            var tt = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false);
+            FinishAddingType(contextType, name, tt);
+            return tt;
+        }
+
+        private void FinishAddingType(Type contextType, string name, ISchemaType tt)
+        {
+            var attributes = contextType.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             if (attributes.Any())
                 tt.AuthorizeClaims = new RequiredClaims(attributes);
-
             types.Add(name, tt);
-            return tt;
         }
 
         public void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc)
         {
             updateFunc(AddType<TBaseType>(name, description));
-        }
-
-        public ISchemaType AddType(Type contextType, string name, string description)
-        {
-            var tt = new SchemaType<object>(this, contextType, name, description, null);
-            var attributes = contextType.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            if (attributes.Any())
-                tt.AuthorizeClaims = new RequiredClaims(attributes);
-            types.Add(name, tt);
-            return tt;
         }
 
         public ISchemaProvider RemoveType<TType>()
@@ -463,29 +464,11 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
         }
 
-        // Move thee out to the execution.
-        // Just GetField
-        // Later we build and join together
-
-        public ExpressionResult GetExpressionForFieldPostSelection(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
-        {
-            var field = GetFieldForType(typeName, fieldName, claims);
-            // if pre selection is null we already have the expression required
-            if (field.PreSelectionResolve == null)
-                return null;
-            var result = new ExpressionResult(field.Resolve, field.Services);
-            PrepareExpressionResult(args, field, result);
-            // Our new context in the previous selection
-            // var paramExp = field.PreSelectionResolve;
-            // result.Expression = new ParameterReplacer().Replace(result.Expression, paramExp, context);
-            return result;
-        }
-
-        public ExpressionResult GetExpressionForFieldPreSelection(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
+        public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
         {
             var field = GetFieldForType(typeName, fieldName, claims);
 
-            var result = new ExpressionResult(field.PreSelectionResolve ?? field.Resolve ?? Expression.Property(context, fieldName), field.Services);
+            var result = field.GetExpression();
             PrepareExpressionResult(args, field, result);
             // the expressions we collect have a different starting parameter. We need to change that
             var paramExp = field.FieldParam;
@@ -495,21 +478,20 @@ namespace EntityGraphQL.Schema
 
         private static void PrepareExpressionResult(Dictionary<string, ExpressionResult> args, Field field, ExpressionResult result)
         {
-            if (field.ArgumentTypesObject != null)
+            if (field.ArgumentsType != null)
             {
-                var argType = field.ArgumentTypesObject.GetType();
                 // get the values for the argument anonymous type object constructor
                 var propVals = new Dictionary<PropertyInfo, object>();
                 var fieldVals = new Dictionary<FieldInfo, object>();
                 // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
-                foreach (var argField in argType.GetProperties())
+                foreach (var argField in field.Arguments.Values)
                 {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.PropertyType, argField.GetValue(field.ArgumentTypesObject));
+                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.RawType, argField.DefaultValue);
                     // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
-                    if (argField.PropertyType.IsConstructedGenericType && argField.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
                         // make sure we create a new instance and not update the schema
-                        var entityQuery = Activator.CreateInstance(argField.PropertyType);
+                        var entityQuery = Activator.CreateInstance(argField.Type.TypeDotnet);
 
                         // set Query
                         var hasValue = val != null;
@@ -519,39 +501,39 @@ namespace EntityGraphQL.Schema
                             genericProp.SetValue(entityQuery, ((ExpressionResult)val).Expression);
                         }
 
-                        propVals.Add(argField, entityQuery);
+                        if (argField.MemberInfo is PropertyInfo info)
+                            propVals.Add(info, entityQuery);
+                        else
+                            fieldVals.Add((FieldInfo)argField.MemberInfo, entityQuery);
                     }
                     else
                     {
-                        if (val != null && val.GetType() != argField.PropertyType)
-                            val = ExpressionUtil.ChangeType(val, argField.PropertyType);
-                        propVals.Add(argField, val);
+                        // this could be int to RequiredField<int>
+                        if (val != null && val.GetType() != argField.RawType)
+                            val = ExpressionUtil.ChangeType(val, argField.RawType);
+                        if (argField.MemberInfo is PropertyInfo info)
+                            propVals.Add(info, val);
+                        else
+                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
+
                     }
                 }
-                // The auto argument is built at runtime from LinqRuntimeTypeBuilder which just makes public fields
-                // they could also use a custom class, so we need to look for both fields and properties
-                foreach (var argField in argType.GetFields())
-                {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.FieldType, argField.GetValue(field.ArgumentTypesObject));
-                    fieldVals.Add(argField, val);
-                }
-
                 // create a copy of the anonymous object. It will have the default values set
                 // there is only 1 constructor for the anonymous type that takes all the property values
-                var con = argType.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
+                var con = field.ArgumentsType.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
                 object parameters;
                 if (con != null)
                 {
                     parameters = con.Invoke(propVals.Values.ToArray());
                     foreach (var item in fieldVals)
                     {
-                        item.Key.SetValue(parameters, item.Value);
+                        item.Key.SetValue(parameters, Convert.ChangeType(item.Value, item.Key.FieldType));
                     }
                 }
                 else
                 {
                     // expect an empty constructor
-                    con = argType.GetConstructor(new Type[0]);
+                    con = field.ArgumentsType.GetConstructor(new Type[0]);
                     parameters = con.Invoke(new object[0]);
                     foreach (var item in fieldVals)
                     {
@@ -563,8 +545,8 @@ namespace EntityGraphQL.Schema
                     }
                 }
                 // tell them this expression has another parameter
-                var argParam = Expression.Parameter(argType, $"arg_{argType.Name}");
-                result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, argType, argParam);
+                var argParam = Expression.Parameter(field.ArgumentsType, $"arg_{field.ArgumentsType.Name}");
+                result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, field.ArgumentsType, argParam);
                 result.AddConstantParameter(argParam, parameters);
             }
         }

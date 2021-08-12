@@ -4,9 +4,6 @@ using System.Linq;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
-using System;
-using EntityGraphQL.LinqQuery;
 
 namespace EntityGraphQL.Tests
 {

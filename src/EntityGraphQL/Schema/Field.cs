@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -13,7 +15,8 @@ namespace EntityGraphQL.Schema
     public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
-        // private ISchemaProvider schema;
+        private readonly List<IFieldExtension> extensions;
+        private readonly ISchemaProvider schema;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
@@ -21,7 +24,6 @@ namespace EntityGraphQL.Schema
         public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
-        public Expression PreSelectionResolve { get; private set; }
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
@@ -29,31 +31,31 @@ namespace EntityGraphQL.Schema
         public IEnumerable<Type> Services { get; private set; }
         public string Description { get; private set; }
 
-        public object ArgumentTypesObject { get; private set; }
         public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
+        public Type ArgumentsType { get; private set; }
 
         public IEnumerable<string> RequiredArgumentNames
         {
             get
             {
-                if (ArgumentTypesObject == null)
+                if (allArguments == null)
                     return new List<string>();
 
-                var required = ArgumentTypesObject.GetType().GetTypeInfo().GetFields().Where(f => f.FieldType.IsConstructedGenericType && f.FieldType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
-                var requiredProps = ArgumentTypesObject.GetType().GetTypeInfo().GetProperties().Where(f => f.PropertyType.IsConstructedGenericType && f.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Name);
-                return required.Concat(requiredProps).ToList();
+                var required = allArguments.Where(f => f.Value.Type.TypeDotnet.IsConstructedGenericType && f.Value.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(RequiredField<>)).Select(f => f.Key);
+                return required.ToList();
             }
         }
 
-        public GqlTypeInfo ReturnType { get; }
+        public GqlTypeInfo ReturnType { get; private set; }
 
-        internal Field(/*ISchemaProvider schema, */string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
+        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
         {
-            // this.schema = schema;
+            this.schema = schema;
             Name = name;
             Description = description;
             AuthorizeClaims = authorizeClaims;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
+            extensions = new List<IFieldExtension>();
 
             if (resolve != null)
             {
@@ -79,18 +81,24 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
-            : this(name, resolve, description, returnType, claims)
+        public void AddArguments(object args)
         {
-            ArgumentTypesObject = argTypes;
-            allArguments = argTypes.GetType().GetProperties().ToDictionary(p => p.Name, p => ArgType.FromProperty(schema, p));
-            argTypes.GetType().GetFields().ToDictionary(p => p.Name, p => ArgType.FromField(schema, p)).ToList().ForEach(kvp => allArguments.Add(kvp.Key, kvp.Value));
+            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args);
+            ArgumentsType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
+            newArgs.ToList().ForEach(k => allArguments.Add(k.Key, k.Value));
         }
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression preSelectionResolve, LambdaExpression postSelectionResolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
-            : this(schema, name, postSelectionResolve, description, argTypes, returnType, claims)
+        public void UpdateReturnType(GqlTypeInfo gqlTypeInfo)
         {
-            PreSelectionResolve = preSelectionResolve.Body;
+            ReturnType = gqlTypeInfo;
+
+        }
+
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
+            : this(schema, name, resolve, description, returnType, claims)
+        {
+            allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes);
+            ArgumentsType = argTypes.GetType();
         }
 
         public bool HasArgumentByName(string argName)
@@ -139,6 +147,25 @@ namespace EntityGraphQL.Schema
             ReturnType.TypeNotNullable = !nullable;
 
             return this;
+        }
+
+        public void AddExtension(IFieldExtension extension)
+        {
+            extensions.Add(extension);
+            extension.Configure(schema, this);
+        }
+
+        public ExpressionResult GetExpression()
+        {
+            if (extensions.Count > 0)
+            {
+                foreach (var m in extensions)
+                {
+                    m.Invoke(this);
+                }
+            }
+            var res = new ExpressionResult(Resolve, Services);
+            return res;
         }
     }
 }

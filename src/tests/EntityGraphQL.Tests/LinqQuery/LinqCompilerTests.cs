@@ -17,14 +17,14 @@ namespace EntityGraphQL.LinqQuery.Tests
         public void CompilesNumberConstant()
         {
             var exp = EntityQueryCompiler.Compile("3", null);
-            Assert.Equal((UInt64)3, exp.Execute());
+            Assert.Equal((long)3, exp.Execute());
         }
 
         [Fact]
         public void CompilesNegitiveNumberConstant()
         {
             var exp = EntityQueryCompiler.Compile("-43", null);
-            Assert.Equal((Int64)(-43), exp.Execute());
+            Assert.Equal((long)(-43), exp.Execute());
         }
 
         [Fact]
@@ -115,7 +115,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         {
             // tells it how to read it
             var exp = EntityQueryCompiler.Compile("(someRelation.relation.id = 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)100, exp.Execute(new TestSchema()));
+            Assert.Equal((long)100, exp.Execute(new TestSchema()));
         }
 
         [Fact]
@@ -123,32 +123,32 @@ namespace EntityGraphQL.LinqQuery.Tests
         {
             // tells it how to read it
             var exp = EntityQueryCompiler.Compile("(someRelation.relation.id = 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)66, exp.Execute(new TestSchema()));
+            Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesIfThenElseTrue()
         {
             var exp = EntityQueryCompiler.Compile("if someRelation.relation.id = 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)100, exp.Execute(new TestSchema()));
+            Assert.Equal((long)100, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesIfThenElseFalse()
         {
             var exp = EntityQueryCompiler.Compile("if someRelation.relation.id = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)66, exp.Execute(new TestSchema()));
+            Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithIntAndUint()
         {
             var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)66, exp.Execute(new TestSchema()));
+            Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithNullableAndNonNullable()
         {
             var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt = 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
-            Assert.Equal((UInt64)100, exp.Execute(new TestSchema()));
+            Assert.Equal((long)100, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CanUseCompiledExpressionInWhereMethod()

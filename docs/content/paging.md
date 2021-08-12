@@ -56,7 +56,7 @@ public class Connection<TEntity>
 }
 ```
 
-This follows this Relay Connection Model pattern and lets you page through data easily. And as in the code it is best to give your collection an order otherwise depending on the underlying data source the order could change over pages. You can order base on other arguments you add `MakeConnection()` will merge the arguments together.
+This follows this Relay Connection Model pattern and lets you page through data easily. And as in the example above you should give your collection an order otherwise depending on the underlying data source the order could change over pages/queries. You can order base on other arguments you have on the field, `MakeConnection()` will merge the arguments together.
 
 ```
 schemaProvider.ReplaceField("movies",

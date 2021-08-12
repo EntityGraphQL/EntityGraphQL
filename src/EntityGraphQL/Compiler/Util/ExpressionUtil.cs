@@ -4,10 +4,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util
 {
-    internal static class ExpressionUtil
+    public static class ExpressionUtil
     {
         public static ExpressionResult MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
@@ -57,24 +58,24 @@ namespace EntityGraphQL.Compiler.Util
 
             if (type != typeof(string) && objType == typeof(string))
             {
-                if (type == typeof(double) || type == typeof(Nullable<double>))
+                if (type == typeof(double) || type == typeof(double?))
                     return double.Parse((string)value);
-                if (type == typeof(float) || type == typeof(Nullable<float>))
+                if (type == typeof(float) || type == typeof(float?))
                     return float.Parse((string)value);
-                if (type == typeof(int) || type == typeof(Nullable<int>))
+                if (type == typeof(int) || type == typeof(int?))
                     return int.Parse((string)value);
-                if (type == typeof(uint) || type == typeof(Nullable<uint>))
+                if (type == typeof(uint) || type == typeof(uint?))
                     return uint.Parse((string)value);
-                if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
+                if (type == typeof(DateTime) || type == typeof(DateTime?))
                     return DateTime.Parse((string)value);
-                if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
+                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
                     return DateTimeOffset.Parse((string)value);
             }
             else if (type != typeof(long) && objType == typeof(long))
             {
-                if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
+                if (type == typeof(DateTime) || type == typeof(DateTime?))
                     return new DateTime((long)value);
-                if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
+                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
                     return new DateTimeOffset((long)value, TimeSpan.Zero);
             }
 
@@ -90,6 +91,30 @@ namespace EntityGraphQL.Compiler.Util
                 return newVal;
             }
             return value;
+        }
+
+        public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes)
+        {
+            var args = argTypes.GetType().GetProperties().ToDictionary(k => k.Name, p => ArgType.FromProperty(schema, p, p.GetValue(argTypes)));
+            argTypes.GetType().GetFields().ToList().ForEach(p => args.Add(p.Name, ArgType.FromField(schema, p, p.GetValue(argTypes))));
+            return args;
+        }
+
+        public static Type MergeTypes(Type type1, Type type2)
+        {
+            if (type1 == null)
+                return type2;
+
+            if (type2 == null)
+                throw new ArgumentNullException("type2");
+
+            var fields = type1.GetFields().ToDictionary(f => f.Name, f => f.FieldType);
+            type1.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
+            type2.GetFields().ToList().ForEach(f => fields.Add(f.Name, f.FieldType));
+            type2.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
+
+            var newType = LinqRuntimeTypeBuilder.GetDynamicType(fields);
+            return newType;
         }
 
         /// <summary>

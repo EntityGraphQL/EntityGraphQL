@@ -118,9 +118,8 @@ namespace EntityGraphQL.Compiler
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {name}");
                 return enumOrConstantValue;
             }
-            var exp = schemaProvider.GetExpressionForFieldPreSelection(currentContext, name, field, null, claims);
+            var exp = schemaProvider.GetExpressionForField(currentContext, name, field, null, claims);
             return exp;
-
         }
 
         public override ExpressionResult VisitConstant(EntityGraphQLParser.ConstantContext context)

@@ -8,7 +8,6 @@ using System.Security.Claims;
 using EntityGraphQL.Authorization;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -26,11 +25,12 @@ namespace EntityGraphQL.Schema
 
         private readonly Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
 
-        internal SchemaType(ISchemaProvider schema, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false) : this(schema, typeof(TBaseType), name, description, authorizeClaims, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
+            : this(schema, typeof(TBaseType), name, description, authorizeClaims, isInput, isEnum, isScalar)
         {
         }
 
-        internal SchemaType(ISchemaProvider schema, Type contextType, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type contextType, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
             ContextType = contextType;
@@ -56,7 +56,7 @@ namespace EntityGraphQL.Schema
                     var enumName = Enum.Parse(ContextType, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
                     var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                    AddField(new Field(/*schema, */enumName, null, description, new GqlTypeInfo(() => schema.Type(ContextType), ContextType), new RequiredClaims(attributes)));
+                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(ContextType), ContextType), new RequiredClaims(attributes)));
                 }
             }
             else
@@ -86,20 +86,6 @@ namespace EntityGraphQL.Schema
             return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description, returnSchemaType);
         }
 
-        public Field AddField<TContext, TArguments, TSelection>(string name, TArguments argTypes, ResolveFactory<TContext, TArguments, TSelection> selection, string description, string returnSchemaType = null)
-        {
-            return AddField(new Field(
-                schema,
-                name,
-                selection.PreSelection,
-                selection.PostSelection,
-                description,
-                argTypes,
-                MakeGraphQlType<TSelection>(returnSchemaType),
-                null
-            ));
-        }
-
         public Field AddField(Field field)
         {
             if (_fieldsByName.ContainsKey(field.Name))
@@ -119,7 +105,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(name, fieldSelection, description, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             this.AddField(field);
             return field;
         }
@@ -132,7 +118,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, fieldSelection, description, null, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             this.AddField(field);
             return field;
         }
@@ -145,7 +131,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(name, selectionExpression, description, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             _fieldsByName[field.Name] = field;
             return field;
         }
@@ -170,7 +156,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             this.AddField(field);
             return field;
         }
@@ -183,7 +169,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             this.AddField(field);
             return field;
         }
@@ -208,13 +194,8 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, MakeGraphQlType<TReturn>(returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
             _fieldsByName[field.Name] = field;
-        }
-
-        private GqlTypeInfo MakeGraphQlType<TReturn>(string returnSchemaType)
-        {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(typeof(TReturn).GetNonNullableOrEnumerableType()), typeof(TReturn));
         }
 
         public Field GetField(string identifier, ClaimsIdentity claims = null)

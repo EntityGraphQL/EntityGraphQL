@@ -169,7 +169,7 @@ namespace EntityGraphQL.Schema
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
-            var f = new Field(/*schema, */fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
+            var f = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
             return f;
         }
 
@@ -223,6 +223,11 @@ namespace EntityGraphQL.Schema
                 return schema.Type(propType.Name);
             }
             return null;
+        }
+
+        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string returnSchemaType)
+        {
+            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(returnType.GetNonNullableOrEnumerableType()), returnType);
         }
     }
 }

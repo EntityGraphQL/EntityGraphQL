@@ -89,23 +89,18 @@ namespace EntityGraphQL.Compiler
                 if (!schemaProvider.TypeHasField(schemaTypeName, actualFieldName, args != null ? args.Select(d => d.Key) : new string[0], claims))
                     throw new EntityGraphQLCompilerException($"Field {actualFieldName} not found on type {schemaTypeName}");
 
-                var field = schemaProvider.GetFieldForType(schemaTypeName, actualFieldName, claims);
+                var result = schemaProvider.GetExpressionForField(currentExpressionContext, schemaTypeName, actualFieldName, args, claims);
 
                 BaseGraphQLField fieldResult;
                 var resultName = alias ?? actualFieldName;
 
                 if (context.select != null)
                 {
-                    fieldResult = ParseFieldSelect((ExpressionResult)(field.PreSelectionResolve ?? field.Resolve), resultName, context.select);
-                    if (field.PreSelectionResolve != null)
-                    {
-                        var postSelection = ParseFieldSelect((ExpressionResult)field.Resolve, resultName, context.select);
-                        fieldResult.AddPostSelectionExpression(postSelection);
-                    }
+                    fieldResult = ParseFieldSelect(result, resultName, context.select);
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(resultName, field, currentExpressionContext.AsParameter() ?? rootParameterContext, currentExpressionContext);
+                    fieldResult = new GraphQLScalarField(resultName, result, currentExpressionContext.AsParameter() ?? rootParameterContext, currentExpressionContext);
                 }
 
                 if (context.directive != null)
@@ -173,7 +168,7 @@ namespace EntityGraphQL.Compiler
         public Dictionary<string, ExpressionResult> ParseGqlCall(string fieldName, EntityGraphQLParser.GqlCallContext context)
         {
             var argList = context.gqlarguments.children.Where(c => c.GetType() == typeof(EntityGraphQLParser.GqlargContext)).Cast<EntityGraphQLParser.GqlargContext>();
-            IField methodType = schemaProvider.GetFieldOnContext(currentExpressionContext, fieldName, claims);
+            var methodType = schemaProvider.GetFieldOnContext(currentExpressionContext, fieldName, claims);
             var args = argList.ToDictionary(a => a.gqlfield.GetText(), a =>
             {
                 var argName = a.gqlfield.GetText();
@@ -253,11 +248,11 @@ namespace EntityGraphQL.Compiler
             {
                 return null;
             }
-            var prop = ((Field)fieldArgumentContext).ArgumentTypesObject.GetType().GetProperties().FirstOrDefault(p => p.Name == argName && p.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
+            var prop = ((Field)fieldArgumentContext).Arguments.Values.FirstOrDefault(p => p.Name == argName && p.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
             if (prop == null)
                 throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
 
-            var eqlt = prop.GetValue(((Field)fieldArgumentContext).ArgumentTypesObject) as BaseEntityQueryType;
+            var eqlt = prop.DefaultValue as BaseEntityQueryType;
             var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
             ExpressionResult expressionResult = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, claims, methodProvider).ExpressionResult;
             expressionResult = (ExpressionResult)Expression.Lambda(expressionResult.Expression, contextParam);

@@ -14,22 +14,26 @@ namespace EntityGraphQL.Schema
         public string Name { get; set; }
         public string Description { get; set; }
         public GqlTypeInfo Type { get; set; }
+        public object DefaultValue { get; private set; }
+        public MemberInfo MemberInfo { get; private set; }
+        public bool IsRequired { get; internal set; }
+        public Type RawType { get; private set; }
 
-        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop)
+        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object defaultValue)
         {
-            var arg = MakeArgType(schema, prop.PropertyType, prop);
+            var arg = MakeArgType(schema, prop, prop.PropertyType, prop, defaultValue);
 
             return arg;
         }
 
-        public static ArgType FromField(ISchemaProvider schema, FieldInfo field)
+        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object defaultValue)
         {
-            var arg = MakeArgType(schema, field.FieldType, field);
+            var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue);
 
             return arg;
         }
 
-        private static ArgType MakeArgType(ISchemaProvider schema, Type type, MemberInfo field)
+        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object defaultValue)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -43,6 +47,10 @@ namespace EntityGraphQL.Schema
             {
                 Type = new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse),
                 Name = field.Name,
+                DefaultValue = defaultValue,
+                MemberInfo = memberInfo,
+                RawType = type,
+                IsRequired = type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(RequiredField<>)
             };
 
             arg.Type.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field)

@@ -19,6 +19,9 @@ namespace EntityGraphQL.Schema
     public interface ISchemaProvider
     {
         Func<string, string> SchemaFieldNamer { get; }
+
+        ISchemaType AddType(Type type, string name, string description);
+
         /// The base context type that expression will be built from. For example your DbContext
         Type ContextType { get; }
 
@@ -35,13 +38,14 @@ namespace EntityGraphQL.Schema
         string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims);
 
         /// <summary>
-        /// Get a field object by name on a given type. Checks auth against claims
+        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
         /// </summary>
+        /// <param name="context"></param>
         /// <param name="typeName"></param>
         /// <param name="fieldName"></param>
-        /// <param name="claims"></param>
+        /// <param name="args"></param>
         /// <returns></returns>
-        Field GetFieldForType(string typeName, string fieldName, ClaimsIdentity claims);
+        ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>
         /// Get the GQL (from schema) type name for a given CLR/dotnet type. Examples int -> Int, int? -> Int

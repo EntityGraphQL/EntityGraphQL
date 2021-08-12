@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler
         public override ExpressionResult VisitInt(EntityGraphQLParser.IntContext context)
         {
             string s = context.GetText();
-            return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(Int64.Parse(s)) : Expression.Constant(UInt64.Parse(s)));
+            return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(long.Parse(s)) : Expression.Constant(long.Parse(s)));
         }
 
         public override ExpressionResult VisitBoolean(EntityGraphQLParser.BooleanContext context)

@@ -6,6 +6,7 @@ using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
 using System.Text;
 using EntityGraphQL.Schema.Connections;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace demo
 {
@@ -16,68 +17,22 @@ namespace demo
             // build our schema directly from the DB Context
             var demoSchema = SchemaBuilder.FromObject<DemoContext>();
 
-            // we can extend the schema
-
-            demoSchema.AddType<ConnectionPageInfo>("PageInfo", "Metadata about a page of data").AddAllFields();
-            demoSchema.AddType<ConnectionEdge<Person>>("PersonEdge", "Metadata about an edge of page result").AddAllFields();
-            demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
-
-
             // Add custom root fields
             demoSchema.UpdateQueryType(queryType =>
             {
-                queryType.ReplaceField("actors", new
-                {
-                    filter = ArgumentHelper.EntityQuery<Person>()
-                }, (db, param) => db.People.Where(p => p.ActorIn.Any()).WhereWhen(param.filter, param.filter.HasValue), "List of actors");
+                demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
+                // queryType.ReplaceField("actors", new
+                // {
+                //     filter = ArgumentHelper.EntityQuery<Person>()
+                // }, (db, param) => db.People.Where(p => p.ActorIn.Any()).WhereWhen(param.filter, param.filter.HasValue), "List of actors");
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
                 queryType.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors");
 
-                queryType.AddField("actorsConnection2",
-                    new ConnectionArgs(),
-                    new ResolveFactory<DemoContext, ConnectionArgs, Connection<Person>>
-                    {
-                        PreSelection = (db, args) => new Connection<Person>
-                        {
-                            Edges = db.Actors.Select(a => a.Person)
-                                    .OrderBy(a => a.Id)
-                                    .Skip(DeserializeCursor(args.after) ?? (!string.IsNullOrEmpty(args.before) ? DeserializeCursor(args.before).Value - 1 - args.last.Value : 0))
-                                    .Take(args.first ?? Math.Min(args.last.Value, DeserializeCursor(args.before).Value - 1))
-                                    .Select(a => new ConnectionEdge<Person>
-                                    {
-                                        Node = a,
-                                        Cursor = null,
-                                        Id = -1
-                                    }),
-                            PageInfo = args.first.HasValue ? new ConnectionPageInfo
-                            {
-                                EndCursor = SerializeCursor(Math.Min(args.first.Value, db.Actors.Select(a => a.Person).Count() - DeserializeCursor(args.after) ?? 0), DeserializeCursor(args.after)),
-                                HasNextPage = ((DeserializeCursor(args.after) ?? 0) + args.first) < db.Actors.Select(a => a.Person).Count(),
-                                HasPreviousPage = (DeserializeCursor(args.after) ?? 0) > 0,
-                                StartCursor = SerializeCursor(DeserializeCursor(args.after) ?? 0, 1)
-                            } : new ConnectionPageInfo
-                            {
-                                EndCursor = SerializeCursor(0, DeserializeCursor(args.before) - 1),
-                                HasNextPage = DeserializeCursor(args.before) < db.Actors.Select(a => a.Person).Count(),
-                                HasPreviousPage = (DeserializeCursor(args.before) - 1 - args.last.Value) > 0,
-                                StartCursor = SerializeCursor(DeserializeCursor(args.before) ?? 0, -args.last)
-                            },
-                            TotalCount = db.Actors.Select(a => a.Person).Count()
-                        },
-                        PostSelection = (ctx, args) => new Connection<Person>
-                        {
-                            Edges = ctx.Edges.Select((a, idx) => new ConnectionEdge<Person>
-                            {
-                                Node = a.Node,
-                                Cursor = SerializeCursor(idx + 1, !string.IsNullOrEmpty(args.after) ? DeserializeCursor(args.after) : DeserializeCursor(args.before) - args.last - 1),
-                                Id = a.Id
-                            }),
-                            PageInfo = ctx.PageInfo,
-                            TotalCount = ctx.TotalCount
-                        }
-                    },
-                    "actors paged by connection & edges",
-                    "PersonConnection");
+                queryType.ReplaceField("actors",
+                    (db) => db.Actors.Select(a => a.Person),
+                    "actors paged by connection & edges and orderable")
+                    // .UseOrderBy()
+                    .UseConnectionPaging();
 
                 // example of GraphQL style connections & edges
                 queryType.AddField("actorsConnection",
