@@ -17,7 +17,7 @@ Similar for `SchemaProvider.AddType<T>(string name, string description, Action<S
 - You can pass a `ILogger<SchemaProvider<T>>` when creating a `SchemaProvider`. Exceptions etc. will be logged
 
 *Breaking changes*
-- EntityGraphQL is now a netstandard2.0 library
+- EntityGraphQL now targets netstandard2.0
 - Big refactor/clean - hopefully easier to follow the post Antlr (compiled graphql) output - see `GraphQL*Field` classes
 - Support for dotnet Entity Framework Core 3.1+ when using other services in the schema (`WithService()`)
 
