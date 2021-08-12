@@ -8,6 +8,7 @@ using System;
 using static EntityGraphQL.Tests.ComplexFieldsTests;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Tests
 {
@@ -267,6 +268,27 @@ fragment frag on Person {
             Assert.Equal(1, addPersonResult.GetType().GetFields().Length);
             Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
         }
+
+        [Fact]
+        public void TestAsyncMutationNonObjectReturn()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson {
+  doGreatThing
+}
+",
+            };
+
+            var testSchema = new TestSchema();
+            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["doGreatThing"];
+            Assert.True((bool)result);
+        }
     }
 
     internal class TestSchema
@@ -353,6 +375,15 @@ fragment frag on Person {
         public int AddPersonError(PeopleMutationsArgs args)
         {
             throw new ArgumentNullException("name", "Name can not be null");
+        }
+
+        [GraphQLMutation]
+        public async Task<bool> DoGreatThing()
+        {
+            return await Task<bool>.Run(() =>
+            {
+                return true;
+            });
         }
     }
 

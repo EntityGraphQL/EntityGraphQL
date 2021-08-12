@@ -72,7 +72,7 @@ namespace EntityGraphQL.Schema
             object result;
             if (isAsync)
             {
-                result = await (Task<object>)method.Invoke(mutationClassInstance, allArgs.ToArray());
+                result = await (dynamic)method.Invoke(mutationClassInstance, allArgs.ToArray());
             }
             else
             {

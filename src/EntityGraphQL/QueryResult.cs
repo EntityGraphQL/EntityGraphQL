@@ -2,16 +2,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace EntityGraphQL
 {
     public class QueryResult
     {
         private List<GraphQLError> errors = null;
-        [JsonProperty("errors")]
         public ReadOnlyCollection<GraphQLError> Errors => errors?.AsReadOnly();
-        [JsonProperty("data")]
         public ConcurrentDictionary<string, object> Data = new ConcurrentDictionary<string, object>();
 
         public QueryResult() { }
