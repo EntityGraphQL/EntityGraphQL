@@ -5,6 +5,12 @@ namespace EntityGraphQL.Schema.Connections
 {
     public class Connection<TEntity>
     {
+        public Connection(int totalCount, dynamic arguments)
+        {
+            TotalCount = totalCount;
+            PageInfo = new ConnectionPageInfo(totalCount, arguments);
+        }
+
         [GraphQLNotNull]
         [Description("Edge information about each node in the collection")]
         public IEnumerable<ConnectionEdge<TEntity>> Edges { get; set; }

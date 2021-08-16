@@ -35,24 +35,15 @@ namespace EntityGraphQL.Schema
         ISchemaType Type(Type dotnetType);
         List<ISchemaType> EnumTypes();
         /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
-        string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims);
+        IField GetActualField(string typeName, string identifier, ClaimsIdentity claims);
 
-        /// <summary>
-        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="typeName"></param>
-        /// <param name="fieldName"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims);
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>
         /// Get the GQL (from schema) type name for a given CLR/dotnet type. Examples int -> Int, int? -> Int
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        string GetSchemaTypeNameForDotnetType(Type type);
+        ISchemaType GetSchemaTypeForDotnetType(Type type);
         IField GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
         string GetGraphQLSchema();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -32,9 +33,13 @@ namespace EntityGraphQL.Compiler
                 result[fieldNode.Name] = null;
                 try
                 {
+                    var timer = new Stopwatch();
+                    timer.Start();
                     var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, executeServiceFieldsSeparately);
+                    timer.Stop();
 
                     result[fieldNode.Name] = data;
+                    result[$"{fieldNode.Name}TimeMs"] = timer.ElapsedMilliseconds;
                 }
                 catch (Exception ex)
                 {
@@ -58,7 +63,7 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(serviceProvider, fragments, withoutServiceFields: true, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, contextParam, withoutServiceFields: true, isRoot: true);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
@@ -70,7 +75,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, false, replaceContextWith: newContextType, isRoot: true, useReplaceContextDirectly: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replaceContextWith: newContextType, isRoot: true, useReplaceContextDirectly: true);
                     contextParam = newContextType;
                 }
             }
@@ -78,7 +83,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(serviceProvider, fragments, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, contextParam, false, isRoot: true);
             }
 
             var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);

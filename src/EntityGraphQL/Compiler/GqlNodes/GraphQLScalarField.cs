@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,10 +14,12 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionExtractor extractor;
         private readonly ParameterReplacer replacer;
         private readonly Expression fieldContext;
+        private readonly List<IFieldExtension> fieldExtensions;
         private List<GraphQLScalarField> extractedFields;
 
-        public GraphQLScalarField(string name, ExpressionResult expression, ParameterExpression contextParameter, Expression fieldContext)
+        public GraphQLScalarField(IEnumerable<IFieldExtension> fieldExtensions, string name, ExpressionResult expression, ParameterExpression contextParameter, Expression fieldContext)
         {
+            this.fieldExtensions = fieldExtensions?.ToList();
             Name = name;
             this.expression = expression;
             RootFieldParameter = contextParameter;
@@ -48,11 +51,11 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(expression, RootFieldParameter)?.Select(i => new GraphQLScalarField(i.Key, (ExpressionResult)i.Value, RootFieldParameter, fieldContext)).ToList();
+            extractedFields = extractor.Extract(expression, RootFieldParameter)?.Select(i => new GraphQLScalarField(null, i.Key, (ExpressionResult)i.Value, RootFieldParameter, fieldContext)).ToList();
             return extractedFields;
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;

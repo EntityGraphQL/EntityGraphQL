@@ -52,7 +52,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="useReplaceContextDirectly">Use the replaceContextWith instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
         /// <returns></returns>
-        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
+        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 

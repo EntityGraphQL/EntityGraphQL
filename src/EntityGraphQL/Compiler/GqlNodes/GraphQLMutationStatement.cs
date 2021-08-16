@@ -80,7 +80,7 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the ExpressionResult so we keep any ConstantParameters
                         var item1 = (ExpressionResult)listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(Name, item1, node.ResultSelection.RootFieldParameter, node.ResultSelection.QueryFields, (ExpressionResult)node.ResultSelection.RootFieldParameter);
+                        var collectionNode = new GraphQLListSelectionField(null, Name, item1, node.ResultSelection.RootFieldParameter, node.ResultSelection.QueryFields, (ExpressionResult)node.ResultSelection.RootFieldParameter);
                         var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)node.ResultSelection, listExp.Item2);
                         resultExp = newNode;
                     }

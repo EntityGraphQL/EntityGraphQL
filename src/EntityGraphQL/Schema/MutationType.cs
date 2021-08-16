@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -26,6 +27,8 @@ namespace EntityGraphQL.Schema
         public IDictionary<string, ArgType> Arguments => argumentTypes;
 
         public GqlTypeInfo ReturnType { get; }
+
+        public List<IFieldExtension> Extensions => null;
 
         public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
@@ -232,5 +235,9 @@ namespace EntityGraphQL.Schema
             }
         }
 
+        public ExpressionResult GetExpression(Expression context, Dictionary<string, ExpressionResult> args)
+        {
+            return null;
+        }
     }
 }

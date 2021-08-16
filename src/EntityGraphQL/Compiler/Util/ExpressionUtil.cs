@@ -210,6 +210,8 @@ namespace EntityGraphQL.Compiler.Util
                             endExpression = exp;
                             var mc = (MethodCallExpression)exp;
                             exp = mc.Object ?? mc.Arguments.First();
+                            if (exp.Type != baseExpression.Type && exp.Type.IsEnumerableOrArray() && exp.Type.GetEnumerableOrArrayType() != baseExpression.Type)
+                                exp = null;
                             break;
                         }
                     default:
@@ -286,7 +288,7 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam)
+        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new List<Expression> {
                 nullCheckExpression,
@@ -294,6 +296,8 @@ namespace EntityGraphQL.Compiler.Util
                 Expression.Constant(paramsForFieldExpressions.ToList()),
                 Expression.Constant(fieldExpressions),
                 Expression.Constant(fieldSelectParamValues),
+                schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
+                schemaContext ?? Expression.Constant(null),
             };
             var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
             return (ExpressionResult)call;
@@ -302,8 +306,15 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
+        /// <param name="nullCheck">Object that we build the select on. Check if it is null first</param>
+        /// <param name="nullWrapParam">The ParameterExpression for the null check</param>
+        /// <param name="paramsForFieldExpressions">Parameters needed for the expression</param>
+        /// <param name="fieldExpressions">Selection fields</param>
+        /// <param name="fieldSelectParamValues">Values (arguments) for the paramsForFieldExpressions</param>
+        /// <param name="schemaContextParam"></param>
+        /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues)
+        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
@@ -311,6 +322,11 @@ namespace EntityGraphQL.Compiler.Util
             var newExp = CreateNewExpression(fieldExpressions);
             var args = new List<object>();
             args.AddRange(fieldSelectParamValues);
+            if (schemaContextParam != null)
+            {
+                args.Add(schemaContextValue);
+                paramsForFieldExpressions.Add(schemaContextParam);
+            }
             if (nullWrapParam != null)
             {
                 if (!paramsForFieldExpressions.Contains(nullWrapParam))

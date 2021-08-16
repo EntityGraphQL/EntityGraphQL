@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -21,6 +22,7 @@ namespace EntityGraphQL.Compiler
     {
         private ExpressionResult fieldExpression;
         private readonly ExpressionExtractor extractor;
+        private readonly List<IFieldExtension> fieldExtensions;
 
         public ExpressionResult FieldExpression { get => fieldExpression; internal set => fieldExpression = value; }
 
@@ -33,8 +35,9 @@ namespace EntityGraphQL.Compiler
         /// <param name="fieldParameter">The ParameterExpression used for the field expression if required.</param>
         /// <param name="fieldSelection">Any fields that will be selected from this field e.g. (in GQL) { thisField { fieldSelection1 fieldSelection2 } }</param>
         /// <param name="selectionContext">The Expression used to build the fieldSelection expressions</param>
-        public GraphQLListSelectionField(string name, ExpressionResult fieldExpression, ParameterExpression fieldParameter, IEnumerable<BaseGraphQLField> fieldSelection, ExpressionResult selectionContext)
+        public GraphQLListSelectionField(IEnumerable<IFieldExtension> fieldExtensions, string name, ExpressionResult fieldExpression, ParameterExpression fieldParameter, IEnumerable<BaseGraphQLField> fieldSelection, ExpressionResult selectionContext)
         {
+            this.fieldExtensions = fieldExtensions?.ToList();
             Name = name;
             this.fieldExpression = fieldExpression;
             queryFields = fieldSelection?.ToList() ?? new List<BaseGraphQLField>();
@@ -66,7 +69,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
             if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
             {
@@ -96,7 +99,7 @@ namespace EntityGraphQL.Compiler
                     listContext.AddServices(fieldExpression.Services);
                 }
 
-                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null);
+                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null, schemaContext);
 
                 if (selectionFields == null || !selectionFields.Any())
                     return null;
@@ -132,9 +135,9 @@ namespace EntityGraphQL.Compiler
             return fieldExpression;
         }
 
-        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
+        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, ParameterExpression schemaContext)
         {
-            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
+            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith, schemaContext);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
             if (withoutServiceFields && fields != null)
@@ -144,7 +147,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = (ExpressionResult)replacer.ReplaceByType(i.Value, SelectionContext.Type, SelectionContext);
-                        return new CompiledField(new GraphQLScalarField(i.Key, replaced, RootFieldParameter, RootFieldParameter), replaced);
+                        return new CompiledField(new GraphQLScalarField(null, i.Key, replaced, RootFieldParameter, RootFieldParameter), replaced);
                     })
                     .ToList()
                     .ForEach(i =>

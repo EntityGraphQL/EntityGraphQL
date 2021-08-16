@@ -33,9 +33,9 @@ namespace EntityGraphQL
 
         public void AddErrors(IEnumerable<GraphQLError> errors)
         {
-            if (errors == null)
+            if (this.errors == null)
             {
-                errors = new List<GraphQLError>();
+                this.errors = new List<GraphQLError>();
             }
 
             this.errors.AddRange(errors);

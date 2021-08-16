@@ -118,7 +118,7 @@
                         continue;
 
                     // Skip any property with special attribute
-                    var property = schemaType.ContextType.GetProperty(field.Name);
+                    var property = schemaType.TypeDotnet.GetProperty(field.Name);
                     if (property != null && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(property))
                         continue;
 

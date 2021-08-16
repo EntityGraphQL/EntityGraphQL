@@ -95,7 +95,7 @@ namespace EntityGraphQL.Schema
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
             var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
-            Type arrayContextType = schemaType.ContextType;
+            Type arrayContextType = schemaType.TypeDotnet;
             var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
             var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
             Expression argId = Expression.PropertyOrField(argTypeParam, "id");

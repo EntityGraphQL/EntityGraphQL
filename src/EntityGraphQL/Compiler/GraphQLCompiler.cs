@@ -77,10 +77,4 @@ namespace EntityGraphQL.Compiler
             }
         }
     }
-
-    public class SchemaException : Exception
-    {
-        public SchemaException(string message) : base(message) { }
-        public SchemaException(string message, Exception ex) : base(message, ex) { }
-    }
 }

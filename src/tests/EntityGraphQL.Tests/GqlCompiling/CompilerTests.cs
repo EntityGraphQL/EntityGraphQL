@@ -100,7 +100,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().RemoveField(p => p.Id);
-            var ex = Assert.Throws<SchemaException>(() => { var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => { var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
 {
 	people { id }
 }"); });
@@ -260,7 +260,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void FailsNonExistingField()
         {
-            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id
 		projects {
@@ -274,7 +274,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void FailsNonExistingField2()
         {
-            var ex = Assert.Throws<SchemaException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()).Compile(@"
 {
 	people { id
 		projects {

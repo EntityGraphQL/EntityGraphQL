@@ -35,8 +35,8 @@ namespace EntityGraphQL.Tests
         public void ReturnsActualName()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
-            Assert.Equal("name", schema.GetActualFieldName("Project", "name", null));
+            Assert.Equal("id", schema.GetActualField("Project", "id", null).Name);
+            Assert.Equal("name", schema.GetActualField("Project", "name", null).Name);
         }
         [Fact]
         public void SupportsEnum()
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
         public void RemovesTypeAndFields()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
+            Assert.Equal("id", schema.GetActualField("Project", "id", null).Name);
             schema.RemoveTypeAndAllFields<Project>();
             Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Tests
         public void RemovesTypeAndFields2()
         {
             var schema = new TestObjectGraphSchema();
-            Assert.Equal("id", schema.GetActualFieldName("Project", "id", null));
+            Assert.Equal("id", schema.GetActualField("Project", "id", null).Name);
             schema.RemoveTypeAndAllFields("Project");
             Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }

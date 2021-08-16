@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -9,7 +12,20 @@ namespace EntityGraphQL.Schema
     {
         IDictionary<string, ArgType> Arguments { get; }
         string Name { get; }
+        GqlTypeInfo ReturnType { get; }
+        List<IFieldExtension> Extensions { get; }
+
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);
+
+        /// <summary>
+        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="typeName"></param>
+        /// <param name="fieldName"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        ExpressionResult GetExpression(Expression context, Dictionary<string, ExpressionResult> args);
     }
 }

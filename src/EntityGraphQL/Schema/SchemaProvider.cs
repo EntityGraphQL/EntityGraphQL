@@ -225,7 +225,7 @@ namespace EntityGraphQL.Schema
                     var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
                     var requiredClaims = new RequiredClaims(claims);
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
-                    var typeName = GetSchemaTypeNameForDotnetType(actualReturnType);
+                    var typeName = GetSchemaTypeForDotnetType(actualReturnType).Name;
                     var returnType = new GqlTypeInfo(() => GetReturnType(typeName), actualReturnType);
                     var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync, SchemaFieldNamer);
                     mutations[name] = mutationType;
@@ -370,7 +370,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType Type(Type dotnetType)
         {
             // look up by the actual type not the name
-            var schemaType = types.Values.FirstOrDefault(t => t.ContextType == dotnetType);
+            var schemaType = types.Values.FirstOrDefault(t => t.TypeDotnet == dotnetType);
             if (schemaType == null && customTypeMappings.ContainsKey(dotnetType))
             {
                 schemaType = customTypeMappings[dotnetType].SchemaType;
@@ -391,7 +391,7 @@ namespace EntityGraphQL.Schema
         }
 
         // ISchemaProvider interface
-        public Type ContextType { get { return types[queryContextName].ContextType; } }
+        public Type ContextType { get { return types[queryContextName].TypeDotnet; } }
         public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims)
         {
             if (!types.ContainsKey(typeName))
@@ -431,18 +431,27 @@ namespace EntityGraphQL.Schema
             return types.Values.Where(t => t.IsEnum).ToList();
         }
 
-        public string GetActualFieldName(string typeName, string identifier, ClaimsIdentity claims)
+        public IField GetActualField(string typeName, string identifier, ClaimsIdentity claims)
         {
+            IField field = null;
             if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))
-                return types[typeName].GetField(identifier, claims).Name;
+            {
+                if (!AuthUtil.IsAuthorized(claims, types[typeName].AuthorizeClaims))
+                    throw new EntityGraphQLAccessException($"You do not have access to the '{typeName}' type. You require any of the following security claims [{string.Join(", ", types[typeName].AuthorizeClaims.Claims.SelectMany(r => r))}]");
+                field = types[typeName].GetField(identifier, claims);
+            }
+            else if (typeName == queryContextName && types[queryContextName].HasField(identifier))
+                field = types[queryContextName].GetField(identifier, claims);
+            else if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
+                field = mutations.First(k => k.Key.ToLower() == identifier.ToLower()).Value;
 
-            if (typeName == queryContextName && types[queryContextName].HasField(identifier))
-                return types[queryContextName].GetField(identifier, claims).Name;
+            if (field == null)
+                throw new EntityGraphQLCompilerException($"Field {identifier} not found on type {typeName}");
 
-            if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
-                return mutations.Keys.First(k => k.ToLower() == identifier.ToLower());
+            if (!AuthUtil.IsAuthorized(claims, field.ReturnType.SchemaType.AuthorizeClaims))
+                throw new EntityGraphQLAccessException($"You do not have access to the '{field.ReturnType.SchemaType.Name}' type. You require any of the following security claims [{string.Join(", ", field.ReturnType.SchemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
 
-            throw new EntityGraphQLCompilerException($"Field {identifier} not found on type {typeName}");
+            return field;
         }
 
         public IField GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims)
@@ -456,167 +465,14 @@ namespace EntityGraphQL.Schema
                 }
                 return mutation;
             }
-            if (types.ContainsKey(GetSchemaTypeNameForDotnetType(context.Type)))
+
+            var schemaType = GetSchemaTypeForDotnetType(context.Type);
+            if (types.ContainsKey(schemaType.Name))
             {
-                var field = types[GetSchemaTypeNameForDotnetType(context.Type)].GetField(fieldName, claims);
+                var field = types[schemaType.Name].GetField(fieldName, claims);
                 return field;
             }
             throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
-        }
-
-        public ExpressionResult GetExpressionForField(Expression context, string typeName, string fieldName, Dictionary<string, ExpressionResult> args, ClaimsIdentity claims)
-        {
-            var field = GetFieldForType(typeName, fieldName, claims);
-
-            var result = field.GetExpression();
-            PrepareExpressionResult(args, field, result);
-            // the expressions we collect have a different starting parameter. We need to change that
-            var paramExp = field.FieldParam;
-            result.Expression = new ParameterReplacer().Replace(result.Expression, paramExp, context);
-            return result;
-        }
-
-        private static void PrepareExpressionResult(Dictionary<string, ExpressionResult> args, Field field, ExpressionResult result)
-        {
-            if (field.ArgumentsType != null)
-            {
-                // get the values for the argument anonymous type object constructor
-                var propVals = new Dictionary<PropertyInfo, object>();
-                var fieldVals = new Dictionary<FieldInfo, object>();
-                // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
-                foreach (var argField in field.Arguments.Values)
-                {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.RawType, argField.DefaultValue);
-                    // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
-                    if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-                    {
-                        // make sure we create a new instance and not update the schema
-                        var entityQuery = Activator.CreateInstance(argField.Type.TypeDotnet);
-
-                        // set Query
-                        var hasValue = val != null;
-                        if (hasValue)
-                        {
-                            var genericProp = entityQuery.GetType().GetProperty("Query");
-                            genericProp.SetValue(entityQuery, ((ExpressionResult)val).Expression);
-                        }
-
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, entityQuery);
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo, entityQuery);
-                    }
-                    else
-                    {
-                        // this could be int to RequiredField<int>
-                        if (val != null && val.GetType() != argField.RawType)
-                            val = ExpressionUtil.ChangeType(val, argField.RawType);
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, val);
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
-
-                    }
-                }
-                // create a copy of the anonymous object. It will have the default values set
-                // there is only 1 constructor for the anonymous type that takes all the property values
-                var con = field.ArgumentsType.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
-                object parameters;
-                if (con != null)
-                {
-                    parameters = con.Invoke(propVals.Values.ToArray());
-                    foreach (var item in fieldVals)
-                    {
-                        item.Key.SetValue(parameters, Convert.ChangeType(item.Value, item.Key.FieldType));
-                    }
-                }
-                else
-                {
-                    // expect an empty constructor
-                    con = field.ArgumentsType.GetConstructor(new Type[0]);
-                    parameters = con.Invoke(new object[0]);
-                    foreach (var item in fieldVals)
-                    {
-                        item.Key.SetValue(parameters, item.Value);
-                    }
-                    foreach (var item in propVals)
-                    {
-                        item.Key.SetValue(parameters, item.Value);
-                    }
-                }
-                // tell them this expression has another parameter
-                var argParam = Expression.Parameter(field.ArgumentsType, $"arg_{field.ArgumentsType.Name}");
-                result.Expression = new ParameterReplacer().ReplaceByType(result.Expression, field.ArgumentsType, argParam);
-                result.AddConstantParameter(argParam, parameters);
-            }
-        }
-
-        public Field GetFieldForType(string typeName, string fieldName, ClaimsIdentity claims)
-        {
-            if (!types.ContainsKey(typeName))
-                throw new EntityQuerySchemaException($"{typeName} not found in schema.");
-
-            ISchemaType schemaType = types[typeName];
-
-            if (!AuthUtil.IsAuthorized(claims, schemaType.AuthorizeClaims))
-                throw new EntityGraphQLAccessException($"You do not have access to the '{typeName}' type. You require any of the following security claims [{string.Join(", ", schemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
-
-            var field = schemaType.GetField(fieldName, claims);
-
-            if (!AuthUtil.IsAuthorized(claims, field.ReturnType.SchemaType.AuthorizeClaims))
-                throw new EntityGraphQLAccessException($"You do not have access to the '{field.ReturnType.SchemaType.Name}' type. You require any of the following security claims [{string.Join(", ", field.ReturnType.SchemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
-
-            return field;
-        }
-
-        private static object BuildArgumentFromMember(Dictionary<string, ExpressionResult> args, Field field, string memberName, Type memberType, object defaultValue)
-        {
-            string argName = memberName;
-            // check we have required arguments
-            if (memberType.GetGenericArguments().Any() && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
-            {
-                if (args == null || !args.ContainsKey(argName))
-                {
-                    throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
-                }
-                var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
-                var constructor = memberType.GetConstructor(new[] { item.GetType() });
-                if (constructor == null)
-                {
-                    // we might need to change the type
-                    foreach (var c in memberType.GetConstructors())
-                    {
-                        var parameters = c.GetParameters();
-                        if (parameters.Count() == 1)
-                        {
-                            item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType);
-                            constructor = memberType.GetConstructor(new[] { item.GetType() });
-                            break;
-                        }
-                    }
-                }
-
-                if (constructor == null)
-                {
-                    throw new EntityGraphQLCompilerException($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
-                }
-
-                var typedVal = constructor.Invoke(new[] { item });
-                return typedVal;
-            }
-            else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-            {
-                return args != null && args.ContainsKey(argName) ? args[argName] : null;
-            }
-            else if (args != null && args.ContainsKey(argName))
-            {
-                return Expression.Lambda(args[argName]).Compile().DynamicInvoke();
-            }
-            else
-            {
-                // set the default value
-                return defaultValue;
-            }
         }
 
         /// <summary>
@@ -624,7 +480,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public string GetSchemaTypeNameForDotnetType(Type type)
+        public ISchemaType GetSchemaTypeForDotnetType(Type type)
         {
             type = GetTypeFromMutationReturn(type);
 
@@ -634,15 +490,15 @@ namespace EntityGraphQL.Schema
             }
 
             if (customTypeMappings.ContainsKey(type))
-                return customTypeMappings[type].SchemaType.Name;
+                return customTypeMappings[type].SchemaType;
 
-            if (type == types[queryContextName].ContextType)
-                return type.Name;
+            if (type == types[queryContextName].TypeDotnet)
+                return types[queryContextName];
 
             foreach (var eType in types.Values)
             {
-                if (eType.ContextType == type)
-                    return eType.Name;
+                if (eType.TypeDotnet == type)
+                    return eType;
             }
             throw new EntityGraphQLCompilerException($"No mapped entity found for type '{type}'");
         }
@@ -670,12 +526,12 @@ namespace EntityGraphQL.Schema
 
         public bool HasType(Type type)
         {
-            if (type == types[queryContextName].ContextType)
+            if (type == types[queryContextName].TypeDotnet)
                 return true;
 
             foreach (var eType in types.Values)
             {
-                if (eType.ContextType == type)
+                if (eType.TypeDotnet == type)
                     return true;
             }
             return false;

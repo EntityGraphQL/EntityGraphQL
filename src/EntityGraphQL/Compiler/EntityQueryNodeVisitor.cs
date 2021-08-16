@@ -110,15 +110,16 @@ namespace EntityGraphQL.Compiler
         public override ExpressionResult VisitIdentity(EntityGraphQLParser.IdentityContext context)
         {
             var field = context.GetText();
-            string name = schemaProvider.GetSchemaTypeNameForDotnetType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(name, field, null, claims))
+            var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
+            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, claims))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
                 if (enumOrConstantValue == null)
-                    throw new EntityGraphQLCompilerException($"Field {field} not found on type {name}");
+                    throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
                 return enumOrConstantValue;
             }
-            var exp = schemaProvider.GetExpressionForField(currentContext, name, field, null, claims);
+            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, claims);
+            var exp = gqlField.GetExpression(currentContext, null);
             return exp;
         }
 

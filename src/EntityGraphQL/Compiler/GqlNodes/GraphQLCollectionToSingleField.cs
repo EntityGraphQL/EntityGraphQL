@@ -53,18 +53,18 @@ namespace EntityGraphQL.Compiler
             return Services?.Any() == true || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields = false, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
             ExpressionResult exp;
             // this is a first pass || just a single pass
             if (withoutServiceFields || !HasAnyServices(fragments) && isRoot)
             {
-                exp = GetCollectionToSingleExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
+                exp = GetCollectionToSingleExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly, schemaContext);
             }
             else
             {
                 // second / last pass
-                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
+                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
             }
             if (exp == null)
                 return null;
@@ -76,10 +76,10 @@ namespace EntityGraphQL.Compiler
             return exp;
         }
 
-        private ExpressionResult GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, bool isRoot, bool useReplaceContextDirectly)
+        private ExpressionResult GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, bool isRoot, bool useReplaceContextDirectly, ParameterExpression schemaContext)
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(collectionSelectionNode, combineExpression);
-            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
+            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith, isRoot, useReplaceContextDirectly);
             if (result == null)
                 return null;
 

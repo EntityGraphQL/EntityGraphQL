@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema
     public class SchemaType<TBaseType> : ISchemaType
     {
         private readonly ISchemaProvider schema;
-        public Type ContextType { get; protected set; }
+        public Type TypeDotnet { get; protected set; }
         public string Name { get; internal set; }
         public bool IsInput { get; }
         public bool IsEnum { get; }
@@ -30,10 +30,10 @@ namespace EntityGraphQL.Schema
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type contextType, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
-            ContextType = contextType;
+            TypeDotnet = dotnetType;
             Name = name;
             Description = description;
             IsInput = isInput;
@@ -48,20 +48,20 @@ namespace EntityGraphQL.Schema
         {
             if (IsEnum)
             {
-                foreach (var field in ContextType.GetTypeInfo().GetFields())
+                foreach (var field in TypeDotnet.GetTypeInfo().GetFields())
                 {
                     if (field.Name == "value__")
                         continue;
 
-                    var enumName = Enum.Parse(ContextType, field.Name).ToString();
+                    var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
                     var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(ContextType), ContextType), new RequiredClaims(attributes)));
+                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), new RequiredClaims(attributes)));
                 }
             }
             else
             {
-                var fields = SchemaBuilder.GetFieldsFromObject(ContextType, schema, autoCreateEnumTypes, schema.SchemaFieldNamer, autoCreateNewComplexTypes);
+                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, schema, autoCreateEnumTypes, schema.SchemaFieldNamer, autoCreateNewComplexTypes);
                 AddFields(fields);
             }
             return this;

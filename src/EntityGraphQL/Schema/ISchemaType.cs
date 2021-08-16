@@ -6,14 +6,13 @@ namespace EntityGraphQL.Schema
 {
     public interface ISchemaType
     {
-        Type ContextType { get; }
+        Type TypeDotnet { get; }
         string Name { get; }
         string Description { get; }
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
         RequiredClaims AuthorizeClaims { get; set; }
-
         Field GetField(string identifier, ClaimsIdentity claims);
         IEnumerable<Field> GetFields();
         bool HasField(string identifier);

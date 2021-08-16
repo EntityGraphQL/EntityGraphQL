@@ -64,7 +64,7 @@ namespace EntityGraphQL.Compiler
                                         (replaceContextWith != null && fullNodeExpression != null) ||
                                         (fullNodeExpression == null && queryFields.Any());
         }
-        protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith)
+        protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, ParameterExpression schemaContext)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
-                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, withoutServiceFields, replaceContextWith);
+                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith);
                     if (fieldExp == null)
                         continue;
 
