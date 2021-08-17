@@ -193,7 +193,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         internal static string SerializeCursor(int idx, int? from)
         {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes((from != null ? from.Value + idx : idx).ToString()));
+            return Convert.ToBase64String(BitConverter.GetBytes(from != null ? from.Value + idx : idx));
         }
         /// <summary>
         /// Deserialize a base64 string index/row number into a an int
@@ -204,7 +204,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             if (string.IsNullOrEmpty(after))
                 return null;
-            return int.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(after)));
+
+            var res = BitConverter.ToInt32(Convert.FromBase64String(after), 0);
+            return res;
         }
     }
 }
