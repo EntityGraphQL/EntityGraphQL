@@ -11,26 +11,19 @@ namespace EntityGraphQL.Extensions
     /// </summary>
     public static class LinqExtensions
     {
-        /// <summary>
-        /// Applies the EntityQueryType<> filter expression against the source
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="filter"></param>
-        /// <typeparam name="TSource"></typeparam>
-        /// <returns></returns>
-        public static IEnumerable<TSource> Where<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter)
-        {
-            if (filter.HasValue)
-                return Queryable.Where(source.AsQueryable(), filter.Query);
-            return source;
-        }
-
         public static IEnumerable<TSource> Take<TSource>(this IEnumerable<TSource> source, int? count)
         {
             if (!count.HasValue)
                 return source;
 
             return Enumerable.Take(source, count.Value);
+        }
+        public static IQueryable<TSource> Take<TSource>(this IQueryable<TSource> source, int? count)
+        {
+            if (!count.HasValue)
+                return source;
+
+            return Queryable.Take(source, count.Value);
         }
 
         public static IQueryable<TSource> WhereWhen<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> wherePredicate, bool applyPredicate)

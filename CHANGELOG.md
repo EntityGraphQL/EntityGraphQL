@@ -15,11 +15,13 @@ schema.UpdateType<MyType>(t => {
 ```
 Similar for `SchemaProvider.AddType<T>(string name, string description, Action<SchemaType<T>> updateFunc)`
 - You can pass a `ILogger<SchemaProvider<T>>` when creating a `SchemaProvider`. Exceptions etc. will be logged
+- Added `Take<TSource>(this IQueryable<TSource> source, int? count)` that works on `IQueryable<T>` to support EF translation
 
 *Breaking changes*
 - EntityGraphQL now targets netstandard2.0
 - Big refactor/clean - hopefully easier to follow the post Antlr (compiled graphql) output - see `GraphQL*Field` classes
 - Support for dotnet Entity Framework Core 3.1+ when using other services in the schema (`WithService()`)
+-  Removed the `Where<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter)` helper. Use the `WhereWhen` methods that support `EntityQueryType`
 
 To support EF 3.x as a base schema context we now build and execute expressions in 2 stages. See the updated readme section How EntityGraphQL handles WithService().
 
