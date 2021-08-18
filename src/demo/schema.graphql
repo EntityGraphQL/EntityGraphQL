@@ -127,7 +127,6 @@ type PersonEdge {
 	node: Person!
 	"""The cursor for this items position within the collection"""
 	cursor: String!
-	id: Int!
 }
 
 """Detail item"""

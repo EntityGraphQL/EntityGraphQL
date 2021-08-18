@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -27,15 +26,29 @@ namespace EntityGraphQL.Schema.FieldExtensions
         }
     }
 
+    /// <summary>
+    /// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
+    /// </summary>
     public class ConnectionPagingExtension : IFieldExtension
     {
         private Field edgesField;
+        private ConnectionEdgeExtension edgesExtension;
         private ParameterExpression tmpArgParam;
         private MethodCallExpression totalCountExp;
-        private MethodCallExpression edgesExp;
+
+        public MethodCallExpression EdgeExpression { get; internal set; }
 
         /// <summary>
-        /// Configure the field for a connection style paging field. Do as much as we can here as it is only executed once
+        /// Configure the field for a connection style paging field. Do as much as we can here as it is only executed once.
+        ///
+        /// There are a few fun things happening.
+        ///
+        /// 1. In this extension we set up the field with the Connection<T> object graph using the constructor to implement most
+        ///    of the fields
+        /// 2. We set up an extension on this field.edges.node to capture the selection from the compiled query as node is the <T>
+        ///    they are selecting fields from
+        /// 3. We set up an extension of field.edges which using data from this extension (we get the context and the args) and the
+        ///    field.edges.node Select() to build a EF compatible expression that only returns the fields asked for in edges.node
         /// </summary>
         /// <param name="schema"></param>
         /// <param name="field"></param>
@@ -108,31 +121,39 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             var selectParam = Expression.Parameter(listType);
             var idxParam = Expression.Parameter(typeof(int));
-            edgesExp = Expression.Call(typeof(Enumerable), "Select", new Type[] { listType, edgeType },
-                Expression.Call(typeof(Enumerable), "ToList", new Type[] { listType },
+            EdgeExpression = //Expression.Call(typeof(Enumerable), "Select", new Type[] { listType, edgeType },
+                             // Expression.Call(typeof(Enumerable), "ToList", new Type[] { listType },
                     Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
                         Expression.Call(typeof(Queryable), "Skip", new Type[] { listType },
                             field.Resolve,
                             Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
                         ),
                         Expression.Call(typeof(ConnectionPagingExtension), "GetTakeNumber", null, tmpArgParam)
-                    )
-                ),
-                Expression.Lambda(
-                    Expression.MemberInit(Expression.New(edgeType),
-                        new List<MemberBinding>
-                        {
-                            Expression.Bind(edgeType.GetProperty("Node"), selectParam),
-                            Expression.Bind(edgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, tmpArgParam, idxParam)),
-                        }
-                    ),
-                    selectParam,
-                    idxParam
-                )
+            // )
+            // ),
+            // Expression.Lambda(
+            //     Expression.MemberInit(Expression.New(edgeType),
+            //         new List<MemberBinding>
+            //         {
+            //             Expression.Bind(edgeType.GetProperty("Node"), selectParam),
+            //             Expression.Bind(edgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, tmpArgParam, idxParam)),
+            //         }
+            //     ),
+            //     selectParam,
+            //     idxParam
+            // )
             );
 
-            // set up Extension on Edges field to handle the Select() insertion
+            // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = returnSchemaType.GetField("edges", null);
+
+            // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
+            edgesExtension = new ConnectionEdgeExtension(this, listType, edgeType, selectParam);
+            edgesField.AddExtension(edgesExtension);
+
+            // We use this extension to "steal" the node selection
+            var nodeExtension = new ConnectionEdgeNodeExtension(edgesExtension, selectParam);
+            edgesField.ReturnType.SchemaType.GetField("node", null).AddExtension(nodeExtension);
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
             var newExp = Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, tmpArgParam.Type }), totalCountExp, tmpArgParam);
@@ -147,21 +168,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (arguments.last == null && arguments.first == null)
                 throw new ArgumentException($"Please provide at least the first or last argument");
 
-            // Here we now have the original context needed in our other expression to use in the sub fields
-            edgesField.UpdateExpression(
-                parameterReplacer.Replace(
-                    parameterReplacer.Replace(edgesExp, field.FieldParam, context),
-                    tmpArgParam,
-                    argExpression
-                )
+            // Here we now have the original context needed in our edges expression to use in the sub fields
+            EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(
+                parameterReplacer.Replace(EdgeExpression, field.FieldParam, context),
+                tmpArgParam,
+                argExpression
             );
 
             // deserialize cursors here once (not many times in the fields)
             arguments.afterNum = DeserializeCursor(arguments.after);
             arguments.beforeNum = DeserializeCursor(arguments.before);
 
+            // we get the arguments at this level but need to use them on the edge field
+            edgesExtension.ArgExpression = argExpression;
+
             return expression;
-            // we need to inject the Select() before the ToList()
         }
 
         /// <summary>
@@ -207,6 +228,16 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             var res = BitConverter.ToInt32(Convert.FromBase64String(after), 0);
             return res;
+        }
+
+        public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        {
+            return (baseExpression, selectionExpressions, selectContextParam);
+        }
+
+        public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
+        {
+            return expression;
         }
     }
 }

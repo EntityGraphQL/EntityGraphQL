@@ -26,7 +26,6 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionResult fieldExpression;
         private readonly ExpressionResult fieldExpressionBase;
         private readonly ExpressionExtractor extractor;
-        private readonly List<IFieldExtension> fieldExtensions;
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -108,6 +107,7 @@ namespace EntityGraphQL.Compiler
                     if (selectionFields == null || !selectionFields.Any())
                         return null;
 
+                    (_, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, SelectionContext, selectionFields, null, replacer);
                     // build a new {...} - returning a single object {}
                     var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
                     if (fieldExpressionToUse.NodeType != ExpressionType.MemberInit && fieldExpressionToUse.NodeType != ExpressionType.New)
@@ -194,6 +194,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
+            (_, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, SelectionContext, selectionFields, null, replacer);
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 

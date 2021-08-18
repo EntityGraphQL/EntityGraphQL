@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -25,5 +26,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
         Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer);
+        /// <summary>
+        /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
+        /// Not called for GraphQLFieldType.Scalar
+        /// </summary>
+        /// <param name="fieldType">Type of field being built. ListSelection or ObjectProjection</param>
+        /// <param name="baseExpression">Scalar: the expression. ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
+        /// <param name="selectionExpressions">Scalar: null. ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
+        /// <returns></returns>
+        (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer);
+        /// <summary>
+        /// Called when the field is being finalized for execution
+        /// </summary>
+        /// <param name="fieldType"></param>
+        /// <param name="expression">The final expression for the field</param>
+        /// <returns></returns>
+        ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer);
     }
 }

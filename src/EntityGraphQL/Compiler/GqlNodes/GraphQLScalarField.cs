@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -14,7 +13,6 @@ namespace EntityGraphQL.Compiler
         private readonly ExpressionExtractor extractor;
         private readonly ParameterReplacer replacer;
         private readonly Expression fieldContext;
-        private readonly List<IFieldExtension> fieldExtensions;
         private List<GraphQLScalarField> extractedFields;
 
         public GraphQLScalarField(IEnumerable<IFieldExtension> fieldExtensions, string name, ExpressionResult expression, ParameterExpression contextParameter, Expression fieldContext)
@@ -60,9 +58,9 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Services.Any())
                 return null;
 
+            var newExpression = expression;
             if (replaceContextWith != null)
             {
-                ExpressionResult newExpression;
                 var selectedField = replaceContextWith.Type.GetField(Name);
                 if (!Services.Any() && selectedField != null)
                     newExpression = (ExpressionResult)Expression.Field(replaceContextWith, Name);
@@ -70,9 +68,9 @@ namespace EntityGraphQL.Compiler
                     newExpression = (ExpressionResult)replacer.ReplaceByType(expression, fieldContext.Type, replaceContextWith);
 
                 newExpression.AddServices(expression.Services);
-                return newExpression;
             }
-            return expression;
+            newExpression = ProcessFinalExpression(GraphQLFieldType.Scalar, newExpression, replacer);
+            return newExpression;
         }
     }
 }

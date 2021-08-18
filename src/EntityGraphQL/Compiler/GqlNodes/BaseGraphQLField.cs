@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -19,6 +21,8 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode
     {
+        protected List<IFieldExtension> fieldExtensions;
+
         /// <summary>
         /// Name of the field
         /// </summary>
@@ -63,5 +67,27 @@ namespace EntityGraphQL.Compiler
             Services.AddRange(services);
         }
 
+        protected (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        {
+            if (fieldExtensions != null)
+            {
+                foreach (var extension in fieldExtensions)
+                {
+                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
+                }
+            }
+            return (baseExpression, selectionExpressions, selectContextParam);
+        }
+        protected ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
+        {
+            if (fieldExtensions != null)
+            {
+                foreach (var extension in fieldExtensions)
+                {
+                    expression = extension.ProcessFinalExpression(fieldType, expression, parameterReplacer);
+                }
+            }
+            return expression;
+        }
     }
 }

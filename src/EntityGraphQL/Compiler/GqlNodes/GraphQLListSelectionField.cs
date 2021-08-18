@@ -22,7 +22,6 @@ namespace EntityGraphQL.Compiler
     {
         private ExpressionResult fieldExpression;
         private readonly ExpressionExtractor extractor;
-        private readonly List<IFieldExtension> fieldExtensions;
 
         public ExpressionResult FieldExpression { get => fieldExpression; internal set => fieldExpression = value; }
 
@@ -104,6 +103,7 @@ namespace EntityGraphQL.Compiler
                 if (selectionFields == null || !selectionFields.Any())
                     return null;
 
+                (listContext, selectionFields, currentContextParam) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, currentContextParam, replacer);
                 // build a .Select(...) - returning a IEnumerable<>
                 var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
 

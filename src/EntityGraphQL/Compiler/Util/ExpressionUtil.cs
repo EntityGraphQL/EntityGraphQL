@@ -325,7 +325,8 @@ namespace EntityGraphQL.Compiler.Util
             if (schemaContextParam != null)
             {
                 args.Add(schemaContextValue);
-                paramsForFieldExpressions.Add(schemaContextParam);
+                if (!paramsForFieldExpressions.Contains(schemaContextParam))
+                    paramsForFieldExpressions.Add(schemaContextParam);
             }
             if (nullWrapParam != null)
             {

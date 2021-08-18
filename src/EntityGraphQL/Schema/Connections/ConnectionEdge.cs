@@ -7,9 +7,9 @@ namespace EntityGraphQL.Schema.Connections
         [GraphQLNotNull]
         [Description("The item of the collection")]
         public TEntity Node { get; set; }
+
         [GraphQLNotNull]
         [Description("The cursor for this items position within the collection")]
         public string Cursor { get; set; }
-        public int Id { get; set; }
     }
 }
