@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQuery()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
                 Query = @"query {
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Tests
         public void SupportEntityQueryArgument()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
-            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.Where(p.filter), "Return filtered users");
+            schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
                 Query = @"query {
