@@ -1,3 +1,7 @@
+# 0.70.0
+- New fields extensions to encapsulate common field logic and apply it to many fields. See update docs
+- New built in field extension `UseConnectionPaging()` which when applied to a collection field modifies the field to implement to GraphQL Connection spec for paging data with metadata
+
 # 0.69.0
 - New docs https://entitygraphql.github.io/introduction
 - Added `SchemaProvider.UpdateType<T>(Action<SchemaType<T>> updateFunc)` to better help "contain" schema types. Instead of
