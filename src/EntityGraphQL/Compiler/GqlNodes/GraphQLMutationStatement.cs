@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
             QueryFields = mutationFields.ToList();
         }
 
-        public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately)
+        public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately, bool includeDebugInfo = false)
         {
             var result = new ConcurrentDictionary<string, object>();
             foreach (GraphQLMutationField node in QueryFields)

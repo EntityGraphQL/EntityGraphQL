@@ -19,7 +19,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; protected set; }
         public IEnumerable<BaseGraphQLField> QueryFields { get; protected set; }
 
-        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately = true)
+        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -33,13 +33,21 @@ namespace EntityGraphQL.Compiler
                 result[fieldNode.Name] = null;
                 try
                 {
-                    var timer = new Stopwatch();
-                    timer.Start();
+                    Stopwatch timer = null;
+                    if (includeDebugInfo)
+                    {
+                        timer = new Stopwatch();
+                        timer.Start();
+                    }
                     var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, executeServiceFieldsSeparately);
-                    timer.Stop();
+
+                    if (includeDebugInfo)
+                    {
+                        timer.Stop();
+                        result[$"__{fieldNode.Name}_timeMs"] = timer.ElapsedMilliseconds;
+                    }
 
                     result[fieldNode.Name] = data;
-                    result[$"{fieldNode.Name}TimeMs"] = timer.ElapsedMilliseconds;
                 }
                 catch (Exception ex)
                 {

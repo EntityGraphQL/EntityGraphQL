@@ -92,9 +92,9 @@ namespace EntityGraphQL.Schema
             directives.Add(skip.Name, skip);
         }
 
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
         {
-            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider, executeServiceFieldsSeparately).Result;
+            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider, executeServiceFieldsSeparately, includeDebugInfo).Result;
         }
 
         /// <summary>
@@ -108,13 +108,13 @@ namespace EntityGraphQL.Schema
         /// <param name="includeDebugInfo"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true)
+        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
         {
             QueryResult result;
             try
             {
                 var queryResult = CompileQuery(gql, claims, methodProvider);
-                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, executeServiceFieldsSeparately);
+                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, executeServiceFieldsSeparately, includeDebugInfo);
             }
             catch (Exception ex)
             {

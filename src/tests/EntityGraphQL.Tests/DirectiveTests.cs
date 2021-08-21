@@ -121,25 +121,5 @@ namespace EntityGraphQL.Tests.GqlCompiling
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
-
-        [Fact(Skip = "Not implemented yet")]
-        public void TestDirectiveOnResult()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
-            schemaProvider.AddDirective(new FormatDateDirective());
-            var query = new QueryRequest
-            {
-                Query = @"query MyQuery {
-  people {
-      birthday @formatDate(as: ""MMM"")
-    }
-}",
-            };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
-            Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("birthday", person.GetType().GetFields()[0].Name);
-            Assert.Equal("Jan", person.birthday);
-        }
     }
 }

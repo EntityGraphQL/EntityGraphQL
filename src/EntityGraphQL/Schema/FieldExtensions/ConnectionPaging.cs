@@ -31,6 +31,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class ConnectionPagingExtension : IFieldExtension
     {
+        private MethodCallExpression originalEdgeExpression;
         private Field edgesField;
         private ConnectionEdgeExtension edgesExtension;
         private ParameterExpression tmpArgParam;
@@ -115,7 +116,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
 
             var selectParam = Expression.Parameter(listType);
-            EdgeExpression = Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
+            originalEdgeExpression = Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
                 Expression.Call(typeof(Queryable), "Skip", new Type[] { listType },
                     field.Resolve,
                     Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
@@ -149,7 +150,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(
-                parameterReplacer.Replace(EdgeExpression, field.FieldParam, context),
+                parameterReplacer.Replace(originalEdgeExpression, field.FieldParam, context),
                 tmpArgParam,
                 argExpression
             );

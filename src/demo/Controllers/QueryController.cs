@@ -36,7 +36,7 @@ namespace demo.Controllers
             {
                 // _serviceProvider is passed to resolve dependencies in mutations and field selections at run time which opens a lot of flexibility
                 // last argument can be claims to implement security checks
-                var data = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null);
+                var data = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null, includeDebugInfo: true);
                 return data;
             }
             catch (Exception)
