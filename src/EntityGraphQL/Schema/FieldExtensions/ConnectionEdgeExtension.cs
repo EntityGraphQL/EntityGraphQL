@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Schema.Connections;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
@@ -12,18 +11,18 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         private Expression nodeExpression;
         private Type nodeExpressionType;
+        private ParameterExpression newEdgeParam;
         private Type newEdgeType;
+
         internal ParameterExpression ArgExpression { get; set; }
         private readonly ConnectionPagingExtension connectionPagingExtension;
         private readonly Type listType;
-        private readonly Type edgeType;
         private readonly ParameterExpression firstSelectParam;
 
-        public ConnectionEdgeExtension(ConnectionPagingExtension connectionPagingExtension, Type listType, Type edgeType, ParameterExpression firstSelectParam)
+        public ConnectionEdgeExtension(ConnectionPagingExtension connectionPagingExtension, Type listType, ParameterExpression firstSelectParam)
         {
             this.connectionPagingExtension = connectionPagingExtension;
             this.listType = listType;
-            this.edgeType = edgeType;
             this.firstSelectParam = firstSelectParam;
         }
 
@@ -40,21 +39,26 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             var selectParam = Expression.Parameter(nodeExpressionType);
             var idxParam = Expression.Parameter(typeof(int));
+            List<MemberBinding> bindings = new List<MemberBinding>();
+            // only add the fields they select - avoid redundant GetCursor call
+            if (selectionExpressions.Values.Any(c => c.Field.Name == "node"))
+                bindings.Add(Expression.Bind(newEdgeType.GetProperty("Node"), selectParam));
+            bool hasCursorField = selectionExpressions.Values.Any(c => c.Field.Name == "cursor");
+            if (hasCursorField)
+                bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, ArgExpression, idxParam)));
+
             var edgesExp = (ExpressionResult)
             Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
                 Expression.Call(typeof(Enumerable), "ToList", new Type[] { nodeExpressionType },
                     Expression.Call(typeof(Queryable), "Select", new Type[] { listType, nodeExpressionType },
                         connectionPagingExtension.EdgeExpression,
+                        // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
                         Expression.Lambda(nodeExpression, firstSelectParam)
                     )
                 ),
                 Expression.Lambda(
                     Expression.MemberInit(Expression.New(newEdgeType),
-                        new List<MemberBinding>
-                        {
-                            Expression.Bind(newEdgeType.GetProperty("Node"), selectParam),
-                            Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, ArgExpression, idxParam)),
-                        }
+                        bindings
                     ),
                     selectParam,
                     idxParam
@@ -62,7 +66,15 @@ namespace EntityGraphQL.Schema.FieldExtensions
             );
             edgesExp.AddServices(baseExpression.Services);
             edgesExp.AddConstantParameters(baseExpression.ConstantParameters);
-            return (edgesExp, selectionExpressions, Expression.Parameter(newEdgeType));
+
+            // we have an extension handling things for the Node field. For Cursor we need to fix the parameter
+            if (hasCursorField)
+            {
+                var exp = selectionExpressions.First(i => i.Value.Field.Name == "cursor");
+                exp.Value.Expression.Expression = Expression.PropertyOrField(newEdgeParam, "Cursor");
+            }
+
+            return (edgesExp, selectionExpressions, newEdgeParam);
         }
 
         public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
@@ -70,11 +82,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return expression;
         }
 
-        internal void SetNodeExpression(Expression nodeExpression, Type nodeExpressionType)
+        internal void SetNodeExpression(Expression nodeExpression, Type nodeExpressionType, ParameterExpression newEdgeParam)
         {
             this.nodeExpression = nodeExpression;
             this.nodeExpressionType = nodeExpressionType;
-            this.newEdgeType = typeof(ConnectionEdge<>).MakeGenericType(nodeExpressionType);
+            this.newEdgeParam = newEdgeParam;
+            this.newEdgeType = newEdgeParam.Type;
         }
     }
 }

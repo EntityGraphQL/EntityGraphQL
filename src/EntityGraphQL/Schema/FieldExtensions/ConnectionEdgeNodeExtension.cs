@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.Connections;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
@@ -39,8 +40,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 item.Value.Expression = exp;
             }
             var newExp = ExpressionUtil.CreateNewExpression(selectionExpressions.ToDictionary(i => i.Key, i => i.Value.Expression), out Type anonType);
-            edgeExtension.SetNodeExpression(newExp, anonType);
-            return (baseExpression, selectionExpressions, selectContextParam);
+            var newEdgeParam = Expression.Parameter(typeof(ConnectionEdge<>).MakeGenericType(anonType), "newEdgeParam");
+            edgeExtension.SetNodeExpression(newExp, anonType, newEdgeParam);
+
+            // The T in ConnectionEdge<T> will change because we move the nodeExpression Select back. But the Edge Node fields
+            // have already been visited so we need to rebuild them
+            var newBaseExpression = (ExpressionResult)Expression.PropertyOrField(newEdgeParam, "Node");
+            newBaseExpression.AddConstantParameters(baseExpression.ConstantParameters);
+            newBaseExpression.AddServices(baseExpression.Services);
+
+            foreach (var item in selectionExpressions)
+            {
+                item.Value.Expression.Expression = Expression.PropertyOrField(newBaseExpression, item.Key);
+            }
+
+            return (newBaseExpression, selectionExpressions, selectContextParam);
         }
 
         public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)

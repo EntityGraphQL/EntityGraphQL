@@ -107,7 +107,7 @@ namespace EntityGraphQL.Compiler
                     if (selectionFields == null || !selectionFields.Any())
                         return null;
 
-                    (_, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, SelectionContext, selectionFields, null, replacer);
+                    (fieldExpressionToUse, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, fieldExpressionToUse, selectionFields, null, replacer);
                     // build a new {...} - returning a single object {}
                     var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
                     if (fieldExpressionToUse.NodeType != ExpressionType.MemberInit && fieldExpressionToUse.NodeType != ExpressionType.New)

@@ -63,15 +63,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
             var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
             Type listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType();
 
-            Type edgeType;
             if (!schema.HasType(edgeName))
             {
-                edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
+                var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
                 schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
-            }
-            else
-            {
-                edgeType = schema.Type(edgeName).TypeDotnet;
             }
 
             ISchemaType returnSchemaType;
@@ -120,35 +115,19 @@ namespace EntityGraphQL.Schema.FieldExtensions
             totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
 
             var selectParam = Expression.Parameter(listType);
-            var idxParam = Expression.Parameter(typeof(int));
-            EdgeExpression = //Expression.Call(typeof(Enumerable), "Select", new Type[] { listType, edgeType },
-                             // Expression.Call(typeof(Enumerable), "ToList", new Type[] { listType },
-                    Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
-                        Expression.Call(typeof(Queryable), "Skip", new Type[] { listType },
-                            field.Resolve,
-                            Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
-                        ),
-                        Expression.Call(typeof(ConnectionPagingExtension), "GetTakeNumber", null, tmpArgParam)
-            // )
-            // ),
-            // Expression.Lambda(
-            //     Expression.MemberInit(Expression.New(edgeType),
-            //         new List<MemberBinding>
-            //         {
-            //             Expression.Bind(edgeType.GetProperty("Node"), selectParam),
-            //             Expression.Bind(edgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, tmpArgParam, idxParam)),
-            //         }
-            //     ),
-            //     selectParam,
-            //     idxParam
-            // )
+            EdgeExpression = Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
+                Expression.Call(typeof(Queryable), "Skip", new Type[] { listType },
+                    field.Resolve,
+                    Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
+                ),
+                Expression.Call(typeof(ConnectionPagingExtension), "GetTakeNumber", null, tmpArgParam)
             );
 
             // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = returnSchemaType.GetField("edges", null);
 
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            edgesExtension = new ConnectionEdgeExtension(this, listType, edgeType, selectParam);
+            edgesExtension = new ConnectionEdgeExtension(this, listType, selectParam);
             edgesField.AddExtension(edgesExtension);
 
             // We use this extension to "steal" the node selection
