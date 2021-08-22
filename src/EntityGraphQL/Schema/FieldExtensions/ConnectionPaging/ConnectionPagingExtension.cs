@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Buffers.Text;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -12,23 +11,6 @@ using EntityGraphQL.Schema.Connections;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    public static class UseConnectionPagingExtension
-    {
-        /// <summary>
-        /// Update field to implement paging with the Connection<> classes and metadata.
-        /// Only call on a field that returns an IEnumerable
-        /// </summary>
-        /// <param name="field"></param>
-        /// <returns></returns>
-        public static Field UseConnectionPaging(this Field field)
-        {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseConnectionPaging must only be called on a field that returns an IEnumerable");
-            field.AddExtension(new ConnectionPagingExtension());
-            return field;
-        }
-    }
-
     /// <summary>
     /// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
     /// </summary>
