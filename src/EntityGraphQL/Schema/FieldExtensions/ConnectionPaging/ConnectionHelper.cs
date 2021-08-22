@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 else
                     index += arguments.totalCount - (arguments.last ?? 0);
             }
-            return ConnectionHelper.SerializeCursor(index);
+            return SerializeCursor(index);
         }
         /// <summary>
         /// Used at runtime in the expression built above

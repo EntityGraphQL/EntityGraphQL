@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions
