@@ -87,7 +87,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (ex.InnerException != null)
                         throw ex.InnerException;
-                    throw ex;
+                    throw;
                 }
             }
             return result;

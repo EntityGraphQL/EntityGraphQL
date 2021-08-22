@@ -1,6 +1,5 @@
 using Xunit;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Tests.GqlCompiling
 {

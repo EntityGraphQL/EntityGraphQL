@@ -16,7 +16,7 @@ namespace EntityGraphQL.Compiler
     ///   (primary_key) - e.g. myEntity(12)
     /// Binary Operators
     ///   =, !=, <, <=, >, >=, +, -, *, %, /, in
-    /// Urnary Operators
+    /// Unary Operators
     ///   not(), !
     public static class EntityQueryCompiler
     {

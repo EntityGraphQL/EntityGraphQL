@@ -1,7 +1,10 @@
 using System;
+using System.Buffers;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -192,22 +195,53 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="idx"></param>
         /// <param name="from"></param>
         /// <returns></returns>
-        internal static string SerializeCursor(int idx, int? from)
+        public static unsafe string SerializeCursor(int idx, int? from)
         {
-            return Convert.ToBase64String(BitConverter.GetBytes(from != null ? from.Value + idx : idx));
+            // resuts in less allocations
+            const int totalUtf8Bytes = 4 * (20 / 3);
+            var index = from != null ? from.Value + idx : idx;
+            Span<byte> resultSpan = stackalloc byte[totalUtf8Bytes];
+            if (!Utf8Formatter.TryFormat(index, resultSpan, out int writtenBytes))
+                throw new ArithmeticException();
+
+            if (OperationStatus.Done != Base64.EncodeToUtf8InPlace(resultSpan, writtenBytes, out writtenBytes))
+                throw new ArithmeticException();
+
+            fixed (byte* bytePtr = resultSpan)
+            {
+                var base64String = Encoding.UTF8.GetString(bytePtr, writtenBytes);
+                return base64String;
+            }
         }
         /// <summary>
         /// Deserialize a base64 string index/row number into a an int
         /// </summary>
         /// <param name="after"></param>
         /// <returns></returns>
-        internal static int? DeserializeCursor(string after)
+        public static unsafe int? DeserializeCursor(string after)
         {
             if (string.IsNullOrEmpty(after))
                 return null;
 
-            var res = BitConverter.ToInt32(Convert.FromBase64String(after), 0);
-            return res;
+            fixed (char* charPtr = after)
+            {
+                var count = Encoding.UTF8.GetByteCount(charPtr, after.Length);
+
+                Span<byte> buffer = stackalloc byte[count];
+
+                fixed (byte* bytePtr = buffer)
+                {
+                    Encoding.UTF8.GetBytes(charPtr, after.Length, bytePtr, buffer.Length);
+                }
+
+                if (OperationStatus.Done != Base64.DecodeFromUtf8InPlace(buffer, out int writtenBytes))
+                    throw new ArithmeticException();
+
+                if (!Utf8Parser.TryParse(buffer.Slice(0, writtenBytes), out int index, out _))
+                    throw new ArithmeticException();
+
+                return index;
+            }
         }
 
         public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
