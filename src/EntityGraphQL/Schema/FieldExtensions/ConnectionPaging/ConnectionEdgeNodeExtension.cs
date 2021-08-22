@@ -8,7 +8,7 @@ using EntityGraphQL.Schema.Connections;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    internal class ConnectionEdgeNodeExtension : IFieldExtension
+    internal class ConnectionEdgeNodeExtension : BaseFieldExtension
     {
         private readonly ConnectionEdgeExtension edgeExtension;
         private readonly ParameterExpression selectParam;
@@ -19,16 +19,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.selectParam = selectParam;
         }
 
-        public void Configure(ISchemaProvider schema, Field field)
-        {
-        }
-
-        public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
-        {
-            return expression;
-        }
-
-        public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             var selection = new Dictionary<string, ExpressionResult>();
             foreach (var item in selectionExpressions)
@@ -55,11 +46,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
 
             return (newBaseExpression, selectionExpressions, selectContextParam);
-        }
-
-        public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
-        {
-            return expression;
         }
     }
 }

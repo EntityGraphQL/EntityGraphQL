@@ -69,7 +69,7 @@ namespace EntityGraphQL.Compiler
 
                 newExpression.AddServices(expression.Services);
             }
-            newExpression = ProcessFinalExpression(GraphQLFieldType.Scalar, newExpression, replacer);
+            newExpression = ProcessScalarExpression(newExpression, replacer);
             return newExpression;
         }
     }

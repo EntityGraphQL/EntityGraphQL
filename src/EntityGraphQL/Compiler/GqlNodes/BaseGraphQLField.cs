@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
         /// Any values for a parameter that had a constant value in the query document.
         /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
         /// </summary>
-        protected Dictionary<ParameterExpression, object> constantParameters = new Dictionary<ParameterExpression, object>();
+        protected Dictionary<ParameterExpression, object> constantParameters = new();
 
         internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
         public ParameterExpression RootFieldParameter { get; set; }
@@ -78,13 +78,13 @@ namespace EntityGraphQL.Compiler
             }
             return (baseExpression, selectionExpressions, selectContextParam);
         }
-        protected ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
+        protected ExpressionResult ProcessScalarExpression(ExpressionResult expression, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
                 foreach (var extension in fieldExtensions)
                 {
-                    expression = extension.ProcessFinalExpression(fieldType, expression, parameterReplacer);
+                    expression = extension.ProcessScalarExpression(expression, parameterReplacer);
                 }
             }
             return expression;

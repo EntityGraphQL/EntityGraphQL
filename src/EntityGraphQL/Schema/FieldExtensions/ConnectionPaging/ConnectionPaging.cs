@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// <summary>
     /// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
     /// </summary>
-    public class ConnectionPagingExtension : IFieldExtension
+    public class ConnectionPagingExtension : BaseFieldExtension
     {
         private MethodCallExpression originalEdgeExpression;
         private Field edgesField;
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="schema"></param>
         /// <param name="field"></param>
-        public void Configure(ISchemaProvider schema, Field field)
+        public override void Configure(ISchemaProvider schema, Field field)
         {
             if (!field.Resolve.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
@@ -141,7 +141,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.UpdateExpression(expression);
         }
 
-        public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(
@@ -236,16 +236,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
                 return index;
             }
-        }
-
-        public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
-        {
-            return (baseExpression, selectionExpressions, selectContextParam);
-        }
-
-        public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
-        {
-            return expression;
         }
     }
 }

@@ -43,7 +43,7 @@ public class FormatStringExtension : IFieldExtension
     }
 
     // Called at expression execution time.
-    public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions) ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions)
+    public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions) ProcessScalarExpression(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions)
     {
     }
 }

@@ -7,7 +7,7 @@ using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    internal class ConnectionEdgeExtension : IFieldExtension
+    internal class ConnectionEdgeExtension : BaseFieldExtension
     {
         private Expression nodeExpression;
         private Type nodeExpressionType;
@@ -26,16 +26,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.firstSelectParam = firstSelectParam;
         }
 
-        public void Configure(ISchemaProvider schema, Field field)
-        {
-        }
-
-        public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             return connectionPagingExtension.EdgeExpression;
         }
 
-        public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             var selectParam = Expression.Parameter(nodeExpressionType);
             var idxParam = Expression.Parameter(typeof(int));
@@ -73,11 +69,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
 
             return (edgesExp, selectionExpressions, newEdgeParam);
-        }
-
-        public ExpressionResult ProcessFinalExpression(GraphQLFieldType fieldType, ExpressionResult expression, ParameterReplacer parameterReplacer)
-        {
-            return expression;
         }
 
         internal void SetNodeExpression(Expression nodeExpression, Type nodeExpressionType, ParameterExpression newEdgeParam)
