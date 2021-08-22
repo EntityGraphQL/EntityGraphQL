@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Threading;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -43,10 +42,9 @@ namespace EntityGraphQL.Compiler.Util
             if (0 == fields.Count)
                 throw new ArgumentOutOfRangeException(nameof(fields), "fields must have at least 1 field definition");
 
-            try
+            string className = GetTypeKey(fields);
+            lock (typesByName)
             {
-                Monitor.Enter(builtTypes);
-                string className = GetTypeKey(fields);
                 if (!typesByName.ContainsKey(className))
                 {
                     typesByName[className] = Guid.NewGuid();
@@ -65,10 +63,6 @@ namespace EntityGraphQL.Compiler.Util
 
                 builtTypes[classId] = typeBuilder.CreateTypeInfo().AsType();
                 return builtTypes[classId];
-            }
-            finally
-            {
-                Monitor.Exit(builtTypes);
             }
         }
     }
