@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema.Connections
         [Description("Start cursor in the page. Use this to go backwards with the before argument")]
         public string StartCursor => arguments.first != null ?
             ConnectionPagingExtension.SerializeCursor(afterNum ?? 0, 1) :
-            ConnectionPagingExtension.SerializeCursor(beforeNum ?? 0, -arguments.last);
+            ConnectionPagingExtension.SerializeCursor(beforeNum ?? 0, -(arguments.last ?? 0));
 
         [Description("If there is more data after this page")]
         public bool HasNextPage => arguments.first != null ?

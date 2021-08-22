@@ -38,8 +38,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Field edgesField;
         private ConnectionEdgeExtension edgesExtension;
         private ParameterExpression tmpArgParam;
-        private MethodCallExpression totalCountExp;
-
         public MethodCallExpression EdgeExpression { get; internal set; }
 
         /// <summary>
@@ -104,8 +102,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //              .Skip(GetSkipNumber(arguments))
             //              .Take(GetTakeNumber(arguments))
             //              <----- we insert Select() here so that we do not fetch the whole table if using EF
-            //              .ToList() // if using EF the below select doesn't work so need to be in memory
-            //              .Select((a, idx) => new ConnectionEdge<Person>
+            //              .Select((a, idx) => new ConnectionEdge<Person> // this is from Enumerable and EF will run the above
             //              {
             //                  Node = a,
             //                  Cursor = GetCursor(arguments, idx),
@@ -116,11 +113,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Conneciton fields asked for
             tmpArgParam = Expression.Parameter(field.ArgumentsType, "tmp_argParam");
 
-            totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
+            var totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
 
             var selectParam = Expression.Parameter(listType);
-            originalEdgeExpression = Expression.Call(typeof(Queryable), "Take", new Type[] { listType },
-                Expression.Call(typeof(Queryable), "Skip", new Type[] { listType },
+            originalEdgeExpression = Expression.Call(typeof(QueryableExtensions), "Take", new Type[] { listType },
+                Expression.Call(typeof(QueryableExtensions), "Skip", new Type[] { listType },
                     field.Resolve,
                     Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
                 ),
@@ -139,18 +136,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
             edgesField.ReturnType.SchemaType.GetField("node", null).AddExtension(nodeExtension);
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
-            var newExp = Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, tmpArgParam.Type }), totalCountExp, tmpArgParam);
-
-            var expression = Expression.MemberInit(newExp, new List<MemberBinding> { });
+            var expression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, tmpArgParam.Type }), totalCountExp, tmpArgParam));
 
             field.UpdateExpression(expression);
         }
 
         public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
-            if (arguments.last == null && arguments.first == null)
-                throw new ArgumentException($"Please provide at least the first or last argument");
-
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(
                 parameterReplacer.Replace(originalEdgeExpression, field.FieldParam, context),
@@ -178,16 +170,18 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
-        public static int GetSkipNumber(dynamic arguments)
+        public static int? GetSkipNumber(dynamic arguments)
         {
             return arguments.afterNum ?? (!string.IsNullOrEmpty(arguments.before) ? arguments.beforeNum - 1 - (arguments.last ?? 0) : 0);
         }
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
-        public static int GetTakeNumber(dynamic arguments)
+        public static int? GetTakeNumber(dynamic arguments)
         {
-            return arguments.first ?? Math.Min(arguments.last, arguments.beforeNum - 1);
+            if (arguments.first == null && arguments.last == null && arguments.beforeNum == null)
+                return null;
+            return arguments.first ?? Math.Min(arguments.last ?? int.MaxValue, arguments.beforeNum - 1);
         }
         /// <summary>
         /// Serialize an index/row number into base64

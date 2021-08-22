@@ -30,13 +30,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class OffsetPagingExtension : IFieldExtension
     {
-        private Expression originalEdgeExpression;
         private ParameterExpression tmpArgParam;
-        private MethodCallExpression totalCountExp;
         private IField itemsField;
         private MethodCallExpression itemsFieldExp;
-
-        public MethodCallExpression EdgeExpression { get; internal set; }
 
         /// <summary>
         /// Configure the field for a offset style paging field. Do as much as we can here as it is only executed once.
@@ -71,7 +67,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             tmpArgParam = Expression.Parameter(field.ArgumentsType, "tmp_argParam");
 
-            totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
+            var totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
 
             // update the Items field before we update the field.Resolve below
             itemsField = schema.GetActualField(field.ReturnType.SchemaType.Name, "items", null);
@@ -84,11 +80,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             );
             itemsField.UpdateExpression(itemsFieldExp);
 
-            originalEdgeExpression = Expression.MemberInit(
+            var expression = Expression.MemberInit(
                 Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) }), totalCountExp, Expression.PropertyOrField(tmpArgParam, "skip"), Expression.PropertyOrField(tmpArgParam, "take"))
             );
 
-            field.UpdateExpression(originalEdgeExpression);
+            field.UpdateExpression(expression);
         }
 
         public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)

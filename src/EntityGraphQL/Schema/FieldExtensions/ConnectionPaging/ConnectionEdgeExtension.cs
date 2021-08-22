@@ -39,7 +39,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             var selectParam = Expression.Parameter(nodeExpressionType);
             var idxParam = Expression.Parameter(typeof(int));
-            List<MemberBinding> bindings = new List<MemberBinding>();
+            List<MemberBinding> bindings = new();
             // only add the fields they select - avoid redundant GetCursor call
             if (selectionExpressions.Values.Any(c => c.Field.Name == "node"))
                 bindings.Add(Expression.Bind(newEdgeType.GetProperty("Node"), selectParam));
@@ -49,12 +49,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             var edgesExp = (ExpressionResult)
             Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
-                Expression.Call(typeof(Enumerable), "ToList", new Type[] { nodeExpressionType },
-                    Expression.Call(typeof(Queryable), "Select", new Type[] { listType, nodeExpressionType },
-                        connectionPagingExtension.EdgeExpression,
-                        // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
-                        Expression.Lambda(nodeExpression, firstSelectParam)
-                    )
+                Expression.Call(typeof(Queryable), "Select", new Type[] { listType, nodeExpressionType },
+                    connectionPagingExtension.EdgeExpression,
+                    // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
+                    Expression.Lambda(nodeExpression, firstSelectParam)
                 ),
                 Expression.Lambda(
                     Expression.MemberInit(Expression.New(newEdgeType),
