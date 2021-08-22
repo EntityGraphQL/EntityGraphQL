@@ -29,7 +29,7 @@ namespace EntityGraphQL.Schema.Connections
                 else if (arguments.beforeNum != null)
                     idx = arguments.beforeNum - 1;
 
-                return CursorHelper.SerializeCursor(idx);
+                return ConnectionHelper.SerializeCursor(idx);
             }
         }
 
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Schema.Connections
                     idx = arguments.afterNum + 1;
                 else if (arguments.last != null)
                     idx = Math.Max((arguments.beforeNum ?? (totalCount + 1)) - arguments.last, 1);
-                return CursorHelper.SerializeCursor(idx);
+                return ConnectionHelper.SerializeCursor(idx);
             }
         }
 

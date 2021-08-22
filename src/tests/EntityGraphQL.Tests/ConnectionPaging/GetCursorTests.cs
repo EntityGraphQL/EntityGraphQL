@@ -11,9 +11,9 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs();
             var index = 4;
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
+            var cursor = ConnectionHelper.GetCursor(args, index);
             // non zero based index
-            Assert.Equal(CursorHelper.SerializeCursor(index + 1), cursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(index + 1), cursor);
         }
         [Fact]
         public void TestOnlyFirst()
@@ -23,9 +23,9 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 first = 4,
             };
             var index = 4;
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
+            var cursor = ConnectionHelper.GetCursor(args, index);
             // non zero based index
-            Assert.Equal(CursorHelper.SerializeCursor(index + 1), cursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(index + 1), cursor);
         }
         [Fact]
         public void TestFirstAndAfter()
@@ -36,8 +36,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 afterNum = 3
             };
             var index = 3; // index of item is 0 based so this is the 4th item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(7), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(7), cursor);
         }
         [Fact]
         public void TestOnlyLast()
@@ -48,8 +48,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 totalCount = 10
             };
             var index = 3; // 4th item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(10), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(10), cursor);
         }
         [Fact]
         public void TestLastAndBefore()
@@ -61,8 +61,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 totalCount = 10
             };
             var index = 1; // 2nd item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(3), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(3), cursor);
         }
         [Fact]
         public void TestLastAndBefore2()
@@ -74,8 +74,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 totalCount = 10
             };
             var index = 0; // 1st item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(1), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), cursor);
         }
         [Fact]
         public void TestOnlyBefore()
@@ -86,8 +86,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 totalCount = 10
             };
             var index = 0; // 1st item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(1), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), cursor);
         }
         [Fact]
         public void TestOnlyBefore2()
@@ -98,8 +98,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 totalCount = 10
             };
             var index = 3; // 4th item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(4), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(4), cursor);
         }
         [Fact]
         public void TestOnlyAfter()
@@ -109,8 +109,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 afterNum = 7,
             };
             var index = 1; // 2nd item
-            var cursor = ConnectionPagingExtension.GetCursor(args, index);
-            Assert.Equal(CursorHelper.SerializeCursor(9), cursor);
+            var cursor = ConnectionHelper.GetCursor(args, index);
+            Assert.Equal(ConnectionHelper.SerializeCursor(9), cursor);
         }
     }
 }

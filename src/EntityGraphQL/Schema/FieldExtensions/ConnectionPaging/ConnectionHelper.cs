@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    public static class CursorHelper
+    public static class ConnectionHelper
     {
         /// <summary>
         /// Serialize an index/row number into base64
@@ -58,6 +58,45 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
                 return index;
             }
+        }
+
+
+        /// <summary>
+        /// Used at runtime in the expression built above
+        /// </summary>
+        public static string GetCursor(dynamic arguments, int idx)
+        {
+            var index = idx + 1;
+            if (arguments.afterNum != null)
+                index += arguments.afterNum;
+            if (arguments.last != null)
+            {
+                if (arguments.beforeNum != null)
+                    index = arguments.beforeNum - arguments.last + idx;
+                else
+                    index += arguments.totalCount - (arguments.last ?? 0);
+            }
+            return ConnectionHelper.SerializeCursor(index);
+        }
+        /// <summary>
+        /// Used at runtime in the expression built above
+        /// </summary>
+        public static int? GetSkipNumber(dynamic arguments)
+        {
+            if (arguments.afterNum != null)
+                return arguments.afterNum;
+            if (arguments.last != null)
+                return (arguments.beforeNum ?? arguments.totalCount) - arguments.last;
+            return 0;
+        }
+        /// <summary>
+        /// Used at runtime in the expression built above
+        /// </summary>
+        public static int? GetTakeNumber(dynamic arguments)
+        {
+            if (arguments.first == null && arguments.last == null && arguments.beforeNum == null)
+                return null;
+            return arguments.first ?? arguments.last ?? (arguments.beforeNum - 1);
         }
     }
 }

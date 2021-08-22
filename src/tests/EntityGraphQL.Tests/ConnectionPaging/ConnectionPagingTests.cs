@@ -51,8 +51,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // cursors MQ, Mg, Mw, NA, NQ
 
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = CursorHelper.SerializeCursor(1);
-            var expectedLastCursor = CursorHelper.SerializeCursor(Enumerable.Count(people.edges));
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(Enumerable.Count(people.edges));
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // cursors MQ, Mg, Mw, NA, NQ
 
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = CursorHelper.SerializeCursor(1);
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
             var expectedLastCursor = expectedFirstCursor;
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
@@ -150,8 +150,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // cursors MQ, Mg, Mw, NA, NQ
 
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = CursorHelper.SerializeCursor(2);
-            var expectedLastCursor = CursorHelper.SerializeCursor(3);
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(2);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
@@ -199,8 +199,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // cursors MQ, Mg, Mw, NA, NQ
 
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = CursorHelper.SerializeCursor(4);
-            var expectedLastCursor = CursorHelper.SerializeCursor(5);
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(4);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(5);
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
@@ -248,8 +248,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // cursors MQ, Mg, Mw, NA, NQ
 
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = CursorHelper.SerializeCursor(1);
-            var expectedLastCursor = CursorHelper.SerializeCursor(3);
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);

@@ -101,9 +101,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             originalEdgeExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
                 Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                     field.Resolve,
-                    Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
+                    Expression.Call(typeof(ConnectionHelper), "GetSkipNumber", null, tmpArgParam)
                 ),
-                Expression.Call(typeof(ConnectionPagingExtension), "GetTakeNumber", null, tmpArgParam)
+                Expression.Call(typeof(ConnectionHelper), "GetTakeNumber", null, tmpArgParam)
             );
 
             // set up Extension on Edges.Node field to handle the Select() insertion
@@ -138,51 +138,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
             );
 
             // deserialize cursors here once (not many times in the fields)
-            arguments.afterNum = CursorHelper.DeserializeCursor(arguments.after);
-            arguments.beforeNum = CursorHelper.DeserializeCursor(arguments.before);
+            arguments.afterNum = ConnectionHelper.DeserializeCursor(arguments.after);
+            arguments.beforeNum = ConnectionHelper.DeserializeCursor(arguments.before);
 
             // we get the arguments at this level but need to use them on the edge field
             edgesExtension.ArgExpression = argExpression;
 
             return expression;
-        }
-
-        /// <summary>
-        /// Used at runtime in the expression built above
-        /// </summary>
-        public static string GetCursor(dynamic arguments, int idx)
-        {
-            var index = idx + 1;
-            if (arguments.afterNum != null)
-                index += arguments.afterNum;
-            if (arguments.last != null)
-            {
-                if (arguments.beforeNum != null)
-                    index = arguments.beforeNum - arguments.last + idx;
-                else
-                    index += arguments.totalCount - (arguments.last ?? 0);
-            }
-            return CursorHelper.SerializeCursor(index);
-        }
-        /// <summary>
-        /// Used at runtime in the expression built above
-        /// </summary>
-        public static int? GetSkipNumber(dynamic arguments)
-        {
-            if (arguments.afterNum != null)
-                return arguments.afterNum;
-            if (arguments.last != null)
-                return (arguments.beforeNum ?? arguments.totalCount) - arguments.last;
-            return 0;
-        }
-        /// <summary>
-        /// Used at runtime in the expression built above
-        /// </summary>
-        public static int? GetTakeNumber(dynamic arguments)
-        {
-            if (arguments.first == null && arguments.last == null && arguments.beforeNum == null)
-                return null;
-            return arguments.first ?? arguments.last ?? (arguments.beforeNum - 1);
         }
     }
 }

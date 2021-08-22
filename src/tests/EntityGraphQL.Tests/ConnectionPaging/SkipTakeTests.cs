@@ -10,10 +10,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         public void TestAllNull()
         {
             var args = new ConnectionArgs();
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Null(take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(0, skip);
         }
         [Fact]
@@ -23,10 +23,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 first = 3
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(0, skip);
         }
         [Fact]
@@ -37,10 +37,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 first = 3,
                 afterNum = 2
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(2, skip);
         }
         [Fact]
@@ -51,10 +51,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 last = 3,
                 totalCount = 10
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(7, skip);
         }
         [Fact]
@@ -65,10 +65,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 last = 4,
                 beforeNum = 7,
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(4, take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(3, skip);
         }
         [Fact]
@@ -78,10 +78,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 beforeNum = 7,
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(6, take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(0, skip);
         }
         [Fact]
@@ -91,10 +91,10 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 afterNum = 5,
             };
-            var take = ConnectionPagingExtension.GetTakeNumber(args);
+            var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Null(take);
 
-            var skip = ConnectionPagingExtension.GetSkipNumber(args);
+            var skip = ConnectionHelper.GetSkipNumber(args);
             Assert.Equal(5, skip);
         }
     }

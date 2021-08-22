@@ -9,8 +9,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         public void TestSerializeAndDeserialize()
         {
             const int val = 0;
-            var cursor = CursorHelper.SerializeCursor(val);
-            var valBack = CursorHelper.DeserializeCursor(cursor);
+            var cursor = ConnectionHelper.SerializeCursor(val);
+            var valBack = ConnectionHelper.DeserializeCursor(cursor);
 
             Assert.NotNull(valBack);
             Assert.Equal(val, valBack);
@@ -20,8 +20,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         public void TestSerializeAndDeserializeLarge()
         {
             const int val = int.MaxValue;
-            var cursor = CursorHelper.SerializeCursor(val);
-            var valBack = CursorHelper.DeserializeCursor(cursor);
+            var cursor = ConnectionHelper.SerializeCursor(val);
+            var valBack = ConnectionHelper.DeserializeCursor(cursor);
 
             Assert.NotNull(valBack);
             Assert.Equal(val, valBack);

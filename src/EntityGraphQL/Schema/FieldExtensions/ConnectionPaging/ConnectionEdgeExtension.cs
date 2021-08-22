@@ -43,7 +43,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 bindings.Add(Expression.Bind(newEdgeType.GetProperty("Node"), selectParam));
             bool hasCursorField = selectionExpressions.Values.Any(c => c.Field.Name == "cursor");
             if (hasCursorField)
-                bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, ArgExpression, idxParam)));
+                bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionHelper), "GetCursor", null, ArgExpression, idxParam)));
 
             var edgesExp = (ExpressionResult)Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
                 Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Select", new Type[] { listType, nodeExpressionType },

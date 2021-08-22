@@ -14,8 +14,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.False(info.HasNextPage);
             Assert.False(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(1), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(10), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(10), info.EndCursor);
         }
 
         [Fact]
@@ -29,8 +29,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.True(info.HasNextPage);
             Assert.False(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(1), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(4), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(4), info.EndCursor);
         }
         [Fact]
         public void TestFirstAndAfter()
@@ -44,8 +44,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.True(info.HasNextPage);
             Assert.True(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(4), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(7), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(4), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(7), info.EndCursor);
         }
         [Fact]
         public void TestOnlyLast()
@@ -58,8 +58,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.False(info.HasNextPage);
             Assert.True(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(8), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(10), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(8), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(10), info.EndCursor);
         }
         [Fact]
         public void TestLastAndBefore()
@@ -73,8 +73,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.True(info.HasNextPage);
             Assert.True(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(3), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(5), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(3), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(5), info.EndCursor);
         }
         [Fact]
         public void TestOnlyBefore()
@@ -87,8 +87,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.True(info.HasNextPage);
             Assert.False(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(1), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(5), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(5), info.EndCursor);
         }
         [Fact]
         public void TestOnlyAfter()
@@ -101,8 +101,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.False(info.HasNextPage);
             Assert.True(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(7), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(10), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(7), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(10), info.EndCursor);
         }
         [Fact]
         public void TestOverTotal()
@@ -116,8 +116,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.False(info.HasNextPage);
             Assert.True(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(8), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(10), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(8), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(10), info.EndCursor);
         }
         [Fact]
         public void TestBeforeStart()
@@ -131,8 +131,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             Assert.True(info.HasNextPage);
             Assert.False(info.HasPreviousPage);
-            Assert.Equal(CursorHelper.SerializeCursor(1), info.StartCursor);
-            Assert.Equal(CursorHelper.SerializeCursor(2), info.EndCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(1), info.StartCursor);
+            Assert.Equal(ConnectionHelper.SerializeCursor(2), info.EndCursor);
         }
     }
 }
