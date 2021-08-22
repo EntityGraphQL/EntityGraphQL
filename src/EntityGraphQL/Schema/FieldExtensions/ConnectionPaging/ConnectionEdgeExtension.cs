@@ -18,12 +18,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private readonly ConnectionPagingExtension connectionPagingExtension;
         private readonly Type listType;
         private readonly ParameterExpression firstSelectParam;
+        private readonly bool isQueryable;
 
-        public ConnectionEdgeExtension(ConnectionPagingExtension connectionPagingExtension, Type listType, ParameterExpression firstSelectParam)
+        public ConnectionEdgeExtension(ConnectionPagingExtension connectionPagingExtension, Type listType, ParameterExpression firstSelectParam, bool isQueryable)
         {
             this.connectionPagingExtension = connectionPagingExtension;
             this.listType = listType;
             this.firstSelectParam = firstSelectParam;
+            this.isQueryable = isQueryable;
         }
 
         public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
@@ -43,9 +45,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (hasCursorField)
                 bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionPagingExtension), "GetCursor", null, ArgExpression, idxParam)));
 
-            var edgesExp = (ExpressionResult)
-            Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
-                Expression.Call(typeof(Queryable), "Select", new Type[] { listType, nodeExpressionType },
+            var edgesExp = (ExpressionResult)Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
+                Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Select", new Type[] { listType, nodeExpressionType },
                     connectionPagingExtension.EdgeExpression,
                     // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
                     Expression.Lambda(nodeExpression, firstSelectParam)

@@ -46,6 +46,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 schema.AddType(typeof(ConnectionPageInfo), "PageInfo", "Metadata about a page of data").AddAllFields();
             var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
             Type listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType();
+            var isQueryable = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet);
 
             if (!schema.HasType(edgeName))
             {
@@ -87,7 +88,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //              .Select((a, idx) => new ConnectionEdge<Person> // this is from Enumerable and EF will run the above
             //              {
             //                  Node = a,
-            //                  Cursor = GetCursor(arguments, idx),
             //              })
             //      };
             //      if (connection == null)
@@ -95,11 +95,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Conneciton fields asked for
             tmpArgParam = Expression.Parameter(field.ArgumentsType, "tmp_argParam");
 
-            var totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, field.Resolve);
 
             var selectParam = Expression.Parameter(listType);
-            originalEdgeExpression = Expression.Call(typeof(QueryableExtensions), "Take", new Type[] { listType },
-                Expression.Call(typeof(QueryableExtensions), "Skip", new Type[] { listType },
+            originalEdgeExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
+                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                     field.Resolve,
                     Expression.Call(typeof(ConnectionPagingExtension), "GetSkipNumber", null, tmpArgParam)
                 ),
@@ -110,7 +110,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             edgesField = returnSchemaType.GetField("edges", null);
 
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            edgesExtension = new ConnectionEdgeExtension(this, listType, selectParam);
+            edgesExtension = new ConnectionEdgeExtension(this, listType, selectParam, isQueryable);
             edgesField.AddExtension(edgesExtension);
 
             // We use this extension to "steal" the node selection
@@ -125,6 +125,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
+            if (arguments.first != null && arguments.last != null)
+                throw new ArgumentException($"Field only supports either first or last being supplied, not both.");
+            if (arguments.before != null && arguments.after != null)
+                throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
+
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(
                 parameterReplacer.Replace(originalEdgeExpression, field.FieldParam, context),
@@ -133,8 +138,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
             );
 
             // deserialize cursors here once (not many times in the fields)
-            arguments.afterNum = DeserializeCursor(arguments.after);
-            arguments.beforeNum = DeserializeCursor(arguments.before);
+            arguments.afterNum = CursorHelper.DeserializeCursor(arguments.after);
+            arguments.beforeNum = CursorHelper.DeserializeCursor(arguments.before);
 
             // we get the arguments at this level but need to use them on the edge field
             edgesExtension.ArgExpression = argExpression;
@@ -147,14 +152,28 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         public static string GetCursor(dynamic arguments, int idx)
         {
-            return SerializeCursor(idx + 1, !string.IsNullOrEmpty(arguments.after) ? arguments.afterNum : arguments.beforeNum - arguments.last - 1);
+            var index = idx + 1;
+            if (arguments.afterNum != null)
+                index += arguments.afterNum;
+            if (arguments.last != null)
+            {
+                if (arguments.beforeNum != null)
+                    index = arguments.beforeNum - arguments.last + idx;
+                else
+                    index += arguments.totalCount - (arguments.last ?? 0);
+            }
+            return CursorHelper.SerializeCursor(index);
         }
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
         public static int? GetSkipNumber(dynamic arguments)
         {
-            return arguments.afterNum ?? (!string.IsNullOrEmpty(arguments.before) ? arguments.beforeNum - 1 - (arguments.last ?? 0) : 0);
+            if (arguments.afterNum != null)
+                return arguments.afterNum;
+            if (arguments.last != null)
+                return (arguments.beforeNum ?? arguments.totalCount) - arguments.last;
+            return 0;
         }
         /// <summary>
         /// Used at runtime in the expression built above
@@ -163,61 +182,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             if (arguments.first == null && arguments.last == null && arguments.beforeNum == null)
                 return null;
-            return arguments.first ?? Math.Min(arguments.last ?? int.MaxValue, arguments.beforeNum - 1);
-        }
-        /// <summary>
-        /// Serialize an index/row number into base64
-        /// </summary>
-        /// <param name="idx"></param>
-        /// <param name="from"></param>
-        /// <returns></returns>
-        public static unsafe string SerializeCursor(int idx, int? from)
-        {
-            // resuts in less allocations
-            const int totalUtf8Bytes = 4 * (20 / 3);
-            var index = from != null ? from.Value + idx : idx;
-            Span<byte> resultSpan = stackalloc byte[totalUtf8Bytes];
-            if (!Utf8Formatter.TryFormat(index, resultSpan, out int writtenBytes))
-                throw new ArithmeticException();
-
-            if (OperationStatus.Done != Base64.EncodeToUtf8InPlace(resultSpan, writtenBytes, out writtenBytes))
-                throw new ArithmeticException();
-
-            fixed (byte* bytePtr = resultSpan)
-            {
-                var base64String = Encoding.UTF8.GetString(bytePtr, writtenBytes);
-                return base64String;
-            }
-        }
-        /// <summary>
-        /// Deserialize a base64 string index/row number into a an int
-        /// </summary>
-        /// <param name="after"></param>
-        /// <returns></returns>
-        public static unsafe int? DeserializeCursor(string after)
-        {
-            if (string.IsNullOrEmpty(after))
-                return null;
-
-            fixed (char* charPtr = after)
-            {
-                var count = Encoding.UTF8.GetByteCount(charPtr, after.Length);
-
-                Span<byte> buffer = stackalloc byte[count];
-
-                fixed (byte* bytePtr = buffer)
-                {
-                    Encoding.UTF8.GetBytes(charPtr, after.Length, bytePtr, buffer.Length);
-                }
-
-                if (OperationStatus.Done != Base64.DecodeFromUtf8InPlace(buffer, out int writtenBytes))
-                    throw new ArithmeticException();
-
-                if (!Utf8Parser.TryParse(buffer.Slice(0, writtenBytes), out int index, out _))
-                    throw new ArithmeticException();
-
-                return index;
-            }
+            return arguments.first ?? arguments.last ?? (arguments.beforeNum - 1);
         }
     }
 }

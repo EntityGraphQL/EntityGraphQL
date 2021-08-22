@@ -27,7 +27,7 @@ enum Genre {
 
 type RootQuery {
 	"""actors paged by connection & edges and orderable"""
-	actors(first: Int, after: String, afterNum: Int, last: Int, before: String, beforeNum: Int): PersonConnection
+	actors(first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
 	"""List of directors"""

@@ -6,8 +6,6 @@ namespace EntityGraphQL.Schema.Connections
 {
     public class ConnectionPageInfo
     {
-        private readonly int? afterNum;
-        private readonly int? beforeNum;
         private readonly int totalCount;
         private readonly dynamic arguments;
 
@@ -15,33 +13,53 @@ namespace EntityGraphQL.Schema.Connections
         {
             this.totalCount = totalCount;
             this.arguments = arguments;
-
-            if (arguments.first != null)
-                afterNum = arguments.afterNum;
-            else
-                beforeNum = arguments.beforeNum;
         }
 
         [GraphQLNotNull]
         [Description("Last cursor in the page. Use this as the next from argument")]
-        public string EndCursor => arguments.first != null ?
-            ConnectionPagingExtension.SerializeCursor(Math.Min(arguments.first, totalCount - afterNum ?? 0), afterNum) :
-            ConnectionPagingExtension.SerializeCursor(0, beforeNum - 1);
+        public string EndCursor
+        {
+            get
+            {
+                var idx = totalCount;
+                if (arguments.afterNum != null && arguments.first != null)
+                    idx = Math.Min(totalCount, arguments.afterNum + arguments.first);
+                else if (arguments.first != null)
+                    idx = arguments.first;
+                else if (arguments.beforeNum != null)
+                    idx = arguments.beforeNum - 1;
+
+                return CursorHelper.SerializeCursor(idx);
+            }
+        }
 
         [GraphQLNotNull]
         [Description("Start cursor in the page. Use this to go backwards with the before argument")]
-        public string StartCursor => arguments.first != null ?
-            ConnectionPagingExtension.SerializeCursor(afterNum ?? 0, 1) :
-            ConnectionPagingExtension.SerializeCursor(beforeNum ?? 0, -(arguments.last ?? 0));
+        public string StartCursor
+        {
+            get
+            {
+                var idx = 1;
+                if (arguments.afterNum != null)
+                    idx = arguments.afterNum + 1;
+                else if (arguments.last != null)
+                    idx = Math.Max((arguments.beforeNum ?? (totalCount + 1)) - arguments.last, 1);
+                return CursorHelper.SerializeCursor(idx);
+            }
+        }
 
         [Description("If there is more data after this page")]
         public bool HasNextPage => arguments.first != null ?
-            ((afterNum ?? 0) + arguments.first) < totalCount :
-            beforeNum < totalCount;
+            ((arguments.afterNum ?? 0) + arguments.first) < totalCount :
+            arguments.beforeNum < totalCount;
 
         [Description("If there is data previous to this page")]
-        public bool HasPreviousPage => arguments.first != null ?
-            (afterNum ?? 0) > 0 :
-            beforeNum - 1 - arguments.last > 0;
+        public bool HasPreviousPage
+        {
+            get
+            {
+                return (arguments.afterNum ?? 0) > 0 || (arguments.beforeNum ?? totalCount) - (arguments.last ?? totalCount) > 1;
+            }
+        }
     }
 }

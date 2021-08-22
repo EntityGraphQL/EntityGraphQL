@@ -9,6 +9,7 @@ namespace EntityGraphQL.Schema.Connections
         {
             TotalCount = totalCount;
             PageInfo = new ConnectionPageInfo(totalCount, arguments);
+            arguments.totalCount = totalCount;
         }
 
         [GraphQLNotNull]
