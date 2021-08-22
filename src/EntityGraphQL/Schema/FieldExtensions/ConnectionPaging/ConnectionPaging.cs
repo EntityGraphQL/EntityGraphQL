@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             {
                 var type = typeof(Connection<>)
                     .MakeGenericType(listType);
-                returnSchemaType = schema.AddType(type, connectionName, "Metadata about a person connection (paging over people)").AddAllFields();
+                returnSchemaType = schema.AddType(type, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
             }
             else
             {

@@ -1,10 +1,8 @@
-using System;
 using System.IO;
 using System.Linq;
 using demo.Mutations;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
-using System.Text;
 using EntityGraphQL.Schema.Connections;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -21,10 +19,6 @@ namespace demo
             demoSchema.UpdateQueryType(queryType =>
             {
                 demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
-                // queryType.ReplaceField("actors", new
-                // {
-                //     filter = ArgumentHelper.EntityQuery<Person>()
-                // }, (db, param) => db.People.Where(p => p.ActorIn.Any()).WhereWhen(param.filter, param.filter.HasValue), "List of actors");
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
                 queryType.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors");
 
@@ -34,17 +28,11 @@ namespace demo
                     // .UseOrderBy()
                     .UseConnectionPaging();
 
-                queryType.ReplaceField("actors2",
-                    new
-                    {
-                        skip = 0,
-                        take = 1
-                    },
-                    (db, args) => db.Actors.Select(a => a.Person)
-                            .OrderBy(a => a.Id)
-                            .Skip(args.skip)
-                            .Take(args.take),
-                    "actors");
+                queryType.AddField("actorsOffset",
+                    (db) => db.Actors.Select(a => a.Person)
+                            .OrderBy(a => a.Id),
+                    "Actors with offset paging")
+                    .UseOffsetPaging();
             });
 
             // Add calculated fields to a type

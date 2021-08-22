@@ -28,8 +28,8 @@ enum Genre {
 type RootQuery {
 	"""actors paged by connection & edges and orderable"""
 	actors(first: Int, after: String, afterNum: Int, last: Int, before: String, beforeNum: Int): PersonConnection
-	"""actors"""
-	actors2(skip: Int!, take: Int!): [Person!]
+	"""Actors with offset paging"""
+	actorsOffset(skip: Int, take: Int): PersonPage
 	"""List of directors"""
 	directors: [Person!]
 	"""Return a Movie by its Id"""
@@ -127,6 +127,14 @@ type PersonEdge {
 	node: Person!
 	"""The cursor for this items position within the collection"""
 	cursor: String!
+}
+
+"""Metadata about a Person page (paging over people)"""
+type PersonPage {
+	items: [Person!]
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	totalItems: Int!
 }
 
 """Detail item"""

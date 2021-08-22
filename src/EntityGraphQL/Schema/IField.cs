@@ -27,5 +27,7 @@ namespace EntityGraphQL.Schema
         /// <param name="args"></param>
         /// <returns></returns>
         ExpressionResult GetExpression(Expression context, Dictionary<string, ExpressionResult> args);
+
+        IField UpdateExpression(Expression expression);
     }
 }

@@ -94,9 +94,10 @@ namespace EntityGraphQL.Schema
             ReturnType = gqlTypeInfo;
         }
 
-        public void UpdateExpression(Expression expression)
+        public IField UpdateExpression(Expression expression)
         {
             Resolve = expression;
+            return this;
         }
 
 

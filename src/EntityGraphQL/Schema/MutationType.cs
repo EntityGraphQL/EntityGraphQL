@@ -239,5 +239,10 @@ namespace EntityGraphQL.Schema
         {
             return null;
         }
+
+        public IField UpdateExpression(Expression expression)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
