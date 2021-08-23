@@ -3,6 +3,9 @@
 - New built in field extension `UseConnectionPaging()` which when applied to a collection field modifies the field to implement the GraphQL Connection spec for paging data with metadata
 - New built in field extension `UseOffsetPaging()` which when applied to a collection field modifies the field to implement an offset style paging structure
 
+*Breaking changes*
+- EntityGraphQL now targets netstandard2.1
+
 # 0.69.0
 - New docs https://entitygraphql.github.io/introduction
 - Added `SchemaProvider.UpdateType<T>(Action<SchemaType<T>> updateFunc)` to better help "contain" schema types. Instead of

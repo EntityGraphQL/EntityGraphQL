@@ -6,7 +6,7 @@
 
 Jump into the [https://entitygraphql.github.io/](https://entitygraphql.github.io/) for documentation and to get started.
 
-Entity GraphQL is a .NET Core (netstandard 2.0) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
+Entity GraphQL is a .NET Core (netstandard 2.1) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
 
 It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
 
