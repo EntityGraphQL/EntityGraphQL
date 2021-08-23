@@ -60,6 +60,9 @@ namespace EntityGraphQL.Compiler
 
         protected object CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options)
         {
+            if (options == null)
+                options = new ExecutionOptions(); // defaults
+
             var replacer = new ParameterReplacer();
             // For root/top level fields we need to first select the whole graph without fields that require services
             // so that EF Core 3.1+ can run and optimise the query against the DB
