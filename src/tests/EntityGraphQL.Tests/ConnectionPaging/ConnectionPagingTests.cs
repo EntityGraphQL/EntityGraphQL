@@ -1,5 +1,6 @@
 using System.Linq;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 
@@ -250,6 +251,64 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             // we have tests for (de)serialization of cursor we're checking the correct ones are used
             var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
             var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
+            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+        }
+
+        [Fact]
+        public void TestMergeArguments()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var data = new TestSchema();
+            FillData(data);
+
+            schema.ReplaceField(
+                "people",
+                new
+                {
+                    search = (string)null
+                },
+                (ctx, args) => ctx.People
+                    .WhereWhen(p => p.Name.Contains(args.search) || p.LastName.Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .OrderBy(p => p.Id),
+                "Return list of people with paging metadata")
+            .UseConnectionPaging();
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(first: 1, search: ""ill"") {
+                        edges {
+                            node {
+                                name
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            startCursor
+                            endCursor
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                        totalCount
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(1, Enumerable.Count(people.edges));
+            Assert.Equal(2, people.totalCount); // 2 "ill" matches
+            Assert.True(people.pageInfo.hasNextPage);
+            Assert.False(people.pageInfo.hasPreviousPage);
+
+            // we have tests for (de)serialization of cursor we're checking the correct ones are used
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(1);
             Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
             Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
