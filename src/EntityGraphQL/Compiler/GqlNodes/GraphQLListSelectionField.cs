@@ -70,50 +70,47 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
-            if (ShouldRebuildExpression(withoutServiceFields, replaceContextWith))
+            var currentContextParam = SelectionContext != null ? SelectionContext.AsParameter() : RootFieldParameter;
+            var listContext = fieldExpression;
+            if (replaceContextWith != null)
             {
-                var currentContextParam = SelectionContext != null ? SelectionContext.AsParameter() : RootFieldParameter;
-                var listContext = fieldExpression;
-                if (replaceContextWith != null)
+                var fieldType = isRoot ? replaceContextWith.Type : replaceContextWith.Type.GetField(Name)?.FieldType;
+                // we are in the second select (which contains services somewhere in the graph)
+                // Where() etc. have already been applied and the fields used may not be in the first select
+                // we need to remove them
+                // listContext
+                // if null we're in a service returned object and no longer need to replace the parameters
+                if (fieldType != null)
                 {
-                    var fieldType = isRoot ? replaceContextWith.Type : replaceContextWith.Type.GetField(Name)?.FieldType;
-                    // we are in the second select (which contains services somewhere in the graph)
-                    // Where() etc. have already been applied and the fields used may not be in the first select
-                    // we need to remove them
-                    // listContext
-                    // if null we're in a service returned object and no longer need to replace the parameters
-                    if (fieldType != null)
-                    {
-                        if (fieldType.IsEnumerableOrArray())
-                            fieldType = fieldType.GetEnumerableOrArrayType();
+                    if (fieldType.IsEnumerableOrArray())
+                        fieldType = fieldType.GetEnumerableOrArrayType();
 
-                        currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
-                        // the pre services select has created the field by the Name already we just need to select that from the new context
-                        listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
-                    }
-                    else
-                    {
-                        listContext = (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
-                    }
-                    listContext.AddServices(fieldExpression.Services);
+                    currentContextParam = Expression.Parameter(fieldType, currentContextParam.Name);
+                    // the pre services select has created the field by the Name already we just need to select that from the new context
+                    listContext = isRoot ? (ExpressionResult)replaceContextWith : (ExpressionResult)Expression.PropertyOrField(replaceContextWith, Name);
                 }
-
-                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null, schemaContext);
-
-                if (selectionFields == null || !selectionFields.Any())
-                    return null;
-
-                (listContext, selectionFields, currentContextParam) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, currentContextParam, replacer);
-                // build a .Select(...) - returning a IEnumerable<>
-                var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
-
-                Services.AddRange(resultExpression?.Services);
-
-                if (withoutServiceFields)
-                    nodeExpressionNoServiceFields = resultExpression;
                 else
-                    fullNodeExpression = resultExpression;
+                {
+                    listContext = (ExpressionResult)replacer.Replace(listContext, RootFieldParameter, replaceContextWith);
+                }
+                listContext.AddServices(fieldExpression.Services);
             }
+
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? currentContextParam : null, schemaContext);
+
+            if (selectionFields == null || !selectionFields.Any())
+                return null;
+
+            (listContext, selectionFields, currentContextParam) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, currentContextParam, replacer);
+            // build a .Select(...) - returning a IEnumerable<>
+            var resultExpression = (ExpressionResult)ExpressionUtil.MakeSelectWithDynamicType(currentContextParam, listContext, selectionFields.ExpressionOnly());
+
+            Services.AddRange(resultExpression?.Services);
+
+            if (withoutServiceFields)
+                nodeExpressionNoServiceFields = resultExpression;
+            else
+                fullNodeExpression = resultExpression;
 
             if (fullNodeExpression != null)
             {

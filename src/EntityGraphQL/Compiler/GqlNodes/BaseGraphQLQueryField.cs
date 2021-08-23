@@ -58,12 +58,6 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
-        protected bool ShouldRebuildExpression(bool withoutServiceFields, Expression replaceContextWith)
-        {
-            return (nodeExpressionNoServiceFields == null && withoutServiceFields) ||
-                                        (replaceContextWith != null && fullNodeExpression != null) ||
-                                        (fullNodeExpression == null && queryFields.Any());
-        }
         protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, ParameterExpression schemaContext)
         {
             // do we have services at this level
