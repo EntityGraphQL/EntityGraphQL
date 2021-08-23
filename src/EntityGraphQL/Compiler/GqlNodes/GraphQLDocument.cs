@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -45,9 +46,9 @@ namespace EntityGraphQL.Compiler
             get => "Query Request Root";
         }
 
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null, ExecutionOptions options = null)
         {
-            return ExecuteQueryAsync(context, services, operationName, executeServiceFieldsSeparately, includeDebugInfo).Result;
+            return ExecuteQueryAsync(context, services, operationName, options).Result;
         }
 
         /// <summary>
@@ -58,7 +59,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName, bool executeServiceFieldsSeparately, bool includeDebugInfo = false)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName, ExecutionOptions options = null)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
@@ -70,7 +71,7 @@ namespace EntityGraphQL.Compiler
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
             // execute the selected operation
-            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, executeServiceFieldsSeparately, includeDebugInfo);
+            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, options);
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);

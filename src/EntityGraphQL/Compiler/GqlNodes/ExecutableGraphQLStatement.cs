@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -19,7 +20,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; protected set; }
         public IEnumerable<BaseGraphQLField> QueryFields { get; protected set; }
 
-        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
+        public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options = null)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -34,14 +35,14 @@ namespace EntityGraphQL.Compiler
                 try
                 {
                     Stopwatch timer = null;
-                    if (includeDebugInfo)
+                    if (options?.IncludeDebugInfo == true)
                     {
                         timer = new Stopwatch();
                         timer.Start();
                     }
-                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, executeServiceFieldsSeparately);
+                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options);
 
-                    if (includeDebugInfo)
+                    if (options?.IncludeDebugInfo == true)
                     {
                         timer.Stop();
                         result[$"__{fieldNode.Name}_timeMs"] = timer.ElapsedMilliseconds;
@@ -57,7 +58,7 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(result);
         }
 
-        protected object CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, bool executeServiceFieldsSeparately)
+        protected object CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options)
         {
             var replacer = new ParameterReplacer();
             // For root/top level fields we need to first select the whole graph without fields that require services
@@ -67,7 +68,7 @@ namespace EntityGraphQL.Compiler
             ExpressionResult expression = null;
             var contextParam = node.RootFieldParameter;
 
-            if (node.HasAnyServices(fragments) && executeServiceFieldsSeparately)
+            if (node.HasAnyServices(fragments) && options?.ExecuteServiceFieldsSeparately == true)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
@@ -76,7 +77,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
+                    context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer, options);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
                     var newContextType = Expression.Parameter(context.GetType(), "_ctx");
@@ -94,11 +95,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(serviceProvider, fragments, contextParam, false, isRoot: true);
             }
 
-            var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer);
+            var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer, options);
             return data;
         }
 
-        protected object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer)
+        protected object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
         {
             var allArgs = new List<object> { context };
 
@@ -128,6 +129,8 @@ namespace EntityGraphQL.Compiler
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+            if (options.NoExecution)
+                return null;
             return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
 
