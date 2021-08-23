@@ -1,4 +1,3 @@
-using System;
 using System.Security.Claims;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
@@ -10,12 +9,12 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLCompiler
     {
-        private readonly ISchemaProvider _schemaProvider;
-        private readonly IMethodProvider _methodProvider;
+        private readonly ISchemaProvider schemaProvider;
+        private readonly IMethodProvider methodProvider;
         public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
-            _schemaProvider = schemaProvider;
-            _methodProvider = methodProvider;
+            this.schemaProvider = schemaProvider;
+            this.methodProvider = methodProvider;
         }
 
         /// Parses a GraphQL-like query syntax into a tree respresenting the requested object graph. E.g.
@@ -51,7 +50,7 @@ namespace EntityGraphQL.Compiler
             try
             {
                 var tree = parser.graphQL();
-                var visitor = new GraphQLVisitor(_schemaProvider, _methodProvider, request.Variables, claims);
+                var visitor = new GraphQLVisitor(schemaProvider, methodProvider, request.Variables, claims);
                 // visit each node. it will return a linq expression for each entity requested
                 var node = (GraphQLDocument)visitor.Visit(tree);
                 node.Fragments = visitor.Fragments;
