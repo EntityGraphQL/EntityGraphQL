@@ -6,7 +6,7 @@ using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 
 namespace EntityGraphQL.Tests.GqlCompiling
 {

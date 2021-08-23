@@ -13,7 +13,7 @@ namespace EntityGraphQL.Authorization
         //     Initializes a new instance of the EntityGraphQL.Authorization.GraphQLAuthorizeAttribute
         //     class.
         public GraphQLAuthorizeAttribute()
-        {}
+        { }
         //
         // Summary:
         //     Initializes a new instance of the EntityGraphQL.Authorization.GraphQLAuthorizeAttribute

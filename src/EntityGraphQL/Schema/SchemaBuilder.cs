@@ -3,12 +3,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections.Generic;
 using System.Reflection;
-using EntityGraphQL.Extensions;
 using Humanizer;
 using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
 using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -18,14 +18,16 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public static class SchemaBuilder
     {
-        private static readonly HashSet<string> ignoreProps = new HashSet<string> {
+        private static readonly HashSet<string> ignoreProps = new()
+        {
             "Database",
             "Model",
             "ChangeTracker",
             "ContextId"
         };
 
-        private static readonly HashSet<string> ignoreTypes = new HashSet<string> {
+        private static readonly HashSet<string> ignoreTypes = new()
+        {
             "String",
             "Byte[]"
         };

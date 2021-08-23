@@ -11,7 +11,7 @@ using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema

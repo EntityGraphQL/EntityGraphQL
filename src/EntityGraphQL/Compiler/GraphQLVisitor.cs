@@ -4,7 +4,7 @@ using EntityGraphQL.Extensions;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Compiler.Util;
 using System.Security.Claims;
 using System;

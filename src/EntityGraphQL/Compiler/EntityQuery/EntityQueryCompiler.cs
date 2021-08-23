@@ -4,10 +4,10 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using Antlr4.Runtime;
 using EntityGraphQL.Grammer;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.EntityQuery
 {
     /// Simple language to write queries against an object schema.
     ///

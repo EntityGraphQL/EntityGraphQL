@@ -6,7 +6,7 @@ using System;
 using EntityGraphQL.Tests;
 using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.LinqQuery.Tests
+namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
     /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
     public class LinqCompilerWithMappedSchemaTests

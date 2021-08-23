@@ -6,7 +6,7 @@ using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
 using System;
 
-namespace EntityGraphQL.LinqQuery.Tests
+namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
     /// <summary>
     /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
@@ -162,7 +162,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         }
 
         [Fact]
-        public void TestLinqQueryWorks()
+        public void TestEntityQueryWorks()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestEntity>();
             var compiledResult = EntityQueryCompiler.Compile("(relation.id = 1) or (relation.id = 2)", schemaProvider, null);
@@ -195,7 +195,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [InlineData("\"2020-08-11T00:00:00\"")]
         [InlineData("\"2020-08-11 00:00:00\"")]
         [InlineData("\"2020-08-11\"")]
-        public void TestLinqQueryWorksWithDates(string dateValue)
+        public void TestEntityQueryWorksWithDates(string dateValue)
         {
             var schemaProvider = SchemaBuilder.FromObject<Entry>();
             schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
@@ -225,7 +225,7 @@ namespace EntityGraphQL.LinqQuery.Tests
         [InlineData("\"2020-08-11 13:22:11.1\"")]
         [InlineData("\"2020-08-11 13:22:11.3000003\"")]
         [InlineData("\"2020-08-11 13:22:11.3000003+000\"")]
-        public void TestLinqQueryWorksWithDateTimes(string dateValue)
+        public void TestEntityQueryWorksWithDateTimes(string dateValue)
         {
             var schemaProvider = SchemaBuilder.FromObject<Entry>();
             schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without

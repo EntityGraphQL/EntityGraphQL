@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using EntityGraphQL.Grammer;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler

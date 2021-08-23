@@ -1,7 +1,7 @@
 using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Tests.GqlCompiling
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void ParseDirectiveWithArgs()
         {
-                        var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var objectSchemaProvider = SchemaBuilder.FromObject<TestSchema>();
             var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"query {
   people {
       id

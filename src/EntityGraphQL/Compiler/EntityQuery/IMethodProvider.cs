@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.LinqQuery
+namespace EntityGraphQL.Compiler.EntityQuery
 {
     public interface IMethodProvider
     {

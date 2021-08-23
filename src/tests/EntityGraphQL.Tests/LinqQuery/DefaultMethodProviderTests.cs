@@ -5,7 +5,7 @@ using System;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.LinqQuery.Tests
+namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
     public class DefaultMethodProviderTests
     {

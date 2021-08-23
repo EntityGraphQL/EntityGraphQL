@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.EntityQuery
 {
     /// <summary>
     /// Represents the final result of a single Expression that can be executed.

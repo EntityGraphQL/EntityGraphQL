@@ -1,5 +1,3 @@
-using EntityGraphQL.LinqQuery;
-
 namespace EntityGraphQL.Schema
 {
     public class ExecutionOptions

@@ -26,7 +26,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Antlr4 Update="Grammer/EntityGraphQL.g4">
+    <Antlr4 Update="Compiler/Grammer/EntityGraphQL.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>EntityGraphQL.Grammer</CustomToolNamespace>
       <Listener>False</Listener>

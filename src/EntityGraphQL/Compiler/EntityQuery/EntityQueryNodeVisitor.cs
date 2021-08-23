@@ -5,12 +5,11 @@ using System.Reflection;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using EntityGraphQL.LinqQuery;
+using EntityGraphQL.Compiler.EntityQuery;
 using System.Security.Claims;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler.EntityQuery
 {
-
     internal class EntityQueryNodeVisitor : EntityGraphQLBaseVisitor<ExpressionResult>
     {
         private readonly ClaimsIdentity claims;

@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Linq;
-using System.Reflection;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
-namespace EntityGraphQL.LinqQuery
+namespace EntityGraphQL.Compiler.EntityQuery
 {
     /// <summary>
     /// The default method provider for Ling Querys. Implements the useful Linq functions for
