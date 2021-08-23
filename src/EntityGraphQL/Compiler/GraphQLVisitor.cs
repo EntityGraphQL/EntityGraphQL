@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Grammer;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
@@ -9,6 +8,7 @@ using EntityGraphQL.Compiler.Util;
 using System.Security.Claims;
 using System;
 using System.Reflection;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler
 {
