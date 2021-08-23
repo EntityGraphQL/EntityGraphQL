@@ -24,6 +24,20 @@
             }
         },
         {
+            "name": "Launch benchmark (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net5.0/Benchmarks.dll",
+            "args": [
+                "--filter",
+                "*QueryBenchmarks*"
+            ],
+            "cwd": "${workspaceFolder}/src/Benchmarks/",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",

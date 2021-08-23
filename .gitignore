@@ -19,3 +19,5 @@ node_modules/
 
 # Database files
 *.db
+
+src/Benchmarks/BenchmarkDotNet.Artifacts/
