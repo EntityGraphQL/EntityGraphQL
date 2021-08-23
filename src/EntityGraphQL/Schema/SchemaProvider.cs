@@ -24,12 +24,13 @@ namespace EntityGraphQL.Schema
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
         public Func<string, string> SchemaFieldNamer { get; }
-        protected Dictionary<string, ISchemaType> types = new Dictionary<string, ISchemaType>();
-        protected Dictionary<string, MutationType> mutations = new Dictionary<string, MutationType>();
-        protected Dictionary<string, IDirectiveProcessor> directives = new Dictionary<string, IDirectiveProcessor>();
+        protected Dictionary<string, ISchemaType> types = new();
+        protected Dictionary<string, MutationType> mutations = new();
+        protected Dictionary<string, IDirectiveProcessor> directives = new();
 
         private readonly string queryContextName;
         private readonly ILogger<SchemaProvider<TContextType>> logger;
+        private readonly DefaultMethodProvider methodProvider;
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -85,16 +86,17 @@ namespace EntityGraphQL.Schema
 
             SetupIntrospectionTypesAndField();
 
-
             var include = new IncludeDirectiveProcessor();
             var skip = new SkipDirectiveProcessor();
             directives.Add(include.Name, include);
             directives.Add(skip.Name, skip);
+
+            methodProvider = new DefaultMethodProvider();
         }
 
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
-            return ExecuteQueryAsync(gql, context, serviceProvider, claims, methodProvider, executeServiceFieldsSeparately, includeDebugInfo).Result;
+            return ExecuteQueryAsync(gql, context, serviceProvider, claims, options).Result;
         }
 
         /// <summary>
@@ -104,17 +106,16 @@ namespace EntityGraphQL.Schema
         /// <param name="context">The context object. An instance of the context the schema was build from</param>
         /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
         /// <param name="claims">Optional claims to check access for queries</param>
-        /// <param name="methodProvider"></param>
-        /// <param name="includeDebugInfo"></param>
+        /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, IMethodProvider methodProvider = null, bool executeServiceFieldsSeparately = true, bool includeDebugInfo = false)
+        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
             QueryResult result;
             try
             {
-                var queryResult = CompileQuery(gql, claims, methodProvider);
-                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, executeServiceFieldsSeparately, includeDebugInfo);
+                var queryResult = CompileQuery(gql, claims);
+                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
             }
             catch (Exception ex)
             {
@@ -126,11 +127,8 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsIdentity claims, IMethodProvider methodProvider = null)
+        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsIdentity claims)
         {
-            if (methodProvider == null)
-                methodProvider = new DefaultMethodProvider();
-
             var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
             var queryResult = graphQLCompiler.Compile(gql, claims);
             return queryResult;

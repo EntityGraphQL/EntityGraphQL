@@ -4,7 +4,6 @@ namespace EntityGraphQL.Schema
 {
     public class ExecutionOptions
     {
-        public IMethodProvider MethodProvider { get; set; } = null;
         /// <summary>
         /// Turn on or off the pre selection of fields with no services.
         /// </summary>
