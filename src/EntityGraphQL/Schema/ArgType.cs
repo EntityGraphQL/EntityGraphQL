@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema
         public string Description { get; set; }
         public GqlTypeInfo Type { get; set; }
         public object DefaultValue { get; private set; }
-        public MemberInfo MemberInfo { get; private set; }
+        public MemberInfo MemberInfo { get; internal set; }
         public bool IsRequired { get; internal set; }
         public Type RawType { get; private set; }
 

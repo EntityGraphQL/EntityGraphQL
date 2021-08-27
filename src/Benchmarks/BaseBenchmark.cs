@@ -7,10 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Benchmarks
 {
-    public class BaseBenchmark
+    public abstract class BaseBenchmark
     {
-        public ServiceProvider Services { get; }
-        public SchemaProvider<BenchmarkContext> Schema { get; }
+        protected ServiceProvider Services { get; }
+        protected SchemaProvider<BenchmarkContext> Schema { get; }
 
         public BaseBenchmark()
         {

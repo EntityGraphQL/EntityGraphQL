@@ -15,12 +15,15 @@ namespace EntityGraphQL.Schema
     public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new();
+        private ParameterExpression argumentParam;
         private readonly ISchemaProvider schema;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
-
         public List<IFieldExtension> Extensions { get; private set; }
+
+        private readonly ParameterReplacer parameterReplacer;
+
         public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
@@ -56,6 +59,7 @@ namespace EntityGraphQL.Schema
             AuthorizeClaims = authorizeClaims;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
             Extensions = new List<IFieldExtension>();
+            parameterReplacer = new ParameterReplacer();
 
             if (resolve != null)
             {
@@ -72,6 +76,7 @@ namespace EntityGraphQL.Schema
                     Resolve = resolve.Body;
                 }
                 FieldParam = resolve.Parameters.First();
+                argumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
@@ -83,9 +88,23 @@ namespace EntityGraphQL.Schema
 
         public void AddArguments(object args)
         {
+            // get new argument values
             var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args);
-            ArgumentsType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
+            // build new argument Type
+            var newArgType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
+            // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
             newArgs.ToList().ForEach(k => allArguments.Add(k.Key, k.Value));
+            // now we need to update the MemberInfo
+            foreach (var item in allArguments)
+            {
+                item.Value.MemberInfo = (MemberInfo)newArgType.GetProperty(item.Value.Name) ??
+                    newArgType.GetField(item.Value.Name);
+            }
+
+            var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
+            Resolve = parameterReplacer.Replace(Resolve, argumentParam, argParam);
+            argumentParam = argParam;
+            ArgumentsType = newArgType;
         }
 
         public void UpdateReturnType(GqlTypeInfo gqlTypeInfo)
@@ -166,7 +185,6 @@ namespace EntityGraphQL.Schema
         {
             var result = new ExpressionResult(Resolve, Services);
 
-            var parameterReplacer = new ParameterReplacer();
             PrepareExpressionResult(args, this, result, parameterReplacer, context);
             // the expressions we collect have a different starting parameter. We need to change that
             result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, context);
@@ -225,7 +243,7 @@ namespace EntityGraphQL.Schema
                     argumentValues = con.Invoke(propVals.Values.ToArray());
                     foreach (var item in fieldVals)
                     {
-                        item.Key.SetValue(argumentValues, Convert.ChangeType(item.Value, item.Key.FieldType));
+                        item.Key.SetValue(argumentValues, item.Value);
                     }
                 }
                 else
@@ -243,15 +261,13 @@ namespace EntityGraphQL.Schema
                     }
                 }
                 // tell them this expression has another parameter
-                var argParam = Expression.Parameter(field.ArgumentsType, $"arg_{field.ArgumentsType.Name}");
-                result.Expression = parameterReplacer.ReplaceByType(result.Expression, field.ArgumentsType, argParam);
-                result.AddConstantParameter(argParam, argumentValues);
+                result.AddConstantParameter(argumentParam, argumentValues);
 
                 if (Extensions.Count > 0)
                 {
                     foreach (var m in Extensions)
                     {
-                        m.GetExpression(this, result, argParam, argumentValues, context, parameterReplacer);
+                        m.GetExpression(this, result, argumentParam, argumentValues, context, parameterReplacer);
                     }
                 }
             }
