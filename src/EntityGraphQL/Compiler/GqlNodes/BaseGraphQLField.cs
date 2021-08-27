@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -22,27 +23,41 @@ namespace EntityGraphQL.Compiler
     public abstract class BaseGraphQLField : IGraphQLNode
     {
         protected List<IFieldExtension> fieldExtensions;
+        public Expression NextContextExpression { get; set; }
+        public IGraphQLNode ParentNode { get; set; }
+        public ParameterExpression RootParameter { get; set; }
 
         /// <summary>
         /// Name of the field
         /// </summary>
         /// <value></value>
         public string Name { get; protected set; }
+
+        public BaseGraphQLField(string name, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        {
+            Name = name;
+            NextContextExpression = nextContextExpression;
+            RootParameter = rootParameter;
+            ParentNode = parentNode;
+        }
+
         /// <summary>
         /// Any values for a parameter that had a constant value in the query document.
         /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
         /// </summary>
         protected Dictionary<ParameterExpression, object> constantParameters = new();
-
+        public List<BaseGraphQLField> QueryFields { get; } = new();
         internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
-        public ParameterExpression RootFieldParameter { get; set; }
         public List<Type> Services { get; } = new List<Type>();
         /// <summary>
-        /// If this node has any services at all in its graph.
+        /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
+        /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public abstract bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments);
-
+        public virtual bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        {
+            return Services?.Any() == true || QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+        }
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
         /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()
@@ -56,7 +71,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="useReplaceContextDirectly">Use the replaceContextWith instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
         /// <returns></returns>
-        public abstract ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
+        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 
@@ -67,7 +82,17 @@ namespace EntityGraphQL.Compiler
             Services.AddRange(services);
         }
 
-        protected (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public void AddField(BaseGraphQLField field)
+        {
+            QueryFields.Add(field);
+            AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? ((GraphQLListSelectionField)field).Services : new List<Type>());
+            foreach (var item in field.ConstantParameters)
+            {
+                constantParameters.Add(item.Key, item.Value);
+            }
+        }
+
+        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
@@ -78,7 +103,7 @@ namespace EntityGraphQL.Compiler
             }
             return (baseExpression, selectionExpressions, selectContextParam);
         }
-        protected ExpressionResult ProcessScalarExpression(ExpressionResult expression, ParameterReplacer parameterReplacer)
+        protected Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
@@ -88,6 +113,14 @@ namespace EntityGraphQL.Compiler
                 }
             }
             return expression;
+        }
+
+        internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
+        {
+            foreach (var item in constantParameters)
+            {
+                this.constantParameters.Add(item.Key, item.Value);
+            }
         }
     }
 }

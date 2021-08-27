@@ -10,12 +10,12 @@ namespace EntityGraphQL.Compiler.Util
 {
     public static class ExpressionUtil
     {
-        public static ExpressionResult MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
+        public static Expression MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
             var type = typeof(IQueryable).IsAssignableFrom(parameters.First().Type) ? typeof(Queryable) : typeof(Enumerable);
             try
             {
-                return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
+                return Expression.Call(type, methodName, genericTypes, parameters);
             }
             catch (InvalidOperationException ex)
             {
@@ -23,12 +23,12 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
-        public static ExpressionResult MakeCallOnEnumerable(string methodName, Type[] genericTypes, params Expression[] parameters)
+        public static Expression MakeCallOnEnumerable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
             var type = typeof(Enumerable);
             try
             {
-                return (ExpressionResult)Expression.Call(type, methodName, genericTypes, parameters);
+                return Expression.Call(type, methodName, genericTypes, parameters);
             }
             catch (InvalidOperationException ex)
             {
@@ -138,16 +138,19 @@ namespace EntityGraphQL.Compiler.Util
                     call.Method.Name == "Single" || call.Method.Name == "SingleOrDefault")
                 {
                     // Get the expression that we can add the Select() too
-                    var contextExpression = collectionSelectionNode.FieldExpression;
+                    var contextExpression = collectionSelectionNode.ListExpression;
                     if (contextExpression != null && call.Arguments.Count == 2)
                     {
                         // this is a ctx.Something.First(f => ...)
                         // move the filter to a Where call so we can use .Select() to get the fields requested
                         var filter = call.Arguments.ElementAt(1);
-                        contextExpression = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { combineExpression.Type }, contextExpression, filter);
+                        var isQueryable = typeof(IQueryable).IsAssignableFrom(contextExpression.Type);
+                        contextExpression = isQueryable ?
+                            MakeCallOnQueryable("Where", new Type[] { combineExpression.Type }, contextExpression, filter) :
+                            MakeCallOnEnumerable("Where", new Type[] { combineExpression.Type }, contextExpression, filter);
                         // we can first call ToList() as the data is filtered so risk of over fetching is low
                         capMethod = call.Method.Name;
-                        collectionSelectionNode.FieldExpression = contextExpression;
+                        collectionSelectionNode.ListExpression = contextExpression;
                     }
                 }
             }
@@ -225,7 +228,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, ExpressionResult> fieldExpressions)
+        public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
@@ -234,13 +237,15 @@ namespace EntityGraphQL.Compiler.Util
             if (memberInit == null) // nothing to select
                 return baseExp;
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var call = MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+            var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
+            var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
+                MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
             return call;
         }
 
-        public static Expression CreateNewExpression(IDictionary<string, ExpressionResult> fieldExpressions, out Type dynamicType)
+        public static Expression CreateNewExpression(IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
         {
-            var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
+            var fieldExpressionsByName = new Dictionary<string, Expression>();
 
             foreach (var item in fieldExpressions)
             {
@@ -261,9 +266,9 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        private static Expression CreateNewExpression(Dictionary<string, ExpressionResult> fieldExpressions)
+        private static Expression CreateNewExpression(Dictionary<string, Expression> fieldExpressions)
         {
-            var fieldExpressionsByName = new Dictionary<string, ExpressionResult>();
+            var fieldExpressionsByName = new Dictionary<string, Expression>();
             foreach (var item in fieldExpressions)
             {
                 // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
@@ -288,7 +293,7 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static ExpressionResult WrapFieldForNullCheck(ExpressionResult nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        internal static Expression WrapFieldForNullCheck(Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new List<Expression> {
                 nullCheckExpression,
@@ -300,7 +305,7 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext ?? Expression.Constant(null),
             };
             var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
-            return (ExpressionResult)call;
+            return call;
         }
 
         /// <summary>
@@ -314,7 +319,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, ExpressionResult> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;

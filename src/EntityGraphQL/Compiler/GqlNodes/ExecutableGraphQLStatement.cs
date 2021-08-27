@@ -17,8 +17,19 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class ExecutableGraphQLStatement : IGraphQLStatement
     {
+        public Expression NextContextExpression { get; set; }
+        public IGraphQLNode ParentNode { get; set; }
+        public ParameterExpression RootParameter { get; set; }
         public string Name { get; protected set; }
-        public IEnumerable<BaseGraphQLField> QueryFields { get; protected set; }
+        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
+
+        public ExecutableGraphQLStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        {
+            Name = name;
+            NextContextExpression = nodeExpression;
+            RootParameter = rootParameter;
+            ParentNode = parentNode;
+        }
 
         public virtual Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options = null)
         {
@@ -68,8 +79,8 @@ namespace EntityGraphQL.Compiler
             // so that EF Core 3.1+ can run and optimise the query against the DB
             // We then select the full graph from that context
 
-            ExpressionResult expression = null;
-            var contextParam = node.RootFieldParameter;
+            Expression expression = null;
+            var contextParam = node.RootParameter;
 
             if (node.HasAnyServices(fragments) && options?.ExecuteServiceFieldsSeparately == true)
             {
@@ -102,7 +113,7 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
-        protected object ExecuteExpression(ExpressionResult expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
+        protected object ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
         {
             var allArgs = new List<object> { context };
 
@@ -119,7 +130,7 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in node.ConstantParameters)
                 {
-                    expression = (ExpressionResult)replacer.ReplaceByType(expression, item.Key.Type, item.Key);
+                    expression = replacer.ReplaceByType(expression, item.Key.Type, item.Key);
                 }
                 parameters.AddRange(node.ConstantParameters.Keys);
                 allArgs.AddRange(node.ConstantParameters.Values);
@@ -143,7 +154,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="expression"></param>
         /// <param name="replacer"></param>
         /// <returns></returns>
-        protected ExpressionResult CombineNodeExpressionWithSelection(ExpressionResult expression, ExpressionResult fullNodeExpression, ParameterReplacer replacer, ParameterExpression newContextParam)
+        protected Expression CombineNodeExpressionWithSelection(Expression expression, Expression fullNodeExpression, ParameterReplacer replacer, ParameterExpression newContextParam)
         {
             if (fullNodeExpression.NodeType != ExpressionType.Call)
                 throw new Exception($"Unexpected NoteType {fullNodeExpression.NodeType}");
@@ -152,7 +163,7 @@ namespace EntityGraphQL.Compiler
             if (call.Method.Name != "Select")
                 throw new Exception($"Unexpected method {call.Method.Name}");
 
-            var newExp = replacer.Replace(call.Arguments[1], QueryFields.First().RootFieldParameter, newContextParam);
+            var newExp = replacer.Replace(call.Arguments[1], QueryFields.First().RootParameter, newContextParam);
             if (newExp.NodeType == ExpressionType.Quote)
                 newExp = ((UnaryExpression)newExp).Operand;
 
@@ -162,6 +173,11 @@ namespace EntityGraphQL.Compiler
             var selection = (LambdaExpression)newExp;
             var newCall = ExpressionUtil.MakeCallOnQueryable("Select", new Type[] { newContextParam.Type, selection.ReturnType }, expression, selection);
             return newCall;
+        }
+
+        public void AddField(BaseGraphQLField field)
+        {
+            QueryFields.Add(field);
         }
     }
 }

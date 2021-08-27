@@ -1,14 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLQueryStatement : ExecutableGraphQLStatement
     {
-        public GraphQLQueryStatement(string name, IEnumerable<BaseGraphQLField> queryFields)
+        public GraphQLQueryStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nodeExpression, rootParameter, parentNode)
         {
-            Name = name;
-            QueryFields = queryFields.ToList();
         }
     }
 }

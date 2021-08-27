@@ -3,9 +3,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Security.Claims;
 using Antlr4.Runtime;
-using EntityGraphQL.Grammer;
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
+using EntityQL.Grammer;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
@@ -66,9 +65,9 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, ClaimsIdentity claims, IMethodProvider methodProvider)
         {
             AntlrInputStream stream = new AntlrInputStream(query);
-            var lexer = new EntityGraphQLLexer(stream);
+            var lexer = new EntityQLLexer(stream);
             var tokens = new CommonTokenStream(lexer);
-            var parser = new EntityGraphQLParser(tokens)
+            var parser = new EntityQLParser(tokens)
             {
                 BuildParseTree = true
             };

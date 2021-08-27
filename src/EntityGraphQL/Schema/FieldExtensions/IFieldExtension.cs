@@ -34,13 +34,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="baseExpression">Scalar: the expression. ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
         /// <param name="selectionExpressions">Scalar: null. ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
         /// <returns></returns>
-        (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer);
+        (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution
         /// </summary>
         /// <param name="fieldType"></param>
         /// <param name="expression">The final expression for the field</param>
         /// <returns></returns>
-        ExpressionResult ProcessScalarExpression(ExpressionResult expression, ParameterReplacer parameterReplacer);
+        Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer);
     }
 }

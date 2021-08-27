@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Linq;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Compiler.EntityQuery
@@ -36,7 +35,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
     public class DefaultMethodProvider : IMethodProvider
     {
         // Map of the method names and a function that makes the Expression.Call
-        private readonly Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>> _supportedMethods = new Dictionary<string, Func<Expression, Expression, string, ExpressionResult[], ExpressionResult>>(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, Func<Expression, Expression, string, Expression[], Expression>> _supportedMethods = new(StringComparer.OrdinalIgnoreCase)
         {
             { "where", MakeWhereMethod },
             { "filter", MakeWhereMethod },
@@ -54,7 +53,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return _supportedMethods.ContainsKey(methodName);
         }
 
-        public ExpressionResult GetMethodContext(ExpressionResult context, string methodName)
+        public Expression GetMethodContext(Expression context, string methodName)
         {
             // some methods have a context of the element type in the list, other is just the original context
             // need some way for the method compiler to tells us that
@@ -62,16 +61,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return GetContextFromEnumerable(context);
         }
 
-        public ExpressionResult MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<ExpressionResult> args)
+        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression> args)
         {
             if (_supportedMethods.ContainsKey(methodName))
             {
-                return _supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new ExpressionResult[] { });
+                return _supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new Expression[] { });
             }
             throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
         }
 
-        private static ExpressionResult MakeWhereMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeWhereMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var predicate = args.First();
@@ -80,17 +79,17 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { argContext.Type }, context, lambda);
         }
 
-        private static ExpressionResult MakeFirstMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeFirstMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "First");
         }
 
-        private static ExpressionResult MakeCountMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeCountMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Count");
         }
 
-        private static ExpressionResult MakeOptionalFilterArgumentCall(Expression context, Expression argContext, string methodName, ExpressionResult[] args, string actualMethodName)
+        private static Expression MakeOptionalFilterArgumentCall(Expression context, Expression argContext, string methodName, Expression[] args, string actualMethodName)
         {
             ExpectArgsCountBetween(0, 1, args, methodName);
 
@@ -105,12 +104,12 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable(actualMethodName, new Type[] { argContext.Type }, allArgs.ToArray());
         }
 
-        private static ExpressionResult MakeLastMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeLastMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             return MakeOptionalFilterArgumentCall(context, argContext, methodName, args, "Last");
         }
 
-        private static ExpressionResult MakeTakeMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeTakeMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
@@ -119,7 +118,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable("Take", new Type[] { argContext.Type }, context, amount);
         }
 
-        private static ExpressionResult MakeSkipMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeSkipMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var amount = args.First();
@@ -128,7 +127,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable("Skip", new Type[] { argContext.Type }, context, amount);
         }
 
-        private static ExpressionResult MakeOrderByMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeOrderByMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var column = args.First();
@@ -137,7 +136,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable("OrderBy", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
-        private static ExpressionResult MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, ExpressionResult[] args)
+        private static Expression MakeOrderByDescMethod(Expression context, Expression argContext, string methodName, Expression[] args)
         {
             ExpectArgsCount(1, args, methodName);
             var column = args.First();
@@ -146,38 +145,38 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return ExpressionUtil.MakeCallOnQueryable("OrderByDescending", new Type[] { argContext.Type, column.Type }, context, lambda);
         }
 
-        private static ExpressionResult GetContextFromEnumerable(ExpressionResult context)
+        private static Expression GetContextFromEnumerable(Expression context)
         {
             if (context.Type.IsEnumerableOrArray())
             {
                 Type type = context.Type.GetGenericArguments()[0];
-                return (ExpressionResult)Expression.Parameter(type, $"p_{type.Name}");
+                return Expression.Parameter(type, $"p_{type.Name}");
             }
             var t = context.Type.GetEnumerableOrArrayType();
             if (t != null)
-                return (ExpressionResult)Expression.Parameter(t, $"p_{t.Name}");
+                return Expression.Parameter(t, $"p_{t.Name}");
             return context;
         }
 
-        private static void ExpectArgsCount(int count, ExpressionResult[] args, string method)
+        private static void ExpectArgsCount(int count, Expression[] args, string method)
         {
             if (args.Count() != count)
                 throw new EntityGraphQLCompilerException($"Method '{method}' expects {count} argument(s) but {args.Count()} were supplied");
         }
 
-        private static void ExpectArgsCountBetween(int low, int high, ExpressionResult[] args, string method)
+        private static void ExpectArgsCountBetween(int low, int high, Expression[] args, string method)
         {
             if (args.Count() < low || args.Count() > high)
                 throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");
         }
 
-        private static ExpressionResult ConvertTypeIfWeCan(string methodName, ExpressionResult argExp, Type expected)
+        private static Expression ConvertTypeIfWeCan(string methodName, Expression argExp, Type expected)
         {
             if (expected != argExp.Type)
             {
                 try
                 {
-                    return (ExpressionResult)Expression.Convert(argExp, expected);
+                    return Expression.Convert(argExp, expected);
                 }
                 catch (Exception ex)
                 {

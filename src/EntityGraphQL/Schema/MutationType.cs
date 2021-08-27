@@ -30,13 +30,13 @@ namespace EntityGraphQL.Schema
 
         public List<IFieldExtension> Extensions => null;
 
-        public async Task<object> CallAsync(object context, Dictionary<string, ExpressionResult> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
+        public async Task<object> CallAsync(object context, Dictionary<string, Expression> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
             // args in the mutation method
             var allArgs = new List<object>();
 
             object argInstance = null;
-            if (gqlRequestArgs != null)
+            if (gqlRequestArgs?.Count > 0)
             {
                 // second arg is the arguments for the mutation - required as last arg in the mutation method
                 argInstance = AssignArgValues(gqlRequestArgs, fieldNamer);
@@ -93,7 +93,7 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        private object AssignArgValues(Dictionary<string, ExpressionResult> gqlRequestArgs, Func<string, string> fieldNamer)
+        private object AssignArgValues(Dictionary<string, Expression> gqlRequestArgs, Func<string, string> fieldNamer)
         {
             var argInstance = Activator.CreateInstance(this.argInstanceType);
             Type argType = this.argInstanceType;
@@ -142,7 +142,7 @@ namespace EntityGraphQL.Schema
             return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
-        private object GetValue(Dictionary<string, ExpressionResult> gqlRequestArgs, string memberName, Type memberType)
+        private object GetValue(Dictionary<string, Expression> gqlRequestArgs, string memberName, Type memberType)
         {
             object value = Expression.Lambda(gqlRequestArgs[memberName]).Compile().DynamicInvoke();
             if (value != null)
@@ -235,7 +235,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult GetExpression(Expression context, Dictionary<string, ExpressionResult> args)
+        public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
         {
             return null;
         }

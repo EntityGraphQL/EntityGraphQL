@@ -6,25 +6,28 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentStatement : IGraphQLStatement
     {
+        public Expression NextContextExpression { get; set; }
+        public IGraphQLNode ParentNode { get; set; }
+        public ParameterExpression RootParameter { get; set; }
+        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
+
         public string Name { get; }
 
-        public IEnumerable<BaseGraphQLField> Fields { get; }
-        /// <summary>
-        /// The ParameterExpression used for the context.n This needs to be replaced by the real parameter on execution
-        /// </summary>
-        /// <value></value>
-        public ParameterExpression SelectContext { get; }
-
-        public GraphQLFragmentStatement(string name, IEnumerable<BaseGraphQLField> fields, ParameterExpression selectContext)
+        public GraphQLFragmentStatement(string name, ParameterExpression selectContext, ParameterExpression rootParameter)
         {
             Name = name;
-            Fields = fields;
-            SelectContext = selectContext;
+            NextContextExpression = selectContext;
+            RootParameter = rootParameter;
         }
 
         internal List<Expression> Compile<TContext>(TContext context, GraphQLValidator validator, IServiceProvider services, List<GraphQLFragmentStatement> fragments, out List<object> allArgs)
         {
             throw new NotImplementedException();
+        }
+
+        public void AddField(BaseGraphQLField field)
+        {
+            QueryFields.Add(field);
         }
     }
 }

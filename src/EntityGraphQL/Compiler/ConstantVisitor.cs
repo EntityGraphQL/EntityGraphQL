@@ -1,6 +1,6 @@
 using System;
 using System.Linq.Expressions;
-using EntityGraphQL.Grammer;
+using EntityQL.Grammer;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using EntityGraphQL.Schema;
@@ -9,7 +9,7 @@ using System.Linq;
 namespace EntityGraphQL.Compiler
 {
 
-    internal class ConstantVisitor : EntityGraphQLBaseVisitor<ExpressionResult>
+    internal class ConstantVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
         public static readonly Regex GuidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
         public static readonly Regex DateTimeRegex = new Regex("^[0-9]{4}[-][0-9]{2}[-][0-9]{2}([T ][0-9]{2}[:][0-9]{2}[:][0-9]{2}(\\.[0-9]{1,7})?([-+][0-9]{3})?)?$", RegexOptions.IgnoreCase);
@@ -20,24 +20,24 @@ namespace EntityGraphQL.Compiler
             this.schema = schema;
         }
 
-        public override ExpressionResult VisitInt(EntityGraphQLParser.IntContext context)
+        public override ExpressionResult VisitInt(EntityQLParser.IntContext context)
         {
             string s = context.GetText();
             return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(long.Parse(s)) : Expression.Constant(long.Parse(s)));
         }
 
-        public override ExpressionResult VisitBoolean(EntityGraphQLParser.BooleanContext context)
+        public override ExpressionResult VisitBoolean(EntityQLParser.BooleanContext context)
         {
             string s = context.GetText();
             return (ExpressionResult)Expression.Constant(bool.Parse(s));
         }
 
-        public override ExpressionResult VisitDecimal(EntityGraphQLParser.DecimalContext context)
+        public override ExpressionResult VisitDecimal(EntityQLParser.DecimalContext context)
         {
             return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
         }
 
-        public override ExpressionResult VisitString(EntityGraphQLParser.StringContext context)
+        public override ExpressionResult VisitString(EntityQLParser.StringContext context)
         {
             // we may need to convert a string into a DateTime or Guid type
             string value = context.GetText().Substring(1, context.GetText().Length - 2).Replace("\\\"", "\"");
@@ -50,13 +50,13 @@ namespace EntityGraphQL.Compiler
             return (ExpressionResult)Expression.Constant(value);
         }
 
-        public override ExpressionResult VisitNull(EntityGraphQLParser.NullContext context)
+        public override ExpressionResult VisitNull(EntityQLParser.NullContext context)
         {
             var exp = (ExpressionResult)Expression.Constant(null);
             return exp;
         }
 
-        public override ExpressionResult VisitIdentity(EntityGraphQLParser.IdentityContext context)
+        public override ExpressionResult VisitIdentity(EntityQLParser.IdentityContext context)
         {
             // this should be an enum
             var enumVal = context.GetText();

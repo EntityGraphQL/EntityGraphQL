@@ -9,7 +9,7 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Tests
 {
-    public class ComplexFieldsTests
+    public class ServiceFieldTests
     {
         [Fact]
         public void TestServicesAtRoot()
@@ -105,18 +105,18 @@ namespace EntityGraphQL.Tests
             var context = new TestDataContext
             {
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Projects = new List<Project>
                         {
-                            new Project
+                            new Person
                             {
-                                Id = 4,
+                                Projects = new List<Project>
+                                {
+                                    new Project
+                                    {
+                                        Id = 4,
+                                    }
+                                }
                             }
                         }
-                    }
-                }
             };
             var serviceCollection = new ServiceCollection();
             ConfigService srv = new ConfigService();
@@ -166,13 +166,13 @@ namespace EntityGraphQL.Tests
             {
                 Projects = new List<Project>(),
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Name = "Alyssa",
-                        Projects = new List<Project>()
-                    }
-                }
+                        {
+                            new Person
+                            {
+                                Name = "Alyssa",
+                                Projects = new List<Project>()
+                            }
+                        }
             };
             var serviceCollection = new ServiceCollection();
             EntityPager pager = new EntityPager();
@@ -208,17 +208,17 @@ namespace EntityGraphQL.Tests
             {
                 Projects = new List<Project>(),
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Name = "Alyssa",
-                        Projects = new List<Project>(),
-                        Manager = new Person
                         {
-                            Name = "Jennifer"
+                            new Person
+                            {
+                                Name = "Alyssa",
+                                Projects = new List<Project>(),
+                                Manager = new Person
+                                {
+                                    Name = "Jennifer"
+                                }
+                            }
                         }
-                    }
-                }
             };
             var serviceCollection = new ServiceCollection();
             EntityPager pager = new EntityPager();
@@ -254,17 +254,17 @@ namespace EntityGraphQL.Tests
             {
                 Projects = new List<Project>(),
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Name = "Alyssa",
-                        Projects = new List<Project>(),
-                        Manager = new Person
                         {
-                            Name = "Jennifer"
+                            new Person
+                            {
+                                Name = "Alyssa",
+                                Projects = new List<Project>(),
+                                Manager = new Person
+                                {
+                                    Name = "Jennifer"
+                                }
+                            }
                         }
-                    }
-                }
             };
             var serviceCollection = new ServiceCollection();
             var ager = new AgeService();
@@ -301,17 +301,17 @@ namespace EntityGraphQL.Tests
             {
                 Projects = new List<Project>(),
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Name = "Alyssa",
-                        Projects = new List<Project>(),
-                        Manager = new Person
                         {
-                            Name = "Jennifer"
+                            new Person
+                            {
+                                Name = "Alyssa",
+                                Projects = new List<Project>(),
+                                Manager = new Person
+                                {
+                                    Name = "Jennifer"
+                                }
+                            }
                         }
-                    }
-                }
             };
             var serviceCollection = new ServiceCollection();
             var ager = new AgeService();
@@ -335,12 +335,11 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             // Linking a type from a service back to the schema context
-            schema.AddType<User>("User").AddAllFields();
-            schema.Type<User>().AddField("projects",
+            schema.Type<User>().ReplaceField("projects",
                 (user) => WithService((TestDataContext db) => db.Projects.Where(p => p.Owner.Id == user.Id)),
                 "Peoples projects");
 
-            schema.AddField("user", ctx => WithService((UserService users) => users.GetUser()), "Get current user");
+            schema.ReplaceField("user", ctx => WithService((UserService users) => users.GetUser()), "Get current user");
 
             var gql = new QueryRequest
             {
@@ -351,12 +350,12 @@ namespace EntityGraphQL.Tests
             {
                 Projects = new List<Project>(),
                 People = new List<Person>
-                {
-                    new Person
-                    {
-                        Projects = new List<Project>()
-                    }
-                },
+                        {
+                            new Person
+                            {
+                                Projects = new List<Project>()
+                            }
+                        },
             };
             var serviceCollection = new ServiceCollection();
             UserService userService = new UserService();
@@ -384,26 +383,26 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"query {
-  projects {
-    tasks {
-      settings {
-        allowComments
-      }
-      id # the service field below requires id. Make sure we don't select it twice
-    }
-  }
-}"
+          projects {
+            tasks {
+              settings {
+                allowComments
+              }
+              id # the service field below requires id. Make sure we don't select it twice
+            }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task> { new Task() }
-                    }
-                },
+                        {
+                            new Project
+                            {
+                                Tasks = new List<Task> { new Task() }
+                            }
+                        },
             };
             var serviceCollection = new ServiceCollection();
             var settings = new SettingsService();
@@ -421,55 +420,6 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestReuseFragment()
-        {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-
-            schema.AddField("activeProjects",
-                ctx => ctx.Projects, // pretent you id some filtering here
-                "Active projects").IsNullable(false);
-            schema.AddField("oldProjects",
-                ctx => ctx.Projects, // pretent you id some filtering here
-                "Old projects").IsNullable(false);
-
-            var gql = new QueryRequest
-            {
-                Query = @"query {
-  activeProjects {
-    ...frag
-  }
-  oldProjects {
-    ...frag
-  }
-}
-
-fragment frag on Project {
-  id
-}"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Id = 9,
-                        Tasks = new List<Task> { new Task() }
-                    },
-                    new Project
-                    {
-                        Id = 2,
-                        Tasks = new List<Task> { new Task() }
-                    }
-                },
-            };
-
-            var res = schema.ExecuteQuery(gql, context, null, null);
-            Assert.Null(res.Errors);
-        }
-
-        [Fact]
         public void TestComplexFieldWithServiceField()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -483,24 +433,24 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"query {
-  projects {
-    totalTasks
-    settings {
-      allowComments
-    }
-  }
-}"
+          projects {
+            totalTasks
+            settings {
+              allowComments
+            }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task> { new Task() }
-                    }
-                },
+                        {
+                            new Project
+                            {
+                                Tasks = new List<Task> { new Task() }
+                            }
+                        },
             };
             var serviceCollection = new ServiceCollection();
             var settings = new SettingsService();
@@ -532,31 +482,31 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"query {
-  projects {
-    owner {
-        managerId
-    }
-    settings {
-      allowComments
-    }
-  }
-}"
+          projects {
+            owner {
+                managerId
+            }
+            settings {
+              allowComments
+            }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task> { new Task() },
-                        Owner = new Person
                         {
-                            Id = 77,
-                            Manager = new Person { Id = 99 }
-                        }
-                    }
-                },
+                            new Project
+                            {
+                                Tasks = new List<Task> { new Task() },
+                                Owner = new Person
+                                {
+                                    Id = 77,
+                                    Manager = new Person { Id = 99 }
+                                }
+                            }
+                        },
             };
             var serviceCollection = new ServiceCollection();
             var settings = new SettingsService();
@@ -572,49 +522,6 @@ fragment frag on Project {
             Assert.Equal("managerId", project.owner.GetType().GetFields()[0].Name);
             Assert.Equal("settings", projectType.GetFields()[1].Name);
             Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
-        }
-
-        [Fact]
-        public void TestUseConstFilter()
-        {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("projects",
-                new
-                {
-                    search = (string)null
-                },
-                (ctx, args) => ctx.Projects.OrderBy(p => p.Id),
-                "List of projects");
-
-            Func<Task, bool> TaskFilter = t => t.IsActive == true;
-            schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(TaskFilter), "Active tasks");
-
-            var gql = new QueryRequest
-            {
-                Query = @"query {
-  projects {
-    tasks { id }
-  }
-}"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task> { new Task() },
-                    }
-                },
-            };
-
-            var res = schema.ExecuteQuery(gql, context, null, null);
-            Assert.Null(res.Errors);
-            dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
-            Type projectType = project.GetType();
-            Assert.Single(projectType.GetFields());
-            Assert.Equal("tasks", projectType.GetFields()[0].Name);
         }
 
         [Fact]
@@ -637,28 +544,28 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-  projects {
-    config { type }
-    tasks { id }
-  }
-}"
+          projects {
+            config { type }
+            tasks { id }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task>
                         {
-                            new Task
+                            new Project
                             {
-                                Id = 98
+                                Tasks = new List<Task>
+                                {
+                                    new Task
+                                    {
+                                        Id = 98
+                                    }
+                                }
                             }
-                        }
-                    }
-                },
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -690,25 +597,25 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-  projects {
-    config { type }
-    tasks { id isActive }
-  }
-}"
+          projects {
+            config { type }
+            tasks { id isActive }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task>
                         {
-                            new Task { Id = 98 }
-                        }
-                    }
-                },
+                            new Project
+                            {
+                                Tasks = new List<Task>
+                                {
+                                    new Task { Id = 98 }
+                                }
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -740,25 +647,25 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-  projects {
-    config { type }
-    tasks { isActive project { isActive } }
-  }
-}"
+          projects {
+            config { type }
+            tasks { isActive project { isActive } }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task>
                         {
-                            new Task { Id = 98, IsActive = true }
-                        }
-                    }
-                },
+                            new Project
+                            {
+                                Tasks = new List<Task>
+                                {
+                                    new Task { Id = 98, IsActive = true }
+                                }
+                            }
+                        },
             };
             context.Projects.First().Tasks.First().Project = context.Projects.First();
 
@@ -791,25 +698,25 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-  projects {
-    config { type }
-    tasks { isActive }
-  }
-}"
+          projects {
+            config { type }
+            tasks { isActive }
+          }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task>
                         {
-                            new Task { Id = 98, IsActive = true }
-                        }
-                    }
-                },
+                            new Project
+                            {
+                                Tasks = new List<Task>
+                                {
+                                    new Task { Id = 98, IsActive = true }
+                                }
+                            }
+                        },
             };
             context.Projects.First().Tasks.First().Project = context.Projects.First();
 
@@ -820,52 +727,6 @@ fragment frag on Project {
             Assert.Equal(2, projectType.GetFields().Count());
             Assert.Equal("config", projectType.GetFields()[0].Name);
             Assert.Equal("tasks", projectType.GetFields()[1].Name);
-        }
-
-        [Fact]
-        public void TestWhereWhenOnNonRootField()
-        {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-
-            schema.Type<Project>().ReplaceField("tasks",
-                new
-                {
-                    like = (string)null
-                },
-                (project, args) => project.Tasks.WhereWhen(t => t.Name.Contains(args.like), !string.IsNullOrEmpty(args.like)),
-                "List of project tasks");
-
-            var gql = new QueryRequest
-            {
-                Query = @"{
-    projects {
-        tasks(like: ""h"") { name }
-    }
-}"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = new List<Task>
-                        {
-                            new Task { Name = "hello" },
-                            new Task { Name = "world" },
-                        },
-                        Description = "Hello"
-                    }
-                },
-            };
-
-            var res = schema.ExecuteQuery(gql, context, null, null);
-            Assert.Null(res.Errors);
-            dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
-            Type projectType = project.GetType();
-            Assert.Single(projectType.GetFields());
-            Assert.Equal("tasks", projectType.GetFields()[0].Name);
         }
 
         [Fact]
@@ -894,22 +755,22 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-    projects {
-        configType
-    }
-}"
+            projects {
+                configType
+            }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = null,
-                        Description = "Hello"
-                    }
-                },
+                        {
+                            new Project
+                            {
+                                Tasks = null,
+                                Description = "Hello"
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -946,22 +807,22 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"{
-    project(id: 0) {
-        configType
-    }
-}"
+            project(id: 0) {
+                configType
+            }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Tasks = null,
-                        Description = "Hello"
-                    }
-                },
+                        {
+                            new Project
+                            {
+                                Tasks = null,
+                                Description = "Hello"
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -970,54 +831,6 @@ fragment frag on Project {
             Type projectType = project.GetType();
             Assert.Single(projectType.GetFields());
             Assert.Equal("configType", projectType.GetFields()[0].Name);
-        }
-
-        [Fact]
-        public void TestFragmentWithFieldThatSkipsARelation()
-        {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.UpdateType<Project>(projectType =>
-            {
-                projectType.AddField("manager", p => p.Owner.Manager, "The manager of the owner");
-            });
-
-            var gql = new QueryRequest
-            {
-                Query = @"query {
-  projects {
-      ...frag
-  }
-}
-
-fragment frag on Project {
-  manager {
-      name
-  }
-}"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Id = 9,
-                        Owner = new Person
-                        {
-                            Name = "Bill",
-                            Manager = new Person
-                            {
-                                Name = "Jill"
-                            }
-                        },
-                        Tasks = new List<Task> { new Task() }
-                    },
-                },
-            };
-
-            var res = schema.ExecuteQuery(gql, context, null, null);
-            Assert.Null(res.Errors);
         }
 
         [Fact]
@@ -1044,47 +857,47 @@ fragment frag on Project {
             var gql = new QueryRequest
             {
                 Query = @"
-fragment taskFrag on Task {
-    assigneeProjects { # skips relation in context
-        id
-    }
-    assignee { # relation
-        age # service
-    }
-}
-
-query {
-    project(id: 0) { # context collection to single
-        description
-        configType # service field
-        tasks {
-            ...taskFrag
+        fragment taskFrag on Task {
+            assigneeProjects { # skips relation in context
+                id
+            }
+            assignee { # relation
+                age # service
+            }
         }
-    }
-}"
+
+        query {
+            project(id: 0) { # context collection to single
+                description
+                configType # service field
+                tasks {
+                    ...taskFrag
+                }
+            }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                {
-                    new Project
-                    {
-                        Id = 0,
-                        Description = "Hello",
-                        Tasks = new List<Task>
                         {
-                            new Task
+                            new Project
                             {
-                                Assignee = new Person
+                                Id = 0,
+                                Description = "Hello",
+                                Tasks = new List<Task>
                                 {
-                                    Name = "Billy",
-                                    Projects = new List<Project>()
-                                }
+                                    new Task
+                                    {
+                                        Assignee = new Person
+                                        {
+                                            Name = "Billy",
+                                            Projects = new List<Project>()
+                                        }
+                                    }
+                                },
                             }
                         },
-                    }
-                },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1110,28 +923,28 @@ query {
             var gql = new QueryRequest
             {
                 Query = @"query {
-    task(id: 1) { # context collection to single
-        project {
-            configType
-        }
-    }
-}"
+            task(id: 1) { # context collection to single
+                project {
+                    configType
+                }
+            }
+        }"
             };
 
             var context = new TestDataContext
             {
                 Tasks = new List<Task>
-                {
-                    new Task
-                    {
-                        Id = 1,
-                        Project = new Project
                         {
-                            Id = 0,
-                            Description = "Hello",
-                        }
-                    }
-                },
+                            new Task
+                            {
+                                Id = 1,
+                                Project = new Project
+                                {
+                                    Id = 0,
+                                    Description = "Hello",
+                                }
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1157,30 +970,30 @@ query {
             var gql = new QueryRequest
             {
                 Query = @"query {
-    task(id: 1) { # context collection to single
-        project {
-            config {
-                type
+            task(id: 1) { # context collection to single
+                project {
+                    config {
+                        type
+                    }
+                }
             }
-        }
-    }
-}"
+        }"
             };
 
             var context = new TestDataContext
             {
                 Tasks = new List<Task>
-                {
-                    new Task
-                    {
-                        Id = 1,
-                        Project = new Project
                         {
-                            Id = 0,
-                            Description = "Hello",
-                        }
-                    }
-                },
+                            new Task
+                            {
+                                Id = 1,
+                                Project = new Project
+                                {
+                                    Id = 0,
+                                    Description = "Hello",
+                                }
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1206,30 +1019,30 @@ query {
             var gql = new QueryRequest
             {
                 Query = @"query {
-    task(id: 1) { # context collection to single
-        project {
-            config {
-                type
+            task(id: 1) { # context collection to single
+                project {
+                    config {
+                        type
+                    }
+                }
             }
-        }
-    }
-}"
+        }"
             };
 
             var context = new TestDataContext
             {
                 Tasks = new List<Task>
-                {
-                    new Task
-                    {
-                        Id = 1,
-                        Project = new Project
                         {
-                            Id = 0,
-                            Description = "Hello",
-                        }
-                    }
-                },
+                            new Task
+                            {
+                                Id = 1,
+                                Project = new Project
+                                {
+                                    Id = 0,
+                                    Description = "Hello",
+                                }
+                            }
+                        },
             };
 
             var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);

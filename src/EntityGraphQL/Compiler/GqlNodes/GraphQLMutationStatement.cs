@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -13,10 +12,10 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(string name, IEnumerable<GraphQLMutationField> mutationFields)
+        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nodeExpression, rootParameter, parentNode)
         {
             Name = name;
-            QueryFields = mutationFields.ToList();
         }
 
         public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
@@ -79,10 +78,14 @@ namespace EntityGraphQL.Compiler
                     if (listExp.Item1 != null && mutationContextExpression.NodeType == ExpressionType.Call)
                     {
                         // yes we can
-                        // rebuild the ExpressionResult so we keep any ConstantParameters
-                        var item1 = (ExpressionResult)listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(null, Name, item1, node.ResultSelection.RootFieldParameter, node.ResultSelection.QueryFields, (ExpressionResult)node.ResultSelection.RootFieldParameter);
-                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)node.ResultSelection, listExp.Item2);
+                        // rebuild the Expression so we keep any ConstantParameters
+                        var item1 = listExp.Item1;
+                        var collectionNode = new GraphQLListSelectionField(null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node);
+                        foreach (var queryField in node.ResultSelection.QueryFields)
+                        {
+                            collectionNode.AddField(queryField);
+                        }
+                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2);
                         resultExp = newNode;
                     }
                     else
@@ -95,11 +98,11 @@ namespace EntityGraphQL.Compiler
                     // we now know the context as it is dynamically returned in a mutation
                     if (resultExp is GraphQLListSelectionField listField)
                     {
-                        listField.FieldExpression = (ExpressionResult)mutationContextExpression;
+                        listField.ListExpression = mutationContextExpression;
                     }
                     SetupConstants(resultExp, mutationContextExpression);
                 }
-                resultExp.RootFieldParameter = mutationContextParam;
+                resultExp.RootParameter = mutationContextParam;
 
                 result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options);
                 return result;
@@ -108,8 +111,8 @@ namespace EntityGraphQL.Compiler
             if (resultExp is GraphQLListSelectionField field)
             {
                 var contextParam = Expression.Parameter(result.GetType());
-                resultExp.RootFieldParameter = contextParam;
-                field.FieldExpression = (ExpressionResult)contextParam;
+                resultExp.RootParameter = contextParam;
+                field.ListExpression = contextParam;
             }
 
             // run the query select against the object they have returned directly from the mutation

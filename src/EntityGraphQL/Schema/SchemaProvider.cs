@@ -231,14 +231,14 @@ namespace EntityGraphQL.Schema
                     var requiredClaims = new RequiredClaims(claims);
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
                     var typeName = GetSchemaTypeForDotnetType(actualReturnType).Name;
-                    var returnType = new GqlTypeInfo(() => GetReturnType(typeName), actualReturnType);
+                    var returnType = new GqlTypeInfo(() => GetSchemaType(typeName), actualReturnType);
                     var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync, SchemaFieldNamer);
                     mutations[name] = mutationType;
                 }
             }
         }
 
-        private ISchemaType GetReturnType(string typeName)
+        public ISchemaType GetSchemaType(string typeName)
         {
             if (types.ContainsKey(typeName))
                 return types[typeName];

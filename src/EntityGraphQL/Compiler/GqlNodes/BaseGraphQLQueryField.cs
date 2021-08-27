@@ -11,50 +11,13 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
-        /// <summary>
-        /// The Expression (usually a ParameterExpression or MemberExpression) used to build the Select object
-        /// If the field is not IEnumerable e.g. param.Name, this is not used as the selection will be built using param.Name
-        /// If the field is IEnumerable e.g. param.People, this will be a ParameterExpression of the element type of People.
-        /// </summary>
-        protected ExpressionResult selectionContext;
-        public ExpressionResult SelectionContext => selectionContext;
-
-        /// <summary>
-        /// Holds the node's dotnet ExpressionStatement
-        /// </summary>
-        protected ExpressionResult fullNodeExpression;
-        /// <summary>
-        /// Holds the expression without any fields that use services
-        /// </summary>
-        protected ExpressionResult nodeExpressionNoServiceFields;
-
-        /// <summary>
-        /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
-        /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
-        /// </summary>
-        /// <value></value>
-        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
-        {
-            return Services?.Any() == true || queryFields?.Any(f => f.HasAnyServices(fragments)) == true;
-        }
-
-        protected List<BaseGraphQLField> queryFields;
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField()
+        protected BaseGraphQLQueryField(string name, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nextContextExpression, rootParameter, parentNode)
         {
-            if (selectionContext != null)
-                Services.AddRange(selectionContext.Services);
             replacer = new ParameterReplacer();
         }
-
-        /// <summary>
-        /// The fields that this node selects
-        /// query {
-        ///     rootField { queryField1 queryField2 ... }
-        // }
-        /// </summary>
-        public IEnumerable<BaseGraphQLField> QueryFields { get => queryFields; }
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
@@ -66,7 +29,7 @@ namespace EntityGraphQL.Compiler
 
             var selectionFields = new Dictionary<string, CompiledField>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var field in queryFields)
+            foreach (var field in QueryFields)
             {
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
@@ -76,32 +39,26 @@ namespace EntityGraphQL.Compiler
                     if (fieldExp == null)
                         continue;
 
-                    // pull up any services
-                    AddServices(fieldExp?.Services);
-
                     // if this came from a fragment we need to fix the expression context
-                    if (SelectionContext != null && field is GraphQLFragmentField fragField)
+                    if (NextContextExpression != null && field is GraphQLFragmentField)
                     {
-                        fieldExp = (ExpressionResult)replacer.Replace(fieldExp, subField.RootFieldParameter, SelectionContext);
+                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter, NextContextExpression);
                     }
 
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
                     // pull any constant values up
+                    // TODO is this done in the walker (bringing them to the root node)
                     foreach (var item in subField.ConstantParameters)
                     {
                         if (!constantParameters.ContainsKey(item.Key))
                             constantParameters.Add(item.Key, item.Value);
                     }
+                    Services.AddRange(subField.Services);
                 }
             }
 
             return selectionFields.Count == 0 ? null : selectionFields;
-        }
-
-        public void SetNodeExpression(ExpressionResult expr)
-        {
-            fullNodeExpression = expr;
         }
     }
 }

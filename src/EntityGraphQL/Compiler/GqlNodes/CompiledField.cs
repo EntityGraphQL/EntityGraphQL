@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
@@ -5,13 +7,13 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class CompiledField
     {
-        public CompiledField(BaseGraphQLField field, ExpressionResult expression)
+        public CompiledField(BaseGraphQLField field, Expression expression)
         {
             Field = field;
             Expression = expression;
         }
 
         public BaseGraphQLField Field { get; set; }
-        public ExpressionResult Expression { get; set; }
+        public Expression Expression { get; set; }
     }
 }

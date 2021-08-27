@@ -33,7 +33,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return connectionPagingExtension.EdgeExpression;
         }
 
-        public override (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             var selectParam = Expression.Parameter(nodeExpressionType);
             var idxParam = Expression.Parameter(typeof(int));
@@ -59,14 +59,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     idxParam
                 )
             );
-            edgesExp.AddServices(baseExpression.Services);
-            edgesExp.AddConstantParameters(baseExpression.ConstantParameters);
 
             // we have an extension handling things for the Node field. For Cursor we need to fix the parameter
             if (hasCursorField)
             {
                 var exp = selectionExpressions.First(i => i.Value.Field.Name == "cursor");
-                exp.Value.Expression.Expression = Expression.PropertyOrField(newEdgeParam, "Cursor");
+                exp.Value.Expression = Expression.PropertyOrField(newEdgeParam, "Cursor");
             }
 
             return (edgesExp, selectionExpressions, newEdgeParam);

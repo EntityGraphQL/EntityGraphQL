@@ -7,14 +7,14 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentField : BaseGraphQLField
     {
-        public GraphQLFragmentField(string name)
+        public GraphQLFragmentField(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nodeExpression, rootParameter, parentNode)
         {
-            Name = name;
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return fragments.FirstOrDefault(f => f.Name == Name).Fields.Any(f => f.HasAnyServices(fragments));
+            return fragments.FirstOrDefault(f => f.Name == Name).QueryFields.Any(f => f.HasAnyServices(fragments));
         }
         public GraphQLFragmentStatement Fragment { get; private set; }
 
@@ -26,10 +26,10 @@ namespace EntityGraphQL.Compiler
                 Fragment = fragment;
             }
 
-            return Fragment.Fields.SelectMany(f => f.Expand(fragments, withoutServiceFields));
+            return Fragment.QueryFields.SelectMany(f => f.Expand(fragments, withoutServiceFields));
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

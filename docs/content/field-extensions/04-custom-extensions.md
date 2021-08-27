@@ -36,14 +36,14 @@ public class FormatStringExtension : IFieldExtension
 
     // This is called on compilation of a query if the query references this field
     // Good opportunity to check arguments
-    public Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+    public Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
     {
         if (arguments.last == null && arguments.first == null)
             throw new ArgumentException($"Please provide at least the first or last argument");
     }
 
     // Called at expression execution time.
-    public (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions) ProcessScalarExpression(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions)
+    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions) ProcessScalarExpression(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions)
     {
     }
 }

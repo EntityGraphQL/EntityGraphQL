@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 
@@ -21,7 +20,7 @@ namespace EntityGraphQL.Directives
         /// </summary>
         /// <value></value>
         bool ProcessesResult { get; }
-        BaseGraphQLField ProcessQueryInternal(BaseGraphQLField fieldResult, object arguments);
+        BaseGraphQLField ProcessField(BaseGraphQLField fieldResult, object arguments);
         IEnumerable<ArgType> GetArguments(ISchemaProvider schema);
     }
 
@@ -62,7 +61,7 @@ namespace EntityGraphQL.Directives
             return value;
         }
 
-        public BaseGraphQLField ProcessQueryInternal(BaseGraphQLField field, object arguments)
+        public BaseGraphQLField ProcessField(BaseGraphQLField field, object arguments)
         {
             var result = ProcessQuery(field, (TArguments)arguments);
             if (ProcessesResult)

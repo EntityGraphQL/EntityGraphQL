@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -15,7 +14,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class Field : IField
     {
-        private readonly Dictionary<string, ArgType> allArguments = new Dictionary<string, ArgType>();
+        private readonly Dictionary<string, ArgType> allArguments = new();
         private readonly ISchemaProvider schema;
 
         public string Name { get; internal set; }
@@ -163,7 +162,7 @@ namespace EntityGraphQL.Schema
             extension.Configure(schema, this);
         }
 
-        public ExpressionResult GetExpression(Expression context, Dictionary<string, ExpressionResult> args)
+        public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
         {
             var result = new ExpressionResult(Resolve, Services);
 
@@ -175,7 +174,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        private void PrepareExpressionResult(Dictionary<string, ExpressionResult> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context)
+        private void PrepareExpressionResult(Dictionary<string, Expression> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context)
         {
             if (field.ArgumentsType != null)
             {
@@ -197,7 +196,7 @@ namespace EntityGraphQL.Schema
                         if (hasValue)
                         {
                             var genericProp = entityQuery.GetType().GetProperty("Query");
-                            genericProp.SetValue(entityQuery, ((ExpressionResult)val).Expression);
+                            genericProp.SetValue(entityQuery, val);
                         }
 
                         if (argField.MemberInfo is PropertyInfo info)
@@ -269,7 +268,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        private static object BuildArgumentFromMember(Dictionary<string, ExpressionResult> args, Field field, string memberName, Type memberType, object defaultValue)
+        private static object BuildArgumentFromMember(Dictionary<string, Expression> args, Field field, string memberName, Type memberType, object defaultValue)
         {
             string argName = memberName;
             // check we have required arguments

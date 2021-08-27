@@ -2,8 +2,6 @@ using Xunit;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Extensions;
-using EntityGraphQL.Compiler;
 using System;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Tests

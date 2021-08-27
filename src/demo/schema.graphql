@@ -131,9 +131,13 @@ type PersonEdge {
 
 """Metadata about a Person page (paging over people)"""
 type PersonPage {
+	"""Items in the page"""
 	items: [Person!]
+	"""True if there is more data before this page"""
 	hasPreviousPage: Boolean!
+	"""True if there is more data after this page"""
 	hasNextPage: Boolean!
+	"""Count of the total items in the collection"""
 	totalItems: Int!
 }
 

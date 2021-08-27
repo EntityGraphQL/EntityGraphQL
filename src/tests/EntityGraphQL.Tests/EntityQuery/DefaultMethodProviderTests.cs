@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {

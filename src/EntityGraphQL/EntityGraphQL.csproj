@@ -24,11 +24,12 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
+    <PackageReference Include="HotChocolate.Language" Version="11.3.5" />
   </ItemGroup>
   <ItemGroup>
-    <Antlr4 Update="Compiler/Grammer/EntityGraphQL.g4">
+    <Antlr4 Update="Compiler/Grammer/EntityQL.g4">
       <Generator>MSBuild:Compile</Generator>
-      <CustomToolNamespace>EntityGraphQL.Grammer</CustomToolNamespace>
+      <CustomToolNamespace>EntityQL.Grammer</CustomToolNamespace>
       <Listener>False</Listener>
       <Visitor>True</Visitor>
     </Antlr4>

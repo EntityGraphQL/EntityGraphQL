@@ -13,8 +13,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestGetsAll()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
@@ -63,8 +63,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestFirst()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
@@ -112,8 +112,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestFirstAfter()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
@@ -161,8 +161,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestLast()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
@@ -210,8 +210,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestLastBefore()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
@@ -260,8 +260,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         [Fact]
         public void TestMergeArguments()
         {
-            var schema = SchemaBuilder.FromObject<TestSchema>();
-            var data = new TestSchema();
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
             FillData(data);
 
             schema.ReplaceField(
@@ -314,7 +314,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
         }
-        private static void FillData(TestSchema data)
+        private static void FillData(TestDataContext data)
         {
             data.People = new()
             {

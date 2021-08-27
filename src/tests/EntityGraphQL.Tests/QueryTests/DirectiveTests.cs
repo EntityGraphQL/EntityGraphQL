@@ -1,7 +1,7 @@
 using Xunit;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Tests.GqlCompiling
+namespace EntityGraphQL.Tests
 {
     /// <summary>
     /// Tests directives
@@ -11,7 +11,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestIncludeIfTrueConstant()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query {
@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -29,7 +29,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestIncludeIfFalseConstant()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query {
@@ -39,7 +39,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
@@ -48,7 +48,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestIncludeIfTrueVariable()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query MyQuery($include: Boolean!){
@@ -59,7 +59,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
 }",
                 Variables = new QueryVariables { { "include", true } }
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestSkipIfTrueConstant()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query {
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
@@ -86,7 +86,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestSkipIfFalseConstant()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query {
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
         [Fact]
         public void TestSkipIfFalseVariable()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
                 Query = @"query MyQuery($skip: Boolean!){
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests.GqlCompiling
 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestSchema(), null, null, null);
+            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.Equal("id", person.GetType().GetFields()[0].Name);

@@ -1,16 +1,14 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using EntityGraphQL.Grammer;
+using EntityQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler.EntityQuery;
 using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
-    internal class EntityQueryNodeVisitor : EntityGraphQLBaseVisitor<ExpressionResult>
+    internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
         private readonly ClaimsIdentity claims;
         private ExpressionResult currentContext;
@@ -27,7 +25,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
-        public override ExpressionResult VisitBinary(EntityGraphQLParser.BinaryContext context)
+        public override ExpressionResult VisitBinary(EntityQLParser.BinaryContext context)
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
@@ -78,13 +76,13 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return (ExpressionResult)Expression.Call(typeof(Guid), "Parse", null, (ExpressionResult)Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
-        public override ExpressionResult VisitExpr(EntityGraphQLParser.ExprContext context)
+        public override ExpressionResult VisitExpr(EntityQLParser.ExprContext context)
         {
             var r = Visit(context.body);
             return r;
         }
 
-        public override ExpressionResult VisitCallPath(EntityGraphQLParser.CallPathContext context)
+        public override ExpressionResult VisitCallPath(EntityQLParser.CallPathContext context)
         {
             var startingContext = currentContext;
             ExpressionResult exp = null;
@@ -106,7 +104,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return exp;
         }
 
-        public override ExpressionResult VisitIdentity(EntityGraphQLParser.IdentityContext context)
+        public override ExpressionResult VisitIdentity(EntityQLParser.IdentityContext context)
         {
             var field = context.GetText();
             var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
@@ -122,23 +120,23 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return exp;
         }
 
-        public override ExpressionResult VisitConstant(EntityGraphQLParser.ConstantContext context)
+        public override ExpressionResult VisitConstant(EntityQLParser.ConstantContext context)
         {
             return constantVisitor.VisitConstant(context);
         }
 
 
-        public override ExpressionResult VisitIfThenElse(EntityGraphQLParser.IfThenElseContext context)
+        public override ExpressionResult VisitIfThenElse(EntityQLParser.IfThenElseContext context)
         {
             return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override ExpressionResult VisitIfThenElseInline(EntityGraphQLParser.IfThenElseInlineContext context)
+        public override ExpressionResult VisitIfThenElseInline(EntityQLParser.IfThenElseInlineContext context)
         {
             return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override ExpressionResult VisitCall(EntityGraphQLParser.CallContext context)
+        public override ExpressionResult VisitCall(EntityQLParser.CallContext context)
         {
             var method = context.method.GetText();
             if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
@@ -149,16 +147,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             var outerContext = currentContext;
             // some methods might have a different inner context (IEnumerable etc)
             var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
-            currentContext = methodArgContext;
+            currentContext = (ExpressionResult)methodArgContext;
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args);
+            var call = (ExpressionResult)methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(e => e.Expression));
             currentContext = call;
             return call;
         }
 
-        public override ExpressionResult VisitArgs(EntityGraphQLParser.ArgsContext context)
+        public override ExpressionResult VisitArgs(EntityQLParser.ArgsContext context)
         {
             return VisitChildren(context);
         }

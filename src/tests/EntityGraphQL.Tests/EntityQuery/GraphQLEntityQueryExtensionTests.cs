@@ -7,20 +7,21 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
-    public class EntityQueryExtensionTests
+    public class GraphQLEntityQueryExtensionTests
     {
         [Fact]
         public void SupportEntityQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
                 Query = @"query {
-	users(filter: ""field2 = ""2"" "") { field2 }
+	users(filter: ""field2 = \""2\"" "") { field2 }
 }",
             };
-            var tree = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
+            var tree = schemaProvider.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
@@ -30,7 +31,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryArgument()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -39,7 +40,8 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 = \"2\"" } }
             };
-            var tree = schemaProvider.ExecuteQuery(gql, new TestSchema(), null, null);
+            var tree = schemaProvider.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);

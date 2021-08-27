@@ -19,14 +19,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.selectParam = selectParam;
         }
 
-        public override (ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, ExpressionResult baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
-            var selection = new Dictionary<string, ExpressionResult>();
+            var selection = new Dictionary<string, Expression>();
             foreach (var item in selectionExpressions)
             {
-                var exp = (ExpressionResult)parameterReplacer.ReplaceByType(item.Value.Expression, baseExpression.Type, selectParam);
-                exp.AddConstantParameters(item.Value.Expression.ConstantParameters);
-                exp.AddServices(item.Value.Expression.Services);
+                var exp = parameterReplacer.ReplaceByType(item.Value.Expression, baseExpression.Type, selectParam);
                 selection[item.Key] = exp;
                 item.Value.Expression = exp;
             }
@@ -36,13 +34,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             // The T in ConnectionEdge<T> will change because we move the nodeExpression Select back. But the Edge Node fields
             // have already been visited so we need to rebuild them
-            var newBaseExpression = (ExpressionResult)Expression.PropertyOrField(newEdgeParam, "Node");
-            newBaseExpression.AddConstantParameters(baseExpression.ConstantParameters);
-            newBaseExpression.AddServices(baseExpression.Services);
+            var newBaseExpression = Expression.PropertyOrField(newEdgeParam, "Node");
 
             foreach (var item in selectionExpressions)
             {
-                item.Value.Expression.Expression = Expression.PropertyOrField(newBaseExpression, item.Key);
+                item.Value.Expression = Expression.PropertyOrField(newBaseExpression, item.Key);
             }
 
             return (newBaseExpression, selectionExpressions, selectContextParam);

@@ -18,8 +18,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get { return ExpressionResult.ConstantParameters; } }
 
-        public Type BodyType { get { return LambdaExpression.Body.Type; } }
-
         public ExpressionResult ExpressionResult { get; private set; }
 
         public List<ParameterExpression> ContextParams { get { return contextParams; } }

@@ -57,6 +57,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <returns></returns>
         IEnumerable<ISchemaType> GetNonContextTypes();
+        ISchemaType GetSchemaType(string typeName);
 
         IEnumerable<MutationType> GetMutations();
         /// <summary>

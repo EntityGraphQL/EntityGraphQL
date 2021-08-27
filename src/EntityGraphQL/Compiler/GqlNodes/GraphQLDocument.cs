@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 
@@ -25,6 +26,10 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLDocument : IGraphQLNode
     {
+        public Expression NextContextExpression { get; set; }
+        public IGraphQLNode ParentNode { get; set; }
+        public ParameterExpression RootParameter { get; set; }
+        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
         private readonly Func<string, string> fieldNamer;
 
         /// <summary>
@@ -77,6 +82,11 @@ namespace EntityGraphQL.Compiler
                 result.AddErrors(validator.Errors);
 
             return result;
+        }
+
+        public void AddField(BaseGraphQLField field)
+        {
+            throw new NotImplementedException();
         }
     }
 }

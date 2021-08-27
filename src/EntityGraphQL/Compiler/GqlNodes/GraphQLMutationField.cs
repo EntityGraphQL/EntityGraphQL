@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
@@ -9,18 +8,15 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationField : BaseGraphQLQueryField
     {
-        private readonly MutationType mutationType;
-        private readonly Dictionary<string, ExpressionResult> args;
-        private readonly BaseGraphQLQueryField resultSelection;
+        private readonly MutationType mutationType = null;
+        private readonly Dictionary<string, Expression> args = null;
+        public BaseGraphQLQueryField ResultSelection { get; set; }
 
-        public BaseGraphQLQueryField ResultSelection { get => resultSelection; }
-
-        public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, ExpressionResult> args, BaseGraphQLQueryField resultSelection)
+        public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, Expression> args, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nextContextExpression, rootParameter, parentNode)
         {
-            Name = name;
             this.mutationType = mutationType;
             this.args = args;
-            this.resultSelection = resultSelection;
         }
 
         public async Task<object> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
@@ -35,9 +31,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override ExpressionResult GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
         {
-            return resultSelection.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith);
+            return ResultSelection.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith);
         }
     }
 }

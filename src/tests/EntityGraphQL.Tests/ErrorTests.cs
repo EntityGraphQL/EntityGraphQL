@@ -1,13 +1,5 @@
 using Xunit;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
-using System.Linq.Expressions;
-using System;
-using static EntityGraphQL.Tests.ComplexFieldsTests;
-using static EntityGraphQL.Schema.ArgumentHelper;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -19,7 +11,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void MutationReportsError()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -33,7 +25,7 @@ namespace EntityGraphQL.Tests
                 }
             };
 
-            var testSchema = new TestSchema();
+            var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field error: addPersonError - Name can not be null (Parameter 'name')", results.Errors[0].Message);
@@ -42,7 +34,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void QueryReportsError()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -51,7 +43,7 @@ namespace EntityGraphQL.Tests
 }",
             };
 
-            var testSchema = new TestSchema();
+            var testSchema = new TestDataContext().FillWithTestData();
             var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field error: people - Field failed to execute", results.Errors[0].Message);
