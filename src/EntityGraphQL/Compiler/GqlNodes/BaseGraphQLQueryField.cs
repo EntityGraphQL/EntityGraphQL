@@ -48,7 +48,6 @@ namespace EntityGraphQL.Compiler
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
                     // pull any constant values up
-                    // TODO is this done in the walker (bringing them to the root node)
                     foreach (var item in subField.ConstantParameters)
                     {
                         if (!constantParameters.ContainsKey(item.Key))

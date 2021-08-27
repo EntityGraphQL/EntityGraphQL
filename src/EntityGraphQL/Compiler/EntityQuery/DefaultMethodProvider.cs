@@ -8,7 +8,7 @@ using EntityGraphQL.Compiler.Util;
 namespace EntityGraphQL.Compiler.EntityQuery
 {
     /// <summary>
-    /// The default method provider for Ling Querys. Implements the useful Linq functions for
+    /// The default method provider for Ling Queries. Implements the useful Linq functions for
     /// querying and filtering your data requests.
     ///
     /// Supported Methods:
@@ -23,7 +23,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   List.orderByDesc(field)
     ///
     ///   TODO:
-    ///   List.sort(field desc?, ...)
     ///   List.select(field, ...)?
     ///   List.isBelow(primary_key)
     ///   List.isAtOrBelow(primary_key)

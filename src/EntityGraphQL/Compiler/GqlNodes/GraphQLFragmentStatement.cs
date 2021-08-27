@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler
 {
-    public class GraphQLFragmentStatement : IGraphQLStatement
+    public class GraphQLFragmentStatement : IGraphQLNode
     {
         public Expression NextContextExpression { get; set; }
         public IGraphQLNode ParentNode { get; set; }

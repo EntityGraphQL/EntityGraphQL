@@ -15,7 +15,7 @@ namespace EntityGraphQL.Compiler
     /// Base class for document statements that we "execute" - Query and Mutation. Execution runs the expression and gets the data result
     /// A fragment is just a definition
     /// </summary>
-    public abstract class ExecutableGraphQLStatement : IGraphQLStatement
+    public abstract class ExecutableGraphQLStatement : IGraphQLNode
     {
         public Expression NextContextExpression { get; set; }
         public IGraphQLNode ParentNode { get; set; }
