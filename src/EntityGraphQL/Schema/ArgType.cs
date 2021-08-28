@@ -14,9 +14,9 @@ namespace EntityGraphQL.Schema
         public string Name { get; set; }
         public string Description { get; set; }
         public GqlTypeInfo Type { get; set; }
-        public object DefaultValue { get; private set; }
+        public object DefaultValue { get; set; }
         public MemberInfo MemberInfo { get; internal set; }
-        public bool IsRequired { get; internal set; }
+        public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
         public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object defaultValue)

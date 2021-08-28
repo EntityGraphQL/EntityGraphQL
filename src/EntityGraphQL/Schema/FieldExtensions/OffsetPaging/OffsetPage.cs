@@ -17,9 +17,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         [Description("Items in the page")]
         public IEnumerable<T> Items { get; set; }
         [Description("True if there is more data before this page")]
-        public bool HasPreviousPage => skip > 0;
+        public bool HasPreviousPage => (skip ?? 0) > 0;
         [Description("True if there is more data after this page")]
-        public bool HasNextPage => (skip + take) < TotalItems;
+        public bool HasNextPage => take != null && ((skip ?? 0) + (take ?? 0)) < TotalItems;
         [Description("Count of the total items in the collection")]
         public int TotalItems { get; set; }
     }

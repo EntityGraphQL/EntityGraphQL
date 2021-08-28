@@ -16,10 +16,19 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class ConnectionPagingExtension : BaseFieldExtension
     {
+        private readonly int? defaultPageSize;
+        private readonly int? maxPageSize;
         private MethodCallExpression originalEdgeExpression;
         private Field edgesField;
         private ConnectionEdgeExtension edgesExtension;
         private ParameterExpression tmpArgParam;
+
+        public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
+        {
+            this.defaultPageSize = defaultPageSize;
+            this.maxPageSize = maxPageSize;
+        }
+
         public MethodCallExpression EdgeExpression { get; internal set; }
 
         /// <summary>
@@ -125,10 +134,23 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
-            if (arguments.first != null && arguments.last != null)
-                throw new ArgumentException($"Field only supports either first or last being supplied, not both.");
             if (arguments.before != null && arguments.after != null)
                 throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
+            if (arguments.first != null && arguments.first < 0)
+                throw new ArgumentException($"first argument can not be less than 0.");
+            if (arguments.last != null && arguments.last < 0)
+                throw new ArgumentException($"last argument can not be less than 0.");
+
+            if (maxPageSize.HasValue)
+            {
+                if (arguments.first != null && arguments.first > maxPageSize.Value)
+                    throw new ArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
+                if (arguments.last != null && arguments.last > maxPageSize.Value)
+                    throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
+            }
+
+            if (arguments.first == null && arguments.last == null && defaultPageSize.HasValue)
+                arguments.first = defaultPageSize.Value;
 
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(

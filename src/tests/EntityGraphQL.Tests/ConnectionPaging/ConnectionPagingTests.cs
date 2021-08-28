@@ -314,6 +314,111 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
         }
+
+        [Fact]
+        public void TestDefaultPageSize()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging(defaultPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people {
+                        edges {
+                            node {
+                                name id
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            startCursor
+                            endCursor
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                        totalCount
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(2, Enumerable.Count(people.edges));
+            Assert.Equal(data.People.Count, people.totalCount);
+            Assert.True(people.pageInfo.hasNextPage);
+            Assert.False(people.pageInfo.hasPreviousPage);
+
+            // cursors MQ, Mg, Mw, NA, NQ
+
+            // we have tests for (de)serialization of cursor we're checking the correct ones are used
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+        }
+
+        [Fact]
+        public void TestMaxPageSizeFirst()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging(maxPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(first: 5) {
+                        edges {
+                            node {
+                                name id
+                            }
+                            cursor
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.NotNull(result.Errors);
+            Assert.Equal("first argument can not be greater than 2.", result.Errors[0].Message);
+        }
+        [Fact]
+        public void TestMaxPageSizeLast()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging(maxPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(last: 5) {
+                        edges {
+                            node {
+                                name id
+                            }
+                            cursor
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.NotNull(result.Errors);
+            Assert.Equal("last argument can not be greater than 2.", result.Errors[0].Message);
+        }
         private static void FillData(TestDataContext data)
         {
             data.People = new()

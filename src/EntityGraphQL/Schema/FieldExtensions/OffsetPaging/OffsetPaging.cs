@@ -66,12 +66,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             tmpArgParam = Expression.Parameter(field.ArgumentsType, "tmp_argParam");
 
-            var totalCountExp = Expression.Call(typeof(Queryable), "Count", new Type[] { listType }, field.Resolve);
+            var isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, field.Resolve);
 
             // update the Items field before we update the field.Resolve below
             itemsField = schema.GetActualField(field.ReturnType.SchemaType.Name, "items", null);
-            itemsFieldExp = Expression.Call(typeof(QueryableExtensions), "Take", new Type[] { listType },
-                Expression.Call(typeof(QueryableExtensions), "Skip", new Type[] { listType },
+            itemsFieldExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
+                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                     field.Resolve,
                         Expression.PropertyOrField(tmpArgParam, "skip")
                 ),

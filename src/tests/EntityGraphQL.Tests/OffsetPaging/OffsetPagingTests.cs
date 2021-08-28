@@ -28,7 +28,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                         hasNextPage
                         hasPreviousPage
-                        totalCount
+                        totalItems
                     }
                 }",
             };
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             dynamic people = result.Data["people"];
             Assert.Equal(data.People.Count, Enumerable.Count(people.items));
-            Assert.Equal(data.People.Count, people.totalCount);
+            Assert.Equal(data.People.Count, people.totalItems);
             Assert.False(people.hasNextPage);
             Assert.False(people.hasPreviousPage);
         }
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                         hasNextPage
                         hasPreviousPage
-                        totalCount
+                        totalItems
                     }
                 }",
             };
@@ -70,8 +70,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
-            Assert.Equal(1, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
+            Assert.Equal(1, Enumerable.Count(people.items));
+            Assert.Equal(data.People.Count, people.totalItems);
             Assert.True(people.hasNextPage);
             Assert.False(people.hasPreviousPage);
         }
@@ -87,13 +87,13 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(take: 2 sjip: 2) {
+                    people(take: 2 skip: 2) {
                         items {
                             name id
                         }
                         hasNextPage
                         hasPreviousPage
-                        totalCount
+                        totalItems
                     }
                 }",
             };
@@ -102,8 +102,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
+            Assert.Equal(2, Enumerable.Count(people.items));
+            Assert.Equal(data.People.Count, people.totalItems);
             Assert.True(people.hasNextPage);
             Assert.True(people.hasPreviousPage);
         }
@@ -125,7 +125,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                         hasNextPage
                         hasPreviousPage
-                        totalCount
+                        totalItems
                     }
                 }",
             };
@@ -134,8 +134,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
+            Assert.Equal(3, Enumerable.Count(people.items));
+            Assert.Equal(data.People.Count, people.totalItems);
             Assert.False(people.hasNextPage);
             Assert.True(people.hasPreviousPage);
         }
@@ -168,7 +168,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                         hasNextPage
                         hasPreviousPage
-                        totalCount
+                        totalItems
                     }
                 }",
             };
@@ -177,8 +177,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
-            Assert.Equal(1, Enumerable.Count(people.edges));
-            Assert.Equal(2, people.totalCount); // 2 "ill" matches
+            Assert.Equal(1, Enumerable.Count(people.items));
+            Assert.Equal(2, people.totalItems); // 2 "ill" matches
             Assert.True(people.hasNextPage);
             Assert.False(people.hasPreviousPage);
         }
