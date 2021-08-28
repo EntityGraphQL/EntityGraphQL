@@ -182,6 +182,66 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.True(people.hasNextPage);
             Assert.False(people.hasPreviousPage);
         }
+
+        [Fact]
+        public void TestDefaultPageSize()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseOffsetPaging(defaultPageSize: 3);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people {
+                        items {
+                            name id
+                        }
+                        hasNextPage
+                        hasPreviousPage
+                        totalItems
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(3, Enumerable.Count(people.items));
+            Assert.Equal(data.People.Count, people.totalItems);
+            Assert.True(people.hasNextPage);
+            Assert.False(people.hasPreviousPage);
+        }
+        [Fact]
+        public void TestMaxPageSize()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseOffsetPaging(maxPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(take: 3) {
+                        items {
+                            name id
+                        }
+                        hasNextPage
+                        hasPreviousPage
+                        totalItems
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.NotNull(result.Errors);
+            Assert.Equal("Argument take can not be greater than 2.", result.Errors[0].Message);
+        }
         private static void FillData(TestDataContext data)
         {
             data.People = new()

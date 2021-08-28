@@ -14,12 +14,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// Only call on a field that returns an IEnumerable
         /// </summary>
         /// <param name="field"></param>
+        /// <param name="defaultPageSize">If argument take is null this value will be used</param>
+        /// <param name="maxPageSize">If argument take is greater than this value an error will be raised</param>
         /// <returns></returns>
-        public static Field UseOffsetPaging(this Field field)
+        public static Field UseOffsetPaging(this Field field, int? defaultPageSize = null, int? maxPageSize = null)
         {
             if (!field.Resolve.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"UseOffsetPaging must only be called on a field that returns an IEnumerable");
-            field.AddExtension(new OffsetPagingExtension());
+            field.AddExtension(new OffsetPagingExtension(defaultPageSize, maxPageSize));
             return field;
         }
     }
@@ -32,6 +34,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private ParameterExpression tmpArgParam;
         private IField itemsField;
         private MethodCallExpression itemsFieldExp;
+        private int? defaultPageSize;
+        private int? maxPageSize;
+
+        public OffsetPagingExtension(int? defaultPageSize, int? maxPageSize)
+        {
+            this.defaultPageSize = defaultPageSize;
+            this.maxPageSize = maxPageSize;
+        }
 
         /// <summary>
         /// Configure the field for a offset style paging field. Do as much as we can here as it is only executed once.
@@ -63,6 +73,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             // Update field arguments
             field.AddArguments(new OffsetArgs());
+            if (defaultPageSize.HasValue)
+                field.Arguments["take"].DefaultValue = defaultPageSize.Value;
 
             tmpArgParam = Expression.Parameter(field.ArgumentsType, "tmp_argParam");
 
@@ -89,6 +101,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
+            if (maxPageSize.HasValue && arguments.take > maxPageSize.Value)
+                throw new ArgumentException($"Argument take can not be greater than {maxPageSize.Value}.");
             // we have current context update Items field
             itemsField.UpdateExpression(
                 parameterReplacer.Replace(
