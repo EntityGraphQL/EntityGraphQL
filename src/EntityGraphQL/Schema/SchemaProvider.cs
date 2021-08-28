@@ -44,14 +44,14 @@ namespace EntityGraphQL.Schema
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
             this.logger = logger;
             // default GQL scalar types
-            types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, false, false, true));
-            types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, false, false, true));
-            types.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, false, false, true));
-            types.Add("String", new SchemaType<string>(this, "String", "String scalar", null, false, false, true));
-            types.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, false, false, true));
+            types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, SchemaFieldNamer, false, false, true));
+            types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, SchemaFieldNamer, false, false, true));
+            types.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, SchemaFieldNamer, false, false, true));
+            types.Add("String", new SchemaType<string>(this, "String", "String scalar", null, SchemaFieldNamer, false, false, true));
+            types.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, SchemaFieldNamer, false, false, true));
 
             // default custom scalar for DateTime
-            types.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, false, false, true));
+            types.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, SchemaFieldNamer, false, false, true));
 
             customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
                 {typeof(short), new GqlTypeInfo(() => Type("Int"), typeof(short))},
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema", null);
+            var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema", null, SchemaFieldNamer);
             queryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
@@ -160,16 +160,16 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string description)
         {
-            var tt = new SchemaType<TBaseType>(this, name, description, null);
+            var tt = new SchemaType<TBaseType>(this, name, description, null, SchemaFieldNamer);
             FinishAddingType(typeof(TBaseType), name, tt);
             return tt;
         }
 
         public ISchemaType AddType(Type contextType, string name, string description)
         {
-            var tt = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false);
-            FinishAddingType(contextType, name, tt);
-            return tt;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, SchemaFieldNamer, false, false, false);
+            FinishAddingType(contextType, name, newType);
+            return newType;
         }
 
         private void FinishAddingType(Type contextType, string name, ISchemaType tt)
@@ -205,7 +205,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
-            var tt = new SchemaType<TBaseType>(this, name, description, null, true);
+            var tt = new SchemaType<TBaseType>(this, name, description, null, SchemaFieldNamer, true);
             var attributes = typeof(TBaseType).GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             if (attributes.Any())
                 tt.AuthorizeClaims = new RequiredClaims(attributes);
@@ -561,7 +561,7 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddScalarType<TType>(string gqlTypeName, string description)
         {
-            var schemaType = new SchemaType<TType>(this, gqlTypeName, description, null, false, false, true);
+            var schemaType = new SchemaType<TType>(this, gqlTypeName, description, null, SchemaFieldNamer, false, false, true);
             types.Add(gqlTypeName, schemaType);
             return schemaType;
         }
@@ -620,7 +620,7 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddEnum(string name, Type type, string description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, false, true);
+            var schemaType = new SchemaType<object>(this, type, name, description, null, SchemaFieldNamer, false, true);
             var attributes = type.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             if (attributes.Any())
                 schemaType.AuthorizeClaims = new RequiredClaims(attributes);

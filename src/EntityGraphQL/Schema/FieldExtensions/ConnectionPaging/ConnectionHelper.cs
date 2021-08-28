@@ -67,14 +67,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public static string GetCursor(dynamic arguments, int idx)
         {
             var index = idx + 1;
-            if (arguments.afterNum != null)
-                index += arguments.afterNum;
-            if (arguments.last != null)
+            if (arguments.AfterNum != null)
+                index += arguments.AfterNum;
+            if (arguments.Last != null)
             {
-                if (arguments.beforeNum != null)
-                    index = arguments.beforeNum - arguments.last + idx;
+                if (arguments.BeforeNum != null)
+                    index = arguments.BeforeNum - arguments.Last + idx;
                 else
-                    index += arguments.totalCount - (arguments.last ?? 0);
+                    index += arguments.TotalCount - (arguments.Last ?? 0);
             }
             return SerializeCursor(index);
         }
@@ -83,10 +83,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         public static int? GetSkipNumber(dynamic arguments)
         {
-            if (arguments.afterNum != null)
-                return arguments.afterNum;
-            if (arguments.last != null)
-                return (arguments.beforeNum ?? arguments.totalCount) - arguments.last;
+            if (arguments.AfterNum != null)
+                return arguments.AfterNum;
+            if (arguments.Last != null)
+                return (arguments.BeforeNum ?? arguments.TotalCount) - arguments.Last;
             return 0;
         }
         /// <summary>
@@ -94,9 +94,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         public static int? GetTakeNumber(dynamic arguments)
         {
-            if (arguments.first == null && arguments.last == null && arguments.beforeNum == null)
+            if (arguments.First == null && arguments.Last == null && arguments.BeforeNum == null)
                 return null;
-            return arguments.first ?? arguments.last ?? (arguments.beforeNum - 1);
+            return arguments.First ?? arguments.Last ?? (arguments.BeforeNum - 1);
         }
     }
 }

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace EntityGraphQL.Schema.Connections
+namespace EntityGraphQL.Schema.FieldExtensions
 {
     public class ConnectionEdge<TEntity>
     {

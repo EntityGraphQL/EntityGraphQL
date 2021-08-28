@@ -34,8 +34,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             // we have current context update Items field
-            if (arguments.filter != null && arguments.filter.HasValue)
-                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType }, expression, arguments.filter.Query);
+            if (arguments.Filter != null && arguments.Filter.HasValue)
+                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType }, expression, arguments.Filter.Query);
 
             return expression;
         }

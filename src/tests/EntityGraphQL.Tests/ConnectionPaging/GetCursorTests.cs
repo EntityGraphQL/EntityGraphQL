@@ -1,4 +1,3 @@
-using EntityGraphQL.Schema.Connections;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 
@@ -20,7 +19,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 4,
+                First = 4,
             };
             var index = 4;
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -32,8 +31,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 4,
-                afterNum = 3
+                First = 4,
+                AfterNum = 3
             };
             var index = 3; // index of item is 0 based so this is the 4th item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -44,8 +43,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 4,
-                totalCount = 10
+                Last = 4,
+                TotalCount = 10
             };
             var index = 3; // 4th item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -56,9 +55,9 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 4,
-                beforeNum = 6,
-                totalCount = 10
+                Last = 4,
+                BeforeNum = 6,
+                TotalCount = 10
             };
             var index = 1; // 2nd item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -69,9 +68,9 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 3,
-                beforeNum = 4,
-                totalCount = 10
+                Last = 3,
+                BeforeNum = 4,
+                TotalCount = 10
             };
             var index = 0; // 1st item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -82,8 +81,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                beforeNum = 4,
-                totalCount = 10
+                BeforeNum = 4,
+                TotalCount = 10
             };
             var index = 0; // 1st item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -94,8 +93,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                beforeNum = 8,
-                totalCount = 10
+                BeforeNum = 8,
+                TotalCount = 10
             };
             var index = 3; // 4th item
             var cursor = ConnectionHelper.GetCursor(args, index);
@@ -106,7 +105,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                afterNum = 7,
+                AfterNum = 7,
             };
             var index = 1; // 2nd item
             var cursor = ConnectionHelper.GetCursor(args, index);

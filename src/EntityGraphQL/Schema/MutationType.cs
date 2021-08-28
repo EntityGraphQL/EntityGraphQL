@@ -184,13 +184,13 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
+                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null, fieldNamer));
                 }
                 foreach (var item in argInstanceType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null));
+                    argumentTypes.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null, fieldNamer));
                 }
             }
         }

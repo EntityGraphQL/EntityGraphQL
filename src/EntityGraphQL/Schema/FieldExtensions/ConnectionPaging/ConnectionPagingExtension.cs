@@ -1,13 +1,8 @@
 using System;
-using System.Buffers;
-using System.Buffers.Text;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.Connections;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
@@ -131,30 +126,30 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
-            if (arguments.before != null && arguments.after != null)
+            if (arguments.Before != null && arguments.After != null)
                 throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
-            if (arguments.first != null && arguments.first < 0)
+            if (arguments.First != null && arguments.First < 0)
                 throw new ArgumentException($"first argument can not be less than 0.");
-            if (arguments.last != null && arguments.last < 0)
+            if (arguments.Last != null && arguments.Last < 0)
                 throw new ArgumentException($"last argument can not be less than 0.");
 
             if (maxPageSize.HasValue)
             {
-                if (arguments.first != null && arguments.first > maxPageSize.Value)
+                if (arguments.First != null && arguments.First > maxPageSize.Value)
                     throw new ArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
-                if (arguments.last != null && arguments.last > maxPageSize.Value)
+                if (arguments.Last != null && arguments.Last > maxPageSize.Value)
                     throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
             }
 
-            if (arguments.first == null && arguments.last == null && defaultPageSize.HasValue)
-                arguments.first = defaultPageSize.Value;
+            if (arguments.First == null && arguments.Last == null && defaultPageSize.HasValue)
+                arguments.First = defaultPageSize.Value;
 
             // Here we now have the original context needed in our edges expression to use in the sub fields
             EdgeExpression = (MethodCallExpression)parameterReplacer.Replace(originalEdgeExpression, field.FieldParam, context);
 
             // deserialize cursors here once (not many times in the fields)
-            arguments.afterNum = ConnectionHelper.DeserializeCursor(arguments.after);
-            arguments.beforeNum = ConnectionHelper.DeserializeCursor(arguments.before);
+            arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
+            arguments.BeforeNum = ConnectionHelper.DeserializeCursor(arguments.Before);
 
             // we get the arguments at this level but need to use them on the edge field
             edgesExtension.ArgExpression = argExpression;

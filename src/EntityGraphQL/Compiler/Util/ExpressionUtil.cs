@@ -93,10 +93,10 @@ namespace EntityGraphQL.Compiler.Util
             return value;
         }
 
-        public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes)
+        public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes, Func<string, string> fieldNamer)
         {
-            var args = argTypes.GetType().GetProperties().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToDictionary(k => k.Name, p => ArgType.FromProperty(schema, p, p.GetValue(argTypes)));
-            argTypes.GetType().GetFields().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToList().ForEach(p => args.Add(p.Name, ArgType.FromField(schema, p, p.GetValue(argTypes))));
+            var args = argTypes.GetType().GetProperties().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToDictionary(k => fieldNamer(k.Name), p => ArgType.FromProperty(schema, p, p.GetValue(argTypes), fieldNamer));
+            argTypes.GetType().GetFields().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToList().ForEach(p => args.Add(fieldNamer(p.Name), ArgType.FromField(schema, p, p.GetValue(argTypes), fieldNamer)));
             return args;
         }
 

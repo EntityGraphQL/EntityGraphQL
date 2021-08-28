@@ -21,7 +21,7 @@ namespace EntityGraphQL.Directives
         /// <value></value>
         bool ProcessesResult { get; }
         BaseGraphQLField ProcessField(BaseGraphQLField fieldResult, object arguments);
-        IEnumerable<ArgType> GetArguments(ISchemaProvider schema);
+        IEnumerable<ArgType> GetArguments(ISchemaProvider schema, Func<string, string> fieldNamer);
     }
 
     /// <summary>
@@ -72,9 +72,9 @@ namespace EntityGraphQL.Directives
             return result;
         }
 
-        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema)
+        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema, Func<string, string> fieldNamer)
         {
-            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null)).ToList();
+            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null, fieldNamer)).ToList();
         }
     }
 }

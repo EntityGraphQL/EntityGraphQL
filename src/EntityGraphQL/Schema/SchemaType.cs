@@ -21,16 +21,18 @@ namespace EntityGraphQL.Schema
         public bool IsScalar { get; }
         public RequiredClaims AuthorizeClaims { get; set; }
 
+        private readonly Func<string, string> fieldNamer;
+
         public string Description { get; internal set; }
 
-        private readonly Dictionary<string, Field> _fieldsByName = new Dictionary<string, Field>();
+        private readonly Dictionary<string, Field> _fieldsByName = new();
 
-        public SchemaType(ISchemaProvider schema, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, authorizeClaims, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string description, RequiredClaims authorizeClaims, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+            : this(schema, typeof(TBaseType), name, description, authorizeClaims, fieldNamer, isInput, isEnum, isScalar)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredClaims authorizeClaims, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredClaims authorizeClaims, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
             TypeDotnet = dotnetType;
@@ -40,6 +42,7 @@ namespace EntityGraphQL.Schema
             IsEnum = isEnum;
             IsScalar = isScalar;
             AuthorizeClaims = authorizeClaims;
+            this.fieldNamer = fieldNamer;
             if (!isScalar)
                 AddField("__typename", t => name, "Type name", null).IsNullable(false);
         }
@@ -56,7 +59,7 @@ namespace EntityGraphQL.Schema
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
                     var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), new RequiredClaims(attributes)));
+                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), new RequiredClaims(attributes), fieldNamer));
                 }
             }
             else
@@ -105,7 +108,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             this.AddField(field);
             return field;
         }
@@ -118,7 +121,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             this.AddField(field);
             return field;
         }
@@ -131,7 +134,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             _fieldsByName[field.Name] = field;
             return field;
         }
@@ -156,7 +159,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             this.AddField(field);
             return field;
         }
@@ -169,7 +172,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             this.AddField(field);
             return field;
         }
@@ -194,7 +197,7 @@ namespace EntityGraphQL.Schema
                 authorizeClaims = new RequiredClaims(attributes);
             }
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
             _fieldsByName[field.Name] = field;
         }
 

@@ -4,7 +4,7 @@ metaTitle: "Note on Naming - EntityGraphQL"
 metaDescription: "Note on Naming"
 ---
 
-GraphQL is case sensitive. Currently EntityGraphQL will automatically turn "fields" from `UpperCase` to `camelCase` when you use the helper methods to create a schema with the default namer factory. This means your C# code matches what C# code typically looks like and your GraphQL matches the GraphQL norm too.
+GraphQL is case sensitive. Currently EntityGraphQL will automatically turn field and argument names from `UpperCase` to `camelCase` when you use the helper methods to create a schema with the default namer factory. This means your C# code matches what C# code typically looks like and your GraphQL matches the GraphQL norm too.
 
 Examples:
 - A mutation method in C# named `AddMovie` will be `addMovie` in the schema

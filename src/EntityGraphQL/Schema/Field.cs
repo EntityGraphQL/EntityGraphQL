@@ -15,8 +15,11 @@ namespace EntityGraphQL.Schema
     public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new();
+        public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
+
         public ParameterExpression ArgumentParam { get; private set; }
         private readonly ISchemaProvider schema;
+        private readonly Func<string, string> fieldNamer;
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
@@ -34,7 +37,6 @@ namespace EntityGraphQL.Schema
         public IEnumerable<Type> Services { get; private set; }
         public string Description { get; private set; }
 
-        public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
         public Type ArgumentsType { get; private set; }
 
         public IEnumerable<string> RequiredArgumentNames
@@ -51,12 +53,13 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; private set; }
 
-        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims)
+        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims, Func<string, string> fieldNamer)
         {
             this.schema = schema;
             Name = name;
             Description = description;
             AuthorizeClaims = authorizeClaims;
+            this.fieldNamer = fieldNamer;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
             Extensions = new List<IFieldExtension>();
             parameterReplacer = new ParameterReplacer();
@@ -89,7 +92,7 @@ namespace EntityGraphQL.Schema
         public void AddArguments(object args)
         {
             // get new argument values
-            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args);
+            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args, fieldNamer);
             // build new argument Type
             var newArgType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
@@ -97,8 +100,8 @@ namespace EntityGraphQL.Schema
             // now we need to update the MemberInfo
             foreach (var item in allArguments)
             {
-                item.Value.MemberInfo = (MemberInfo)newArgType.GetProperty(item.Value.Name) ??
-                    newArgType.GetField(item.Value.Name);
+                item.Value.MemberInfo = (MemberInfo)newArgType.GetProperty(item.Value.DotnetName) ??
+                    newArgType.GetField(item.Value.DotnetName);
             }
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
@@ -119,10 +122,10 @@ namespace EntityGraphQL.Schema
         }
 
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims)
-            : this(schema, name, resolve, description, returnType, claims)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims, Func<string, string> fieldNamer)
+            : this(schema, name, resolve, description, returnType, claims, fieldNamer)
         {
-            allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes);
+            allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, fieldNamer);
             ArgumentsType = argTypes.GetType();
         }
 

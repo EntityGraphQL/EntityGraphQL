@@ -12,6 +12,7 @@ namespace EntityGraphQL.Schema
     public class ArgType
     {
         public string Name { get; set; }
+        public string DotnetName { get; set; }
         public string Description { get; set; }
         public GqlTypeInfo Type { get; set; }
         public object DefaultValue { get; set; }
@@ -19,21 +20,21 @@ namespace EntityGraphQL.Schema
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
-        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object defaultValue)
+        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object defaultValue, Func<string, string> fieldNamer)
         {
-            var arg = MakeArgType(schema, prop, prop.PropertyType, prop, defaultValue);
+            var arg = MakeArgType(schema, prop, prop.PropertyType, prop, defaultValue, fieldNamer);
 
             return arg;
         }
 
-        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object defaultValue)
+        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object defaultValue, Func<string, string> fieldNamer)
         {
-            var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue);
+            var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue, fieldNamer);
 
             return arg;
         }
 
-        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object defaultValue)
+        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object defaultValue, Func<string, string> fieldNamer)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -46,7 +47,8 @@ namespace EntityGraphQL.Schema
             var arg = new ArgType
             {
                 Type = new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse),
-                Name = field.Name,
+                Name = fieldNamer(field.Name),
+                DotnetName = field.Name,
                 DefaultValue = defaultValue,
                 MemberInfo = memberInfo,
                 RawType = type,

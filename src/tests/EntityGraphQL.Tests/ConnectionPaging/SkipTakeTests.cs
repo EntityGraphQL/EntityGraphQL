@@ -1,4 +1,3 @@
-using EntityGraphQL.Schema.Connections;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 
@@ -21,7 +20,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 3
+                First = 3
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
@@ -34,8 +33,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 3,
-                afterNum = 2
+                First = 3,
+                AfterNum = 2
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
@@ -48,8 +47,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 3,
-                totalCount = 10
+                Last = 3,
+                TotalCount = 10
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(3, take);
@@ -62,8 +61,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 4,
-                beforeNum = 7,
+                Last = 4,
+                BeforeNum = 7,
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(4, take);
@@ -76,7 +75,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                beforeNum = 7,
+                BeforeNum = 7,
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Equal(6, take);
@@ -89,7 +88,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                afterNum = 5,
+                AfterNum = 5,
             };
             var take = ConnectionHelper.GetTakeNumber(args);
             Assert.Null(take);

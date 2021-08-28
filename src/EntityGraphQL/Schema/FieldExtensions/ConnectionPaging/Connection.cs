@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace EntityGraphQL.Schema.Connections
+namespace EntityGraphQL.Schema.FieldExtensions
 {
     public class Connection<TEntity>
     {
@@ -9,7 +9,7 @@ namespace EntityGraphQL.Schema.Connections
         {
             TotalCount = totalCount;
             PageInfo = new ConnectionPageInfo(totalCount, arguments);
-            arguments.totalCount = totalCount;
+            arguments.TotalCount = totalCount;
         }
 
         [GraphQLNotNull]

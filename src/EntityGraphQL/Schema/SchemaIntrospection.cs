@@ -351,7 +351,7 @@
                 Name = directive.Name,
                 Description = directive.Description,
                 Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                Args = directive.GetArguments(schema).Select(arg => new InputValue
+                Args = directive.GetArguments(schema, schema.SchemaFieldNamer).Select(arg => new InputValue
                 {
                     Name = arg.Name,
                     Description = arg.Description,

@@ -1,4 +1,3 @@
-using EntityGraphQL.Schema.Connections;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 
@@ -23,7 +22,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 4
+                First = 4
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -37,8 +36,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 4,
-                afterNum = 3
+                First = 4,
+                AfterNum = 3
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -52,7 +51,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 3
+                Last = 3
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -66,8 +65,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 3,
-                beforeNum = 6
+                Last = 3,
+                BeforeNum = 6
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -81,7 +80,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                beforeNum = 6
+                BeforeNum = 6
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -95,7 +94,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                afterNum = 6
+                AfterNum = 6
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -109,8 +108,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                first = 5,
-                afterNum = 7
+                First = 5,
+                AfterNum = 7
             };
             var info = new ConnectionPageInfo(10, args);
 
@@ -124,8 +123,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var args = new ConnectionArgs
             {
-                last = 5,
-                beforeNum = 3
+                Last = 5,
+                BeforeNum = 3
             };
             var info = new ConnectionPageInfo(10, args);
 
