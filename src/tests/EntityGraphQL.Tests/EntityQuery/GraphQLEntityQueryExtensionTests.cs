@@ -69,5 +69,29 @@ namespace EntityGraphQL.Tests
             var user = Enumerable.First(users);
             Assert.Equal("2", user.field2);
         }
+        [Fact]
+        public void TestAttribute()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    people(filter: $filter) { name }
+                }",
+                Variables = new QueryVariables { { "filter", "name == \"Luke\"" } }
+            };
+            var tree = schema.ExecuteQuery(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var user = Enumerable.First(people);
+            Assert.Equal("Luke", user.name);
+        }
+        private class TestDataContext2 : TestDataContext
+        {
+            [UseFilter]
+            public override List<Person> People { get; set; } = new List<Person>();
+        }
     }
 }

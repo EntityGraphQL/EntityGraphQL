@@ -80,7 +80,7 @@ namespace EntityGraphQL.Compiler
                 if (selectionFields == null || !selectionFields.Any())
                     return null;
 
-                (resultExpression, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, resultExpression, selectionFields, null, replacer);
+                (resultExpression, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, resultExpression, selectionFields, null, replacer);
                 // build a new {...} - returning a single object {}
                 var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
                 if (resultExpression.NodeType != ExpressionType.MemberInit && resultExpression.NodeType != ExpressionType.New)
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            (_, selectionFields, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, ParentNode.NextContextExpression, selectionFields, null, replacer);
+            (_, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, ParentNode.NextContextExpression, selectionFields, null, replacer);
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 

@@ -92,13 +92,13 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
                 foreach (var extension in fieldExtensions)
                 {
-                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
+                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
                 }
             }
             return (baseExpression, selectionExpressions, selectContextParam);

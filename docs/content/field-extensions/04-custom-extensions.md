@@ -4,7 +4,7 @@ metaTitle: "Creating your own field extensions - EntityGraphQL"
 metaDescription: "Creating your own field extensions"
 ---
 
-Field extensions let you move common patterns or use cases into an extension method to easily apply the logic across many fields. To implement an extension you implement the `IFieldExtension` interface and create an extension method.
+Field extensions let you move common patterns or use cases into an extension method to easily apply the logic across many fields. To implement an extension you implement the `IFieldExtension` interface and create an extension method. You can have your extension applied via an `Attribute` in `SchemaBuilder` by having your attribute extend `FieldExtensionAttribute`.
 
 Here is an extension method to add a format argument to a field.
 
@@ -20,10 +20,18 @@ public static class UseFormatExtension
         field.AddExtension(new FormatStringExtension());
         return field;
     }
+
+    public class UseFormatAttribute : FieldExtensionAttribute
+    {
+        public override void ApplyExtension(Field field)
+        {
+            field.UseFormat(DefaultPageSize, MaxPageSize);
+        }
+    }
 }
 ```
 
-`FormatStringExtension` needs to implement `IFieldExtension`.
+`FormatStringExtension` needs to implement `IFieldExtension` or extend `BaseFieldExtension`.
 
 ```
 public class FormatStringExtension : IFieldExtension
@@ -36,15 +44,31 @@ public class FormatStringExtension : IFieldExtension
 
     // This is called on compilation of a query if the query references this field
     // Good opportunity to check arguments
+    // Most often you can update the expression here and return your new one
     public Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
     {
         if (arguments.last == null && arguments.first == null)
             throw new ArgumentException($"Please provide at least the first or last argument");
+
+        // build the expression that calls your format logic/method
+        var call = Expression.Cal(...);
+        return call;
     }
 
-    // Called at expression execution time.
-    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions) ProcessScalarExpression(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions)
+    public Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
     {
+        // Only called for scalar fields (result in data, not a selection)
+        // called at the final stage just before being used in the final expression for execution
+        // Often no need to do anything here
+        return expression;
+    }
+
+    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+    {
+        // Called for object projection and collection fields. Giving you an opportunity to modify
+        // the selection expression or the selection base expression.
+        // ConnectionEdgeNodeExtension provides a good example of this from UseConnectionPaging
+        return (baseExpression, selectionExpressions, selectContextParam);
     }
 }
 ```

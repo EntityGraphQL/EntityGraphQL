@@ -3,6 +3,7 @@ using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests.ConnectionPaging
 {
@@ -419,6 +420,31 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.NotNull(result.Errors);
             Assert.Equal("last argument can not be greater than 2.", result.Errors[0].Message);
         }
+        [Fact]
+        public void TestAttribute()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var data = new TestDataContext2();
+            FillData(data);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(first: 4) {
+                        edges {
+                            node {
+                                name id
+                            }
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+            dynamic people = result.Data["people"];
+            Assert.Equal(4, Enumerable.Count(people.edges));
+        }
         private static void FillData(TestDataContext data)
         {
             data.People = new()
@@ -439,6 +465,12 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 Name = fname,
                 LastName = lname
             };
+        }
+
+        private class TestDataContext2 : TestDataContext
+        {
+            [UseConnectionPaging]
+            public override List<Person> People { get; set; } = new List<Person>();
         }
     }
 }

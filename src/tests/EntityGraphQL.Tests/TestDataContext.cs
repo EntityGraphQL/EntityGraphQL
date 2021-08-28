@@ -15,7 +15,7 @@ namespace EntityGraphQL.Tests
         public IEnumerable<Project> Projects { get; set; }
         public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
-        public List<Person> People { get; set; } = new List<Person>();
+        public virtual List<Person> People { get; set; } = new List<Person>();
         public IEnumerable<User> Users { get; set; } = new List<User>();
     }
 

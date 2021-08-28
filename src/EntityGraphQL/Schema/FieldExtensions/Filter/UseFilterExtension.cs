@@ -19,4 +19,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return field;
         }
     }
+
+    public class UseFilterAttribute : FieldExtensionAttribute
+    {
+        public override void ApplyExtension(Field field)
+        {
+            field.UseFilter();
+        }
+    }
 }

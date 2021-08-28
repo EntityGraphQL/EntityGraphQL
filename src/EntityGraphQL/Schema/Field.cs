@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema
     public class Field : IField
     {
         private readonly Dictionary<string, ArgType> allArguments = new();
-        private ParameterExpression argumentParam;
+        public ParameterExpression ArgumentParam { get; private set; }
         private readonly ISchemaProvider schema;
 
         public string Name { get; internal set; }
@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema
                     Resolve = resolve.Body;
                 }
                 FieldParam = resolve.Parameters.First();
-                argumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
+                ArgumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
@@ -102,8 +102,8 @@ namespace EntityGraphQL.Schema
             }
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            Resolve = parameterReplacer.Replace(Resolve, argumentParam, argParam);
-            argumentParam = argParam;
+            Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
+            ArgumentParam = argParam;
             ArgumentsType = newArgType;
         }
 
@@ -261,13 +261,13 @@ namespace EntityGraphQL.Schema
                     }
                 }
                 // tell them this expression has another parameter
-                result.AddConstantParameter(argumentParam, argumentValues);
+                result.AddConstantParameter(ArgumentParam, argumentValues);
 
                 if (Extensions.Count > 0)
                 {
                     foreach (var m in Extensions)
                     {
-                        m.GetExpression(this, result, argumentParam, argumentValues, context, parameterReplacer);
+                        m.GetExpression(this, result, ArgumentParam, argumentValues, context, parameterReplacer);
                     }
                 }
             }

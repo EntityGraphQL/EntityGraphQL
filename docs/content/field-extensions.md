@@ -13,3 +13,6 @@ The following highlights the provided field extensions in EntityGraphQL availabl
     - [`UseOffsetPaging`](/field-extensions/01-paging#offsetpaging) for paging collections
 - [`UseFilter`](/field-extensions/02-filtering) to add expression based filtering to collections
 - [Creating](/field-extensions/04-custom-extensions) your own Field Extensions
+
+When combining multiple extensions together on a single field *order matters*. The correct order is
+> OrderBy -> Filter -> Paging

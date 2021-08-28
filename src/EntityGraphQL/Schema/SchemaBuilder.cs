@@ -9,6 +9,7 @@ using System.ComponentModel;
 using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -171,8 +172,18 @@ namespace EntityGraphQL.Schema
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
-            var f = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
-            return f;
+            var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
+
+            var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
+            if (extensions?.Count > 0)
+            {
+                foreach (var extension in extensions)
+                {
+                    extension.ApplyExtension(field);
+                }
+            }
+
+            return field;
         }
 
         private static ISchemaType CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)

@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
             if (selectionFields == null || !selectionFields.Any())
                 return ListExpression;
 
-            (listContext, selectionFields, selectionContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, selectionContext, replacer);
+            (listContext, selectionFields, selectionContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, selectionContext, replacer);
             // build a .Select(...) - returning a IEnumerable<>
             var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(selectionContext, listContext, selectionFields.ExpressionOnly());
 

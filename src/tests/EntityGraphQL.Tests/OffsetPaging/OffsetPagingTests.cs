@@ -3,6 +3,7 @@ using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests.ConnectionPaging
 {
@@ -241,6 +242,41 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var result = schema.ExecuteQuery(gql, data, null, null);
             Assert.NotNull(result.Errors);
             Assert.Equal("Argument take can not be greater than 2.", result.Errors[0].Message);
+        }
+        [Fact]
+        public void TestAttribute()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var data = new TestDataContext2();
+            FillData(data);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(take: 2) {
+                        items {
+                            name id
+                        }
+                        hasNextPage
+                        hasPreviousPage
+                        totalItems
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(2, Enumerable.Count(people.items));
+            Assert.Equal(data.People.Count, people.totalItems);
+            Assert.True(people.hasNextPage);
+            Assert.False(people.hasPreviousPage);
+        }
+        private class TestDataContext2 : TestDataContext
+        {
+            [UseOffsetPaging]
+            public override List<Person> People { get; set; } = new List<Person>();
         }
         private static void FillData(TestDataContext data)
         {

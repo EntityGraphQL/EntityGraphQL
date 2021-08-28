@@ -33,7 +33,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return connectionPagingExtension.EdgeExpression;
         }
 
-        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
             var selectParam = Expression.Parameter(nodeExpressionType);
             var idxParam = Expression.Parameter(typeof(int));

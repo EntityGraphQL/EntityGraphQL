@@ -38,6 +38,20 @@ schemaProvider.ReplaceField("movies",
 .UseConnectionPaging();
 ```
 
+If you are using the `SchemaBuilder.FromObject` you can use the `UseConnectionPagingAttribute` on your collection properties. It takes the same arguments as `UseConnectionPaging()` outlined below.
+
+```
+public class DemoContext : DbContext
+{
+    [UseConnectionPaging]
+    public DbSet<Movie> Movies { get; set; }
+    [UseConnectionPaging]
+    public DbSet<Person> People { get; set; }
+    [UseConnectionPaging]
+    public DbSet<Actor> Actors { get; set; }
+}
+```
+
 This will make the field return a schema type of `MovieConnection`, which is built from the .NET type below where `TEntity` would be `Movie`.
 
 ```
@@ -135,6 +149,20 @@ schemaProvider.ReplaceField("movies",
   "Get a page of movies"
 )
 .UseOffsetPaging();
+```
+
+If you are using the `SchemaBuilder.FromObject` you can use the `UseOffsetPagingAttribute` on your collection properties. It takes the same arguments as `UseOffsetPaging()` outlined below.
+
+```
+public class DemoContext : DbContext
+{
+    [UseOffsetPaging]
+    public DbSet<Movie> Movies { get; set; }
+    [UseOffsetPaging]
+    public DbSet<Person> People { get; set; }
+    [UseOffsetPaging]
+    public DbSet<Actor> Actors { get; set; }
+}
 ```
 
 This will make the field return a schema type of `MovieOffsetPage`, which is built from the .NET type below where `TEntity` would be `Movie`.

@@ -13,6 +13,21 @@ schema.ReplaceField("people",
     .UseFilter();
 ```
 
+If you are using the `SchemaBuilder.FromObject` you can use the `UseFilterAttribute` on your collection properties.
+
+```
+public class DemoContext : DbContext
+{
+    [UseFilter]
+    public DbSet<Movie> Movies { get; set; }
+    [UseFilter]
+    public DbSet<Person> People { get; set; }
+    [UseFilter]
+    public DbSet<Actor> Actors { get; set; }
+}
+```
+
+
 This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `filter: String`.
 
 The `filter` argument takes a string that will be compiled to an expression and inserted into a `Where()` call. The expression is compiled against your schema and the context is the type of elements in the collection.
