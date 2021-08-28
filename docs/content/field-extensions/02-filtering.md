@@ -55,3 +55,36 @@ We can write some filter expressions like so:
     }
 }
 ```
+
+The expression language supports the following constants:
+- Booleans - `true` & `false`
+- Integers - e.g. `2`, `-8`
+- Floats - e.g. `0.2`, `-8.3`
+- `null`
+- Strings - `"within double quotes"`
+
+The expression language supports the following operators:
+- `-` - Subtraction
+- `+` - Addition
+- `*` - Multiply
+- `/` - Divide
+- `%` - Mod
+- `^` - Power
+- `==` - Equals
+- `<=` - Less than or equal to
+- `>=` - Greater than or equal to
+- `<` - Less than
+- `>` - Greater than
+- `or` or `||` - Or
+- `and` or `&&` - And
+
+The expression language supports the follow methods:
+- `List.where(filter)`, or `List.filter(filter)` - Filter the list
+- `List.any(filter)` - Return `true` if any of the items in the list match the filter. Otherwise `false`
+- `List.first(filter?)` - Return the first item from a list. Optionally by a filter
+- `List.last(filter?)` -  Return the last item from a list. Optionally by a filter
+- `List.take(int)` - Return the first `x` items
+- `List.skip(int)` - Return the items after `x`
+- `List.count(filter?)` - Return the count of a list. Optionally counting items that match a filter
+- `List.orderBy(field)` - Order the list by a given field
+- `List.orderByDesc(field)` - Order the list in reverse by a given field

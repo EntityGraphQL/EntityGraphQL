@@ -194,6 +194,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 "==" => ExpressionType.Equal,
                 "+" => ExpressionType.Add,
                 "-" => ExpressionType.Subtract,
+                "/" => ExpressionType.Divide,
                 "%" => ExpressionType.Modulo,
                 "^" => ExpressionType.Power,
                 "and" => ExpressionType.AndAlso,

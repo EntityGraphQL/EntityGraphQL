@@ -16,6 +16,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   List.filter(filter)
     ///   List.first(filter?)
     ///   List.last(filter?)
+    ///   List.any(filter)
     ///   List.take(int)
     ///   List.skip(int)
     ///   List.count(filter?)
@@ -43,6 +44,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             { "take", MakeTakeMethod },
             { "skip", MakeSkipMethod },
             { "count", MakeCountMethod },
+            { "any", MakeAnyMethod },
             { "orderby", MakeOrderByMethod },
             { "orderbydesc", MakeOrderByDescMethod },
         };
@@ -76,6 +78,15 @@ namespace EntityGraphQL.Compiler.EntityQuery
             predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
             var lambda = Expression.Lambda(predicate, argContext as ParameterExpression);
             return ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { argContext.Type }, context, lambda);
+        }
+
+        private static Expression MakeAnyMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+        {
+            ExpectArgsCount(1, args, methodName);
+            var predicate = args.First();
+            predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
+            var lambda = Expression.Lambda(predicate, argContext as ParameterExpression);
+            return ExpressionUtil.MakeCallOnQueryable("Any", new Type[] { argContext.Type }, context, lambda);
         }
 
         private static Expression MakeFirstMethod(Expression context, Expression argContext, string methodName, Expression[] args)

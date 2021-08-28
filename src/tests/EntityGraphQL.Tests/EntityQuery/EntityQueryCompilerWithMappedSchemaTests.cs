@@ -53,6 +53,13 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var exp = EntityQueryCompiler.Compile("if publicProjects.Count() > 1 then \"Yes\" else \"No\"", new TestObjectGraphSchema(), null);
             Assert.Equal("No", exp.Execute(GetDataContext()));
         }
+        [Fact]
+        public void CompilesAny()
+        {
+            var exp = EntityQueryCompiler.Compile("people.any(id > 90)", new TestObjectGraphSchema(), null);
+            dynamic data = exp.Execute(GetDataContext());
+            Assert.Equal(false, data);
+        }
 
         private TestDataContext GetDataContext()
         {
