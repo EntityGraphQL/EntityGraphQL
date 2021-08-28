@@ -9,7 +9,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
     /// <summary>
     /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
     /// </summary>
-    public class LinqCompilerTests
+    public class EntityQueryCompilerTests
     {
         [Fact]
         public void CompilesNumberConstant()
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesBinaryExpressionEquals()
         {
-            var exp = EntityQueryCompiler.Compile("someRelation.relation.id = 99", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("someRelation.relation.id == 99", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.True((bool)exp.Execute(new TestSchema()));
         }
 
@@ -96,15 +96,15 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesBinaryExpressionEqualsAndAdd()
         {
-            var exp = EntityQueryCompiler.Compile("someRelation.relation.id = (99 - 32)", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("someRelation.relation.id == (99 - 32)", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.False((bool)exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void FailsIfThenElseInlineNoBrackets()
         {
-            // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("someRelation.relation.id = 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), null));
+            // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), null));
             Assert.Equal("Expected boolean value in conditional test but found '99'", ex.Message);
         }
 
@@ -112,7 +112,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         public void CompilesIfThenElseInlineTrueBrackets()
         {
             // tells it how to read it
-            var exp = EntityQueryCompiler.Compile("(someRelation.relation.id = 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)100, exp.Execute(new TestSchema()));
         }
 
@@ -120,38 +120,44 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         public void CompilesIfThenElseInlineFalseBrackets()
         {
             // tells it how to read it
-            var exp = EntityQueryCompiler.Compile("(someRelation.relation.id = 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesIfThenElseTrue()
         {
-            var exp = EntityQueryCompiler.Compile("if someRelation.relation.id = 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)100, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesIfThenElseFalse()
         {
-            var exp = EntityQueryCompiler.Compile("if someRelation.relation.id = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithIntAndUint()
         {
-            var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt = 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)66, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CompilesBinaryWithNullableAndNonNullable()
         {
-            var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt = 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
+            var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt == 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), null);
             Assert.Equal((long)100, exp.Execute(new TestSchema()));
+        }
+        [Fact]
+        public void CompilesBinaryAnd()
+        {
+            var exp = EntityQueryCompiler.Compile("(someRelation.nullableInt == 9) && (hello == \"Hi\")", SchemaBuilder.FromObject<TestSchema>(), null);
+            Assert.Equal(false, exp.Execute(new TestSchema()));
         }
         [Fact]
         public void CanUseCompiledExpressionInWhereMethod()
         {
-            var exp = EntityQueryCompiler.Compile("name = \"Bob\"", SchemaBuilder.FromObject<TestEntity>(), null);
+            var exp = EntityQueryCompiler.Compile("name == \"Bob\"", SchemaBuilder.FromObject<TestEntity>(), null);
             var objects = new List<TestEntity> { new TestEntity("Sally"), new TestEntity("Bob") };
             Assert.Equal(2, objects.Count);
             var results = objects.Where((Func<TestEntity, bool>)exp.LambdaExpression.Compile());
@@ -163,7 +169,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         public void TestEntityQueryWorks()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestEntity>();
-            var compiledResult = EntityQueryCompiler.Compile("(relation.id = 1) or (relation.id = 2)", schemaProvider, null);
+            var compiledResult = EntityQueryCompiler.Compile("(relation.id == 1) || (relation.id == 2)", schemaProvider, null);
             var list = new List<TestEntity> {
                 new TestEntity("bob") {
                     Relation = new Person {

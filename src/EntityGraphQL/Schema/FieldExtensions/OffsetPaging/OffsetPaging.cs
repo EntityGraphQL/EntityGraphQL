@@ -99,7 +99,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.UpdateExpression(expression);
         }
 
-        public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             if (maxPageSize.HasValue && arguments.take > maxPageSize.Value)
                 throw new ArgumentException($"Argument take can not be greater than {maxPageSize.Value}.");

@@ -87,7 +87,7 @@ schemaProvider.ReplaceField("movies",
 Below shows the available fields on the new connection type (as always you can explore you schema in something like GraphiQL).
 
 ```
-movies(first: 4, after: "BwAAAA==") {
+movies(first: 4, after: "MQ==") {
     edges {
       cursor
       node { # this is your expected Movie context
@@ -103,6 +103,21 @@ movies(first: 4, after: "BwAAAA==") {
     totalCount
   }
 ```
+
+# Default & Max Page Size
+You can set an optional default page size or max page size for the connection paging model.
+
+```
+myField
+.UseConnectionPaging(
+  defaultPageSize: 10,
+  maxPageSize: 50
+)
+```
+
+If `first` and `last` arguments are `null` the `defaultPageSize` value will be set to the `first` argument.
+
+If either `first` or `last` arguments are greater then the `maxPageSize` value an error is raised and the query will fail.
 
 # Connection Model Implementation
 
@@ -140,3 +155,18 @@ public class OffsetPage<TEntity>
     public int TotalItems { get; set; }
 }
 ```
+
+# Default & Max Page Size
+You can set an optional default page size or max page size for the offset paging model.
+
+```
+myField
+.UseOffsetPaging(
+  defaultPageSize: 10,
+  maxPageSize: 50
+)
+```
+
+If the `take` argument is `null` the `defaultPageSize` value will be set to it.
+
+If the `take` argument is greater then the `maxPageSize` value an error is raised and the query will fail.

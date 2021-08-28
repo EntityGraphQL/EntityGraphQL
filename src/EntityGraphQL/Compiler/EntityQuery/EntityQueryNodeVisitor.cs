@@ -191,14 +191,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             return op switch
             {
-                "=" => ExpressionType.Equal,
+                "==" => ExpressionType.Equal,
                 "+" => ExpressionType.Add,
                 "-" => ExpressionType.Subtract,
                 "%" => ExpressionType.Modulo,
                 "^" => ExpressionType.Power,
                 "and" => ExpressionType.AndAlso,
+                "&&" => ExpressionType.AndAlso,
                 "*" => ExpressionType.Multiply,
                 "or" => ExpressionType.OrElse,
+                "||" => ExpressionType.OrElse,
                 "<=" => ExpressionType.LessThanOrEqual,
                 ">=" => ExpressionType.GreaterThanOrEqual,
                 "<" => ExpressionType.LessThan,

@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.isQueryable = isQueryable;
         }
 
-        public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             return connectionPagingExtension.EdgeExpression;
         }

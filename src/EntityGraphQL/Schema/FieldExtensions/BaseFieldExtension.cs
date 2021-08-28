@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="argExpression">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
-        public virtual Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public virtual Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             return expression;
         }

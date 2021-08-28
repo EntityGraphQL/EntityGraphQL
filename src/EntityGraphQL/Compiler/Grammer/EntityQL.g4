@@ -36,15 +36,17 @@ operator: '-'
 	| '+'
 	| '%'
 	| '^'
-	| 'and'
 	| '*'
-	| 'or'
-	| '='
+	| '=='
 	| '<='
 	| '>='
 	| '<'
 	| '>'
-	| '/';
+	| '/'
+	| 'or'
+	| '||'
+	| 'and'
+	| '&&';
 
 expression:
 	'if ' (' ' | '\t')* test = expression (' ' | '\t')* 'then ' (' ' | '\t')* ifTrue = expression (' ' | '\t')* 'else ' (' ' | '\t')* ifFalse = expression # ifThenElse

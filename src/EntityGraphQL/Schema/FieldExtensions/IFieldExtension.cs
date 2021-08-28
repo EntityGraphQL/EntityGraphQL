@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="argExpression">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
-        Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer);
+        Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
         /// Not called for GraphQLFieldType.Scalar

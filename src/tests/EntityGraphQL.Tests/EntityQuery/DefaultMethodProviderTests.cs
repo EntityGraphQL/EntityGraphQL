@@ -11,21 +11,21 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesFirst()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.first(guid = ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(@"people.first(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
         }
         [Fact]
         public void CompilesWhere()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.where(name = ""bob"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(@"people.where(name == ""bob"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Empty(result);
         }
         [Fact]
         public void CompilesWhere2()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.where(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(@"people.where(name == ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
         }
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesFirstWithPredicate()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.first(name = ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(@"people.first(name == ""Luke"")", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal("Luke", result.Name);
         }
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesMethodsChained()
         {
-            var exp = EntityQueryCompiler.Compile("people.where(id = 9).take(2)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile("people.where(id == 9).take(2)", SchemaBuilder.FromObject<TestSchema>(), null, new DefaultMethodProvider());
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Equal(2, result.Count());
             Assert.Equal("Bob", result.ElementAt(0).Name);

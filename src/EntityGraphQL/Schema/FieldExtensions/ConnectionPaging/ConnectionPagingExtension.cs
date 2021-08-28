@@ -132,7 +132,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.UpdateExpression(expression);
         }
 
-        public override Expression GetExpression(Field field, ExpressionResult expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             if (arguments.before != null && arguments.after != null)
                 throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
