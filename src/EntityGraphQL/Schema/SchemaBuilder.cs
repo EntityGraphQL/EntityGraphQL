@@ -151,9 +151,7 @@ namespace EntityGraphQL.Schema
         private static Field ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
-            {
                 return null;
-            }
 
             // Get Description from ComponentModel.DescriptionAttribute
             string description = "";

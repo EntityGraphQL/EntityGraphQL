@@ -19,18 +19,13 @@ namespace demo
             {
                 demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
-                // queryType.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors")
-                //     .UseOrderBy();
-                queryType.AddField(
-                    "directors",
-                    new PersonSortArgs(),
-                    (ctx, args) => ctx.People.Where(p => p.DirectorOf.Any()),
-                    "List of directors");
+                queryType.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors")
+                    .UseSort();
 
                 queryType.ReplaceField("actors",
                     (db) => db.Actors.Select(a => a.Person).OrderBy(a => a.Id),
                     "actors paged by connection & edges and orderable")
-                    // .UseOrderBy()
+                    .UseSort()
                     .UseConnectionPaging();
 
                 queryType.AddField("actorsOffset",

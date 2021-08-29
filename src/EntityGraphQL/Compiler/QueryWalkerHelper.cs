@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler
     {
         public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public static object ProcessArgumentOrVariable(QueryVariables variables, ArgumentNode argument, Type argType)
+        public static object ProcessArgumentOrVariable(ISchemaProvider schema, QueryVariables variables, ArgumentNode argument, Type argType)
         {
             var argName = argument.Name.Value;
             if (argument.Value.Kind == SyntaxKind.Variable)
@@ -25,10 +25,10 @@ namespace EntityGraphQL.Compiler
                 object value = variables.GetValueFor(varKey);
                 return value;
             }
-            return ProcessArgumentValue(argument.Value, argName, argType);
+            return ProcessArgumentValue(schema, argument.Value, argName, argType);
         }
 
-        public static object ProcessArgumentValue(IValueNode argumentValue, string argName, Type argType)
+        public static object ProcessArgumentValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)
         {
             object argValue = null;
             switch (argumentValue.Kind)
@@ -69,25 +69,32 @@ namespace EntityGraphQL.Compiler
                     }
                     break;
                 case SyntaxKind.ListValue:
-                    argValue = ProcessListArgument((List<IValueNode>)argumentValue.Value, argName, argType);
+                    argValue = ProcessListArgument(schema, (List<IValueNode>)argumentValue.Value, argName, argType);
                     break;
                 case SyntaxKind.ObjectValue:
                     {
+                        // this should be an Input type
                         var obj = Activator.CreateInstance(argType);
+                        var schemaType = schema.Type(argType);
                         foreach (var item in (List<ObjectFieldNode>)argumentValue.Value)
                         {
-                            var prop = argType.GetProperty(item.Name.Value);
+                            if (!schemaType.HasField(item.Name.Value))
+                                throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
+                            var schemaField = schemaType.GetField(item.Name.Value, null);
+
+                            var nameFromType = ((MemberExpression)schemaField.Resolve).Member.Name;
+                            var prop = argType.GetProperty(nameFromType);
 
                             if (prop == null)
                             {
-                                var field = argType.GetField(item.Name.Value);
+                                var field = argType.GetField(nameFromType);
                                 if (field == null)
                                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found on object argument");
-                                field.SetValue(obj, ProcessArgumentValue(item.Value, argName, argType));
+                                field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
                             }
                             else
                             {
-                                prop.SetValue(obj, ProcessArgumentValue(item.Value, argName, argType));
+                                prop.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, prop.PropertyType));
                             }
                         }
                         argValue = obj;
@@ -101,13 +108,13 @@ namespace EntityGraphQL.Compiler
             return argValue;
         }
 
-        public static object ProcessListArgument(List<IValueNode> values, string argName, Type fieldArgType)
+        public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
         {
             var list = (IList)Activator.CreateInstance(fieldArgType);
 
             foreach (var item in values)
             {
-                list.Add(ProcessArgumentValue(item, argName, fieldArgType));
+                list.Add(ProcessArgumentValue(schema, item, argName, fieldArgType));
             }
 
             return list;
@@ -126,8 +133,8 @@ namespace EntityGraphQL.Compiler
                 var argName = item.Variable.Name.Value;
                 if (item.DefaultValue != null)
                 {
-                    var varType = variables.ContainsKey(argName) ? variables[argName].GetType() : QueryWalkerHelper.GetDotnetType(schemaProvider, ((NamedTypeNode)item.Type).Name.Value);
-                    variables[argName] = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(item.DefaultValue, argName, varType))).Compile().DynamicInvoke();
+                    var varType = variables.ContainsKey(argName) ? variables[argName].GetType() : GetDotnetType(schemaProvider, ((NamedTypeNode)item.Type).Name.Value);
+                    variables[argName] = Expression.Lambda(Expression.Constant(ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType))).Compile().DynamicInvoke();
                 }
 
                 var required = item.Type.Kind == SyntaxKind.NonNullType;

@@ -214,7 +214,7 @@ namespace EntityGraphQL.Compiler
         {
             string argName = argument.Name.Value;
             var argType = fieldArgumentContext.GetArgumentType(argName);
-            var constVal = QueryWalkerHelper.ProcessArgumentOrVariable(variables, argument, argType.Type.TypeDotnet);
+            var constVal = QueryWalkerHelper.ProcessArgumentOrVariable(schemaProvider, variables, argument, argType.Type.TypeDotnet);
             Expression argValue = Expression.Constant(constVal);
 
             if (argValue != null && argValue.Type == typeof(string) && argValue.NodeType == ExpressionType.Constant)
@@ -239,7 +239,7 @@ namespace EntityGraphQL.Compiler
                 foreach (var arg in directive.Arguments)
                 {
                     var prop = argType.GetProperty(arg.Name.Value);
-                    var argVal = QueryWalkerHelper.ProcessArgumentOrVariable(variables, arg, prop.PropertyType);
+                    var argVal = QueryWalkerHelper.ProcessArgumentOrVariable(schemaProvider, variables, arg, prop.PropertyType);
                     prop.SetValue(argObj, argVal);
                 }
                 fieldResult = processor.ProcessField(fieldResult, argObj);

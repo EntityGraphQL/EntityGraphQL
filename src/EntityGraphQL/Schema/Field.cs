@@ -265,12 +265,11 @@ namespace EntityGraphQL.Schema
                 }
                 // tell them this expression has another parameter
                 result.AddConstantParameter(ArgumentParam, argumentValues);
-
                 if (Extensions.Count > 0)
                 {
                     foreach (var m in Extensions)
                     {
-                        m.GetExpression(this, result, ArgumentParam, argumentValues, context, parameterReplacer);
+                        result.Expression = m.GetExpression(this, result.Expression, ArgumentParam, argumentValues, context, parameterReplacer);
                     }
                 }
             }
@@ -280,7 +279,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var m in Extensions)
                     {
-                        m.GetExpression(this, (ExpressionResult)Resolve, null, null, context, parameterReplacer);
+                        result.Expression = m.GetExpression(this, result.Expression, null, null, context, parameterReplacer);
                     }
                 }
             }

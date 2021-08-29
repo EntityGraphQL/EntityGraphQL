@@ -248,6 +248,7 @@ namespace EntityGraphQL.Tests
         public void ObjectArg()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddInputType<PersonArg>("PersonArg", "PersonArgs").AddAllFields();
             schema.ReplaceField("people", new
             {
                 options = (PersonArg)null

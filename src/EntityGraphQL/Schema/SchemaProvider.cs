@@ -205,13 +205,18 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string description)
         {
-            var tt = new SchemaType<TBaseType>(this, name, description, null, SchemaFieldNamer, true);
-            var attributes = typeof(TBaseType).GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            if (attributes.Any())
-                tt.AuthorizeClaims = new RequiredClaims(attributes);
+            return (SchemaType<TBaseType>)AddInputType(typeof(TBaseType), name, description);
+        }
 
-            types.Add(name, tt);
-            return tt;
+        public ISchemaType AddInputType(Type type, string name, string description)
+        {
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, SchemaFieldNamer, true, false, false);
+            var attributes = type.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
+            if (attributes.Any())
+                newType.AuthorizeClaims = new RequiredClaims(attributes);
+
+            types.Add(name, newType);
+            return newType;
         }
 
         /// <summary>

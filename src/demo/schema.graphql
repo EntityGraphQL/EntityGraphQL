@@ -24,14 +24,20 @@ enum Genre {
 	Scifi
 }
 
+	"""Sort direction enum"""
+enum SortDirectionEnum {
+	ASC
+	DESC
+}
+
 
 type RootQuery {
 	"""actors paged by connection & edges and orderable"""
-	actors(first: Int, after: String, last: Int, before: String): PersonConnection
+	actors(sort: PersonSortInput, first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
 	"""List of directors"""
-	directors: [Person!]
+	directors(sort: PersonSortInput): [Person!]
 	"""Return a Movie by its Id"""
 	movie(id: Int!): Movie
 	"""Collection of Movies"""
@@ -107,6 +113,16 @@ type PersonConnection {
 	totalCount: Int!
 	"""Information about this page of data"""
 	pageInfo: PageInfo!
+}
+
+"""Sort arguments for Person"""
+input PersonSortInput {
+	id: SortDirectionEnum
+	firstName: SortDirectionEnum
+	lastName: SortDirectionEnum
+	dob: SortDirectionEnum
+	died: SortDirectionEnum
+	isDeleted: SortDirectionEnum
 }
 
 """Metadata about a page of data"""

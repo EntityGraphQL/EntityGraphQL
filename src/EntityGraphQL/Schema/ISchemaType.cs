@@ -23,8 +23,8 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Add all public properties and fields from the dotnet type to the schema for this schema type
         /// </summary>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create ENUM types for enums found in the context object graph</param>
+        /// <param name="autoCreateNewComplexTypes">If true (defaults to false) complex types (class) will be added to the schema</param>
+        /// <param name="autoCreateEnumTypes">If true (default), automatically create ENUM types for enums found in the context object graph</param>
         /// <returns></returns>
         ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true);
     }
