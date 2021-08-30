@@ -121,6 +121,31 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(1.83, person.height);
         }
+        [Fact]
+        public void SupportsArgumentsInNonRootAndEnumAsVar()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
+            schema.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
+
+            var gql = new QueryRequest
+            {
+                Query = @"query People($unit: HeightUnit) {
+                    people { height(unit: $unit) }
+                }",
+                Variables = new QueryVariables
+                {
+                    {"unit", "Meter"}
+                }
+            };
+            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+
+            dynamic result = tree.Data["people"];
+            Assert.Equal(1, Enumerable.Count(result));
+            var person = Enumerable.First(result);
+            // we only have the fields requested
+            Assert.Equal(1.83, person.height);
+        }
 
         [Fact]
         public void SupportsArgumentsGuid()
@@ -131,6 +156,29 @@ namespace EntityGraphQL.Tests
             var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
                         person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+
+            dynamic user = tree.Data["person"];
+            // we only have the fields requested
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.Equal(new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"), user.id);
+        }
+        [Fact]
+        public void SupportsArgumentsGuidAsVar()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            MakePersonIdGuid(schema);
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"query Guid($id: ID!) {
+                        person(id: $id) { id projects { id name } }
+                    }",
+                Variables = new QueryVariables {
+                    {"id", "cccccccc-bbbb-4444-1111-ccddeeff0033"}
+                }
+            };
+            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
             dynamic user = tree.Data["person"];
             // we only have the fields requested

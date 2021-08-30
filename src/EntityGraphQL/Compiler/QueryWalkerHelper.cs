@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler
                 if (variables == null)
                     throw new EntityGraphQLCompilerException($"Missing variable {varKey}");
                 object value = variables.GetValueFor(varKey);
-                return value;
+                return ConvertArgIfRequired(value, argType, argName);
             }
             return ProcessArgumentValue(schema, argument.Value, argName, argType);
         }
@@ -38,17 +38,7 @@ namespace EntityGraphQL.Compiler
                     break;
                 // these ones are the correct type
                 case SyntaxKind.StringValue:
-                    {
-                        var strValue = (string)argumentValue.Value;
-                        if ((argType == typeof(Guid) || argType == typeof(Guid?) ||
-                            argType == typeof(RequiredField<Guid>) || argType == typeof(RequiredField<Guid?>)) &&
-                            GuidRegex.IsMatch(strValue))
-                        {
-                            argValue = Guid.Parse(strValue);
-                            break;
-                        }
-                        argValue = strValue;
-                    }
+                    argValue = (string)argumentValue.Value;
                     break;
                 case SyntaxKind.BooleanValue:
                     argValue = argumentValue.Value;
@@ -57,16 +47,7 @@ namespace EntityGraphQL.Compiler
                     argValue = null;
                     break;
                 case SyntaxKind.EnumValue:
-                    {
-                        var enumName = (string)argumentValue.Value;
-                        var enumType = argType.GetNonNullableType();
-                        var valueIndex = Enum.GetNames(enumType).ToList().FindIndex(n => n == enumName);
-                        if (valueIndex == -1)
-                            throw new EntityGraphQLCompilerException($"Value {enumName} is not valid for argument {argName}");
-
-                        var enumValue = Enum.GetValues(enumType).GetValue(valueIndex);
-                        argValue = enumValue;
-                    }
+                    argValue = (string)argumentValue.Value;
                     break;
                 case SyntaxKind.ListValue:
                     argValue = ProcessListArgument(schema, (List<IValueNode>)argumentValue.Value, argName, argType);
@@ -103,6 +84,32 @@ namespace EntityGraphQL.Compiler
                 case SyntaxKind.FloatValue:
                     argValue = double.Parse(argumentValue.Value.ToString());
                     break;
+            }
+
+            return ConvertArgIfRequired(argValue, argType, argName);
+        }
+
+        private static object ConvertArgIfRequired(object argValue, Type argType, string argName)
+        {
+            argType = argType.GetNonNullableType();
+
+            if ((argType == typeof(Guid) || argType == typeof(Guid?) ||
+                argType == typeof(RequiredField<Guid>) || argType == typeof(RequiredField<Guid?>)) &&
+                argValue.GetType() == typeof(string) && GuidRegex.IsMatch(argValue.ToString()))
+            {
+                return Guid.Parse(argValue.ToString());
+            }
+
+            if (argType.IsEnum)
+            {
+                var enumType = argType.GetNonNullableType();
+                var argStr = argValue.ToString();
+                var valueIndex = Enum.GetNames(enumType).ToList().FindIndex(n => n == argStr);
+                if (valueIndex == -1)
+                    throw new EntityGraphQLCompilerException($"Value {argStr} is not valid for argument {argName}");
+
+                var enumValue = Enum.GetValues(enumType).GetValue(valueIndex);
+                return enumValue;
             }
 
             return argValue;

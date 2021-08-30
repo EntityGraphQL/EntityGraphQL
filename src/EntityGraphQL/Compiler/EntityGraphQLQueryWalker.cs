@@ -224,7 +224,6 @@ namespace EntityGraphQL.Compiler
                     string query = (string)constVal;
                     return BuildEntityQueryExpression(fieldArgumentContext, fieldArgumentContext.Name, argName, query);
                 }
-
             }
             return argValue;
         }
