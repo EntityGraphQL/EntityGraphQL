@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema
     {
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
-        private readonly Dictionary<string, ArgType> argumentTypes = new Dictionary<string, ArgType>();
+        private readonly Dictionary<string, ArgType> argumentTypes = new();
         private readonly Type argInstanceType;
         private readonly bool isAsync;
 
@@ -29,6 +29,8 @@ namespace EntityGraphQL.Schema
         public GqlTypeInfo ReturnType { get; }
 
         public List<IFieldExtension> Extensions => null;
+
+        public ParameterExpression ArgumentParam => throw new NotImplementedException();
 
         public async Task<object> CallAsync(object context, Dictionary<string, Expression> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {

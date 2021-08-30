@@ -1,5 +1,7 @@
+using System.Linq;
 using BenchmarkDotNet.Attributes;
 using EntityGraphQL;
+using EntityGraphQL.Extensions;
 
 namespace Benchmarks
 {
@@ -63,6 +65,18 @@ namespace Benchmarks
                     }
                 }"
             });
+        }
+        [GlobalSetup(Target = nameof(Query_ListWithTakeArg))]
+        public void ModifyField()
+        {
+            Schema.ReplaceField(
+                "movies",
+                new
+                {
+                    take = (int?)null
+                },
+                (ctx, args) => ctx.Movies.Take(args.take),
+                "List of movies");
         }
         [Benchmark]
         public void Query_ListWithTakeArg()

@@ -29,14 +29,6 @@ namespace Benchmarks
             {
                 type.AddField("name", person => $"{person.FirstName} {person.LastName}", "Person's full name");
             });
-            schema.ReplaceField(
-                "movies",
-                new
-                {
-                    take = (int?)null
-                },
-                (ctx, args) => ctx.Movies.Take(args.take),
-                "List of movies");
             return schema;
         }
 

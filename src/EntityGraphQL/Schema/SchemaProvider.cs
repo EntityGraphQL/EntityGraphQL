@@ -31,7 +31,6 @@ namespace EntityGraphQL.Schema
         private readonly string queryContextName;
         private readonly ILogger<SchemaProvider<TContextType>> logger;
         private readonly DefaultMethodProvider methodProvider;
-        private readonly QueryCache queryCache;
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -93,7 +92,6 @@ namespace EntityGraphQL.Schema
             directives.Add(skip.Name, skip);
 
             methodProvider = new DefaultMethodProvider();
-            queryCache = new QueryCache();
         }
 
         public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
@@ -131,13 +129,8 @@ namespace EntityGraphQL.Schema
 
         public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsIdentity claims)
         {
-            // (GraphQLDocument queryResult, string hash) = queryCache.Get(gql);
-            // if (queryResult != null)
-            //     return queryResult;
-
             var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
             var queryResult = graphQLCompiler.Compile(gql, claims);
-            // queryCache.Put(hash, queryResult);
             return queryResult;
         }
 

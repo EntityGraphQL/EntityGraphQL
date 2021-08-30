@@ -11,6 +11,7 @@ namespace EntityGraphQL.Schema
     public interface IField
     {
         IDictionary<string, ArgType> Arguments { get; }
+        ParameterExpression ArgumentParam { get; }
         string Name { get; }
         GqlTypeInfo ReturnType { get; }
         List<IFieldExtension> Extensions { get; }

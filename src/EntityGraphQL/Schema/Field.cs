@@ -23,7 +23,7 @@ namespace EntityGraphQL.Schema
 
         public string Name { get; internal set; }
         public ParameterExpression FieldParam { get; private set; }
-        public List<IFieldExtension> Extensions { get; private set; }
+        public List<IFieldExtension> Extensions { get; set; }
 
         private readonly ParameterReplacer parameterReplacer;
 

@@ -173,7 +173,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            (_, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, ParentNode.NextContextExpression, selectionFields, null, replacer);
+            (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, updatedExpression, selectionFields, null, replacer);
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 

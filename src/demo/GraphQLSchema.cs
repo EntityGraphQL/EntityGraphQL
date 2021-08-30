@@ -23,8 +23,9 @@ namespace demo
                     .UseSort();
 
                 queryType.ReplaceField("actors",
-                    (db) => db.Actors.Select(a => a.Person).OrderBy(a => a.Id),
+                    (db) => db.Actors.Select(a => a.Person),
                     "actors paged by connection & edges and orderable")
+                    .UseFilter()
                     .UseSort()
                     .UseConnectionPaging();
 

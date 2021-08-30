@@ -1,6 +1,7 @@
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using EntityGraphQL;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace Benchmarks
@@ -8,19 +9,51 @@ namespace Benchmarks
     [SimpleJob(launchCount: 2, warmupCount: 1, targetCount: 5)]
     public class PagingBenchmarks : BaseBenchmark
     {
-        [Benchmark]
-        public void ConnectionPaging()
+        [GlobalSetup]
+        public void GlobalSetup()
         {
-            Schema.ReplaceField("movies",
+            Schema.AddField("moviesTakeSkip",
+                new
+                {
+                    take = (int?)null,
+                    skip = (int?)null,
+                },
+                (ctx, args) => ctx.Movies.OrderBy(i => i.Id).Skip(args.skip).Take(args.take),
+                "Movies"
+            );
+
+            Schema.AddField("moviesConnection",
                 ctx => ctx.Movies.OrderBy(i => i.Id),
                 "Movies"
             )
             .UseConnectionPaging();
 
+            Schema.ReplaceField("moviesOffset",
+                ctx => ctx.Movies.OrderBy(i => i.Id),
+                "Movies"
+            )
+            .UseOffsetPaging();
+        }
+
+        [Benchmark]
+        public void NoExtension()
+        {
             RunQuery(GetContext(), new QueryRequest
             {
                 Query = @"{
-                    movies(last: 3 before: ""NA=="") {
+                    moviesTakeSkip(skip: 1 take: 1) {
+                        name id
+                    }
+                }"
+            });
+        }
+        [Benchmark]
+        public void ConnectionPaging()
+        {
+            RunQuery(GetContext(), new QueryRequest
+            {
+                Query = @"{
+                    moviesConnection(last: 3 before: ""NA=="") {
                         edges {
                             node {
                                 name id
@@ -42,21 +75,17 @@ namespace Benchmarks
         [Benchmark]
         public void OffsetPaging()
         {
-            Schema.ReplaceField("movies",
-                ctx => ctx.Movies.OrderBy(i => i.Id),
-                "Movies"
-            )
-            .UseOffsetPaging();
-
             RunQuery(GetContext(), new QueryRequest
             {
-                Query = @"actorsOffset(skip: 1 take: 1) {
-                    items {
-                        name id
+                Query = @"{
+                    moviesOffset(skip: 1 take: 1) {
+                        items {
+                            name id
+                        }
+                        totalItems
+                        hasNextPage
+                        hasPreviousPage
                     }
-                    totalItems
-                    hasNextPage
-                    hasPreviousPage
                 }"
             });
         }

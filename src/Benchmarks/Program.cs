@@ -12,12 +12,12 @@ namespace Benchmarks
                 args,
                 new DebugInProcessConfig()
             );
-            // var queryBench = new QueryBenchmarks();
+            // var queryBench = new PagingBenchmarks();
 
             // for (int i = 0; i < 1000; i++)
             // {
             //     Console.WriteLine($"Executing {i} ...");
-            //     queryBench.Query_List();
+            //     queryBench.NoExtension();
             // }
         }
     }
