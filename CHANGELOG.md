@@ -1,7 +1,9 @@
 # 0.70.0
-- Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io)
-- New built in field extension `UseConnectionPaging()` which when applied to a collection field modifies the field to implement the GraphQL Connection spec for paging data with metadata
-- New built in field extension `UseOffsetPaging()` which when applied to a collection field modifies the field to implement an offset style paging structure
+- Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io). New built in field extensions
+  - `UseConnectionPaging()` which when applied to a collection field modifies the field to implement the GraphQL Connection spec for paging data with metadata
+  - `UseOffsetPaging()` which when applied to a collection field modifies the field to implement an offset style paging structure
+  - `UseFilter()` which when applied to a collection adds a `filter` argument that takes an expression
+  - `UseSort()` which when applied to a collection adds a `sort` arguments that takes fields to sort the collection by
 - Replaced Antlr based GraphQL query lexer/parser with HotChocolate.Language Parser. Parsing of query documents is _much_ faster!
 - You can now directly use lists (`[12,32]`, etc) and objects (`{name: "Frank"}`) as arguments in the query document. Although it is still recommended to use the `Variables` in the query
 - Added benchmarks to help explore performance issues in expression building (What we do with expressions is fast, but found the Antlr Parser was slow)
