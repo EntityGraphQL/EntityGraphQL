@@ -195,7 +195,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("tasks", project.GetType().GetFields()[1].Name);
 
             var tasks = project.tasks;
-            Assert.Equal(1, Enumerable.Count(tasks));
+            Assert.Equal(4, Enumerable.Count(tasks));
             var task = Enumerable.ElementAt(tasks, 0);
             Assert.Equal(2, task.GetType().GetFields().Length);
             Assert.Equal("id", task.GetType().GetFields()[0].Name);

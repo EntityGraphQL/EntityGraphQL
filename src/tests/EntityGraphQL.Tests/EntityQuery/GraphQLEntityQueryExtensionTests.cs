@@ -70,6 +70,30 @@ namespace EntityGraphQL.Tests
             Assert.Equal("2", user.field2);
         }
         [Fact]
+        public void SupportUseFilterOnNonRoot()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            schema.Type<Project>().GetField("tasks")
+                .UseFilter();
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    projects {
+                        tasks(filter: $filter) { id }
+                    }
+                }",
+                Variables = new QueryVariables { { "filter", "(id == 2) || (id == 4)" } }
+            };
+            var tree = schema.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+            dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+            Assert.Equal(1, Enumerable.Count(projects));
+            var project = Enumerable.First(projects);
+            Assert.Equal(2, Enumerable.Count(project.tasks));
+            Assert.Equal(2, Enumerable.ElementAt(project.tasks, 0).id);
+            Assert.Equal(4, Enumerable.ElementAt(project.tasks, 1).id);
+        }
+        [Fact]
         public void TestAttribute()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext2>();

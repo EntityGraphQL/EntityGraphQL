@@ -4,6 +4,8 @@ using EntityGraphQL.Schema;
 using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using static EntityGraphQL.Tests.ServiceFieldTests;
+using System.Reflection;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests
 {
@@ -51,10 +53,11 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic addPersonResult = res.Data["addPerson"];
             // we only have the fields requested
-            Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
+            Assert.Equal(2, resultFields.Count());
+            Assert.Contains("id", resultFields);
             Assert.Equal(555, addPersonResult.id);
-            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Contains("name", resultFields);
             Assert.Equal("Default", addPersonResult.name);
         }
 
@@ -80,10 +83,11 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data["addPersonNames"];
             // we only have the fields requested
-            Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
             Assert.Equal(11, addPersonResult.id);
-            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Contains("name", resultFields);
             Assert.Equal("Bill", addPersonResult.name);
             Assert.Equal("Frank", addPersonResult.lastName);
         }
@@ -111,10 +115,11 @@ namespace EntityGraphQL.Tests
             Assert.Null(result.Errors);
             dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
             // we only have the fields requested
-            Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
             Assert.Equal(0, addPersonResult.id);
-            Assert.Equal("name", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
         }

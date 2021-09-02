@@ -123,7 +123,27 @@ namespace EntityGraphQL.Tests
             {
                 Id = 55,
                 Name = "Project 3",
-                Tasks = new List<Task> { new Task() },
+                Tasks = new List<Task> {
+                    new Task
+                    {
+                        Id = 1,
+                        Name = "task 1"
+                    },
+                    new Task
+                    {
+                        Id = 2,
+                        Name = "task 2"
+                    },
+                    new Task
+                    {
+                        Id = 3,
+                        Name = "task 3"
+                    },new Task
+                    {
+                        Id = 4,
+                        Name = "task 4"
+                    }
+                },
             };
             context.People = new List<Person>
             {
