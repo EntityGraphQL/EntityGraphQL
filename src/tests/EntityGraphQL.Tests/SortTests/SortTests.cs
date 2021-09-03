@@ -101,6 +101,58 @@ namespace EntityGraphQL.Tests
             Assert.Equal("height", fields[1].Name);
             Assert.Equal("name", fields[2].Name);
         }
+        [Fact]
+        public void SupportUseSortOnNonRoot()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            schema.Type<Project>().GetField("tasks")
+                .UseSort();
+            var gql = new QueryRequest
+            {
+                Query = @"query($sort: PersonSortInput) {
+                    projects {
+                        tasks(sort: $sort) { id }
+                    }
+                }",
+                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+            };
+            var context = new TestDataContext().FillWithTestData();
+            var tree = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+            Assert.Equal(1, Enumerable.Count(projects));
+            var project = Enumerable.First(projects);
+            Assert.Equal(4, Enumerable.Count(project.tasks));
+            Assert.Equal(4, Enumerable.ElementAt(project.tasks, 0).id);
+            Assert.Equal(3, Enumerable.ElementAt(project.tasks, 1).id);
+            Assert.Equal(2, Enumerable.ElementAt(project.tasks, 2).id);
+            Assert.Equal(1, Enumerable.ElementAt(project.tasks, 3).id);
+        }
+        [Fact]
+        public void SupportUseSortOnNonRoot2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Type<Project>().GetField("tasks")
+                .UseSort();
+            var gql = new QueryRequest
+            {
+                Query = @"query($sort: PersonSortInput) {
+                    project(id: 55) {
+                        tasks(sort: $sort) { id }
+                    }
+                }",
+                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+            };
+            var context = new TestDataContext().FillWithTestData();
+            var tree = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic project = ((IDictionary<string, object>)tree.Data)["project"];
+            Assert.Equal(4, Enumerable.Count(project.tasks));
+            Assert.Equal(4, Enumerable.ElementAt(project.tasks, 0).id);
+            Assert.Equal(3, Enumerable.ElementAt(project.tasks, 1).id);
+            Assert.Equal(2, Enumerable.ElementAt(project.tasks, 2).id);
+            Assert.Equal(1, Enumerable.ElementAt(project.tasks, 3).id);
+        }
     }
 
     internal class TestArgs
