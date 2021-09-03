@@ -34,6 +34,7 @@ namespace EntityGraphQL.Schema
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
+        public SchemaProvider() : this(null, null) { }
         /// <summary>
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>

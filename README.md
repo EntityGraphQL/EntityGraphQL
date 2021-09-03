@@ -28,8 +28,8 @@ _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IE
 ## 1. Define your data context (in this example an EF context)
 
 ```c#
-public class MyDbContext : DbContext {
-  public MyDbContext(DbContextOptions options) : base(options)
+public class DemoContext : DbContext {
+  public DemoContext(DbContextOptions options) : base(options)
   {
   }
 
@@ -62,58 +62,41 @@ public class Location {
 ```
 ## 2. Create a route
 
-Using what ever API library you wish. Here is an example for a ASP.NET Core WebApi controller.
+Here is an example for a ASP.NET. You will also need to install EntityGraphQL.AspNet to use `MapGraphQL`. You can also build you own endpoint, see docs.
+
+[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 
 ```c#
 public class Startup {
   public void ConfigureServices(IServiceCollection services)
   {
-      services.AddControllers().AddNewtonsoftJson();
-      services.AddDbContext<MyDbContext>(opt => opt.UseInMemoryDatabase());
-      // add schema provider so we don't need to create it every time
-      // Also for this demo we expose all fields on MyDbContext. See below for details on building custom fields etc.
-      services.AddSingleton(SchemaBuilder.FromObject<MyDbContext>());
+      services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase());
+      // This registers a SchemaProvider<DemoContext>
+      services.AddGraphQLSchema<DemoContext>();
+  }
+
+  public void Configure(IApplicationBuilder app, DemoContext db)
+  {
+      app.UseRouting();
+      app.UseEndpoints(endpoints =>
+      {
+          // default to /graphql endpoint
+          endpoints.MapGraphQL<DemoContext>();
+      });
   }
 }
 
-[Route("api/[controller]")]
-public class QueryController : Controller
-{
-    private readonly MyDbContext _dbContext;
-    private readonly SchemaProvider<MyDbContext> _schemaProvider;
-
-    public QueryController(MyDbContext dbContext, SchemaProvider<MyDbContext> schemaProvider)
-    {
-        this._dbContext = dbContext;
-        this._schemaProvider = schemaProvider;
-    }
-
-    [HttpPost]
-    public object Post([FromBody]QueryRequest query)
-    {
-        try
-        {
-            var results = _schemaProvider.ExecuteQuery(query, _dbContext, null, null);
-            // gql compile errors show up in results.Errors
-            return results;
-        }
-        catch (Exception)
-        {
-            return HttpStatusCode.InternalServerError;
-        }
-    }
-}
 ```
 
 This sets up 1 end point:
-- `POST` at `/api/query` where the body of the post is a GraphQL query
+- `POST` at `/graphql` where the body of the post is a GraphQL query
 - You can authorize that route how you would any ASP.NET route. See Authorization below for details on having parts of the schema requiring Authorization/Claims
 
 ## 3. Build awesome applications
 
 You can now make a request to your API. For example
 ```
-  POST localhost:5000/api/query
+  POST localhost:5000/graphql
   {
     properties { id name }
   }

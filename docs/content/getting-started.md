@@ -86,50 +86,34 @@ Below we'll use this to expose an API with ASP.NET. See the next section on manu
 
 # Create the API
 
-Using what ever .NET API library you wish you can receive a query, execute it and return the data. Here is an example with ASP.NET Core.
+Using what ever .NET API library you wish you can receive a query, execute it and return the data. Here is an example with ASP.NET.
+
+You will need to install EntityGraphQL.AspNet to use `MapGraphQL`. You can also build you own endpoint, see below.
+
+[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 
 ```
 public class Startup {
   public void ConfigureServices(IServiceCollection services)
   {
-      services.AddControllers().AddNewtonsoftJson();
       services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase()); // Again this example using EF but you do not have to
-      // add schema provider so we don't need to create it every time
-      // Also for this demo we expose all fields on DemoContext
-      services.AddSingleton(SchemaBuilder.FromObject<DemoContext>());
+      // This registers a SchemaProvider<DemoContext>
+      services.AddGraphQLSchema<DemoContext>();
   }
-}
 
-[Route("api/[controller]")]
-public class QueryController : Controller
-{
-    private readonly DemoContext _dbContext;
-    private readonly SchemaProvider<DemoContext> _schemaProvider;
-
-    public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
-    {
-        this._dbContext = dbContext;
-        this._schemaProvider = schemaProvider;
-    }
-
-    [HttpPost]
-    public object Post([FromBody]QueryRequest query)
-    {
-        try
-        {
-            var results = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null);
-            // gql compile errors show up in results.Errors
-            return results;
-        }
-        catch (Exception)
-        {
-            return HttpStatusCode.InternalServerError;
-        }
-    }
+  public void Configure(IApplicationBuilder app, DemoContext db)
+  {
+      app.UseRouting();
+      app.UseEndpoints(endpoints =>
+      {
+          // default to /graphql endpoint
+          endpoints.MapGraphQL<DemoContext>();
+      });
+  }
 }
 ```
 
-This sets up a `HTTP` `POST` end point at `/api/query` where the body of the post is expected to be a GraphQL query.
+This sets up a `HTTP` `POST` end point at `/graphql` where the body of the post is expected to be a GraphQL query. You can change the path with the `path` argument in `MapGraphQL<T>()`
 
 _You can authorize the route how ever you wish using ASP.NET. See the Authorization section for more details._
 
@@ -141,7 +125,7 @@ You can now make a request to your API via any HTTP tool/library.
 
 For example
 ```
-  POST localhost:5000/api/query
+  POST localhost:5000/graphql
   {
     "query": "{
       movies { id name }
@@ -229,5 +213,39 @@ Will return the following result.
       }
     ]
   }
+}
+```
+
+# Custom Controller
+
+Here is an example of a controller that receives a `QueryRequest` and executes the query. This logic could easily be applied to other web frameworks.
+
+```
+[Route("graphql")]
+public class QueryController : Controller
+{
+    private readonly DemoContext _dbContext;
+    private readonly SchemaProvider<DemoContext> _schemaProvider;
+
+    public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
+    {
+        this._dbContext = dbContext;
+        this._schemaProvider = schemaProvider;
+    }
+
+    [HttpPost]
+    public object Post([FromBody]QueryRequest query)
+    {
+        try
+        {
+            var results = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null);
+            // gql compile errors show up in results.Errors
+            return results;
+        }
+        catch (Exception)
+        {
+            return HttpStatusCode.InternalServerError;
+        }
+    }
 }
 ```

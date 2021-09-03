@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.9" />
 
     <ProjectReference Include="../EntityGraphQL/EntityGraphQL.csproj" />
+    <ProjectReference Include="../EntityGraphQL.AspNet/EntityGraphQL.AspNet.csproj" />
   </ItemGroup>
 
 </Project>

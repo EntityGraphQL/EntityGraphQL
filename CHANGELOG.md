@@ -1,3 +1,13 @@
+# 0.71.0
+- New extension methods to ease adding your schema to the service collection. See docs - `services.AddGraphQLSchema<DemoContext>(configure => {})`
+- New package EntityGraphQL.AspNet with extensions to easily expose a graphql endpoint with `MapGraphQL<T>()`.
+```c#
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapGraphQL<DemoContext>();
+});
+```
+
 # 0.70.0
 - Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io). New built in field extensions
   - `UseConnectionPaging()` which when applied to a collection field modifies the field to implement the GraphQL Connection spec for paging data with metadata

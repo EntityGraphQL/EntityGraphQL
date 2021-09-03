@@ -6,6 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using EntityGraphQL.ServiceCollectionExtensions;
+using EntityGraphQL.AspNet.Extensions;
+using EntityGraphQL.Schema;
 
 namespace demo
 {
@@ -36,7 +39,7 @@ namespace demo
                     logging.AddDebug();
                 });
             // add schema provider so we don't need to create it everytime
-            services.AddSingleton(GraphQLSchema.MakeSchema());
+            services.AddGraphQLSchema<DemoContext>(GraphQLSchema.ConfigureSchema);
             services.AddRouting();
             services.AddControllers().AddNewtonsoftJson();
         }
@@ -49,9 +52,13 @@ namespace demo
             app.UseFileServer();
 
             app.UseRouting();
-            app.UseEndpoints(configure =>
+            app.UseEndpoints(endpoints =>
             {
-                configure.MapControllers();
+                endpoints.MapControllers();
+                endpoints.MapGraphQL<DemoContext>(options: new ExecutionOptions
+                {
+                    IncludeDebugInfo = true
+                });
             });
         }
 

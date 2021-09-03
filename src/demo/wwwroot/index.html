@@ -28,7 +28,7 @@
   <div id="graphiql">Loading...</div>
   <script>
     const graphQLFetcher = graphQLParams =>
-      fetch('/api/query', {
+      fetch('/graphql', {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(graphQLParams),

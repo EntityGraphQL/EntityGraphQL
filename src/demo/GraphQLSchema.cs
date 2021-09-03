@@ -9,11 +9,8 @@ namespace demo
 {
     public class GraphQLSchema
     {
-        public static SchemaProvider<DemoContext> MakeSchema()
+        public static void ConfigureSchema(SchemaProvider<DemoContext> demoSchema)
         {
-            // build our schema directly from the DB Context
-            var demoSchema = SchemaBuilder.FromObject<DemoContext>();
-
             // Add custom root fields
             demoSchema.UpdateQueryType(queryType =>
             {
@@ -65,7 +62,6 @@ namespace demo
             demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
             demoSchema.AddMutationFrom(new DemoMutations());
             File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
-            return demoSchema;
         }
     }
 }

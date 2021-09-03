@@ -156,7 +156,7 @@ The larger impact of these choices can be seen in the resulting schema and use o
 With scalar arguments.
 
 ```
-POST localhost:5000/api/query
+POST localhost:5000/graphql
     {
     "query": "mutation AddPerson($firstName: String!, $lastName: String!) {
         addNewPerson(firstName: $firstName, lastName: $lastName) { id }
@@ -171,7 +171,7 @@ POST localhost:5000/api/query
 With an input type argument
 
 ```
-POST localhost:5000/api/query
+POST localhost:5000/graphql
 {
     "query": "mutation AddPerson($person: PersonInput!) {
         addNewPerson(personInput: $person) { id }
