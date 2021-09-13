@@ -150,7 +150,7 @@ namespace EntityGraphQL.Compiler
             if (replaceContextWith != null)
             {
                 if (useReplaceContextDirectly)
-                    updatedExpression = (ExpressionResult)replaceContextWith;
+                    updatedExpression = replaceContextWith;
                 else
                     updatedExpression = replacer.ReplaceByType(updatedExpression, ParentNode.NextContextExpression.Type, replaceContextWith);
 
@@ -159,10 +159,10 @@ namespace EntityGraphQL.Compiler
                 foreach (var item in selectionFields)
                 {
                     if (item.Value.Field.Services.Any())
-                        item.Value.Expression = (ExpressionResult)replacer.ReplaceByType(item.Value.Expression, NextContextExpression.Type, nullWrapParam);
+                        item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, NextContextExpression.Type, nullWrapParam);
                     else if (item.Key != "__typename") // this is a static selection of the type name
                                                        // pre service selection has selected the fields as the names we expect already
-                        item.Value.Expression = (ExpressionResult)Expression.PropertyOrField(nullWrapParam, item.Key);
+                        item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key);
                 }
             }
             else
@@ -190,7 +190,7 @@ namespace EntityGraphQL.Compiler
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(null, i.Key, (ExpressionResult)i.Value, RootParameter, ParentNode))
+                        .Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter, ParentNode))
                         .ToList();
 
                     if (fields.Any())

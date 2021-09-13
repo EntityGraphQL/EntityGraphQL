@@ -371,6 +371,48 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestServicesReconnectToSchemaContext2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // Linking a type from a service back to the schema context
+            schema.Type<User>().ReplaceField("projects",
+                (user) => WithService((TestDataContext db) => db.Projects.Where(p => p.Owner.Id == user.Id)),
+                "Peoples projects");
+
+            schema.ReplaceField("users", ctx => WithService((UserService users) => users.GetUsers()), "Get current user");
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ users { id projects { id } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                        {
+                            new Person
+                            {
+                                Projects = new List<Project>()
+                            }
+                        },
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic users = res.Data["users"];
+            Assert.Equal(2, users[0].GetType().GetFields().Length);
+            Assert.Equal("id", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
+            Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
         public void TestSelectFromServiceDeepInLists()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -1180,6 +1222,11 @@ namespace EntityGraphQL.Tests
         {
             CallCount += 1;
             return new User();
+        }
+        public IEnumerable<User> GetUsers()
+        {
+            CallCount += 1;
+            return new List<User> { new User() };
         }
     }
 

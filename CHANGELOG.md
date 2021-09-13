@@ -7,6 +7,7 @@ app.UseEndpoints(endpoints =>
     endpoints.MapGraphQL<DemoContext>();
 });
 ```
+- Fix issue reconnecting from a service field to the context
 
 # 0.70.0
 - Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io). New built in field extensions

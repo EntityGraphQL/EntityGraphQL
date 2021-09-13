@@ -76,7 +76,11 @@ namespace EntityGraphQL.Compiler
             var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? selectionContext : null, schemaContext);
 
             if (selectionFields == null || !selectionFields.Any())
+            {
+                if (withoutServiceFields && Services.Any())
+                    return null;
                 return ListExpression;
+            }
 
             (listContext, selectionFields, selectionContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, selectionContext, replacer);
             // build a .Select(...) - returning a IEnumerable<>

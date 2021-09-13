@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (hasCursorField)
                 bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionHelper), "GetCursor", null, ArgExpression, idxParam)));
 
-            var edgesExp = (ExpressionResult)Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
+            var edgesExp = Expression.Call(typeof(Enumerable), "Select", new Type[] { nodeExpressionType, newEdgeType },
                 Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Select", new Type[] { listType, nodeExpressionType },
                     connectionPagingExtension.EdgeExpression,
                     // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
