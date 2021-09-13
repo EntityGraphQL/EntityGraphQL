@@ -18,6 +18,7 @@ namespace EntityGraphQL.Compiler.Util
         private ParameterExpression toReplace;
         private string newFieldName;
         private bool finished;
+        private string newFieldNameForType;
 
         /// <summary>
         /// Rebuilds the expression by replacing toReplace with newParam. Optionally looks for newFieldName as it is rebuilding.
@@ -34,17 +35,19 @@ namespace EntityGraphQL.Compiler.Util
             this.toReplace = toReplace;
             this.toReplaceType = null;
             this.newFieldName = newFieldName;
+            this.newFieldNameForType = null;
             finished = false;
             return Visit(node);
         }
 
-        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam)
+        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string newContextFieldName = null)
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
             this.toReplace = null;
             this.newFieldName = null;
             finished = false;
+            this.newFieldNameForType = newContextFieldName;
             return Visit(node);
         }
 
@@ -70,8 +73,13 @@ namespace EntityGraphQL.Compiler.Util
             if (node.Expression != null)
             {
                 Expression nodeExp;
+                var fieldName = node.Member.Name;
                 if (node.Expression.Type == toReplaceType)
+                {
                     nodeExp = newParam;
+                    if (!string.IsNullOrEmpty(newFieldNameForType))
+                        fieldName = newFieldNameForType;
+                }
                 else
                     nodeExp = base.Visit(node.Expression);
 
@@ -91,7 +99,19 @@ namespace EntityGraphQL.Compiler.Util
                         nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
                 }
                 else
-                    nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                {
+                    var field = nodeExp.Type.GetField(fieldName);
+                    if (field != null)
+                        nodeExp = Expression.Field(nodeExp, field);
+                    else
+                    {
+                        var prop = nodeExp.Type.GetProperty(fieldName);
+                        if (prop != null)
+                            nodeExp = Expression.Property(nodeExp, prop);
+                        else
+                            nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                    }
+                }
                 return nodeExp;
             }
             return base.VisitMember(node);
@@ -99,12 +119,13 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
+            bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
                 var callBase = base.Visit(node.Arguments[0]);
                 var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType() : callBase.Type;
-                var oldCallBaseType = node.Arguments[0].Type.IsEnumerableOrArray() ? node.Arguments[0].Type.GetEnumerableOrArrayType() : node.Arguments[0].Type;
+                var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType() : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
                 {
                     var replaceAgain = new ParameterReplacer();
@@ -125,6 +146,14 @@ namespace EntityGraphQL.Compiler.Util
                     var newCall = Expression.Call(node.Method.DeclaringType, node.Method.Name, newTypeArgs.ToArray(), (new[] { callBase }).Concat(newArgs).ToArray());
                     return newCall;
                 }
+            }
+            else if (baseCallIsEnumerable && !node.Type.IsEnumerableOrArray() && node.Arguments.Count == 1 && !string.IsNullOrEmpty(newFieldNameForType))
+            {
+                // field is going from collection to a single - if execution is split over non service fields and then with
+                // the nex context doesn't have the collection to single. It only has the single
+                var newField = base.Visit(node.Arguments[0]);
+                if (newField != null)
+                    return newField;
             }
             return base.VisitMethodCall(node);
         }

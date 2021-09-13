@@ -92,6 +92,8 @@ namespace EntityGraphQL.Compiler
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
                     context = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer, options);
+                    if (context == null)
+                        return null;
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
                     var newContextType = Expression.Parameter(context.GetType(), "_ctx");

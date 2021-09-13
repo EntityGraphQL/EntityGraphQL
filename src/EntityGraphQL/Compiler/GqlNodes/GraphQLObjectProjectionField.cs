@@ -152,7 +152,7 @@ namespace EntityGraphQL.Compiler
                 if (useReplaceContextDirectly)
                     updatedExpression = replaceContextWith;
                 else
-                    updatedExpression = replacer.ReplaceByType(updatedExpression, ParentNode.NextContextExpression.Type, replaceContextWith);
+                    updatedExpression = replacer.ReplaceByType(updatedExpression, ParentNode.NextContextExpression.Type, replaceContextWith, Name);
 
                 nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
 

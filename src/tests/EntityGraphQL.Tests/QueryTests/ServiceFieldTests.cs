@@ -777,7 +777,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Project>().AddField("configType",
-                (p) => WithService((ConfigService srv) => srv.Get(0).Type),
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id).Type),
                 "Get project config");
 
             schema.ReplaceField("projects",
@@ -791,7 +791,7 @@ namespace EntityGraphQL.Tests
                 "List of projects");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            ConfigService srv = new();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest
@@ -1055,7 +1055,7 @@ namespace EntityGraphQL.Tests
                 "Get project config");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService configSrv = new ConfigService();
+            ConfigService configSrv = new();
             serviceCollection.AddSingleton(configSrv);
 
             var gql = new QueryRequest
@@ -1091,6 +1091,61 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = (dynamic)res.Data["task"];
+        }
+
+        [Fact]
+        public void TestServiceAfterMultipleCollectionToSingle()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<ProjectConfig>("ProjectConfig", "Config for the task").AddAllFields();
+            schema.Type<Task>().AddField("config",
+                (p) => WithService((ConfigService srv) => srv.Get(p.Id)),
+                "Get task config");
+            schema.Type<Project>().AddField("firstTask",
+                (p) => p.Tasks.FirstOrDefault(),
+                "Get first task");
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService configSrv = new();
+            serviceCollection.AddSingleton(configSrv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    project(id: 0) { # context collection to single
+                        firstTask { # still EF context but uses first()
+                            config { #service
+                                type
+                            }
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 0,
+                        Description = "Hello",
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                            }
+                        },
+                    }
+                }
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, configSrv.CallCount);
+            dynamic project = (dynamic)res.Data["project"];
         }
 
         public class AgeService

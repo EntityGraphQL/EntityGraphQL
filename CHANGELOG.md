@@ -1,4 +1,4 @@
-# 0.71.0
+# 1.0.0
 - New extension methods to ease adding your schema to the service collection. See docs - `services.AddGraphQLSchema<DemoContext>(configure => {})`
 - New package EntityGraphQL.AspNet with extensions to easily expose a graphql endpoint with `MapGraphQL<T>()`.
 ```c#
@@ -8,6 +8,7 @@ app.UseEndpoints(endpoints =>
 });
 ```
 - Fix issue reconnecting from a service field to the context
+- Fix issue when execution is split across non service fields and then with service fields and the first result is null
 
 # 0.70.0
 - Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io). New built in field extensions
