@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             var nextFieldContext = (ParameterExpression)NextFieldContext;
             Expression listContext = ListExpression;

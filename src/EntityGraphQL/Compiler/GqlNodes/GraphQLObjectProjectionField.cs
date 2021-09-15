@@ -46,9 +46,9 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
-            bool needsServiceWrap = !useReplaceContextDirectly && !withoutServiceFields && HasAnyServices(fragments);
+            bool needsServiceWrap = !withoutServiceFields && HasAnyServices(fragments);
 
             var nextFieldContext = NextFieldContext;
             if (contextChanged)
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Compiler
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
             {
-                var updatedExpression = WrapWithNullCheck(serviceProvider, fragments, withoutServiceFields, nextFieldContext, useReplaceContextDirectly, schemaContext, isRoot, contextChanged);
+                var updatedExpression = WrapWithNullCheck(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
                 nextFieldContext = updatedExpression;
             }
             else
@@ -117,10 +117,9 @@ namespace EntityGraphQL.Compiler
         /// <param name="fragments"></param>
         /// <param name="withoutServiceFields"></param>
         /// <param name="replacementNextFieldContext"></param>
-        /// <param name="useReplaceContextDirectly"></param>
         /// <param name="schemaContext"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, bool useReplaceContextDirectly, ParameterExpression schemaContext, bool isRoot, bool contextChanged)
+        private Expression WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the correct context
             var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);

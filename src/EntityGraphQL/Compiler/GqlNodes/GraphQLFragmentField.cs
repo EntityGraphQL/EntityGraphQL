@@ -29,7 +29,7 @@ namespace EntityGraphQL.Compiler
             return Fragment.QueryFields.SelectMany(f => f.Expand(fragments, withoutServiceFields));
         }
 
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

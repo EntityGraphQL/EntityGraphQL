@@ -66,12 +66,12 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="serviceProvider">Service provider to resolve services </param>
         /// <param name="fragments">Fragments in the query document</param>
-        /// <param name="withoutServiceFields">If true th expression builds selection without fields that require services</param>
+        /// <param name="withoutServiceFields">If true the expression builds without fields that require services</param>
         /// <param name="replacementNextFieldContext">A replacement context from a selection without service fields</param>
         /// <param name="isRoot">If this field is a Query root field</param>
-        /// <param name="useReplaceContextDirectly">Use the replacementNextFieldContext instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
+        /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <returns></returns>
-        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false);
+        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 

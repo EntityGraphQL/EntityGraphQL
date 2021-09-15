@@ -100,7 +100,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, useReplaceContextDirectly: true, contextChanged: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true);
                     contextParam = newContextType;
                 }
             }
