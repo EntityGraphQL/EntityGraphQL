@@ -53,7 +53,7 @@ namespace EntityGraphQL.Compiler
                 return null;
 
             var newExpression = NextFieldContext;
-            if (contextChanged)
+            if (contextChanged && Name != "__typename")
             {
                 var selectedField = replacementNextFieldContext.Type.GetField(Name);
                 if (!Services.Any() && selectedField != null)

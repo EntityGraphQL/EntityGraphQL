@@ -6,6 +6,7 @@ using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using EntityGraphQL.Extensions;
+using System.Reflection;
 
 namespace EntityGraphQL.Tests
 {
@@ -1146,6 +1147,48 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = (dynamic)res.Data["project"];
+        }
+
+        [Fact]
+        public void TestCollectionCollectionObjectThenService()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Person>().AddField("age",
+                (p) => WithService((AgeService srv) => srv.GetAge(p.Birthday)),
+                "Get age");
+
+            var serviceCollection = new ServiceCollection();
+            AgeService service = new();
+            serviceCollection.AddSingleton(service);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    projects {
+                        tasks {
+                            assignee {
+                                age
+                                __typename
+                            }
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            context.FillWithTestData();
+            context.Projects.ElementAt(0).Tasks.ElementAt(0).Assignee = new Person
+            {
+                Birthday = new DateTime(1990, 9, 3),
+                Name = "yo"
+            };
+
+            var res = schema.ExecuteQuery(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, service.CallCount);
+            dynamic projects = (dynamic)res.Data["projects"];
+            Assert.Equal(2, projects[0].tasks[0].assignee.GetType().GetFields().Length);
         }
 
         public class AgeService
