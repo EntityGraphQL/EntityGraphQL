@@ -184,45 +184,70 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal("Jill", person2.node.name);
         }
 
-        [Fact(Skip = "Coming soon")]
+        [Fact]
         public void TestConnectionPagingWithOthersAndServicesNonRoot()
         {
-            // TODO
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var data = new TestDataContext();
-            FillData(data);
+            data.FillWithTestData();
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
                 .UseFilter()
                 .UseSort()
-                .UseConnectionPaging();
+                .UseConnectionPaging(defaultPageSize: 2);
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+            schema.Type<Task>().AddField("config", t => ArgumentHelper.WithService((ConfigService srv) => srv.Get(t.Id)), "Task config");
             var gql = new QueryRequest
             {
                 Query = @"{
-                    peossdple(first: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
-                        edges {
-                            node {
-                                name id lastName
+                    projects {
+                        name
+                        tasks(filter: ""id < 4"" sort: { id: DESC }) {
+                            edges {
+                                node {
+                                    name id
+                                    config { type }
+                                }
+                                cursor
                             }
+                            pageInfo {
+                                startCursor
+                                endCursor
+                                hasNextPage
+                                hasPreviousPage
+                            }
+                            totalCount
                         }
-                        totalCount
                     }
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var serviceCollection = new ServiceCollection();
+            var ager = new ConfigService();
+            serviceCollection.AddSingleton(ager);
+
+            var result = schema.ExecuteQuery(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            // filtered
-            Assert.Equal(3, people.totalCount);
-            var person1 = Enumerable.ElementAt(people.edges, 0);
-            var person2 = Enumerable.ElementAt(people.edges, 1);
-            Assert.Equal("Frank", person1.node.lastName);
-            Assert.Equal("Frank", person2.node.lastName);
-            Assert.Equal("Cheryl", person1.node.name);
-            Assert.Equal("Jill", person2.node.name);
+            dynamic projects = result.Data["projects"];
+            dynamic tasks = projects[0].tasks;
+            Assert.Equal(2, Enumerable.Count(tasks.edges));
+            Assert.Equal(3, tasks.totalCount); // filtered 1 out
+            Assert.True(tasks.pageInfo.hasNextPage);
+            Assert.False(tasks.pageInfo.hasPreviousPage);
+
+            // cursors MQ, Mg, Mw, NA, NQ
+
+            // we have tests for (de)serialization of cursor we're checking the correct ones are used
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+            Assert.Equal(expectedFirstCursor, tasks.pageInfo.startCursor);
+            Assert.Equal(expectedLastCursor, tasks.pageInfo.endCursor);
+            Assert.Equal(expectedFirstCursor, Enumerable.First(tasks.edges).cursor);
+            Assert.Equal(expectedLastCursor, Enumerable.Last(tasks.edges).cursor);
+            // sort
+            Assert.Equal(3, Enumerable.First(tasks.edges).node.id);
+            Assert.Equal(2, Enumerable.Last(tasks.edges).node.id); // not 1 as we paged the results
         }
 
         private static void FillData(TestDataContext data)
