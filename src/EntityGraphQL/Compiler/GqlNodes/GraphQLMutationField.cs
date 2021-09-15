@@ -12,8 +12,8 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<string, Expression> args = null;
         public BaseGraphQLQueryField ResultSelection { get; set; }
 
-        public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, Expression> args, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextContextExpression, rootParameter, parentNode)
+        public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, Expression> args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nextFieldContext, rootParameter, parentNode)
         {
             this.mutationType = mutationType;
             this.args = args;
@@ -31,9 +31,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
         {
-            return ResultSelection.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replaceContextWith);
+            return ResultSelection.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replacementNextFieldContext);
         }
     }
 }

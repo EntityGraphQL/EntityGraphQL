@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class ExecutableGraphQLStatement : IGraphQLNode
     {
-        public Expression NextContextExpression { get; set; }
+        public Expression NextFieldContext { get; set; }
         public IGraphQLNode ParentNode { get; set; }
         public ParameterExpression RootParameter { get; set; }
         public string Name { get; protected set; }
@@ -26,7 +26,7 @@ namespace EntityGraphQL.Compiler
         public ExecutableGraphQLStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
         {
             Name = name;
-            NextContextExpression = nodeExpression;
+            NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
             ParentNode = parentNode;
         }
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replaceContextWith: newContextType, isRoot: true, useReplaceContextDirectly: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, useReplaceContextDirectly: true, contextChanged: true);
                     contextParam = newContextType;
                 }
             }

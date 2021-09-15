@@ -13,8 +13,8 @@ namespace EntityGraphQL.Compiler
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField> extractedFields;
 
-        public GraphQLScalarField(IEnumerable<IFieldExtension> fieldExtensions, string name, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextContextExpression, rootParameter, parentNode)
+        public GraphQLScalarField(IEnumerable<IFieldExtension> fieldExtensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nextFieldContext, rootParameter, parentNode)
         {
             this.fieldExtensions = fieldExtensions?.ToList();
             Name = name;
@@ -43,23 +43,23 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(NextContextExpression, RootParameter)?.Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter, ParentNode)).ToList();
+            extractedFields = extractor.Extract(NextFieldContext, RootParameter)?.Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter, ParentNode)).ToList();
             return extractedFields;
         }
 
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var newExpression = NextContextExpression;
-            if (replaceContextWith != null)
+            var newExpression = NextFieldContext;
+            if (contextChanged)
             {
-                var selectedField = replaceContextWith.Type.GetField(Name);
+                var selectedField = replacementNextFieldContext.Type.GetField(Name);
                 if (!Services.Any() && selectedField != null)
-                    newExpression = Expression.Field(replaceContextWith, Name);
+                    newExpression = Expression.Field(replacementNextFieldContext, Name);
                 else
-                    newExpression = replacer.ReplaceByType(NextContextExpression, ParentNode.NextContextExpression.Type, replaceContextWith);
+                    newExpression = replacer.ReplaceByType(newExpression, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
 
             }
             newExpression = ProcessScalarExpression(newExpression, replacer);

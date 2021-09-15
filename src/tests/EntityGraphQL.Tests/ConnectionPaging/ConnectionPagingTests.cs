@@ -445,6 +445,154 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             dynamic people = result.Data["people"];
             Assert.Equal(4, Enumerable.Count(people.edges));
         }
+
+        [Fact]
+        public void TestOnNonRoot()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillProjectData(data);
+
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
+                .UseConnectionPaging(defaultPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        name
+                        tasks {
+                            edges {
+                                node {
+                                    name id
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                startCursor
+                                endCursor
+                                hasNextPage
+                                hasPreviousPage
+                            }
+                            totalCount
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic projects = result.Data["projects"];
+            dynamic tasks = projects[0].tasks;
+            Assert.Equal(2, Enumerable.Count(tasks.edges));
+            Assert.Equal(5, tasks.totalCount);
+            Assert.True(tasks.pageInfo.hasNextPage);
+            Assert.False(tasks.pageInfo.hasPreviousPage);
+
+            // cursors MQ, Mg, Mw, NA, NQ
+
+            // we have tests for (de)serialization of cursor we're checking the correct ones are used
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+            Assert.Equal(expectedFirstCursor, tasks.pageInfo.startCursor);
+            Assert.Equal(expectedLastCursor, tasks.pageInfo.endCursor);
+            Assert.Equal(expectedFirstCursor, Enumerable.First(tasks.edges).cursor);
+            Assert.Equal(expectedLastCursor, Enumerable.Last(tasks.edges).cursor);
+        }
+        [Fact]
+        public void TestOnNonRoot2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillProjectData(data);
+
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
+                .UseConnectionPaging(defaultPageSize: 2);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 99) {
+                        name
+                        tasks {
+                            edges {
+                                node {
+                                    name id
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                startCursor
+                                endCursor
+                                hasNextPage
+                                hasPreviousPage
+                            }
+                            totalCount
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic project = result.Data["project"];
+            Assert.Equal(2, Enumerable.Count(project.tasks.edges));
+            Assert.Equal(5, project.tasks.totalCount);
+            Assert.True(project.tasks.pageInfo.hasNextPage);
+            Assert.False(project.tasks.pageInfo.hasPreviousPage);
+
+            // cursors MQ, Mg, Mw, NA, NQ
+
+            // we have tests for (de)serialization of cursor we're checking the correct ones are used
+            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+            Assert.Equal(expectedFirstCursor, project.tasks.pageInfo.startCursor);
+            Assert.Equal(expectedLastCursor, project.tasks.pageInfo.endCursor);
+            Assert.Equal(expectedFirstCursor, Enumerable.First(project.tasks.edges).cursor);
+            Assert.Equal(expectedLastCursor, Enumerable.Last(project.tasks.edges).cursor);
+        }
+
+        private static void FillProjectData(TestDataContext data)
+        {
+            data.Projects = new List<Project>
+            {
+                new Project
+                {
+                    Id = 99,
+                    Name ="Project 1",
+                    Tasks = new List<Task>
+                    {
+                        new Task
+                        {
+                            Id = 0,
+                            Name = "Task 1"
+                        },
+                        new Task
+                        {
+                            Id = 1,
+                            Name = "Task 2"
+                        },
+                        new Task
+                        {
+                            Id = 2,
+                            Name = "Task 3"
+                        },
+                        new Task
+                        {
+                            Id = 3,
+                            Name = "Task 4"
+                        },
+                        new Task
+                        {
+                            Id = 4,
+                            Name = "Task 5"
+                        },
+
+                    }
+                }
+            };
+        }
+
         private static void FillData(TestDataContext data)
         {
             data.People = new()

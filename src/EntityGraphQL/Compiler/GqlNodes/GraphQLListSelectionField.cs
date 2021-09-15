@@ -27,12 +27,12 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="fieldExtensions">Any field extensions to apply to the expressions</param>
         /// <param name="name">Name of the field. Could be the alias that the user provided</param>
-        /// <param name="nextContextExpression">A context for a field building on this. This will be the list element parameter</param>
+        /// <param name="nextFieldContext">A context for a field building on this. This will be the list element parameter</param>
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
-        public GraphQLListSelectionField(IEnumerable<IFieldExtension> fieldExtensions, string name, ParameterExpression nextContextExpression, ParameterExpression rootParameter, Expression nodeExpression, IGraphQLNode context)
-            : base(name, nextContextExpression, rootParameter, context)
+        public GraphQLListSelectionField(IEnumerable<IFieldExtension> fieldExtensions, string name, ParameterExpression nextFieldContext, ParameterExpression rootParameter, Expression nodeExpression, IGraphQLNode context)
+            : base(name, nextFieldContext, rootParameter, context)
         {
             this.fieldExtensions = fieldExtensions?.ToList();
             this.ListExpression = nodeExpression;
@@ -46,68 +46,57 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
         {
-            var selectionContext = (ParameterExpression)NextContextExpression;
+            var nextFieldContext = (ParameterExpression)NextFieldContext;
             Expression listContext = ListExpression;
-            if (replaceContextWith != null)
+            if (contextChanged)
             {
-                var fieldType = isRoot ? replaceContextWith.Type : replaceContextWith.Type.GetField(Name)?.FieldType;
-                // we are in the second select (which contains services somewhere in the graph)
-                // Where() etc. have already been applied and the fields used may not be in the first select
-                // we need to remove them
-                // listContext
-                // if null we're in a service returned object and no longer need to replace the parameters
-                if (fieldType != null)
-                {
-                    if (fieldType.IsEnumerableOrArray())
-                        fieldType = fieldType.GetEnumerableOrArrayType();
-
-                    selectionContext = Expression.Parameter(fieldType, selectionContext.Name);
-                    // the pre services select has created the field by the Name already we just need to select that from the new context
-                    listContext = isRoot ? replaceContextWith : Expression.PropertyOrField(replaceContextWith, Name);
-                }
+                var possibleField = replacementNextFieldContext.Type.GetField(Name);
+                if (possibleField != null)
+                    listContext = Expression.Field(replacementNextFieldContext, possibleField);
                 else
-                {
-                    listContext = replacer.Replace(listContext, RootParameter, replaceContextWith);
-                }
+                    listContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(listContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
+                nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext.Name}2");
             }
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? selectionContext : null, schemaContext);
+            listContext = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, replacer);
+
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 
             if (selectionFields == null || !selectionFields.Any())
             {
                 if (withoutServiceFields && Services.Any())
                     return null;
-                return ListExpression;
+                return listContext;
             }
 
-            (listContext, selectionFields, selectionContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, selectionContext, replacer);
+            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, nextFieldContext, replacer);
             // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(selectionContext, listContext, selectionFields.ExpressionOnly());
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext, listContext, selectionFields.ExpressionOnly());
 
             if (!withoutServiceFields)
             {
                 // if selecting final graph make sure lists are evaluated
-                if (replaceContextWith != null && !isRoot && resultExpression.Type.IsEnumerableOrArray())
+                if (contextChanged && !isRoot && resultExpression.Type.IsEnumerableOrArray())
                     resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { resultExpression.Type.GetEnumerableOrArrayType() }, resultExpression);
             }
 
             return resultExpression;
         }
 
-        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, ParameterExpression schemaContext)
+        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
-            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith, schemaContext);
+            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
             if (withoutServiceFields && fields != null)
             {
-                var extractedFields = extractor.Extract(ListExpression, (ParameterExpression)NextContextExpression, true);
+                var extractedFields = extractor.Extract(ListExpression, (ParameterExpression)nextFieldContext, true);
                 if (extractedFields != null)
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
-                        var replaced = replacer.ReplaceByType(i.Value, NextContextExpression.Type, NextContextExpression);
+                        var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
                         return new CompiledField(new GraphQLScalarField(null, i.Key, replaced, RootParameter, this), replaced);
                     })
                     .ToList()

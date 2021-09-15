@@ -273,6 +273,74 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.True(people.hasNextPage);
             Assert.False(people.hasPreviousPage);
         }
+        [Fact]
+        public void TestOnNonRoot()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillProjectData(data);
+
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of tasks with paging metadata")
+                .UseOffsetPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        tasks(take: 1) {
+                            items {
+                                name id
+                            }
+                            hasNextPage
+                            hasPreviousPage
+                            totalItems
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic projects = result.Data["projects"];
+            var tasks = projects[0].tasks;
+            Assert.Equal(5, tasks.totalItems);
+            Assert.True(tasks.hasNextPage);
+            Assert.False(tasks.hasPreviousPage);
+        }
+        [Fact]
+        public void TestOnNonRoot2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillProjectData(data);
+
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of tasks with paging metadata")
+                .UseOffsetPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 99) {
+                        tasks(take: 1) {
+                            items {
+                                name id
+                            }
+                            hasNextPage
+                            hasPreviousPage
+                            totalItems
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteQuery(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic project = result.Data["project"];
+            var tasks = project.tasks;
+            Assert.Equal(5, tasks.totalItems);
+            Assert.True(tasks.hasNextPage);
+            Assert.False(tasks.hasPreviousPage);
+        }
         private class TestDataContext2 : TestDataContext
         {
             [UseOffsetPaging]
@@ -287,6 +355,46 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 MakePerson("Cheryl", "Crow"),
                 MakePerson("Jill", "Castle"),
                 MakePerson("Jack", "Snider"),
+            };
+        }
+        private static void FillProjectData(TestDataContext data)
+        {
+            data.Projects = new List<Project>
+            {
+                new Project
+                {
+                    Id = 99,
+                    Name ="Project 1",
+                    Tasks = new List<Task>
+                    {
+                        new Task
+                        {
+                            Id = 0,
+                            Name = "Task 1"
+                        },
+                        new Task
+                        {
+                            Id = 1,
+                            Name = "Task 2"
+                        },
+                        new Task
+                        {
+                            Id = 2,
+                            Name = "Task 3"
+                        },
+                        new Task
+                        {
+                            Id = 3,
+                            Name = "Task 4"
+                        },
+                        new Task
+                        {
+                            Id = 4,
+                            Name = "Task 5"
+                        },
+
+                    }
+                }
             };
         }
 

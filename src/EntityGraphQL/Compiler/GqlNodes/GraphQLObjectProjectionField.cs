@@ -30,11 +30,11 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="extensions">Field extensions to apply to the expressions</param>
         /// <param name="name">Name of the field</param>
-        /// <param name="nextContextExpression">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
+        /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
-        public GraphQLObjectProjectionField(List<IFieldExtension> extensions, string name, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextContextExpression, rootParameter, parentNode)
+        public GraphQLObjectProjectionField(List<IFieldExtension> extensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, nextFieldContext, rootParameter, parentNode)
         {
             this.fieldExtensions = extensions;
             extractor = new ExpressionExtractor();
@@ -46,66 +46,61 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false)
+        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false)
         {
             bool needsServiceWrap = !useReplaceContextDirectly && !withoutServiceFields && HasAnyServices(fragments);
 
-            var resultExpression = NextContextExpression;
+            var nextFieldContext = NextFieldContext;
+            if (contextChanged)
+            {
+                var possibleField = replacementNextFieldContext.Type.GetField(Name);
+                if (possibleField != null)
+                    nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
+                else
+                    nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
+            }
+
+            nextFieldContext = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, replacer);
 
             if (needsServiceWrap ||
-                NextContextExpression.NodeType == ExpressionType.MemberInit || NextContextExpression.NodeType == ExpressionType.New)
+                ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
             {
-                var updatedExpression = WrapWithNullCheck(serviceProvider, fragments, withoutServiceFields, replaceContextWith, useReplaceContextDirectly, schemaContext);
-                resultExpression = updatedExpression;
+                var updatedExpression = WrapWithNullCheck(serviceProvider, fragments, withoutServiceFields, nextFieldContext, useReplaceContextDirectly, schemaContext, isRoot, contextChanged);
+                nextFieldContext = updatedExpression;
             }
             else
             {
-                if (replaceContextWith != null)
-                {
-                    if (useReplaceContextDirectly)
-                    {
-                        resultExpression = replaceContextWith;
-                    }
-                    else
-                    {
-                        // pre services select has created the field Name in the new context
-                        // although this may not have had a pre services select done as we use replaceContextWith for selection contet too
-                        resultExpression = Expression.PropertyOrField(replaceContextWith, Name);
-                    }
-                }
-
-                // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the coorect context
-                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, replaceContextWith != null ? resultExpression : null, schemaContext);
+                var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 
                 if (selectionFields == null || !selectionFields.Any())
                     return null;
 
-                (resultExpression, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, resultExpression, selectionFields, null, replacer);
+                (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, selectionFields, null, replacer);
                 // build a new {...} - returning a single object {}
                 var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
-                if (resultExpression.NodeType != ExpressionType.MemberInit && resultExpression.NodeType != ExpressionType.New)
+                if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
                 {
                     if (selectionFields.Any() && !withoutServiceFields)
                     {
                         // make a null check from this new expression
-                        newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, resultExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
-                        resultExpression = newExp;
+                        newExp = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, nextFieldContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                        nextFieldContext = newExp;
                     }
                     else
                     {
-                        resultExpression = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, resultExpression, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                        nextFieldContext = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, nextFieldContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
                     }
                 }
                 else
                 {
                     if (selectionFields.Any() && !withoutServiceFields)
-                        resultExpression = newExp;
+                        nextFieldContext = newExp;
                     else
-                        resultExpression = newExp;
+                        nextFieldContext = newExp;
                 }
             }
 
-            return resultExpression;
+            return nextFieldContext;
         }
 
         /// <summary>
@@ -121,14 +116,14 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider"></param>
         /// <param name="fragments"></param>
         /// <param name="withoutServiceFields"></param>
-        /// <param name="replaceContextWith"></param>
+        /// <param name="replacementNextFieldContext"></param>
         /// <param name="useReplaceContextDirectly"></param>
         /// <param name="schemaContext"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replaceContextWith, bool useReplaceContextDirectly, ParameterExpression schemaContext)
+        private Expression WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, bool useReplaceContextDirectly, ParameterExpression schemaContext, bool isRoot, bool contextChanged)
         {
             // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the correct context
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, null, schemaContext);
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 
             if (selectionFields == null || !selectionFields.Any())
                 return null;
@@ -138,7 +133,7 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object>(ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(ConstantParameters.Keys);
 
-            var updatedExpression = Services.Any() ? GraphQLHelper.InjectServices(serviceProvider, Services, fieldParamValues, NextContextExpression, fieldParams, replacer) : NextContextExpression;
+            var updatedExpression = Services.Any() ? GraphQLHelper.InjectServices(serviceProvider, Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
             // replace with null_wrap
             var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
             // This is the var the we use in the select - the result of the service at runtime
@@ -147,19 +142,14 @@ namespace EntityGraphQL.Compiler
             var selectionParamValues = new List<object>();
             selectionParamValues.AddRange(fieldParamValues);
 
-            if (replaceContextWith != null)
+            if (contextChanged)
             {
-                if (useReplaceContextDirectly)
-                    updatedExpression = replaceContextWith;
-                else
-                    updatedExpression = replacer.ReplaceByType(updatedExpression, ParentNode.NextContextExpression.Type, replaceContextWith, Name);
-
                 nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
 
                 foreach (var item in selectionFields)
                 {
                     if (item.Value.Field.Services.Any())
-                        item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, NextContextExpression.Type, nullWrapParam);
+                        item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                     else if (item.Key != "__typename") // this is a static selection of the type name
                                                        // pre service selection has selected the fields as the names we expect already
                         item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key);
@@ -169,7 +159,7 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in selectionFields)
                 {
-                    item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, NextContextExpression.Type, nullWrapParam);
+                    item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                 }
             }
 
@@ -184,9 +174,9 @@ namespace EntityGraphQL.Compiler
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
             // fieldExpression might be a service method call and the arguments might have fields we need to select out
-            if (withoutServiceFields && NextContextExpression.NodeType == ExpressionType.Call)
+            if (withoutServiceFields && NextFieldContext.NodeType == ExpressionType.Call)
             {
-                IDictionary<string, Expression> fieldsRequiredForServices = extractor.Extract(NextContextExpression, RootParameter);
+                IDictionary<string, Expression> fieldsRequiredForServices = extractor.Extract(NextFieldContext, RootParameter);
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices

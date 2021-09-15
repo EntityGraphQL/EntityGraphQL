@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler
     public abstract class BaseGraphQLField : IGraphQLNode
     {
         protected List<IFieldExtension> fieldExtensions;
-        public Expression NextContextExpression { get; set; }
+        public Expression NextFieldContext { get; set; }
         public IGraphQLNode ParentNode { get; set; }
         public ParameterExpression RootParameter { get; set; }
 
@@ -33,10 +33,10 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public string Name { get; protected set; }
 
-        public BaseGraphQLField(string name, Expression nextContextExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public BaseGraphQLField(string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
         {
             Name = name;
-            NextContextExpression = nextContextExpression;
+            NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
         }
@@ -67,11 +67,11 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">Service provider to resolve services </param>
         /// <param name="fragments">Fragments in the query document</param>
         /// <param name="withoutServiceFields">If true th expression builds selection without fields that require services</param>
-        /// <param name="replaceContextWith">A replacement context from a selection without service fields</param>
+        /// <param name="replacementNextFieldContext">A replacement context from a selection without service fields</param>
         /// <param name="isRoot">If this field is a Query root field</param>
-        /// <param name="useReplaceContextDirectly">Use the replaceContextWith instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
+        /// <param name="useReplaceContextDirectly">Use the replacementNextFieldContext instead of running through replacer. Used for fields gone from collection to single when running services seperately</param>
         /// <returns></returns>
-        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replaceContextWith = null, bool isRoot = false, bool useReplaceContextDirectly = false);
+        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool useReplaceContextDirectly = false, bool contextChanged = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 
@@ -90,6 +90,18 @@ namespace EntityGraphQL.Compiler
             {
                 constantParameters.Add(item.Key, item.Value);
             }
+        }
+
+        protected Expression ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
+        {
+            if (fieldExtensions != null)
+            {
+                foreach (var extension in fieldExtensions)
+                {
+                    baseExpression = extension.ProcessExpressionPreSelection(fieldType, baseExpression, parameterReplacer);
+                }
+            }
+            return baseExpression;
         }
 
         protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)

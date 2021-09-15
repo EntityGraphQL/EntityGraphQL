@@ -75,7 +75,7 @@ namespace EntityGraphQL.Compiler
         protected override void VisitField(FieldNode node, IGraphQLNode context)
         {
             var fieldName = node.Name.Value;
-            string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextContextExpression.Type).Name;
+            string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextFieldContext.Type).Name;
             var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, claims);
 
             var args = node.Arguments != null ? ProcessArguments(actualField.Name, node.Arguments, context) : null;
@@ -95,7 +95,7 @@ namespace EntityGraphQL.Compiler
                     if (mutationType.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
-                        var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextContextExpression, select.RootParameter, select.RootParameter, context);
+                        var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext, select.RootParameter, select.RootParameter, context);
                         foreach (var queryField in select.QueryFields)
                         {
                             newSelect.AddField(queryField);
@@ -111,7 +111,7 @@ namespace EntityGraphQL.Compiler
                 BaseGraphQLField fieldResult = null;
                 var resultName = alias ?? actualField.Name;
 
-                var nodeExpression = actualField.GetExpression(context.NextContextExpression, args);
+                var nodeExpression = actualField.GetExpression(context.NextFieldContext, args);
 
                 if (node.SelectionSet != null)
                 {
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(actualField.Extensions, resultName, nodeExpression, context.NextContextExpression as ParameterExpression ?? context.RootParameter, context);
+                    fieldResult = new GraphQLScalarField(actualField.Extensions, resultName, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context);
                 }
 
                 if (node.Directives?.Any() == true)
@@ -187,7 +187,7 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection)
         {
-            var graphQLNode = new GraphQLObjectProjectionField(actualField.Extensions, name, nodeExpression, context.NextContextExpression as ParameterExpression ?? context.RootParameter, context);
+            var graphQLNode = new GraphQLObjectProjectionField(actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context);
 
             base.VisitSelectionSet(selection, graphQLNode);
 
@@ -196,7 +196,7 @@ namespace EntityGraphQL.Compiler
 
         public Dictionary<string, Expression> ProcessArguments(string fieldName, IEnumerable<ArgumentNode> arguments, IGraphQLNode context)
         {
-            var methodType = schemaProvider.GetFieldOnContext(context.NextContextExpression, fieldName, claims);
+            var methodType = schemaProvider.GetFieldOnContext(context.NextFieldContext, fieldName, claims);
             var args = arguments.ToDictionary(a => a.Name.Value, a =>
             {
                 var argName = a.Name.Value;

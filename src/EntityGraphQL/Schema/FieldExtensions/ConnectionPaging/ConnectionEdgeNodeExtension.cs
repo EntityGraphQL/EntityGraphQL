@@ -10,12 +10,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
     internal class ConnectionEdgeNodeExtension : BaseFieldExtension
     {
         private readonly ConnectionEdgeExtension edgeExtension;
-        private readonly ParameterExpression selectParam;
+        public ParameterExpression SelectParam { get; set; }
 
         public ConnectionEdgeNodeExtension(ConnectionEdgeExtension edgeExtension, ParameterExpression selectParam)
         {
             this.edgeExtension = edgeExtension;
-            this.selectParam = selectParam;
+            this.SelectParam = selectParam;
         }
 
         public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
@@ -23,7 +23,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
             var selection = new Dictionary<string, Expression>();
             foreach (var item in selectionExpressions)
             {
-                var exp = parameterReplacer.ReplaceByType(item.Value.Expression, baseExpression.Type, selectParam);
+                var exp = item.Value.Expression;
+                exp = parameterReplacer.ReplaceByType(item.Value.Expression, baseExpression.Type, SelectParam);
                 selection[item.Key] = exp;
                 item.Value.Expression = exp;
             }

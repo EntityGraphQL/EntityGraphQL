@@ -30,6 +30,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return expression;
         }
 
+        public virtual Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
+        {
+            return baseExpression;
+        }
+
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
         /// Not called for GraphQLFieldType.Scalar

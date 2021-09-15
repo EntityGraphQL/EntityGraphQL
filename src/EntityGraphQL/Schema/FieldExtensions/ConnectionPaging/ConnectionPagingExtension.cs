@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 
@@ -15,21 +16,22 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
         private Field edgesField;
-        private ParameterExpression argumentParam;
         private ConnectionEdgeExtension edgesExtension;
         private List<IFieldExtension> extensions;
         private Type listType;
         private bool isQueryable;
         private Type returnType;
-        private Expression expressionWithoutPaging;
+        /// <summary>
+        /// This is the original expression that was defined in the schema - the collection
+        /// UseConnectionPaging() basically moves it to originalField.edges
+        /// </summary>
+        private Expression originalFieldExpression;
 
         public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
         {
             this.defaultPageSize = defaultPageSize;
             this.maxPageSize = maxPageSize;
         }
-
-        public Expression EdgeExpression { get; internal set; }
 
         /// <summary>
         /// Configure the field for a connection style paging field. Do as much as we can here as it is only executed once.
@@ -87,10 +89,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // it is built to reduce redundant repeated expressions. The whole thing ends up in a null check wrap
             // conceptually it does similar to below (using Demo context)
             // See Connection for implemention details of TotalCount and PageInfo
-            // (db, arguments) => {
-            //      var connection = new Connection<Person>(db.Actors.Select(a => a.Person).Count(), arguments)
+            // (ctx, arguments) => {
+            //      var connection = new Connection<Person>(ctx.Actors.Select(a => a.Person).Count(), arguments)
             //      {
-            //          Edges = db.Actors.Select(a => a.Person).OrderBy(a => a.Id)
+            //          Edges = ctx.Actors.Select(a => a.Person).OrderBy(a => a.Id)
             //              .Skip(GetSkipNumber(arguments))
             //              .Take(GetTakeNumber(arguments))
             //              <----- we insert Select() here so that we do not fetch the whole table if using EF
@@ -103,26 +105,23 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //          return null;
             //      return .... // does the select of only the Conneciton fields asked for
 
-            var selectParam = Expression.Parameter(listType);
-
             // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = returnSchemaType.GetField("edges", null);
-            argumentParam = field.ArgumentParam;
-
-            // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            edgesExtension = new ConnectionEdgeExtension(this, listType, selectParam, isQueryable);
-            edgesField.AddExtension(edgesExtension);
-
-            // We use this extension to "steal" the node selection
-            var nodeExtension = new ConnectionEdgeNodeExtension(edgesExtension, selectParam);
-            edgesField.ReturnType.SchemaType.GetField("node", null).AddExtension(nodeExtension);
-
+            // move expression
+            edgesField.UpdateExpression(field.Resolve);
             // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
             extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
             field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
+
+            // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
+            edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensions)
+            {
+                ArgumentParam = field.ArgumentParam
+            };
+            edgesField.AddExtension(edgesExtension);
         }
 
-        private Expression BuildTotalCountExpression(Field field, Type returnType, Expression resolve)
+        private Expression BuildNewConnectionExpression(Field field, Type returnType, Expression resolve)
         {
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, resolve);
@@ -158,23 +157,47 @@ namespace EntityGraphQL.Schema.FieldExtensions
             edgesExtension.ArgExpression = argExpression;
 
             // Here we now have the original context needed in our edges expression to use in the sub fields
-            expressionWithoutPaging = parameterReplacer.Replace(expression, field.FieldParam, context);
+            originalFieldExpression = parameterReplacer.Replace(expression, field.FieldParam, context);
+            // we also can apply any extensions before us
             foreach (var extension in extensions)
             {
-                expressionWithoutPaging = extension.GetExpression(field, expressionWithoutPaging, argExpression, arguments, context, parameterReplacer);
+                originalFieldExpression = extension.GetExpression(field, originalFieldExpression, argExpression, arguments, context, parameterReplacer);
             }
+            // update the edge field
+            edgesField.UpdateExpression(originalFieldExpression);
 
-            var fieldExpression = BuildTotalCountExpression(field, returnType, expressionWithoutPaging);
-
-            EdgeExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
-                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
-                    expressionWithoutPaging,
-                    Expression.Call(typeof(ConnectionHelper), "GetSkipNumber", null, argumentParam)
-                ),
-                Expression.Call(typeof(ConnectionHelper), "GetTakeNumber", null, argumentParam)
-            );
+            // we need to return new expressions here so all the types match processing further
+            var fieldExpression = BuildNewConnectionExpression(field, returnType, originalFieldExpression);
 
             return fieldExpression;
+        }
+
+        public override Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
+        {
+            // this is called before selection fields and therefore before the ConnectionEdgeExtension post selection so we can set up the expression for it
+            // edgesExtension.EdgesExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
+            //     Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
+            //         expressionWithoutPaging,
+            //         Expression.Call(typeof(ConnectionHelper), "GetSkipNumber", null, edgesExtension.ArgumentParam)
+            //     ),
+            //     Expression.Call(typeof(ConnectionHelper), "GetTakeNumber", null, edgesExtension.ArgumentParam)
+            // );
+
+            // Since we moved fields previous extensions might want to run on this
+            // previous extensions don't expect this expression shape - it has been moved to edges
+            // foreach (var extension in extensions)
+            // {
+            //     baseExpression = extension.ProcessExpressionPreSelection(fieldType, baseExpression, parameterReplacer);
+            // }
+
+            // baseExpression = BuildTotalCountExpression(Field, returnType, baseExpression);
+
+            return baseExpression;
+        }
+
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        {
+            return (baseExpression, selectionExpressions, selectContextParam);
         }
     }
 }
