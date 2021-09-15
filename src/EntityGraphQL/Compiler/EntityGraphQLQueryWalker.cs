@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
             string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextFieldContext.Type).Name;
             var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, claims);
 
-            var args = node.Arguments != null ? ProcessArguments(actualField.Name, node.Arguments, context) : null;
+            var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var alias = node.Alias?.Value;
 
             if (schemaProvider.HasMutation(actualField.Name))
@@ -194,17 +194,16 @@ namespace EntityGraphQL.Compiler
             return graphQLNode;
         }
 
-        public Dictionary<string, Expression> ProcessArguments(string fieldName, IEnumerable<ArgumentNode> arguments, IGraphQLNode context)
+        public Dictionary<string, Expression> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
         {
-            var methodType = schemaProvider.GetFieldOnContext(context.NextFieldContext, fieldName, claims);
-            var args = arguments.ToDictionary(a => a.Name.Value, a =>
+            var args = queryArguments.ToDictionary(a => a.Name.Value, a =>
             {
                 var argName = a.Name.Value;
-                if (!methodType.Arguments.ContainsKey(argName))
+                if (!field.Arguments.ContainsKey(argName))
                 {
-                    throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{methodType.Name}'");
+                    throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
                 }
-                var r = ParseArgument(methodType, a);
+                var r = ParseArgument(field, a);
                 return r;
             });
             return args;

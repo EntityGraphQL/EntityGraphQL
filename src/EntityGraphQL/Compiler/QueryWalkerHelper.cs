@@ -95,7 +95,7 @@ namespace EntityGraphQL.Compiler
 
             if ((argType == typeof(Guid) || argType == typeof(Guid?) ||
                 argType == typeof(RequiredField<Guid>) || argType == typeof(RequiredField<Guid?>)) &&
-                argValue.GetType() == typeof(string) && GuidRegex.IsMatch(argValue.ToString()))
+                argValue?.GetType() == typeof(string) && GuidRegex.IsMatch(argValue?.ToString()))
             {
                 return Guid.Parse(argValue.ToString());
             }
