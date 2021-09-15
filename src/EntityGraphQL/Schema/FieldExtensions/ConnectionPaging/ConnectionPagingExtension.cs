@@ -171,33 +171,5 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             return fieldExpression;
         }
-
-        public override Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
-        {
-            // this is called before selection fields and therefore before the ConnectionEdgeExtension post selection so we can set up the expression for it
-            // edgesExtension.EdgesExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
-            //     Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
-            //         expressionWithoutPaging,
-            //         Expression.Call(typeof(ConnectionHelper), "GetSkipNumber", null, edgesExtension.ArgumentParam)
-            //     ),
-            //     Expression.Call(typeof(ConnectionHelper), "GetTakeNumber", null, edgesExtension.ArgumentParam)
-            // );
-
-            // Since we moved fields previous extensions might want to run on this
-            // previous extensions don't expect this expression shape - it has been moved to edges
-            // foreach (var extension in extensions)
-            // {
-            //     baseExpression = extension.ProcessExpressionPreSelection(fieldType, baseExpression, parameterReplacer);
-            // }
-
-            // baseExpression = BuildTotalCountExpression(Field, returnType, baseExpression);
-
-            return baseExpression;
-        }
-
-        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
-        {
-            return (baseExpression, selectionExpressions, selectContextParam);
-        }
     }
 }

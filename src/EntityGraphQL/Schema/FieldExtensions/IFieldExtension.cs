@@ -32,8 +32,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="fieldType">Type of field being built. ListSelection or ObjectProjection</param>
         /// <param name="baseExpression">ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
+        /// <param name="listTypeParam">For ListSelection the expression for the context of the list selection about to happen</param>
         /// <returns></returns>
-        Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer);
+        (Expression, ParameterExpression) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
         /// Not called for GraphQLFieldType.Scalar

@@ -48,7 +48,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
-            var nextFieldContext = (ParameterExpression)NextFieldContext;
+            ParameterExpression nextFieldContext = (ParameterExpression)NextFieldContext;
             Expression listContext = ListExpression;
             if (contextChanged)
             {
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext.Name}2");
             }
 
-            listContext = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, replacer);
+            (listContext, nextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
 
             var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 

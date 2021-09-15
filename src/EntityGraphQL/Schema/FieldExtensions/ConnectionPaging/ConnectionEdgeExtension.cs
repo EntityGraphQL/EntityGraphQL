@@ -44,10 +44,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             firstSelectParam = null;
 
+            // ConnectionPagingExtension handles processing previous Extensions for this method as it needs the expression too
+
             return expression;
         }
 
-        public override Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
+        public override (Expression, ParameterExpression) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer)
         {
             listType = baseExpression.Type.GetEnumerableOrArrayType();
             // second pass means we came through without service fields and now with
@@ -55,27 +57,32 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (!isFirstPass)
             {
                 // expression without services has executed and we have a resolve context we're working on
-                firstSelectParam = Expression.Parameter(listType.GetField("node").FieldType);
+                firstSelectParam = null;
+                nodeFieldExtension.EdgeParam = listTypeParam;
             }
             else
-                firstSelectParam = Expression.Parameter(listType);
+            {
+                firstSelectParam = Expression.Parameter(listType, "edgeNode");
+                nodeFieldExtension.EdgeParam = null;
+            }
             nodeFieldExtension.SelectParam = firstSelectParam;
-            // baseExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
-            //     Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
-            //         baseExpression,
-            //         Expression.Call(typeof(ConnectionHelper), "GetSkipNumber", null, ArgumentParam)
-            //     ),
-            //     Expression.Call(typeof(ConnectionHelper), "GetTakeNumber", null, ArgumentParam)
-            // );
 
-            // TODO other previous extensions?
+            foreach (var extension in extensions)
+            {
+                (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, listTypeParam, parameterReplacer);
+            }
 
-            return baseExpression;
+            return (baseExpression, listTypeParam);
         }
         public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
         {
-            var selectParam = Expression.Parameter(nodeExpressionType);
-            var idxParam = Expression.Parameter(typeof(int));
+            foreach (var extension in extensions)
+            {
+                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
+            }
+
+            var selectParam = Expression.Parameter(nodeExpressionType, "edgesParam");
+            var idxParam = Expression.Parameter(typeof(int), "cursor_idx");
             List<MemberBinding> bindings = new();
             // only add the fields they select - avoid redundant GetCursor call
             bool hasNodeField = selectionExpressions.Values.Any(c => c.Field.Name == "node");
@@ -123,28 +130,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 }
                 return (edgesExp, selectionExpressions, newEdgeParam);
             }
-            else
-            {
-                edgesExp = baseExpression;
-                return (baseExpression, selectionExpressions, selectContextParam);
-                // var finalParam = Expression.Parameter(newEdgeType);
-                // if (hasNodeField)
-                //     bindings.Add(Expression.Bind(newEdgeType.GetProperty("Node"), selectParam));
-                // if (hasCursorField)
-                //     bindings.Add(Expression.Bind(newEdgeType.GetProperty("Cursor"), selectParam));
-
-                // edgesExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Select", new Type[] { listType, newEdgeType },
-                //     baseExpression,
-                //     Expression.Lambda(
-                //         Expression.MemberInit(Expression.New(newEdgeType),
-                //             bindings
-                //         ),
-                //         finalParam
-                //     )
-                // );
-            }
-
-            // return (edgesExp, selectionExpressions, newEdgeParam);
+            return (baseExpression, selectionExpressions, selectContextParam);
         }
 
         internal void SetNodeExpression(Expression nodeExpression, Type nodeExpressionType, ParameterExpression newEdgeParam)

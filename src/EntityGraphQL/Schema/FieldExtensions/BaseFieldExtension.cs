@@ -30,9 +30,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return expression;
         }
 
-        public virtual Expression ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterReplacer parameterReplacer)
+        public virtual (Expression, ParameterExpression) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer)
         {
-            return baseExpression;
+            return (baseExpression, listTypeParam);
         }
 
         /// <summary>

@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
             }
 
-            nextFieldContext = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, replacer);
+            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, null, replacer);
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
