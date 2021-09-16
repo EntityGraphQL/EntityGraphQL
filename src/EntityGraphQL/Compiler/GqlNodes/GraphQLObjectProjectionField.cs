@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
             bool needsServiceWrap = !withoutServiceFields && HasAnyServices(fragments);
 
             var nextFieldContext = NextFieldContext;
-            if (contextChanged && Name != "__typename"))
+            if (contextChanged && Name != "__typename")
             {
                 var possibleField = replacementNextFieldContext.Type.GetField(Name);
                 if (possibleField != null)
