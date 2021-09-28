@@ -13,6 +13,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.6" />
@@ -29,6 +30,7 @@
     <PackageReference Include="HotChocolate.Language" Version="11.3.5" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath=""/>
     <Antlr4 Update="Compiler/Grammer/EntityQL.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>EntityQL.Grammer</CustomToolNamespace>

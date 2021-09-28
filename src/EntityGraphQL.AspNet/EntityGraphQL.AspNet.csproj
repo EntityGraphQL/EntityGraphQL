@@ -12,14 +12,16 @@
     <PackageTags>GraphQL;EntityGraphQL;asp.net</PackageTags>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <None Include="../../README.md" Pack="true" PackagePath=""/>
     <ProjectReference Include="../EntityGraphQL/EntityGraphQL.csproj" />
   </ItemGroup>
 </Project>
