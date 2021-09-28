@@ -83,9 +83,20 @@ Multiple fields is supported and are taken as ordered
 }
 ```
 
+# Default sort
+
+You can set a default sort to be applied if there are no sort arguments passed in the query.
+
+```
+schema.ReplaceField("people",
+    ctx => ctx.People,
+    "Return a list of people. Optional sorted")
+    .UseSort((Person person) => person.Dob, SortDirectionEnum.DESC);
+```
+
 # Choosing the sort fields
 
-If you use the `UseSort()` method (not thw attribute) you can pass in an expression which tells the extension which fields to set in the input type. Make sure you use the correct type for the fields collection.
+If you use the `UseSort()` method (not the attribute) you can pass in an expression which tells the extension which fields to set in the input type. Make sure you use the correct type for the fields collection.
 
 ```
 schema.ReplaceField("people",

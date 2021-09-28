@@ -14,10 +14,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Type methodType;
         private Func<string, string> fieldNamer;
         private readonly Type fieldSelectionType;
+        private readonly LambdaExpression defaultSort;
+        private readonly SortDirectionEnum? direction;
 
-        public SortExtension(Type fieldSelectionType)
+        public SortExtension(Type fieldSelectionType, LambdaExpression defaultSort, SortDirectionEnum? direction)
         {
             this.fieldSelectionType = fieldSelectionType;
+            this.defaultSort = defaultSort;
+            this.direction = direction;
         }
 
         public override void Configure(ISchemaProvider schema, Field field)
@@ -102,6 +106,17 @@ namespace EntityGraphQL.Schema.FieldExtensions
                         Expression.Lambda(Expression.PropertyOrField(listParam, fieldInfo.Name), listParam)
                     );
                 }
+            }
+            else if (defaultSort != null)
+            {
+                var listParam = Expression.Parameter(listType);
+                expression = Expression.Call(
+                        methodType,
+                        direction == SortDirectionEnum.ASC ? "OrderBy" : "OrderByDescending",
+                        new Type[] { listType, defaultSort.Body.Type },
+                        expression,
+                        parameterReplacer.Replace(defaultSort, defaultSort.Parameters.First(), listParam)
+                    );
             }
             return expression;
         }

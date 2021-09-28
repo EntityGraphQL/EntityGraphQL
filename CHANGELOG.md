@@ -11,6 +11,7 @@ app.UseEndpoints(endpoints =>
 - Fix issue when execution is split across non service fields and then with service fields and the first result is null
 - Fix issue using Connection/Offset paging on collection fields that were not on the query root
 - Fix issue using Connection/Offset paging on collection fields that have service fields
+- Option to add default sort when using `UseSort()` field extension
 
 # 0.70.0
 - Introduction of fields extensions to encapsulate common field logic and apply it to many fields. See update [docs](https://entitygraphql.github.io). New built in field extensions

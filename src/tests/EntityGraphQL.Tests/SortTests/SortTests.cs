@@ -66,7 +66,7 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void SupportUseSortSelectFields()
+        public void SupportUseSortSelectSortFields()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             schema.Type<TestDataContext>().GetField("people")
@@ -100,6 +100,70 @@ namespace EntityGraphQL.Tests
             Assert.Equal("__typename", fields[0].Name);
             Assert.Equal("height", fields[1].Name);
             Assert.Equal("name", fields[2].Name);
+        }
+        [Fact]
+        public void SupportUseSortDefaultWithSelectSortFields()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            schema.Type<TestDataContext>().GetField("people")
+                .UseSort((Person person) => new
+                {
+                    person.Height,
+                    person.Name
+                },
+                (Person person) => person.LastName, SortDirectionEnum.DESC);
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    people { lastName }
+                }",
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.People.Add(new Person
+            {
+                LastName = "Zoo",
+                Height = 1
+            });
+            var tree = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(2, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Zoo", person.lastName);
+            var schemaType = schema.Type("PeopleSortInput");
+            var fields = schemaType.GetFields().ToList();
+            Assert.Equal(3, fields.Count);
+            Assert.Equal("__typename", fields[0].Name);
+            Assert.Equal("height", fields[1].Name);
+            Assert.Equal("name", fields[2].Name);
+        }
+        [Fact]
+        public void SupportUseSortDefault()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            schema.Type<TestDataContext>().GetField("people")
+                .UseSort((Person person) => person.Height, SortDirectionEnum.ASC);
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    people { lastName }
+                }",
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.People.Add(new Person
+            {
+                LastName = "Zoo",
+                Height = 1
+            });
+            var tree = schema.ExecuteQuery(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(2, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Zoo", person.lastName);
+            var schemaType = schema.Type("PeopleSortInput");
+            var fields = schemaType.GetFields().ToList();
+            Assert.Equal(9, fields.Count);
         }
         [Fact]
         public void SupportUseSortOnNonRoot()
