@@ -91,6 +91,9 @@ namespace EntityGraphQL.Compiler
 
         private static object ConvertArgIfRequired(object argValue, Type argType, string argName)
         {
+            if (argValue == null)
+                return null;
+
             argType = argType.GetNonNullableType();
 
             if ((argType == typeof(Guid) || argType == typeof(Guid?) ||

@@ -1,3 +1,6 @@
+# 1.0.1
+- Fix issue passing optional enum arguments
+
 # 1.0.0
 - New extension methods to ease adding your schema to the service collection. See docs - `services.AddGraphQLSchema<DemoContext>(configure => {})`
 - New package EntityGraphQL.AspNet with extensions to easily expose a graphql endpoint with `MapGraphQL<T>()`.
