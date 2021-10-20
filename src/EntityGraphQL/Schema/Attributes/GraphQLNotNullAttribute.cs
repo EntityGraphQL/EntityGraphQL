@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace EntityGraphQL.Schema
@@ -19,7 +20,8 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static bool IsMemberMarkedNotNull(MemberInfo prop)
         {
-            if (prop.GetCustomAttribute(typeof(GraphQLNotNullAttribute)) is GraphQLNotNullAttribute)
+            if (prop.GetCustomAttribute(typeof(GraphQLNotNullAttribute)) is GraphQLNotNullAttribute ||
+                prop.GetCustomAttribute(typeof(RequiredAttribute)) is RequiredAttribute)
             {
                 return true;
             }

@@ -25,8 +25,6 @@ namespace EntityGraphQL.Schema
         public ParameterExpression FieldParam { get; private set; }
         public List<IFieldExtension> Extensions { get; set; }
 
-        private readonly ParameterReplacer parameterReplacer;
-
         public RequiredClaims AuthorizeClaims { get; private set; }
 
         public Expression Resolve { get; private set; }
@@ -62,7 +60,6 @@ namespace EntityGraphQL.Schema
             this.fieldNamer = fieldNamer;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
             Extensions = new List<IFieldExtension>();
-            parameterReplacer = new ParameterReplacer();
 
             if (resolve != null)
             {
@@ -103,6 +100,7 @@ namespace EntityGraphQL.Schema
                 item.Value.MemberInfo = (MemberInfo)newArgType.GetProperty(item.Value.DotnetName) ??
                     newArgType.GetField(item.Value.DotnetName);
             }
+            var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
             Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
@@ -187,7 +185,8 @@ namespace EntityGraphQL.Schema
         public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
         {
             var result = new ExpressionResult(Resolve, Services);
-
+            // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
+            var parameterReplacer = new ParameterReplacer();
             PrepareExpressionResult(args, this, result, parameterReplacer, context);
             // the expressions we collect have a different starting parameter. We need to change that
             result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, context);

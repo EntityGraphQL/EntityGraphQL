@@ -1,3 +1,7 @@
+# 1.0.2
+- Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
+- Fix issue with expressions failing in a high throughput, threaded use case (heavily hit API)
+
 # 1.0.1
 - Fix issue passing optional enum arguments
 
