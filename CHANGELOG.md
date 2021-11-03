@@ -1,3 +1,8 @@
+# 1.1.0
+- Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
+- `UseConnectionPagingAttribute` takes optional arguments for default page size and max page size
+- `UseOffsetPagingAttribute` takes optional arguments for default page size and max page size
+
 # 1.0.2
 - Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
 - Fix issue with expressions failing in a high throughput, threaded use case (heavily hit API)
