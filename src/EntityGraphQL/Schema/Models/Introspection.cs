@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema.Models
     {
         public TypeElement()
         {
-            EnumValues = new Models.EnumValue[] { };
+            EnumValues = new EnumValue[] { };
             Interfaces = new TypeElement[] { };
             PossibleTypes = new TypeElement[] { };
             InputFields = new InputValue[] { };

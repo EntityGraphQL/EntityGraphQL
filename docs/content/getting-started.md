@@ -7,8 +7,6 @@ metaDescription: "Get up and running with EntityGraphQL"
 # Installation
 Install via [Nuget](https://www.nuget.org/packages/EntityGraphQL)
 
-_It recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1+ due to problems with the default serialization of dictionaries in .NET Core 3.1._
-
 # Create a data model
 
 _Note: There is no dependency on Entity Framework. Queries are compiled to `IQueryable` or `IEnumberable` LINQ expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object will work - this example uses EF._
@@ -248,4 +246,18 @@ public class QueryController : Controller
         }
     }
 }
+```
+
+It is recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1 due to problems with the System.Text.Json serialization in .NET Core 3.1 and dictionaries.
+
+You can use System.Text.Json with .NET Core 5.0+. If you use your own controller to execute GraphQL, configure System.Text.Json like so.
+
+```c#
+services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        opts.JsonSerializerOptions.IncludeFields = true;
+        opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 ```

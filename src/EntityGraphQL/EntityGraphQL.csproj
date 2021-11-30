@@ -4,7 +4,7 @@
     <LangVersion>9.0</LangVersion>
     <AssemblyName>EntityGraphQL</AssemblyName>
     <PackageId>EntityGraphQL</PackageId>
-    <PackageVersion>1.0.2</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
     <Description>A GraphQL library for .NET Core. Compiles queries into .NET Expressions (LinqProvider) for runtime execution against object graphs. E.g. against an ORM data model (EntityFramework or others) or just an in-memory object.</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>
@@ -22,6 +22,7 @@
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="System.Text.Json" Version="6.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />

@@ -187,7 +187,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
                     }
                 }
             };
-            Assert.Equal(3, list.Count());
+            Assert.Equal(3, list.Count);
             var results = list.Where((Func<TestEntity, bool>)compiledResult.LambdaExpression.Compile());
 
             Assert.Equal(2, results.Count());

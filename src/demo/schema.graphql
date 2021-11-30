@@ -178,7 +178,7 @@ type Mutation {
 	"""Example of a mutation that does not use the context or argments but does use registered services"""
 	exampleNoArgsWithService: Int!
 	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: [Detail!], genre: Genre!, released: Date!): Movie
+	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
 	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
 

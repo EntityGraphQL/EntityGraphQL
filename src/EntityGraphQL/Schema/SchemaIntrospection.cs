@@ -173,6 +173,9 @@
                 //filter to ENUM type ONLY!
                 foreach (Field field in schemaType.GetFields())
                 {
+                    if (field.Name.StartsWith("__"))
+                        continue;
+
                     enumTypes.Add(new EnumValue
                     {
                         Name = field.Name,

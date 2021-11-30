@@ -148,7 +148,7 @@ namespace EntityGraphQL.Compiler
                 }
 
                 var required = item.Type.Kind == SyntaxKind.NonNullType;
-                if (required && !variables.ContainsKey(argName))
+                if (required && variables?.ContainsKey(argName) == false)
                 {
                     throw new QueryException($"Missing required variable '{argName}' on operation '{node.Name.Value}'");
                 }

@@ -156,10 +156,6 @@ namespace EntityGraphQL.Schema
                     var generic = convertMethod.MakeGenericMethod(new[] { memberType.GetGenericArguments()[0] });
                     value = generic.Invoke(null, new object[] { value });
                 }
-                else if (type == typeof(Newtonsoft.Json.Linq.JObject))
-                {
-                    value = ((Newtonsoft.Json.Linq.JObject)value).ToObject(memberType);
-                }
                 else
                 {
                     value = ExpressionUtil.ChangeType(value, memberType);

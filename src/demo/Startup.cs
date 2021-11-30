@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.ServiceCollectionExtensions;
 using EntityGraphQL.AspNet.Extensions;
 using EntityGraphQL.Schema;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace demo
 {
@@ -41,7 +43,14 @@ namespace demo
             // add schema provider so we don't need to create it everytime
             services.AddGraphQLSchema<DemoContext>(GraphQLSchema.ConfigureSchema);
             services.AddRouting();
-            services.AddControllers().AddNewtonsoftJson();
+            services.AddControllers()
+                .AddJsonOptions(opts =>
+                {
+                    // configure JSON serializer like this if you are return GraphQL execution results in your own controller
+                    opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                    opts.JsonSerializerOptions.IncludeFields = true;
+                    opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

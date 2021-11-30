@@ -20,8 +20,6 @@ namespace EntityGraphQL
     /// <summary>
     /// Holds the variables passed along with a GraphQL query
     /// </summary>
-    /// <typeparam name="string"></typeparam>
-    /// <typeparam name="object"></typeparam>
     public class QueryVariables : Dictionary<string, object>
     {
         public object GetValueFor(string varKey)

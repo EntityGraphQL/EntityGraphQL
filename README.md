@@ -19,8 +19,6 @@ Via Nuget
 
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
 
-It recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1+ due to problems with the default serialization in .NET Core 3.1.
-
 # Quick Start with Entity Framework
 
 _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IEnumberable` linq expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object will work - although EF well is tested._
@@ -91,6 +89,8 @@ public class Startup {
 This sets up 1 end point:
 - `POST` at `/graphql` where the body of the post is a GraphQL query
 - You can authorize that route how you would any ASP.NET route. See Authorization below for details on having parts of the schema requiring Authorization/Claims
+
+_Note - As of version 1.1+ the EntityGraphQL.AspNet extension helper uses System.Text.Json. Previous versions used JSON.NET._
 
 ## 3. Build awesome applications
 

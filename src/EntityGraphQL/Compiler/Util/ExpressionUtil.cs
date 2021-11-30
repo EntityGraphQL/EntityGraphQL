@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
@@ -52,8 +53,19 @@ namespace EntityGraphQL.Compiler.Util
             var objType = value.GetType();
             if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType))
             {
-                var newVal = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
-                return newVal;
+                value = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
+            }
+            else if (type == typeof(Newtonsoft.Json.Linq.JObject))
+            {
+                value = ((Newtonsoft.Json.Linq.JObject)value).ToObject(type);
+            }
+            else if (typeof(JsonElement).IsAssignableFrom(objType))
+            {
+                value = ((JsonElement)value).Deserialize(type, new JsonSerializerOptions
+                {
+                    IncludeFields = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
             }
 
             if (type != typeof(string) && objType == typeof(string))

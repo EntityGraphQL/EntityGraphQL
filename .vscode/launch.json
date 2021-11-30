@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/demo/bin/Debug/net5.0/demo.dll",
+            "program": "${workspaceFolder}/src/demo/bin/Debug/net6.0/demo.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/demo",
             "stopAtEntry": false,
@@ -28,7 +28,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net5.0/Benchmarks.dll",
+            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net6.0/Benchmarks.dll",
             "args": [
                 "--filter",
                 "*QueryBenchmarks*"

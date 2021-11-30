@@ -1,7 +1,9 @@
 # 1.1.0
 - Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
+- Fix - Schema introspection was incorrectly returning `__typename` for Enums
 - `UseConnectionPagingAttribute` takes optional arguments for default page size and max page size
 - `UseOffsetPagingAttribute` takes optional arguments for default page size and max page size
+- EntityGraphQL.AspNet now uses System.Text.Json for de/serialization and requires .NET core 5.0+. Use version 1.0.x if you need to support .NET Core 3.1 which uses JSON.NET
 
 # 1.0.2
 - Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
