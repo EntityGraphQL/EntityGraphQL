@@ -13,6 +13,8 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler.EntityQuery;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema
 {
@@ -31,6 +33,7 @@ namespace EntityGraphQL.Schema
         private readonly string queryContextName;
         private readonly ILogger<SchemaProvider<TContextType>> logger;
         private readonly DefaultMethodProvider methodProvider;
+        private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -65,7 +68,7 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, typeof(TContextType).Name, "Query schema", null, SchemaFieldNamer);
+            var queryContext = new SchemaType<TContextType>(this, "RootQuery", "Query schema", null, SchemaFieldNamer);
             queryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
@@ -95,6 +98,17 @@ namespace EntityGraphQL.Schema
             methodProvider = new DefaultMethodProvider();
         }
 
+        /// <summary>
+        /// Execute a query using this schema.
+        /// </summary>
+        /// <param name="gql">The query</param>
+        /// <param name="context">The context object. An instance of the context the schema was build from</param>
+        /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+        /// <param name="claims">Optional claims to check access for queries</param>
+        /// <param name="options"></param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        [Obsolete("Use overload without ClaimsIdentity")]
         public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
             return ExecuteQueryAsync(gql, context, serviceProvider, claims, options).Result;
@@ -110,12 +124,13 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
+        [Obsolete("Use overload without ClaimsIdentity")]
         public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
             QueryResult result;
             try
             {
-                var queryResult = CompileQuery(gql, claims);
+                var queryResult = CompileQuery(gql, new UserAuthInfo(claims));
                 result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
             }
             catch (Exception ex)
@@ -128,10 +143,53 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsIdentity claims)
+        /// <summary>
+        /// Execute a query using this schema.
+        /// </summary>
+        /// <param name="gql">The query</param>
+        /// <param name="context">The context object. An instance of the context the schema was build from</param>
+        /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+        /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
+        /// <param name="options"></param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
+        {
+            return ExecuteRequestAsync(gql, context, serviceProvider, user, options).Result;
+        }
+
+        /// <summary>
+        /// Execute a query using this schema.
+        /// </summary>
+        /// <param name="gql">The query</param>
+        /// <param name="context">The context object. An instance of the context the schema was build from</param>
+        /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+        /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
+        /// <param name="options"></param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
+        {
+            QueryResult result;
+            try
+            {
+                var queryResult = CompileQuery(gql, new UserAuthInfo(user, user != null ? serviceProvider.GetService<IAuthorizationService>() : null));
+                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error executing QueryRequest");
+                // error with the whole query
+                result = new QueryResult(new GraphQLError(ex.InnerException != null ? $"{ex.Message} - {ex.InnerException.Message}" : ex.Message));
+            }
+
+            return result;
+        }
+
+        public GraphQLDocument CompileQuery(QueryRequest gql, UserAuthInfo authInfo)
         {
             var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
-            var queryResult = graphQLCompiler.Compile(gql, claims);
+            var queryResult = graphQLCompiler.Compile(gql, authInfo);
             return queryResult;
         }
 
@@ -168,9 +226,7 @@ namespace EntityGraphQL.Schema
 
         private void FinishAddingType(Type contextType, string name, ISchemaType tt)
         {
-            var attributes = contextType.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            if (attributes.Any())
-                tt.AuthorizeClaims = new RequiredClaims(attributes);
+            tt.RequiredAuthorization = RequiredAuthorization.GetRequiredAuthFromType(contextType);
             types.Add(name, tt);
         }
 
@@ -205,11 +261,8 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddInputType(Type type, string name, string description)
         {
             var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, SchemaFieldNamer, true, false, false);
-            var attributes = type.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            if (attributes.Any())
-                newType.AuthorizeClaims = new RequiredClaims(attributes);
+            FinishAddingType(type, name, newType);
 
-            types.Add(name, newType);
             return newType;
         }
 
@@ -220,14 +273,17 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TType"></typeparam>
         public void AddMutationFrom<TType>(TType mutationClassInstance)
         {
-            foreach (var method in mutationClassInstance.GetType().GetMethods())
+            Type type = mutationClassInstance.GetType();
+            var classLevelAuths = type.GetCustomAttributes(typeof(AuthorizeAttribute)).Cast<AuthorizeAttribute>();
+            foreach (var method in type.GetMethods())
             {
                 if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
                 {
                     var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
                     string name = SchemaFieldNamer(method.Name);
-                    var claims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
-                    var requiredClaims = new RequiredClaims(claims);
+                    var gqlClaims = method.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute)).Cast<GraphQLAuthorizeAttribute>();
+                    var methodAuths = method.GetCustomAttributes(typeof(AuthorizeAttribute)).Cast<AuthorizeAttribute>();
+                    var requiredClaims = new RequiredAuthorization(gqlClaims, methodAuths.Concat(classLevelAuths));
                     var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
                     var typeName = GetSchemaTypeForDotnetType(actualReturnType).Name;
                     var returnType = new GqlTypeInfo(() => GetSchemaType(typeName), actualReturnType);
@@ -396,7 +452,7 @@ namespace EntityGraphQL.Schema
 
         // ISchemaProvider interface
         public Type ContextType { get { return types[queryContextName].TypeDotnet; } }
-        public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims)
+        public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo)
         {
             if (!types.ContainsKey(typeName))
                 return false;
@@ -405,7 +461,7 @@ namespace EntityGraphQL.Schema
             {
                 if ((fieldArgs == null || !fieldArgs.Any()) && t.HasField(identifier))
                 {
-                    var field = t.GetField(identifier, claims);
+                    var field = t.GetField(identifier, authInfo);
                     if (field != null)
                     {
                         // if there are defaults for all, continue
@@ -425,9 +481,9 @@ namespace EntityGraphQL.Schema
             return true;
         }
 
-        public bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims)
+        public bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo)
         {
-            return TypeHasField(type.Name, identifier, fieldArgs, claims);
+            return TypeHasField(GetSchemaTypeForDotnetType(type).Name, identifier, fieldArgs, authInfo);
         }
 
         public List<ISchemaType> EnumTypes()
@@ -435,48 +491,30 @@ namespace EntityGraphQL.Schema
             return types.Values.Where(t => t.IsEnum).ToList();
         }
 
-        public IField GetActualField(string typeName, string identifier, ClaimsIdentity claims)
+        public IField GetActualField(string typeName, string identifier, UserAuthInfo authInfo)
         {
             IField field = null;
             if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))
             {
-                if (!AuthUtil.IsAuthorized(claims, types[typeName].AuthorizeClaims))
-                    throw new EntityGraphQLAccessException($"You do not have access to the '{typeName}' type. You require any of the following security claims [{string.Join(", ", types[typeName].AuthorizeClaims.Claims.SelectMany(r => r))}]");
-                field = types[typeName].GetField(identifier, claims);
+                if (authInfo != null && !authInfo.IsAuthorized(types[typeName].RequiredAuthorization))
+                    throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on the '{typeName}' type.");
+                field = types[typeName].GetField(identifier, authInfo);
             }
             else if (typeName == queryContextName && types[queryContextName].HasField(identifier))
-                field = types[queryContextName].GetField(identifier, claims);
+                field = types[queryContextName].GetField(identifier, authInfo);
             else if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
                 field = mutations.First(k => k.Key.ToLower() == identifier.ToLower()).Value;
 
             if (field == null)
-                throw new EntityGraphQLCompilerException($"Field {identifier} not found on type {typeName}");
+                throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on type '{typeName}'");
 
-            if (!AuthUtil.IsAuthorized(claims, field.ReturnType.SchemaType.AuthorizeClaims))
-                throw new EntityGraphQLAccessException($"You do not have access to the '{field.ReturnType.SchemaType.Name}' type. You require any of the following security claims [{string.Join(", ", field.ReturnType.SchemaType.AuthorizeClaims.Claims.SelectMany(r => r))}]");
+            if (authInfo != null && !authInfo.IsAuthorized(field.ReturnType.SchemaType.RequiredAuthorization))
+                throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
+
+            if (authInfo != null && !authInfo.IsAuthorized(field.RequiredAuthorization))
+                throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.Name}' field on the '{typeName}' type.");
 
             return field;
-        }
-
-        public IField GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims)
-        {
-            if (context.Type == ContextType && mutations.ContainsKey(fieldName))
-            {
-                var mutation = mutations[fieldName];
-                if (!AuthUtil.IsAuthorized(claims, mutation.AuthorizeClaims))
-                {
-                    throw new EntityGraphQLAccessException($"You do not have access to mutation '{fieldName}'. You require any of the following security claims [{string.Join(", ", mutation.AuthorizeClaims.Claims.SelectMany(r => r))}]");
-                }
-                return mutation;
-            }
-
-            var schemaType = GetSchemaTypeForDotnetType(context.Type);
-            if (types.ContainsKey(schemaType.Name))
-            {
-                var field = types[schemaType.Name].GetField(fieldName, claims);
-                return field;
-            }
-            throw new EntityGraphQLCompilerException($"No field or mutation '{fieldName}' found in schema.");
         }
 
         /// <summary>
@@ -620,10 +658,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddEnum(string name, Type type, string description)
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, SchemaFieldNamer, false, true);
-            var attributes = type.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            if (attributes.Any())
-                schemaType.AuthorizeClaims = new RequiredClaims(attributes);
-            types.Add(name, schemaType);
+            FinishAddingType(type, name, schemaType);
             return schemaType.AddAllFields();
         }
 
@@ -652,6 +687,11 @@ namespace EntityGraphQL.Schema
         public void UpdateQueryType(Action<SchemaType<TContextType>> updateFunc)
         {
             updateFunc(Type<TContextType>());
+        }
+
+        public void AddTypeSerializer<TTypeDotNet, TTypeGql>(Func<TTypeDotNet, TTypeGql> serialize, Func<TTypeGql, TTypeDotNet> deserialize)
+        {
+            typeSerializers.Add(typeof(TTypeDotNet), new TypeSerializer<TTypeDotNet, TTypeGql>(serialize, deserialize));
         }
     }
 }

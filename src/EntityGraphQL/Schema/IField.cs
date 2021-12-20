@@ -15,6 +15,7 @@ namespace EntityGraphQL.Schema
         string Name { get; }
         GqlTypeInfo ReturnType { get; }
         List<IFieldExtension> Extensions { get; }
+        RequiredAuthorization RequiredAuthorization { get; }
 
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);

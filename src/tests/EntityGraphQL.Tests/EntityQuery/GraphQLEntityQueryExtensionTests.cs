@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests
 	users(filter: ""field2 == \""2\"" "") { field2 }
 }",
             };
-            var tree = schemaProvider.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schemaProvider.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
             };
-            var tree = schemaProvider.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schemaProvider.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -53,7 +53,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseFilter()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<TestDataContext>().GetField("users")
+            schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
             {
@@ -62,7 +62,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
             };
-            var tree = schema.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseFilterOnNonRoot()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<Project>().GetField("tasks")
+            schema.Type<Project>().GetField("tasks", null)
                 .UseFilter();
             var gql = new QueryRequest
             {
@@ -84,7 +84,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "(id == 2) || (id == 4)" } }
             };
-            var tree = schema.ExecuteQuery(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
             Assert.Equal(1, Enumerable.Count(projects));
@@ -105,7 +105,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "name == \"Luke\"" } }
             };
-            var tree = schema.ExecuteQuery(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequest(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(1, Enumerable.Count(people));

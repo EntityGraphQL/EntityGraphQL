@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
         public string Description { get; }
 
         public string Name { get; }
-        public RequiredClaims AuthorizeClaims { get; }
+        public RequiredAuthorization RequiredAuthorization { get; }
 
         public IDictionary<string, ArgType> Arguments => argumentTypes;
 
@@ -164,14 +164,14 @@ namespace EntityGraphQL.Schema
             return value;
         }
 
-        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredClaims authorizeClaims, bool isAsync, Func<string, string> fieldNamer)
+        public MutationType(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer)
         {
             Description = description;
             ReturnType = returnType;
             this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             Name = methodName;
-            AuthorizeClaims = authorizeClaims;
+            RequiredAuthorization = requiredAuth;
             this.isAsync = isAsync;
 
             argInstanceType = method.GetParameters()

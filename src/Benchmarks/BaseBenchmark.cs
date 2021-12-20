@@ -46,7 +46,7 @@ namespace Benchmarks
 
         protected void RunQuery(BenchmarkContext context, QueryRequest query)
         {
-            var result = Schema.ExecuteQuery(query, context, Services, null, new ExecutionOptions
+            var result = Schema.ExecuteRequest(query, context, Services, null, new ExecutionOptions
             {
                 NoExecution = true
             });

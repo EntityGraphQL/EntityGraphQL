@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
@@ -27,19 +26,19 @@ namespace EntityGraphQL.Compiler
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public GraphQLDocument Compile(string query, QueryVariables variables = null, ClaimsIdentity claims = null)
+        public GraphQLDocument Compile(string query, QueryVariables variables = null, UserAuthInfo authInfo = null)
         {
             if (variables == null)
             {
                 variables = new QueryVariables();
             }
-            return Compile(new QueryRequest { Query = query, Variables = variables }, claims);
+            return Compile(new QueryRequest { Query = query, Variables = variables }, authInfo);
         }
-        public GraphQLDocument Compile(QueryRequest request, ClaimsIdentity claims = null)
+        public GraphQLDocument Compile(QueryRequest request, UserAuthInfo authInfo = null)
         {
             var parser = new Utf8GraphQLParser(Encoding.UTF8.GetBytes(request.Query), ParserOptions.Default);
             DocumentNode document = parser.Parse();
-            var walker = new EntityGraphQLQueryWalker(schemaProvider, request.Variables, claims);
+            var walker = new EntityGraphQLQueryWalker(schemaProvider, request.Variables, authInfo);
             walker.Visit(document, null);
             return walker.Document;
         }

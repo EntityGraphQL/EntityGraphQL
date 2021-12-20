@@ -118,7 +118,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.AuthorizeClaims, fieldNamer);
+            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization, fieldNamer);
             schema.AddField(field);
         }
 
@@ -163,7 +163,7 @@ namespace EntityGraphQL.Schema
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var requiredClaims = new RequiredClaims(attributes);
+            var requiredClaims = RequiredAuthorization.GetRequiredAuthFromField(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
             var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType.GetNonNullableType();
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
@@ -210,8 +210,7 @@ namespace EntityGraphQL.Schema
                     var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
                     method = method.MakeGenericMethod(propType);
                     var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
-                    var attributes = propType.GetTypeInfo().GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                    t.AuthorizeClaims = new RequiredClaims(attributes);
+                    t.RequiredAuthorization = RequiredAuthorization.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
                     t.AddFields(fields);

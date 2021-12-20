@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -140,7 +140,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -189,7 +189,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -238,7 +238,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -298,7 +298,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -346,7 +346,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -389,7 +389,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
             Assert.Equal("first argument can not be greater than 2.", result.Errors[0].Message);
         }
@@ -416,7 +416,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
             Assert.Equal("last argument can not be greater than 2.", result.Errors[0].Message);
         }
@@ -440,7 +440,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
             dynamic people = result.Data["people"];
             Assert.Equal(4, Enumerable.Count(people.edges));
@@ -479,7 +479,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic projects = result.Data["projects"];
@@ -532,7 +532,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic project = result.Data["project"];

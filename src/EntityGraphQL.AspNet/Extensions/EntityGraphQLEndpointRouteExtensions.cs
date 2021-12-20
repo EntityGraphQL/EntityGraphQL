@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -30,7 +29,7 @@ namespace EntityGraphQL.AspNet.Extensions
                 var query = JsonSerializer.Deserialize<QueryRequest>(json, jsonOptions);
                 var schema = context.RequestServices.GetService<SchemaProvider<TQueryType>>();
                 var schemaContext = context.RequestServices.GetService<TQueryType>();
-                var data = await schema.ExecuteQueryAsync(query, schemaContext, context.RequestServices, context.User.Identities.FirstOrDefault(), options);
+                var data = await schema.ExecuteRequestAsync(query, schemaContext, context.RequestServices, context.User, options);
                 context.Response.ContentType = "application/json; charset=utf-8";
                 var jsonResult = JsonSerializer.Serialize(data, jsonOptions);
                 var jsonBytes = Encoding.UTF8.GetBytes(jsonResult);

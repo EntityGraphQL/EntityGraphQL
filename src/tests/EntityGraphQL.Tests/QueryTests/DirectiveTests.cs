@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -39,7 +39,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
@@ -59,7 +59,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "include", true } }
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Equal("name", person.GetType().GetFields()[1].Name);
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schemaProvider.ExecuteQuery(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.Equal("id", person.GetType().GetFields()[0].Name);

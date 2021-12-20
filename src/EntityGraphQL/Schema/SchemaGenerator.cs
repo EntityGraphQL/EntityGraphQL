@@ -14,6 +14,8 @@ namespace EntityGraphQL.Schema
         {
             var scalars = new StringBuilder();
 
+            var rootQueryType = schema.GetSchemaTypeForDotnetType(schema.ContextType);
+
             foreach (var item in schema.GetScalarTypes().Distinct())
             {
                 scalars.AppendLine($"scalar {item.Name}");
@@ -27,14 +29,14 @@ namespace EntityGraphQL.Schema
             var queryTypes = MakeQueryType(schema);
 
             var schemaStr = $@"schema {{
-    query: RootQuery
+    query: {rootQueryType.Name}
     {(hasMutations ? "mutation: Mutation" : "")}
 }}
 
 {scalars}
 {enums}
 
-type RootQuery {{
+type {rootQueryType.Name} {{
 {queryTypes}
 }}
 {types}

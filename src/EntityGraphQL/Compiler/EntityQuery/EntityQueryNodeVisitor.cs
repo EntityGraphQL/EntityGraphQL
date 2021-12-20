@@ -4,21 +4,20 @@ using System.Linq.Expressions;
 using EntityQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
     internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
-        private readonly ClaimsIdentity claims;
+        private readonly UserAuthInfo userAuthInfo;
         private ExpressionResult currentContext;
         private readonly ISchemaProvider schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly ConstantVisitor constantVisitor;
 
-        public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, ClaimsIdentity claims)
+        public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, UserAuthInfo authInfo)
         {
-            this.claims = claims;
+            this.userAuthInfo = authInfo;
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
@@ -108,14 +107,14 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             var field = context.GetText();
             var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, claims))
+            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, userAuthInfo))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
                 if (enumOrConstantValue == null)
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
                 return enumOrConstantValue;
             }
-            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, claims);
+            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, userAuthInfo);
             var exp = gqlField.GetExpression(currentContext, null);
             return exp;
         }

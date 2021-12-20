@@ -121,7 +121,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -159,7 +159,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
         }
     }

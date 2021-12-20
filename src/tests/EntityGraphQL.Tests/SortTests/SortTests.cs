@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSort()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<TestDataContext>().GetField("people")
+            schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort();
             var gql = new QueryRequest
             {
@@ -27,7 +27,7 @@ namespace EntityGraphQL.Tests
             {
                 LastName = "Zoo"
             });
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
             {
                 LastName = "Zoo"
             });
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -69,7 +69,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSortSelectSortFields()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<TestDataContext>().GetField("people")
+            schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => new
                 {
                     person.Height,
@@ -88,7 +88,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -105,7 +105,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSortDefaultWithSelectSortFields()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<TestDataContext>().GetField("people")
+            schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => new
                 {
                     person.Height,
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -141,7 +141,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSortDefault()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<TestDataContext>().GetField("people")
+            schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => person.Height, SortDirectionEnum.ASC);
             var gql = new QueryRequest
             {
@@ -155,7 +155,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -169,7 +169,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSortOnNonRoot()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
-            schema.Type<Project>().GetField("tasks")
+            schema.Type<Project>().GetField("tasks", null)
                 .UseSort();
             var gql = new QueryRequest
             {
@@ -181,7 +181,7 @@ namespace EntityGraphQL.Tests
                 Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
             Assert.Equal(1, Enumerable.Count(projects));
@@ -196,7 +196,7 @@ namespace EntityGraphQL.Tests
         public void SupportUseSortOnNonRoot2()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Type<Project>().GetField("tasks")
+            schema.Type<Project>().GetField("tasks", null)
                 .UseSort();
             var gql = new QueryRequest
             {
@@ -208,7 +208,7 @@ namespace EntityGraphQL.Tests
                 Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
-            var tree = schema.ExecuteQuery(gql, context, null, null);
+            var tree = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic project = ((IDictionary<string, object>)tree.Data)["project"];
             Assert.Equal(4, Enumerable.Count(project.tasks));

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Security.Claims;
 
 namespace EntityGraphQL.Schema
 {
@@ -12,8 +11,8 @@ namespace EntityGraphQL.Schema
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
-        RequiredClaims AuthorizeClaims { get; set; }
-        Field GetField(string identifier, ClaimsIdentity claims);
+        RequiredAuthorization RequiredAuthorization { get; set; }
+        Field GetField(string identifier, UserAuthInfo authInfo);
         IEnumerable<Field> GetFields();
         bool HasField(string identifier);
         void AddFields(List<Field> fields);

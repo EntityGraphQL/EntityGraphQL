@@ -3,5 +3,6 @@
     "editor.formatOnSave": true,
     "[antlr]": {
         "editor.formatOnSave": false
-    }
+    },
+    "editor.formatOnType": true
 }

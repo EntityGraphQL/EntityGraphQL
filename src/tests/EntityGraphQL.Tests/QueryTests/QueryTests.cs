@@ -59,7 +59,7 @@ namespace EntityGraphQL.Tests
 {
 	people { id }
 }"); });
-            Assert.Equal("Field id not found on type Person", ex.Message);
+            Assert.Equal("Field 'id' not found on type 'Person'", ex.Message);
         }
 
         [Fact]
@@ -214,7 +214,7 @@ namespace EntityGraphQL.Tests
         		}
         	}
         }"));
-            Assert.Equal("Field blahs not found on type Project", ex.Message);
+            Assert.Equal("Field 'blahs' not found on type 'Project'", ex.Message);
         }
         [Fact]
         public void FailsNonExistingField2()
@@ -227,7 +227,7 @@ namespace EntityGraphQL.Tests
         		}
         	}
         }"));
-            Assert.Equal("Field name3 not found on type Project", ex.Message);
+            Assert.Equal("Field 'name3' not found on type 'Project'", ex.Message);
         }
 
         [Fact]
@@ -276,7 +276,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 

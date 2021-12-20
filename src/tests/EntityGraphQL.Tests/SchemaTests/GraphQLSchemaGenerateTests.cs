@@ -22,9 +22,9 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"query Test { movies { id } }",
             };
-            dynamic results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null).Errors;
+            dynamic results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null).Errors;
             var err = Enumerable.First(results);
-            Assert.Equal("Field movies not found on type IgnoreTestSchema", err.Message);
+            Assert.Equal("Field 'movies' not found on type 'RootQuery'", err.Message);
         }
         [Fact]
         public void TestIgnoreQueryPasses()
@@ -35,8 +35,8 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"query Test { albums { id } }",
             };
-            var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
-            Assert.Empty(((IEnumerable)results.Data["albums"]));
+            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            Assert.Empty((IEnumerable)results.Data["albums"]);
         }
 
         [Fact]
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests
                     {"hiddenInputField", "yeh"},
                 }
             };
-            var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
             Assert.Equal("No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
         }
@@ -79,7 +79,7 @@ namespace EntityGraphQL.Tests
                     {"name", "Balance, Not Symmetry"},
                 }
             };
-            var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
             dynamic data = results.Data["addAlbum"];
             Assert.Equal("Balance, Not Symmetry", data.name);
             Assert.Null(data.hiddenInputField); // not hidden from query
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Tests
                     {"hiddenField", "yeh"},
                 }
             };
-            var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
             Assert.Equal("No argument 'hiddenField' found on field 'addAlbum'", error.Message);
         }
@@ -123,9 +123,9 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { }
             };
-            var results = schemaProvider.ExecuteQuery(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
-            Assert.Equal("Field hiddenField not found on type Album", error.Message);
+            Assert.Equal("Field 'hiddenField' not found on type 'Album'", error.Message);
         }
 
         [Fact]

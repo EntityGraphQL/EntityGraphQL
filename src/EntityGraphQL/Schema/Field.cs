@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema
         public ParameterExpression FieldParam { get; private set; }
         public List<IFieldExtension> Extensions { get; set; }
 
-        public RequiredClaims AuthorizeClaims { get; private set; }
+        public RequiredAuthorization RequiredAuthorization { get; private set; }
 
         public Expression Resolve { get; private set; }
         /// <summary>
@@ -51,12 +51,12 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; private set; }
 
-        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredClaims authorizeClaims, Func<string, string> fieldNamer)
+        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredAuthorization requiredAuth, Func<string, string> fieldNamer)
         {
             this.schema = schema;
             Name = name;
             Description = description;
-            AuthorizeClaims = authorizeClaims;
+            RequiredAuthorization = requiredAuth;
             this.fieldNamer = fieldNamer;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
             Extensions = new List<IFieldExtension>();
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredClaims claims, Func<string, string> fieldNamer)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredAuthorization claims, Func<string, string> fieldNamer)
             : this(schema, name, resolve, description, returnType, claims, fieldNamer)
         {
             allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, fieldNamer);
@@ -141,12 +141,12 @@ namespace EntityGraphQL.Schema
         /// To access this field all claims listed here are required
         /// </summary>
         /// <param name="claims"></param>
-        /// <returns></returns>
+        [Obsolete("Use RequiresAllRoles")]
         public Field RequiresAllClaims(params string[] claims)
         {
-            if (AuthorizeClaims == null)
-                AuthorizeClaims = new RequiredClaims();
-            AuthorizeClaims.RequiresAllClaims(claims);
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllRoles(claims);
             return this;
         }
 
@@ -154,14 +154,61 @@ namespace EntityGraphQL.Schema
         /// To access this field any claims listed is required
         /// </summary>
         /// <param name="claims"></param>
-        /// <returns></returns>
+        [Obsolete("Use RequiresAnyRole")]
         public Field RequiresAnyClaim(params string[] claims)
         {
-            if (AuthorizeClaims == null)
-                AuthorizeClaims = new RequiredClaims();
-            AuthorizeClaims.RequiresAnyClaim(claims);
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAnyRole(claims);
             return this;
+        }
 
+        /// <summary>
+        /// To access this field all roles listed here are required
+        /// </summary>
+        /// <param name="roles"></param>
+        public Field RequiresAllRoles(params string[] roles)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllRoles(roles);
+            return this;
+        }
+
+        /// <summary>
+        /// To access this field any role listed is required
+        /// </summary>
+        /// <param name="roles"></param>
+        public Field RequiresAnyRole(params string[] roles)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllRoles(roles);
+            return this;
+        }
+
+        /// <summary>
+        /// To access this field all policies listed here are required
+        /// </summary>
+        /// <param name="policies"></param>
+        public Field RequiresAllPolicies(params string[] policies)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllPolicies(policies);
+            return this;
+        }
+
+        /// <summary>
+        /// To access this field any policy listed is required
+        /// </summary>
+        /// <param name="policies"></param>
+        public Field RequiresAnyPolicy(params string[] policies)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAnyPolicy(policies);
+            return this;
         }
 
         /// <summary>

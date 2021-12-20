@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Claims;
-using EntityGraphQL.Authorization;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EntityGraphQL.Schema
 {
@@ -19,7 +17,7 @@ namespace EntityGraphQL.Schema
         public bool IsInput { get; }
         public bool IsEnum { get; }
         public bool IsScalar { get; }
-        public RequiredClaims AuthorizeClaims { get; set; }
+        public RequiredAuthorization RequiredAuthorization { get; set; }
 
         private readonly Func<string, string> fieldNamer;
 
@@ -27,12 +25,12 @@ namespace EntityGraphQL.Schema
 
         private readonly Dictionary<string, Field> _fieldsByName = new();
 
-        public SchemaType(ISchemaProvider schema, string name, string description, RequiredClaims authorizeClaims, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, authorizeClaims, fieldNamer, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string description, RequiredAuthorization requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, fieldNamer, isInput, isEnum, isScalar)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredClaims authorizeClaims, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredAuthorization requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
             TypeDotnet = dotnetType;
@@ -41,7 +39,7 @@ namespace EntityGraphQL.Schema
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;
-            AuthorizeClaims = authorizeClaims;
+            RequiredAuthorization = requiredAuthorization;
             this.fieldNamer = fieldNamer;
             if (!isScalar)
                 AddField("__typename", t => name, "Type name", null).IsNullable(false);
@@ -58,8 +56,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), new RequiredClaims(attributes), fieldNamer));
+                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), RequiredAuthorization.GetRequiredAuthFromField(field), fieldNamer));
                 }
             }
             else
@@ -101,40 +98,26 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
             return field;
         }
+
         public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
             return field;
         }
         public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)selectionExpression.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
 
-            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             _fieldsByName[field.Name] = field;
             return field;
         }
@@ -152,27 +135,17 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)selectionExpression.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
             return field;
         }
         public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)selectionExpression.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
             return field;
         }
@@ -190,25 +163,20 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            RequiredClaims authorizeClaims = null;
-            if (selectionExpression.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)selectionExpression.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                authorizeClaims = new RequiredClaims(attributes);
-            }
+            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), authorizeClaims, fieldNamer);
+            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             _fieldsByName[field.Name] = field;
         }
 
-        public Field GetField(string identifier, ClaimsIdentity claims = null)
+        public Field GetField(string identifier, UserAuthInfo authInfo)
         {
             if (_fieldsByName.ContainsKey(identifier))
             {
                 var field = _fieldsByName[identifier];
-                if (!AuthUtil.IsAuthorized(claims, field.AuthorizeClaims))
+                if (authInfo != null && !authInfo.IsAuthorized(field.RequiredAuthorization))
                 {
-                    throw new EntityGraphQLAccessException($"You do not have access to field '{identifier}' on type '{Name}'. You require any of the following security claims [{string.Join(", ", field.AuthorizeClaims.Claims.SelectMany(r => r))}]");
+                    throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 }
                 return _fieldsByName[identifier];
             }
@@ -220,10 +188,10 @@ namespace EntityGraphQL.Schema
         /// Get a field by an expression selection on the real type. The name is changed to lowerCaseCamel
         /// </summary>
         /// <param name="fieldSelection"></param>
-        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, ClaimsIdentity claims = null)
+        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, UserAuthInfo authInfo)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return GetField(schema.SchemaFieldNamer(exp.Member.Name), claims);
+            return GetField(schema.SchemaFieldNamer(exp.Member.Name), authInfo);
         }
 
         public IEnumerable<Field> GetFields()
@@ -261,24 +229,68 @@ namespace EntityGraphQL.Schema
         /// To access this type all claims listed here are required
         /// </summary>
         /// <param name="claims"></param>
-        /// <returns></returns>
+        [Obsolete("Use RequiresAllRoles")]
         public SchemaType<TBaseType> RequiresAllClaims(params string[] claims)
         {
-            if (AuthorizeClaims == null)
-                AuthorizeClaims = new RequiredClaims();
-            AuthorizeClaims.RequiresAllClaims(claims);
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllRoles(claims);
             return this;
         }
         /// <summary>
         /// To access this type any of the claims listed is required
         /// </summary>
         /// <param name="claims"></param>
-        /// <returns></returns>
+        [Obsolete("Use RequiresAnyRole")]
         public SchemaType<TBaseType> RequiresAnyClaim(params string[] claims)
         {
-            if (AuthorizeClaims == null)
-                AuthorizeClaims = new RequiredClaims();
-            AuthorizeClaims.RequiresAnyClaim(claims);
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAnyRole(claims);
+            return this;
+        }
+        /// <summary>
+        /// To access this type all roles listed here are required
+        /// </summary>
+        /// <param name="roles"></param>
+        public SchemaType<TBaseType> RequiresAllRoles(params string[] roles)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllRoles(roles);
+            return this;
+        }
+        /// <summary>
+        /// To access this type any of the roles listed is required
+        /// </summary>
+        /// <param name="roles"></param>
+        public SchemaType<TBaseType> RequiresAnyRole(params string[] roles)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAnyRole(roles);
+            return this;
+        }
+        /// <summary>
+        /// To access this type all policies listed here are required
+        /// </summary>
+        /// <param name="policies"></param>
+        public SchemaType<TBaseType> RequiresAllPolicies(params string[] policies)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAllPolicies(policies);
+            return this;
+        }
+        /// <summary>
+        /// To access this type any of the policies listed is required
+        /// </summary>
+        /// <param name="policies"></param>
+        public SchemaType<TBaseType> RequiresAnyPolicy(params string[] policies)
+        {
+            if (RequiredAuthorization == null)
+                RequiredAuthorization = new RequiredAuthorization();
+            RequiredAuthorization.RequiresAnyPolicy(policies);
             return this;
         }
     }

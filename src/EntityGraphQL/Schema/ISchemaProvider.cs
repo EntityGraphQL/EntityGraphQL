@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Security.Claims;
 using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema
@@ -25,16 +23,16 @@ namespace EntityGraphQL.Schema
         Type ContextType { get; }
 
         /// Checks if the given type has the given field identifier
-        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims);
-        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, ClaimsIdentity claims);
+        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo);
+        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo);
 
         bool HasType(string typeName);
         bool HasType(Type type);
         ISchemaType Type(string name);
         ISchemaType Type(Type dotnetType);
         List<ISchemaType> EnumTypes();
-        /// As EQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
-        IField GetActualField(string typeName, string identifier, ClaimsIdentity claims);
+        /// As GQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
+        IField GetActualField(string typeName, string identifier, UserAuthInfo authInfo);
 
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>
@@ -43,7 +41,6 @@ namespace EntityGraphQL.Schema
         /// <param name="type"></param>
         /// <returns></returns>
         ISchemaType GetSchemaTypeForDotnetType(Type type);
-        IField GetFieldOnContext(Expression context, string fieldName, ClaimsIdentity claims);
         bool HasMutation(string method);
         string GetGraphQLSchema();
         /// <summary>

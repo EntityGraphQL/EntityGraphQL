@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -90,7 +90,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
             Type projectType = project.GetType();

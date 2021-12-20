@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
 using EntityGraphQL.Compiler.Util;
-using System.Security.Claims;
 using System;
 using EntityGraphQL.Extensions;
 using HotChocolate.Language;
@@ -17,7 +16,7 @@ namespace EntityGraphQL.Compiler
     /// <typeparam name="IGraphQLBaseNode"></typeparam>
     internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode>
     {
-        private readonly ClaimsIdentity claims;
+        private readonly UserAuthInfo userAuthInfo;
         private readonly ISchemaProvider schemaProvider;
         private readonly QueryVariables variables;
 
@@ -27,9 +26,9 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public GraphQLDocument Document { get; private set; }
 
-        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryVariables variables, ClaimsIdentity claims)
+        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryVariables variables, UserAuthInfo authInfo)
         {
-            this.claims = claims;
+            this.userAuthInfo = authInfo;
             this.schemaProvider = schemaProvider;
             this.variables = variables;
         }
@@ -76,7 +75,7 @@ namespace EntityGraphQL.Compiler
         {
             var fieldName = node.Name.Value;
             string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextFieldContext.Type).Name;
-            var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, claims);
+            var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, userAuthInfo);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var alias = node.Alias?.Value;
@@ -260,7 +259,7 @@ namespace EntityGraphQL.Compiler
 
             var eqlt = prop.DefaultValue as BaseEntityQueryType;
             var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
-            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, claims).ExpressionResult.Expression;
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, userAuthInfo).ExpressionResult.Expression;
             expression = Expression.Lambda(expression, contextParam);
             return expression;
         }

@@ -26,7 +26,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field error: addPersonError - Name can not be null (Parameter 'name')", results.Errors[0].Message);
         }
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteQuery(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field error: people - Field failed to execute", results.Errors[0].Message);
         }

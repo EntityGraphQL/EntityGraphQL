@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -74,7 +74,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteQuery(gql, data, null, null);
+            var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
 
-            var result = schema.ExecuteQuery(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -169,7 +169,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
 
-            var result = schema.ExecuteQuery(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -226,7 +226,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var ager = new ConfigService();
             serviceCollection.AddSingleton(ager);
 
-            var result = schema.ExecuteQuery(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
 
             dynamic projects = result.Data["projects"];

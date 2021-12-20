@@ -87,7 +87,7 @@ fragment frag on Project {
 
             var context = new TestDataContext().FillWithTestData();
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -135,7 +135,7 @@ fragment frag on Project {
                 },
             };
 
-            var res = schema.ExecuteQuery(gql, context, null, null);
+            var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
         }
     }
