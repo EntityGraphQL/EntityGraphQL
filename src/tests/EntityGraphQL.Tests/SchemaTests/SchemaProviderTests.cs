@@ -1,6 +1,7 @@
 using Xunit;
 using EntityGraphQL.Tests.ApiVersion1;
 using System.Linq;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -16,20 +17,20 @@ namespace EntityGraphQL.Tests
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Location", "id", new string[0], null));
-            Assert.True(provider.TypeHasField("Location", "address", new string[0], null));
-            Assert.True(provider.TypeHasField("Location", "state", new string[0], null));
-            Assert.True(provider.TypeHasField("Location", "country", new string[0], null));
-            Assert.True(provider.TypeHasField("Location", "planet", new string[0], null));
+            Assert.True(provider.TypeHasField("Location", "id", Array.Empty<string>(), null));
+            Assert.True(provider.TypeHasField("Location", "address", Array.Empty<string>(), null));
+            Assert.True(provider.TypeHasField("Location", "state", Array.Empty<string>(), null));
+            Assert.True(provider.TypeHasField("Location", "country", Array.Empty<string>(), null));
+            Assert.True(provider.TypeHasField("Location", "planet", Array.Empty<string>(), null));
         }
         [Fact]
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Person", "id", new string[0], null));
-            Assert.True(provider.TypeHasField("Person", "name", new string[0], null));
+            Assert.True(provider.TypeHasField("Person", "id", Array.Empty<string>(), null));
+            Assert.True(provider.TypeHasField("Person", "name", Array.Empty<string>(), null));
             // Not exposed in our schema
-            Assert.True(provider.TypeHasField("Person", "fullName", new string[0], null));
+            Assert.True(provider.TypeHasField("Person", "fullName", Array.Empty<string>(), null));
         }
         [Fact]
         public void ReturnsActualName()

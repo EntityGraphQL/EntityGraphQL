@@ -6,7 +6,7 @@
 - Fix - Schema introspection was incorrectly returning `__typename` for Enums
 - `UseConnectionPagingAttribute` takes optional arguments for default page size and max page size
 - `UseOffsetPagingAttribute` takes optional arguments for default page size and max page size
-- EntityGraphQL.AspNet now uses System.Text.Json for de/serialization internally and requires .NET core 5.0+. Use version 1.0.x if you need to support .NET Core 3.1 which uses JSON.NET. It still supports JSON.NET objects in the variable object (as well as System.Text.Json types)
+- EntityGraphQL.AspNet now uses System.Text.Json for de/serialization internally. It still supports JSON.NET objects in the variable object (as well as System.Text.Json types)
 
 ## Obsolete - will be removed 2.x
 - `RequireAnyClaim()` & `RequireAllClaims()`. Use `RequireAnyRole()` & `RequireAllRoles()` as the `ClaimTypes.Role` was used previously and this change makes it explicit

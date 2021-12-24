@@ -86,7 +86,7 @@ Below we'll use this to expose an API with ASP.NET. See the next section on manu
 
 Using what ever .NET API library you wish you can receive a query, execute it and return the data. Here is an example with ASP.NET.
 
-You will need to install EntityGraphQL.AspNet to use `MapGraphQL`. You can also build you own endpoint, see below.
+You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) to use `MapGraphQL<>()`. You can also build you own endpoint, see below.
 
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 

@@ -46,7 +46,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
             };
-            TestDataContext2 context = new TestDataContext2();
+            TestDataContext2 context = new();
             context.FillWithTestData();
             context.People.Add(new Person
             {

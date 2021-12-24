@@ -1,4 +1,3 @@
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
 using System.Text;
@@ -8,11 +7,9 @@ namespace EntityGraphQL.Compiler
     public class GraphQLCompiler
     {
         private readonly ISchemaProvider schemaProvider;
-        private readonly IMethodProvider methodProvider;
-        public GraphQLCompiler(ISchemaProvider schemaProvider, IMethodProvider methodProvider)
+        public GraphQLCompiler(ISchemaProvider schemaProvider)
         {
             this.schemaProvider = schemaProvider;
-            this.methodProvider = methodProvider;
         }
 
         /// Parses a GraphQL-like query syntax into a tree respresenting the requested object graph. E.g.

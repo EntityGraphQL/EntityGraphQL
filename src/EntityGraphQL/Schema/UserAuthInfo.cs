@@ -10,7 +10,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class UserAuthInfo
     {
-        private ClaimsPrincipal user;
+        private readonly ClaimsPrincipal user;
         private readonly IAuthorizationService authService;
 
         public UserAuthInfo(ClaimsPrincipal user, IAuthorizationService authService)

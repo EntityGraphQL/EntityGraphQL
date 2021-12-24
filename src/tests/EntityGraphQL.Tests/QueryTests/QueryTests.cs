@@ -2,7 +2,6 @@ using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Compiler.EntityQuery;
 
 namespace EntityGraphQL.Tests
 {
@@ -15,7 +14,7 @@ namespace EntityGraphQL.Tests
         public void CanParseSimpleQuery()
         {
             var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(objectSchemaProvider).Compile(@"
 {
 	people { id name }
 }");
@@ -35,7 +34,7 @@ namespace EntityGraphQL.Tests
         {
             var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             objectSchemaProvider.Type<Person>().AddField("thing", p => p.Id + " - " + p.Name, "A weird field I want");
-            var tree = new GraphQLCompiler(objectSchemaProvider, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(objectSchemaProvider).Compile(@"
 {
 	people { id thing }
 }");
@@ -55,7 +54,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Person>().RemoveField(p => p.Id);
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => { var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => { var tree = new GraphQLCompiler(schema).Compile(@"
 {
 	people { id }
 }"); });
@@ -65,7 +64,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseMultipleEntityQuery()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
 {
 	people { id name }
 	users { id }
@@ -91,7 +90,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithRelation()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
 {
 	people { id name user { field1 } }
 }");
@@ -113,7 +112,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithRelationDeep()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	people {
                 id name
@@ -146,7 +145,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithCollection()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	people { id name projects { name } }
         }");
@@ -170,7 +169,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanParseQueryWithCollectionDeep()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	people { id
         		projects {
@@ -205,7 +204,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsNonExistingField()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	people { id
         		projects {
@@ -219,7 +218,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FailsNonExistingField2()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	people { id
         		projects {
@@ -233,7 +232,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestAlias()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	projects {
         		n: name
@@ -248,7 +247,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestAliasDeep()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         people { id
         		projects {
@@ -284,7 +283,7 @@ namespace EntityGraphQL.Tests
         public void TestTopLevelScalar()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            var gql = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
 query {
     totalPeople
 }");

@@ -11,8 +11,8 @@ namespace EntityGraphQL.Compiler
 
     internal class ConstantVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
-        public static readonly Regex GuidRegex = new Regex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
-        public static readonly Regex DateTimeRegex = new Regex("^[0-9]{4}[-][0-9]{2}[-][0-9]{2}([T ][0-9]{2}[:][0-9]{2}[:][0-9]{2}(\\.[0-9]{1,7})?([-+][0-9]{3})?)?$", RegexOptions.IgnoreCase);
+        public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
+        public static readonly Regex DateTimeRegex = new("^[0-9]{4}[-][0-9]{2}[-][0-9]{2}([T ][0-9]{2}[:][0-9]{2}[:][0-9]{2}(\\.[0-9]{1,7})?([-+][0-9]{3})?)?$", RegexOptions.IgnoreCase);
         private readonly ISchemaProvider schema;
 
         public ConstantVisitor(ISchemaProvider schema)
@@ -40,7 +40,7 @@ namespace EntityGraphQL.Compiler
         public override ExpressionResult VisitString(EntityQLParser.StringContext context)
         {
             // we may need to convert a string into a DateTime or Guid type
-            string value = context.GetText().Substring(1, context.GetText().Length - 2).Replace("\\\"", "\"");
+            string value = context.GetText()[1..^1].Replace("\\\"", "\"");
             if (GuidRegex.IsMatch(value))
                 return (ExpressionResult)Expression.Constant(Guid.Parse(value));
 

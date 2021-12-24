@@ -3,7 +3,6 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Compiler.EntityQuery;
 using System;
 using System.Collections.Generic;
 
@@ -17,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void CanExecuteRequiredParameter()
         {
-            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>(), new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
         {
         	project(id: 55) {
         		name
@@ -35,7 +34,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             schema.AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
         	user(id: 100, something: false) { id }
         }");
             // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
@@ -51,7 +50,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             schema.AddField("user", new { id = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                 user { id }
             }"));
             Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
@@ -63,7 +62,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             schema.AddField("user", new { id = ArgumentHelper.Required<int>(), h = ArgumentHelper.Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                         user { id }
                     }"));
             Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
@@ -75,7 +74,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a default parameter
             schema.AddField("me", new { id = 100 }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
                         me { id }
                     }");
 
@@ -92,7 +91,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
             schema.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
-            var result = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var result = new GraphQLCompiler(schema).Compile(@"query {
                         people { id height }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
@@ -111,7 +110,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
             schema.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
                         people { height(unit: Meter) }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
@@ -138,7 +137,7 @@ namespace EntityGraphQL.Tests
                     {"unit", "Meter"}
                 }
             };
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
             dynamic result = tree.Data["people"];
             Assert.Equal(1, Enumerable.Count(result));
@@ -153,7 +152,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             MakePersonIdGuid(schema);
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
                         person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
@@ -178,7 +177,7 @@ namespace EntityGraphQL.Tests
                     {"id", "cccccccc-bbbb-4444-1111-ccddeeff0033"}
                 }
             };
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
             dynamic user = tree.Data["person"];
             // we only have the fields requested
@@ -194,7 +193,7 @@ namespace EntityGraphQL.Tests
             MakePersonIdGuid(schema);
             schema.Type<Person>().AddField("project", new { pid = ArgumentHelper.Required<int>() }, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
                         person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id project(pid: 55) { id name } }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null);
 
@@ -213,7 +212,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var e = Assert.Throws<EntityGraphQLCompilerException>(() =>
             {
-                var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+                var tree = new GraphQLCompiler(schema).Compile(@"
             query MyQuery($limit: Int = 10) {
                 people(limit: $limit) { id name projects { id name } }
             }
@@ -232,7 +231,7 @@ namespace EntityGraphQL.Tests
             },
             (db, p) => db.Users, "Testing float");
 
-            var gql = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var gql = new GraphQLCompiler(schema).Compile(@"
         query {
             users(f: 4.3) { id }
         }");
@@ -252,7 +251,7 @@ namespace EntityGraphQL.Tests
             },
             (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str), !string.IsNullOrEmpty(p.str)), "Testing string");
 
-            var gql = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var gql = new GraphQLCompiler(schema).Compile(@"
         query {
             users(str: ""3"") { id }
         }");
@@ -272,7 +271,7 @@ namespace EntityGraphQL.Tests
             },
             (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
 
-            var gql = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var gql = new GraphQLCompiler(schema).Compile(@"
         query {
             people(names: [""bill"", ""jill""]) { name }
         }");
@@ -303,7 +302,7 @@ namespace EntityGraphQL.Tests
             },
             (db, p) => db.People.WhereWhen(per => per.Name == p.options.name, p.options != null), "Testing list");
 
-            var gql = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var gql = new GraphQLCompiler(schema).Compile(@"
         query {
             people(options: {name: ""jill""}) { name }
         }");

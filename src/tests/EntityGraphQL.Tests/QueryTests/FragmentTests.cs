@@ -2,7 +2,6 @@ using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Compiler.EntityQuery;
 using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests
@@ -15,7 +14,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(schemaProvider).Compile(@"
 query {
     people { ...info projects { id name } }
 }
@@ -38,7 +37,7 @@ fragment info on Person {
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(schemaProvider).Compile(@"
 query {
     people {
         ...info @skip(if: true)

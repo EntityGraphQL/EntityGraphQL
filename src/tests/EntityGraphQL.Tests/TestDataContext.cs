@@ -55,7 +55,7 @@ namespace EntityGraphQL.Tests
         public User User { get; set; }
         public double Height { get; set; }
         // fake an error
-        public string Error { get => throw new Exception("Field failed to execute"); set => throw new Exception("Field failed to execute"); }
+        public static string Error { get => throw new Exception("Field failed to execute"); set => throw new Exception("Field failed to execute"); }
 
         public double GetHeight(HeightUnit unit)
         {

@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema
         };
         public static readonly Func<string, string> DefaultNamer = name =>
         {
-            return name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
+            return name[..1].ToLowerInvariant() + name[1..];
         };
 
         public static SchemaProvider<TContext> Create<TContext>(Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)

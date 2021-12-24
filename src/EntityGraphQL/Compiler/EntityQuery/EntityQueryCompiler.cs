@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, UserAuthInfo authInfo, IMethodProvider methodProvider)
         {
-            AntlrInputStream stream = new AntlrInputStream(query);
+            var stream = new AntlrInputStream(query);
             var lexer = new EntityQLLexer(stream);
             var tokens = new CommonTokenStream(lexer);
             var parser = new EntityQLParser(tokens)

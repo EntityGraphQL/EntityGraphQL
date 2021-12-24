@@ -17,7 +17,7 @@ namespace EntityGraphQL.AspNet.Extensions
             builder.MapPost(path, async context =>
             {
                 var buffer = new byte[context.Request.ContentLength.Value];
-                await context.Request.Body.ReadAsync(buffer, 0, buffer.Length);
+                await context.Request.Body.ReadAsync(buffer);
                 var json = Encoding.UTF8.GetString(buffer);
 
                 var jsonOptions = new JsonSerializerOptions

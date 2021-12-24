@@ -120,7 +120,7 @@ namespace EntityGraphQL.Tests
                         }
             };
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             // Builds - (ctx, srv, args) => ctx.People
@@ -581,7 +581,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest
@@ -634,7 +634,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest
@@ -684,7 +684,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest
@@ -735,7 +735,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.OrderBy(t => t.IsActive), "Ordered tasks");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest
@@ -844,7 +844,7 @@ namespace EntityGraphQL.Tests
                 "List of projects");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService srv = new ConfigService();
+            var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
             var gql = new QueryRequest

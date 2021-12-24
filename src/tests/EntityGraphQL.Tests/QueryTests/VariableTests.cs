@@ -2,7 +2,6 @@ using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Compiler.EntityQuery;
 using System;
 
 namespace EntityGraphQL.Tests
@@ -15,7 +14,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(new QueryRequest
+            var tree = new GraphQLCompiler(schema).Compile(new QueryRequest
             {
                 Query = @"
                     query MyQuery($limit: Int) {
@@ -45,7 +44,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(schema).Compile(@"
         query MyQuery($limit: Int = 10) {
             people(limit: $limit) { id name }
         }
@@ -70,7 +69,7 @@ namespace EntityGraphQL.Tests
             schema.ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
 
             // should use gql default of 6
-            var tree = new GraphQLCompiler(schema, new DefaultMethodProvider()).Compile(@"
+            var tree = new GraphQLCompiler(schema).Compile(@"
         query MyQuery($limit: Int = 6) {
             people(limit: $limit) { id name }
         }

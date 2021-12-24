@@ -57,7 +57,7 @@ namespace EntityGraphQL.Compiler
             }
             else if (node.Operation == OperationType.Mutation)
             {
-                context = new GraphQLMutationStatement(node.Name.Value, rootParameterContext, rootParameterContext, context);
+                context = new GraphQLMutationStatement(node.Name?.Value, rootParameterContext, rootParameterContext, context);
             }
             else if (node.Operation == OperationType.Subscription)
             {
@@ -257,7 +257,7 @@ namespace EntityGraphQL.Compiler
             if (prop == null)
                 throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
 
-            var eqlt = prop.DefaultValue as BaseEntityQueryType;
+            var eqlt = (BaseEntityQueryType)prop.DefaultValue;
             var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
             Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, userAuthInfo).ExpressionResult.Expression;
             expression = Expression.Lambda(expression, contextParam);

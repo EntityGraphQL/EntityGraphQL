@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 if (OperationStatus.Done != Base64.DecodeFromUtf8InPlace(buffer, out int writtenBytes))
                     throw new ArithmeticException();
 
-                if (!Utf8Parser.TryParse(buffer.Slice(0, writtenBytes), out int index, out _))
+                if (!Utf8Parser.TryParse(buffer[..writtenBytes], out int index, out _))
                     throw new ArithmeticException();
 
                 return index;

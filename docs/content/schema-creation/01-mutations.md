@@ -85,7 +85,7 @@ mutation {
 
 As you don't know which fields an API user will request, you therefore don't know what data to load into memory and return in that object. As EntityGraphQL will execute the field selection against the returned object.
 
-Using the `Expression<Func<>>` as a return type allows EntityGraphQL to build an expression across the whole schema graph. And example of the expression result built for the above mutation.
+Using the `Expression<Func<>>` as a return type allows EntityGraphQL to build an expression across the whole schema graph. An example of the expression result built for the above mutation.
 
 ```
 (DemoContext ctx) => ctx.People
@@ -102,7 +102,9 @@ This means we have access to the full schema graph from the core context of the 
 
 # Dependencies Injection & Services
 
-You likely want to access some services in your mutations. EntityGraphQL supports dependency injection. When you execute a query you can pass in an `IServiceProvider`. Here is an example with ASP.NET.
+You likely want to access some services in your mutations. EntityGraphQL supports dependency injection. When you execute a query make sure you pass in an `IServiceProvider`. Here is an example with ASP.NET.
+
+_Note if you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
 
 ```
 var results = _schemaProvider.ExecuteQuery(query, demoContext, HttpContext.RequestServices, null);

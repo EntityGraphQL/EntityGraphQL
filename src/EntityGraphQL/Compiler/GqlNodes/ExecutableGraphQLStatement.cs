@@ -55,8 +55,8 @@ namespace EntityGraphQL.Compiler
 
                     if (options?.IncludeDebugInfo == true)
                     {
-                        timer.Stop();
-                        result[$"__{fieldNode.Name}_timeMs"] = timer.ElapsedMilliseconds;
+                        timer?.Stop();
+                        result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 
                     result[fieldNode.Name] = data;

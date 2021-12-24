@@ -212,6 +212,16 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
+        /// Clears any authorization requirements for this field
+        /// </summary>
+        /// <returns></returns>
+        public Field ClearAuthorization()
+        {
+            RequiredAuthorization = null;
+            return this;
+        }
+
+        /// <summary>
         /// Define if the return type of this field is nullable or not.
         /// </summary>
         /// <param name="nullable"></param>

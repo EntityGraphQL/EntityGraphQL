@@ -4,7 +4,6 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Compiler.EntityQuery;
 
 namespace EntityGraphQL.Tests
 {
@@ -18,7 +17,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider, new DefaultMethodProvider()).Compile(@"query {
+            var tree = new GraphQLCompiler(schemaProvider).Compile(@"query {
 	users { __typename id }
 }");
 

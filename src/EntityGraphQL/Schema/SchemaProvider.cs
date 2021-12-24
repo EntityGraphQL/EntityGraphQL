@@ -11,7 +11,6 @@ using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Compiler.EntityQuery;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +31,6 @@ namespace EntityGraphQL.Schema
 
         private readonly string queryContextName;
         private readonly ILogger<SchemaProvider<TContextType>> logger;
-        private readonly DefaultMethodProvider methodProvider;
         private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
 
         // map some types to scalar types
@@ -94,8 +92,6 @@ namespace EntityGraphQL.Schema
             var skip = new SkipDirectiveProcessor();
             directives.Add(include.Name, include);
             directives.Add(skip.Name, skip);
-
-            methodProvider = new DefaultMethodProvider();
         }
 
         /// <summary>
@@ -188,7 +184,7 @@ namespace EntityGraphQL.Schema
 
         public GraphQLDocument CompileQuery(QueryRequest gql, UserAuthInfo authInfo)
         {
-            var graphQLCompiler = new GraphQLCompiler(this, methodProvider);
+            var graphQLCompiler = new GraphQLCompiler(this);
             var queryResult = graphQLCompiler.Compile(gql, authInfo);
             return queryResult;
         }
