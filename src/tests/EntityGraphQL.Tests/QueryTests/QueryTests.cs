@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
 }");
 
             Assert.Single(tree.Operations);
-            Assert.Equal(2, tree.Operations.First().QueryFields.Count());
+            Assert.Equal(2, tree.Operations.First().QueryFields.Count);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
