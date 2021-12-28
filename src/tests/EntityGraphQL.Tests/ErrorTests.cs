@@ -46,7 +46,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext().FillWithTestData();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field error: people - Field failed to execute", results.Errors[0].Message);
+            Assert.Equal("Field 'error' not found on type 'Person'", results.Errors[0].Message);
         }
     }
 }
