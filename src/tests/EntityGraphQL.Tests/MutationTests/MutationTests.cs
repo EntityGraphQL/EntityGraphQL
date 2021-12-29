@@ -287,5 +287,26 @@ namespace EntityGraphQL.Tests
             dynamic result = results.Data["doGreatThing"];
             Assert.True((bool)result);
         }
+
+        [Fact]
+        public void TestUnnamedMutationOp()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          doGreatThing
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["doGreatThing"];
+            Assert.True((bool)result);
+        }
     }
 }
