@@ -12,6 +12,9 @@
 - `RequireAnyClaim()` & `RequireAllClaims()`. Use `RequireAnyRole()` & `RequireAllRoles()` as the `ClaimTypes.Role` was used previously and this change makes it explicit
 - `schema.ExecuteQueryAsync/ExecuteQuery(QueryRequest, TContextType, IServiceProvider, ClaimsIdentity, ExecutionOptions)`. Use the `ExecuteRequest`/`ExecuteRequestAsync` methods that take the full `ClaimsPrincipal` as we now support authorization with policies
 
+# 1.0.3
+- Fix #86. Mutations not correctly checking required authorization on the mutation field directly
+
 # 1.0.2
 - Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
 - Fix issue with expressions failing in a high throughput, threaded use case (heavily hit API)
