@@ -1,5 +1,7 @@
 using Xunit;
 using EntityGraphQL.Schema;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -24,7 +26,7 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
         [Fact]
         public void TestIncludeIfFalseConstant()
@@ -62,7 +64,7 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
 
         [Fact]
@@ -99,7 +101,7 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
         [Fact]
         public void TestSkipIfFalseVariable()
