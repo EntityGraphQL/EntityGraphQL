@@ -14,6 +14,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface ISchemaProvider
     {
+        string QueryContextName { get; }
         Func<string, string> SchemaFieldNamer { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
 

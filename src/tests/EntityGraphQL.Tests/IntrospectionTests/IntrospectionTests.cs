@@ -1,6 +1,7 @@
 using Xunit;
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -161,6 +162,73 @@ fragment TypeRef on __Type {
 
             var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestDeprecateMethod()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.UpdateType<Project>(t =>
+            {
+                t.GetField(p => p.Owner, null).Deprecate("This is deprecated");
+            });
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""Project"") {
+            fields {
+              name
+              isDeprecated
+              deprecationReason
+            }
+          }
+        }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schema.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+            var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
+            Assert.True(Enumerable.Any(fields));
+            Assert.False(Enumerable.Any(fields, f => f.name == "owner"));
+        }
+
+        [Fact]
+        public void TestObsoleteAttribute()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""RootQuery"") {
+            fields {
+              name
+              isDeprecated
+              deprecationReason
+            }
+          }
+        }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schema.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+            var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
+            Assert.True(Enumerable.Any(fields));
+            Assert.False(Enumerable.Any(fields, f => f.name == "projectsOld"));
         }
     }
 }

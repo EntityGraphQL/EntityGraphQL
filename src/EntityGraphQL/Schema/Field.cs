@@ -27,6 +27,9 @@ namespace EntityGraphQL.Schema
 
         public RequiredAuthorization RequiredAuthorization { get; private set; }
 
+        public bool IsDeprecated { get; set; }
+        public string DeprecationReason { get; set; }
+
         public Expression Resolve { get; private set; }
         /// <summary>
         /// Services required to be injected for this fields selection
@@ -80,10 +83,24 @@ namespace EntityGraphQL.Schema
 
                 if (resolve.Body.NodeType == ExpressionType.MemberAccess)
                 {
-                    ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(((MemberExpression)resolve.Body).Member) || ReturnType.TypeNotNullable;
-                    ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(((MemberExpression)resolve.Body).Member) || ReturnType.ElementTypeNullable;
+                    var memberExp = (MemberExpression)resolve.Body;
+                    ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(memberExp.Member) || ReturnType.TypeNotNullable;
+                    ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
+
+                    var obsoleteAttribute = memberExp.Member.GetCustomAttribute<ObsoleteAttribute>();
+                    if (obsoleteAttribute != null)
+                    {
+                        IsDeprecated = true;
+                        DeprecationReason = obsoleteAttribute.Message;
+                    }
                 }
             }
+        }
+
+        public void Deprecate(string reason)
+        {
+            IsDeprecated = true;
+            DeprecationReason = reason;
         }
 
         public void AddArguments(object args)

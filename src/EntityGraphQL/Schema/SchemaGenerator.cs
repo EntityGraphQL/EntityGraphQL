@@ -58,7 +58,7 @@ type {rootQueryType.Name} {{
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"\"\"{EscapeString(item.Description)}\"\"\"");
 
-                mutations.AppendLine($"\t{schema.SchemaFieldNamer(item.Name)}{GetGqlArgs(schema, item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}");
+                mutations.AppendLine($"\t{schema.SchemaFieldNamer(item.Name)}{GetGqlArgs(schema, item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(item)}");
             }
 
             return mutations.ToString();
@@ -85,7 +85,7 @@ type {rootQueryType.Name} {{
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
-                    types.AppendLine($"\t{field.Name}");
+                    types.AppendLine($"\t{field.Name}{GetDeprecation(field)}");
 
                 }
                 types.AppendLine("}");
@@ -115,12 +115,20 @@ type {rootQueryType.Name} {{
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
-                    types.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}");
+                    types.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(field)}");
                 }
                 types.AppendLine("}");
             }
 
             return types.ToString();
+        }
+
+        private static object GetDeprecation(IField field)
+        {
+            if (!field.IsDeprecated)
+                return "";
+
+            return $" @deprecated(reason: \"{EscapeString(field.DeprecationReason)}\")";
         }
 
         private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")

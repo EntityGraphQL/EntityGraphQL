@@ -23,7 +23,7 @@
                 {
                     Description = "The query type, represents all of the entry points into our object graph",
                     Kind = "OBJECT",
-                    Name = "Query",
+                    Name = schema.QueryContextName,
                     OfType = null,
                 },
                 new TypeElement
@@ -180,8 +180,8 @@
                     {
                         Name = field.Name,
                         Description = field.Description,
-                        IsDeprecated = false,
-                        DeprecationReason = null
+                        IsDeprecated = field.IsDeprecated,
+                        DeprecationReason = field.DeprecationReason
                     });
                 }
 
@@ -270,9 +270,9 @@
                 fieldDescs.Add(new Models.Field
                 {
                     Args = BuildArgs(schema, field).ToArray(),
-                    DeprecationReason = "",
+                    DeprecationReason = field.DeprecationReason,
                     Description = field.Description,
-                    IsDeprecated = false,
+                    IsDeprecated = field.IsDeprecated,
                     Name = schema.SchemaFieldNamer(field.Name),
                     Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                 });
@@ -298,7 +298,8 @@
                 {
                     Name = field.Name,
                     Args = BuildArgs(schema, field).ToArray(),
-                    IsDeprecated = false,
+                    IsDeprecated = field.IsDeprecated,
+                    DeprecationReason = field.DeprecationReason,
                     Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                     Description = field.Description
                 });
@@ -320,7 +321,8 @@
                 {
                     Name = field.Name,
                     Args = args,
-                    IsDeprecated = false,
+                    IsDeprecated = field.IsDeprecated,
+                    DeprecationReason = field.DeprecationReason,
                     Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                     Description = field.Description
                 });

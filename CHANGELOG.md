@@ -7,6 +7,7 @@
 - `UseConnectionPagingAttribute` takes optional arguments for default page size and max page size
 - `UseOffsetPagingAttribute` takes optional arguments for default page size and max page size
 - `EntityGraphQL.AspNet` now uses System.Text.Json for de/serialization internally. It still supports JSON.NET objects in the variable object (as well as System.Text.Json types)
+- Fix #19 - you can mark fields (including mutations) as deprecated using the dotnet `[Obsolete]` attribute or the `IField.Deprecate(reason)` method in the schema building
 
 ## Obsolete - will be removed 2.x
 - `RequireAnyClaim()` & `RequireAllClaims()`. Use `RequireAnyRole()` & `RequireAllRoles()` as the `ClaimTypes.Role` was used previously and this change makes it explicit

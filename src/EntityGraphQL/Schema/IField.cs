@@ -17,6 +17,11 @@ namespace EntityGraphQL.Schema
         List<IFieldExtension> Extensions { get; }
         RequiredAuthorization RequiredAuthorization { get; }
 
+        bool IsDeprecated { get; set; }
+        string DeprecationReason { get; set; }
+
+        void Deprecate(string reason);
+
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);
 

@@ -133,6 +133,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
+            schemaProvider.Type<Album>().RemoveField("old");
             var schema = schemaProvider.GetGraphQLSchema();
             Assert.DoesNotContain("hiddenField", schema);
             // this exists as it is available for querying
@@ -154,6 +155,7 @@ namespace EntityGraphQL.Tests
         public void TestNotNullTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            schemaProvider.Type<Album>().RemoveField("old");
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
@@ -194,6 +196,32 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("nullAlbums: [Album]", schema);
         }
+
+        [Fact]
+        public void TestDeprecatedField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schema = schemaProvider.GetGraphQLSchema();
+            // this exists as it is not null
+            Assert.Contains("old: Int! @deprecated(reason: \"because\")", schema);
+        }
+        [Fact]
+        public void TestDeprecatedMutationField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            schemaProvider.AddMutationFrom(new IgnoreTestMutations());
+            var schema = schemaProvider.GetGraphQLSchema();
+            // this exists as it is not null
+            Assert.Contains("addAlbumOld(id: Int!, name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
+        }
+        [Fact]
+        public void TestDeprecatedEnumField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schema = schemaProvider.GetGraphQLSchema();
+            // this exists as it is not null
+            Assert.Contains("Obsolete @deprecated(reason: \"This is an obsolete genre\")", schema);
+        }
     }
 
     public class IgnoreTestMutations
@@ -220,6 +248,19 @@ namespace EntityGraphQL.Tests
             };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums;
+        }
+
+        [GraphQLMutation]
+        [Obsolete("This is obsolete")]
+        public Expression<Func<IgnoreTestSchema, Album>> AddAlbumOld(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
     }
 
@@ -254,7 +295,9 @@ namespace EntityGraphQL.Tests
         Classical,
         Jazz,
         Alternitive,
-        Pop
+        Pop,
+        [Obsolete("This is an obsolete genre")]
+        Obsolete
     }
 
     [MutationArguments]
@@ -269,6 +312,9 @@ namespace EntityGraphQL.Tests
         public string HiddenAllField { get; set; }
         [GraphQLNotNull]
         public Genre Genre { get; set; }
+        [Obsolete("because")]
+        [GraphQLIgnore(GraphQLIgnoreType.Input)]
+        public int Old { get; set; }
     }
 
     public class Movie

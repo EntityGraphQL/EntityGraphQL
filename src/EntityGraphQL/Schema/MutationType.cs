@@ -19,6 +19,9 @@ namespace EntityGraphQL.Schema
         private readonly Type argInstanceType;
         private readonly bool isAsync;
 
+        public bool IsDeprecated { get; set; }
+        public string DeprecationReason { get; set; }
+
         public string Description { get; }
 
         public string Name { get; }
@@ -31,6 +34,12 @@ namespace EntityGraphQL.Schema
         public List<IFieldExtension> Extensions => null;
 
         public ParameterExpression ArgumentParam => throw new NotImplementedException();
+
+        public void Deprecate(string reason)
+        {
+            IsDeprecated = true;
+            DeprecationReason = reason;
+        }
 
         public async Task<object> CallAsync(object context, Dictionary<string, Expression> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {

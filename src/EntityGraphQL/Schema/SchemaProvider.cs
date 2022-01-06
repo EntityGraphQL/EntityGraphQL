@@ -27,7 +27,7 @@ namespace EntityGraphQL.Schema
         protected Dictionary<string, MutationType> mutations = new();
         protected Dictionary<string, IDirectiveProcessor> directives = new();
 
-        private readonly string queryContextName;
+        public string QueryContextName { get; }
         private readonly ILogger<SchemaProvider<TContextType>> logger;
         private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
 
@@ -66,7 +66,7 @@ namespace EntityGraphQL.Schema
             };
 
             var queryContext = new SchemaType<TContextType>(this, "RootQuery", "Query schema", null, SchemaFieldNamer);
-            queryContextName = queryContext.Name;
+            QueryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
             // add types first as fields from the other types may refer to these types
@@ -282,6 +282,15 @@ namespace EntityGraphQL.Schema
                     var typeName = GetSchemaTypeForDotnetType(actualReturnType).Name;
                     var returnType = new GqlTypeInfo(() => GetSchemaType(typeName), actualReturnType);
                     var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync, SchemaFieldNamer);
+
+                    var obsoleteAttribute = method.GetCustomAttribute<ObsoleteAttribute>();
+                    if (obsoleteAttribute != null)
+                    {
+                        mutationType.IsDeprecated = true;
+                        mutationType.DeprecationReason = obsoleteAttribute.Message;
+                    }
+
+
                     mutations[name] = mutationType;
                 }
             }
@@ -404,7 +413,7 @@ namespace EntityGraphQL.Schema
         /// <param name="field"></param>
         public Field AddField(Field field)
         {
-            return types[queryContextName].AddField(field);
+            return types[QueryContextName].AddField(field);
         }
 
         /// <summary>
@@ -445,7 +454,7 @@ namespace EntityGraphQL.Schema
         }
 
         // ISchemaProvider interface
-        public Type ContextType { get { return types[queryContextName].TypeDotnet; } }
+        public Type ContextType { get { return types[QueryContextName].TypeDotnet; } }
         public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext)
         {
             if (!types.ContainsKey(typeName))
@@ -494,8 +503,8 @@ namespace EntityGraphQL.Schema
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on the '{typeName}' type.");
                 field = types[typeName].GetField(identifier, requestContext);
             }
-            else if (typeName == queryContextName && types[queryContextName].HasField(identifier))
-                field = types[queryContextName].GetField(identifier, requestContext);
+            else if (typeName == QueryContextName && types[QueryContextName].HasField(identifier))
+                field = types[QueryContextName].GetField(identifier, requestContext);
             else if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
                 field = mutations.First(k => k.Key.ToLower() == identifier.ToLower()).Value;
 
@@ -528,8 +537,8 @@ namespace EntityGraphQL.Schema
             if (customTypeMappings.ContainsKey(type))
                 return customTypeMappings[type].SchemaType;
 
-            if (type == types[queryContextName].TypeDotnet)
-                return types[queryContextName];
+            if (type == types[QueryContextName].TypeDotnet)
+                return types[QueryContextName];
 
             foreach (var eType in types.Values)
             {
@@ -562,7 +571,7 @@ namespace EntityGraphQL.Schema
 
         public bool HasType(Type type)
         {
-            if (type == types[queryContextName].TypeDotnet)
+            if (type == types[QueryContextName].TypeDotnet)
                 return true;
 
             foreach (var eType in types.Values)
@@ -599,12 +608,12 @@ namespace EntityGraphQL.Schema
 
         public IEnumerable<Field> GetQueryFields()
         {
-            return types[queryContextName].GetFields();
+            return types[QueryContextName].GetFields();
         }
 
         public IEnumerable<ISchemaType> GetNonContextTypes()
         {
-            return types.Values.Where(s => s.Name != queryContextName).ToList();
+            return types.Values.Where(s => s.Name != QueryContextName).ToList();
         }
 
         public IEnumerable<ISchemaType> GetScalarTypes()
