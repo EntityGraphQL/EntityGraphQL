@@ -56,8 +56,8 @@ namespace EntityGraphQL.AspNet
         private static RequiredAuthorization GetRequiredAuth(RequiredAuthorization requiredAuth, ICustomAttributeProvider thing)
         {
             var attributes = thing.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
-            var requiredRoles = attributes.Where(c => !string.IsNullOrEmpty(c.Roles)).Select(c => c.Roles.Split(",").ToList()).ToList();
-            var requiredPolicies = attributes.Where(c => !string.IsNullOrEmpty(c.Policy)).Select(c => c.Policy.Split(",").ToList()).ToList();
+            var requiredRoles = attributes.Where(c => !string.IsNullOrEmpty(c.Roles)).Select(c => c.Roles!.Split(",").ToList()).ToList();
+            var requiredPolicies = attributes.Where(c => !string.IsNullOrEmpty(c.Policy)).Select(c => c.Policy!.Split(",").ToList()).ToList();
             requiredAuth = requiredAuth.Concat(new RequiredAuthorization(requiredRoles, requiredPolicies));
 
             var attributes2 = thing.GetCustomAttributes(typeof(GraphQLAuthorizePolicyAttribute), true).Cast<GraphQLAuthorizePolicyAttribute>();

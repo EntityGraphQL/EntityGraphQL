@@ -60,9 +60,13 @@ namespace EntityGraphQL.AspNet
         /// <param name="configure">Function to further configure your schema</param>
         /// <typeparam name="TSchemaContext"></typeparam>
         /// <returns></returns>
-        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<string, string> fieldNamer, Action<SchemaProvider<TSchemaContext>> configure)
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<string, string>? fieldNamer, Action<SchemaProvider<TSchemaContext>>? configure)
         {
-            var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(serviceCollection.BuildServiceProvider().GetService<IAuthorizationService>()), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            var authService = serviceCollection.BuildServiceProvider().GetService<IAuthorizationService>();
+            if (authService == null)
+                throw new InvalidOperationException("You must add an IAuthorizationService to the service collection before adding GraphQL");
+
+            var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
             serviceCollection.AddSingleton(schema);
             configure?.Invoke(serviceCollection.BuildServiceProvider().GetRequiredService<SchemaProvider<TSchemaContext>>());
 
