@@ -103,7 +103,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        [Obsolete("Use overload without ClaimsIdentity")]
+        [Obsolete("Use ExecuteRequest")]
         public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
             return ExecuteQueryAsync(gql, context, serviceProvider, claims, options).Result;
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        [Obsolete("Use overload without ClaimsIdentity")]
+        [Obsolete("Use ExecuteRequestAsync")]
         public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
             QueryResult result;
@@ -168,7 +168,7 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                var queryResult = CompileQuery(gql, AuthorizationService, user);
+                var queryResult = CompileQuery(gql, user);
                 result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
             }
             catch (Exception ex)
@@ -181,10 +181,10 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        public GraphQLDocument CompileQuery(QueryRequest gql, IGqlAuthorizationService authService, ClaimsPrincipal user)
+        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsPrincipal user)
         {
             var graphQLCompiler = new GraphQLCompiler(this);
-            var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, authService, user));
+            var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
             return queryResult;
         }
 

@@ -107,7 +107,7 @@ You likely want to access some services in your mutations. EntityGraphQL support
 _Note if you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
 
 ```
-var results = _schemaProvider.ExecuteQuery(query, demoContext, HttpContext.RequestServices, null);
+var results = _schemaProvider.ExecuteRequest(query, demoContext, HttpContext.RequestServices, null);
 ```
 
 EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it in the method signature of the mutation.

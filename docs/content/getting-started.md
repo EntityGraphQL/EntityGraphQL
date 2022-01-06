@@ -239,7 +239,7 @@ public class QueryController : Controller
     {
         try
         {
-            var results = _schemaProvider.ExecuteQuery(query, _dbContext, HttpContext.RequestServices, null);
+            var results = _schemaProvider.ExecuteRequest(query, _dbContext, HttpContext.RequestServices, null);
             // gql compile errors show up in results.Errors
             return results;
         }
