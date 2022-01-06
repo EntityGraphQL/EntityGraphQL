@@ -146,8 +146,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
             }
 
-            if (arguments.First == null && arguments.Last == null && defaultPageSize.HasValue)
-                arguments.First = defaultPageSize.Value;
+            if (arguments.First == null && arguments.Last == null && defaultPageSize != null)
+                arguments.First = defaultPageSize;
 
             // deserialize cursors here once (not many times in the fields)
             arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);

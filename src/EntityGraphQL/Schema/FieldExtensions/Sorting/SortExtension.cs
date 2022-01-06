@@ -75,10 +75,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
-            if (arguments != null && arguments.Sort != null)
+            if (arguments != null && arguments!.Sort != null)
             {
                 var first = true;
-                foreach (var fieldInfo in ((Type)arguments.Sort.GetType()).GetFields())
+                foreach (var fieldInfo in ((Type)arguments!.Sort.GetType()).GetFields())
                 {
                     var direction = (SortDirectionEnum?)fieldInfo.GetValue(arguments.Sort);
                     if (!direction.HasValue)

@@ -50,6 +50,9 @@ namespace EntityGraphQL.Compiler.Util
 
         public static object ChangeType(object value, Type type)
         {
+            if (value == null)
+                return null;
+
             var objType = value.GetType();
             if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType))
             {
@@ -86,9 +89,9 @@ namespace EntityGraphQL.Compiler.Util
             else if (type != typeof(long) && objType == typeof(long))
             {
                 if (type == typeof(DateTime) || type == typeof(DateTime?))
-                    return new DateTime((long)value);
+                    return new DateTime((long)value!);
                 if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
-                    return new DateTimeOffset((long)value, TimeSpan.Zero);
+                    return new DateTimeOffset((long)value!, TimeSpan.Zero);
             }
 
             var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;

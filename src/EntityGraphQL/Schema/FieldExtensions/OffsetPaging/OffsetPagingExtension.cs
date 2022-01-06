@@ -86,8 +86,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
-            if (maxPageSize.HasValue && arguments.Take > maxPageSize.Value)
-                throw new ArgumentException($"Argument take can not be greater than {maxPageSize.Value}.");
+            if (maxPageSize != null && arguments.Take > maxPageSize.Value)
+                throw new ArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
             // other extensions expect to run on the collection not our new shape
             Expression newItemsExp = expression;
