@@ -2,6 +2,7 @@ using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests
 {
@@ -25,8 +26,8 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
 
         [Fact]
@@ -45,8 +46,8 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("thing", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "thing");
         }
 
         [Fact]
@@ -77,8 +78,8 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
 
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["users"]));
             var user = Enumerable.ElementAt((dynamic)result.Data["users"], 0);
@@ -100,10 +101,10 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("user", person.GetType().GetFields()[2].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "user");
             var user = person.user;
             Assert.Single(user.GetType().GetFields());
             Assert.Equal("field1", user.GetType().GetFields()[0].Name);
@@ -128,18 +129,18 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("user", person.GetType().GetFields()[2].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "user");
             var user = person.user;
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("field1", user.GetType().GetFields()[0].Name);
-            Assert.Equal("nestedRelation", user.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)user.GetType().GetFields(), f => f.Name == "field1");
+            Assert.Contains((IEnumerable<dynamic>)user.GetType().GetFields(), f => f.Name == "nestedRelation");
             var nested = person.user.nestedRelation;
             Assert.Equal(2, nested.GetType().GetFields().Length);
-            Assert.Equal("id", nested.GetType().GetFields()[0].Name);
-            Assert.Equal("name", nested.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)nested.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)nested.GetType().GetFields(), f => f.Name == "name");
         }
 
         [Fact]
@@ -155,10 +156,10 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("projects", person.GetType().GetFields()[2].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "projects");
             var projects = person.projects;
             Assert.Equal(1, Enumerable.Count(projects));
             var project = Enumerable.ElementAt(projects, 0);
@@ -183,22 +184,22 @@ namespace EntityGraphQL.Tests
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
             // make sure we sub-select correctly to make the requested object graph
-            Assert.Equal("projects", person.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "projects");
             var projects = person.projects;
             Assert.Equal(1, Enumerable.Count(projects));
             var project = Enumerable.ElementAt(projects, 0);
             Assert.Equal(2, project.GetType().GetFields().Length);
-            Assert.Equal("name", project.GetType().GetFields()[0].Name);
-            Assert.Equal("tasks", project.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)project.GetType().GetFields(), f => f.Name == "name");
+            Assert.Contains((IEnumerable<dynamic>)project.GetType().GetFields(), f => f.Name == "tasks");
 
             var tasks = project.tasks;
             Assert.Equal(4, Enumerable.Count(tasks));
             var task = Enumerable.ElementAt(tasks, 0);
             Assert.Equal(2, task.GetType().GetFields().Length);
-            Assert.Equal("id", task.GetType().GetFields()[0].Name);
-            Assert.Equal("name", task.GetType().GetFields()[1].Name);
+            Assert.Contains((IEnumerable<dynamic>)task.GetType().GetFields(), f => f.Name == "id");
+            Assert.Contains((IEnumerable<dynamic>)task.GetType().GetFields(), f => f.Name == "name");
         }
 
         [Fact]
