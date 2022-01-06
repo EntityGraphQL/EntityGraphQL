@@ -125,7 +125,7 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                var queryResult = CompileQuery(gql, AuthorizationService, new ClaimsPrincipal(claims));
+                var queryResult = CompileQuery(gql, new ClaimsPrincipal(claims));
                 result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
             }
             catch (Exception ex)
