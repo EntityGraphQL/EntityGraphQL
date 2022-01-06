@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using EntityGraphQL.Authorization;
-using Microsoft.AspNetCore.Authorization;
 
 namespace EntityGraphQL.Schema
 {
@@ -31,40 +27,15 @@ namespace EntityGraphQL.Schema
             requiredRoles = new List<List<string>>();
         }
 
-        public RequiredAuthorization(IEnumerable<GraphQLAuthorizeAttribute> claims, IEnumerable<AuthorizeAttribute> authorizeAttributes)
+        /// <summary>
+        /// Create a new RequiredAuthorization object from a list of roles and/or policies
+        /// </summary>
+        /// <param name="roles">Roles required</param>
+        /// <param name="policies">ASP.NET policies requried</param>
+        public RequiredAuthorization(IEnumerable<List<string>> roles, IEnumerable<List<string>> policies)
         {
-            requiredRoles = claims.Select(c => c.Claims).ToList();
-            requiredRoles = requiredRoles.Concat(authorizeAttributes.Select(c => c.Roles?.Split(",").ToList())).Where(l => l != null).ToList();
-            requiredPolicies = authorizeAttributes.Select(c => c.Policy.Split(",").ToList()).ToList();
-        }
-
-        public static RequiredAuthorization GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
-        {
-            RequiredAuthorization requiredAuth = null;
-            if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                var auths = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
-                requiredAuth = new RequiredAuthorization(attributes, auths);
-            }
-
-            return requiredAuth;
-        }
-        public static RequiredAuthorization GetRequiredAuthFromField(MemberInfo field)
-        {
-            var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var auths = field.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
-            var requiredAuth = new RequiredAuthorization(attributes, auths);
-            return requiredAuth;
-        }
-
-        public static RequiredAuthorization GetRequiredAuthFromType(Type type)
-        {
-            var attributes = type.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var auths = type.GetCustomAttributes(typeof(AuthorizeAttribute)).Cast<AuthorizeAttribute>();
-
-            var requiredAuth = new RequiredAuthorization(attributes, auths);
-            return requiredAuth;
+            requiredRoles = roles?.ToList() ?? new List<List<string>>();
+            requiredPolicies = policies?.ToList() ?? new List<List<string>>();
         }
 
         public bool Any() => requiredPolicies.Any() || requiredRoles.Any();
@@ -87,6 +58,16 @@ namespace EntityGraphQL.Schema
         public void RequiresAllPolicies(params string[] policies)
         {
             requiredPolicies.AddRange(policies.Select(s => new List<string> { s }));
+        }
+
+        public RequiredAuthorization Concat(RequiredAuthorization requiredAuthorization)
+        {
+            var newRequiredAuthorization = new RequiredAuthorization();
+            newRequiredAuthorization.requiredPolicies.AddRange(requiredPolicies);
+            newRequiredAuthorization.requiredPolicies.AddRange(requiredAuthorization.requiredPolicies);
+            newRequiredAuthorization.requiredRoles.AddRange(requiredRoles);
+            newRequiredAuthorization.requiredRoles.AddRange(requiredAuthorization.requiredRoles);
+            return newRequiredAuthorization;
         }
     }
 }

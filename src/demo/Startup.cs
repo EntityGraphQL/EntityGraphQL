@@ -6,11 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using EntityGraphQL.ServiceCollectionExtensions;
-using EntityGraphQL.AspNet.Extensions;
-using EntityGraphQL.Schema;
+using EntityGraphQL.AspNet;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using EntityGraphQL.Schema;
 
 namespace demo
 {

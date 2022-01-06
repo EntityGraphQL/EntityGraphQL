@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using EntityGraphQL;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -6,7 +6,11 @@ metaDescription: "Adding authorization to your GraphQL schema"
 
 You should secure the route where you app/client posts request to in any ASP.NET supports. Given GraphQL works with a schema you likely want to provide authorization within the schema. EntityGraphQL provides support for checking claims on a `ClaimsPrincipal` object.
 
+# Passing in the User
+
 First pass in the `ClaimsPrincipal` to the query call
+
+_Note if you are using the `AddGraphQLSchema()` extension in `EntityGraphQL.AspNet` this is already handled for you._
 
 ```
 // Assuming you're in a ASP.NET controller
@@ -14,7 +18,7 @@ First pass in the `ClaimsPrincipal` to the query call
 var results = schemaProvider.ExecuteRequest(query, dbContext, this.HttpContext.RequestServices, this.User);
 ```
 
-It is requierd that a `IAuthorizationService` is registered in the service provider passed in. Above it is the `HttpContext.RequestServices`.
+# Adding Authorization on Roles or Policies
 
 You can add authorization requirements throughout your schema even using the `AuthorizeAttribute` or when building/modifying your schema.
 
@@ -23,6 +27,8 @@ _Note: if you provide multiple `[AuthorizeAttribute]` attributes on a single fie
 # Mutations
 
 Mark you mutation methods with the `[Authorize(Roles = "role-name")]` attribute.
+
+Policy authorization with `[Authorize(Policy = "policy-name")]` is also supported when using `EntityGraphQL.AspNet`.
 
 ```
 public class MovieMutations
@@ -93,3 +99,7 @@ schemaProvider.AddType<Property>("properties", (db) => db.Properties, "Descripti
 ```
 
 Note when using `AddField()` and `AddType()` these functions will automatically search for `[Authorize()]` attributes on the fields and types.
+
+# Authorization without ASP.Net
+
+You can use the `GraphQLAuthorizeAttribute` with role claims to provide authorization without the ASP.Net dependency. 

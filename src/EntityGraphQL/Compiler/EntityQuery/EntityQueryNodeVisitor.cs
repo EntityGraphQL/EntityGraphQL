@@ -9,15 +9,15 @@ namespace EntityGraphQL.Compiler.EntityQuery
 {
     internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
-        private readonly UserAuthInfo userAuthInfo;
+        private readonly QueryRequestContext requestContext;
         private ExpressionResult currentContext;
         private readonly ISchemaProvider schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly ConstantVisitor constantVisitor;
 
-        public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, UserAuthInfo authInfo)
+        public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext)
         {
-            this.userAuthInfo = authInfo;
+            this.requestContext = requestContext;
             currentContext = (ExpressionResult)expression;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
@@ -107,14 +107,14 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             var field = context.GetText();
             var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, userAuthInfo))
+            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
                 if (enumOrConstantValue == null)
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
                 return enumOrConstantValue;
             }
-            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, userAuthInfo);
+            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, requestContext);
             var exp = gqlField.GetExpression(currentContext, null);
             return exp;
         }

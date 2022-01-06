@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EntityGraphQL.AspNet.Extensions
+namespace EntityGraphQL.AspNet
 {
     public static class EntityGraphQLEndpointRouteExtensions
     {

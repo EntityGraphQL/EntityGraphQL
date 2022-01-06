@@ -4,17 +4,15 @@ using EntityGraphQL.Schema;
 using System.Linq;
 using EntityGraphQL.Authorization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
-    public class ClaimsTests
+    public class RoleAuthorizationTests
     {
         [Fact]
         public void TestAttributeOnTypeFromObject()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             Assert.Single(schema.Type<Project>().RequiredAuthorization.Roles);
             Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization.Roles.ElementAt(0).ElementAt(0));
@@ -33,7 +31,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestMethodOnType()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             Assert.Empty(schema.Type<Task>().RequiredAuthorization.Roles);
 
@@ -46,7 +44,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestAttributeOnField()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization.Roles);
             Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization.Roles.ElementAt(0).ElementAt(0));
@@ -79,7 +77,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestFieldIsSecured()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             var gql = new QueryRequest
@@ -88,15 +86,13 @@ namespace EntityGraphQL.Tests
                     projects { type }
                 }"
             };
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<DefaultAuthorizationService>();
 
-            var result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            var result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Equal("You are not authorized to access the 'type' field on type 'Project'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type") }, "authed");
-            result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Null(result.Errors);
         }
@@ -104,7 +100,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestTypeIsSecured()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
@@ -113,15 +109,13 @@ namespace EntityGraphQL.Tests
                     projects { id }
                 }"
             };
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<DefaultAuthorizationService>();
 
-            var result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            var result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
-            result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Null(result.Errors);
         }
@@ -129,7 +123,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNonTopLevelTypeIsSecured()
         {
-            var schema = SchemaBuilder.FromObject<ClaimsDataContext>();
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
@@ -140,20 +134,18 @@ namespace EntityGraphQL.Tests
                     }
                 }"
             };
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<DefaultAuthorizationService>();
 
-            var result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            var result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Equal("You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
-            result = schema.ExecuteRequest(gql, new ClaimsDataContext(), serviceCollection.BuildServiceProvider(), new ClaimsPrincipal(claims));
+            result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
             Assert.Null(result.Errors);
         }
 
-        internal class ClaimsDataContext
+        internal class RolesDataContext
         {
             public IEnumerable<Project> Projects { get; set; } = new List<Project>();
             public IEnumerable<Task> Tasks { get; set; } = new List<Task>();

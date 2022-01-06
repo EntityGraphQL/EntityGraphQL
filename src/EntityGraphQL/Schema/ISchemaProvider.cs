@@ -15,6 +15,7 @@ namespace EntityGraphQL.Schema
     public interface ISchemaProvider
     {
         Func<string, string> SchemaFieldNamer { get; }
+        IGqlAuthorizationService AuthorizationService { get; set; }
 
         ISchemaType AddType(Type type, string name, string description);
         ISchemaType AddInputType(Type type, string name, string description);
@@ -23,8 +24,8 @@ namespace EntityGraphQL.Schema
         Type ContextType { get; }
 
         /// Checks if the given type has the given field identifier
-        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo);
-        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, UserAuthInfo authInfo);
+        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext);
+        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext);
 
         bool HasType(string typeName);
         bool HasType(Type type);
@@ -32,7 +33,7 @@ namespace EntityGraphQL.Schema
         ISchemaType Type(Type dotnetType);
         List<ISchemaType> EnumTypes();
         /// As GQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
-        IField GetActualField(string typeName, string identifier, UserAuthInfo authInfo);
+        IField GetActualField(string typeName, string identifier, QueryRequestContext requestContext);
 
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>

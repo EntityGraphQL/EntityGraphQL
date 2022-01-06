@@ -39,7 +39,11 @@ namespace EntityGraphQL.Schema
 
         public static SchemaProvider<TContext> Create<TContext>(Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)
         {
-            return new SchemaProvider<TContext>(fieldNamer, logger);
+            return Create(new RoleBasedAuthorization(), fieldNamer, logger);
+        }
+        public static SchemaProvider<TContext> Create<TContext>(IGqlAuthorizationService authorizationService, Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)
+        {
+            return new SchemaProvider<TContext>(authorizationService, fieldNamer, logger);
         }
 
         /// <summary>
@@ -51,7 +55,12 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
         {
-            var schema = new SchemaProvider<TContextType>(fieldNamer ?? DefaultNamer);
+            return FromObject<TContextType>(new RoleBasedAuthorization(), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+        }
+
+        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
+        {
+            var schema = new SchemaProvider<TContextType>(authorizationService, fieldNamer ?? DefaultNamer);
             return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
         }
 
@@ -163,7 +172,7 @@ namespace EntityGraphQL.Schema
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var requiredClaims = RequiredAuthorization.GetRequiredAuthFromField(prop);
+            var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
             var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType.GetNonNullableType();
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
@@ -210,7 +219,7 @@ namespace EntityGraphQL.Schema
                     var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
                     method = method.MakeGenericMethod(propType);
                     var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
-                    t.RequiredAuthorization = RequiredAuthorization.GetRequiredAuthFromType(propType);
+                    t.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
                     t.AddFields(fields);

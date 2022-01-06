@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -63,7 +64,7 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex);
+                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex is TargetInvocationException ? ex.InnerException : ex);
                 }
             }
             return Task.FromResult(result);

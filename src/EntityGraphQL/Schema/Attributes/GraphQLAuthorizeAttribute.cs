@@ -8,28 +8,25 @@ namespace EntityGraphQL.Authorization
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class GraphQLAuthorizeAttribute : Attribute
     {
-        //
-        // Summary:
-        //     Initializes a new instance of the EntityGraphQL.Authorization.GraphQLAuthorizeAttribute
-        //     class.
+        /// <summary>
+        /// Initializes a new instance of the GraphQLAuthorizeAttribute class 
+        /// </summary>
         public GraphQLAuthorizeAttribute()
         { }
-        //
-        // Summary:
-        //     Initializes a new instance of the EntityGraphQL.Authorization.GraphQLAuthorizeAttribute
-        //     class with the specified policy.
-        //
-        // Parameters:
-        //   policy:
-        //     The name of the policy to require for authorization.
-        public GraphQLAuthorizeAttribute(params string[] claims)
+        /// <summary>
+        /// Initializes a new instance of the GraphQLAuthorizeAttribute class with the specified roles.
+        /// </summary>
+        /// <param name="roles"></param>
+        public GraphQLAuthorizeAttribute(params string[] roles)
         {
-            Claims = claims.ToList();
+            Roles = roles.ToList();
         }
 
-        //
-        // Summary:
-        //     Gets or sets the policy name that determines access to the resource.
-        public List<string> Claims { get; set; }
+        [Obsolete("Use Roles instead")]
+        public List<string> Claims { get => Roles; set => Roles = value; }
+        /// <summary>
+        /// Gets or sets the roles name that determines access to the resource.
+        /// </summary>
+        public List<string> Roles { get; set; }
     }
 }

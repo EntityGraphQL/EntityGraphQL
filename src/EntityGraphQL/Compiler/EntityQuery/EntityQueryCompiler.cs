@@ -18,14 +18,18 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   not(), !
     public static class EntityQueryCompiler
     {
-        public static CompiledQueryResult Compile(string query, UserAuthInfo authInfo)
+        public static CompiledQueryResult Compile(QueryRequestContext requestContext)
         {
-            return Compile(query, null, authInfo, new DefaultMethodProvider());
+            return Compile(requestContext, null, new DefaultMethodProvider());
+        }
+        public static CompiledQueryResult Compile(string query)
+        {
+            return Compile(new QueryRequestContext(new QueryRequest { Query = query }, null, null), null, new DefaultMethodProvider());
         }
 
-        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, UserAuthInfo authInfo)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider methodProvider = null)
         {
-            return Compile(query, schemaProvider, authInfo, new DefaultMethodProvider());
+            return Compile(new QueryRequestContext(new QueryRequest { Query = query }, null, null), schemaProvider, methodProvider ?? new DefaultMethodProvider());
         }
 
         /// <summary>
@@ -35,13 +39,13 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, UserAuthInfo authInfo, IMethodProvider methodProvider)
+        public static CompiledQueryResult Compile(QueryRequestContext requestContext, ISchemaProvider schemaProvider, IMethodProvider methodProvider)
         {
             ParameterExpression contextParam = null;
 
             if (schemaProvider != null)
                 contextParam = Expression.Parameter(schemaProvider.ContextType, $"cxt_{schemaProvider.ContextType.Name}");
-            var expression = CompileQuery(query, contextParam, schemaProvider, authInfo, methodProvider);
+            var expression = CompileQuery(requestContext.Query.Query, contextParam, schemaProvider, requestContext, methodProvider);
 
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
@@ -49,19 +53,19 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return new CompiledQueryResult(expression, contextParams);
         }
 
-        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, UserAuthInfo authInfo, IMethodProvider methodProvider = null)
+        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider = null)
         {
             if (methodProvider == null)
             {
                 methodProvider = new DefaultMethodProvider();
             }
-            var expression = CompileQuery(query, context, schemaProvider, authInfo, methodProvider);
+            var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider);
 
             var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
             return new CompiledQueryResult(expression, parameters);
         }
 
-        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, UserAuthInfo authInfo, IMethodProvider methodProvider)
+        private static ExpressionResult CompileQuery(string query, Expression context, ISchemaProvider schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider)
         {
             var stream = new AntlrInputStream(query);
             var lexer = new EntityQLLexer(stream);
@@ -72,7 +76,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             };
             var tree = parser.eqlStart();
 
-            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, authInfo);
+            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, requestContext);
             var expression = visitor.Visit(tree);
             return expression;
         }

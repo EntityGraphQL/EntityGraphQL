@@ -14,7 +14,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.0" />
 
-    <ProjectReference Include="../EntityGraphQL/EntityGraphQL.csproj" />
     <ProjectReference Include="../EntityGraphQL.AspNet/EntityGraphQL.AspNet.csproj" />
   </ItemGroup>
 

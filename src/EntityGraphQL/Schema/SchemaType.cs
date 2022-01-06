@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using Microsoft.AspNetCore.Authorization;
 
 namespace EntityGraphQL.Schema
 {
@@ -56,7 +55,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), RequiredAuthorization.GetRequiredAuthFromField(field), fieldNamer));
+                    AddField(new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field), fieldNamer));
                 }
             }
             else
@@ -98,7 +97,7 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
@@ -107,7 +106,7 @@ namespace EntityGraphQL.Schema
 
         public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
@@ -115,7 +114,7 @@ namespace EntityGraphQL.Schema
         }
         public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
             var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             _fieldsByName[field.Name] = field;
@@ -135,7 +134,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
             var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
@@ -143,7 +142,7 @@ namespace EntityGraphQL.Schema
         }
         public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
             var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             this.AddField(field);
@@ -163,18 +162,18 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
         {
-            var requiredAuth = RequiredAuthorization.GetRequiredAuthFromExpression(selectionExpression);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
             var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
             _fieldsByName[field.Name] = field;
         }
 
-        public Field GetField(string identifier, UserAuthInfo authInfo)
+        public Field GetField(string identifier, QueryRequestContext requestContext)
         {
             if (_fieldsByName.ContainsKey(identifier))
             {
                 var field = _fieldsByName[identifier];
-                if (authInfo != null && !authInfo.IsAuthorized(field.RequiredAuthorization))
+                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                 {
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 }
@@ -188,10 +187,10 @@ namespace EntityGraphQL.Schema
         /// Get a field by an expression selection on the real type. The name is changed to lowerCaseCamel
         /// </summary>
         /// <param name="fieldSelection"></param>
-        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, UserAuthInfo authInfo)
+        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, QueryRequestContext requestContext)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return GetField(schema.SchemaFieldNamer(exp.Member.Name), authInfo);
+            return GetField(schema.SchemaFieldNamer(exp.Member.Name), requestContext);
         }
 
         public IEnumerable<Field> GetFields()

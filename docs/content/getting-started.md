@@ -70,23 +70,11 @@ public class Person
 }
 ```
 
-# Build the GraphQL schema
-
-We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schema from the .NET object model we defined above.
-
-```
-var schema = SchemaBuilder.FromObject<DemoContext>();
-```
-
-_See the Schema Creation section to learn more about `SchemaBuilder.FromObject<T>>()`_
-
-Below we'll use this to expose an API with ASP.NET. See the next section on manually creating the schema and then Schema Customization for further customizations supported on the schema.
-
 # Create the API
 
 Using what ever .NET API library you wish you can receive a query, execute it and return the data. Here is an example with ASP.NET.
 
-You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) to use `MapGraphQL<>()`. You can also build you own endpoint, see below.
+You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) to use `MapGraphQL<>()` and `AddGraphQLSchema()`. You can also build your own endpoint, see below.
 
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 
@@ -214,7 +202,22 @@ Will return the following result.
 }
 ```
 
-# Custom Controller
+# Custom Controller / Manual Execution
+
+You can execute GraphQL queries in your own controller or outside of ASP.NET. Below gives an example.
+
+## Build the GraphQL schema
+
+We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schema from the .NET object model we defined above.
+
+```
+var schema = SchemaBuilder.FromObject<DemoContext>();
+```
+
+_See the Schema Creation section to learn more about `SchemaBuilder.FromObject<T>>()`_
+
+
+## Executing a Query
 
 Here is an example of a controller that receives a `QueryRequest` and executes the query. This logic could easily be applied to other web frameworks.
 
