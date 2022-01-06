@@ -6,7 +6,7 @@ metaDescription: "Introduction to the EntityGraphql .NET GraphQL library"
 
 # A GraphQL library for .NET
 
-EntityGraphQL is a .NET (netstandard 2.1) library that allows you to easily build a GraphQL API on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
+EntityGraphQL is a .NET library that allows you to easily build a GraphQL API on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
 
 Visit [graphql.org](https://graphql.org/learn/) to learn more about GraphQL.
 
@@ -16,6 +16,8 @@ EntityGraphQL has been heavily tested against Entity Framework, although it does
 
 A core feature of EntityGraphQL _with_ Entity Framework is that it builds selections of only the fields requested in the GraphQL query which means Entity Framework is not returning all columns from a table. This is done with the LING function `Select()` hence it works across any object tree.
 
+Most people will want to use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) which integrates well with ASP.NET. However there is [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) without the ASP.NET dependency if required.
+
 **Please explore, give feedback and join the development.**
 
-_If you're looking for a .NET library to generate code to query an API from a GraphQL schema see [DotNetGraphQLQueryGen](https://github.com/lukemurray/DotNetGraphQLQueryGen)_
+_If you're looking for a .NET library to generate code to query an C# API from a GraphQL schema see [DotNetGraphQLQueryGen](https://github.com/lukemurray/DotNetGraphQLQueryGen)_

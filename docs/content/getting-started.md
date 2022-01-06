@@ -5,7 +5,7 @@ metaDescription: "Get up and running with EntityGraphQL"
 ---
 
 # Installation
-Install via [Nuget](https://www.nuget.org/packages/EntityGraphQL)
+Install via [Nuget](https://www.nuget.org/packages/EntityGraphQL.AspNet) (there is the base Install via [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package with no ASP.NET dependency if required)
 
 # Create a data model
 

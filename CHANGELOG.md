@@ -1,12 +1,12 @@
 # 1.1.0
-- Authorization now supports using policies
-  - `IAuthorizationService` is resolved to check authorization and needs to be registered in the service provider passed on execution
-  - `[Authorize]` attribute can be used instead of the `[GraphQLAuthorize]` attribute (now obsolete)
+- Authorization now supports using ASP.NET policies from the `EntityGraphQL.AspNet` package
+  - `IAuthorizationService` is resolved to check authorization and needs to be registered
+  - `[Authorize]` attribute can be used instead of the `[GraphQLAuthorize]` attribute when using `EntityGraphQL.AspNet`
 - Fix - `RequiredAttribute` results in the field being not null in the generated GraphQL Schema
 - Fix - Schema introspection was incorrectly returning `__typename` for Enums
 - `UseConnectionPagingAttribute` takes optional arguments for default page size and max page size
 - `UseOffsetPagingAttribute` takes optional arguments for default page size and max page size
-- EntityGraphQL.AspNet now uses System.Text.Json for de/serialization internally. It still supports JSON.NET objects in the variable object (as well as System.Text.Json types)
+- `EntityGraphQL.AspNet` now uses System.Text.Json for de/serialization internally. It still supports JSON.NET objects in the variable object (as well as System.Text.Json types)
 
 ## Obsolete - will be removed 2.x
 - `RequireAnyClaim()` & `RequireAllClaims()`. Use `RequireAnyRole()` & `RequireAllRoles()` as the `ClaimTypes.Role` was used previously and this change makes it explicit
