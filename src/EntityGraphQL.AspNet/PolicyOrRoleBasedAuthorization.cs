@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -14,9 +13,9 @@ namespace EntityGraphQL.AspNet
     /// </summary>
     public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
     {
-        private readonly IAuthorizationService authService;
+        private readonly IAuthorizationService? authService;
 
-        public PolicyOrRoleBasedAuthorization(IAuthorizationService authService)
+        public PolicyOrRoleBasedAuthorization(IAuthorizationService? authService)
         {
             this.authService = authService;
         }

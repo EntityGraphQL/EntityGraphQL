@@ -5,7 +5,11 @@ metaDescription: "Get up and running with EntityGraphQL"
 ---
 
 # Installation
-Install via [Nuget](https://www.nuget.org/packages/EntityGraphQL.AspNet) (there is the base Install via [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package with no ASP.NET dependency if required)
+If you are working with ASP.NET then install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) via Nuget.
+- Quickly get started with ASP.NET
+- Integrate with ASP.NET policy authorization
+
+You can install the core [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package if you do not need ASP.NET.
 
 # Create a data model
 
@@ -79,10 +83,13 @@ You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/E
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 
 ```
+using EntityGraphQL.AspNet;
+
 public class Startup {
   public void ConfigureServices(IServiceCollection services)
   {
-      services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase()); // Again this example using EF but you do not have to
+      // Again, just an example using EF but you do not have to
+      services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase());
       // This registers a SchemaProvider<DemoContext>
       services.AddGraphQLSchema<DemoContext>();
   }
