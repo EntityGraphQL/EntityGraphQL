@@ -33,7 +33,7 @@ jobs:
     - name: Package
       run: dotnet pack --no-restore -c Release
     - name: Upload package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Nuget packages
-          path: ./**/*.nupkg
+      uses: actions/upload-artifact@v2
+      with:
+        name: Nuget packages
+        path: ./**/*.nupkg
