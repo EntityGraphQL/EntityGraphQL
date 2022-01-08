@@ -6,7 +6,8 @@ using EntityGraphQL.Schema.FieldExtensions;
 
 namespace Benchmarks
 {
-    [SimpleJob(launchCount: 2, warmupCount: 1, targetCount: 5)]
+    // [SimpleJob(launchCount: 1, warmupCount: 3, targetCount: 5)]
+    [ShortRunJob]
     public class PagingBenchmarks : BaseBenchmark
     {
         [GlobalSetup]

@@ -5,7 +5,7 @@ using EntityGraphQL.Extensions;
 
 namespace Benchmarks
 {
-    [SimpleJob(launchCount: 2, warmupCount: 1, targetCount: 5)]
+    [ShortRunJob]
     public class QueryBenchmarks : BaseBenchmark
     {
         [Benchmark]
