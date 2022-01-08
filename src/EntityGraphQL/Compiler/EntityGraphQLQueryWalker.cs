@@ -79,6 +79,8 @@ namespace EntityGraphQL.Compiler
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var alias = node.Alias?.Value;
 
+            QueryWalkerHelper.CheckRequiredArguments(actualField, args);
+
             if (schemaProvider.HasMutation(actualField.Name))
             {
                 var resultName = alias ?? actualField.Name;

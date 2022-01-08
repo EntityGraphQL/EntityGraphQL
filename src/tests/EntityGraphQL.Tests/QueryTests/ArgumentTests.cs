@@ -53,7 +53,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                 user { id }
             }"));
-            Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
+            Assert.Equal("'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                         user { id }
                     }"));
-            Assert.Equal("Field 'user' missing required argument 'id'", ex.Message);
+            Assert.Equal("'user' missing required argument 'id'", ex.Message);
         }
 
         [Fact]

@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation Test($name: String) {
-  addAlbum(name: $name) {
+  addAlbum(name: $name genre: ""Rock"") {
     id name hiddenInputField
   }
 }",
@@ -80,6 +80,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            Assert.Null(results.Errors);
             dynamic data = results.Data["addAlbum"];
             Assert.Equal("Balance, Not Symmetry", data.name);
             Assert.Null(data.hiddenInputField); // not hidden from query
@@ -139,7 +140,7 @@ namespace EntityGraphQL.Tests
             // this exists as it is available for querying
             Assert.Contains("type Album {\n\tid: Int!\n\tname: String!\n\thiddenInputField: String\n\tgenre: Genre!\n}", schema);
             // doesn't include the hidden input fields
-            Assert.Contains("addAlbum(id: Int!, name: String!, genre: Genre!): Album", schema);
+            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
         }
 
         [Fact]
@@ -148,7 +149,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
-            Assert.Contains("addAlbum2(id: Int!, name: String!, genre: Genre!): [Album!]", schema);
+            Assert.Contains("addAlbum2(name: String!, genre: Genre!): [Album!]", schema);
         }
 
         [Fact]
@@ -176,7 +177,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
-            Assert.Contains("addAlbum(id: Int!, name: String!, genre: Genre!): Album", schema);
+            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
         }
         [Fact]
         public void TestNotNullEnumerableElementByDefault()
@@ -212,7 +213,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             var schema = schemaProvider.GetGraphQLSchema();
             // this exists as it is not null
-            Assert.Contains("addAlbumOld(id: Int!, name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
+            Assert.Contains("addAlbumOld(name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
         }
         [Fact]
         public void TestDeprecatedEnumField()
@@ -303,6 +304,7 @@ namespace EntityGraphQL.Tests
     [MutationArguments]
     public class Album
     {
+        [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public int Id { get; set; }
         [GraphQLNotNull]
         public string Name { get; set; }

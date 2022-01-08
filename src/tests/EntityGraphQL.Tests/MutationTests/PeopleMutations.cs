@@ -4,6 +4,7 @@ using EntityGraphQL.Schema;
 using System.Linq.Expressions;
 using System;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace EntityGraphQL.Tests
 {
@@ -73,6 +74,22 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+        [GraphQLMutation]
+        public async Task<bool> NeedsGuid(GuidArgs args)
+        {
+            return await Task<bool>.Run(() =>
+            {
+                return true;
+            });
+        }
+        [GraphQLMutation]
+        public async Task<bool> NeedsGuidNonNull(GuidNonNullArgs args)
+        {
+            return await Task<bool>.Run(() =>
+            {
+                return true;
+            });
+        }
     }
 
     [MutationArguments]
@@ -84,6 +101,17 @@ namespace EntityGraphQL.Tests
         public InputObject NameInput { get; set; }
     }
 
+    [MutationArguments]
+    internal class GuidArgs
+    {
+        [Required]
+        public Guid Id { get; set; }
+    }
+    [MutationArguments]
+    internal class GuidNonNullArgs
+    {
+        public Guid Id { get; set; }
+    }
     public class InputObject
     {
         public string Name { get; set; }

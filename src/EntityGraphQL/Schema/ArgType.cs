@@ -42,6 +42,15 @@ namespace EntityGraphQL.Schema
             {
                 markedRequired = true;
                 typeToUse = type.GetGenericArguments()[0];
+                // default value will often be the default value of the non-null type (e.g. 0 for int). 
+                // We are saying here it must be provided by the query
+                defaultValue = null;
+            }
+            else if (field.GetCustomAttribute(typeof(RequiredAttribute), false) != null
+                || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
+            {
+                markedRequired = true;
+                defaultValue = null;
             }
 
             var arg = new ArgType
@@ -52,14 +61,13 @@ namespace EntityGraphQL.Schema
                 DefaultValue = defaultValue,
                 MemberInfo = memberInfo,
                 RawType = type,
-                IsRequired = type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(RequiredField<>)
+                IsRequired = markedRequired
             };
 
-            arg.Type.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(field)
-                || arg.Type.TypeNotNullable
-                || field.GetCustomAttribute(typeof(RequiredAttribute), false) != null;
             if (markedRequired)
                 arg.Type.TypeNotNullable = true;
+            if (arg.Type.TypeNotNullable)
+                arg.IsRequired = true;
 
             if (field.GetCustomAttribute(typeof(DescriptionAttribute), false) is DescriptionAttribute d)
             {

@@ -89,6 +89,15 @@ namespace EntityGraphQL.Compiler
             return ConvertArgIfRequired(argValue, argType, argName);
         }
 
+        public static void CheckRequiredArguments(IField actualField, Dictionary<string, Expression> args)
+        {
+            foreach (var fieldArg in actualField.Arguments)
+            {
+                if (fieldArg.Value.IsRequired && !args.ContainsKey(fieldArg.Key) && fieldArg.Value.DefaultValue == null)
+                    throw new EntityGraphQLCompilerException($"'{actualField.Name}' missing required argument '{fieldArg.Key}'");
+            }
+        }
+
         private static object ConvertArgIfRequired(object argValue, Type argType, string argName)
         {
             if (argValue == null)

@@ -307,7 +307,6 @@ namespace EntityGraphQL.Schema
                             propVals.Add(info, val);
                         else
                             fieldVals.Add((FieldInfo)argField.MemberInfo, val);
-
                     }
                 }
                 // create a copy of the anonymous object. It will have the default values set
@@ -365,6 +364,8 @@ namespace EntityGraphQL.Schema
             // check we have required arguments
             if (memberType.GetGenericArguments().Any() && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
             {
+                // shouldn't get here as QueryWalkerHelper.CheckRequiredArguments is called in the compiler
+                // but just incase
                 if (args == null || !args.ContainsKey(argName))
                 {
                     throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
