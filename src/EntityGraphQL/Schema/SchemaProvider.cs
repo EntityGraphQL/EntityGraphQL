@@ -161,11 +161,17 @@ namespace EntityGraphQL.Schema
                 var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
                 result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName, options);
             }
+            catch (AggregateException aex)
+            {
+                logger?.LogError(aex, "Error executing QueryRequest");
+                // error with the whole query
+                result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException.Message : aex.Message));
+            }
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error executing QueryRequest");
                 // error with the whole query
-                result = new QueryResult(new GraphQLError(ex.InnerException != null ? $"{ex.Message} - {ex.InnerException.Message}" : ex.Message));
+                result = new QueryResult(new GraphQLError(ex.Message));
             }
 
             return Task.FromResult(result);

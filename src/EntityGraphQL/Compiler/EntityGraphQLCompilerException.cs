@@ -16,7 +16,9 @@ namespace EntityGraphQL.Compiler
         {
         }
         public EntityGraphQLExecutionException(string field, Exception innerException)
-            : base($"Field error: {field}", innerException is TargetInvocationException && innerException.InnerException != null ? innerException.InnerException : innerException)
+            : base(
+                $"Field error: {field} - {(innerException is TargetInvocationException && innerException.InnerException != null ? innerException.InnerException.Message : innerException.Message)}",
+                innerException is TargetInvocationException && innerException.InnerException != null ? innerException.InnerException : innerException)
         {
         }
     }
