@@ -65,8 +65,8 @@ namespace EntityGraphQL.AspNet
             var authService = serviceCollection.BuildServiceProvider().GetService<IAuthorizationService>();
 
             var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            configure?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
-            configure?.Invoke(serviceCollection.BuildServiceProvider().GetRequiredService<SchemaProvider<TSchemaContext>>());
 
             return serviceCollection;
         }

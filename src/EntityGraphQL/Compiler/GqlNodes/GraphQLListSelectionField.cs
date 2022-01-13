@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
             if (!withoutServiceFields)
             {
                 // if selecting final graph make sure lists are evaluated
-                if (contextChanged && !isRoot && resultExpression.Type.IsEnumerableOrArray())
+                if (!isRoot && resultExpression.Type.IsEnumerableOrArray())
                     resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { resultExpression.Type.GetEnumerableOrArrayType() }, resultExpression);
             }
 

@@ -75,8 +75,8 @@ namespace EntityGraphQL.ServiceCollectionExtensions
         public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<string, string> fieldNamer, Action<SchemaProvider<TSchemaContext>> configure)
         {
             var schema = SchemaBuilder.FromObject<TSchemaContext>(autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            configure?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
-            configure?.Invoke(serviceCollection.BuildServiceProvider().GetRequiredService<SchemaProvider<TSchemaContext>>());
 
             return serviceCollection;
         }
