@@ -29,6 +29,7 @@ namespace EntityGraphQL.Schema
 
         public string QueryContextName { get; }
         private readonly ILogger<SchemaProvider<TContextType>> logger;
+        private readonly GraphQLCompiler graphQLCompiler;
         private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
 
         // map some types to scalar types
@@ -43,6 +44,8 @@ namespace EntityGraphQL.Schema
             AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
             this.logger = logger;
+            this.graphQLCompiler = new GraphQLCompiler(this);
+
             // default GQL scalar types
             types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, SchemaFieldNamer, false, false, true));
             types.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, SchemaFieldNamer, false, false, true));
@@ -65,7 +68,7 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, "RootQuery", "Query schema", null, SchemaFieldNamer);
+            var queryContext = new SchemaType<TContextType>(this, "Query", "Query schema", null, SchemaFieldNamer);
             QueryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
@@ -120,22 +123,9 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
         [Obsolete("Use ExecuteRequestAsync")]
-        public async Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
+        public Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
         {
-            QueryResult result;
-            try
-            {
-                var queryResult = CompileQuery(gql, new ClaimsPrincipal(claims));
-                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Error executing QueryRequest");
-                // error with the whole query
-                result = new QueryResult(new GraphQLError(ex.InnerException != null ? $"{ex.Message} - {ex.InnerException.Message}" : ex.Message));
-            }
-
-            return result;
+            return ExecuteRequestAsync(gql, context, serviceProvider, new ClaimsPrincipal(claims), options);
         }
 
         /// <summary>
@@ -163,13 +153,13 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
+        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
         {
             QueryResult result;
             try
             {
-                var queryResult = CompileQuery(gql, user);
-                result = await queryResult.ExecuteQueryAsync(context, serviceProvider, gql.OperationName, options);
+                var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName, options);
             }
             catch (Exception ex)
             {
@@ -178,14 +168,7 @@ namespace EntityGraphQL.Schema
                 result = new QueryResult(new GraphQLError(ex.InnerException != null ? $"{ex.Message} - {ex.InnerException.Message}" : ex.Message));
             }
 
-            return result;
-        }
-
-        public GraphQLDocument CompileQuery(QueryRequest gql, ClaimsPrincipal user)
-        {
-            var graphQLCompiler = new GraphQLCompiler(this);
-            var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
-            return queryResult;
+            return Task.FromResult(result);
         }
 
         private void SetupIntrospectionTypesAndField()

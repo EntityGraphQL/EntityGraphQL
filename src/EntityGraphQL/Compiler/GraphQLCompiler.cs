@@ -1,13 +1,15 @@
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
+using System.Buffers;
 using System.Security.Claims;
-using System.Text;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLCompiler
     {
+        private readonly ArrayPool<byte> pool = ArrayPool<byte>.Shared;
         private readonly ISchemaProvider schemaProvider;
+
         public GraphQLCompiler(ISchemaProvider schemaProvider)
         {
             this.schemaProvider = schemaProvider;
@@ -38,10 +40,9 @@ namespace EntityGraphQL.Compiler
         }
         public GraphQLDocument Compile(QueryRequestContext context)
         {
-            var parser = new Utf8GraphQLParser(Encoding.UTF8.GetBytes(context.Query.Query), ParserOptions.Default);
-            DocumentNode document = parser.Parse();
-            var walker = new EntityGraphQLQueryWalker(schemaProvider, context);
-            walker.Visit(document, null);
+            DocumentNode document = Utf8GraphQLParser.Parse(context.Query.Query, ParserOptions.Default);
+            var walker = new EntityGraphQLQueryWalker(schemaProvider);
+            walker.Visit(document, context);
             return walker.Document;
         }
     }

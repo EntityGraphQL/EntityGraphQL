@@ -1,10 +1,11 @@
 ---
-title: "Schema Creation"
-metaTitle: "Schema Creation - EntityGraphQL"
-metaDescription: "Creating a GraphQL schema with EntityGraphQL"
+title: 'Schema Creation'
+metaTitle: 'Schema Creation - EntityGraphQL'
+metaDescription: 'Creating a GraphQL schema with EntityGraphQL'
 ---
 
 EntityGraphQL supports customizing your GraphQL schema in all the expected ways;
+
 - Adding/removing/modifying fields
 - Adding optional/required arguments to fields
 - Adding new types (including input types)
@@ -32,7 +33,7 @@ Now we need to add some types to our schema which we will use as return types fo
   - String: A UTF‐8 character sequence.
   - Boolean: true or false.
   - ID: The ID scalar type represents a unique identifier, often used to refetch an object or as the key for a cache. The ID type is serialized in the same way as a String; however, defining it as an ID signifies that it is not intended to be human‐readable.
-  Types are a just a name and a list of fields on that type. This lets EntityGraphQL know how to map a GraphQL type back to a .NET type.
+    Types are a just a name and a list of fields on that type. This lets EntityGraphQL know how to map a GraphQL type back to a .NET type.
 - Enumeration types - enumeration types are a special kind of scalar that is restricted to a particular set of allowed values
 
 For more information of GraphQL types visit the [GraphQL docs](https://graphql.org/learn/schema/#type-system).
@@ -81,7 +82,7 @@ We now have a very simple GraphQL schema ready to use. It has a single root quer
 
 # Helper Methods
 
-EntityGraphQL comes with some methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which  alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
+EntityGraphQL comes with some methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
 
 ## Building a full schema
 
@@ -95,13 +96,15 @@ var schema = SchemaBuilder.FromObject<DemoContext>(
 ```
 
 Explaining the arguments:
+
 - `autoCreateIdArguments` - for any root level fields that return a list of an Object Type that has a field called `Id`, it will create a singular field in the schema with an `id` argument. For example the `DemoContext` used in Getting Started the `DemoContext.People` will create the following GraphQL schema
+
 ```
 schema {
-    query: RootQuery
+    query: Query
 }
 
-Type RootQuery {
+Type Query {
     people: [Person]
     Person people: Person
 }
@@ -111,12 +114,14 @@ Type Person {
     ...
 }
 ```
+
 - `autoCreateEnumTypes` - automatically create Enum types in the schema if found in the `DemoContext` object graph
 - `fieldNamer` - A `Func<string, string>` lambda used to generate field names. The default `fieldNamer` adopts the GraphQL standard of naming fields `lowerCamelCase`
 
 ## Adding all fields on a type
 
 `AddAllFields()` on the schema type will automatically add all the fields on that .NET type.
+
 ```
 schema.AddType<Person>("Person", "All about the project")
     .AddAllFields(

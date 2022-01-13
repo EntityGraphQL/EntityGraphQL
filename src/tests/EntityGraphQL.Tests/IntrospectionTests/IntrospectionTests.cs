@@ -209,7 +209,7 @@ fragment TypeRef on __Type {
             {
                 Query = @"
         query IntrospectionQuery {
-          __type(name: ""RootQuery"") {
+          __type(name: ""Query"") {
             fields {
               name
               isDeprecated

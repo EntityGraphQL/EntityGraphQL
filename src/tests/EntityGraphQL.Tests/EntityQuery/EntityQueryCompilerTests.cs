@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         public void FailsIdentityNotThere()
         {
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>()));
-            Assert.Equal("Field wrongField not found on type RootQuery", ex.Message);
+            Assert.Equal("Field wrongField not found on type Query", ex.Message);
         }
         [Fact]
         public void CompilesIdentityCallFullPath()

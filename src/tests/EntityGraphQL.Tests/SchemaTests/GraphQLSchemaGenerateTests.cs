@@ -24,7 +24,7 @@ namespace EntityGraphQL.Tests
             };
             dynamic results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null).Errors;
             var err = Enumerable.First(results);
-            Assert.Equal("Field 'movies' not found on type 'RootQuery'", err.Message);
+            Assert.Equal("Field 'movies' not found on type 'Query'", err.Message);
         }
         [Fact]
         public void TestIgnoreQueryPasses()

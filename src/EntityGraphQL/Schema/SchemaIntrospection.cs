@@ -43,7 +43,7 @@
             {
                 QueryType = new TypeElement
                 {
-                    Name = "Query"
+                    Name = schema.QueryContextName
                 },
                 MutationType = new TypeElement
                 {

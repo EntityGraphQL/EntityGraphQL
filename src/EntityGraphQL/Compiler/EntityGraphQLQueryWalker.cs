@@ -7,7 +7,6 @@ using System;
 using EntityGraphQL.Extensions;
 using HotChocolate.Language;
 using EntityGraphQL.Compiler.EntityQuery;
-using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
@@ -18,7 +17,7 @@ namespace EntityGraphQL.Compiler
     internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode>
     {
         private readonly ISchemaProvider schemaProvider;
-        private readonly QueryRequestContext requestContext;
+        private QueryRequestContext requestContext;
 
         /// <summary>
         /// The root - the query document. This is what we "return"
@@ -26,10 +25,9 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public GraphQLDocument Document { get; private set; }
 
-        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryRequestContext requestContext)
+        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider)
         {
             this.schemaProvider = schemaProvider;
-            this.requestContext = requestContext;
         }
 
         /// <summary>
@@ -68,6 +66,12 @@ namespace EntityGraphQL.Compiler
                 Document.Operations.Add((ExecutableGraphQLStatement)context);
                 base.VisitOperationDefinition(node, context);
             }
+        }
+
+        public void Visit(DocumentNode document, QueryRequestContext context)
+        {
+            this.requestContext = context;
+            this.Visit(document, (IGraphQLNode)null);
         }
 
         protected override void VisitField(FieldNode node, IGraphQLNode context)

@@ -6,7 +6,6 @@ using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using EntityGraphQL.Extensions;
-using System.Reflection;
 
 namespace EntityGraphQL.Tests
 {
