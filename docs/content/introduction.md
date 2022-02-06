@@ -14,7 +14,7 @@ EntityGraphQL builds a GraphQL schema that maps to .NET objects. It provides the
 
 EntityGraphQL has been heavily tested against Entity Framework, although it does not require EF or any ORM.
 
-A core feature of EntityGraphQL _with_ Entity Framework is that it builds selections of only the fields requested in the GraphQL query which means Entity Framework is not returning all columns from a table. This is done with the LING function `Select()` hence it works across any object tree.
+A core feature of EntityGraphQL _with_ Entity Framework is that it builds selections of only the fields requested in the GraphQL query which means Entity Framework is not returning all columns from a table. This is done with the [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/) projection operator [`Select()`](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/projection-operations#select) hence it works across any object tree.
 
 Most people will want to use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) which integrates well with ASP.NET. However there is [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) without the ASP.NET dependency if required.
 
