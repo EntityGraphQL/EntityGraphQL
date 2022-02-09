@@ -90,6 +90,17 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+        [GraphQLMutation]
+        public bool TaskWithList(ListArgs args)
+        {
+            return true;
+        }
+    }
+
+    [MutationArguments]
+    internal class ListArgs
+    {
+        public List<InputObject> Inputs { get; set; }
     }
 
     [MutationArguments]

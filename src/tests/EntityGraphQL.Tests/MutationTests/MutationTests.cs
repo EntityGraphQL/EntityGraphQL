@@ -348,5 +348,25 @@ namespace EntityGraphQL.Tests
             Assert.NotNull(results.Errors);
             Assert.Equal("'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
         }
+        [Fact]
+        public void TestListArgInputType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          taskWithList(inputs: [{name: ""Bill""}, {name: ""Bob""}])
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["taskWithList"]);
+        }
     }
 }

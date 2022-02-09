@@ -56,29 +56,7 @@ namespace EntityGraphQL.Compiler
                     {
                         // this should be an Input type
                         var obj = Activator.CreateInstance(argType);
-                        var schemaType = schema.Type(argType);
-                        foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
-                        {
-                            if (!schemaType.HasField(item.Name.Value))
-                                throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
-                            var schemaField = schemaType.GetField(item.Name.Value, null);
-
-                            var nameFromType = ((MemberExpression)schemaField.Resolve).Member.Name;
-                            var prop = argType.GetProperty(nameFromType);
-
-                            if (prop == null)
-                            {
-                                var field = argType.GetField(nameFromType);
-                                if (field == null)
-                                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found on object argument");
-                                field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
-                            }
-                            else
-                            {
-                                prop.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, prop.PropertyType));
-                            }
-                        }
-                        argValue = obj;
+                        argValue = ProcessObjectValue(schema, argumentValue, argName, argType, obj);
                     }
                     break;
                 case SyntaxKind.FloatValue:
@@ -87,6 +65,35 @@ namespace EntityGraphQL.Compiler
             }
 
             return ConvertArgIfRequired(argValue, argType, argName);
+        }
+
+        private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
+        {
+            object argValue;
+            var schemaType = schema.Type(argType);
+            foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
+            {
+                if (!schemaType.HasField(item.Name.Value))
+                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
+                var schemaField = schemaType.GetField(item.Name.Value, null);
+
+                var nameFromType = ((MemberExpression)schemaField.Resolve).Member.Name;
+                var prop = argType.GetProperty(nameFromType);
+
+                if (prop == null)
+                {
+                    var field = argType.GetField(nameFromType);
+                    if (field == null)
+                        throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found on object argument");
+                    field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
+                }
+                else
+                {
+                    prop.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, prop.PropertyType));
+                }
+            }
+            argValue = obj;
+            return argValue;
         }
 
         public static void CheckRequiredArguments(IField actualField, Dictionary<string, Expression> args)
@@ -130,10 +137,11 @@ namespace EntityGraphQL.Compiler
         public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
         {
             var list = (IList)Activator.CreateInstance(fieldArgType);
+            var listType = list.GetType().GetEnumerableOrArrayType();
 
             foreach (var item in values)
             {
-                list.Add(ProcessArgumentValue(schema, item, argName, fieldArgType));
+                list.Add(ProcessArgumentValue(schema, item, argName, listType));
             }
 
             return list;

@@ -1,5 +1,5 @@
 schema {
-    query: RootQuery
+    query: Query
     mutation: Mutation
 }
 
@@ -31,7 +31,7 @@ enum SortDirectionEnum {
 }
 
 
-type RootQuery {
+type Query {
 	"""actors paged by connection & edges and orderable"""
 	actors(filter: String, sort: DirectorsSortInput, first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""

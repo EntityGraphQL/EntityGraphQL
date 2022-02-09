@@ -1,3 +1,7 @@
+# 1.1.1
+
+- Fix #92 - error processing mutation arguments that are lists/arrays
+
 # 1.1.0
 
 - Authorization now supports using ASP.NET policies from the `EntityGraphQL.AspNet` package
