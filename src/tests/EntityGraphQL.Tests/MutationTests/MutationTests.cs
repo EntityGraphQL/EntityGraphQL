@@ -375,7 +375,6 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddMutationFrom(new PeopleMutations());
             schemaProvider.AddInputType<InputObjectId>("InputObjectId", "InputObjectId").AddAllFields();
-            //schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {

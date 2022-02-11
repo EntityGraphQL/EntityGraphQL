@@ -1,3 +1,7 @@
+# 1.1.2
+
+- Fix #96 - processing int/long/short as list arguments in mutations - thanks @pierrebelin
+
 # 1.1.1
 
 - Fix #92 - error processing mutation arguments that are lists/arrays

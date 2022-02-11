@@ -17,7 +17,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         internal ParameterExpression ArgExpression { get; set; }
         public ParameterExpression ArgumentParam { get; internal set; }
-        public MethodCallExpression EdgesExpression { get; internal set; }
 
         private Type listType;
         private ParameterExpression firstSelectParam = null;
