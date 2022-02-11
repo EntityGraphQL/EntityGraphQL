@@ -34,7 +34,12 @@ namespace EntityGraphQL.Compiler
             switch (argumentValue.Kind)
             {
                 case SyntaxKind.IntValue:
-                    argValue = long.Parse(argumentValue.Value?.ToString());
+                    argValue = argType switch
+                    {
+                        _ when argType == typeof(int) => int.Parse(argumentValue.Value?.ToString()),
+                        _ when argType == typeof(long) => long.Parse(argumentValue.Value?.ToString()),
+                        _ => argValue
+                    };
                     break;
                 // these ones are the correct type
                 case SyntaxKind.StringValue:

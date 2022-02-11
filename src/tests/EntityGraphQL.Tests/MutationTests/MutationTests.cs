@@ -368,5 +368,27 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithList"]);
         }
+
+        [Fact]
+        public void TestListIntArgInputType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<InputObjectId>("InputObjectId", "InputObjectId").AddAllFields();
+            //schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          TaskWithListInt(inputs: [{id: 1, idLong: 1}, {id: 20, idLong:20}])
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["taskWithListInt"]);
+        }
     }
 }

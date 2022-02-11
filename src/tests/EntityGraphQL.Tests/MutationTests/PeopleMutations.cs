@@ -95,12 +95,23 @@ namespace EntityGraphQL.Tests
         {
             return true;
         }
+        [GraphQLMutation]
+        public bool TaskWithListInt(ListIntArgs args)
+        {
+            return true;
+        }
     }
-
+    
     [MutationArguments]
     internal class ListArgs
     {
         public List<InputObject> Inputs { get; set; }
+    }
+
+    [MutationArguments]
+    internal class ListIntArgs
+    {
+        public List<InputObjectId> Inputs { get; set; }
     }
 
     [MutationArguments]
@@ -127,5 +138,10 @@ namespace EntityGraphQL.Tests
     {
         public string Name { get; set; }
         public string LastName { get; set; }
+    }
+    public class InputObjectId
+    {
+        public int Id { get; set; }
+        public long IdLong { get; set; }
     }
 }
