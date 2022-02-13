@@ -31,20 +31,22 @@ namespace EntityGraphQL.Schema
         private readonly ILogger<SchemaProvider<TContextType>> logger;
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
+        private readonly bool introspectionEnabled;
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
-        public SchemaProvider() : this(null, null) { }
+        public SchemaProvider() : this(null, null, introspectionEnabled:true) { }
         /// <summary>
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
         /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
-        public SchemaProvider(IGqlAuthorizationService authorizationService = null, Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContextType>> logger = null)
+        public SchemaProvider(IGqlAuthorizationService authorizationService = null, Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContextType>> logger = null, bool introspectionEnabled = true)
         {
             AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
             this.logger = logger;
             this.graphQLCompiler = new GraphQLCompiler(this);
+            this.introspectionEnabled = introspectionEnabled;
 
             // default GQL scalar types
             types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, SchemaFieldNamer, false, false, true));
@@ -74,18 +76,18 @@ namespace EntityGraphQL.Schema
 
             // add types first as fields from the other types may refer to these types
             AddType<Models.TypeElement>("__Type", "Information about types", type =>
-                {
-                    type.AddAllFields();
-                    type.ReplaceField("enumValues",
-                        new { includeDeprecated = false },
-                        (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
-                        "Enum values available on type");
-                });
+            {
+                type.AddAllFields();
+                type.ReplaceField("enumValues",
+                    new { includeDeprecated = false },
+                    (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
+                    "Enum values available on type");
+            });
             AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
             AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
             AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
-            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
             AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
+            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
             AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
             SetupIntrospectionTypesAndField();
@@ -179,6 +181,11 @@ namespace EntityGraphQL.Schema
 
         private void SetupIntrospectionTypesAndField()
         {
+            if (!introspectionEnabled)
+            {
+                return;
+            }
+
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
                 (t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");

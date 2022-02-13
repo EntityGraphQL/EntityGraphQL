@@ -53,14 +53,14 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null, bool introspectionEnabled = true)
         {
-            return FromObject<TContextType>(new RoleBasedAuthorization(), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
+            return FromObject<TContextType>(new RoleBasedAuthorization(), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer, introspectionEnabled);
         }
 
-        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null, bool introspectionEnabled = true)
         {
-            var schema = new SchemaProvider<TContextType>(authorizationService, fieldNamer ?? DefaultNamer);
+            var schema = new SchemaProvider<TContextType>(authorizationService, fieldNamer ?? DefaultNamer, introspectionEnabled: introspectionEnabled);
             return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
         }
 
