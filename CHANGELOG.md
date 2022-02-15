@@ -1,3 +1,7 @@
+# 1.2.0
+
+- New option to disable introspection. Use `introspectionEnabled` parameter when creating `SchemaProvider`. Defaults to `true`.
+
 # 1.1.2
 
 - Fix #96 - processing int/long/short as list arguments in mutations - thanks @pierrebelin

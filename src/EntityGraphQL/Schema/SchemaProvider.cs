@@ -35,7 +35,7 @@ namespace EntityGraphQL.Schema
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
-        public SchemaProvider() : this(null, null, introspectionEnabled:true) { }
+        public SchemaProvider() : this(null, null) { }
         /// <summary>
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
@@ -74,23 +74,26 @@ namespace EntityGraphQL.Schema
             QueryContextName = queryContext.Name;
             types.Add(queryContext.Name, queryContext);
 
-            // add types first as fields from the other types may refer to these types
-            AddType<Models.TypeElement>("__Type", "Information about types", type =>
+            if (introspectionEnabled)
             {
-                type.AddAllFields();
-                type.ReplaceField("enumValues",
-                    new { includeDeprecated = false },
-                    (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
-                    "Enum values available on type");
-            });
-            AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
-            AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
-            AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
-            AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
-            AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
-            AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
+                // add types first as fields from the other types may refer to these types
+                AddType<Models.TypeElement>("__Type", "Information about types", type =>
+                {
+                    type.AddAllFields();
+                    type.ReplaceField("enumValues",
+                        new { includeDeprecated = false },
+                        (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
+                        "Enum values available on type");
+                });
+                AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
+                AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
+                AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
+                AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
+                AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
+                AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
-            SetupIntrospectionTypesAndField();
+                SetupIntrospectionTypesAndField();
+            }
 
             var include = new IncludeDirectiveProcessor();
             var skip = new SkipDirectiveProcessor();
