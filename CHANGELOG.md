@@ -1,3 +1,7 @@
+# 1.2.1
+
+- Fix #99 issue using the MapGraphQL() extension method
+
 # 1.2.0
 
 - New option to disable introspection. Use `introspectionEnabled` parameter when creating `SchemaProvider`. Defaults to `true`.
