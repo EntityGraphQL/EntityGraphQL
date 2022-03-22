@@ -19,6 +19,7 @@ namespace EntityGraphQL.Tests
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
         public IEnumerable<User> Users { get; set; } = new List<User>();
+        public Dictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
     }
 
     public class ProjectOld
