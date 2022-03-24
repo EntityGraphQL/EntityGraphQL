@@ -7,6 +7,10 @@ namespace EntityGraphQL.AspNet
     {
         public bool AutoCreateIdArguments { get; set; } = true;
         public bool AutoCreateEnumTypes { get; set; } = true;
+        /// <summary>
+        /// If true the schema will be built via reflection on the context type
+        /// </summary>
+        public bool AutoBuildSchemaFromContext { get; set; } = true;
         public Func<string, string> FieldNamer { get; set; } = SchemaBuilder.DefaultNamer;
         /// <summary>
         /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings
