@@ -1,3 +1,8 @@
+# 1.3.0
+
+- Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`. Worth noting that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` functions provided to the `SchemaProvider` which defaults to GraphQL "standards" (fields camelCase, types PascalCase)
+- Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
+
 # 1.2.1
 
 - Fix #99 issue using the MapGraphQL() extension method

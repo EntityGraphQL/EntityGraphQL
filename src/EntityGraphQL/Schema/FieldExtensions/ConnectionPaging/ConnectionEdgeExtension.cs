@@ -36,7 +36,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         {
             // We use this extension to "steal" the node selection
             nodeFieldExtension = new ConnectionEdgeNodeExtension(this, null);
-            field.ReturnType.SchemaType.GetField("node", null).AddExtension(nodeFieldExtension);
+            field.ReturnType.SchemaType.GetField(schema.SchemaFieldNamer("Node"), null).AddExtension(nodeFieldExtension);
         }
 
         public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)

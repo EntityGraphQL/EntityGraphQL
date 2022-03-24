@@ -1,7 +1,7 @@
 ---
-title: "Integration"
-metaTitle: "Integrating with other tools - EntityGraphQL"
-metaDescription: "Integrating with other tools"
+title: 'Tool Integration'
+metaTitle: 'Integrating with other tools - EntityGraphQL'
+metaDescription: 'Integrating with other tools'
 ---
 
 Being GraphQL there are many tools that integrate well with EntityGraphQL.

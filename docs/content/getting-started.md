@@ -1,11 +1,13 @@
 ---
-title: "Getting Started"
-metaTitle: "Getting started - EntityGraphQL"
-metaDescription: "Get up and running with EntityGraphQL"
+title: 'Getting Started'
+metaTitle: 'Getting started - EntityGraphQL'
+metaDescription: 'Get up and running with EntityGraphQL'
 ---
 
 # Installation
+
 If you are working with ASP.NET then install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) via Nuget.
+
 - Quickly get started with ASP.NET
 - Integrate with ASP.NET policy authorization
 
@@ -90,7 +92,7 @@ public class Startup {
   {
       // Again, just an example using EF but you do not have to
       services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase());
-      // This registers a SchemaProvider<DemoContext>
+      // This registers a SchemaProvider<DemoContext> and uses reflection to build the schema with default options
       services.AddGraphQLSchema<DemoContext>();
   }
 
@@ -117,6 +119,7 @@ You can also expose any endpoint over any protocol you'd like. We'll use HTTP/S 
 You can now make a request to your API via any HTTP tool/library.
 
 For example
+
 ```
   POST localhost:5000/graphql
   {
@@ -145,7 +148,9 @@ Will return the following result (depending on the data in you DB).
   }
 }
 ```
+
 Maybe you only want a specific property **(request body only from now on)**
+
 ```
   {
     movie(id: 11) {
@@ -153,7 +158,9 @@ Maybe you only want a specific property **(request body only from now on)**
     }
   }
 ```
+
 Will return the following result.
+
 ```
 {
   "data": {
@@ -164,7 +171,9 @@ Will return the following result.
   }
 }
 ```
+
 If you need other fields or relations, just ask
+
 ```
   {
     movies {
@@ -179,7 +188,9 @@ If you need other fields or relations, just ask
     }
   }
 ```
+
 Will return the following result.
+
 ```
 {
   "data": {
@@ -223,7 +234,6 @@ var schema = SchemaBuilder.FromObject<DemoContext>();
 
 _See the Schema Creation section to learn more about `SchemaBuilder.FromObject<T>>()`_
 
-
 ## Executing a Query
 
 Here is an example of a controller that receives a `QueryRequest` and executes the query. This logic could easily be applied to other web frameworks.
@@ -260,9 +270,9 @@ public class QueryController : Controller
 
 It is recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1 due to problems with the System.Text.Json serialization in .NET Core 3.1 and dictionaries.
 
-You can use System.Text.Json with .NET Core 5.0+. If you use your own controller to execute GraphQL, configure System.Text.Json like so.
+You can use System.Text.Json with .NET Core 5.0+. If you use your own controller to execute GraphQL, configure System.Text.Json like so for best compatiablity with other tools.
 
-```c#
+```
 services.AddControllers()
     .AddJsonOptions(opts =>
     {

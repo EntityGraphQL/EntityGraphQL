@@ -1,11 +1,10 @@
 ---
-title: "Other Data Sources"
-metaTitle: "Combining multiple data sources in your GraphQL schema - EntityGraphQL"
-metaDescription: "Combining multiple data sources in your GraphQL schema"
+title: 'Other Data Sources'
+metaTitle: 'Combining multiple data sources in your GraphQL schema - EntityGraphQL'
+metaDescription: 'Combining multiple data sources in your GraphQL schema'
 ---
 
 EntityGraphQL lets you add fields that resolve data from other sources other than the core context you created your schema with. This is powerful as it let's you create a single API that brings together multiple data sources into an object graph.
-
 
 # `WithService<T>()` Fields
 
@@ -149,7 +148,7 @@ Now we can query
 
 To demonstrate that only the `m.TotalWebhooks()` method is called here is what is produced as the .NET expression.
 
-```c#
+```
 (MyDbContext db, IMetricService m) => {
     var context = new Metric(m);
     return new

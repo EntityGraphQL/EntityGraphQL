@@ -40,12 +40,30 @@ namespace demo
                     logging.AddDebug();
                 });
             // add schema provider so we don't need to create it everytime
-            services.AddGraphQLSchema<DemoContext>(GraphQLSchema.ConfigureSchema);
+            // if you want to override json serialization - say PascalCase response
+            // You will also need to override the default fieldNamer in SchemaProvider
+            // var jsonOptions = new JsonSerializerOptions
+            // {
+            //     // the generated types use fields
+            //     IncludeFields = true,
+            // };
+            // services.AddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer(jsonOptions));
+            // services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
+            // Or you could overrise the whole inferface and do something other than JSON
+
+            services.AddGraphQLSchema<DemoContext>(builder =>
+            {
+                builder.ConfigureSchema = GraphQLSchema.ConfigureSchema;
+                // this will generate the field names as they are from the reflected dotnet types
+                // builder.FieldNamer = name => name;
+            });
+
             services.AddRouting();
             services.AddControllers()
                 .AddJsonOptions(opts =>
                 {
                     // configure JSON serializer like this if you are return GraphQL execution results in your own controller
+                    // assuming you want the default behavior of serializing GraphQL execution results to JSON
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                     opts.JsonSerializerOptions.IncludeFields = true;
                     opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;

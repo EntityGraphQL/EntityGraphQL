@@ -66,7 +66,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
 
             // update the Items field before we update the field.Resolve below
-            itemsField = (Field)schema.GetActualField(field.ReturnType.SchemaType.Name, "items", null);
+            itemsField = (Field)schema.GetActualField(field.ReturnType.SchemaType.Name, schema.SchemaFieldNamer("Items"), null);
             BuildTotalCountExpression(field, returnType, field.Resolve);
             itemsField.UpdateExpression(field.Resolve);
 

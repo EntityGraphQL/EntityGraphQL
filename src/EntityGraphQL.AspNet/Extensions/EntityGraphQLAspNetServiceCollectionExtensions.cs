@@ -2,6 +2,7 @@ using System;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EntityGraphQL.AspNet
 {
@@ -62,10 +63,28 @@ namespace EntityGraphQL.AspNet
         /// <returns></returns>
         public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, bool autoCreateIdArguments, bool autoCreateEnumTypes, Func<string, string>? fieldNamer, Action<SchemaProvider<TSchemaContext>>? configure)
         {
+            serviceCollection.AddGraphQLSchema<TSchemaContext>(builder =>
+            {
+                builder.AutoCreateIdArguments = autoCreateIdArguments;
+                builder.AutoCreateEnumTypes = autoCreateEnumTypes;
+                builder.FieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
+                builder.ConfigureSchema = configure;
+            });
+
+            return serviceCollection;
+        }
+
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<GraphQLOptionsBuilder<TSchemaContext>> builder)
+        {
+            serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
+            serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
             var authService = serviceCollection.BuildServiceProvider().GetService<IAuthorizationService>();
 
-            var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer);
-            configure?.Invoke(schema);
+            var options = new GraphQLOptionsBuilder<TSchemaContext>();
+            builder(options);
+
+            var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), options.AutoCreateIdArguments, options.AutoCreateEnumTypes, options.FieldNamer);
+            options.ConfigureSchema?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
 
             return serviceCollection;

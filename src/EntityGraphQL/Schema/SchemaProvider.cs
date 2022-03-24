@@ -160,6 +160,8 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
         {
+            if (gql.Query == null)
+                throw new ArgumentNullException(nameof(gql.Query), "Query must be set");
             QueryResult result;
             try
             {

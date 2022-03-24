@@ -1,7 +1,7 @@
 ---
-title: "Mutations"
-metaTitle: "Adding mutations to your schema - EntityGraphQL"
-metaDescription: "Add mutations to your GraphQL schema"
+title: 'Mutations'
+metaTitle: 'Adding mutations to your schema - EntityGraphQL'
+metaDescription: 'Add mutations to your GraphQL schema'
 ---
 
 Lets add some mutations. Mutations are GraphQLs way all allowing modifications to data.
@@ -9,7 +9,6 @@ Lets add some mutations. Mutations are GraphQLs way all allowing modifications t
 Read more about GraphQL mutations [here](https://graphql.org/learn/queries/#mutations).
 
 In EntityGraphQL mutations are just .NET methods with the `[GraphQLMutation]` attribute that receive arguments, perform work (update data etc.) and return data. You can contain these in a mutation class where related mutations can be located near each other.
-
 
 # Adding a Mutation
 
@@ -65,6 +64,7 @@ Note the return signature above and the result we return is an `Expression<Func<
 Just like in queries, if the mutation field returns an object type, you can ask for nested fields. This can be useful for fetching the new state of an object after an update.
 
 One API user may ask for the `id`
+
 ```
 mutation {
     addNewPerson(firstName: "Bill", lastName: "Murray") {
@@ -132,7 +132,7 @@ Later we'll learn how to access services within fields of the query schema.
 
 You can use the `System.ComponentModel.DataAnnotations.Required` attribute to add validaiton to your mutation arguments. Example
 
-```c#
+```
 public class ActorArgs
 {
   [Required(AllowEmptyStrings = false, ErrorMessage = "Actor Name is required")]
@@ -147,7 +147,7 @@ If your model validation fails from a `RequiredAttribute` you mutation method _w
 
 You can also add multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
-```csharp
+```
 public class MovieMutations
 {
   [GraphQLMutation]

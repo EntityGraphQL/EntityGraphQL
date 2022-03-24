@@ -106,7 +106,7 @@ schema {
 
 Type Query {
     people: [Person]
-    Person people: Person
+    person(id: ID!): Person
 }
 
 Type Person {

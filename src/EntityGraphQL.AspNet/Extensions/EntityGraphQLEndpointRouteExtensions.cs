@@ -27,13 +27,9 @@ namespace EntityGraphQL.AspNet
                     return;
                 }
 
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    IncludeFields = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                };
-                jsonOptions.Converters.Add(new JsonStringEnumConverter());
-                var query = await JsonSerializer.DeserializeAsync<QueryRequest>(context.Request.Body, jsonOptions);
+                var deserializer = context.RequestServices.GetRequiredService<IGraphQLRequestDeserializer>();
+                var query = await deserializer.DeserializeAsync(context.Request.Body);
+
                 var schema = context.RequestServices.GetService<SchemaProvider<TQueryType>>();
                 if (schema == null)
                     throw new InvalidOperationException("No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>().");
@@ -44,7 +40,8 @@ namespace EntityGraphQL.AspNet
 
                 var data = await schema.ExecuteRequestAsync(query, schemaContext, context.RequestServices, context.User, options);
                 context.Response.ContentType = "application/json; charset=utf-8";
-                await JsonSerializer.SerializeAsync(context.Response.Body, data, jsonOptions);
+                var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
+                await serializer.SerializeAsync(context.Response.Body, data);
             });
 
             return builder;
