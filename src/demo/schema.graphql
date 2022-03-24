@@ -9,6 +9,7 @@ scalar Boolean
 scalar String
 scalar ID
 scalar Date
+scalar StringKeyValuePair
 
 
 enum Genre {
@@ -36,6 +37,7 @@ type Query {
 	actors(filter: String, sort: DirectorsSortInput, first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
+	attributes: [StringKeyValuePair!]
 	"""List of directors"""
 	directors(sort: DirectorsSortInput): [Person!]
 	"""Return a Movie by its Id"""

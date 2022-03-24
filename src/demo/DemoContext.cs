@@ -33,6 +33,11 @@ namespace demo
         public DbSet<Person> People { get; set; }
         [Description("Collection of Actors")]
         public DbSet<Actor> Actors { get; set; }
+        public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>{
+            {"key1", "value1"},
+            {"key2", "value2"},
+            {"key3", "value3"},
+        };
     }
 
     public class Movie

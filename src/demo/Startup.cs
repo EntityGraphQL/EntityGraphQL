@@ -53,6 +53,11 @@ namespace demo
 
             services.AddGraphQLSchema<DemoContext>(builder =>
             {
+                builder.PreBuildSchemaFromContext = schema =>
+                {
+                    // add in needed mappings for our context
+                    schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
+                };
                 builder.ConfigureSchema = GraphQLSchema.ConfigureSchema;
                 // this will generate the field names as they are from the reflected dotnet types
                 // builder.FieldNamer = name => name;

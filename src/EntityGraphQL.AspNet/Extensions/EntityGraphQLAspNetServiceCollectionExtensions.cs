@@ -83,7 +83,9 @@ namespace EntityGraphQL.AspNet
             var options = new GraphQLOptionsBuilder<TSchemaContext>();
             builder(options);
 
-            var schema = SchemaBuilder.FromObject<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), options.AutoCreateIdArguments, options.AutoCreateEnumTypes, options.FieldNamer);
+            var schema = new SchemaProvider<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer);
+            options.PreBuildSchemaFromContext?.Invoke(schema);
+            schema.PopulateFromContext(options.AutoCreateIdArguments, options.AutoCreateEnumTypes);
             options.ConfigureSchema?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
 

@@ -80,8 +80,8 @@ namespace EntityGraphQL.Extensions
                 return type.GetElementType();
             if (type.GenericTypeArguments.Count() == 1)
                 return type.GetGenericArguments()[0];
-            if (type.GenericTypeArguments.Count() == 2)
-                return type.GetGenericArguments()[1];
+            if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(IDictionary<,>) || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
+                return typeof(KeyValuePair<,>).MakeGenericType(type.GenericTypeArguments);
             return null;
         }
 
