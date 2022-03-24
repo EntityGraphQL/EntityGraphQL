@@ -10,19 +10,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
 {
     internal class ConnectionEdgeExtension : BaseFieldExtension
     {
-        private Expression nodeExpression;
-        private Type nodeExpressionType;
-        private ParameterExpression newEdgeParam;
-        private Type newEdgeType;
+        // these 4 set in SetNodeExpression()
+        private Expression? nodeExpression;
+        private Type? nodeExpressionType;
+        private ParameterExpression? newEdgeParam;
+        private Type? newEdgeType;
 
-        internal ParameterExpression ArgExpression { get; set; }
-        public ParameterExpression ArgumentParam { get; internal set; }
+
+        internal ParameterExpression? ArgExpression { get; set; }
+        public ParameterExpression? ArgumentParam { get; internal set; }
 
         private Type listType;
-        private ParameterExpression firstSelectParam = null;
+        private ParameterExpression? firstSelectParam = null;
         private readonly bool isQueryable;
         private readonly List<IFieldExtension> extensions;
-        private ConnectionEdgeNodeExtension nodeFieldExtension;
+        private ConnectionEdgeNodeExtension? nodeFieldExtension;
         private bool isFirstPass = true;
 
         public ConnectionEdgeExtension(Type listType, bool isQueryable, List<IFieldExtension> extensions)
@@ -39,7 +41,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.ReturnType.SchemaType.GetField(schema.SchemaFieldNamer("Node"), null).AddExtension(nodeFieldExtension);
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             firstSelectParam = null;
 
@@ -48,9 +50,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return expression;
         }
 
-        public override (Expression, ParameterExpression) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer)
+        public override (Expression, ParameterExpression?) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
         {
-            listType = baseExpression.Type.GetEnumerableOrArrayType();
+            if (nodeFieldExtension == null)
+                throw new EntityGraphQLCompilerException($"ConnectionPaging misconfigured. {nameof(nodeFieldExtension)} is null");
+
+            listType = baseExpression.Type.GetEnumerableOrArrayType()!;
             // second pass means we came through without service fields and now with
             isFirstPass = firstSelectParam == null;
             if (!isFirstPass)
@@ -73,12 +78,17 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             return (baseExpression, listTypeParam);
         }
-        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterReplacer parameterReplacer)
         {
             foreach (var extension in extensions)
             {
                 (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
             }
+
+            if (newEdgeType == null)
+                throw new EntityGraphQLCompilerException($"ConnectionPaging misconfigured. {nameof(newEdgeType)} is null");
+            if (nodeExpressionType == null)
+                throw new EntityGraphQLCompilerException($"ConnectionPaging misconfigured. {nameof(nodeExpressionType)} is null");
 
             var selectParam = Expression.Parameter(nodeExpressionType, "edgesParam");
             var idxParam = Expression.Parameter(typeof(int), "cursor_idx");

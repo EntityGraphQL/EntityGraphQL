@@ -16,11 +16,11 @@ namespace EntityGraphQL.Schema
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private readonly Dictionary<string, ArgType> argumentTypes = new();
-        private readonly Type argInstanceType;
+        private readonly Type? argInstanceType;
         private readonly bool isAsync;
 
         public bool IsDeprecated { get; set; }
-        public string DeprecationReason { get; set; }
+        public string? DeprecationReason { get; set; }
 
         public string Description { get; }
 
@@ -31,7 +31,7 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; }
 
-        public List<IFieldExtension> Extensions => null;
+        public List<IFieldExtension> Extensions => new();
 
         public ParameterExpression ArgumentParam => throw new NotImplementedException();
 
@@ -41,12 +41,15 @@ namespace EntityGraphQL.Schema
             DeprecationReason = reason;
         }
 
-        public async Task<object> CallAsync(object context, Dictionary<string, Expression> gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
+        public async Task<object?> CallAsync(object? context, Dictionary<string, Expression>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
+            if (context == null)
+                return null;
+
             // args in the mutation method
             var allArgs = new List<object>();
 
-            object argInstance = null;
+            object? argInstance = null;
             if (gqlRequestArgs?.Count > 0)
             {
                 // second arg is the arguments for the mutation - required as last arg in the mutation method
@@ -54,32 +57,32 @@ namespace EntityGraphQL.Schema
                 VaildateModelBinding(argInstance, validator);
                 if (validator.Errors.Any())
                     return null;
-            }
 
-            // add parameters and any DI services
-            foreach (var p in method.GetParameters())
-            {
-                if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
+                // add parameters and any DI services
+                foreach (var p in method.GetParameters())
                 {
-                    allArgs.Add(argInstance);
-                }
-                else if (p.ParameterType == context.GetType())
-                {
-                    allArgs.Add(context);
-                }
-                // todo we should put this in the IServiceCollection actually...
-                else if (p.ParameterType == typeof(GraphQLValidator))
-                {
-                    allArgs.Add(validator);
-                }
-                else
-                {
-                    var service = serviceProvider.GetService(p.ParameterType);
-                    if (service == null)
+                    if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
                     {
-                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                        allArgs.Add(argInstance);
                     }
-                    allArgs.Add(service);
+                    else if (p.ParameterType == context.GetType())
+                    {
+                        allArgs.Add(context);
+                    }
+                    // todo we should put this in the IServiceCollection actually...
+                    else if (p.ParameterType == typeof(GraphQLValidator))
+                    {
+                        allArgs.Add(validator);
+                    }
+                    else
+                    {
+                        var service = serviceProvider.GetService(p.ParameterType);
+                        if (service == null)
+                        {
+                            throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                        }
+                        allArgs.Add(service);
+                    }
                 }
             }
 
@@ -106,8 +109,11 @@ namespace EntityGraphQL.Schema
 
         private object AssignArgValues(Dictionary<string, Expression> gqlRequestArgs, Func<string, string> fieldNamer)
         {
-            var argInstance = Activator.CreateInstance(this.argInstanceType);
-            Type argType = this.argInstanceType;
+            if (argInstanceType == null)
+                throw new ArgumentException($"{nameof(argInstanceType)} is null");
+
+            var argInstance = Activator.CreateInstance(argInstanceType);
+            Type argType = argInstanceType;
             foreach (var key in gqlRequestArgs.Keys)
             {
                 var foundProp = false;
@@ -116,7 +122,7 @@ namespace EntityGraphQL.Schema
                     var propName = fieldNamer(prop.Name);
                     if (key == propName)
                     {
-                        object value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
+                        object? value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
                         prop.SetValue(argInstance, value);
                         foundProp = true;
                     }
@@ -128,7 +134,7 @@ namespace EntityGraphQL.Schema
                         var fieldName = fieldNamer(field.Name);
                         if (key == fieldName)
                         {
-                            object value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
+                            object? value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
                             field.SetValue(argInstance, value);
                             foundProp = true;
                         }
@@ -153,9 +159,9 @@ namespace EntityGraphQL.Schema
             return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
-        private object GetValue(Dictionary<string, Expression> gqlRequestArgs, string memberName, Type memberType)
+        private object? GetValue(Dictionary<string, Expression> gqlRequestArgs, string memberName, Type memberType)
         {
-            object value = Expression.Lambda(gqlRequestArgs[memberName]).Compile().DynamicInvoke();
+            object? value = Expression.Lambda(gqlRequestArgs[memberName]).Compile().DynamicInvoke();
             if (value != null)
             {
                 Type type = value.GetType();
@@ -242,7 +248,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
+        public ExpressionResult? GetExpression(Expression context, Dictionary<string, Expression>? args)
         {
             return null;
         }

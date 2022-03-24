@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema
         Type ContextType { get; }
 
         /// Checks if the given type has the given field identifier
-        bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext);
+        bool TypeHasField(string typeName, string identifier, IEnumerable<string>? fieldArgs, QueryRequestContext requestContext);
         bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext);
 
         bool HasType(string typeName);
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema
         ISchemaType Type(Type dotnetType);
         List<ISchemaType> EnumTypes();
         /// As GQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
-        IField GetActualField(string typeName, string identifier, QueryRequestContext requestContext);
+        IField GetActualField(string typeName, string identifier, QueryRequestContext? requestContext);
 
         IEnumerable<ISchemaType> GetScalarTypes();
         /// <summary>
@@ -78,6 +78,6 @@ namespace EntityGraphQL.Schema
         IDirectiveProcessor GetDirective(string name);
         void AddDirective(IDirectiveProcessor directive);
         IEnumerable<IDirectiveProcessor> GetDirectives();
-        GqlTypeInfo GetCustomTypeMapping(Type dotnetType);
+        GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
     }
 }

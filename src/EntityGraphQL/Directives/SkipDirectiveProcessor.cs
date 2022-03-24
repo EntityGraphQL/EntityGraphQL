@@ -14,7 +14,7 @@ namespace EntityGraphQL.Directives
             return typeof(SkipArguments);
         }
 
-        public override BaseGraphQLField ProcessQuery(BaseGraphQLField field, SkipArguments arguments)
+        public override BaseGraphQLField? ProcessQuery(BaseGraphQLField field, SkipArguments arguments)
         {
             if (arguments.@if)
                 return null;

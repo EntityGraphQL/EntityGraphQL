@@ -48,7 +48,7 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static object ChangeType(object value, Type type)
+        public static object? ChangeType(object? value, Type type)
         {
             if (value == null)
                 return null;
@@ -70,6 +70,9 @@ namespace EntityGraphQL.Compiler.Util
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
             }
+
+            if (value == null)
+                return null;
 
             if (type != typeof(string) && objType == typeof(string))
             {
@@ -115,7 +118,7 @@ namespace EntityGraphQL.Compiler.Util
             return args;
         }
 
-        public static Type MergeTypes(Type type1, Type type2)
+        public static Type MergeTypes(Type? type1, Type type2)
         {
             if (type1 == null)
                 return type2;
@@ -137,9 +140,9 @@ namespace EntityGraphQL.Compiler.Util
         /// </summary>
         /// <param name="collectionSelectionNode"></param>
         /// <param name="combineExpression"></param>
-        public static string UpdateCollectionNodeFieldExpression(GraphQLListSelectionField collectionSelectionNode, Expression combineExpression)
+        public static string? UpdateCollectionNodeFieldExpression(GraphQLListSelectionField collectionSelectionNode, Expression combineExpression)
         {
-            string capMethod = null;
+            string? capMethod = null;
             if (combineExpression.NodeType == ExpressionType.Call)
             {
                 // In the case of a First() we need to insert that select before the first
@@ -215,10 +218,10 @@ namespace EntityGraphQL.Compiler.Util
         /// </summary>
         /// <param name="baseExpression"></param>
         /// <returns></returns>
-        public static Tuple<Expression, Expression> FindEnumerable(Expression baseExpression)
+        public static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression)
         {
             var exp = baseExpression;
-            Expression endExpression = null;
+            Expression? endExpression = null;
             while (exp != null && !exp.Type.IsEnumerableOrArray())
             {
                 switch (exp.NodeType)
@@ -249,7 +252,7 @@ namespace EntityGraphQL.Compiler.Util
                 return baseExp;
 
             var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
-            if (memberInit == null) // nothing to select
+            if (memberInit == null || dynamicType == null) // nothing to select
                 return baseExp;
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
@@ -258,7 +261,7 @@ namespace EntityGraphQL.Compiler.Util
             return call;
         }
 
-        public static Expression CreateNewExpression(IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
+        public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
 
@@ -269,11 +272,13 @@ namespace EntityGraphQL.Compiler.Util
                     fieldExpressionsByName[item.Key] = item.Value;
             }
 
-            dynamicType = null;
+            dynamicType = typeof(object);
             if (!fieldExpressionsByName.Any())
                 return null;
 
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
+            if (dynamicType == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
@@ -334,7 +339,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;

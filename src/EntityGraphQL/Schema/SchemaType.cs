@@ -16,7 +16,7 @@ namespace EntityGraphQL.Schema
         public bool IsInput { get; }
         public bool IsEnum { get; }
         public bool IsScalar { get; }
-        public RequiredAuthorization RequiredAuthorization { get; set; }
+        public RequiredAuthorization? RequiredAuthorization { get; set; }
 
         private readonly Func<string, string> fieldNamer;
 
@@ -24,12 +24,12 @@ namespace EntityGraphQL.Schema
 
         private readonly Dictionary<string, Field> _fieldsByName = new();
 
-        public SchemaType(ISchemaProvider schema, string name, string description, RequiredAuthorization requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, string name, string description, RequiredAuthorization? requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, fieldNamer, isInput, isEnum, isScalar)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredAuthorization requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredAuthorization? requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
             TypeDotnet = dotnetType;
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Schema
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
         /// <typeparam name="TReturn"></typeparam>
-        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
             return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description, returnSchemaType);
@@ -103,7 +103,7 @@ namespace EntityGraphQL.Schema
                 _fieldsByName.Add(field.Name, field);
             return field;
         }
-        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
@@ -112,7 +112,7 @@ namespace EntityGraphQL.Schema
             return field;
         }
 
-        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string returnSchemaType = null)
+        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Schema
             this.AddField(field);
             return field;
         }
-        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
@@ -140,7 +140,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Schema
             this.AddField(field);
             return field;
         }
-        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
@@ -168,7 +168,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams"></typeparam>
         /// <typeparam name="TReturn"></typeparam>
         /// <returns></returns>
-        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
 
@@ -176,7 +176,7 @@ namespace EntityGraphQL.Schema
             _fieldsByName[field.Name] = field;
         }
 
-        public Field GetField(string identifier, QueryRequestContext requestContext)
+        public Field GetField(string identifier, QueryRequestContext? requestContext)
         {
             if (_fieldsByName.ContainsKey(identifier))
             {

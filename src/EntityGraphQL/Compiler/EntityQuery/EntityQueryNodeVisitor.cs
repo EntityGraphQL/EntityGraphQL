@@ -10,15 +10,15 @@ namespace EntityGraphQL.Compiler.EntityQuery
     internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<ExpressionResult>
     {
         private readonly QueryRequestContext requestContext;
-        private ExpressionResult currentContext;
-        private readonly ISchemaProvider schemaProvider;
+        private ExpressionResult? currentContext;
+        private readonly ISchemaProvider? schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly ConstantVisitor constantVisitor;
 
-        public EntityQueryNodeVisitor(Expression expression, ISchemaProvider schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext)
+        public EntityQueryNodeVisitor(Expression? expression, ISchemaProvider? schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext)
         {
             this.requestContext = requestContext;
-            currentContext = (ExpressionResult)expression;
+            currentContext = expression == null ? null : new ExpressionResult(expression);
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
             this.constantVisitor = new ConstantVisitor(schemaProvider);
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return (ExpressionResult)Expression.MakeBinary(op, left, right);
         }
 
-        private ExpressionResult DoObjectComparisonOnDifferentTypes(ExpressionType op, ExpressionResult left, ExpressionResult right)
+        private ExpressionResult? DoObjectComparisonOnDifferentTypes(ExpressionType op, ExpressionResult left, ExpressionResult right)
         {
             var convertedToSameTypes = false;
 
@@ -67,7 +67,8 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 convertedToSameTypes = true;
             }
 
-            return convertedToSameTypes ? (ExpressionResult)Expression.MakeBinary(op, left, right) : null;
+            var result = convertedToSameTypes ? (ExpressionResult)Expression.MakeBinary(op, left, right) : null;
+            return result;
         }
 
         private static ExpressionResult ConvertToGuid(ExpressionResult expression)
@@ -84,7 +85,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         public override ExpressionResult VisitCallPath(EntityQLParser.CallPathContext context)
         {
             var startingContext = currentContext;
-            ExpressionResult exp = null;
+            ExpressionResult? exp = null;
             foreach (var child in context.children)
             {
                 var r = Visit(child);
@@ -100,11 +101,18 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 currentContext = exp;
             }
             currentContext = startingContext;
+            if (exp == null)
+                throw new EntityGraphQLCompilerException($"Could not compile expression for {context.GetText()}");
             return exp;
         }
 
         public override ExpressionResult VisitIdentity(EntityQLParser.IdentityContext context)
         {
+            if (schemaProvider == null)
+                throw new EntityGraphQLCompilerException("SchemaProvider is null");
+            if (currentContext == null)
+                throw new EntityGraphQLCompilerException("CurrentContext is null");
+
             var field = context.GetText();
             var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
             if (!schemaProvider.TypeHasField(schemaType.Name, field, null, requestContext))
@@ -116,12 +124,17 @@ namespace EntityGraphQL.Compiler.EntityQuery
             }
             var gqlField = schemaProvider.GetActualField(schemaType.Name, field, requestContext);
             var exp = gqlField.GetExpression(currentContext, null);
+            if (exp == null)
+                throw new EntityGraphQLCompilerException($"Error compiling field {field} on type {schemaType.Name}");
             return exp;
         }
 
         public override ExpressionResult VisitConstant(EntityQLParser.ConstantContext context)
         {
-            return constantVisitor.VisitConstant(context);
+            var result = constantVisitor.VisitConstant(context);
+            if (result == null)
+                throw new EntityGraphQLCompilerException($"Could not compile constant {context.GetText()}");
+            return result;
         }
 
 
@@ -137,6 +150,9 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public override ExpressionResult VisitCall(EntityQLParser.CallContext context)
         {
+            if (currentContext == null)
+                throw new EntityGraphQLCompilerException("CurrentContext is null");
+
             var method = context.method.GetText();
             if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
             {

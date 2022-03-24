@@ -10,7 +10,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
     public class FilterExtension : BaseFieldExtension
     {
         private bool isQueryable;
-        private Type listType;
+        private Type? listType;
 
         /// <summary>
         /// Configure the field for a filter argument. Do as much as we can here as it is only executed once.
@@ -19,10 +19,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, Field field)
         {
+            if (field.Resolve == null)
+                throw new EntityGraphQLCompilerException($"FilterExtension requires a Resolve function set on the field");
+
             if (!field.Resolve.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use FilterExtension. Found type {field.ReturnType.TypeDotnet}");
 
-            listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType();
+            listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
 
             // Update field arguments
             var args = Activator.CreateInstance(typeof(FilterArgs<>).MakeGenericType(listType));
@@ -31,11 +34,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             // we have current context update Items field
             if (arguments.Filter != null && arguments.Filter.HasValue)
-                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType }, expression, arguments.Filter.Query);
+                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType! }, expression, arguments.Filter.Query);
 
             return expression;
         }

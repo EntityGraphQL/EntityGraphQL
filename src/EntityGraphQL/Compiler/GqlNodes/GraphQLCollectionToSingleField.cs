@@ -52,9 +52,9 @@ namespace EntityGraphQL.Compiler
             return Services?.Any() == true || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
         }
 
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
-            Expression exp;
+            Expression? exp;
             // this is a first pass || just a single pass
             if (withoutServiceFields || !HasAnyServices(fragments) && isRoot)
             {
@@ -74,7 +74,7 @@ namespace EntityGraphQL.Compiler
             return exp;
         }
 
-        private Expression GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged)
+        private Expression? GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged)
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(collectionSelectionNode, combineExpression);
             var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Compiler
                     constantParameters.Add(item.Key, item.Value);
             }
 
-            var genericType = result.Type.GetEnumerableOrArrayType();
+            var genericType = result.Type.GetEnumerableOrArrayType()!;
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
             if (isRoot)

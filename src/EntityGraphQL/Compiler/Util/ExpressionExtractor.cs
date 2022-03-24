@@ -11,13 +11,13 @@ namespace EntityGraphQL.Compiler.Util
     /// </summary>
     internal class ExpressionExtractor : ExpressionVisitor
     {
-        private ParameterExpression rootContext;
-        private Dictionary<string, Expression> extractedExpressions;
-        private Expression currentExpression;
-        private string contextParamFieldName;
+        private ParameterExpression? rootContext;
+        private Dictionary<string, Expression>? extractedExpressions;
+        private Expression? currentExpression;
+        private string? contextParamFieldName;
         private bool matchByType;
 
-        internal IDictionary<string, Expression> Extract(Expression node, ParameterExpression rootContext, bool matchByType = false)
+        internal IDictionary<string, Expression>? Extract(Expression node, ParameterExpression rootContext, bool matchByType = false)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, Expression>();
@@ -30,10 +30,13 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
+            if (rootContext == null)
+                throw new EntityGraphQLCompilerException("Root context not set for ExpressionExtractor");
+
             if (rootContext == currentExpression)
                 throw new EntityGraphQLCompilerException($"The context parameter {node.Name} used in a WithService() field is not allowed. Please select the specific fields required from the context parameter.");
-            if ((rootContext == node || (matchByType && rootContext.Type == node.Type)) && currentExpression != null)
-                extractedExpressions[contextParamFieldName] = currentExpression;
+            if ((rootContext == node || (matchByType && rootContext.Type == node.Type)) && currentExpression != null && contextParamFieldName != null)
+                extractedExpressions![contextParamFieldName] = currentExpression;
             return base.VisitParameter(node);
         }
 

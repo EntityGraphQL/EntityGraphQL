@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.take = take;
         }
         [Description("Items in the page")]
-        public IEnumerable<T> Items { get; set; }
+        public IEnumerable<T> Items { get; set; } = new List<T>();
         [Description("True if there is more data before this page")]
         public bool HasPreviousPage => (skip ?? 0) > 0;
         [Description("True if there is more data after this page")]

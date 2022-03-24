@@ -10,20 +10,20 @@ namespace EntityGraphQL.Schema.FieldExtensions
     internal class ConnectionEdgeNodeExtension : BaseFieldExtension
     {
         private readonly ConnectionEdgeExtension edgeExtension;
-        public ParameterExpression SelectParam { get; set; }
-        public ParameterExpression EdgeParam { get; set; }
+        public ParameterExpression? SelectParam { get; set; }
+        public ParameterExpression? EdgeParam { get; set; }
 
-        public ConnectionEdgeNodeExtension(ConnectionEdgeExtension edgeExtension, ParameterExpression selectParam)
+        public ConnectionEdgeNodeExtension(ConnectionEdgeExtension edgeExtension, ParameterExpression? selectParam)
         {
             this.edgeExtension = edgeExtension;
             this.SelectParam = selectParam;
         }
 
-        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterReplacer parameterReplacer)
         {
             var selection = new Dictionary<string, Expression>();
             var newEdgeParam = EdgeParam;
-            if (newEdgeParam == null)
+            if (newEdgeParam == null && SelectParam != null)
             {
                 foreach (var item in selectionExpressions)
                 {
@@ -34,6 +34,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 }
                 var newExp = ExpressionUtil.CreateNewExpression(selectionExpressions.ToDictionary(i => i.Key, i => i.Value.Expression), out Type anonType);
                 newEdgeParam = Expression.Parameter(typeof(ConnectionEdge<>).MakeGenericType(anonType), "newEdgeParam");
+                if (newExp == null)
+                    throw new EntityGraphQLCompilerException($"ConnectionPaging misconfigured. {nameof(newExp)} is null");
+
                 edgeExtension.SetNodeExpression(newExp, anonType, newEdgeParam);
 
                 var newBaseExpression = Expression.PropertyOrField(newEdgeParam, "Node");

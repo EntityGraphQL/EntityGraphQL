@@ -18,9 +18,9 @@ namespace EntityGraphQL.Compiler
             Name = name;
         }
 
-        public override async Task<ConcurrentDictionary<string, object>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
         {
-            var result = new ConcurrentDictionary<string, object>();
+            var result = new ConcurrentDictionary<string, object?>();
             foreach (GraphQLMutationField node in QueryFields)
             {
                 result[node.Name] = null;
@@ -45,8 +45,10 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
         {
+            if (context == null)
+                return null;
             // run the mutation to get the context for the query select
             var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer);
 
@@ -80,12 +82,12 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node);
+                        var collectionNode = new GraphQLListSelectionField(null, Name, node.ResultSelection.RootParameter!, node.ResultSelection.RootParameter, item1, node);
                         foreach (var queryField in node.ResultSelection.QueryFields)
                         {
                             collectionNode.AddField(queryField);
                         }
-                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2);
+                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2!);
                         resultExp = newNode;
                     }
                     else

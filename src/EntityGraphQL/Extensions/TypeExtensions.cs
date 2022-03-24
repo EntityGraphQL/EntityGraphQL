@@ -70,7 +70,7 @@ namespace EntityGraphQL.Extensions
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static Type GetEnumerableOrArrayType(this Type type)
+        public static Type? GetEnumerableOrArrayType(this Type type)
         {
             if (type == typeof(string) || type == typeof(byte[]) || type == typeof(byte))
             {

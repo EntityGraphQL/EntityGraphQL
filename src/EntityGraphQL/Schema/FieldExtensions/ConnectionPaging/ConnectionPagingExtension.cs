@@ -15,17 +15,17 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
-        private Field edgesField;
-        private ConnectionEdgeExtension edgesExtension;
-        private List<IFieldExtension> extensions;
-        private Type listType;
+        private Field? edgesField;
+        private ConnectionEdgeExtension? edgesExtension;
+        private List<IFieldExtension>? extensions;
+        private Type? listType;
         private bool isQueryable;
-        private Type returnType;
+        private Type? returnType;
         /// <summary>
         /// This is the original expression that was defined in the schema - the collection
         /// UseConnectionPaging() basically moves it to originalField.edges
         /// </summary>
-        private Expression originalFieldExpression;
+        private Expression? originalFieldExpression;
 
         public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
         {
@@ -49,6 +49,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, Field field)
         {
+            if (field.Resolve == null)
+                throw new EntityGraphQLCompilerException($"ConnectionPagingExtension requires a Resolve function set on the field");
+
             if (!field.Resolve.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
@@ -56,7 +59,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (!schema.HasType("PageInfo"))
                 schema.AddType(typeof(ConnectionPageInfo), "PageInfo", "Metadata about a page of data").AddAllFields();
             var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
-            listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType();
+            listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet);
 
             if (!schema.HasType(edgeName))
@@ -124,12 +127,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Expression BuildNewConnectionExpression(Field field, Type returnType, Expression resolve)
         {
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, resolve);
-            var expression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam.Type }), totalCountExp, field.ArgumentParam));
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
+            var expression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
             return expression;
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             if (arguments.Before != null && arguments.After != null)
                 throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
@@ -154,20 +157,20 @@ namespace EntityGraphQL.Schema.FieldExtensions
             arguments.BeforeNum = ConnectionHelper.DeserializeCursor(arguments.Before);
 
             // we get the arguments at this level but need to use them on the edge field
-            edgesExtension.ArgExpression = argExpression;
+            edgesExtension!.ArgExpression = argExpression;
 
             // Here we now have the original context needed in our edges expression to use in the sub fields
-            originalFieldExpression = parameterReplacer.Replace(expression, field.FieldParam, context);
+            originalFieldExpression = parameterReplacer.Replace(expression, field.FieldParam!, context);
             // we also can apply any extensions before us
-            foreach (var extension in extensions)
+            foreach (var extension in extensions!)
             {
                 originalFieldExpression = extension.GetExpression(field, originalFieldExpression, argExpression, arguments, context, parameterReplacer);
             }
             // update the edge field
-            edgesField.UpdateExpression(originalFieldExpression);
+            edgesField!.UpdateExpression(originalFieldExpression);
 
             // we need to return new expressions here so all the types match processing further
-            var fieldExpression = BuildNewConnectionExpression(field, returnType, originalFieldExpression);
+            var fieldExpression = BuildNewConnectionExpression(field, returnType!, originalFieldExpression);
 
             return fieldExpression;
         }

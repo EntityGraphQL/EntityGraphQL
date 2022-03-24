@@ -33,7 +33,6 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public IEnumerable<Type> Services { get => services; }
-        public ExpressionType NodeType { get { return Expression.NodeType; } }
 
         public static implicit operator Expression(ExpressionResult field)
         {
@@ -67,17 +66,6 @@ namespace EntityGraphQL.Compiler
                 return;
 
             this.services.AddRange(services);
-        }
-
-        /// <summary>
-        /// If this expression is a ParameterExpression it returns a typed ParameterExpresion otherwise null
-        /// </summary>
-        /// <returns></returns>
-        public ParameterExpression AsParameter()
-        {
-            if (Expression.NodeType == ExpressionType.Parameter)
-                return (ParameterExpression)Expression;
-            return null;
         }
     }
 }

@@ -8,6 +8,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
     {
         bool EntityTypeHasMethod(Type context, string methodName);
         Expression GetMethodContext(Expression context, string methodName);
-        Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression> args);
+        Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression>? args);
     }
 }

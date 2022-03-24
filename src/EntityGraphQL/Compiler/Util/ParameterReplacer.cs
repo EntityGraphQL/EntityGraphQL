@@ -13,12 +13,12 @@ namespace EntityGraphQL.Compiler.Util
     /// </summary>
     public class ParameterReplacer : ExpressionVisitor
     {
-        private Expression newParam;
-        private Type toReplaceType;
-        private ParameterExpression toReplace;
-        private string newFieldName;
+        private Expression? newParam;
+        private Type? toReplaceType;
+        private ParameterExpression? toReplace;
+        private string? newFieldName;
         private bool finished;
-        private string newFieldNameForType;
+        private string? newFieldNameForType;
 
         /// <summary>
         /// Rebuilds the expression by replacing toReplace with newParam. Optionally looks for newFieldName as it is rebuilding.
@@ -29,7 +29,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="newParam"></param>
         /// <param name="newFieldName"></param>
         /// <returns></returns>
-        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, string newFieldName = null)
+        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, string? newFieldName = null)
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
@@ -40,7 +40,7 @@ namespace EntityGraphQL.Compiler.Util
             return Visit(node);
         }
 
-        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string newContextFieldName = null)
+        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string? newContextFieldName = null)
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
@@ -54,9 +54,9 @@ namespace EntityGraphQL.Compiler.Util
         protected override Expression VisitParameter(ParameterExpression node)
         {
             if (toReplace != null && toReplace == node)
-                return newParam;
+                return newParam!;
             if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
-                return newParam;
+                return newParam!;
             return node;
         }
 
@@ -76,7 +76,7 @@ namespace EntityGraphQL.Compiler.Util
                 var fieldName = node.Member.Name;
                 if (node.Expression.Type == toReplaceType)
                 {
-                    nodeExp = newParam;
+                    nodeExp = newParam!;
                     if (!string.IsNullOrEmpty(newFieldNameForType))
                         fieldName = newFieldNameForType;
                 }
@@ -124,8 +124,8 @@ namespace EntityGraphQL.Compiler.Util
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
                 var callBase = base.Visit(node.Arguments[0]);
-                var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType() : callBase.Type;
-                var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType() : node.Arguments[0].Type;
+                var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
+                var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
                 {
                     var replaceAgain = new ParameterReplacer();

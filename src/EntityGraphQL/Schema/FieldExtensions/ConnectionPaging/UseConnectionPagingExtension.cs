@@ -15,8 +15,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static Field UseConnectionPaging(this Field field, int? defaultPageSize = null, int? maxPageSize = null)
         {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseConnectionPaging must only be called on a field that returns an IEnumerable");
             field.AddExtension(new ConnectionPagingExtension(defaultPageSize, maxPageSize));
             return field;
         }

@@ -13,13 +13,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class OffsetPagingExtension : BaseFieldExtension
     {
-        private Field itemsField;
-        private Field field;
-        private List<IFieldExtension> extensions;
+        private Field? itemsField;
+        private Field? field;
+        private List<IFieldExtension>? extensions;
         private bool isQueryable;
-        private Type listType;
-        private Type returnType;
-        private Expression fieldExpressionWithExtensionsApplied;
+        private Type? listType;
+        private Type? returnType;
+        private Expression? fieldExpressionWithExtensionsApplied;
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
 
@@ -36,6 +36,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, Field field)
         {
+            if (field.Resolve == null)
+                throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
+
             if (!field.Resolve.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
@@ -77,34 +80,34 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         private Expression BuildTotalCountExpression(IField field, Type returnType, Expression resolve)
         {
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, resolve);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
             var expression = Expression.MemberInit(
                 Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) }), totalCountExp, Expression.PropertyOrField(field.ArgumentParam, "skip"), Expression.PropertyOrField(field.ArgumentParam, "take"))
             );
             return expression;
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
         {
             if (maxPageSize != null && arguments.Take > maxPageSize.Value)
                 throw new ArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
             // other extensions expect to run on the collection not our new shape
             Expression newItemsExp = expression;
-            foreach (var extension in extensions)
+            foreach (var extension in extensions!)
             {
                 newItemsExp = extension.GetExpression(field, newItemsExp, argExpression, arguments, context, parameterReplacer);
             }
             // update the context
-            newItemsExp = parameterReplacer.Replace(newItemsExp, field.FieldParam, context);
+            newItemsExp = parameterReplacer.Replace(newItemsExp, field.FieldParam!, context);
 
             // Build our field expression and hold it for use in the next step
-            var fieldExpression = BuildTotalCountExpression(field, returnType, newItemsExp);
+            var fieldExpression = BuildTotalCountExpression(field, returnType!, newItemsExp);
             fieldExpressionWithExtensionsApplied = newItemsExp;
 
             // Build our items expression with the paging
-            newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
-                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
+            newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType! },
+                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType! },
                     newItemsExp,
                     Expression.PropertyOrField(field.ArgumentParam, "skip")
                 ),
@@ -112,7 +115,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             );
 
             // we have current context update Items field
-            itemsField.UpdateExpression(newItemsExp);
+            itemsField!.UpdateExpression(newItemsExp);
 
             return fieldExpression;
         }

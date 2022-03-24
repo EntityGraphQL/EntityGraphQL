@@ -19,18 +19,14 @@
         {
             var types = new List<TypeElement>
             {
-                new TypeElement
+                new TypeElement("OBJECT", schema.QueryContextName)
                 {
                     Description = "The query type, represents all of the entry points into our object graph",
-                    Kind = "OBJECT",
-                    Name = schema.QueryContextName,
                     OfType = null,
                 },
-                new TypeElement
+                new TypeElement( "OBJECT", "Mutation")
                 {
                     Description = "The mutation type, represents all updates we can make to our data",
-                    Kind = "OBJECT",
-                    Name = "Mutation",
                     OfType = null,
                 },
             };
@@ -39,19 +35,12 @@
             types.AddRange(BuildEnumTypes(schema));
             types.AddRange(BuildScalarTypes(schema));
 
-            var schemaDescription = new Schema
-            {
-                QueryType = new TypeElement
-                {
-                    Name = schema.QueryContextName
-                },
-                MutationType = new TypeElement
-                {
-                    Name = "Mutation"
-                },
-                Types = types.OrderBy(x => x.Name).ToList(),
-                Directives = BuildDirectives(schema)
-            };
+            var schemaDescription = new Schema(new TypeElement(null, schema.QueryContextName),
+                new TypeElement(null, "Mutation"),
+                null,
+                types.OrderBy(x => x.Name).ToList(),
+                BuildDirectives(schema)
+            );
 
             return schemaDescription;
         }
@@ -62,12 +51,7 @@
 
             foreach (var customScalar in schema.GetScalarTypes())
             {
-                var typeElement = new TypeElement
-                {
-                    Kind = "SCALAR",
-                    Name = customScalar.Name,
-                    Description = null,
-                };
+                var typeElement = new TypeElement("SCALAR", customScalar.Name);
 
                 types.Add(typeElement);
             }
@@ -81,10 +65,8 @@
 
             foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
             {
-                var typeElement = new TypeElement
+                var typeElement = new TypeElement("OBJECT", st.Name)
                 {
-                    Kind = "OBJECT",
-                    Name = st.Name,
                     Description = st.Description
                 };
 
@@ -123,25 +105,21 @@
                         continue;
 
                     // Skipping custom fields added to schema
-                    if (field.Resolve.NodeType == System.Linq.Expressions.ExpressionType.Call)
+                    if (field.Resolve?.NodeType == System.Linq.Expressions.ExpressionType.Call)
                         continue;
 
                     // Skipping ENUM type
                     if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
                         continue;
 
-                    inputValues.Add(new InputValue
+                    inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true))
                     {
-                        Name = field.Name,
                         Description = field.Description,
-                        Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true)
                     });
                 }
 
-                var typeElement = new TypeElement
+                var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name)
                 {
-                    Kind = "INPUT_OBJECT",
-                    Name = schemaType.Name,
                     Description = schemaType.Description,
                     InputFields = inputValues.ToArray()
                 };
@@ -158,10 +136,8 @@
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsEnum))
             {
-                var typeElement = new TypeElement
+                var typeElement = new TypeElement("ENUM", schemaType.Name)
                 {
-                    Kind = "ENUM",
-                    Name = schemaType.Name,
                     Description = schemaType.Description,
                     EnumValues = new EnumValue[] { }
                 };
@@ -176,9 +152,8 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    enumTypes.Add(new EnumValue
+                    enumTypes.Add(new EnumValue(field.Name)
                     {
-                        Name = field.Name,
                         Description = field.Description,
                         IsDeprecated = field.IsDeprecated,
                         DeprecationReason = field.DeprecationReason
@@ -201,7 +176,7 @@
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = BuildType(schema, typeInfo, clrType.GetEnumerableOrArrayType(), isInput);
+                type.OfType = BuildType(schema, typeInfo, clrType.GetEnumerableOrArrayType()!, isInput);
             }
             else if (clrType.Name == "EntityQueryType`1")
             {
@@ -227,10 +202,8 @@
             }
             if (typeInfo.TypeNotNullable)
             {
-                return new TypeElement
+                return new TypeElement("NON_NULL", null)
                 {
-                    Kind = "NON_NULL",
-                    Name = null,
                     OfType = type
                 };
             }
@@ -267,14 +240,12 @@
                 if (field.Name.StartsWith("__"))
                     continue;
 
-                fieldDescs.Add(new Models.Field
+                fieldDescs.Add(new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
                     Args = BuildArgs(schema, field).ToArray(),
                     DeprecationReason = field.DeprecationReason,
                     Description = field.Description,
                     IsDeprecated = field.IsDeprecated,
-                    Name = schema.SchemaFieldNamer(field.Name),
-                    Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                 });
             }
             return fieldDescs.ToArray();
@@ -294,13 +265,11 @@
                     continue;
 
                 //== Fields ==//
-                rootFields.Add(new Models.Field
+                rootFields.Add(new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
-                    Name = field.Name,
                     Args = BuildArgs(schema, field).ToArray(),
                     IsDeprecated = field.IsDeprecated,
                     DeprecationReason = field.DeprecationReason,
-                    Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                     Description = field.Description
                 });
             }
@@ -317,13 +286,11 @@
                     continue;
 
                 var args = BuildArgs(schema, field).ToArray();
-                rootFields.Add(new Models.Field
+                rootFields.Add(new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
-                    Name = field.Name,
                     Args = args,
                     IsDeprecated = field.IsDeprecated,
                     DeprecationReason = field.DeprecationReason,
-                    Type = BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet),
                     Description = field.Description
                 });
             }
@@ -337,10 +304,8 @@
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
 
-                args.Add(new InputValue
+                args.Add(new InputValue(arg.Key, type)
                 {
-                    Name = arg.Key,
-                    Type = type,
                     DefaultValue = null,
                     Description = null,
                 });
@@ -351,17 +316,14 @@
 
         private static List<Directive> BuildDirectives(ISchemaProvider schema)
         {
-            var directives = schema.GetDirectives().Select(directive => new Directive
+            var directives = schema.GetDirectives().Select(directive => new Directive(directive.Name)
             {
-                Name = directive.Name,
                 Description = directive.Description,
                 Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                Args = directive.GetArguments(schema, schema.SchemaFieldNamer).Select(arg => new InputValue
+                Args = directive.GetArguments(schema, schema.SchemaFieldNamer).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
                 {
-                    Name = arg.Name,
                     Description = arg.Description,
                     DefaultValue = null,
-                    Type = BuildType(schema, arg.Type, arg.Type.TypeDotnet, true),
                 }).ToArray()
             }).ToList();
 

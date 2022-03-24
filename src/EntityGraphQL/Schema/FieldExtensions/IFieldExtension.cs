@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="argExpression">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
-        Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer);
+        Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet selected the fields for selection on this expression
         /// Not called for GraphQLFieldType.Scalar
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="baseExpression">ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
         /// <param name="listTypeParam">For ListSelection the expression for the context of the list selection about to happen</param>
         /// <returns></returns>
-        (Expression, ParameterExpression) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer);
+        (Expression, ParameterExpression?) ProcessExpressionPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
         /// Not called for GraphQLFieldType.Scalar
@@ -43,7 +43,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="baseExpression">ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
         /// <param name="selectionExpressions">ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
         /// <returns></returns>
-        (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer);
+        (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution
         /// </summary>

@@ -11,14 +11,14 @@ namespace EntityGraphQL.Schema
     public interface IField
     {
         IDictionary<string, ArgType> Arguments { get; }
-        ParameterExpression ArgumentParam { get; }
+        ParameterExpression? ArgumentParam { get; }
         string Name { get; }
         GqlTypeInfo ReturnType { get; }
         List<IFieldExtension> Extensions { get; }
-        RequiredAuthorization RequiredAuthorization { get; }
+        RequiredAuthorization? RequiredAuthorization { get; }
 
         bool IsDeprecated { get; set; }
-        string DeprecationReason { get; set; }
+        string? DeprecationReason { get; set; }
 
         void Deprecate(string reason);
 
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldName"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args);
+        ExpressionResult? GetExpression(Expression context, Dictionary<string, Expression>? args);
 
         IField UpdateExpression(Expression expression);
     }

@@ -4,12 +4,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         // forward pagination
         public int? First { get; set; } = null;
-        public string After { get; set; } = null;
+        public string? After { get; set; } = null;
         [GraphQLIgnore]
         public int? AfterNum { get; set; } = null;
         // backward pagination
         public int? Last { get; set; } = null;
-        public string Before { get; set; } = null;
+        public string? Before { get; set; } = null;
         [GraphQLIgnore]
         public int? BeforeNum { get; set; } = null;
         // On creation of Connection<> we store the total count here to avoid having to execute it multiple times

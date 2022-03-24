@@ -26,9 +26,9 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLDocument : IGraphQLNode
     {
-        public Expression NextFieldContext { get; set; }
-        public IGraphQLNode ParentNode { get; set; }
-        public ParameterExpression RootParameter { get; set; }
+        public Expression? NextFieldContext { get; set; }
+        public IGraphQLNode? ParentNode { get; set; }
+        public ParameterExpression? RootParameter { get; set; }
         public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
         private readonly Func<string, string> fieldNamer;
 
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
             get => "Query Request Root";
         }
 
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string operationName = null, ExecutionOptions options = null)
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string? operationName = null, ExecutionOptions? options = null)
         {
             return ExecuteQueryAsync(context, services, operationName, options).Result;
         }
@@ -64,7 +64,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string operationName, ExecutionOptions options = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string? operationName, ExecutionOptions? options = null)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
@@ -76,6 +76,9 @@ namespace EntityGraphQL.Compiler
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
             // execute the selected operation
+            if (options == null)
+                options = new ExecutionOptions(); // defaults
+
             result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, options);
 
             if (validator.Errors.Count > 0)

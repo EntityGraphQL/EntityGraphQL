@@ -1,10 +1,9 @@
-using System.ComponentModel;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    public class SortInput<T>
+    public class SortInput<T> where T : notnull
     {
-        public T Sort { get; set; }
+        public T Sort { get; set; } = default!;
     }
 
     public enum SortDirectionEnum

@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return GetContextFromEnumerable(context);
         }
 
-        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression> args)
+        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression>? args)
         {
             if (_supportedMethods.ContainsKey(methodName))
             {

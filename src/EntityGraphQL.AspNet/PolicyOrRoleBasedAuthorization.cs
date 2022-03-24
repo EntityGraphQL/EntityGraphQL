@@ -25,10 +25,10 @@ namespace EntityGraphQL.AspNet
         /// </summary>
         /// <param name="requiredAuth">The required auth for the field or type you want to check against the user</param>
         /// <returns></returns>
-        public override bool IsAuthorized(ClaimsPrincipal user, RequiredAuthorization requiredAuth)
+        public override bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuth)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuth != null && requiredAuth.Any())
+            if (requiredAuth != null && requiredAuth.Any() && user != null)
             {
                 // check polcies if principal with used
                 if (authService != null)
@@ -52,12 +52,16 @@ namespace EntityGraphQL.AspNet
             return true;
         }
 
-        private static RequiredAuthorization GetRequiredAuth(RequiredAuthorization requiredAuth, ICustomAttributeProvider thing)
+        private static RequiredAuthorization GetRequiredAuth(RequiredAuthorization? requiredAuth, ICustomAttributeProvider thing)
         {
             var attributes = thing.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
             var requiredRoles = attributes.Where(c => !string.IsNullOrEmpty(c.Roles)).Select(c => c.Roles!.Split(",").ToList()).ToList();
             var requiredPolicies = attributes.Where(c => !string.IsNullOrEmpty(c.Policy)).Select(c => c.Policy!.Split(",").ToList()).ToList();
-            requiredAuth = requiredAuth.Concat(new RequiredAuthorization(requiredRoles, requiredPolicies));
+            var newAuth = new RequiredAuthorization(requiredRoles, requiredPolicies);
+            if (requiredAuth != null)
+                requiredAuth = requiredAuth.Concat(newAuth);
+            else
+                requiredAuth = newAuth;
 
             var attributes2 = thing.GetCustomAttributes(typeof(GraphQLAuthorizePolicyAttribute), true).Cast<GraphQLAuthorizePolicyAttribute>();
 
@@ -66,7 +70,7 @@ namespace EntityGraphQL.AspNet
             return requiredAuth;
         }
 
-        public override RequiredAuthorization GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
+        public override RequiredAuthorization? GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
         {
             var requiredAuth = base.GetRequiredAuthFromExpression(fieldSelection);
             if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)

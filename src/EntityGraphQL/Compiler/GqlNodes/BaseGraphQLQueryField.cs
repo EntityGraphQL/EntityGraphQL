@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
             : base(name, nextFieldContext, rootParameter, parentNode)
         {
             replacer = new ParameterReplacer();
@@ -21,7 +21,7 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
-        protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Compiler
                     // if this came from a fragment we need to fix the expression context
                     if (nextFieldContext != null && field is GraphQLFragmentField)
                     {
-                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter, nextFieldContext);
+                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
                     }
 
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);

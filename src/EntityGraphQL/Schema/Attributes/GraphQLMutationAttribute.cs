@@ -9,7 +9,7 @@ namespace EntityGraphQL.Schema
     [AttributeUsage(AttributeTargets.Method)]
     public class GraphQLMutationAttribute : Attribute
     {
-        public GraphQLMutationAttribute(string description = null)
+        public GraphQLMutationAttribute(string description = "")
         {
             this.Description = description;
         }

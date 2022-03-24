@@ -17,28 +17,28 @@ namespace EntityGraphQL.Schema
         private readonly Dictionary<string, ArgType> allArguments = new();
         public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
 
-        public ParameterExpression ArgumentParam { get; private set; }
+        public ParameterExpression? ArgumentParam { get; private set; }
         private readonly ISchemaProvider schema;
         private readonly Func<string, string> fieldNamer;
 
         public string Name { get; internal set; }
-        public ParameterExpression FieldParam { get; private set; }
+        public ParameterExpression? FieldParam { get; private set; }
         public List<IFieldExtension> Extensions { get; set; }
 
-        public RequiredAuthorization RequiredAuthorization { get; private set; }
+        public RequiredAuthorization? RequiredAuthorization { get; private set; }
 
         public bool IsDeprecated { get; set; }
-        public string DeprecationReason { get; set; }
+        public string? DeprecationReason { get; set; }
 
-        public Expression Resolve { get; private set; }
+        public Expression? Resolve { get; private set; }
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
         /// <value></value>
-        public IEnumerable<Type> Services { get; private set; }
-        public string Description { get; private set; }
+        public IEnumerable<Type> Services { get; private set; } = new List<Type>();
+        public string? Description { get; private set; }
 
-        public Type ArgumentsType { get; private set; }
+        public Type? ArgumentsType { get; private set; }
 
         public IEnumerable<string> RequiredArgumentNames
         {
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema
 
         public GqlTypeInfo ReturnType { get; private set; }
 
-        internal Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, GqlTypeInfo returnType, RequiredAuthorization requiredAuth, Func<string, string> fieldNamer)
+        internal Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth, Func<string, string> fieldNamer)
         {
             this.schema = schema;
             Name = name;
@@ -120,7 +120,9 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
+            if (ArgumentParam != null && Resolve != null)
+                Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
+
             ArgumentParam = argParam;
             ArgumentsType = newArgType;
         }
@@ -137,11 +139,14 @@ namespace EntityGraphQL.Schema
         }
 
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object argTypes, GqlTypeInfo returnType, RequiredAuthorization claims, Func<string, string> fieldNamer)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims, Func<string, string> fieldNamer)
             : this(schema, name, resolve, description, returnType, claims, fieldNamer)
         {
-            allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, fieldNamer);
-            ArgumentsType = argTypes.GetType();
+            if (argTypes != null)
+            {
+                allArguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, fieldNamer);
+                ArgumentsType = argTypes.GetType();
+            }
         }
 
         public bool HasArgumentByName(string argName)
@@ -256,25 +261,29 @@ namespace EntityGraphQL.Schema
             extension.Configure(schema, this);
         }
 
-        public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
+        public ExpressionResult? GetExpression(Expression context, Dictionary<string, Expression>? args)
         {
+            if (Resolve == null)
+                return null;
+
             var result = new ExpressionResult(Resolve, Services);
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             var parameterReplacer = new ParameterReplacer();
             PrepareExpressionResult(args, this, result, parameterReplacer, context);
             // the expressions we collect have a different starting parameter. We need to change that
-            result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, context);
+            if (FieldParam != null)
+                result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, context);
             return result;
         }
 
 
-        private void PrepareExpressionResult(Dictionary<string, Expression> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context)
+        private void PrepareExpressionResult(Dictionary<string, Expression>? args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context)
         {
             if (field.ArgumentsType != null)
             {
                 // get the values for the argument anonymous type object constructor
-                var propVals = new Dictionary<PropertyInfo, object>();
-                var fieldVals = new Dictionary<FieldInfo, object>();
+                var propVals = new Dictionary<PropertyInfo, object?>();
+                var fieldVals = new Dictionary<FieldInfo, object?>();
                 // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
                 foreach (var argField in field.Arguments.Values)
                 {
@@ -335,8 +344,11 @@ namespace EntityGraphQL.Schema
                         item.Key.SetValue(argumentValues, item.Value);
                     }
                 }
-                // tell them this expression has another parameter
-                result.AddConstantParameter(ArgumentParam, argumentValues);
+                if (ArgumentParam != null)
+                {
+                    // tell them this expression has another parameter
+                    result.AddConstantParameter(ArgumentParam, argumentValues);
+                }
                 if (Extensions.Count > 0)
                 {
                     foreach (var m in Extensions)
@@ -351,14 +363,14 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var m in Extensions)
                     {
-                        result.Expression = m.GetExpression(this, result.Expression, null, null, context, parameterReplacer);
+                        result.Expression = m.GetExpression(this, result.Expression, null, new { }, context, parameterReplacer);
                     }
                 }
             }
         }
 
 
-        private static object BuildArgumentFromMember(Dictionary<string, Expression> args, Field field, string memberName, Type memberType, object defaultValue)
+        private static object? BuildArgumentFromMember(Dictionary<string, Expression>? args, Field field, string memberName, Type memberType, object? defaultValue)
         {
             string argName = memberName;
             // check we have required arguments
@@ -381,7 +393,7 @@ namespace EntityGraphQL.Schema
                         if (parameters.Count() == 1)
                         {
                             item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType);
-                            constructor = memberType.GetConstructor(new[] { item.GetType() });
+                            constructor = memberType.GetConstructor(new[] { item?.GetType() });
                             break;
                         }
                     }

@@ -14,7 +14,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         [GraphQLNotNull]
         [Description("Edge information about each node in the collection")]
-        public IEnumerable<ConnectionEdge<TEntity>> Edges { get; set; }
+        public IEnumerable<ConnectionEdge<TEntity>> Edges { get; set; } = new List<ConnectionEdge<TEntity>>();
         [GraphQLNotNull]
         [Description("Total count of items in the collection")]
         public int TotalCount { get; set; }

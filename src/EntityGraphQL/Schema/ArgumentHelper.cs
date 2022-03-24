@@ -25,28 +25,28 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static TReturn WithService<TService, TReturn>(Expression<Func<TService, TReturn>> selection) => default;
+        public static TReturn WithService<TService, TReturn>(Expression<Func<TService, TReturn>> selection) => default!;
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
         /// </summary>
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static TReturn WithService<TService1, TService2, TReturn>(Expression<Func<TService1, TService2, TReturn>> selection) => default;
+        public static TReturn WithService<TService1, TService2, TReturn>(Expression<Func<TService1, TService2, TReturn>> selection) => default!;
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
         /// </summary>
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static TReturn WithService<TService1, TService2, TService3, TReturn>(Expression<Func<TService1, TService2, TService3, TReturn>> selection) => default;
+        public static TReturn WithService<TService1, TService2, TService3, TReturn>(Expression<Func<TService1, TService2, TService3, TReturn>> selection) => default!;
         /// <summary>
         /// Helper to inject services into you GraphQL field selection expressions.
         /// </summary>
         /// <param name="selection"></param>
         /// <typeparam name="TService"></typeparam>
         /// <returns></returns>
-        public static TReturn WithService<TService1, TService2, TService3, TService4, TReturn>(Expression<Func<TService1, TService2, TService3, TService4, TReturn>> selection) => default;
+        public static TReturn WithService<TService1, TService2, TService3, TService4, TReturn>(Expression<Func<TService1, TService2, TService3, TService4, TReturn>> selection) => default!;
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ namespace EntityGraphQL.Schema
     public class RequiredField<TType>
     {
         public Type Type { get; }
-        public TType Value { get; set; }
+        public TType? Value { get; set; }
 
         public RequiredField()
         {
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Schema
             Value = value;
         }
 
-        public static implicit operator TType(RequiredField<TType> field)
+        public static implicit operator TType?(RequiredField<TType> field)
         {
             return field.Value;
         }
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema
 
         public override string ToString()
         {
-            return Value.ToString();
+            return Value?.ToString() ?? "null";
         }
     }
 
@@ -92,27 +92,33 @@ namespace EntityGraphQL.Schema
         /// The compiler will end up setting this to the compiled lambda that can be used in LINQ functions
         /// </summary>
         /// <value></value>
-        public Expression<Func<TType, bool>> Query { get; set; }
+        public Expression<Func<TType, bool>>? Query { get; set; }
         public override bool HasValue { get => Query != null; }
 
-        public EntityQueryType()
+        public EntityQueryType() : base(typeof(TType))
         {
-            this.QueryType = typeof(TType);
         }
 
         public static implicit operator Expression<Func<TType, bool>>(EntityQueryType<TType> q)
         {
+            if (q.Query == null)
+                throw new InvalidOperationException("Query is null");
             return q.Query;
         }
     }
 
     public abstract class BaseEntityQueryType
     {
+        public BaseEntityQueryType(Type type)
+        {
+            QueryType = type;
+        }
+
         /// <summary>
         /// Use this in your expression to make a choice
         /// </summary>
         /// <value></value>
         public abstract bool HasValue { get; }
-        public Type QueryType { get; protected set; }
+        public Type QueryType { get; private set; }
     }
 }

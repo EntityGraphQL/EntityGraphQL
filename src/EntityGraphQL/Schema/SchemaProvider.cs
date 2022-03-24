@@ -28,9 +28,8 @@ namespace EntityGraphQL.Schema
         protected Dictionary<string, IDirectiveProcessor> directives = new();
 
         public string QueryContextName { get; }
-        private readonly ILogger<SchemaProvider<TContextType>> logger;
+        private readonly ILogger<SchemaProvider<TContextType>>? logger;
         private readonly GraphQLCompiler graphQLCompiler;
-        private readonly Dictionary<Type, ITypeSerializer> typeSerializers = new();
         private readonly bool introspectionEnabled;
 
         // map some types to scalar types
@@ -40,7 +39,7 @@ namespace EntityGraphQL.Schema
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
         /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
-        public SchemaProvider(IGqlAuthorizationService authorizationService = null, Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContextType>> logger = null, bool introspectionEnabled = true)
+        public SchemaProvider(IGqlAuthorizationService? authorizationService = null, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContextType>>? logger = null, bool introspectionEnabled = true)
         {
             AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
             SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
@@ -112,7 +111,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
         [Obsolete("Use ExecuteRequest")]
-        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
+        public QueryResult ExecuteQuery(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions? options = null)
         {
             return ExecuteQueryAsync(gql, context, serviceProvider, claims, options).Result;
         }
@@ -128,7 +127,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
         [Obsolete("Use ExecuteRequestAsync")]
-        public Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions options = null)
+        public Task<QueryResult> ExecuteQueryAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsIdentity claims, ExecutionOptions? options = null)
         {
             return ExecuteRequestAsync(gql, context, serviceProvider, new ClaimsPrincipal(claims), options);
         }
@@ -143,7 +142,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
+        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions? options = null)
         {
             return ExecuteRequestAsync(gql, context, serviceProvider, user, options).Result;
         }
@@ -158,7 +157,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions options = null)
+        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions? options = null)
         {
             if (gql.Query == null)
                 throw new ArgumentNullException(nameof(gql.Query), "Query must be set");
@@ -193,7 +192,7 @@ namespace EntityGraphQL.Schema
 
             // evaluate Fields lazily so we don't end up in endless loop
             Type<Models.TypeElement>("__Type").ReplaceField("fields", new { includeDeprecated = false },
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
+                (t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name!).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(), "Fields available on type");
 
             ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema", "__Schema");
             ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(), "Query a type by name", "__Type");
@@ -267,7 +266,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="mutationClassInstance"></param>
         /// <typeparam name="TType"></typeparam>
-        public void AddMutationFrom<TType>(TType mutationClassInstance)
+        public void AddMutationFrom<TType>(TType mutationClassInstance) where TType : notnull
         {
             Type type = mutationClassInstance.GetType();
             var classLevelRequiredAuth = AuthorizationService.GetRequiredAuthFromType(type);
@@ -302,7 +301,7 @@ namespace EntityGraphQL.Schema
             if (types.ContainsKey(typeName))
                 return types[typeName];
 
-            return null;
+            throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
 
         public bool HasMutation(string method)
@@ -324,7 +323,7 @@ namespace EntityGraphQL.Schema
             SetupIntrospectionTypesAndField();
         }
 
-        public GqlTypeInfo GetCustomTypeMapping(Type dotnetType)
+        public GqlTypeInfo? GetCustomTypeMapping(Type dotnetType)
         {
             if (customTypeMappings.ContainsKey(dotnetType))
                 return customTypeMappings[dotnetType];
@@ -350,7 +349,7 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
+        public Field AddField<TReturn>(Expression<Func<TContextType, TReturn>> selection, string description, string? returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
             return AddField(SchemaFieldNamer(exp.Member.Name), selection, description, returnSchemaType);
@@ -364,12 +363,12 @@ namespace EntityGraphQL.Schema
         /// <param name="selection"></param>
         /// <param name="description"></param>
         /// <param name="returnSchemaType"></param>
-        public Field AddField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selection, string description, string returnSchemaType = null)
+        public Field AddField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selection, string description, string? returnSchemaType = null)
         {
             return Type<TContextType>().AddField(name, selection, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field ReplaceField<TParams, TReturn>(Expression<Func<TContextType, object>> selection, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(selection);
             var name = SchemaFieldNamer(exp.Member.Name);
@@ -377,13 +376,13 @@ namespace EntityGraphQL.Schema
             return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TContextType, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
             return Type<TContextType>().AddField(name, selectionExpression, description, returnSchemaType);
         }
 
-        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             Type<TContextType>().RemoveField(name);
             return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
@@ -403,7 +402,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TParams">Type describing the arguments</typeparam>
         /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
         /// <returns></returns>
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string returnSchemaType = null)
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TContextType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
         {
             return Type<TContextType>().AddField(name, argTypes, selectionExpression, description, returnSchemaType);
         }
@@ -456,7 +455,7 @@ namespace EntityGraphQL.Schema
 
         // ISchemaProvider interface
         public Type ContextType { get { return types[QueryContextName].TypeDotnet; } }
-        public bool TypeHasField(string typeName, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext)
+        public bool TypeHasField(string typeName, string identifier, IEnumerable<string>? fieldArgs, QueryRequestContext requestContext)
         {
             if (!types.ContainsKey(typeName))
                 return false;
@@ -495,9 +494,9 @@ namespace EntityGraphQL.Schema
             return types.Values.Where(t => t.IsEnum).ToList();
         }
 
-        public IField GetActualField(string typeName, string identifier, QueryRequestContext requestContext)
+        public IField GetActualField(string typeName, string identifier, QueryRequestContext? requestContext)
         {
-            IField field = null;
+            IField? field = null;
             if (types.ContainsKey(typeName) && types[typeName].HasField(identifier))
             {
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, types[typeName].RequiredAuthorization))
@@ -691,11 +690,6 @@ namespace EntityGraphQL.Schema
         public void UpdateQueryType(Action<SchemaType<TContextType>> updateFunc)
         {
             updateFunc(Type<TContextType>());
-        }
-
-        public void AddTypeSerializer<TTypeDotNet, TTypeGql>(Func<TTypeDotNet, TTypeGql> serialize, Func<TTypeGql, TTypeDotNet> deserialize)
-        {
-            typeSerializers.Add(typeof(TTypeDotNet), new TypeSerializer<TTypeDotNet, TTypeGql>(serialize, deserialize));
         }
     }
 }

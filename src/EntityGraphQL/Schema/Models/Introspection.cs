@@ -1,99 +1,130 @@
-﻿//
-// Built using quicktype
-// https://app.quicktype.io/#l=cs&r=json2csharp
-//
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace EntityGraphQL.Schema.Models
 {
     public partial class Schema
     {
-        public TypeElement QueryType { get; set; }
+        public Schema(TypeElement queryType, TypeElement mutationType, SubscriptionType? subscriptionType, List<TypeElement> types, List<Directive> directives)
+        {
+            QueryType = queryType;
+            MutationType = mutationType;
+            SubscriptionType = subscriptionType;
+            Types = types;
+            Directives = directives;
+        }
 
-        public TypeElement MutationType { get; set; }
+        public TypeElement QueryType { get; private set; }
 
-        public SubscriptionType SubscriptionType { get; set; }
+        public TypeElement MutationType { get; private set; }
 
-        public List<TypeElement> Types { get; set; }
+        public SubscriptionType? SubscriptionType { get; private set; }
 
-        public List<Directive> Directives { get; set; }
+        public List<TypeElement> Types { get; private set; }
+
+        public List<Directive> Directives { get; private set; }
     }
 
     public partial class SubscriptionType
     {
-        public string Name { get; set; }
+        public SubscriptionType(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; private set; }
     }
 
     public partial class TypeElement
     {
-        public TypeElement()
+        public TypeElement() { }
+        public TypeElement(string? kind, string? name)
         {
-            EnumValues = new EnumValue[] { };
-            Interfaces = new TypeElement[] { };
-            PossibleTypes = new TypeElement[] { };
-            InputFields = new InputValue[] { };
+            Kind = kind;
+            Name = name;
         }
 
-        public string Kind { get; set; }
+        public string? Kind { get; set; }
 
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         // Fields is added dynamically so it is lazily loaded
 
-        public InputValue[] InputFields { get; set; }
+        public InputValue[] InputFields { get; set; } = new InputValue[0];
 
-        public TypeElement[] Interfaces { get; set; }
+        public TypeElement[] Interfaces { get; private set; } = new TypeElement[0];
 
-        public EnumValue[] EnumValues { get; set; }
+        public EnumValue[] EnumValues { get; set; } = new EnumValue[0];
 
-        public TypeElement[] PossibleTypes { get; set; }
-        public TypeElement OfType { get; set; }
+        public TypeElement[] PossibleTypes { get; private set; } = new TypeElement[0];
+        public TypeElement? OfType { get; set; }
     }
 
     public partial class Field
     {
-        public string Name { get; set; }
+        public Field(string name, TypeElement type)
+        {
+            Name = name;
+            Type = type;
+        }
 
-        public string Description { get; set; }
+        public string Name { get; private set; }
 
-        public InputValue[] Args { get; set; }
+        public string? Description { get; set; }
 
-        public TypeElement Type { get; set; }
+        public IEnumerable<InputValue> Args { get; set; } = new InputValue[0];
+
+        public TypeElement Type { get; private set; }
 
         public bool IsDeprecated { get; set; }
 
-        public string DeprecationReason { get; set; }
+        public string? DeprecationReason { get; set; }
     }
 
     public class InputValue
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public TypeElement Type { get; set; }
-        public string DefaultValue { get; set; }
+        public InputValue(string name, TypeElement type)
+        {
+            Name = name;
+            Type = type;
+        }
+
+        public string Name { get; private set; }
+        public string? Description { get; set; }
+        public TypeElement Type { get; private set; }
+        public string? DefaultValue { get; set; }
     }
 
     public partial class Directive
     {
-        public string Name { get; set; }
+        public Directive(string name)
+        {
+            Name = name;
+        }
 
-        public string Description { get; set; }
+        public string Name { get; private set; }
 
-        public string[] Locations { get; set; }
+        public string? Description { get; set; }
 
-        public InputValue[] Args { get; set; }
+        public IEnumerable<string> Locations { get; set; } = new string[0];
+
+        public IEnumerable<InputValue> Args { get; set; } = new InputValue[0];
     }
 
     public partial class EnumValue
     {
-        public string Name { get; set; }
+        public EnumValue(string name)
+        {
+            Name = name;
+        }
 
-        public string Description { get; set; }
+        public string Name { get; private set; }
+
+        public string? Description { get; set; }
 
         public bool IsDeprecated { get; set; }
 
-        public string DeprecationReason { get; set; }
+        public string? DeprecationReason { get; set; }
     }
 }

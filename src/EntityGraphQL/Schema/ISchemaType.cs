@@ -11,8 +11,8 @@ namespace EntityGraphQL.Schema
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
-        RequiredAuthorization RequiredAuthorization { get; set; }
-        Field GetField(string identifier, QueryRequestContext requestContext);
+        RequiredAuthorization? RequiredAuthorization { get; set; }
+        Field GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<Field> GetFields();
         bool HasField(string identifier);
         void AddFields(List<Field> fields);

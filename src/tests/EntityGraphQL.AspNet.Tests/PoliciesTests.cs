@@ -16,8 +16,8 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
             var services = serviceCollection.BuildServiceProvider();
             var schema = SchemaBuilder.FromObject<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
-            Assert.Single(schema.Type<Project>().RequiredAuthorization.Policies);
-            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
+            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -30,8 +30,8 @@ namespace EntityGraphQL.Tests
             var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
             schema.AddType<Project>("Project");
 
-            Assert.Single(schema.Type<Project>().RequiredAuthorization.Policies);
-            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
+            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -43,12 +43,12 @@ namespace EntityGraphQL.Tests
 
             var schema = SchemaBuilder.FromObject<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
-            Assert.Empty(schema.Type<Task>().RequiredAuthorization.Policies);
+            Assert.Empty(schema.Type<Task>().RequiredAuthorization!.Policies);
 
             schema.Type<Task>().RequiresAnyPolicy("admin");
 
-            Assert.Single(schema.Type<Task>().RequiredAuthorization.Policies);
-            Assert.Equal("admin", schema.Type<Task>().RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Task>().RequiredAuthorization!.Policies);
+            Assert.Equal("admin", schema.Type<Task>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -60,8 +60,8 @@ namespace EntityGraphQL.Tests
 
             var schema = SchemaBuilder.FromObject<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
-            Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization.Policies);
-            Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
+            Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -76,8 +76,8 @@ namespace EntityGraphQL.Tests
             schema.AddType<Project>("Project", "All about the project")
             .AddField(p => p.Type, "The type info");
 
-            Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization.Policies);
-            Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
+            Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -93,8 +93,8 @@ namespace EntityGraphQL.Tests
             .AddField(p => p.IsActive, "Is it active")
             .RequiresAllPolicies("admin");
 
-            Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Policies);
-            Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies);
+            Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -110,8 +110,8 @@ namespace EntityGraphQL.Tests
             .AddField(p => p.IsActive, "Is it active")
             .RequiresAllPolicies("admin", "can-type");
 
-            Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Policies.Count());
-            Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Policies.ElementAt(0).ElementAt(0));
+            Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.Count());
+            Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]
@@ -135,7 +135,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'type' field on type 'Project'.", result.Errors.First().Message);
+            Assert.Equal("You are not authorized to access the 'type' field on type 'Project'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type") }, "authed");
             result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
@@ -163,7 +163,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
+            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
@@ -193,7 +193,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors.First().Message);
+            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequest(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));

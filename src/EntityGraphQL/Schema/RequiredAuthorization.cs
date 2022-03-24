@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="roles">Roles required</param>
         /// <param name="policies">ASP.NET policies requried</param>
-        public RequiredAuthorization(IEnumerable<List<string>> roles, IEnumerable<List<string>> policies)
+        public RequiredAuthorization(IEnumerable<List<string>>? roles, IEnumerable<List<string>>? policies)
         {
             requiredRoles = roles?.ToList() ?? new List<List<string>>();
             requiredPolicies = policies?.ToList() ?? new List<List<string>>();

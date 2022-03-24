@@ -11,30 +11,40 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class ArgType
     {
-        public string Name { get; set; }
-        public string DotnetName { get; set; }
+        public string Name { get; private set; }
+        public string DotnetName { get; private set; }
         public string Description { get; set; }
-        public GqlTypeInfo Type { get; set; }
-        public object DefaultValue { get; set; }
+        public GqlTypeInfo Type { get; private set; }
+        public object? DefaultValue { get; set; }
         public MemberInfo MemberInfo { get; internal set; }
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
-        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object defaultValue, Func<string, string> fieldNamer)
+        public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo memberInfo, Type rawType)
+        {
+            Name = name;
+            DotnetName = dotnetName;
+            Description = "";
+            Type = type;
+            MemberInfo = memberInfo;
+            RawType = rawType;
+        }
+
+        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue, Func<string, string> fieldNamer)
         {
             var arg = MakeArgType(schema, prop, prop.PropertyType, prop, defaultValue, fieldNamer);
 
             return arg;
         }
 
-        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object defaultValue, Func<string, string> fieldNamer)
+        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue, Func<string, string> fieldNamer)
         {
             var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue, fieldNamer);
 
             return arg;
         }
 
-        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object defaultValue, Func<string, string> fieldNamer)
+        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object? defaultValue, Func<string, string> fieldNamer)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -53,14 +63,9 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
-            var arg = new ArgType
+            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse), memberInfo, type)
             {
-                Type = new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse),
-                Name = fieldNamer(field.Name),
-                DotnetName = field.Name,
                 DefaultValue = defaultValue,
-                MemberInfo = memberInfo,
-                RawType = type,
                 IsRequired = markedRequired
             };
 

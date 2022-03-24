@@ -37,11 +37,11 @@ namespace EntityGraphQL.Schema
             return name[..1].ToLowerInvariant() + name[1..];
         };
 
-        public static SchemaProvider<TContext> Create<TContext>(Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)
+        public static SchemaProvider<TContext> Create<TContext>(Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContext>>? logger = null)
         {
             return Create(new RoleBasedAuthorization(), fieldNamer, logger);
         }
-        public static SchemaProvider<TContext> Create<TContext>(IGqlAuthorizationService authorizationService, Func<string, string> fieldNamer = null, ILogger<SchemaProvider<TContext>> logger = null)
+        public static SchemaProvider<TContext> Create<TContext>(IGqlAuthorizationService authorizationService, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContext>>? logger = null)
         {
             return new SchemaProvider<TContext>(authorizationService, fieldNamer, logger);
         }
@@ -53,12 +53,12 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null, bool introspectionEnabled = true)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null, bool introspectionEnabled = true)
         {
             return FromObject<TContextType>(new RoleBasedAuthorization(), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer, introspectionEnabled);
         }
 
-        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null, bool introspectionEnabled = true)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null, bool introspectionEnabled = true)
         {
             var schema = new SchemaProvider<TContextType>(authorizationService, fieldNamer ?? DefaultNamer, introspectionEnabled: introspectionEnabled);
             return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Schema
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string> fieldNamer = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null)
         {
             if (fieldNamer == null)
                 fieldNamer = DefaultNamer;
@@ -92,12 +92,17 @@ namespace EntityGraphQL.Schema
 
         private static void AddFieldWithIdArgumentIfExists<TContextType>(SchemaProvider<TContextType> schema, Type contextType, Field fieldProp, Func<string, string> fieldNamer)
         {
+            if (fieldProp.Resolve == null)
+                throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
             var schemaType = fieldProp.ReturnType.SchemaType;
             var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
+
+            if (idFieldDef.Resolve == null)
+                throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
             // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
@@ -157,7 +162,7 @@ namespace EntityGraphQL.Schema
             return fields;
         }
 
-        private static Field ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static Field? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
                 return null;
@@ -174,7 +179,7 @@ namespace EntityGraphQL.Schema
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
-            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType() : le.ReturnType.GetNonNullableType();
+            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
@@ -193,11 +198,11 @@ namespace EntityGraphQL.Schema
             return field;
         }
 
-        private static ISchemaType CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static ISchemaType? CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
             if (propType.IsEnumerableOrArray())
             {
-                propType = propType.GetEnumerableOrArrayType();
+                propType = propType.GetEnumerableOrArrayType()!;
             }
 
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
@@ -244,9 +249,9 @@ namespace EntityGraphQL.Schema
             return null;
         }
 
-        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string returnSchemaType)
+        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
         {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? (Func<ISchemaType>)(() => schema.Type(returnSchemaType)) : () => schema.Type(returnType.GetNonNullableOrEnumerableType()), returnType);
+            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.Type(returnType.GetNonNullableOrEnumerableType()), returnType);
         }
     }
 }

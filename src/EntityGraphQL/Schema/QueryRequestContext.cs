@@ -8,7 +8,7 @@ namespace EntityGraphQL.Schema
     public class QueryRequestContext
     {
 
-        public QueryRequestContext(QueryRequest query, IGqlAuthorizationService authorizationService, ClaimsPrincipal user)
+        public QueryRequestContext(QueryRequest query, IGqlAuthorizationService? authorizationService, ClaimsPrincipal? user)
         {
             Query = query;
             AuthorizationService = authorizationService;
@@ -16,7 +16,7 @@ namespace EntityGraphQL.Schema
         }
 
         public QueryRequest Query { get; }
-        public IGqlAuthorizationService AuthorizationService { get; }
-        public ClaimsPrincipal User { get; }
+        public IGqlAuthorizationService? AuthorizationService { get; }
+        public ClaimsPrincipal? User { get; }
     }
 }

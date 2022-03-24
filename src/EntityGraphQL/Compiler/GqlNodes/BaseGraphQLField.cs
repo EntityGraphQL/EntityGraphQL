@@ -22,10 +22,10 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode
     {
-        protected List<IFieldExtension> fieldExtensions;
-        public Expression NextFieldContext { get; set; }
-        public IGraphQLNode ParentNode { get; set; }
-        public ParameterExpression RootParameter { get; set; }
+        protected List<IFieldExtension> fieldExtensions = new();
+        public Expression? NextFieldContext { get; set; }
+        public IGraphQLNode? ParentNode { get; set; }
+        public ParameterExpression? RootParameter { get; set; }
 
         /// <summary>
         /// Name of the field
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public string Name { get; protected set; }
 
-        public BaseGraphQLField(string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <returns></returns>
-        public abstract Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
+        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 
@@ -92,7 +92,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected (Expression, ParameterExpression) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression listTypeParam, ParameterReplacer parameterReplacer)
+        protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Compiler
             return (baseExpression, listTypeParam);
         }
 
-        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {

@@ -46,21 +46,21 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             bool needsServiceWrap = !withoutServiceFields && HasAnyServices(fragments);
 
-            var nextFieldContext = NextFieldContext;
+            var nextFieldContext = NextFieldContext!;
             if (contextChanged && Name != "__typename")
             {
-                var possibleField = replacementNextFieldContext.Type.GetField(Name);
+                var possibleField = replacementNextFieldContext?.Type.GetField(Name);
                 if (possibleField != null)
                     nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
                 else
-                    nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
+                    nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
 
-            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, null, replacer);
+            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext!, null, replacer);
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="replacementNextFieldContext"></param>
         /// <param name="schemaContext"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        private Expression? WrapWithNullCheck(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // don't replace context is needsServiceWrap as the selection fields happen internally to the wrap call on the correct context
             var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
@@ -173,13 +173,13 @@ namespace EntityGraphQL.Compiler
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
         {
             // fieldExpression might be a service method call and the arguments might have fields we need to select out
-            if (withoutServiceFields && NextFieldContext.NodeType == ExpressionType.Call)
+            if (withoutServiceFields && NextFieldContext?.NodeType == ExpressionType.Call)
             {
-                IDictionary<string, Expression> fieldsRequiredForServices = extractor.Extract(NextFieldContext, RootParameter);
+                var fieldsRequiredForServices = extractor.Extract(NextFieldContext, RootParameter!);
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter, ParentNode))
+                        .Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter!, ParentNode!))
                         .ToList();
 
                     if (fields.Any())

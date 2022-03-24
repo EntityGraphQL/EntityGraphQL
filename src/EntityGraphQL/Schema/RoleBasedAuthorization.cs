@@ -21,10 +21,10 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="requiredAuth">The required auth for the field or type you want to check against the user</param>
         /// <returns></returns>
-        public virtual bool IsAuthorized(ClaimsPrincipal user, RequiredAuthorization requiredAuth)
+        public virtual bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuth)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuth != null && requiredAuth.Any())
+            if (requiredAuth != null && requiredAuth.Any() && user != null)
             {
                 // check roles
                 var allRolesValid = true;
@@ -44,14 +44,14 @@ namespace EntityGraphQL.Schema
             return true;
         }
 
-        public virtual RequiredAuthorization GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
+        public virtual RequiredAuthorization? GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
         {
-            RequiredAuthorization requiredAuth = null;
+            RequiredAuthorization? requiredAuth = null;
             if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
             {
                 var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-                var requiredRoles = attributes.Select(c => c.Roles).ToList();
-                requiredAuth = new RequiredAuthorization(requiredRoles, null);
+                var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
+                requiredAuth = new RequiredAuthorization(requiredRoles!, null);
             }
 
             return requiredAuth;
@@ -59,16 +59,16 @@ namespace EntityGraphQL.Schema
         public virtual RequiredAuthorization GetRequiredAuthFromMember(MemberInfo field)
         {
             var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var requiredRoles = attributes.Select(c => c.Roles).ToList();
-            var requiredAuth = new RequiredAuthorization(requiredRoles, null);
+            var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
+            var requiredAuth = new RequiredAuthorization(requiredRoles!, null);
             return requiredAuth;
         }
 
         public virtual RequiredAuthorization GetRequiredAuthFromType(Type type)
         {
             var attributes = type.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var requiredRoles = attributes.Select(c => c.Roles).ToList();
-            var requiredAuth = new RequiredAuthorization(requiredRoles, null);
+            var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
+            var requiredAuth = new RequiredAuthorization(requiredRoles!, null);
             return requiredAuth;
         }
     }

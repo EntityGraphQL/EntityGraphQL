@@ -6,10 +6,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         [GraphQLNotNull]
         [Description("The item of the collection")]
-        public TEntity Node { get; set; }
+        public TEntity? Node { get; set; }
 
         [GraphQLNotNull]
         [Description("The cursor for this items position within the collection")]
-        public string Cursor { get; set; }
+        public string? Cursor { get; set; }
     }
 }

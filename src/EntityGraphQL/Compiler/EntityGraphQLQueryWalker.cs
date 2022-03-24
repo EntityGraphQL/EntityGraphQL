@@ -14,19 +14,20 @@ namespace EntityGraphQL.Compiler
     /// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
     /// </summary>
     /// <typeparam name="IGraphQLBaseNode"></typeparam>
-    internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode>
+    internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?>
     {
         private readonly ISchemaProvider schemaProvider;
-        private QueryRequestContext requestContext;
+        private readonly QueryRequestContext requestContext;
 
         /// <summary>
         /// The root - the query document. This is what we "return"
         /// </summary>
         /// <value></value>
-        public GraphQLDocument Document { get; private set; }
+        public GraphQLDocument? Document { get; private set; }
 
-        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider)
+        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryRequestContext context)
         {
+            this.requestContext = context;
             this.schemaProvider = schemaProvider;
         }
 
@@ -35,7 +36,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        protected override void VisitDocument(DocumentNode node, IGraphQLNode context)
+        protected override void VisitDocument(DocumentNode node, IGraphQLNode? context)
         {
             if (context != null)
                 throw new ArgumentException("context should be null", nameof(context));
@@ -43,18 +44,23 @@ namespace EntityGraphQL.Compiler
             context = Document = new GraphQLDocument(schemaProvider.SchemaFieldNamer);
             base.VisitDocument(node, context);
         }
-        protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode context)
+        protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode? context)
         {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null visiting operation definition");
+            if (Document == null)
+                throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
+
             QueryWalkerHelper.ProcessVariableDefinitions(schemaProvider, requestContext.Query.Variables, node);
             var rootParameterContext = Expression.Parameter(schemaProvider.ContextType, $"ctx");
 
             if (node.Operation == OperationType.Query)
             {
-                context = new GraphQLQueryStatement(node.Name?.Value, rootParameterContext, rootParameterContext, context);
+                context = new GraphQLQueryStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context);
             }
             else if (node.Operation == OperationType.Mutation)
             {
-                context = new GraphQLMutationStatement(node.Name?.Value, rootParameterContext, rootParameterContext, context);
+                context = new GraphQLMutationStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context);
             }
             else if (node.Operation == OperationType.Subscription)
             {
@@ -68,14 +74,18 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public void Visit(DocumentNode document, QueryRequestContext context)
+        public void Visit(DocumentNode document)
         {
-            this.requestContext = context;
-            this.Visit(document, (IGraphQLNode)null);
+            this.Visit(document, null);
         }
 
-        protected override void VisitField(FieldNode node, IGraphQLNode context)
+        protected override void VisitField(FieldNode node, IGraphQLNode? context)
         {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null visiting field");
+            if (context.NextFieldContext == null)
+                throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
+
             var fieldName = node.Name.Value;
             string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextFieldContext.Type).Name;
             var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, requestContext);
@@ -99,7 +109,7 @@ namespace EntityGraphQL.Compiler
                     if (mutationType.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
-                        var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext, select.RootParameter, select.RootParameter, context);
+                        var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext!, select.RootParameter, select.RootParameter!, context);
                         foreach (var queryField in select.QueryFields)
                         {
                             newSelect.AddField(queryField);
@@ -112,10 +122,12 @@ namespace EntityGraphQL.Compiler
             }
             else
             {
-                BaseGraphQLField fieldResult = null;
+                BaseGraphQLField? fieldResult = null;
                 var resultName = alias ?? actualField.Name;
 
                 var nodeExpression = actualField.GetExpression(context.NextFieldContext, args);
+                if (nodeExpression == null)
+                    throw new EntityGraphQLCompilerException($"Could not get expression for field {actualField.Name}");
 
                 if (node.SelectionSet != null)
                 {
@@ -140,7 +152,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection)
+        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode? context, SelectionSetNode selection)
         {
             if (fieldContext.ReturnType.IsList)
             {
@@ -157,10 +169,10 @@ namespace EntityGraphQL.Compiler
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
                 var item1 = listExp.Item1;
-                var returnType = schemaProvider.GetSchemaTypeForDotnetType(item1.Type.GetEnumerableOrArrayType());
+                var returnType = schemaProvider.GetSchemaTypeForDotnetType(item1.Type.GetEnumerableOrArrayType()!);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection);
-                return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2);
+                return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2!);
             }
             return graphQLNode;
         }
@@ -169,8 +181,11 @@ namespace EntityGraphQL.Compiler
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerable
         /// </summary>
-        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection)
+        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode? context, SelectionSetNode selection)
         {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null building select on collection");
+
             var elementType = returnType.TypeDotnet;
             var fieldParam = Expression.Parameter(elementType, $"p_{elementType.Name}");
 
@@ -189,9 +204,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="context"></param>
         /// <param name="selectContext"></param>
         /// <returns></returns>
-        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection)
+        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode? context, string name, SelectionSetNode selection)
         {
-            var graphQLNode = new GraphQLObjectProjectionField(actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context);
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null visiting field");
+            if (context.NextFieldContext == null && context.RootParameter == null)
+                throw new EntityGraphQLCompilerException("context.NextFieldContext and context.RootParameter should not be null visiting field");
+            var graphQLNode = new GraphQLObjectProjectionField(actualField.Extensions, name, nodeExpression, (context.NextFieldContext as ParameterExpression ?? context.RootParameter)!, context);
 
             base.VisitSelectionSet(selection, graphQLNode);
 
@@ -208,22 +227,24 @@ namespace EntityGraphQL.Compiler
                     throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
                 }
                 var r = ParseArgument(field, a);
-                return r;
+                return r ?? Expression.Constant(null);
             });
             return args;
         }
 
-        public Expression ParseArgument(IField fieldArgumentContext, ArgumentNode argument)
+        public Expression? ParseArgument(IField fieldArgumentContext, ArgumentNode argument)
         {
             string argName = argument.Name.Value;
             var argType = fieldArgumentContext.GetArgumentType(argName);
             var constVal = QueryWalkerHelper.ProcessArgumentOrVariable(schemaProvider, requestContext.Query.Variables, argument, argType.Type.TypeDotnet);
             Expression argValue = Expression.Constant(constVal);
 
-            if (argValue != null && argValue.Type == typeof(string) && argValue.NodeType == ExpressionType.Constant)
+            if (argValue.Type == typeof(string) && argValue.NodeType == ExpressionType.Constant)
             {
                 if (argType.Type.TypeDotnet.IsConstructedGenericType && argType.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                 {
+                    if (constVal == null)
+                        throw new EntityGraphQLCompilerException($"Argument '{argName}' on field '{fieldArgumentContext.Name}' can not be null");
                     string query = (string)constVal;
                     return BuildEntityQueryExpression(fieldArgumentContext, fieldArgumentContext.Name, argName, query);
                 }
@@ -231,8 +252,9 @@ namespace EntityGraphQL.Compiler
             return argValue;
         }
 
-        private BaseGraphQLField ProcessFieldDirectives(BaseGraphQLField fieldResult, IEnumerable<DirectiveNode> directives)
+        private BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, IEnumerable<DirectiveNode> directives)
         {
+            BaseGraphQLField? fieldResult = field;
             foreach (var directive in directives)
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
@@ -252,7 +274,7 @@ namespace EntityGraphQL.Compiler
             return fieldResult;
         }
 
-        private Expression BuildEntityQueryExpression(IField fieldArgumentContext, string fieldName, string argName, string query)
+        private Expression? BuildEntityQueryExpression(IField fieldArgumentContext, string fieldName, string argName, string query)
         {
             if (string.IsNullOrEmpty(query))
             {
@@ -262,15 +284,17 @@ namespace EntityGraphQL.Compiler
             if (prop == null)
                 throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
 
-            var eqlt = (BaseEntityQueryType)prop.DefaultValue;
+            var eqlt = (BaseEntityQueryType)prop.DefaultValue!;
             var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
             Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, requestContext).ExpressionResult.Expression;
             expression = Expression.Lambda(expression, contextParam);
             return expression;
         }
 
-        protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode context)
+        protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode? context)
         {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context can not be null in VisitFragmentDefinition");
             // top level statement in GQL doc. Defines the fragment fields.
             // Add to the fragments and return null
             var typeName = node.TypeCondition.Name.Value;
@@ -283,12 +307,16 @@ namespace EntityGraphQL.Compiler
             base.VisitFragmentDefinition(node, fragDef);
         }
 
-        protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode context)
+        protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode? context)
         {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("Context is null in FragmentSpread");
+            if (context.RootParameter == null)
+                throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
             var name = node.Name.Value;
-            BaseGraphQLField fragField = new GraphQLFragmentField(name, null, context.RootParameter, context);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(name, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
                 fragField = ProcessFieldDirectives(fragField, node.Directives);

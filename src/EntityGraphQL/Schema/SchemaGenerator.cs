@@ -5,8 +5,10 @@ namespace EntityGraphQL.Schema
 {
     public class SchemaGenerator
     {
-        internal static string EscapeString(string input)
+        internal static string EscapeString(string? input)
         {
+            if (input == null)
+                return "";
             return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
 

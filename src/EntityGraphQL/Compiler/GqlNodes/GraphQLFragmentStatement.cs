@@ -6,9 +6,9 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentStatement : IGraphQLNode
     {
-        public Expression NextFieldContext { get; set; }
-        public IGraphQLNode ParentNode { get; set; }
-        public ParameterExpression RootParameter { get; set; }
+        public Expression? NextFieldContext { get; set; }
+        public IGraphQLNode? ParentNode { get; set; }
+        public ParameterExpression? RootParameter { get; set; }
         public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
 
         public string Name { get; }

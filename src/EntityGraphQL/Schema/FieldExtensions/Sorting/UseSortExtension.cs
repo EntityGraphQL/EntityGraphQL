@@ -16,8 +16,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static Field UseSort<ElementType, ReturnType>(this Field field, Expression<Func<ElementType, ReturnType>> fieldSelection)
         {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseSort must only be called on a field that returns an IEnumerable");
             field.AddExtension(new SortExtension(fieldSelection.ReturnType, null, null));
             return field;
         }
@@ -33,8 +31,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static Field UseSort<ElementType, ReturnType, TSort>(this Field field, Expression<Func<ElementType, ReturnType>> fieldSelection, Expression<Func<ElementType, TSort>> defaultSort, SortDirectionEnum direction)
         {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseSort must only be called on a field that returns an IEnumerable");
             field.AddExtension(new SortExtension(fieldSelection.ReturnType, defaultSort, direction));
             return field;
         }
@@ -49,8 +45,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static Field UseSort<ElementType, TSort>(this Field field, Expression<Func<ElementType, TSort>> defaultSort, SortDirectionEnum direction)
         {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseSort must only be called on a field that returns an IEnumerable");
             field.AddExtension(new SortExtension(null, defaultSort, direction));
             return field;
         }
@@ -63,8 +57,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static Field UseSort(this Field field)
         {
-            if (!field.Resolve.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"UseSort must only be called on a field that returns an IEnumerable");
             field.AddExtension(new SortExtension(null, null, null));
             return field;
         }

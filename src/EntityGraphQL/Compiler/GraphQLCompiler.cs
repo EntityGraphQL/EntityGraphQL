@@ -1,13 +1,11 @@
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
-using System.Buffers;
 using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLCompiler
     {
-        private readonly ArrayPool<byte> pool = ArrayPool<byte>.Shared;
         private readonly ISchemaProvider schemaProvider;
 
         public GraphQLCompiler(ISchemaProvider schemaProvider)
@@ -26,7 +24,7 @@ namespace EntityGraphQL.Compiler
         /// }
         ///
         /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
-        public GraphQLDocument Compile(string query, QueryVariables variables = null, IGqlAuthorizationService authService = null, ClaimsPrincipal user = null)
+        public GraphQLDocument Compile(string query, QueryVariables? variables = null, IGqlAuthorizationService? authService = null, ClaimsPrincipal? user = null)
         {
             if (variables == null)
             {
@@ -34,15 +32,20 @@ namespace EntityGraphQL.Compiler
             }
             return Compile(new QueryRequestContext(new QueryRequest { Query = query, Variables = variables }, authService, user));
         }
-        public GraphQLDocument Compile(QueryRequest query, IGqlAuthorizationService authService = null, ClaimsPrincipal user = null)
+        public GraphQLDocument Compile(QueryRequest query, IGqlAuthorizationService? authService = null, ClaimsPrincipal? user = null)
         {
             return Compile(new QueryRequestContext(query, authService, user));
         }
         public GraphQLDocument Compile(QueryRequestContext context)
         {
+            if (context.Query.Query == null)
+                throw new EntityGraphQLCompilerException($"GraphQL Query can not be null");
+
             DocumentNode document = Utf8GraphQLParser.Parse(context.Query.Query, ParserOptions.Default);
-            var walker = new EntityGraphQLQueryWalker(schemaProvider);
-            walker.Visit(document, context);
+            var walker = new EntityGraphQLQueryWalker(schemaProvider, context);
+            walker.Visit(document);
+            if (walker.Document == null)
+                throw new EntityGraphQLCompilerException($"Error compiling query: {context.Query.Query}");
             return walker.Document;
         }
     }
