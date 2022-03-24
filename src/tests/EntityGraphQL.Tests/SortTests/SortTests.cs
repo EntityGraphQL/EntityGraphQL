@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace EntityGraphQL.Tests
 {
@@ -20,7 +20,7 @@ namespace EntityGraphQL.Tests
                 Query = @"query($sort: PersonSortInput) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
             context.People.Add(new Person
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
                 Query = @"query($sort: PersonSortInput) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
             };
             TestDataContext2 context = new();
             context.FillWithTestData();
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Tests
                 Query = @"query($sort: PersonSortInput) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"height\": \"ASC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"height\": \"ASC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
             context.People.Add(new Person
@@ -178,7 +178,7 @@ namespace EntityGraphQL.Tests
                         tasks(sort: $sort) { id }
                     }
                 }",
-                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
             var tree = schema.ExecuteRequest(gql, context, null, null);
@@ -205,7 +205,7 @@ namespace EntityGraphQL.Tests
                         tasks(sort: $sort) { id }
                     }
                 }",
-                Variables = JsonConvert.DeserializeObject<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
             };
             var context = new TestDataContext().FillWithTestData();
             var tree = schema.ExecuteRequest(gql, context, null, null);

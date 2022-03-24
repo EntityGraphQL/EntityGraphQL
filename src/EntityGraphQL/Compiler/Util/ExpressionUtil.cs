@@ -54,20 +54,13 @@ namespace EntityGraphQL.Compiler.Util
                 return null;
 
             var objType = value.GetType();
-            if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(objType))
-            {
-                value = ((Newtonsoft.Json.Linq.JToken)value).ToObject(type);
-            }
-            else if (type == typeof(Newtonsoft.Json.Linq.JObject))
-            {
-                value = ((Newtonsoft.Json.Linq.JObject)value).ToObject(type);
-            }
-            else if (typeof(JsonElement).IsAssignableFrom(objType))
+            // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
+            if (typeof(JsonElement).IsAssignableFrom(objType))
             {
                 value = ((JsonElement)value).Deserialize(type, new JsonSerializerOptions
                 {
                     IncludeFields = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    PropertyNameCaseInsensitive = true,
                 });
             }
 

@@ -108,8 +108,8 @@ namespace EntityGraphQL.Tests
         }",
                 // object will come through as json in the request
                 Variables = new QueryVariables {
-                            {"names", Newtonsoft.Json.JsonConvert.DeserializeObject("{\"name\": \"Lisa\", \"lastName\": \"Simpson\"}")}
-                        }
+                        { "names", new { name = "Lisa", lastName = "Simpson" } }
+                }
             };
             var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);

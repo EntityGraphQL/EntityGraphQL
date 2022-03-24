@@ -125,6 +125,7 @@ namespace EntityGraphQL.Schema
                         object? value = GetValue(gqlRequestArgs, propName, prop.PropertyType);
                         prop.SetValue(argInstance, value);
                         foundProp = true;
+                        break;
                     }
                 }
                 if (!foundProp)
@@ -137,6 +138,7 @@ namespace EntityGraphQL.Schema
                             object? value = GetValue(gqlRequestArgs, fieldName, field.FieldType);
                             field.SetValue(argInstance, value);
                             foundProp = true;
+                            break;
                         }
                     }
                 }

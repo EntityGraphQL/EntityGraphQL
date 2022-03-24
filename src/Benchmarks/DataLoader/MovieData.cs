@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Benchmarks
 {
@@ -14,14 +14,14 @@ namespace Benchmarks
     public class MoveInfo
     {
         public List<string> Directors { get; set; }
-        [JsonProperty("release_date")]
+        [JsonPropertyName("release_date")]
         public DateTime ReleaseDate { get; set; }
         public float Rating { get; set; }
         public List<string> Genres { get; set; }
         public string ImageUrl { get; set; }
         public string Plot { get; set; }
         public int Rank { get; set; }
-        [JsonProperty("running_time_secs")]
+        [JsonPropertyName("running_time_secs")]
         public int RunningTimeSecs { get; set; }
         public List<string> Actors { get; set; }
     }

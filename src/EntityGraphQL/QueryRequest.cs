@@ -14,6 +14,11 @@ namespace EntityGraphQL
         /// </summary>
         /// <value></value>
         public string? Query { get; set; }
+        /// <summary>
+        /// Variables values for the query.
+        /// It is a Dictionary<string, object?> type. Make sure that object is a resolved .NET type and 
+        /// not a JsonElement/JObject (e.g. turn objects into more dictionaries)
+        /// </summary>
         public QueryVariables? Variables { get; set; }
     }
 
