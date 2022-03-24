@@ -5,6 +5,7 @@
 - Fix bug where compiler would loop through all available arguments even if it already found the matching type
 - Fix argument types of unsigned short/int/long
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
+- Fix #72 - Handling dictionaries introspection
 - Better support for nested objects in `QueryVariables`
 
 # 1.2.1
