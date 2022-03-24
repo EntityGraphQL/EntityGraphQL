@@ -112,6 +112,26 @@ namespace demo.Mutations
 
             return (ctx) => ctx.People.Where(p => p.FirstName == person.FirstName);
         }
+        [GraphQLMutation]
+        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor3(DemoContext db, [MutationArguments] AddActor3Args args)
+        {
+            var person = new Person
+            {
+                Id = (uint)new Random().Next(),
+                FirstName = args.Names.First(),
+                LastName = args.Names.Last(),
+            };
+            db.People.Add(person);
+            var actor = new Actor
+            {
+                MovieId = args.MovieId,
+                Person = person,
+            };
+            db.Actors.Add(actor);
+            db.SaveChanges();
+
+            return (ctx) => ctx.People.Where(p => p.FirstName == person.FirstName);
+        }
     }
 
     /// <summary>
@@ -137,6 +157,12 @@ namespace demo.Mutations
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public uint MovieId { get; set; }
+    }
+
+    public class AddActor3Args
+    {
+        public List<string> Names { get; set; }
         public uint MovieId { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -57,11 +58,34 @@ namespace EntityGraphQL.Compiler.Util
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
             if (typeof(JsonElement).IsAssignableFrom(objType))
             {
-                value = ((JsonElement)value).Deserialize(type, new JsonSerializerOptions
+                var jsonEle = (JsonElement)value;
+                if (jsonEle.ValueKind == JsonValueKind.Object)
                 {
-                    IncludeFields = true,
-                    PropertyNameCaseInsensitive = true,
-                });
+                    value = Activator.CreateInstance(type);
+                    foreach (var item in jsonEle.EnumerateObject())
+                    {
+                        var prop = type.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                        if (prop != null)
+                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType));
+                        else
+                        {
+                            var field = type.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                            if (field != null)
+                                field.SetValue(value, ChangeType(item.Value, field.FieldType));
+                        }
+                    }
+                    return value;
+                }
+                if (jsonEle.ValueKind == JsonValueKind.Array)
+                {
+                    var eleType = type.GetEnumerableOrArrayType()!;
+                    var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                    foreach (var item in jsonEle.EnumerateArray())
+                        list.Add(ChangeType(item, eleType));
+                    return list;
+                }
+                value = jsonEle.ToString();
+                objType = value.GetType();
             }
 
             if (value == null)
@@ -94,7 +118,18 @@ namespace EntityGraphQL.Compiler.Util
             var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
             if (argumentNonNullType.GetTypeInfo().IsEnum)
             {
-                return Enum.ToObject(argumentNonNullType, value);
+                return valueNonNullType == typeof(string) ? Enum.Parse(argumentNonNullType, (string)value) : Enum.ToObject(argumentNonNullType, value);
+            }
+            if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
+            {
+                // Might be a better/faster way?
+                var options = new JsonSerializerOptions
+                {
+                    IncludeFields = true,
+                    PropertyNameCaseInsensitive = true,
+                };
+                value = JsonSerializer.Deserialize(JsonSerializer.Serialize(value, options), type, options);
+                return value;
             }
             if (argumentNonNullType != valueNonNullType)
             {

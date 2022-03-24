@@ -2,6 +2,10 @@
 
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`. Worth noting that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` functions provided to the `SchemaProvider` which defaults to GraphQL "standards" (fields camelCase, types PascalCase)
 - Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
+- Fix bug where compiler would loop through all available arguments even if it already found the matching type
+- Fix argument types of unsigned short/int/long
+- Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
+- Better support for nested objects in `QueryVariables`
 
 # 1.2.1
 
