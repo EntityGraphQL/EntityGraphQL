@@ -4,6 +4,9 @@ Beraking changes
 
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
+- `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
+
+Other changes
 
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.
   - _Note that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` function provided to the `SchemaProvider` which defaults to GraphQL "standard" (fields camelCase, types PascalCase)_

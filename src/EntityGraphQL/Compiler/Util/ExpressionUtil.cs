@@ -122,8 +122,12 @@ namespace EntityGraphQL.Compiler.Util
             }
             if (fromType.IsDictionary())
             {
+                // handle dictionary of dictionary representing the objects
+                if (fromType.GetGenericArguments()[0] != typeof(string))
+                    throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
+
                 var newValue = Activator.CreateInstance(toType);
-                foreach (string key in ((IDictionary)value).Keys)
+                foreach (string key in ((IDictionary<string, object>)value).Keys)
                 {
                     var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
                     if (toProp != null)

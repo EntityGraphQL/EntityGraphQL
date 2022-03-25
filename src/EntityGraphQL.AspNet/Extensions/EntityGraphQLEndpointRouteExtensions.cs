@@ -1,8 +1,7 @@
 using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,12 +17,12 @@ namespace EntityGraphQL.AspNet
             {
                 if (context.Request.ContentType != "application/json")
                 {
-                    context.Response.StatusCode = 415;
+                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
                 }
                 if (context.Request.ContentLength == null || context.Request.ContentLength == 0)
                 {
-                    context.Response.StatusCode = 400;
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
                 }
 
@@ -40,6 +39,10 @@ namespace EntityGraphQL.AspNet
 
                 var data = await schema.ExecuteRequestAsync(query, schemaContext, context.RequestServices, context.User, options);
                 context.Response.ContentType = "application/json; charset=utf-8";
+                if (data.Errors?.Count > 0)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                }
                 var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                 await serializer.SerializeAsync(context.Response.Body, data);
             });

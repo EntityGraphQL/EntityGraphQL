@@ -20,18 +20,18 @@
     <PackageReference Include="Antlr4" Version="4.6.6" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.7.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
-    <PackageReference Include="HotChocolate.Language" Version="11.3.5" />
+    <PackageReference Include="HotChocolate.Language" Version="12.7.0" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath=""/>
+  </ItemGroup>
+  <ItemGroup>
     <Antlr4 Update="Compiler/Grammer/EntityQL.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>EntityQL.Grammer</CustomToolNamespace>
