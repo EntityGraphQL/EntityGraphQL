@@ -59,7 +59,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
             returnType = returnSchemaType.TypeDotnet;
 
-            field.UpdateReturnType(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
+            field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
 
             // Update field arguments
             field.AddArguments(new OffsetArgs());

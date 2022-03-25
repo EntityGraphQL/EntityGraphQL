@@ -59,7 +59,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field), schema.SchemaFieldNamer);
+                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -142,7 +142,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -159,7 +159,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
             fieldsByName[field.Name] = field;
             return field;
         }
@@ -178,7 +178,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
             fieldsByName[field.Name] = field;
             return field;
         }
