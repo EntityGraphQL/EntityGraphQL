@@ -145,7 +145,7 @@ namespace EntityGraphQL.Compiler
             }
 
             // evaluate everything
-            if (expression.Type.IsEnumerableOrArray())
+            if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
             {
                 expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
             }
