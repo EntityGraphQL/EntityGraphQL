@@ -555,7 +555,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Type GetTypeFromMutationReturn(Type type)
         {
-            if (type.GetTypeInfo().BaseType == typeof(LambdaExpression))
+            if (type.BaseType == typeof(LambdaExpression))
             {
                 // This should be Expression<Func<Context, ReturnType>>
                 type = type.GetGenericArguments()[0].GetGenericArguments()[1];
@@ -594,7 +594,7 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description)
         {
-            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, false, false, true);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, SchemaFieldNamer, false, false, true);
             types.Add(gqlTypeName, schemaType);
             return schemaType;
         }

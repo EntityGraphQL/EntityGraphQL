@@ -18,17 +18,17 @@ Examples:
 To override the default behaviour you can pass in your own `fieldNamer` function when creating the `SchemaProvider` or configuring it.
 
 ```
-services.AddGraphQLSchema<DemoContext>(builder => {
-    builder.FieldNamer = name => name; // use the dotnet name as is
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.FieldNamer = name => name; // use the dotnet name as is
 });
 ```
 
 Then make sure you follow your naming policy when adding fields to the schema.
 
 ```
-services.AddGraphQLSchema<DemoContext>(builder => {
-    builder.FieldNamer = name => name; // use the dotnet name as is
-    builder.ConfigureSchema = schema => {
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.FieldNamer = name => name; // use the dotnet name as is
+    options.ConfigureSchema = schema => {
         schema.AddField("SomeField", ...)
     };
 });
@@ -140,9 +140,9 @@ var jsonOptions.Converters.Add(new JsonStringEnumConverter());
 services.AddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer(jsonOptions));
 services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
 
-services.AddGraphQLSchema<DemoContext>(builder =>
+services.AddGraphQLSchema<DemoContext>(options =>
 {
-    builder.FieldNamer = name => name;
+    options.FieldNamer = name => name;
 });
 ```
 

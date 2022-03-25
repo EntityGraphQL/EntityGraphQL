@@ -110,7 +110,7 @@ namespace EntityGraphQL.Schema
             var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type);
             var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
-            var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
+            var argTypesValue = Activator.CreateInstance(argTypes);
             var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
             Type arrayContextType = schemaType.TypeDotnet;
             var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
@@ -179,7 +179,19 @@ namespace EntityGraphQL.Schema
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
-            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
+            Type returnType;
+            if (le.ReturnType.IsDictionary())
+            {
+                // check for dictionaries
+                if (!createNewComplexTypes)
+                    return null;
+                Type[] genericTypeArguments = le.ReturnType.GenericTypeArguments;
+                returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
+                if (!schema.HasType(returnType))
+                    schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
+            }
+            else
+                returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
@@ -207,7 +219,7 @@ namespace EntityGraphQL.Schema
 
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
-                var typeInfo = propType.GetTypeInfo();
+                var typeInfo = propType;
                 string description = "";
                 var d = (DescriptionAttribute)typeInfo.GetCustomAttribute(typeof(DescriptionAttribute), false);
                 if (d != null)
@@ -235,7 +247,7 @@ namespace EntityGraphQL.Schema
                     var t = schema.AddEnum(propType.Name, propType, description);
                     return t;
                 }
-                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).GetTypeInfo().IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
+                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
                 {
                     Type type = Nullable.GetUnderlyingType(propType);
                     var t = schema.AddEnum(type.Name, type, description);

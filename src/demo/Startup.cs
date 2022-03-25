@@ -51,14 +51,14 @@ namespace demo
             // services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
             // Or you could overrise the whole inferface and do something other than JSON
 
-            services.AddGraphQLSchema<DemoContext>(builder =>
+            services.AddGraphQLSchema<DemoContext>(options =>
             {
-                builder.PreBuildSchemaFromContext = schema =>
+                options.PreBuildSchemaFromContext = schema =>
                 {
                     // add in needed mappings for our context
                     schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
                 };
-                builder.ConfigureSchema = GraphQLSchema.ConfigureSchema;
+                options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
                 // this will generate the field names as they are from the reflected dotnet types
                 // builder.FieldNamer = name => name;
             });

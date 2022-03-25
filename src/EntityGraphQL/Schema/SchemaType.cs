@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
         {
             if (IsEnum)
             {
-                foreach (var field in TypeDotnet.GetTypeInfo().GetFields())
+                foreach (var field in TypeDotnet.GetFields())
                 {
                     if (field.Name == "value__")
                         continue;

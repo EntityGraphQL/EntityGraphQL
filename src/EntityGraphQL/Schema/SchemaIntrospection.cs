@@ -109,7 +109,7 @@
                         continue;
 
                     // Skipping ENUM type
-                    if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                    if (field.ReturnType.TypeDotnet.IsEnum)
                         continue;
 
                     inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true))
@@ -176,7 +176,7 @@
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = BuildType(schema, typeInfo, clrType.GetEnumerableOrArrayType()!, isInput);
+                type.OfType = BuildType(schema, typeInfo, typeInfo.SchemaType.TypeDotnet, isInput);
             }
             else if (clrType.Name == "EntityQueryType`1")
             {
@@ -184,7 +184,7 @@
                 type.Name = "String";
                 type.OfType = null;
             }
-            else if (clrType.GetTypeInfo().IsEnum)
+            else if (clrType.IsEnum)
             {
                 type.Kind = "ENUM";
                 type.Name = typeInfo.SchemaType.Name;
@@ -261,7 +261,7 @@
                     continue;
 
                 // Skipping ENUM type
-                if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                if (field.ReturnType.TypeDotnet.IsEnum)
                     continue;
 
                 //== Fields ==//

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -26,8 +27,18 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
+                    Stopwatch? timer = null;
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer = new Stopwatch();
+                        timer.Start();
+                    }
                     var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options);
-
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer?.Stop();
+                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                    }
                     result[node.Name] = data;
                 }
                 catch (Exception ex)

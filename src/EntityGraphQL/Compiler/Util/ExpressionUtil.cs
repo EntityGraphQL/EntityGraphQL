@@ -49,27 +49,27 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static object? ChangeType(object? value, Type type)
+        public static object? ChangeType(object? value, Type toType)
         {
             if (value == null)
                 return null;
 
-            var objType = value.GetType();
+            var fromType = value.GetType();
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            if (typeof(JsonElement).IsAssignableFrom(objType))
+            if (typeof(JsonElement).IsAssignableFrom(fromType))
             {
                 var jsonEle = (JsonElement)value;
                 if (jsonEle.ValueKind == JsonValueKind.Object)
                 {
-                    value = Activator.CreateInstance(type);
+                    value = Activator.CreateInstance(toType);
                     foreach (var item in jsonEle.EnumerateObject())
                     {
-                        var prop = type.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                         if (prop != null)
                             prop.SetValue(value, ChangeType(item.Value, prop.PropertyType));
                         else
                         {
-                            var field = type.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                            var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                             if (field != null)
                                 field.SetValue(value, ChangeType(item.Value, field.FieldType));
                         }
@@ -78,58 +78,76 @@ namespace EntityGraphQL.Compiler.Util
                 }
                 if (jsonEle.ValueKind == JsonValueKind.Array)
                 {
-                    var eleType = type.GetEnumerableOrArrayType()!;
+                    var eleType = toType.GetEnumerableOrArrayType()!;
                     var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
                     foreach (var item in jsonEle.EnumerateArray())
                         list.Add(ChangeType(item, eleType));
                     return list;
                 }
                 value = jsonEle.ToString();
-                objType = value.GetType();
+                fromType = value.GetType();
             }
 
             if (value == null)
                 return null;
 
-            if (type != typeof(string) && objType == typeof(string))
+            if (toType != typeof(string) && fromType == typeof(string))
             {
-                if (type == typeof(double) || type == typeof(double?))
+                if (toType == typeof(double) || toType == typeof(double?))
                     return double.Parse((string)value);
-                if (type == typeof(float) || type == typeof(float?))
+                if (toType == typeof(float) || toType == typeof(float?))
                     return float.Parse((string)value);
-                if (type == typeof(int) || type == typeof(int?))
+                if (toType == typeof(int) || toType == typeof(int?))
                     return int.Parse((string)value);
-                if (type == typeof(uint) || type == typeof(uint?))
+                if (toType == typeof(uint) || toType == typeof(uint?))
                     return uint.Parse((string)value);
-                if (type == typeof(DateTime) || type == typeof(DateTime?))
+                if (toType == typeof(DateTime) || toType == typeof(DateTime?))
                     return DateTime.Parse((string)value);
-                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
+                if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                     return DateTimeOffset.Parse((string)value);
             }
-            else if (type != typeof(long) && objType == typeof(long))
+            else if (toType != typeof(long) && fromType == typeof(long))
             {
-                if (type == typeof(DateTime) || type == typeof(DateTime?))
+                if (toType == typeof(DateTime) || toType == typeof(DateTime?))
                     return new DateTime((long)value!);
-                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
+                if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                     return new DateTimeOffset((long)value!, TimeSpan.Zero);
             }
 
-            var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
-            var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
-            if (argumentNonNullType.GetTypeInfo().IsEnum)
+            var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType) : toType;
+            var valueNonNullType = fromType.IsNullableType() ? Nullable.GetUnderlyingType(fromType) : fromType;
+            if (argumentNonNullType.IsEnum)
             {
                 return valueNonNullType == typeof(string) ? Enum.Parse(argumentNonNullType, (string)value) : Enum.ToObject(argumentNonNullType, value);
             }
+            if (fromType.IsDictionary())
+            {
+                var newValue = Activator.CreateInstance(toType);
+                foreach (string key in ((IDictionary)value).Keys)
+                {
+                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                    if (toProp != null)
+                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType));
+                    else
+                    {
+                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                        if (toField != null)
+                            toField.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType));
+                    }
+                }
+                return newValue;
+            }
+            if (toType.IsEnumerableOrArray())
+            {
+                var eleType = toType.GetEnumerableOrArrayType()!;
+                var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                foreach (var item in (IEnumerable)value)
+                    list.Add(ChangeType(item, eleType));
+                return list;
+            }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
             {
-                // Might be a better/faster way?
-                var options = new JsonSerializerOptions
-                {
-                    IncludeFields = true,
-                    PropertyNameCaseInsensitive = true,
-                };
-                value = JsonSerializer.Deserialize(JsonSerializer.Serialize(value, options), type, options);
-                return value;
+                return ConvertObjectType(value, toType, fromType);
             }
             if (argumentNonNullType != valueNonNullType)
             {
@@ -137,6 +155,36 @@ namespace EntityGraphQL.Compiler.Util
                 return newVal;
             }
             return value;
+        }
+
+        public static object ConvertObjectType(object? value, Type toType, Type valueObjType)
+        {
+            var newValue = Activator.CreateInstance(toType);
+            foreach (var toField in toType.GetFields())
+            {
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                if (fromProp != null)
+                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType));
+                else
+                {
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                    if (fromField != null)
+                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType));
+                }
+            }
+            foreach (var toProperty in toType.GetProperties())
+            {
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                if (fromProp != null)
+                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType));
+                else
+                {
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                    if (fromField != null)
+                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType));
+                }
+            }
+            return newValue;
         }
 
         public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes, Func<string, string> fieldNamer)

@@ -27,7 +27,7 @@ namespace EntityGraphQL.Schema
 
         private void Init()
         {
-            TypeNotNullable = !nullableValueTypes && TypeDotnet.GetTypeInfo().IsValueType && !TypeDotnet.IsNullableType();
+            TypeNotNullable = !nullableValueTypes && TypeDotnet.IsValueType && !TypeDotnet.IsNullableType();
             IsList = TypeDotnet.IsEnumerableOrArray();
         }
 
