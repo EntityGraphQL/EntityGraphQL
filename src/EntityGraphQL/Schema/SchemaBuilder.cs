@@ -85,7 +85,7 @@ namespace EntityGraphQL.Schema
                     // add non-pural field with argument of ID
                     AddFieldWithIdArgumentIfExists(schema, contextType, f, fieldNamer);
                 }
-                schema.AddField(f);
+                schema.Query().AddField(f);
             }
             return schema;
         }
@@ -133,7 +133,7 @@ namespace EntityGraphQL.Schema
                 name = $"{fieldProp.Name}ById";
             }
             var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization, fieldNamer);
-            schema.AddField(field);
+            schema.Query().AddField(field);
         }
 
         public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<string, string> fieldNamer, bool createNewComplexTypes = true)
@@ -195,7 +195,7 @@ namespace EntityGraphQL.Schema
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(returnType), le.Body.Type);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims, fieldNamer);
 
             var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
@@ -263,7 +263,7 @@ namespace EntityGraphQL.Schema
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
         {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.Type(returnType.GetNonNullableOrEnumerableType()), returnType);
+            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType()), returnType);
         }
     }
 }

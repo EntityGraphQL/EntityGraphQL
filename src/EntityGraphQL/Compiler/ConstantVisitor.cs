@@ -64,7 +64,7 @@ namespace EntityGraphQL.Compiler
                 throw new InvalidOperationException("Schema is not set");
             // this should be an enum
             var enumVal = context.GetText();
-            var enumField = schema.EnumTypes()
+            var enumField = schema.GetEnumTypes()
                 .Select(e => e.GetFields().FirstOrDefault(f => f.Name == enumVal))
                 .Where(f => f != null)
                 .FirstOrDefault();

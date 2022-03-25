@@ -17,20 +17,20 @@ namespace EntityGraphQL.Tests
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Location", "id", Array.Empty<string>(), null));
-            Assert.True(provider.TypeHasField("Location", "address", Array.Empty<string>(), null));
-            Assert.True(provider.TypeHasField("Location", "state", Array.Empty<string>(), null));
-            Assert.True(provider.TypeHasField("Location", "country", Array.Empty<string>(), null));
-            Assert.True(provider.TypeHasField("Location", "planet", Array.Empty<string>(), null));
+            Assert.True(provider.Type("Location").HasField("id", null));
+            Assert.True(provider.Type("Location").HasField("address", null));
+            Assert.True(provider.Type("Location").HasField("state", null));
+            Assert.True(provider.Type("Location").HasField("country", null));
+            Assert.True(provider.Type("Location").HasField("planet", null));
         }
         [Fact]
         public void ExposesDefinedFields()
         {
             var provider = new TestObjectGraphSchema();
-            Assert.True(provider.TypeHasField("Person", "id", Array.Empty<string>(), null));
-            Assert.True(provider.TypeHasField("Person", "name", Array.Empty<string>(), null));
+            Assert.True(provider.Type("Person").HasField("id", null));
+            Assert.True(provider.Type("Person").HasField("name", null));
             // Not exposed in our schema
-            Assert.True(provider.TypeHasField("Person", "fullName", Array.Empty<string>(), null));
+            Assert.True(provider.Type("Person").HasField("fullName", null));
         }
         [Fact]
         public void ReturnsActualName()
@@ -55,7 +55,7 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualField("Project", "id", null).Name);
             schema.RemoveTypeAndAllFields<Project>();
-            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
+            Assert.Empty(schema.Query().GetFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }
         [Fact]
         public void RemovesTypeAndFields2()
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Tests
             var schema = new TestObjectGraphSchema();
             Assert.Equal("id", schema.GetActualField("Project", "id", null).Name);
             schema.RemoveTypeAndAllFields("Project");
-            Assert.Empty(schema.GetQueryFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
+            Assert.Empty(schema.Query().GetFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }
     }
 }

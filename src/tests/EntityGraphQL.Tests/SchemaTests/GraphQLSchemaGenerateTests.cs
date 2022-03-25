@@ -135,7 +135,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
             schemaProvider.Type<Album>().RemoveField("old");
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("hiddenField", schema);
             // this exists as it is available for querying
             Assert.Contains("type Album {\n\tid: Int!\n\tname: String!\n\thiddenInputField: String\n\tgenre: Genre!\n}", schema);
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.Contains("addAlbum2(name: String!, genre: Genre!): [Album!]", schema);
         }
 
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.Type<Album>().RemoveField("old");
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("type Album {\n\tid: Int!\n\tname: String!\n\thiddenInputField: String\n\tgenre: Genre!\n}", schema);
         }
@@ -166,7 +166,7 @@ namespace EntityGraphQL.Tests
         public void TestNullableEnumInType()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("type Artist {\n\tid: Int!\n\ttype: ArtistType\n}", schema);
         }
@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
         }
@@ -184,7 +184,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("albums: [Album!]", schema);
         }
@@ -193,7 +193,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("nullAlbums: [Album]", schema);
         }
@@ -202,7 +202,7 @@ namespace EntityGraphQL.Tests
         public void TestDeprecatedField()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("old: Int! @deprecated(reason: \"because\")", schema);
         }
@@ -211,7 +211,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
             schemaProvider.AddMutationFrom(new IgnoreTestMutations());
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("addAlbumOld(name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
         }
@@ -219,7 +219,7 @@ namespace EntityGraphQL.Tests
         public void TestDeprecatedEnumField()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
-            var schema = schemaProvider.GetGraphQLSchema();
+            var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("Obsolete @deprecated(reason: \"This is an obsolete genre\")", schema);
         }

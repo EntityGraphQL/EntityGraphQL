@@ -61,10 +61,10 @@ fragment info on Person {
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.AddField("activeProjects",
+            schema.Query().AddField("activeProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Active projects").IsNullable(false);
-            schema.AddField("oldProjects",
+            schema.Query().AddField("oldProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Old projects").IsNullable(false);
 

@@ -55,16 +55,19 @@ namespace EntityGraphQL.Tests
                 // Now we defined what fields are at the root of the graph
 
                 // Name is inferred. Schema type is inferred
-                AddField(ctx => ctx.Locations, "All locations in the world");
-                // name is inferred. schema type is inferred by the Type contained in People<Person>
-                AddField(ctx => ctx.People, "All our people");
-                // name required - creating a filtered view. Schema type required
-                AddField("publicProjects", ctx => ctx.Projects.Where(p => p.Type == 2), "All projects marked as public");
-                AddField("privateProjects", ctx => ctx.Projects.Where(p => p.Type == 1), "All privately held projects");
-                // providing the schema type `openTask` will automatically apply the filter
-                AddField("openTasks", ctx => ctx.Tasks.Where(t => t.IsActive), "All open tasks for all projects");
-                AddField("closedTasks", ctx => ctx.Tasks.Where(t => !t.IsActive), "All closedtasks for all projects");
-                AddField("defaultLocation", ctx => ctx.Locations.First(l => l.Id == 10), "The default location for projects");
+                UpdateQuery(query =>
+                {
+                    query.AddField(ctx => ctx.Locations, "All locations in the world");
+                    // name is inferred. schema type is inferred by the Type contained in People<Person>
+                    query.AddField(ctx => ctx.People, "All our people");
+                    // name required - creating a filtered view. Schema type required
+                    query.AddField("publicProjects", ctx => ctx.Projects.Where(p => p.Type == 2), "All projects marked as public");
+                    query.AddField("privateProjects", ctx => ctx.Projects.Where(p => p.Type == 1), "All privately held projects");
+                    // providing the schema type `openTask` will automatically apply the filter
+                    query.AddField("openTasks", ctx => ctx.Tasks.Where(t => t.IsActive), "All open tasks for all projects");
+                    query.AddField("closedTasks", ctx => ctx.Tasks.Where(t => !t.IsActive), "All closedtasks for all projects");
+                    query.AddField("defaultLocation", ctx => ctx.Locations.First(l => l.Id == 10), "The default location for projects");
+                });
             }
         }
     }

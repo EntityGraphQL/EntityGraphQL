@@ -22,8 +22,6 @@ namespace EntityGraphQL.Authorization
             Roles = roles.ToList();
         }
 
-        [Obsolete("Use Roles instead")]
-        public List<string>? Claims { get => Roles; set => Roles = value; }
         /// <summary>
         /// Gets or sets the roles name that determines access to the resource.
         /// </summary>

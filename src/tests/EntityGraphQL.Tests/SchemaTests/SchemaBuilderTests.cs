@@ -19,33 +19,33 @@ namespace EntityGraphQL.Tests
         public void CachesPublicProperties()
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "id", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "relation", Array.Empty<string>(), null));
-            Assert.False(schema.TypeHasField(typeof(TestEntity), "notthere", Array.Empty<string>(), null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity)).HasField("id", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity)).HasField("field1", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity)).HasField("relation", null));
+            Assert.False(schema.GetSchemaType(typeof(TestEntity)).HasField("notthere", null));
         }
         [Fact]
         public void CachesPublicFields()
         {
             var schema = SchemaBuilder.FromObject<Person>();
-            Assert.True(schema.TypeHasField(typeof(Person), "id", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(Person), "name", Array.Empty<string>(), null));
+            Assert.True(schema.GetSchemaType(typeof(Person)).HasField("id", null));
+            Assert.True(schema.GetSchemaType(typeof(Person)).HasField("name", null));
         }
         [Fact]
         public void CachesRecursively()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            Assert.True(schema.TypeHasField(typeof(TestSchema), "someRelation", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(Person), "name", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(TestEntity), "field1", Array.Empty<string>(), null));
+            Assert.True(schema.GetSchemaType(typeof(TestSchema)).HasField("someRelation", null));
+            Assert.True(schema.GetSchemaType(typeof(Person)).HasField("name", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity)).HasField("field1", null));
         }
         [Fact]
         public void AllowsExtending()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.Type<Person>().AddField("idAndName", p => p.Id + " " + p.Name, "The Id and Name");
-            Assert.True(schema.TypeHasField(typeof(Person), "name", Array.Empty<string>(), null));
-            Assert.True(schema.TypeHasField(typeof(Person), "idAndName", Array.Empty<string>(), null));
+            Assert.True(schema.Type<Person>().HasField("name", null));
+            Assert.True(schema.Type<Person>().HasField("idAndName", null));
         }
         [Fact]
         public void CanNotOverrideExistingType()
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Tests
             // Grpahql doesn't support "field overloading"
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
             // user(id: ID) already created
-            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.Query().AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
             Assert.Equal("Field people already exists on type Query. Use ReplaceField() if this is intended.", ex.Message);
         }
         // This would be your Entity/Object graph you use with EntityFramework

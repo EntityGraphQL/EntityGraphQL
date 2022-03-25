@@ -33,7 +33,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
-            schema.AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
+            schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schema).Compile(@"query {
         	user(id: 100, something: false) { id }
         }");
@@ -49,7 +49,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
-            schema.AddField("user", new { id = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                 user { id }
             }"));
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
-            schema.AddField("user", new { id = ArgumentHelper.Required<int>(), h = ArgumentHelper.Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
+            schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), h = ArgumentHelper.Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
                         user { id }
                     }"));
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a default parameter
-            schema.AddField("me", new { id = 100 }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
+            schema.Query().AddField("me", new { id = 100 }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
             var tree = new GraphQLCompiler(schema).Compile(@"query {
                         me { id }
                     }");
@@ -225,7 +225,7 @@ namespace EntityGraphQL.Tests
         public void FloatArg()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("users", new
+            schema.Query().ReplaceField("users", new
             {
                 f = (float?)null,
             },
@@ -245,7 +245,7 @@ namespace EntityGraphQL.Tests
         public void StringArg()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("users", new
+            schema.Query().ReplaceField("users", new
             {
                 str = (string)null,
             },
@@ -265,7 +265,7 @@ namespace EntityGraphQL.Tests
         public void ListArg()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("people", new
+            schema.Query().ReplaceField("people", new
             {
                 names = (List<string>)null
             },
@@ -296,7 +296,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddInputType<PersonArg>("PersonArg", "PersonArgs").AddAllFields();
-            schema.ReplaceField("people", new
+            schema.Query().ReplaceField("people", new
             {
                 options = (PersonArg)null
             },
@@ -324,7 +324,7 @@ namespace EntityGraphQL.Tests
         }
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
-            schema.ReplaceField("person",
+            schema.Query().ReplaceField("person",
                             new
                             {
                                 id = ArgumentHelper.Required<Guid>()

@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -166,7 +166,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -265,7 +265,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField(
+            schema.Query().ReplaceField(
                 "people",
                 new
                 {
@@ -323,7 +323,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(defaultPageSize: 2);
             var gql = new QueryRequest
             {
@@ -373,7 +373,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
@@ -400,7 +400,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {

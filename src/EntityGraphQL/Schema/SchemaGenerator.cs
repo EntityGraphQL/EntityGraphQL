@@ -148,7 +148,7 @@ type {rootQueryType.Name} {{
         {
             var sb = new StringBuilder();
 
-            foreach (var t in schema.GetQueryFields().OrderBy(s => s.Name))
+            foreach (var t in schema.Type(schema.QueryContextName).GetFields().OrderBy(s => s.Name))
             {
                 if (t.Name.StartsWith("__"))
                     continue;

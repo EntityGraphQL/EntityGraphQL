@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseConnectionPaging();
@@ -58,7 +58,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseOffsetPaging();
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseOffsetPaging();
@@ -142,7 +142,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseConnectionPaging();

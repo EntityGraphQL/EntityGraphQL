@@ -139,7 +139,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims, Func<string, string> fieldNamer)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims, Func<string, string> fieldNamer)
             : this(schema, name, resolve, description, returnType, claims, fieldNamer)
         {
             if (argTypes != null)
@@ -149,40 +149,9 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public bool HasArgumentByName(string argName)
-        {
-            return allArguments.ContainsKey(argName);
-        }
-
         public ArgType GetArgumentType(string argName)
         {
             return allArguments[argName];
-        }
-
-        /// <summary>
-        /// To access this field all claims listed here are required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAllRoles")]
-        public Field RequiresAllClaims(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllRoles(claims);
-            return this;
-        }
-
-        /// <summary>
-        /// To access this field any claims listed is required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAnyRole")]
-        public Field RequiresAnyClaim(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAnyRole(claims);
-            return this;
         }
 
         /// <summary>
@@ -252,6 +221,12 @@ namespace EntityGraphQL.Schema
         {
             ReturnType.TypeNotNullable = !nullable;
 
+            return this;
+        }
+
+        public Field Returns(string schemaTypeName)
+        {
+            UpdateReturnType(new GqlTypeInfo(() => schema.Type(schemaTypeName), schema.Type(schemaTypeName).TypeDotnet));
             return this;
         }
 

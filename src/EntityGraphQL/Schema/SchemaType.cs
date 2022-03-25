@@ -18,18 +18,16 @@ namespace EntityGraphQL.Schema
         public bool IsScalar { get; }
         public RequiredAuthorization? RequiredAuthorization { get; set; }
 
-        private readonly Func<string, string> fieldNamer;
+        public string? Description { get; internal set; }
 
-        public string Description { get; internal set; }
+        private readonly Dictionary<string, Field> fieldsByName = new();
 
-        private readonly Dictionary<string, Field> _fieldsByName = new();
-
-        public SchemaType(ISchemaProvider schema, string name, string description, RequiredAuthorization? requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, fieldNamer, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string description, RequiredAuthorization? requiredAuthorization, Func<string, string> fieldNamer, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
         {
             this.schema = schema;
             TypeDotnet = dotnetType;
@@ -39,11 +37,17 @@ namespace EntityGraphQL.Schema
             IsEnum = isEnum;
             IsScalar = isScalar;
             RequiredAuthorization = requiredAuthorization;
-            this.fieldNamer = fieldNamer;
             if (!isScalar)
-                AddField("__typename", t => name, "Type name", null).IsNullable(false);
+                AddField("__typename", t => name, "Type name").IsNullable(false);
         }
 
+        /// <summary>
+        /// Using reflection, add all the public Fields and Properties from the dotnet type as fields on the 
+        /// schema type. Quick helper method to build out schemas
+        /// </summary>
+        /// <param name="autoCreateNewComplexTypes"></param>
+        /// <param name="autoCreateEnumTypes"></param>
+        /// <returns>The schema type the fields were added to</returns>
         public ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
         {
             if (IsEnum)
@@ -55,7 +59,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.Type(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field), fieldNamer);
+                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field), schema.SchemaFieldNamer);
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {
@@ -80,150 +84,179 @@ namespace EntityGraphQL.Schema
                 AddField(f);
             }
         }
-        /// <summary>
-        /// Add a field from a type expression. The name to converted to lowerCamelCase
-        /// </summary>
-        /// <param name="fieldSelection"></param>
-        /// <param name="description"></param>
-        /// <param name="returnSchemaType"></param>
-        /// <typeparam name="TReturn"></typeparam>
-        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
-        {
-            var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description, returnSchemaType);
-        }
-
         public Field AddField(Field field)
         {
-            if (_fieldsByName.ContainsKey(field.Name))
+            if (fieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
-            _fieldsByName.Add(field.Name, field);
-            if (!_fieldsByName.ContainsKey(field.Name))
-                _fieldsByName.Add(field.Name, field);
-            return field;
-        }
-        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
-        {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
-
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            this.AddField(field);
-            return field;
-        }
-
-        public Field AddField<TService, TReturn>(string name, Expression<Func<TBaseType, TService, TReturn>> fieldSelection, string description, string? returnSchemaType = null)
-        {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
-
-            var field = new Field(schema, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            this.AddField(field);
-            return field;
-        }
-        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
-        {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
-
-            var field = new Field(schema, name, selectionExpression, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            _fieldsByName[field.Name] = field;
+            fieldsByName.Add(field.Name, field);
             return field;
         }
 
         /// <summary>
-        /// Add a field with arguments.
+        /// Add a field from a simple member expression type e.g. ctx => ctx.SomeMember. The member name will be converted with fieldNamer for the field name
+        /// Throws an exception if the member is not a simple member expression
+        /// Throws an exception if the field already exists
+        /// </summary>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <param name="fieldSelection">An expression to resolve the field. Has to be a simple member expression</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
+        {
+            var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
+            return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description);
+        }
+
+        /// <summary>
+        /// Add a field with an expression to resolve it.
+        /// Throws an exception if the field already exists
+        /// </summary>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
+        {
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            this.AddField(field);
+            return field;
+        }
+
+        /// <summary>
+        /// Add a field with arguments. and an expression to resolve the value
         ///     field(arg: val)
+        /// Throws an exception if the field already exists
         /// </summary>
-        /// <param name="name">Field name</param>
-        /// <param name="argTypes">Anonymous object defines the names and types of each argument</param>
-        /// <param name="selectionExpression">The expression that selects the data from TBaseType using the arguments</param>
-        /// <param name="returnSchemaType">The schema type to return, it defines the fields available on the return object. If null, defaults to TReturn type mapped in the schema.</param>
-        /// <typeparam name="TParams">Type describing the arguments</typeparam>
-        /// <typeparam name="TReturn">The return entity type that is mapped to a type in the schema</typeparam>
-        /// <returns></returns>
-        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
-        {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
-
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            this.AddField(field);
-            return field;
-        }
-        public Field AddField<TParams, TService, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TService, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
-        {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
-
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            this.AddField(field);
-            return field;
-        }
-
-        /// <summary>
-        /// Replaces a field by Name and Argument Names (that is the key)
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="argTypes"></param>
-        /// <param name="selectionExpression"></param>
-        /// <param name="description"></param>
-        /// <param name="returnSchemaType"></param>
         /// <typeparam name="TParams"></typeparam>
         /// <typeparam name="TReturn"></typeparam>
-        /// <returns></returns>
-        public void ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> selectionExpression, string description, string? returnSchemaType = null)
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="argTypes">An object that represents the arguments available for the field including default values or required fields. Anonymous objects are supported</param>
+        /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
         {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(selectionExpression);
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, selectionExpression, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), returnSchemaType), requiredAuth, fieldNamer);
-            _fieldsByName[field.Name] = field;
+            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            this.AddField(field);
+            return field;
         }
 
+        /// <summary>
+        /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.
+        /// </summary>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
+        {
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+
+            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            fieldsByName[field.Name] = field;
+            return field;
+        }
+
+        /// <summary>
+        /// Replaces a field by name with this new field with arguments. If the field does not exist, it will be added.
+        /// </summary>
+        /// <typeparam name="TParams"></typeparam>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="argTypes">An object that represents the arguments available for the field including default values or required fields. Anonymous objects are supported</param>
+        /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
+        {
+            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+
+            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth, schema.SchemaFieldNamer);
+            fieldsByName[field.Name] = field;
+            return field;
+        }
+
+        /// <summary>
+        /// Search for a field by name. Use HasField() to check if field exists.
+        /// </summary>
+        /// <param name="identifier">Field name. Case sensitive</param>
+        /// <param name="requestContext">Current request context. Used by EntityGraphQL when compiling queries. If are calling this during schema configure, you can pass null</param>
+        /// <returns>The field object for further configuration</returns>
+        /// <exception cref="EntityGraphQLAccessException"></exception>
+        /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
         public Field GetField(string identifier, QueryRequestContext? requestContext)
         {
-            if (_fieldsByName.ContainsKey(identifier))
+            if (fieldsByName.ContainsKey(identifier))
             {
-                var field = _fieldsByName[identifier];
+                var field = fieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                 {
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 }
-                return _fieldsByName[identifier];
+                return fieldsByName[identifier];
             }
 
             throw new EntityGraphQLCompilerException($"Field {identifier} not found");
         }
 
         /// <summary>
-        /// Get a field by an expression selection on the real type. The name is changed to lowerCaseCamel
+        /// Get a field by a simple member expression on the real type. The name is changed with fieldNamer
         /// </summary>
         /// <param name="fieldSelection"></param>
-        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection, QueryRequestContext requestContext)
+        /// <returns>The field object for further configuration</returns>
+        public Field GetField(Expression<Func<TBaseType, object>> fieldSelection)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return GetField(schema.SchemaFieldNamer(exp.Member.Name), requestContext);
+            return GetField(schema.SchemaFieldNamer(exp.Member.Name), null);
         }
 
+        /// <summary>
+        /// Return all the fields defined on this type
+        /// </summary>
+        /// <returns>List of Field objects</returns>
         public IEnumerable<Field> GetFields()
         {
-            return _fieldsByName.Values;
+            return fieldsByName.Values;
         }
         /// <summary>
-        /// Checks if type has a field with the given name and the given arguments
+        /// Checks if this type has a field with the given name
         /// </summary>
-        /// <param name="identifier"></param>
+        /// <param name="identifier">Field name. Case sensitive</param>
         /// <returns></returns>
-        public bool HasField(string identifier)
+        public bool HasField(string identifier, QueryRequestContext? requestContext)
         {
-            return _fieldsByName.ContainsKey(identifier);
+            if (fieldsByName.ContainsKey(identifier))
+            {
+                var field = fieldsByName[identifier];
+                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
+                    return false;
+
+                return true;
+            }
+
+            return false;
         }
 
+        /// <summary>
+        /// Remove a field by the given name. Case sensitive. If the field does not exist, nothing happens.
+        /// </summary>
+        /// <param name="name"></param>
         public void RemoveField(string name)
         {
-            if (_fieldsByName.ContainsKey(name))
+            if (fieldsByName.ContainsKey(name))
             {
-                _fieldsByName.Remove(name);
+                fieldsByName.Remove(name);
             }
         }
         /// <summary>
-        /// Remove a field by an expression selection on the real type. The name is changed to lowerCaseCamel
+        /// Remove a field by a member expression on the real type. The name is changed with fieldNamer for look up
         /// </summary>
         /// <param name="fieldSelection"></param>
         public void RemoveField(Expression<Func<TBaseType, object>> fieldSelection)
@@ -232,30 +265,6 @@ namespace EntityGraphQL.Schema
             RemoveField(schema.SchemaFieldNamer(exp.Member.Name));
         }
 
-        /// <summary>
-        /// To access this type all claims listed here are required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAllRoles")]
-        public SchemaType<TBaseType> RequiresAllClaims(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllRoles(claims);
-            return this;
-        }
-        /// <summary>
-        /// To access this type any of the claims listed is required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAnyRole")]
-        public SchemaType<TBaseType> RequiresAnyClaim(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAnyRole(claims);
-            return this;
-        }
         /// <summary>
         /// To access this type all roles listed here are required
         /// </summary>

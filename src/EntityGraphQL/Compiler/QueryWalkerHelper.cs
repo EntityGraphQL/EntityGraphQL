@@ -84,10 +84,10 @@ namespace EntityGraphQL.Compiler
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
         {
             object argValue;
-            var schemaType = schema.Type(argType);
+            var schemaType = schema.GetSchemaType(argType);
             foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
             {
-                if (!schemaType.HasField(item.Name.Value))
+                if (!schemaType.HasField(item.Name.Value, null))
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
                 var schemaField = schemaType.GetField(item.Name.Value, null);
 

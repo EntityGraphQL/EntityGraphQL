@@ -7,14 +7,14 @@ namespace EntityGraphQL.Schema
     {
         Type TypeDotnet { get; }
         string Name { get; }
-        string Description { get; }
+        string? Description { get; }
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
         Field GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<Field> GetFields();
-        bool HasField(string identifier);
+        bool HasField(string identifier, QueryRequestContext? requestContext);
         void AddFields(List<Field> fields);
         Field AddField(Field field);
         void RemoveField(string name);

@@ -171,7 +171,7 @@ fragment TypeRef on __Type {
 
             schema.UpdateType<Project>(t =>
             {
-                t.GetField(p => p.Owner, null).Deprecate("This is deprecated");
+                t.GetField(p => p.Owner).Deprecate("This is deprecated");
             });
 
             var gql = new QueryRequest

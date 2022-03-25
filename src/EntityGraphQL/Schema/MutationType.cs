@@ -210,11 +210,6 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public bool HasArgumentByName(string argName)
-        {
-            return argumentTypes.ContainsKey(argName);
-        }
-
         public ArgType GetArgumentType(string argName)
         {
             if (!argumentTypes.ContainsKey(argName))

@@ -13,7 +13,7 @@ namespace Benchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            Schema.AddField("moviesTakeSkip",
+            Schema.Query().AddField("moviesTakeSkip",
                 new
                 {
                     take = (int?)null,
@@ -23,13 +23,13 @@ namespace Benchmarks
                 "Movies"
             );
 
-            Schema.AddField("moviesConnection",
+            Schema.Query().AddField("moviesConnection",
                 ctx => ctx.Movies.OrderBy(i => i.Id),
                 "Movies"
             )
             .UseConnectionPaging();
 
-            Schema.ReplaceField("moviesOffset",
+            Schema.Query().ReplaceField("moviesOffset",
                 ctx => ctx.Movies.OrderBy(i => i.Id),
                 "Movies"
             )

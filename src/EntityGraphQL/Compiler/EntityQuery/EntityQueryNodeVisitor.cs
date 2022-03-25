@@ -115,7 +115,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
             var field = context.GetText();
             var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
-            if (!schemaProvider.TypeHasField(schemaType.Name, field, null, requestContext))
+            if (!schemaType.HasField(field, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
                 if (enumOrConstantValue == null)

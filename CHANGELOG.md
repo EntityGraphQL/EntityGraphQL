@@ -1,10 +1,27 @@
 # 2.0.0
 
-Beraking changes
+_Breaking changes_
 
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
+
+Clean up on the schema building APIs to make them more consistent, documented and concise
+
+- Clean up of `SchemaType` APIs to add/replace/remove fields.
+- Remove `SchemaProvider.Add/ReplaceField` methods.
+  - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema
+- Additions to the `Field` API to add more uncommon functionality to chaining methods
+- Rename `SchemaProvider.UpdateType(type => {})` to `SchemaProvider.UpdateType(type => {})`
+- Remove `SchemaProvider.UpdateQueryType()`, use `SchemaProvider.UpdateQuery(type => {})`
+- Remove `SchemaProvider.TypeHasField()`
+- Rename `GetGraphQLSchema` to `ToGraphQLSchemaString()`
+- Remove `SchemaProvider.GetQueryFields()` - use `SchemaProvider.Query.GetFields()`
+- Removed Obsolete methods:
+  - `RequiresAllClaims` replaced by `RequiresAllRoles`
+  - `RequiresAnyClaim` replaced by `RequiresAnyRole`
+  - `ExecuteQuery` replaced by `ExecuteRequest`
+  - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
 
 Other changes
 

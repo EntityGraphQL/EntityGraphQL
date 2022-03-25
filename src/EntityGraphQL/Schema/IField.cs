@@ -23,7 +23,6 @@ namespace EntityGraphQL.Schema
         void Deprecate(string reason);
 
         ArgType GetArgumentType(string argName);
-        bool HasArgumentByName(string argName);
 
         /// <summary>
         /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field

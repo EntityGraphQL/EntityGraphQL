@@ -12,7 +12,7 @@ namespace EntityGraphQL.Tests
         public void QueryWithVariable()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schema).Compile(new QueryRequest
             {
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Tests
         public void QueryWithDefaultArguments()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schema).Compile(@"
         query MyQuery($limit: Int = 10) {
@@ -66,7 +66,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             // code default of 5
-            schema.ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
 
             // should use gql default of 6
             var tree = new GraphQLCompiler(schema).Compile(@"
@@ -88,7 +88,7 @@ namespace EntityGraphQL.Tests
         }
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
-            schema.ReplaceField("person",
+            schema.Query().ReplaceField("person",
                             new
                             {
                                 id = ArgumentHelper.Required<Guid>()

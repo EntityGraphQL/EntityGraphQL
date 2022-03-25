@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
@@ -255,7 +254,7 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetQueryFields())
+            foreach (var field in schema.Type(schema.QueryContextName).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;
