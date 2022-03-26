@@ -12,11 +12,11 @@ Clean up on the schema building APIs to make them more consistent, documented an
 - Remove `SchemaProvider.Add/ReplaceField` methods.
   - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema
 - Additions to the `Field` API to add more uncommon functionality to chaining methods
-- Rename `SchemaProvider.UpdateType(type => {})` to `SchemaProvider.UpdateType(type => {})`
 - Remove `SchemaProvider.UpdateQueryType()`, use `SchemaProvider.UpdateQuery(type => {})`
 - Remove `SchemaProvider.TypeHasField()`
-- Rename `GetGraphQLSchema` to `ToGraphQLSchemaString()`
 - Remove `SchemaProvider.GetQueryFields()` - use `SchemaProvider.Query.GetFields()`
+- Renamed `GetGraphQLSchema()` to `ToGraphQLSchemaString()`
+- Renamed `AddMutationFrom()` to `AddMutationsFrom()`
 - Removed Obsolete methods:
   - `RequiresAllClaims` replaced by `RequiresAllRoles`
   - `RequiresAnyClaim` replaced by `RequiresAnyRole`
@@ -26,7 +26,7 @@ Clean up on the schema building APIs to make them more consistent, documented an
 Other changes
 
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.
-  - _Note that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` function provided to the `SchemaProvider` which defaults to GraphQL "standard" (fields camelCase, types PascalCase)_
+  - _Note that the objects created in the resulting `QueryResult` have fields named like the fields in the schema which is controlled by the `fieldNamer` function provided to the `SchemaProvider` which defaults to GraphQL "standard" (fields camelCase, types PascalCase)_
 - Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
 - Fix bug where compiler would loop through all available arguments even if it already found the matching one
 - Fix handling argument types of unsigned short/int/long

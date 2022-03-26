@@ -14,7 +14,8 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface ISchemaProvider
     {
-        Type ContextType { get; }
+        Type QueryContextType { get; }
+        Type MutationType { get; }
         Func<string, string> SchemaFieldNamer { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
         string QueryContextName { get; }
@@ -23,7 +24,7 @@ namespace EntityGraphQL.Schema
         ISchemaType AddEnum(string name, Type type, string description);
         SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
         ISchemaType AddInputType(Type type, string name, string? description);
-        void AddMutationFrom<TType>(TType mutationClassInstance) where TType : notnull;
+        void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull;
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
@@ -31,19 +32,14 @@ namespace EntityGraphQL.Schema
         void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
         SchemaType<TBaseType> AddType<TBaseType>(string description);
         void AddTypeMapping<TFromType>(string gqlType);
-        IField GetActualField(string typeName, string identifier, QueryRequestContext? requestContext);
         GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
         IDirectiveProcessor GetDirective(string name);
         IEnumerable<IDirectiveProcessor> GetDirectives();
         List<ISchemaType> GetEnumTypes();
-        IEnumerable<MutationType> GetMutations();
         IEnumerable<ISchemaType> GetNonContextTypes();
         IEnumerable<ISchemaType> GetScalarTypes();
-        ISchemaType GetSchemaType(string typeName);
-        ISchemaType GetSchemaType(Type dotnetType);
-        ISchemaType GetSchemaTypeForDotnetType(Type type);
-        Type GetTypeFromMutationReturn(Type type);
-        bool HasMutation(string mutationName);
+        ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
+        ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         bool HasType(string typeName);
         bool HasType(Type type);
         void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes);

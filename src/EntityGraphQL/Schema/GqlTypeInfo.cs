@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema

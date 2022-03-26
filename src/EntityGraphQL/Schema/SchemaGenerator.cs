@@ -16,7 +16,7 @@ namespace EntityGraphQL.Schema
         {
             var scalars = new StringBuilder();
 
-            var rootQueryType = schema.GetSchemaTypeForDotnetType(schema.ContextType);
+            var rootQueryType = schema.GetSchemaType(schema.QueryContextType, null);
 
             foreach (var item in schema.GetScalarTypes().Distinct())
             {
@@ -55,7 +55,7 @@ type {rootQueryType.Name} {{
         private static string BuildMutations(ISchemaProvider schema)
         {
             var mutations = new StringBuilder();
-            foreach (var item in schema.GetMutations())
+            foreach (var item in schema.GetSchemaType(schema.MutationType, null).GetFields())
             {
                 if (!string.IsNullOrEmpty(item.Description))
                     mutations.AppendLine($"\t\"\"\"{EscapeString(item.Description)}\"\"\"");

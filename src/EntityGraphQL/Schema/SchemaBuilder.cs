@@ -97,7 +97,7 @@ namespace EntityGraphQL.Schema
             if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
                 return;
             var schemaType = fieldProp.ReturnType.SchemaType;
-            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
+            var idFieldDef = (Field)schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
@@ -195,7 +195,7 @@ namespace EntityGraphQL.Schema
             var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(returnType), le.Body.Type);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(returnType, null), le.Body.Type);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
             var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
@@ -263,7 +263,7 @@ namespace EntityGraphQL.Schema
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
         {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType()), returnType);
+            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType(), null), returnType);
         }
     }
 }

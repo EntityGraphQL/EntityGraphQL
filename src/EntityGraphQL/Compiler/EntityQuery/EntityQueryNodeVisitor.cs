@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 throw new EntityGraphQLCompilerException("CurrentContext is null");
 
             var field = context.GetText();
-            var schemaType = schemaProvider.GetSchemaTypeForDotnetType(currentContext.Type);
+            var schemaType = schemaProvider.GetSchemaType(currentContext.Type, requestContext);
             if (!schemaType.HasField(field, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
@@ -122,7 +122,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
                 return enumOrConstantValue;
             }
-            var gqlField = schemaProvider.GetActualField(schemaType.Name, field, requestContext);
+            var gqlField = schemaType.GetField(field, requestContext);
             var exp = gqlField.GetExpression(currentContext, null);
             if (exp == null)
                 throw new EntityGraphQLCompilerException($"Error compiling field {field} on type {schemaType.Name}");

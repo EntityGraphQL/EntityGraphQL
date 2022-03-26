@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
@@ -22,17 +19,20 @@ namespace EntityGraphQL.Schema
     /// <typeparam name="TContextType">Base Query object context. Ex. DbContext</typeparam>
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
-        public Type ContextType { get { return types[QueryContextName].TypeDotnet; } }
+        public Type QueryContextType { get { return queryType.TypeDotnet; } }
+        public Type MutationType { get { return mutationType.TypeDotnet; } }
         public Func<string, string> SchemaFieldNamer { get; }
         public IGqlAuthorizationService AuthorizationService { get; set; }
         protected Dictionary<string, ISchemaType> types = new();
-        protected Dictionary<string, MutationType> mutations = new();
         protected Dictionary<string, IDirectiveProcessor> directives = new();
 
-        public string QueryContextName { get; }
+        public string QueryContextName { get => queryType.Name; }
+
+        private readonly SchemaType<TContextType> queryType;
         private readonly ILogger<SchemaProvider<TContextType>>? logger;
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly bool introspectionEnabled;
+        private readonly MutationType mutationType;
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -72,8 +72,12 @@ namespace EntityGraphQL.Schema
             };
 
             var queryContext = new SchemaType<TContextType>(this, "Query", "Query schema", null);
-            QueryContextName = queryContext.Name;
+            this.queryType = queryContext;
             types.Add(queryContext.Name, queryContext);
+
+            var mutationType = new MutationType(this, "Mutation", "Mutation schema", null);
+            this.mutationType = mutationType;
+            types.Add(mutationType.Name, mutationType);
 
             if (introspectionEnabled)
             {
@@ -231,7 +235,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The SchemaProvider</returns>
         public ISchemaProvider RemoveType<TType>()
         {
-            return RemoveType(GetSchemaType(typeof(TType)).Name);
+            return RemoveType(GetSchemaType(typeof(TType), null).Name);
         }
 
         /// <summary>
@@ -304,44 +308,9 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
         /// <typeparam name="TType"></typeparam>
-        public void AddMutationFrom<TType>(TType mutationClassInstance) where TType : notnull
+        public void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull
         {
-            Type type = mutationClassInstance.GetType();
-            var classLevelRequiredAuth = AuthorizationService.GetRequiredAuthFromType(type);
-            foreach (var method in type.GetMethods())
-            {
-                if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
-                {
-                    var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
-                    string name = SchemaFieldNamer(method.Name);
-                    var methodAuth = AuthorizationService.GetRequiredAuthFromMember(method);
-                    var requiredClaims = methodAuth.Concat(classLevelRequiredAuth);
-                    var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
-                    var typeName = GetSchemaTypeForDotnetType(actualReturnType).Name;
-                    var returnType = new GqlTypeInfo(() => GetSchemaType(typeName), actualReturnType);
-                    var mutationType = new MutationType(this, name, returnType, mutationClassInstance, method, attribute.Description, requiredClaims, isAsync, SchemaFieldNamer);
-
-                    var obsoleteAttribute = method.GetCustomAttribute<ObsoleteAttribute>();
-                    if (obsoleteAttribute != null)
-                    {
-                        mutationType.IsDeprecated = true;
-                        mutationType.DeprecationReason = obsoleteAttribute.Message;
-                    }
-
-
-                    mutations[name] = mutationType;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns true if the schema as a mutation with the given name
-        /// </summary>
-        /// <param name="mutationName"></param>
-        /// <returns>True if found. False if not</returns>
-        public bool HasMutation(string mutationName)
-        {
-            return mutations.ContainsKey(mutationName);
+            mutationType.AddMutationsFrom(mutationClassInstance);
         }
 
         /// <summary>
@@ -354,10 +323,10 @@ namespace EntityGraphQL.Schema
         /// <param name="typeName"></param>
         /// <returns>An ISchemaType if the type is found in the schema</returns>
         /// <exception cref="EntityGraphQLCompilerException">If type name not found</exception>
-        public ISchemaType GetSchemaType(string typeName)
+        public ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext)
         {
             if (types.ContainsKey(typeName))
-                return types[typeName];
+                return CheckTypeAccess(types[typeName], requestContext);
 
             throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
@@ -371,7 +340,7 @@ namespace EntityGraphQL.Schema
         /// <param name="dotnetType"></param>
         /// <returns></returns>
         /// <exception cref="EntityGraphQLCompilerException"></exception>
-        public ISchemaType GetSchemaType(Type dotnetType)
+        public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext)
         {
             // look up by the actual type not the name
             var schemaType = types.Values.FirstOrDefault(t => t.TypeDotnet == dotnetType)
@@ -383,6 +352,17 @@ namespace EntityGraphQL.Schema
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
+            return CheckTypeAccess(schemaType, requestContext);
+        }
+
+        private ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
+        {
+            if (requestContext == null)
+                return schemaType;
+
+            if (requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, schemaType.RequiredAuthorization))
+                throw new EntityGraphQLAccessException($"You are not authorized to access the '{schemaType.Name}' type.");
+
             return schemaType;
         }
 
@@ -393,7 +373,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The typed SchemaType<TType> object for configuration</returns>
         public SchemaType<TType> Type<TType>()
         {
-            return (SchemaType<TType>)GetSchemaType(typeof(TType));
+            return (SchemaType<TType>)GetSchemaType(typeof(TType), null);
         }
         /// <summary>
         /// Get registered type by schema type name
@@ -403,7 +383,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The typed SchemaType<TType> object for configuration</returns>
         public SchemaType<TType> Type<TType>(string typeName)
         {
-            return (SchemaType<TType>)GetSchemaType(typeName);
+            return (SchemaType<TType>)GetSchemaType(typeName, null);
         }
 
         /// <summary>
@@ -418,7 +398,7 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException">If type name not found</exception>
         public ISchemaType Type(string typeName)
         {
-            return GetSchemaType(typeName);
+            return GetSchemaType(typeName, null);
         }
 
         /// <summary>
@@ -445,7 +425,7 @@ namespace EntityGraphQL.Schema
         /// <returns>True if found. False if not</returns>
         public bool HasType(Type type)
         {
-            if (type == types[QueryContextName].TypeDotnet)
+            if (type == queryType.TypeDotnet)
                 return true;
 
             foreach (var schemaType in types.Values)
@@ -489,12 +469,12 @@ namespace EntityGraphQL.Schema
         /// Return the Root Query schema type. Use this to add/remove/modify fields to the root query
         /// </summary>
         /// <returns>Root query schema type</returns>
-        public SchemaType<TContextType> Query() => (SchemaType<TContextType>)types[QueryContextName];
+        public SchemaType<TContextType> Query() => queryType;
 
         /// <summary>
         /// Provide a callback to update the root query schema type - add/remove/modify fields to the root query
         /// </summary>
-        public void UpdateQuery(Action<SchemaType<TContextType>> configure) => configure((SchemaType<TContextType>)types[QueryContextName]);
+        public void UpdateQuery(Action<SchemaType<TContextType>> configure) => configure(queryType);
 
         /// <summary>
         /// Add an Enum type to the schema
@@ -519,76 +499,6 @@ namespace EntityGraphQL.Schema
             return types.Values.Where(t => t.IsEnum).ToList();
         }
 
-        public IField GetActualField(string typeName, string identifier, QueryRequestContext? requestContext)
-        {
-            IField? field = null;
-            if (types.ContainsKey(typeName) && types[typeName].HasField(identifier, null))
-            {
-                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, types[typeName].RequiredAuthorization))
-                    throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on the '{typeName}' type.");
-                field = types[typeName].GetField(identifier, requestContext);
-            }
-            else if (typeName == QueryContextName && types[QueryContextName].HasField(identifier, null))
-                field = types[QueryContextName].GetField(identifier, requestContext);
-            else if (mutations.Keys.Any(k => k.ToLower() == identifier.ToLower()))
-                field = mutations.First(k => k.Key.ToLower() == identifier.ToLower()).Value;
-
-            if (field == null)
-                throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on type '{typeName}'");
-
-            if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
-                throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
-
-            if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
-                throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.Name}' field on the '{typeName}' type.");
-
-            return field;
-        }
-
-        /// <summary>
-        /// Given a Dotnet type it finds the matching schema type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public ISchemaType GetSchemaTypeForDotnetType(Type type)
-        {
-            type = GetTypeFromMutationReturn(type);
-
-            if (type.IsEnumerableOrArray())
-            {
-                type = type.GetGenericArguments()[0];
-            }
-
-            if (customTypeMappings.ContainsKey(type))
-                return customTypeMappings[type].SchemaType;
-
-            if (type == types[QueryContextName].TypeDotnet)
-                return types[QueryContextName];
-
-            foreach (var eType in types.Values)
-            {
-                if (eType.TypeDotnet == type)
-                    return eType;
-            }
-            throw new EntityGraphQLCompilerException($"No mapped entity found for type '{type}'");
-        }
-
-        /// <summary>
-        /// Return the actual return type of a mutation - strips out the Expression<Func<>>
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public Type GetTypeFromMutationReturn(Type type)
-        {
-            if (type.BaseType == typeof(LambdaExpression))
-            {
-                // This should be Expression<Func<Context, ReturnType>>
-                type = type.GetGenericArguments()[0].GetGenericArguments()[1];
-            }
-
-            return type;
-        }
-
         /// <summary>
         /// Builds a GraphQL schema definition from the schema.
         /// </summary>
@@ -605,7 +515,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public IEnumerable<ISchemaType> GetNonContextTypes()
         {
-            return types.Values.Where(s => s.Name != QueryContextName).ToList();
+            return types.Values.Where(s => s.Name != queryType.Name).ToList();
         }
 
         /// <summary>
@@ -615,15 +525,6 @@ namespace EntityGraphQL.Schema
         public IEnumerable<ISchemaType> GetScalarTypes()
         {
             return types.Values.Where(t => t.IsScalar);
-        }
-
-        /// <summary>
-        /// Return a list of mutation types in the schema
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<MutationType> GetMutations()
-        {
-            return mutations.Values.ToList();
         }
 
         /// <summary>

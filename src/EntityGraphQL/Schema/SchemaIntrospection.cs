@@ -279,7 +279,7 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetMutations())
+            foreach (var field in schema.GetSchemaType(schema.MutationType, null).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;

@@ -1,6 +1,5 @@
 using System;
 using System.Linq.Expressions;
-using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {

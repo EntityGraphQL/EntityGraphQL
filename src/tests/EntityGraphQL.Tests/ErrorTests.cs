@@ -12,7 +12,7 @@ namespace EntityGraphQL.Tests
         public void MutationReportsError()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {

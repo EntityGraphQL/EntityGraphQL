@@ -14,6 +14,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class Field : IField
     {
+        public FieldType FieldType { get => FieldType.Query; }
         private readonly Dictionary<string, ArgType> allArguments = new();
         public IDictionary<string, ArgType> Arguments { get { return allArguments; } }
 

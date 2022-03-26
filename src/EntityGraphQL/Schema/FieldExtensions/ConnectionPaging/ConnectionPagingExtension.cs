@@ -109,7 +109,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Conneciton fields asked for
 
             // set up Extension on Edges.Node field to handle the Select() insertion
-            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
+            edgesField = (Field)returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
             // move expression
             edgesField.UpdateExpression(field.Resolve);
             // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges

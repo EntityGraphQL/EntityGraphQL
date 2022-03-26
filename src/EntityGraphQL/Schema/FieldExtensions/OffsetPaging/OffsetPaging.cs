@@ -1,6 +1,3 @@
-using System;
-using EntityGraphQL.Extensions;
-
 namespace EntityGraphQL.Schema.FieldExtensions
 {
     public static class UseOffsetPagingExtension

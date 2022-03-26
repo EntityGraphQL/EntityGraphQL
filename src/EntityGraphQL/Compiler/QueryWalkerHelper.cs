@@ -84,12 +84,12 @@ namespace EntityGraphQL.Compiler
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
         {
             object argValue;
-            var schemaType = schema.GetSchemaType(argType);
+            var schemaType = schema.GetSchemaType(argType, null);
             foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
             {
                 if (!schemaType.HasField(item.Name.Value, null))
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
-                var schemaField = schemaType.GetField(item.Name.Value, null);
+                var schemaField = (Field)schemaType.GetField(item.Name.Value, null);
 
                 var nameFromType = ((MemberExpression)schemaField.Resolve!).Member.Name;
                 var prop = argType.GetProperty(nameFromType);
@@ -165,7 +165,7 @@ namespace EntityGraphQL.Compiler
 
         public static Type GetDotnetType(ISchemaProvider schema, string value)
         {
-            var schemaType = schema.GetSchemaType(value);
+            var schemaType = schema.GetSchemaType(value, null);
             return schemaType.TypeDotnet;
         }
 
@@ -186,7 +186,7 @@ namespace EntityGraphQL.Compiler
                 var required = item.Type.Kind == SyntaxKind.NonNullType;
                 if (required && variables.ContainsKey(argName) == false)
                 {
-                    throw new QueryException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
+                    throw new EntityGraphQLCompilerException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
                 }
             }
         }

@@ -151,8 +151,10 @@ namespace EntityGraphQL.Compiler
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+#if DEBUG
             if (options?.NoExecution == true)
                 return null;
+#endif
             return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
 

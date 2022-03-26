@@ -52,14 +52,16 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
 
             QueryWalkerHelper.ProcessVariableDefinitions(schemaProvider, requestContext.Query.Variables, node);
-            var rootParameterContext = Expression.Parameter(schemaProvider.ContextType, $"ctx");
 
             if (node.Operation == OperationType.Query)
             {
+                var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"ctx");
                 context = new GraphQLQueryStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context);
             }
             else if (node.Operation == OperationType.Mutation)
             {
+                // we never build expression from this parameter but the type is used to look up the ISchemaType
+                var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut");
                 context = new GraphQLMutationStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context);
             }
             else if (node.Operation == OperationType.Subscription)
@@ -87,26 +89,26 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
             var fieldName = node.Name.Value;
-            string schemaTypeName = schemaProvider.GetSchemaTypeForDotnetType(context.NextFieldContext.Type).Name;
-            var actualField = schemaProvider.GetActualField(schemaTypeName, fieldName, requestContext);
+            var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
+            var actualField = schemaType.GetField(fieldName, requestContext);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var alias = node.Alias?.Value;
 
             QueryWalkerHelper.CheckRequiredArguments(actualField, args);
 
-            if (schemaProvider.HasMutation(actualField.Name))
+            if (actualField.FieldType == FieldType.Mutation)
             {
                 var resultName = alias ?? actualField.Name;
-                var mutationType = schemaProvider.GetMutations().First(m => m.Name == actualField.Name);
+                var mutationField = (MutationField)actualField;
 
-                var nextContextParam = Expression.Parameter(mutationType.ReturnType.TypeDotnet, $"mut_{actualField.Name}");
-                var mutationField = new GraphQLMutationField(resultName, mutationType, args, nextContextParam, nextContextParam, context);
+                var nextContextParam = Expression.Parameter(mutationField.ReturnType.TypeDotnet, $"mut_{actualField.Name}");
+                var graphqlMutationField = new GraphQLMutationField(resultName, mutationField, args, nextContextParam, nextContextParam, context);
 
                 if (node.SelectionSet != null)
                 {
-                    BaseGraphQLQueryField select = ParseFieldSelect(nextContextParam, actualField, resultName, mutationField, node.SelectionSet);
-                    if (mutationType.ReturnType.IsList)
+                    BaseGraphQLQueryField select = ParseFieldSelect(nextContextParam, actualField, resultName, graphqlMutationField, node.SelectionSet);
+                    if (mutationField.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
                         var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext!, select.RootParameter, select.RootParameter!, context);
@@ -116,9 +118,9 @@ namespace EntityGraphQL.Compiler
                         }
                         select = newSelect;
                     }
-                    mutationField.ResultSelection = select;
+                    graphqlMutationField.ResultSelection = select;
                 }
-                context.AddField(mutationField);
+                context.AddField(graphqlMutationField);
             }
             else
             {
@@ -169,7 +171,7 @@ namespace EntityGraphQL.Compiler
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
                 var item1 = listExp.Item1;
-                var returnType = schemaProvider.GetSchemaTypeForDotnetType(item1.Type.GetEnumerableOrArrayType()!);
+                var returnType = schemaProvider.GetSchemaType(item1.Type.GetEnumerableOrArrayType()!, requestContext);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection);
                 return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2!);

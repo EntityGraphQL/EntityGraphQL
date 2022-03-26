@@ -12,19 +12,12 @@ namespace EntityGraphQL.Schema
         bool IsEnum { get; }
         bool IsScalar { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
-        Field GetField(string identifier, QueryRequestContext? requestContext);
-        IEnumerable<Field> GetFields();
+        IField GetField(string identifier, QueryRequestContext? requestContext);
+        IEnumerable<IField> GetFields();
         bool HasField(string identifier, QueryRequestContext? requestContext);
-        void AddFields(List<Field> fields);
-        Field AddField(Field field);
-        void RemoveField(string name);
-
-        /// <summary>
-        /// Add all public properties and fields from the dotnet type to the schema for this schema type
-        /// </summary>
-        /// <param name="autoCreateNewComplexTypes">If true (defaults to false) complex types (class) will be added to the schema</param>
-        /// <param name="autoCreateEnumTypes">If true (default), automatically create ENUM types for enums found in the context object graph</param>
-        /// <returns></returns>
         ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true);
+        void AddFields(IEnumerable<IField> fields);
+        IField AddField(IField field);
+        void RemoveField(string name);
     }
 }

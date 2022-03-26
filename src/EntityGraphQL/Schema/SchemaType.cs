@@ -1,26 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema
 {
-    public class SchemaType<TBaseType> : ISchemaType
+    public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<Field>
     {
-        private readonly ISchemaProvider schema;
-        public Type TypeDotnet { get; protected set; }
-        public string Name { get; internal set; }
-        public bool IsInput { get; }
-        public bool IsEnum { get; }
-        public bool IsScalar { get; }
-        public RequiredAuthorization? RequiredAuthorization { get; set; }
-
-        public string? Description { get; internal set; }
-
-        private readonly Dictionary<string, Field> fieldsByName = new();
+        public override Type TypeDotnet { get; }
+        public override bool IsInput { get; }
+        public override bool IsEnum { get; }
+        public override bool IsScalar { get; }
 
         public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar)
@@ -28,11 +19,9 @@ namespace EntityGraphQL.Schema
         }
 
         public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
+            : base(schema, name, description, requiredAuthorization)
         {
-            this.schema = schema;
             TypeDotnet = dotnetType;
-            Name = name;
-            Description = description;
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;
@@ -48,7 +37,7 @@ namespace EntityGraphQL.Schema
         /// <param name="autoCreateNewComplexTypes"></param>
         /// <param name="autoCreateEnumTypes"></param>
         /// <returns>The schema type the fields were added to</returns>
-        public ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
+        public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
         {
             if (IsEnum)
             {
@@ -59,7 +48,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet, null), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {
@@ -76,21 +65,6 @@ namespace EntityGraphQL.Schema
                 AddFields(fields);
             }
             return this;
-        }
-        public void AddFields(List<Field> fields)
-        {
-            foreach (var f in fields)
-            {
-                AddField(f);
-            }
-        }
-        public Field AddField(Field field)
-        {
-            if (fieldsByName.ContainsKey(field.Name))
-                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
-
-            fieldsByName.Add(field.Name, field);
-            return field;
         }
 
         /// <summary>
@@ -184,29 +158,6 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Search for a field by name. Use HasField() to check if field exists.
-        /// </summary>
-        /// <param name="identifier">Field name. Case sensitive</param>
-        /// <param name="requestContext">Current request context. Used by EntityGraphQL when compiling queries. If are calling this during schema configure, you can pass null</param>
-        /// <returns>The field object for further configuration</returns>
-        /// <exception cref="EntityGraphQLAccessException"></exception>
-        /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
-        public Field GetField(string identifier, QueryRequestContext? requestContext)
-        {
-            if (fieldsByName.ContainsKey(identifier))
-            {
-                var field = fieldsByName[identifier];
-                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
-                {
-                    throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
-                }
-                return fieldsByName[identifier];
-            }
-
-            throw new EntityGraphQLCompilerException($"Field {identifier} not found");
-        }
-
-        /// <summary>
         /// Get a field by a simple member expression on the real type. The name is changed with fieldNamer
         /// </summary>
         /// <param name="fieldSelection"></param>
@@ -216,45 +167,11 @@ namespace EntityGraphQL.Schema
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
             return GetField(schema.SchemaFieldNamer(exp.Member.Name), null);
         }
-
-        /// <summary>
-        /// Return all the fields defined on this type
-        /// </summary>
-        /// <returns>List of Field objects</returns>
-        public IEnumerable<Field> GetFields()
+        public new Field GetField(string identifier, QueryRequestContext? requestContext)
         {
-            return fieldsByName.Values;
-        }
-        /// <summary>
-        /// Checks if this type has a field with the given name
-        /// </summary>
-        /// <param name="identifier">Field name. Case sensitive</param>
-        /// <returns></returns>
-        public bool HasField(string identifier, QueryRequestContext? requestContext)
-        {
-            if (fieldsByName.ContainsKey(identifier))
-            {
-                var field = fieldsByName[identifier];
-                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
-                    return false;
-
-                return true;
-            }
-
-            return false;
+            return (Field)base.GetField(identifier, requestContext);
         }
 
-        /// <summary>
-        /// Remove a field by the given name. Case sensitive. If the field does not exist, nothing happens.
-        /// </summary>
-        /// <param name="name"></param>
-        public void RemoveField(string name)
-        {
-            if (fieldsByName.ContainsKey(name))
-            {
-                fieldsByName.Remove(name);
-            }
-        }
         /// <summary>
         /// Remove a field by a member expression on the real type. The name is changed with fieldNamer for look up
         /// </summary>

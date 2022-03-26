@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -18,11 +17,6 @@ namespace EntityGraphQL.Compiler
             Name = name;
             NextFieldContext = selectContext;
             RootParameter = rootParameter;
-        }
-
-        internal List<Expression> Compile<TContext>(TContext context, GraphQLValidator validator, IServiceProvider services, List<GraphQLFragmentStatement> fragments, out List<object> allArgs)
-        {
-            throw new NotImplementedException();
         }
 
         public void AddField(BaseGraphQLField field)
