@@ -234,12 +234,14 @@ namespace EntityGraphQL.Schema
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
                     var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
+                    if (method == null)
+                        throw new Exception("Could not find AddType method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
-                    t.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
+                    typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
-                    t.AddFields(fields);
+                    typeAdded.AddFields(fields);
                 }
                 else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
                 {

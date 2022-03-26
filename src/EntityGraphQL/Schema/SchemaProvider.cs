@@ -151,8 +151,8 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                var queryResult = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
-                result = queryResult.ExecuteQuery(context, serviceProvider, gql.OperationName, options);
+                var compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.OperationName, options);
             }
             catch (AggregateException aex)
             {

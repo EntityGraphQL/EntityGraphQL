@@ -175,7 +175,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// DO NOT DELETE - Used at runtime below!!
+        /// Used at runtime below!!
         /// </summary>
         /// <param name="input"></param>
         /// <typeparam name="T"></typeparam>
@@ -194,6 +194,8 @@ namespace EntityGraphQL.Schema
                 if (type.IsArray && memberType.IsEnumerableOrArray())
                 {
                     var convertMethod = typeof(MutationField).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
+                    if (convertMethod == null)
+                        throw new EntityQuerySchemaException($"Could not find method {nameof(ConvertArray)} on type {nameof(MutationField)}");
                     var generic = convertMethod.MakeGenericMethod(new[] { memberType.GetGenericArguments()[0] });
                     value = generic.Invoke(null, new object[] { value });
                 }
@@ -219,7 +221,7 @@ namespace EntityGraphQL.Schema
             Type argType = entity.GetType();
             foreach (var prop in argType.GetProperties())
             {
-                object value = prop.GetValue(entity, null);
+                object? value = prop.GetValue(entity, null);
 
                 // set default message in-case user didn't provide a custom one
                 string error = $"{prop.Name} is required";

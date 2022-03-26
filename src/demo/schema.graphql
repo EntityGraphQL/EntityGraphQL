@@ -53,6 +53,19 @@ type Query {
 
 }
 
+"""Mutation schema"""
+type Mutation {
+	"""Example of a mutation that takes 0 arguments"""
+	exampleNoArgs: Movie
+	"""Example of a mutation that does not use the context or argments but does use registered services"""
+	exampleNoArgsWithService: Int!
+	"""Add a new Movie object"""
+	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
+	addActor(firstName: String, lastName: String, movieId: Int!): Person
+	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
+	addActor3(names: [String!], movieId: Int!): [Person!]
+}
+
 """Information about subscriptions"""
 type SubscriptionType {
 	name: String
@@ -174,15 +187,3 @@ input Detail {
 	description: String
 }
 
-type Mutation {
-	"""Example of a mutation that takes 0 arguments"""
-	exampleNoArgs: Movie
-	"""Example of a mutation that does not use the context or argments but does use registered services"""
-	exampleNoArgsWithService: Int!
-	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
-	addActor(firstName: String, lastName: String, movieId: Int!): Person
-	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
-	addActor3(names: [String!], movieId: Int!): [Person!]
-
-}

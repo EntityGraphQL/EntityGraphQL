@@ -78,7 +78,9 @@ namespace EntityGraphQL.Compiler.Util
                 if (jsonEle.ValueKind == JsonValueKind.Array)
                 {
                     var eleType = toType.GetEnumerableOrArrayType()!;
-                    var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                    var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                    if (list == null)
+                        throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                     foreach (var item in jsonEle.EnumerateArray())
                         list.Add(ChangeType(item, eleType));
                     return list;
@@ -113,7 +115,7 @@ namespace EntityGraphQL.Compiler.Util
                     return new DateTimeOffset((long)value!, TimeSpan.Zero);
             }
 
-            var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType) : toType;
+            var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
             var valueNonNullType = fromType.IsNullableType() ? Nullable.GetUnderlyingType(fromType) : fromType;
             if (argumentNonNullType.IsEnum)
             {
@@ -143,7 +145,9 @@ namespace EntityGraphQL.Compiler.Util
             if (toType.IsEnumerableOrArray())
             {
                 var eleType = toType.GetEnumerableOrArrayType()!;
-                var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                if (list == null)
+                    throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in (IEnumerable)value)
                     list.Add(ChangeType(item, eleType));
                 return list;
@@ -160,7 +164,7 @@ namespace EntityGraphQL.Compiler.Util
             return value;
         }
 
-        public static object ConvertObjectType(object? value, Type toType, Type valueObjType)
+        public static object? ConvertObjectType(object? value, Type toType, Type valueObjType)
         {
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())
@@ -360,7 +364,10 @@ namespace EntityGraphQL.Compiler.Util
                 throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
         }
@@ -376,7 +383,10 @@ namespace EntityGraphQL.Compiler.Util
             var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
         }
