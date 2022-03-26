@@ -192,10 +192,15 @@ namespace EntityGraphQL.Schema
             }
             else
                 returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
-            var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
+
+            var baseReturnType = returnType;
+            if (baseReturnType.IsEnumerableOrArray())
+                baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
+
+            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(returnType, null), le.Body.Type);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
             var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
@@ -210,13 +215,8 @@ namespace EntityGraphQL.Schema
             return field;
         }
 
-        private static ISchemaType? CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static void CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
-            if (propType.IsEnumerableOrArray())
-            {
-                propType = propType.GetEnumerableOrArrayType()!;
-            }
-
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
                 var typeInfo = propType;
@@ -240,25 +240,17 @@ namespace EntityGraphQL.Schema
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
                     t.AddFields(fields);
-                    return t;
                 }
                 else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
                 {
-                    var t = schema.AddEnum(propType.Name, propType, description);
-                    return t;
+                    schema.AddEnum(propType.Name, propType, description);
                 }
                 else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
                 {
                     Type type = Nullable.GetUnderlyingType(propType);
-                    var t = schema.AddEnum(type.Name, type, description);
-                    return t;
+                    schema.AddEnum(type.Name, type, description);
                 }
             }
-            else if (schema.HasType(propType.Name))
-            {
-                return schema.Type(propType.Name);
-            }
-            return null;
         }
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
