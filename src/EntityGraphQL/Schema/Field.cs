@@ -29,7 +29,7 @@ namespace EntityGraphQL.Schema
         public bool IsDeprecated { get; set; }
         public string? DeprecationReason { get; set; }
 
-        public Expression? Resolve { get; private set; }
+        public Expression? ResolveExpression { get; private set; }
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
@@ -57,12 +57,12 @@ namespace EntityGraphQL.Schema
                     // they are wanting services injected
                     var call = (MethodCallExpression)resolve.Body;
                     var lambdaExpression = (LambdaExpression)((UnaryExpression)call.Arguments.First()).Operand;
-                    Resolve = lambdaExpression.Body;
+                    ResolveExpression = lambdaExpression.Body;
                     Services = lambdaExpression.Parameters.Select(p => p.Type).ToList();
                 }
                 else
                 {
-                    Resolve = resolve.Body;
+                    ResolveExpression = resolve.Body;
                 }
                 FieldParam = resolve.Parameters.First();
                 ArgumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
@@ -115,8 +115,8 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            if (ArgumentParam != null && Resolve != null)
-                Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
+            if (ArgumentParam != null && ResolveExpression != null)
+                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentParam, argParam);
 
             ArgumentParam = argParam;
             ArgumentsType = newArgType;
@@ -129,7 +129,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public IField UpdateExpression(Expression expression)
         {
-            Resolve = expression;
+            ResolveExpression = expression;
             return this;
         }
 
@@ -257,10 +257,10 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ExpressionResult? GetExpression(Expression context, Dictionary<string, Expression>? args)
         {
-            if (Resolve == null)
+            if (ResolveExpression == null)
                 return null;
 
-            var result = new ExpressionResult(Resolve, Services);
+            var result = new ExpressionResult(ResolveExpression, Services);
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             var parameterReplacer = new ParameterReplacer();
             PrepareExpressionResult(args, this, result, parameterReplacer, context);

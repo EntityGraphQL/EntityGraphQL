@@ -36,10 +36,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, Field field)
         {
-            if (field.Resolve == null)
+            if (field.ResolveExpression == null)
                 throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
 
-            if (!field.Resolve.Type.IsEnumerableOrArray())
+            if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
             listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType();
@@ -66,12 +66,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (defaultPageSize.HasValue)
                 field.Arguments["take"].DefaultValue = defaultPageSize.Value;
 
-            isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
+            isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
 
             // update the Items field before we update the field.Resolve below
             itemsField = (Field)field.ReturnType.SchemaType.GetField(schema.SchemaFieldNamer("Items"), null);
-            BuildTotalCountExpression(field, returnType, field.Resolve);
-            itemsField.UpdateExpression(field.Resolve);
+            BuildTotalCountExpression(field, returnType, field.ResolveExpression);
+            itemsField.UpdateExpression(field.ResolveExpression);
 
             // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
             extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is OffsetPagingExtension)).ToList();

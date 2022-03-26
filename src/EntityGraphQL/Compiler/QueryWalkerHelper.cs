@@ -96,7 +96,10 @@ namespace EntityGraphQL.Compiler
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
                 var schemaField = (Field)schemaType.GetField(item.Name.Value, null);
 
-                var nameFromType = ((MemberExpression)schemaField.Resolve!).Member.Name;
+                if (schemaField.ResolveExpression == null)
+                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} on type {schemaType.Name} has no resolve expression");
+
+                var nameFromType = ((MemberExpression)schemaField.ResolveExpression).Member.Name;
                 var prop = argType.GetProperty(nameFromType);
 
                 if (prop == null)

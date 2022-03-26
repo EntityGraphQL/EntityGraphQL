@@ -92,22 +92,22 @@ namespace EntityGraphQL.Schema
 
         private static void AddFieldWithIdArgumentIfExists<TContextType>(SchemaProvider<TContextType> schema, Type contextType, Field fieldProp, Func<string, string> fieldNamer)
         {
-            if (fieldProp.Resolve == null)
+            if (fieldProp.ResolveExpression == null)
                 throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
-            if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
+            if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
                 return;
             var schemaType = fieldProp.ReturnType.SchemaType;
             var idFieldDef = (Field)schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
-            if (idFieldDef.Resolve == null)
+            if (idFieldDef.ResolveExpression == null)
                 throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
             // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
             // This allows us to "insert" .Select() (and .Include()) before the .First()
-            var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type);
+            var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.ResolveExpression.Type);
             var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
             var argTypesValue = Activator.CreateInstance(argTypes);
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.ResolveExpression, idLambda);
 
             body = ExpressionUtil.MakeCallOnQueryable("FirstOrDefault", new Type[] { arrayContextType }, body);
             var contextParam = Expression.Parameter(contextType, $"cxt_{contextType.Name}");

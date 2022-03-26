@@ -49,10 +49,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, Field field)
         {
-            if (field.Resolve == null)
+            if (field.ResolveExpression == null)
                 throw new EntityGraphQLCompilerException($"ConnectionPagingExtension requires a Resolve function set on the field");
 
-            if (!field.Resolve.Type.IsEnumerableOrArray())
+            if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
             // Make sure required types are in the schema
@@ -111,7 +111,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = (Field)returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
             // move expression
-            edgesField.UpdateExpression(field.Resolve);
+            edgesField.UpdateExpression(field.ResolveExpression);
             // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
             extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
             field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
