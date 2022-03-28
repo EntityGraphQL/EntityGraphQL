@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -33,8 +34,8 @@ namespace EntityGraphQL.Compiler
         /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
-        public GraphQLObjectProjectionField(List<IFieldExtension> extensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        public GraphQLObjectProjectionField(IField field, List<IFieldExtension> extensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, field, nextFieldContext, rootParameter, parentNode)
         {
             this.fieldExtensions = extensions;
             extractor = new ExpressionExtractor();
@@ -179,7 +180,7 @@ namespace EntityGraphQL.Compiler
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter!, ParentNode!))
+                        .Select(i => new GraphQLScalarField(null, i.Key, field, i.Value, RootParameter!, ParentNode!))
                         .ToList();
 
                     if (fields.Any())

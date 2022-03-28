@@ -36,6 +36,8 @@ namespace EntityGraphQL.Schema
 
         public ParameterExpression ArgumentParam => throw new NotImplementedException();
 
+        public Expression? ResolveExpression => throw new NotImplementedException();
+
         public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer)
         {
             Description = description;
@@ -242,7 +244,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult? GetExpression(Expression context, Dictionary<string, Expression>? args)
+        public ExpressionResult? GetExpression(Expression context, Dictionary<string, object>? args)
         {
             return null;
         }

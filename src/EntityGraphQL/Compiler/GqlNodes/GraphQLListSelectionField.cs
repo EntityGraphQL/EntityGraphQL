@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -31,8 +32,8 @@ namespace EntityGraphQL.Compiler
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
-        public GraphQLListSelectionField(IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context)
-            : base(name, nextFieldContext, rootParameter, context)
+        public GraphQLListSelectionField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context)
+            : base(name, field, nextFieldContext, rootParameter, context)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             this.ListExpression = nodeExpression;
@@ -101,7 +102,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField(null, i.Key, replaced, RootParameter, this), replaced);
+                        return new CompiledField(new GraphQLScalarField(null, i.Key, field, replaced, RootParameter, this), replaced);
                     })
                     .ToList()
                     .ForEach(i =>

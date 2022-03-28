@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentField : BaseGraphQLField
     {
-        public GraphQLFragmentField(string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nodeExpression, rootParameter, parentNode)
+        public GraphQLFragmentField(string name, Field? field, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(name, field, nodeExpression, rootParameter, parentNode)
         {
         }
 

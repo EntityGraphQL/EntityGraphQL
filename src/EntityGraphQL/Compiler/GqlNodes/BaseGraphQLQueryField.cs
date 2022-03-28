@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,8 +14,8 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        protected BaseGraphQLQueryField(string name, IField? field, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
+            : base(name, field, nextFieldContext, rootParameter, parentNode)
         {
             replacer = new ParameterReplacer();
         }

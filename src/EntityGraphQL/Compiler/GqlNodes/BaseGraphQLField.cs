@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -32,13 +33,15 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public string Name { get; protected set; }
+        protected readonly IField? field;
 
-        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
+        public BaseGraphQLField(string name, IField? field, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
+            this.field = field;
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler
         public BaseGraphQLQueryField? ResultSelection { get; set; }
 
         public GraphQLMutationField(string name, MutationField mutationType, Dictionary<string, Expression>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+            : base(name, null, nextFieldContext, rootParameter, parentNode)
         {
             this.mutationField = mutationType;
             this.args = args;

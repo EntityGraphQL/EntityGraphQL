@@ -24,7 +24,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
@@ -49,7 +49,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);

@@ -87,10 +87,10 @@ namespace EntityGraphQL.Compiler.Util
                 }
                 value = jsonEle.ToString();
                 fromType = value.GetType();
-            }
 
-            if (value == null)
-                return null;
+                if (value == null)
+                    return null;
+            }
 
             if (toType != typeof(string) && fromType == typeof(string))
             {
@@ -155,6 +155,12 @@ namespace EntityGraphQL.Compiler.Util
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
             {
                 return ConvertObjectType(value, toType, fromType);
+            }
+            if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
+                argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
+                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value?.ToString()))
+            {
+                return Guid.Parse(value!.ToString());
             }
             if (argumentNonNullType != valueNonNullType)
             {

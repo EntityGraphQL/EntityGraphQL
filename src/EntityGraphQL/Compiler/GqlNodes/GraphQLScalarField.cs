@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -13,8 +14,8 @@ namespace EntityGraphQL.Compiler
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField>? extractedFields;
 
-        public GraphQLScalarField(IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        public GraphQLScalarField(IEnumerable<IFieldExtension>? fieldExtensions, string name, IField? field, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode)
+            : base(name, field, nextFieldContext, rootParameter, parentNode)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
@@ -43,8 +44,20 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(NextFieldContext!, RootParameter!)?.Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter!, ParentNode!)).ToList();
+            extractedFields = extractor.Extract(NextFieldContext!, RootParameter!)?.Select(i => new GraphQLScalarField(null, i.Key, field, i.Value, RootParameter!, ParentNode!)).ToList();
             return extractedFields;
+        }
+
+        protected Expression GetBaseExpression(Expression baseExpression, Expression context, ParameterReplacer parameterReplacer)
+        {
+            if (fieldExtensions.Count > 0 && field != null)
+            {
+                foreach (var m in fieldExtensions)
+                {
+                    baseExpression = m.GetExpression((Field)field, baseExpression, null, new { }, context, parameterReplacer);
+                }
+            }
+            return baseExpression;
         }
 
         public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
@@ -52,7 +65,8 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var newExpression = NextFieldContext!;
+            var newExpression = GetBaseExpression(NextFieldContext!, RootParameter!, replacer);
+
             if (contextChanged && Name != "__typename")
             {
                 var selectedField = replacementNextFieldContext?.Type.GetField(Name);

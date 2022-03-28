@@ -14,20 +14,6 @@ namespace EntityGraphQL.Compiler
     {
         public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public static object? ProcessArgumentOrVariable(ISchemaProvider schema, QueryVariables? variables, ArgumentNode argument, Type argType)
-        {
-            var argName = argument.Name.Value;
-            if (argument.Value.Kind == SyntaxKind.Variable)
-            {
-                string varKey = ((VariableNode)argument.Value).Name.Value;
-                if (variables == null)
-                    throw new EntityGraphQLCompilerException($"Missing variable {varKey}");
-                object? value = variables.GetValueFor(varKey);
-                return ConvertArgIfRequired(value, argType, argName);
-            }
-            return ProcessArgumentValue(schema, argument.Value, argName, argType);
-        }
-
         public static object? ProcessArgumentValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)
         {
             object? argValue = null;
@@ -118,7 +104,7 @@ namespace EntityGraphQL.Compiler
             return argValue;
         }
 
-        public static void CheckRequiredArguments(IField actualField, Dictionary<string, Expression>? args)
+        public static void CheckRequiredArguments(IField actualField, Dictionary<string, object>? args)
         {
             foreach (var fieldArg in actualField.Arguments)
             {
@@ -127,8 +113,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        private static object? ConvertArgIfRequired(object? argValue, Type argType, string argName)
+        public static object? ConvertArgIfRequired(object? argValue, Type argType, string argName)
         {
+            // TODO can replace with changetype?
             if (argValue == null)
                 return null;
 
@@ -169,34 +156,6 @@ namespace EntityGraphQL.Compiler
             }
 
             return list;
-        }
-
-        public static Type GetDotnetType(ISchemaProvider schema, string value)
-        {
-            var schemaType = schema.GetSchemaType(value, null);
-            return schemaType.TypeDotnet;
-        }
-
-        public static void ProcessVariableDefinitions(ISchemaProvider schemaProvider, QueryVariables? variables, OperationDefinitionNode node)
-        {
-            if (variables == null)
-                variables = new QueryVariables();
-
-            foreach (var item in node.VariableDefinitions)
-            {
-                var argName = item.Variable.Name.Value;
-                if (item.DefaultValue != null)
-                {
-                    var varType = variables.ContainsKey(argName) ? variables[argName]?.GetType() : GetDotnetType(schemaProvider, ((NamedTypeNode)item.Type).Name.Value);
-                    variables[argName] = Expression.Lambda(Expression.Constant(ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType ?? typeof(object)))).Compile().DynamicInvoke();
-                }
-
-                var required = item.Type.Kind == SyntaxKind.NonNullType;
-                if (required && variables.ContainsKey(argName) == false)
-                {
-                    throw new EntityGraphQLCompilerException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
-                }
-            }
         }
     }
 }

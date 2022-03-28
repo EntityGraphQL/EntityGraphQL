@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Directives;
-using EntityGraphQL.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema
@@ -25,6 +24,7 @@ namespace EntityGraphQL.Schema
         public IGqlAuthorizationService AuthorizationService { get; set; }
         protected Dictionary<string, ISchemaType> types = new();
         protected Dictionary<string, IDirectiveProcessor> directives = new();
+        private readonly QueryCache queryCache;
 
         public string QueryContextName { get => queryType.Name; }
 
@@ -48,6 +48,7 @@ namespace EntityGraphQL.Schema
             this.logger = logger;
             this.graphQLCompiler = new GraphQLCompiler(this);
             this.introspectionEnabled = introspectionEnabled;
+            queryCache = new QueryCache();
 
             // default GQL scalar types
             types.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, false, false, true));
@@ -61,10 +62,10 @@ namespace EntityGraphQL.Schema
 
             customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
                 {typeof(short), new GqlTypeInfo(() => Type("Int"), typeof(short))},
+                {typeof(long), new GqlTypeInfo(() => Type("Int"), typeof(long))},
                 {typeof(ushort), new GqlTypeInfo(() => Type("Int"), typeof(ushort))},
                 {typeof(uint), new GqlTypeInfo(() => Type("Int"), typeof(uint))},
                 {typeof(ulong), new GqlTypeInfo(() => Type("Int"), typeof(ulong))},
-                {typeof(long), new GqlTypeInfo(() => Type("Int"), typeof(long))},
                 {typeof(float), new GqlTypeInfo(() => Type("Float"), typeof(float))},
                 {typeof(decimal), new GqlTypeInfo(() => Type("Float"), typeof(decimal))},
                 {typeof(byte[]), new GqlTypeInfo(() => Type("String"), typeof(byte[]))},
@@ -151,8 +152,13 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                var compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
-                result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.OperationName, options);
+                var (compiledQuery, hash) = queryCache.GetCompiledQuery(gql.Query);
+                if (compiledQuery == null)
+                {
+                    compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                    queryCache.AddCompiledQuery(hash, compiledQuery);
+                }
+                result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.Variables, gql.OperationName, options);
             }
             catch (AggregateException aex)
             {
