@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
@@ -73,7 +74,7 @@ namespace EntityGraphQL.Compiler
                         }
                         break;
                     case SyntaxKind.FloatValue:
-                        argValue = double.Parse(argumentValue.Value?.ToString());
+                        argValue = double.Parse(argumentValue.Value?.ToString(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
                         break;
                 }
             }
