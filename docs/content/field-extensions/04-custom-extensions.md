@@ -1,7 +1,7 @@
 ---
-title: "Custom Extensions"
-metaTitle: "Creating your own field extensions - EntityGraphQL"
-metaDescription: "Creating your own field extensions"
+title: 'Custom Extensions'
+metaTitle: 'Creating your own field extensions - EntityGraphQL'
+metaDescription: 'Creating your own field extensions'
 ---
 
 Field extensions let you move common patterns or use cases into an extension method to easily apply the logic across many fields. To implement an extension you implement the `IFieldExtension` interface and create an extension method. You can have your extension applied via an `Attribute` in `SchemaBuilder` by having your attribute extend `FieldExtensionAttribute`.
@@ -45,7 +45,7 @@ public class FormatStringExtension : IFieldExtension
     // This is called on compilation of a query if the query references this field
     // Good opportunity to check arguments
     // Most often you can update the expression here and return your new one
-    public Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+    public Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (arguments.last == null && arguments.first == null)
             throw new ArgumentException($"Please provide at least the first or last argument");
@@ -63,7 +63,7 @@ public class FormatStringExtension : IFieldExtension
         return expression;
     }
 
-    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // Called for object projection and collection fields. Giving you an opportunity to modify
         // the selection expression or the selection base expression.

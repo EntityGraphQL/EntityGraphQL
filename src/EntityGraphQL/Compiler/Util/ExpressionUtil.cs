@@ -319,7 +319,7 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
                 schemaContext ?? Expression.Constant(null),
             };
-            var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapFieldForNullCheckExec), null, arguments.ToArray());
             return call;
         }
 

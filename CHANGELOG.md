@@ -1,3 +1,13 @@
+# 2.0.0-beta1
+
+Breaking changes
+
+- Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
+
+Other changes
+
+- Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
+
 # 1.2.1
 
 - Fix #99 issue using the MapGraphQL() extension method

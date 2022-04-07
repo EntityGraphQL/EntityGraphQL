@@ -95,11 +95,11 @@ namespace EntityGraphQL.Compiler
 
                 if (node.SelectionSet != null)
                 {
-                    BaseGraphQLQueryField select = ParseFieldSelect(nextContextParam, actualField, resultName, mutationField, node.SelectionSet);
+                    BaseGraphQLQueryField select = ParseFieldSelect(nextContextParam, actualField, resultName, mutationField, node.SelectionSet, args);
                     if (mutationType.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
-                        var newSelect = new GraphQLListSelectionField(actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext, select.RootParameter, select.RootParameter, context);
+                        var newSelect = new GraphQLListSelectionField(actualField, actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext, select.RootParameter, select.RootParameter, context, args);
                         foreach (var queryField in select.QueryFields)
                         {
                             newSelect.AddField(queryField);
@@ -115,15 +115,15 @@ namespace EntityGraphQL.Compiler
                 BaseGraphQLField fieldResult = null;
                 var resultName = alias ?? actualField.Name;
 
-                var nodeExpression = actualField.GetExpression(context.NextFieldContext, args);
+                var nodeExpression = actualField.Resolve;
 
                 if (node.SelectionSet != null)
                 {
-                    fieldResult = ParseFieldSelect(nodeExpression, actualField, resultName, context, node.SelectionSet);
+                    fieldResult = ParseFieldSelect(nodeExpression, actualField, resultName, context, node.SelectionSet, args);
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(actualField.Extensions, resultName, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context);
+                    fieldResult = new GraphQLScalarField((Field)actualField, actualField.Extensions, resultName, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
                 }
 
                 if (node.Directives?.Any() == true)
@@ -133,21 +133,18 @@ namespace EntityGraphQL.Compiler
                 if (fieldResult != null)
                 {
                     context.AddField(fieldResult);
-                    // add any constant parameters to the result
-                    fieldResult.AddConstantParameters(nodeExpression.ConstantParameters);
-                    fieldResult.AddServices(nodeExpression.Services);
                 }
             }
         }
 
-        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection)
+        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, Expression> arguments)
         {
             if (fieldContext.ReturnType.IsList)
             {
-                return BuildDynamicSelectOnCollection(fieldContext, fieldExp, fieldContext.ReturnType.SchemaType, name, context, selection);
+                return BuildDynamicSelectOnCollection(fieldContext, fieldExp, fieldContext.ReturnType.SchemaType, name, context, selection, arguments);
             }
 
-            var graphQLNode = BuildDynamicSelectForObjectGraph(fieldContext, fieldExp, context, name, selection);
+            var graphQLNode = BuildDynamicSelectForObjectGraph(fieldContext, fieldExp, context, name, selection, arguments);
             // Could be a list.First().Blah that we need to turn into a select, or
             // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
             // Can we turn a list.First().Blah into and list.Select(i => new {i.Blah}).First()
@@ -159,7 +156,7 @@ namespace EntityGraphQL.Compiler
                 var item1 = listExp.Item1;
                 var returnType = schemaProvider.GetSchemaTypeForDotnetType(item1.Type.GetEnumerableOrArrayType());
                 // TODO this doubles the field visit
-                var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection);
+                var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection, arguments);
                 return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2);
             }
             return graphQLNode;
@@ -169,12 +166,12 @@ namespace EntityGraphQL.Compiler
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerable
         /// </summary>
-        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection)
+        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, Expression> arguments)
         {
             var elementType = returnType.TypeDotnet;
             var fieldParam = Expression.Parameter(elementType, $"p_{elementType.Name}");
 
-            var gqlNode = new GraphQLListSelectionField(actualField.Extensions, resultName, fieldParam, context.RootParameter, nodeExpression, context);
+            var gqlNode = new GraphQLListSelectionField(actualField, actualField.Extensions, resultName, fieldParam, context.RootParameter, nodeExpression, context, arguments);
 
             // visit child fields. Will be more fields
             base.VisitSelectionSet(selection, gqlNode);
@@ -189,9 +186,9 @@ namespace EntityGraphQL.Compiler
         /// <param name="context"></param>
         /// <param name="selectContext"></param>
         /// <returns></returns>
-        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection)
+        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection, Dictionary<string, Expression> arguments)
         {
-            var graphQLNode = new GraphQLObjectProjectionField(actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context);
+            var graphQLNode = new GraphQLObjectProjectionField(actualField, actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, arguments);
 
             base.VisitSelectionSet(selection, graphQLNode);
 

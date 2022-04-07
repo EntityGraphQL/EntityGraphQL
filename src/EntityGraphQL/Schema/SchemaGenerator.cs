@@ -133,7 +133,7 @@ type {rootQueryType.Name} {{
 
         private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
         {
-            if (field.Arguments == null || !field.Arguments.Any())
+            if (field.Arguments == null || !field.Arguments.Any() || field.ArgumentsAreInternal)
                 return noArgs;
 
             var all = field.Arguments.Select(f => schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);

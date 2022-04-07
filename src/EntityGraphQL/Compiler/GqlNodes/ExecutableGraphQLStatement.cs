@@ -87,7 +87,7 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(serviceProvider, fragments, contextParam, withoutServiceFields: true, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, null, contextParam, withoutServiceFields: true, isRoot: true);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, null, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true);
                     contextParam = newContextType;
                 }
             }
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(serviceProvider, fragments, contextParam, false, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, null, contextParam, false, isRoot: true);
             }
 
             var data = ExecuteExpression(expression, context, contextParam, serviceProvider, node, replacer, options);

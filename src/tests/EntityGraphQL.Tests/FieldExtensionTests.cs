@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static EntityGraphQL.Tests.ServiceFieldTests;
 
-namespace EntityGraphQL.Tests.ConnectionPaging
+namespace EntityGraphQL.Tests
 {
     public class FieldExtensionTests
     {

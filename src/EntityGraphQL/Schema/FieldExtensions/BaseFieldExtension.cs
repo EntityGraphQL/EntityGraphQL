@@ -22,10 +22,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="field"></param>
         /// <param name="expression">The current expression for the field</param>
-        /// <param name="argExpression">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
-        public virtual Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public virtual Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             return expression;
         }
@@ -43,7 +42,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="baseExpression">Scalar: the expression. ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
         /// <param name="selectionExpressions">Scalar: null. ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
         /// <returns></returns>
-        public virtual (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+        public virtual (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             return (baseExpression, selectionExpressions, selectContextParam);
         }

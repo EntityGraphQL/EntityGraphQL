@@ -34,9 +34,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="after"></param>
         /// <returns></returns>
-        public static unsafe int? DeserializeCursor(string after)
+        public static unsafe int? DeserializeCursor(ReadOnlySpan<char> after)
         {
-            if (string.IsNullOrEmpty(after))
+            if (after == null || after.IsEmpty)
                 return null;
 
             fixed (char* charPtr = after)

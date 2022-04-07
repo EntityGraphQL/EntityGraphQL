@@ -333,6 +333,9 @@
         private static List<InputValue> BuildArgs(ISchemaProvider schema, IField field)
         {
             var args = new List<InputValue>();
+            if (field.ArgumentsAreInternal)
+                return args;
+
             foreach (var arg in field.Arguments)
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);

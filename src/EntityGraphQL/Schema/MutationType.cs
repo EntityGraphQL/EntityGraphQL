@@ -35,6 +35,12 @@ namespace EntityGraphQL.Schema
 
         public ParameterExpression ArgumentParam => throw new NotImplementedException();
 
+        public Expression Resolve => throw new NotImplementedException();
+
+        public bool ArgumentsAreInternal { get; internal set; }
+
+        public IEnumerable<Type> Services { get; }
+
         public void Deprecate(string reason)
         {
             IsDeprecated = true;
@@ -161,7 +167,7 @@ namespace EntityGraphQL.Schema
                 Type type = value.GetType();
                 if (type.IsArray && memberType.IsEnumerableOrArray())
                 {
-                    var convertMethod = typeof(MutationType).GetMethod("ConvertArray", BindingFlags.NonPublic | BindingFlags.Static);
+                    var convertMethod = typeof(MutationType).GetMethod(nameof(ConvertArray), BindingFlags.NonPublic | BindingFlags.Static);
                     var generic = convertMethod.MakeGenericMethod(new[] { memberType.GetGenericArguments()[0] });
                     value = generic.Invoke(null, new object[] { value });
                 }
@@ -242,9 +248,16 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult GetExpression(Expression context, Dictionary<string, Expression> args)
+        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression schemaContext, Dictionary<string, Expression> args, bool contextChanged)
         {
-            return null;
+            var result = (ExpressionResult)fieldExpression;
+
+            if (schemaContext != null)
+            {
+                var parameterReplacer = new ParameterReplacer();
+                result.Expression = parameterReplacer.ReplaceByType(result.Expression, schemaContext.Type, schemaContext);
+            }
+            return result;
         }
 
         public IField UpdateExpression(Expression expression)

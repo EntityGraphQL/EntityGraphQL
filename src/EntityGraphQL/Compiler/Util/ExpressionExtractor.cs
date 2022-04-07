@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler.Util
@@ -11,13 +9,13 @@ namespace EntityGraphQL.Compiler.Util
     /// </summary>
     internal class ExpressionExtractor : ExpressionVisitor
     {
-        private ParameterExpression rootContext;
+        private Expression rootContext;
         private Dictionary<string, Expression> extractedExpressions;
         private Expression currentExpression;
         private string contextParamFieldName;
         private bool matchByType;
 
-        internal IDictionary<string, Expression> Extract(Expression node, ParameterExpression rootContext, bool matchByType = false)
+        internal IDictionary<string, Expression> Extract(Expression node, Expression rootContext, bool matchByType = false)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, Expression>();
