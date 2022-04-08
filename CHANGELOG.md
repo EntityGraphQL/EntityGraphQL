@@ -1,11 +1,18 @@
-# 1.3.0
+# 2.0.0-beta2
 
+Breaking changes
+
+- Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
+
+Other changes
+
+- Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`. Worth noting that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` functions provided to the `SchemaProvider` which defaults to GraphQL "standards" (fields camelCase, types PascalCase)
 - Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
 - Fix bug where compiler would loop through all available arguments even if it already found the matching type
 - Fix argument types of unsigned short/int/long
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
-- Fix #72 - Handling dictionaries introspection - ntoe it will try to return a `KeyValuePair<T1, T2>` which is not a default graphql type. You need to add a type mapping
+- Fix #72 - Handling dictionaries introspection - note it will try to return a `KeyValuePair<T1, T2>` which is not a default graphql type. You need to add a type mapping
 - Better support for nested objects in `QueryVariables`
 
 # 1.2.1

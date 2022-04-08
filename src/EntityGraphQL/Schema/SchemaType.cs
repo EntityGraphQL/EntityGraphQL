@@ -99,8 +99,6 @@ namespace EntityGraphQL.Schema
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
             _fieldsByName.Add(field.Name, field);
-            if (!_fieldsByName.ContainsKey(field.Name))
-                _fieldsByName.Add(field.Name, field);
             return field;
         }
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string description, string? returnSchemaType = null)

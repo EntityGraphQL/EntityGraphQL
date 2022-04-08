@@ -137,5 +137,56 @@ fragment frag on Project {
             var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
         }
+
+        [Fact]
+        public void TestIntrospectionDoubleFragment()
+        {
+            var schema = new SchemaProvider<TestDataContext>();
+            schema.AddType<Person>("Person", "Person details", type =>
+            {
+                type.AddField("id", p => p.Id, "ID");
+            });
+
+            var gql = new QueryRequest
+            {
+                Query = @"query IntrospectionQuery {
+                    __type(name: ""Person"") {
+                        ...FullType
+                    }
+                }
+
+                fragment FullType on __Type {
+                    name
+                    fields(includeDeprecated: true) {
+                        name
+                        type {
+                            ...TypeRef
+                        }
+                    }
+                }
+
+                fragment TypeRef on __Type {
+                    kind
+                    name
+                    ofType {
+                        kind
+                        name
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+
+            var res = schema.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+            dynamic typeData = res.Data["__type"];
+            Assert.Equal("Person", typeData.name);
+            Assert.Single(typeData.fields);
+            var field = typeData.fields[0];
+            Assert.Equal("id", field.name);
+            Assert.Equal("NON_NULL", field.type.kind);
+            Assert.Equal("Int", field.type.ofType.name);
+            Assert.Equal("SCALAR", field.type.ofType.kind);
+        }
     }
 }

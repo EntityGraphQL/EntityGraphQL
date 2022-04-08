@@ -117,6 +117,12 @@ namespace EntityGraphQL.Compiler.Util
             return base.VisitMember(node);
         }
 
+        protected override Expression VisitConstant(ConstantExpression node)
+        {
+            // we do not want to replace constant ParameterExpressions in a nullwrap            
+            return node;
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();

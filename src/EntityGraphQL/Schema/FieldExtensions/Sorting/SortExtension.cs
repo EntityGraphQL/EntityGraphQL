@@ -77,8 +77,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return type.IsEnumerableOrArray() || (type.IsClass && type != typeof(string));
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
         {
+            // things are sorted already and the field shape has changed
+            if (servicesPass)
+                return expression;
+
             if (arguments != null && arguments!.Sort != null)
             {
                 var first = true;
@@ -102,12 +106,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
 
                     var listParam = Expression.Parameter(listType);
+                    Expression sortField = listParam;
                     expression = Expression.Call(
                         methodType,
                         method,
                         new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
                         expression,
-                        Expression.Lambda(Expression.PropertyOrField(listParam, fieldInfo.Name), listParam)
+                        Expression.Lambda(Expression.PropertyOrField(sortField, fieldInfo.Name), listParam)
                     );
                 }
             }

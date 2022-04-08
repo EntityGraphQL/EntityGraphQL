@@ -34,11 +34,17 @@ namespace EntityGraphQL.Schema.FieldExtensions
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
         {
+            // data is already filtered
+            if (servicesPass)
+                return expression;
+
             // we have current context update Items field
-            if (arguments.Filter != null && arguments.Filter.HasValue)
-                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType! }, expression, arguments.Filter.Query);
+            if (arguments != null && arguments?.Filter != null && arguments?.Filter.HasValue)
+            {
+                expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType! }, expression, arguments!.Filter.Query);
+            }
 
             return expression;
         }

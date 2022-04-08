@@ -16,16 +16,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
         private Field? edgesField;
-        private ConnectionEdgeExtension? edgesExtension;
-        private List<IFieldExtension>? extensions;
         private Type? listType;
         private bool isQueryable;
         private Type? returnType;
-        /// <summary>
-        /// This is the original expression that was defined in the schema - the collection
-        /// UseConnectionPaging() basically moves it to originalField.edges
-        /// </summary>
-        private Expression? originalFieldExpression;
+        private List<IFieldExtension> extensionsBeforePaging = new();
 
         public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
         {
@@ -87,53 +81,77 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // Update field arguments
             field.AddArguments(new ConnectionArgs());
 
+            // set up Extension on Edges.Node field to handle the Select() insertion
+            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
+            // move expression
+            // This is the original expression that was defined in the schema - the collection
+            // UseConnectionPaging() basically moves it to originalField.edges
+            edgesField.UpdateExpression(field.Resolve);
+            // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
+            extensionsBeforePaging = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
+            // the remaining extensions expect to be built from the ConnectionPaging shape
+            field.Extensions = field.Extensions.Skip(extensionsBeforePaging.Count).ToList();
+
+            // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
+            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, field.ArgumentParam!, field.ArgumentParam!, extensionsBeforePaging);
+            edgesField.AddExtension(edgesExtension);
+            // Move the arguments definition to the Edges field as it needs them for processing
+            // don't push field.FieldParam over as we rebuild the field from the parent context
+            edgesField.ArgumentsType = field.ArgumentsType;
+            edgesField.ArgumentParam = field.ArgumentParam;
+            edgesField.Arguments = field.Arguments;
+            edgesField.ArgumentsAreInternal = true;
+
             // Rebuild expression so all the fields and types are known
             // and get it ready for completion at runtime (we need to know the selection fields to complete)
             // it is built to reduce redundant repeated expressions. The whole thing ends up in a null check wrap
             // conceptually it does similar to below (using Demo context)
             // See Connection for implemention details of TotalCount and PageInfo
             // (ctx, arguments) => {
-            //      var connection = new Connection<Person>(ctx.Actors.Select(a => a.Person).Count(), arguments)
+            //      var connection = new Connection<Person>(ctx.Actors.Select(a => a.Person)
+            //              -- other extensions might do thigns here (e.g. filter / sort)
+            //             .Count(), arguments)
             //      {
-            //          Edges = ctx.Actors.Select(a => a.Person).OrderBy(a => a.Id)
+            //          Edges = ctx.Actors.Select(a => a.Person)
+            //              -- other extensions might do thigns here (e.g. filter / sort)
             //              .Skip(GetSkipNumber(arguments))
             //              .Take(GetTakeNumber(arguments))
-            //              <----- we insert Select() here so that we do not fetch the whole table if using EF
+            //              // we insert Select() here so that we do not fetch the whole table if using EF
+            //              .Select(a => new ConnectionEdge<Person>
+            //              {
+            //                  Node = new {
+            //                      field1 = a.field1,
+            //                      ...
+            //                 },
+            //                 Cursor = null // built below
+            //              })
+            //              // this is the select in memory that lets us build the cursors
             //              .Select((a, idx) => new ConnectionEdge<Person> // this is from Enumerable and EF will run the above
             //              {
             //                  Node = a,
-            //              })
+            //                  Cursor = ConnectionHelper.GetCursor(arguments, idx)
+            //              }),
             //      };
             //      if (connection == null)
             //          return null;
             //      return .... // does the select of only the Conneciton fields asked for
-
-            // set up Extension on Edges.Node field to handle the Select() insertion
-            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
-            // move expression
-            edgesField.UpdateExpression(field.Resolve);
-            // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
-            extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
-            field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
-
-            // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensions)
-            {
-                ArgumentParam = field.ArgumentParam
-            };
-            edgesField.AddExtension(edgesExtension);
+            // need to set this up here as the types are needed as we visiting the query tree
+            // we build the real one below in GetExpression()
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.Resolve);
+            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
+            field.UpdateExpression(fieldExpression);
         }
 
-        private Expression BuildNewConnectionExpression(Field field, Type returnType, Expression resolve)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
         {
-            // totalCountExp gets executed once in the new Connection() {} and we can reuse it
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
-            var expression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
-            return expression;
-        }
+            // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
+            if (servicesPass)
+                return expression;
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
-        {
+            if (arguments == null)
+                arguments = new { };
+
+            // check and set up arguments
             if (arguments.Before != null && arguments.After != null)
                 throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
             if (arguments.First != null && arguments.First < 0)
@@ -156,23 +174,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
             arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
             arguments.BeforeNum = ConnectionHelper.DeserializeCursor(arguments.Before);
 
-            // we get the arguments at this level but need to use them on the edge field
-            edgesExtension!.ArgExpression = argExpression;
+            // totalCountExp gets executed once in the new Connection() {} and we can reuse it
+            var edgeExpression = edgesField!.Resolve;
 
-            // Here we now have the original context needed in our edges expression to use in the sub fields
-            originalFieldExpression = parameterReplacer.Replace(expression, field.FieldParam!, context);
-            // we also can apply any extensions before us
-            foreach (var extension in extensions!)
+            if (edgesField.Extensions.Any())
             {
-                originalFieldExpression = extension.GetExpression(field, originalFieldExpression, argExpression, arguments, context, parameterReplacer);
+                // if we have other extensions (filter etc) we need to apply them to the totalCount
+                foreach (var extension in extensionsBeforePaging)
+                {
+                    edgeExpression = extension.GetExpression(edgesField, edgeExpression, argExpression, arguments, context, servicesPass, parameterReplacer);
+                }
             }
-            // update the edge field
-            edgesField!.UpdateExpression(originalFieldExpression);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression);
+            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
 
-            // we need to return new expressions here so all the types match processing further
-            var fieldExpression = BuildNewConnectionExpression(field, returnType!, originalFieldExpression);
-
-            return fieldExpression;
+            return expression;
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using EntityQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
@@ -123,9 +124,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 return enumOrConstantValue;
             }
             var gqlField = schemaProvider.GetActualField(schemaType.Name, field, requestContext);
-            var exp = gqlField.GetExpression(currentContext, null);
-            if (exp == null)
-                throw new EntityGraphQLCompilerException($"Error compiling field {field} on type {schemaType.Name}");
+            var exp = gqlField.GetExpression(gqlField.Resolve!, currentContext, null, new Dictionary<string, Expression>(), false);
             return exp;
         }
 

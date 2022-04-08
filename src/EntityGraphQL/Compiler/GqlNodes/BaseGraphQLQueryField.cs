@@ -13,8 +13,8 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, Expression>? arguments)
+            : base(name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             replacer = new ParameterReplacer();
         }
@@ -35,7 +35,7 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
-                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
+                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, arguments, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
                     if (fieldExp == null)
                         continue;
 

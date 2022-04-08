@@ -6,6 +6,7 @@ using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Tests
 {
@@ -891,9 +892,9 @@ namespace EntityGraphQL.Tests
                 "Persons age");
 
             var serviceCollection = new ServiceCollection();
-            ConfigService configSrv = new ConfigService();
+            ConfigService configSrv = new();
             serviceCollection.AddSingleton(configSrv);
-            AgeService ageSrv = new AgeService();
+            AgeService ageSrv = new();
             serviceCollection.AddSingleton(ageSrv);
 
             var gql = new QueryRequest
@@ -946,7 +947,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             Assert.Equal(1, ageSrv.CallCount);
-            dynamic project = (dynamic)res.Data["project"];
+            dynamic project = res.Data["project"];
         }
 
         [Fact]
@@ -1186,8 +1187,51 @@ namespace EntityGraphQL.Tests
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, service.CallCount);
-            dynamic projects = (dynamic)res.Data["projects"];
+            dynamic projects = res.Data["projects"];
             Assert.Equal(2, projects[0].tasks[0].assignee.GetType().GetFields().Length);
+        }
+
+        [Fact]
+        public void TestCollectionWithService()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+            schema.ReplaceField("people", new
+            {
+                height = (int?)null
+            },
+            (ctx, args) => ctx.People
+                .WhereWhen(p => p.Height > args.height, args.height.HasValue)
+                .OrderBy(p => p.Height),
+            "Get people with height > {height}");
+            schema.Type<Person>().AddField("resolvedSettings",
+                (f) => WithService((ConfigService b) => b.Get(f.Id)),
+                "Return resolved settings").IsNullable(false);
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService service = new();
+            serviceCollection.AddSingleton(service);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query OpName {
+                    people {
+                        resolvedSettings {
+                            type
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            context.FillWithTestData();
+
+            var doc = new GraphQLCompiler(schema).Compile(new QueryRequestContext(gql, null, null));
+
+            Assert.Single(doc.Operations);
+            Assert.Single(doc.Operations[0].QueryFields);
+            Assert.True(doc.Operations[0].QueryFields[0].HasAnyServices(new List<GraphQLFragmentStatement>()));
         }
 
         public class AgeService
