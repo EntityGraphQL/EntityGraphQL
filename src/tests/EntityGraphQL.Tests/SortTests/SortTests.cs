@@ -17,7 +17,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: PeopleSortInput) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: PeopleSortInput) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Tests
                 });
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: PeopleSortInput) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"height\": \"ASC\" } }")
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: TasksSortInput) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
@@ -200,7 +200,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: TasksSortInput) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
@@ -230,7 +230,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: TasksSortInput) {
                     project(id: 55) {
                         tasks(sort: $sort) { id }
                     }

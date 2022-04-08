@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -36,6 +37,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public string Name { get; protected set; }
+        protected IField? field;
 
         public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, Expression>? arguments)
         {

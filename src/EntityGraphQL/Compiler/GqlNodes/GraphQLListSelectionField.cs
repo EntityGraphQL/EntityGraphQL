@@ -20,8 +20,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
-        private readonly IField? field;
-
         public Expression ListExpression { get; internal set; }
 
         /// <summary>
@@ -91,7 +89,7 @@ namespace EntityGraphQL.Compiler
             if (!withoutServiceFields)
             {
                 // if selecting final graph make sure lists are evaluated
-                if (!isRoot && resultExpression.Type.IsEnumerableOrArray())
+                if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
                     resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
             }
 

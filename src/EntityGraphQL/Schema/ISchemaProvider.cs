@@ -14,70 +14,43 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface ISchemaProvider
     {
-        string QueryContextName { get; }
+        Type QueryContextType { get; }
+        Type MutationType { get; }
         Func<string, string> SchemaFieldNamer { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
+        string QueryContextName { get; }
 
-        ISchemaType AddType(Type type, string name, string description);
-        ISchemaType AddInputType(Type type, string name, string description);
-
-        /// The base context type that expression will be built from. For example your DbContext
-        Type ContextType { get; }
-
-        /// Checks if the given type has the given field identifier
-        bool TypeHasField(string typeName, string identifier, IEnumerable<string>? fieldArgs, QueryRequestContext requestContext);
-        bool TypeHasField(Type type, string identifier, IEnumerable<string> fieldArgs, QueryRequestContext requestContext);
-
+        void AddDirective(IDirectiveProcessor directive);
+        ISchemaType AddEnum(string name, Type type, string description);
+        SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
+        ISchemaType AddInputType(Type type, string name, string? description);
+        void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull;
+        ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
+        SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
+        SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
+        ISchemaType AddType(Type contextType, string name, string? description);
+        void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
+        SchemaType<TBaseType> AddType<TBaseType>(string description);
+        void AddTypeMapping<TFromType>(string gqlType);
+        GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
+        IDirectiveProcessor GetDirective(string name);
+        IEnumerable<IDirectiveProcessor> GetDirectives();
+        List<ISchemaType> GetEnumTypes();
+        IEnumerable<ISchemaType> GetNonContextTypes();
+        IEnumerable<ISchemaType> GetScalarTypes();
+        ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
+        ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         bool HasType(string typeName);
         bool HasType(Type type);
-        ISchemaType Type(string name);
-        ISchemaType Type(Type dotnetType);
-        List<ISchemaType> EnumTypes();
-        /// As GQL is not case sensitive this returns the actual field name in correct casing as defined to build the expression
-        IField GetActualField(string typeName, string identifier, QueryRequestContext? requestContext);
-
-        IEnumerable<ISchemaType> GetScalarTypes();
-        /// <summary>
-        /// Get the GQL (from schema) type name for a given CLR/dotnet type. Examples int -> Int, int? -> Int
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        ISchemaType GetSchemaTypeForDotnetType(Type type);
-        bool HasMutation(string method);
-        string GetGraphQLSchema();
-        /// <summary>
-        /// Return all the fields that are at the root query type
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<Field> GetQueryFields();
-        /// <summary>
-        /// Return all types in the schema
-        /// </summary>
-        /// <returns></returns>
-        IEnumerable<ISchemaType> GetNonContextTypes();
-        ISchemaType GetSchemaType(string typeName);
-
-        IEnumerable<MutationType> GetMutations();
-        /// <summary>
-        /// Add scalar types that the schema will know about when generating schema and introspection.
-        /// e.g. schema.AddScalarType(typeof(DateTime), "Date");
-        /// </summary>
-        /// <param name="clrType">A CLR type that you want mapped</param>
-        /// <param name="gqlTypeName">A type name for the scala</param>
-        ISchemaType AddScalarType(Type clrType, string gqlTypeName, string description);
-        ISchemaType AddScalarType<TType>(string gqlTypeName, string description);
-        ISchemaType AddEnum(string name, Type type, string description);
-
+        void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes);
         ISchemaProvider RemoveType<TType>();
         ISchemaProvider RemoveType(string schemaType);
-        /// <summary>
-        /// Get a directive by name. A directive is used to manipulate or customise a query and/or result
-        /// </summary>
-        /// <param name="name">name of the directive</param>
-        /// <returns></returns>
-        IDirectiveProcessor GetDirective(string name);
-        void AddDirective(IDirectiveProcessor directive);
-        IEnumerable<IDirectiveProcessor> GetDirectives();
-        GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
+        void RemoveTypeAndAllFields<TSchemaType>();
+        void RemoveTypeAndAllFields(string typeName);
+        string ToGraphQLSchemaString();
+        SchemaType<TType> Type<TType>();
+        SchemaType<TType> Type<TType>(string typeName);
+        ISchemaType Type(string typeName);
+        void UpdateType<TType>(Action<SchemaType<TType>> configure);
     }
 }

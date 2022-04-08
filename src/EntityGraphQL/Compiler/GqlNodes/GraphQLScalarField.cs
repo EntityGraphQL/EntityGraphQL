@@ -13,16 +13,15 @@ namespace EntityGraphQL.Compiler
     {
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField>? extractedFields;
-        private readonly Field field;
 
-        public GraphQLScalarField(Field field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, Expression>? arguments)
+        public GraphQLScalarField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, Expression>? arguments)
             : base(name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
             replacer = new ParameterReplacer();
             this.field = field;
-            this.AddServices(field.Services);
+            this.AddServices(field?.Services);
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
@@ -60,7 +59,7 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var result = field.GetExpression(NextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
+            var result = field!.GetExpression(NextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
             AddConstantParameters(result.ConstantParameters);
             AddServices(result.Services);
 

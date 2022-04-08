@@ -19,7 +19,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
 
-            schema.ReplaceField("projects",
+            schema.Query().ReplaceField("projects",
                 new PagerArgs { page = 1, pagesize = 10 },
                 (db, p) => WithService((EntityPager pager) => pager.PageProjects(db, p)),
                 "Pagination. [defaults: page = 1, pagesize = 10]");
@@ -340,7 +340,7 @@ namespace EntityGraphQL.Tests
                 (user) => WithService((TestDataContext db) => db.Projects.Where(p => p.Owner.Id == user.Id)),
                 "Peoples projects");
 
-            schema.ReplaceField("user", ctx => WithService((UserService users) => users.GetUser()), "Get current user");
+            schema.Query().ReplaceField("user", ctx => WithService((UserService users) => users.GetUser()), "Get current user");
 
             var gql = new QueryRequest
             {
@@ -381,7 +381,7 @@ namespace EntityGraphQL.Tests
                 (user) => WithService((TestDataContext db) => db.Projects.Where(p => p.Owner.Id == user.Id)),
                 "Peoples projects");
 
-            schema.ReplaceField("users", ctx => WithService((UserService users) => users.GetUsers()), "Get current user");
+            schema.Query().ReplaceField("users", ctx => WithService((UserService users) => users.GetUsers()), "Get current user");
 
             var gql = new QueryRequest
             {
@@ -781,7 +781,7 @@ namespace EntityGraphQL.Tests
                 (p) => WithService((ConfigService srv) => srv.Get(p.Id).Type),
                 "Get project config");
 
-            schema.ReplaceField("projects",
+            schema.Query().ReplaceField("projects",
                 new
                 {
                     search = (string)null,
@@ -833,7 +833,7 @@ namespace EntityGraphQL.Tests
                 (p) => WithService((ConfigService srv) => srv.Get(0).Type),
                 "Get project config");
 
-            schema.ReplaceField("projects",
+            schema.Query().ReplaceField("projects",
                 new
                 {
                     search = (string)null,
@@ -1197,7 +1197,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
-            schema.ReplaceField("people", new
+            schema.Query().ReplaceField("people", new
             {
                 height = (int?)null
             },

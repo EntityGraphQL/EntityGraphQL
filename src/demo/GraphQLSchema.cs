@@ -12,7 +12,7 @@ namespace demo
         public static void ConfigureSchema(SchemaProvider<DemoContext> demoSchema)
         {
             // Add custom root fields
-            demoSchema.UpdateQueryType(queryType =>
+            demoSchema.UpdateQuery(queryType =>
             {
                 demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
@@ -60,8 +60,8 @@ namespace demo
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
-            demoSchema.AddMutationFrom(new DemoMutations());
-            File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
+            demoSchema.AddMutationsFrom(new DemoMutations());
+            File.WriteAllText("schema.graphql", demoSchema.ToGraphQLSchemaString());
         }
     }
 }

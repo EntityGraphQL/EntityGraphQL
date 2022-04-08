@@ -25,8 +25,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLObjectProjectionField : BaseGraphQLQueryField
     {
-        private readonly IField field;
-
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
@@ -61,7 +59,7 @@ namespace EntityGraphQL.Compiler
                 else
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
-            var nextFieldContextExp = field.GetExpression(nextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
+            var nextFieldContextExp = field!.GetExpression(nextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
             nextFieldContext = nextFieldContextExp.Expression;
             AddServices(nextFieldContextExp.Services);
             AddConstantParameters(nextFieldContextExp.ConstantParameters);
@@ -165,7 +163,7 @@ namespace EntityGraphQL.Compiler
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField((Field)field, null, i.Key, i.Value, RootParameter, ParentNode, arguments)
+                        .Select(i => new GraphQLScalarField(field, null, i.Key, i.Value, RootParameter, ParentNode, arguments)
                         {
                             // do not push services into the fields extracted from a service field
                             Services = new List<Type>()

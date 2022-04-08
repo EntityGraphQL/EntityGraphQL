@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -26,6 +25,11 @@ namespace EntityGraphQL.Extensions
             return source.GetNonNullableType().GetEnumerableOrArrayType() ?? source.GetNonNullableType();
         }
 
+        public static bool IsDictionary(this Type source)
+        {
+            return source.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+        }
+
         /// <summary>
         /// Returns true if this type is an Enumerable<> or an array
         /// </summary>
@@ -36,12 +40,12 @@ namespace EntityGraphQL.Extensions
             if (source == typeof(string) || source == typeof(byte[]))
                 return false;
 
-            if (source.GetTypeInfo().IsArray)
+            if (source.IsArray)
             {
                 return true;
             }
             var isEnumerable = false;
-            if (source.GetTypeInfo().IsGenericType && !source.IsNullableType())
+            if (source.IsGenericType && !source.IsNullableType())
             {
                 isEnumerable = IsGenericTypeEnumerable(source);
             }
@@ -50,7 +54,7 @@ namespace EntityGraphQL.Extensions
 
         private static bool IsGenericTypeEnumerable(Type source)
         {
-            bool isEnumerable = source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.GetTypeInfo().IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
+            bool isEnumerable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
             if (!isEnumerable)
             {
                 foreach (var intType in source.GetInterfaces())
@@ -80,14 +84,12 @@ namespace EntityGraphQL.Extensions
                 return type.GetElementType();
             if (type.GenericTypeArguments.Count() == 1)
                 return type.GetGenericArguments()[0];
-            if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(IDictionary<,>) || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
-                return typeof(KeyValuePair<,>).MakeGenericType(type.GenericTypeArguments);
             return null;
         }
 
         public static bool IsNullableType(this Type t)
         {
-            return t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
+            return t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -12,13 +13,13 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nodeExpression, rootParameter, parentNode)
+        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, (Type, object?)> variables)
+            : base(name, nodeExpression, rootParameter, parentNode, variables)
         {
             Name = name;
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
             foreach (GraphQLMutationField node in QueryFields)
@@ -26,8 +27,18 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
-                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options);
-
+                    Stopwatch? timer = null;
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer = new Stopwatch();
+                        timer.Start();
+                    }
+                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, null, null);
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer?.Stop();
+                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                    }
                     result[node.Name] = data;
                 }
                 catch (Exception ex)
@@ -45,7 +56,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, ParameterExpression? variableParameter, object? docVariables)
         {
             if (context == null)
                 return null;
@@ -106,7 +117,7 @@ namespace EntityGraphQL.Compiler
                 }
                 resultExp.RootParameter = mutationContextParam;
 
-                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options);
+                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options, variableParameter, docVariables);
                 return result;
             }
             // we now know the context as it is dynamically returned in a mutation
@@ -118,7 +129,7 @@ namespace EntityGraphQL.Compiler
             }
 
             // run the query select against the object they have returned directly from the mutation
-            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, options);
+            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, options, variableParameter, docVariables);
             return result;
         }
 

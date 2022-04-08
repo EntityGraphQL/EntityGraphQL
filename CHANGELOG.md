@@ -3,17 +3,40 @@
 Breaking changes
 
 - Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
+- Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
+- `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
+- `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
+
+Clean up on the schema building APIs to make them more consistent, documented and concise
+
+- Clean up of `SchemaType` APIs to add/replace/remove fields.
+- Remove `SchemaProvider.Add/ReplaceField` methods.
+  - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema
+- Additions to the `Field` API to add more uncommon functionality to chaining methods
+- Remove `SchemaProvider.UpdateQueryType()`, use `SchemaProvider.UpdateQuery(type => {})`
+- Remove `SchemaProvider.TypeHasField()`
+- Remove `SchemaProvider.GetQueryFields()` - use `SchemaProvider.Query.GetFields()`
+- Renamed `GetGraphQLSchema()` to `ToGraphQLSchemaString()`
+- Renamed `AddMutationFrom()` to `AddMutationsFrom()`
+- Removed Obsolete methods:
+  - `RequiresAllClaims` replaced by `RequiresAllRoles`
+  - `RequiresAnyClaim` replaced by `RequiresAnyRole`
+  - `ExecuteQuery` replaced by `ExecuteRequest`
+  - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
 
 Other changes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
-- Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`. Worth noting that the objects created in the resulting `QueryResult` have fields named by the `fieldNamer` functions provided to the `SchemaProvider` which defaults to GraphQL "standards" (fields camelCase, types PascalCase)
+- Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.
+  - _Note that the objects created in the resulting `QueryResult` have fields named like the fields in the schema which is controlled by the `fieldNamer` function provided to the `SchemaProvider` which defaults to GraphQL "standard" (fields camelCase, types PascalCase)_
 - Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
 - Fix bug where compiler would loop through all available arguments even if it already found the matching type
 - Fix argument types of unsigned short/int/long
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
-- Fix #72 - Handling dictionaries introspection - note it will try to return a `KeyValuePair<T1, T2>` which is not a default graphql type. You need to add a type mapping
+- Fix #72 - Handling dictionaries introspection - note it will try to create a scalar type `KeyValuePair<T1, T2>` in the schema by default
+- Fix handling argument types of unsigned short/int/long
 - Better support for nested objects in `QueryVariables`
+- Small performance enhancements when building internal types
 
 # 1.2.1
 
@@ -65,7 +88,7 @@ Other changes
 
 # 1.0.0
 
-- New extension methods to ease adding your schema to the service collection. See docs - `services.AddGraphQLSchema<DemoContext>(configure => {})`
+- New extension methods to ease adding your schema to the service collection. See docs - `services.AddGraphQLSchema<DemoContext>(options => {})`
 - New package EntityGraphQL.AspNet with extensions to easily expose a graphql endpoint with `MapGraphQL<T>()`.
 
 ```c#

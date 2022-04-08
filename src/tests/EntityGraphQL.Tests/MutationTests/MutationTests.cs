@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests
         public void MissingRequiredVar()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -37,7 +37,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationOptional()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationArrayArg()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -93,11 +93,11 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void SupportsMutationObject()
+        public void SupportsMutationVariablesAnonObject()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -125,10 +125,77 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportsMutationVariablesObject()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($names: [String]) {
+          addPersonInput(nameInput: $names) {
+            id name lastName
+          }
+        }",
+                // object will come through as json in the request
+                Variables = new QueryVariables {
+                        { "names", new InputObject{ Name = "Lisa", LastName = "Simpson" } }
+                }
+            };
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(result.Errors);
+            dynamic addPersonResult = result.Data["addPersonInput"];
+            // we only have the fields requested
+            var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
+            Assert.Equal(0, addPersonResult.id);
+            Assert.Contains("name", resultFields);
+            Assert.Equal("Lisa", addPersonResult.name);
+            Assert.Equal("Simpson", addPersonResult.lastName);
+        }
+
+        [Fact]
+        public void SupportsMutationVariablesDictionary()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($names: [String]) {
+          addPersonInput(nameInput: $names) {
+            id name lastName
+          }
+        }",
+                // object will come through as json in the request
+                Variables = new QueryVariables {
+                        { "names", new Dictionary<string, object> {
+                            {"name", "Lisa"},
+                            {"lastName", "Simpson"}
+                        }}
+                }
+            };
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(result.Errors);
+            dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
+            // we only have the fields requested
+            var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
+            Assert.Equal(0, addPersonResult.id);
+            Assert.Contains("name", resultFields);
+            Assert.Equal("Lisa", addPersonResult.name);
+            Assert.Equal("Simpson", addPersonResult.lastName);
+        }
+
+        [Fact]
         public void SupportsSelectionFromConstant()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -162,7 +229,7 @@ namespace EntityGraphQL.Tests
             {
                 type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
             });
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -203,7 +270,7 @@ namespace EntityGraphQL.Tests
             {
                 type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
             });
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -239,7 +306,7 @@ namespace EntityGraphQL.Tests
         public void MutationReturnsCollectionConst()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -271,7 +338,7 @@ namespace EntityGraphQL.Tests
         public void TestAsyncMutationNonObjectReturn()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -292,7 +359,7 @@ namespace EntityGraphQL.Tests
         public void TestUnnamedMutationOp()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -313,7 +380,7 @@ namespace EntityGraphQL.Tests
         public void TestRequiredGuid()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -333,7 +400,7 @@ namespace EntityGraphQL.Tests
         public void TestNonNullIsRequired()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -352,7 +419,7 @@ namespace EntityGraphQL.Tests
         public void TestListArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -370,16 +437,17 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestListIntArgInputType()
+        public void
+        TestListIntArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<InputObjectId>("InputObjectId", "InputObjectId").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          TaskWithListInt(inputs: [{id: 1, idLong: 1}, {id: 20, idLong:20}])
+          taskWithListInt(inputs: [{id: 1, idLong: 1}, {id: 20, idLong:20}])
         }
         ",
             };

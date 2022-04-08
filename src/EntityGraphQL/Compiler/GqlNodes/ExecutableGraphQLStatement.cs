@@ -23,16 +23,27 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? RootParameter { get; set; }
         public string Name { get; protected set; }
         public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
+        /// <summary>
+        /// Variables that are expected to be passed in to execute this query
+        /// </summary>
+        private readonly Dictionary<string, (Type, object?)> requiredVariables = new();
+        public ParameterExpression? VariableParameter { get; }
 
-        public ExecutableGraphQLStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public ExecutableGraphQLStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, (Type, object?)> opVariables)
         {
             Name = name;
             NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
             ParentNode = parentNode;
+            requiredVariables = opVariables;
+            if (requiredVariables.Any())
+            {
+                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(requiredVariables.ToDictionary(f => f.Key, f => f.Value.Item1));
+                VariableParameter = Expression.Parameter(variableType, "doc_vars");
+            }
         }
 
-        public virtual Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        public virtual Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -43,6 +54,22 @@ namespace EntityGraphQL.Compiler
             var result = new ConcurrentDictionary<string, object?>();
             if (context == null)
                 return Task.FromResult(result);
+
+            // inject document level variables - letting the query be cached and passing in different variables
+            object? variablesToUse = null;
+
+            if (requiredVariables.Any() && VariableParameter != null)
+            {
+                if (variables == null)
+                    variables = new QueryVariables();
+                variablesToUse = Activator.CreateInstance(VariableParameter.Type);
+                foreach (var (name, (type, value)) in requiredVariables)
+                {
+                    if (!variables.ContainsKey(name) && value == null)
+                        throw new EntityGraphQLExecutionException($"Variable {name} is required but was not supplied");
+                    VariableParameter.Type.GetField(name).SetValue(variablesToUse, ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? value, type));
+                }
+            }
 
             foreach (var fieldNode in QueryFields)
             {
@@ -55,7 +82,7 @@ namespace EntityGraphQL.Compiler
                         timer = new Stopwatch();
                         timer.Start();
                     }
-                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options);
+                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, VariableParameter, variablesToUse);
 
                     if (options.IncludeDebugInfo == true)
                     {
@@ -73,7 +100,7 @@ namespace EntityGraphQL.Compiler
             return Task.FromResult(result);
         }
 
-        protected object? CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options)
+        protected object? CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, ParameterExpression? variableParameter, object? docVariables)
         {
             object? runningContext = context;
 
@@ -97,7 +124,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    runningContext = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options);
+                    runningContext = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options, variableParameter, docVariables);
                     if (runningContext == null)
                         return null;
 
@@ -117,11 +144,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(serviceProvider, fragments, new Dictionary<string, Expression>(), contextParam, false, isRoot: true);
             }
 
-            var data = ExecuteExpression(expression!, runningContext, contextParam, serviceProvider, node, replacer, options!);
+            var data = ExecuteExpression(expression!, runningContext, contextParam, serviceProvider, node, replacer, options!, variableParameter, docVariables);
             return data;
         }
 
-        protected object? ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
+        protected object? ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, ParameterExpression? variableParameter, object? docVariables)
         {
             var allArgs = new List<object> { context };
 
@@ -145,14 +172,24 @@ namespace EntityGraphQL.Compiler
             }
 
             // evaluate everything
-            if (expression.Type.IsEnumerableOrArray())
+            if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
             {
                 expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
             }
 
+            // These are the document level variables allowing same query
+            // different variables to be used
+            if (docVariables != null && variableParameter != null)
+            {
+                parameters.Add(variableParameter);
+                allArgs.Add(docVariables);
+            }
+
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+#if DEBUG
             if (options?.NoExecution == true)
                 return null;
+#endif
             return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
 

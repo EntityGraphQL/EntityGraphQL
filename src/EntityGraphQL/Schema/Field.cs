@@ -14,12 +14,11 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class Field : IField
     {
+        public FieldType FieldType { get; } = FieldType.Query;
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
 
         public ParameterExpression? ArgumentParam { get; set; }
         private readonly ISchemaProvider schema;
-        private readonly Func<string, string> fieldNamer;
-
         public string Name { get; internal set; }
         public ParameterExpression? FieldParam { get; set; }
         public List<IFieldExtension> Extensions { get; set; }
@@ -59,13 +58,12 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool ArgumentsAreInternal { get; internal set; }
 
-        internal Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth, Func<string, string> fieldNamer)
+        internal Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
         {
             this.schema = schema;
             Name = name;
             Description = description ?? string.Empty;
             RequiredAuthorization = requiredAuth;
-            this.fieldNamer = fieldNamer;
             ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType), "retypeType can not be null");
             Extensions = new List<IFieldExtension>();
 
@@ -102,16 +100,25 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public void Deprecate(string reason)
+        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims)
+            : this(schema, name, resolve, description, returnType, claims)
         {
-            IsDeprecated = true;
-            DeprecationReason = reason;
+            if (argTypes != null)
+            {
+                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, schema.SchemaFieldNamer);
+                ArgumentsType = argTypes.GetType();
+            }
         }
 
+        /// <summary>
+        /// Adds a argument object to the field. The fields on the object will be added as arguments.
+        /// Any exisiting arguments with the same name will be overwritten.
+        /// </summary>
+        /// <param name="args"></param>
         public void AddArguments(object args)
         {
             // get new argument values
-            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args, fieldNamer);
+            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(schema, args, schema.SchemaFieldNamer);
             // build new argument Type
             var newArgType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
@@ -137,21 +144,15 @@ namespace EntityGraphQL.Schema
             ReturnType = gqlTypeInfo;
         }
 
+        /// <summary>
+        /// Update the expression used to resolve this fields value
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         public IField UpdateExpression(Expression expression)
         {
             Resolve = expression;
             return this;
-        }
-
-
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims, Func<string, string> fieldNamer)
-            : this(schema, name, resolve, description, returnType, claims, fieldNamer)
-        {
-            if (argTypes != null)
-            {
-                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, fieldNamer);
-                ArgumentsType = argTypes.GetType();
-            }
         }
 
         public bool HasArgumentByName(string argName)
@@ -162,32 +163,6 @@ namespace EntityGraphQL.Schema
         public ArgType GetArgumentType(string argName)
         {
             return Arguments[argName];
-        }
-
-        /// <summary>
-        /// To access this field all claims listed here are required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAllRoles")]
-        public Field RequiresAllClaims(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllRoles(claims);
-            return this;
-        }
-
-        /// <summary>
-        /// To access this field any claims listed is required
-        /// </summary>
-        /// <param name="claims"></param>
-        [Obsolete("Use RequiresAnyRole")]
-        public Field RequiresAnyClaim(params string[] claims)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAnyRole(claims);
-            return this;
         }
 
         /// <summary>
@@ -249,7 +224,17 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Define if the return type of this field is nullable or not.
+        /// Marks this field as deprecated
+        /// </summary>
+        /// <param name="reason"></param>
+        public void Deprecate(string reason)
+        {
+            IsDeprecated = true;
+            DeprecationReason = reason;
+        }
+
+        /// <summary>
+        /// Defines if the return type of this field is nullable or not.
         /// </summary>
         /// <param name="nullable"></param>
         /// <returns></returns>
@@ -260,6 +245,31 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
+        /// <summary>
+        /// Update the return type information for this field
+        /// </summary>
+        /// <param name="gqlTypeInfo"></param>
+        public Field Returns(GqlTypeInfo gqlTypeInfo)
+        {
+            ReturnType = gqlTypeInfo;
+            return this;
+        }
+
+        /// <summary>
+        /// Update the return Type of this field
+        /// </summary>
+        /// <param name="schemaTypeName"></param>
+        /// <returns></returns>
+        public Field Returns(string schemaTypeName)
+        {
+            Returns(new GqlTypeInfo(() => schema.Type(schemaTypeName), schema.Type(schemaTypeName).TypeDotnet));
+            return this;
+        }
+
+        /// <summary>
+        /// Add a field extension to this field
+        /// </summary>
+        /// <param name="extension"></param>
         public void AddExtension(IFieldExtension extension)
         {
             Extensions.Add(extension);
@@ -287,7 +297,7 @@ namespace EntityGraphQL.Schema
 
         private void PrepareExpressionResult(Dictionary<string, Expression> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, bool servicesPass)
         {
-            if (field.ArgumentsType != null)
+            if (field.ArgumentsType != null && args != null && FieldParam != null)
             {
                 // get the values for the argument anonymous type object constructor
                 var propVals = new Dictionary<PropertyInfo, object?>();
@@ -376,7 +386,6 @@ namespace EntityGraphQL.Schema
                 }
             }
         }
-
 
         private static object? BuildArgumentFromMember(Dictionary<string, Expression>? args, Field field, string memberName, Type memberType, object? defaultValue)
         {

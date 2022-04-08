@@ -12,9 +12,9 @@ namespace EntityGraphQL.Tests
         public void QueryWithVariable()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schema).Compile(new QueryRequest
+            var gql = new QueryRequest
             {
                 Query = @"
                     query MyQuery($limit: Int) {
@@ -25,7 +25,8 @@ namespace EntityGraphQL.Tests
                 {
                     {"limit", 5}
                 }
-            });
+            };
+            var tree = new GraphQLCompiler(schema).Compile(gql);
 
             Assert.Single(tree.Operations.First().QueryFields);
             TestDataContext context = new TestDataContext().FillWithTestData();
@@ -33,7 +34,7 @@ namespace EntityGraphQL.Tests
             {
                 context.People.Add(new Person());
             }
-            var qr = tree.ExecuteQuery(context, null);
+            var qr = tree.ExecuteQuery(context, null, gql.Variables);
             dynamic people = (dynamic)qr.Data["people"];
             // we only have the fields requested
             Assert.Equal(5, Enumerable.Count(people));
@@ -42,7 +43,7 @@ namespace EntityGraphQL.Tests
         public void QueryWithDefaultArguments()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schema).Compile(@"
         query MyQuery($limit: Int = 10) {
@@ -56,7 +57,7 @@ namespace EntityGraphQL.Tests
             {
                 context.People.Add(new Person());
             }
-            var qr = tree.ExecuteQuery(context, null);
+            var qr = tree.ExecuteQuery(context, null, null);
             dynamic people = (dynamic)qr.Data["people"];
             // we only have the fields requested
             Assert.Equal(10, Enumerable.Count(people));
@@ -66,7 +67,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             // code default of 5
-            schema.ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
+            schema.Query().ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
 
             // should use gql default of 6
             var tree = new GraphQLCompiler(schema).Compile(@"
@@ -81,14 +82,14 @@ namespace EntityGraphQL.Tests
             {
                 context.People.Add(new Person());
             }
-            var qr = tree.ExecuteQuery(context, null);
+            var qr = tree.ExecuteQuery(context, null, null);
             dynamic people = (dynamic)qr.Data["people"];
             // we only have the fields requested
             Assert.Equal(6, Enumerable.Count(people));
         }
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
-            schema.ReplaceField("person",
+            schema.Query().ReplaceField("person",
                             new
                             {
                                 id = ArgumentHelper.Required<Guid>()

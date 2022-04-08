@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 
@@ -34,7 +35,10 @@ public class OffsetPagingExtension : BaseFieldExtension
     /// <param name="field"></param>
     public override void Configure(ISchemaProvider schema, Field field)
     {
-        if (!field.Resolve!.Type.IsEnumerableOrArray())
+        if (field.Resolve == null)
+            throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
+
+        if (!field.Resolve.Type.IsEnumerableOrArray())
             throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
@@ -68,7 +72,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
 
         // update the Items field before we update the field.Resolve below
-        itemsField = (Field)schema.GetActualField(field.ReturnType.SchemaType.Name, "items", null);
+        itemsField = (Field)returnSchemaType.GetField("items", null);
         itemsField.UpdateExpression(field.Resolve);
         itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions));
         itemsField.ArgumentParam = field.ArgumentParam;

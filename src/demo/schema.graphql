@@ -8,6 +8,7 @@ scalar Float
 scalar Boolean
 scalar String
 scalar ID
+scalar UInt
 scalar Date
 scalar StringKeyValuePair
 
@@ -41,16 +42,29 @@ type Query {
 	"""List of directors"""
 	directors(sort: DirectorsSortInput): [Person!]
 	"""Return a Movie by its Id"""
-	movie(id: Int!): Movie
+	movie(id: UInt!): Movie
 	"""Collection of Movies"""
 	movies: [Movie!]
 	"""Collection of Peoples"""
 	people: [Person!]
 	"""Return a Person by its Id"""
-	person(id: Int!): Person
+	person(id: UInt!): Person
 	"""List of writers"""
 	writers: [Person!]
 
+}
+
+"""Mutation schema"""
+type Mutation {
+	"""Example of a mutation that takes 0 arguments"""
+	exampleNoArgs: Movie
+	"""Example of a mutation that does not use the context or argments but does use registered services"""
+	exampleNoArgsWithService: Int!
+	"""Add a new Movie object"""
+	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
+	addActor(firstName: String, lastName: String, movieId: UInt!): Person
+	addActor2(firstName: String, lastName: String, movieId: UInt!): [Person!]
+	addActor3(names: [String!], movieId: UInt!): [Person!]
 }
 
 """Information about subscriptions"""
@@ -59,7 +73,7 @@ type SubscriptionType {
 }
 
 type Movie {
-	id: Int!
+	id: UInt!
 	name: String
 	"""Enum of Genre"""
 	genre: Genre!
@@ -69,19 +83,19 @@ type Movie {
 	"""Writers in the movie"""
 	writers: [Person!]
 	director: Person
-	directorId: Int
+	directorId: UInt
 	rating: Float!
 }
 
 type Actor {
-	personId: Int!
+	personId: UInt!
 	person: Person
-	movieId: Int!
+	movieId: UInt!
 	movie: Movie
 }
 
 type Person {
-	id: Int!
+	id: UInt!
 	firstName: String!
 	lastName: String!
 	dob: Date!
@@ -101,9 +115,9 @@ type Person {
 }
 
 type Writer {
-	personId: Int!
+	personId: UInt!
 	person: Person
-	movieId: Int!
+	movieId: UInt!
 	movie: Movie
 }
 
@@ -174,15 +188,3 @@ input Detail {
 	description: String
 }
 
-type Mutation {
-	"""Example of a mutation that takes 0 arguments"""
-	exampleNoArgs: Movie
-	"""Example of a mutation that does not use the context or argments but does use registered services"""
-	exampleNoArgsWithService: Int!
-	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
-	addActor(firstName: String, lastName: String, movieId: Int!): Person
-	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
-	addActor3(names: [String!], movieId: Int!): [Person!]
-
-}

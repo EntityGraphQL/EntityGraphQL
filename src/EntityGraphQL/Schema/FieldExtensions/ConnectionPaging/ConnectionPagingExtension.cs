@@ -76,13 +76,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
             returnType = returnSchemaType.TypeDotnet;
 
-            field.UpdateReturnType(SchemaBuilder.MakeGraphQlType(schema, returnType, connectionName));
+            field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, connectionName));
 
             // Update field arguments
             field.AddArguments(new ConnectionArgs());
 
             // set up Extension on Edges.Node field to handle the Select() insertion
-            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
+            edgesField = (Field)returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
             // move expression
             // This is the original expression that was defined in the schema - the collection
             // UseConnectionPaging() basically moves it to originalField.edges

@@ -14,20 +14,6 @@ namespace EntityGraphQL.Compiler
     {
         public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
 
-        public static object? ProcessArgumentOrVariable(ISchemaProvider schema, QueryVariables? variables, ArgumentNode argument, Type argType)
-        {
-            var argName = argument.Name.Value;
-            if (argument.Value.Kind == SyntaxKind.Variable)
-            {
-                string varKey = ((VariableNode)argument.Value).Name.Value;
-                if (variables == null)
-                    throw new EntityGraphQLCompilerException($"Missing variable {varKey}");
-                object? value = variables.GetValueFor(varKey);
-                return ConvertArgIfRequired(value, argType, argName);
-            }
-            return ProcessArgumentValue(schema, argument.Value, argName, argType);
-        }
-
         public static object? ProcessArgumentValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)
         {
             object? argValue = null;
@@ -38,14 +24,14 @@ namespace EntityGraphQL.Compiler
                     case SyntaxKind.IntValue:
                         argValue = argType switch
                         {
-                            _ when argType == typeof(short) || argType == typeof(short?) => short.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(ushort) || argType == typeof(ushort?) => ushort.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(int) || argType == typeof(int?) => int.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(uint) || argType == typeof(uint?) => uint.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(long) || argType == typeof(long?) => long.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(ulong) || argType == typeof(ulong?) => ulong.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value?.ToString()),
-                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value?.ToString()),
+                            _ when argType == typeof(short) || argType == typeof(short?) => short.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(ushort) || argType == typeof(ushort?) => ushort.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(int) || argType == typeof(int?) => int.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(uint) || argType == typeof(uint?) => uint.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(long) || argType == typeof(long?) => long.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(ulong) || argType == typeof(ulong?) => ulong.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!),
                             _ => argValue
                         };
                         break;
@@ -73,7 +59,12 @@ namespace EntityGraphQL.Compiler
                         }
                         break;
                     case SyntaxKind.FloatValue:
-                        argValue = double.Parse(argumentValue.Value?.ToString());
+                        argValue = argType switch
+                        {
+                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!),
+                            _ => argValue
+                        };
                         break;
                 }
             }
@@ -84,14 +75,17 @@ namespace EntityGraphQL.Compiler
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
         {
             object argValue;
-            var schemaType = schema.Type(argType);
+            var schemaType = schema.GetSchemaType(argType, null);
             foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
             {
-                if (!schemaType.HasField(item.Name.Value))
+                if (!schemaType.HasField(item.Name.Value, null))
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
-                var schemaField = schemaType.GetField(item.Name.Value, null);
+                var schemaField = (Field)schemaType.GetField(item.Name.Value, null);
 
-                var nameFromType = ((MemberExpression)schemaField.Resolve!).Member.Name;
+                if (schemaField.Resolve == null)
+                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} on type {schemaType.Name} has no resolve expression");
+
+                var nameFromType = ((MemberExpression)schemaField.Resolve).Member.Name;
                 var prop = argType.GetProperty(nameFromType);
 
                 if (prop == null)
@@ -119,8 +113,9 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        private static object? ConvertArgIfRequired(object? argValue, Type argType, string argName)
+        public static object? ConvertArgIfRequired(object? argValue, Type argType, string argName)
         {
+            // TODO can replace with changetype?
             if (argValue == null)
                 return null;
 
@@ -161,34 +156,6 @@ namespace EntityGraphQL.Compiler
             }
 
             return list;
-        }
-
-        public static Type GetDotnetType(ISchemaProvider schema, string value)
-        {
-            var schemaType = schema.GetSchemaType(value);
-            return schemaType.TypeDotnet;
-        }
-
-        public static void ProcessVariableDefinitions(ISchemaProvider schemaProvider, QueryVariables? variables, OperationDefinitionNode node)
-        {
-            if (variables == null)
-                variables = new QueryVariables();
-
-            foreach (var item in node.VariableDefinitions)
-            {
-                var argName = item.Variable.Name.Value;
-                if (item.DefaultValue != null)
-                {
-                    var varType = variables.ContainsKey(argName) ? variables[argName]?.GetType() : GetDotnetType(schemaProvider, ((NamedTypeNode)item.Type).Name.Value);
-                    variables[argName] = Expression.Lambda(Expression.Constant(ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType ?? typeof(object)))).Compile().DynamicInvoke();
-                }
-
-                var required = item.Type.Kind == SyntaxKind.NonNullType;
-                if (required && variables.ContainsKey(argName) == false)
-                {
-                    throw new QueryException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
-                }
-            }
         }
     }
 }

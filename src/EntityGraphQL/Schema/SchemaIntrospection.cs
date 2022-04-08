@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
@@ -109,7 +108,7 @@
                         continue;
 
                     // Skipping ENUM type
-                    if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                    if (field.ReturnType.TypeDotnet.IsEnum)
                         continue;
 
                     inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true))
@@ -176,7 +175,7 @@
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = BuildType(schema, typeInfo, clrType.GetEnumerableOrArrayType()!, isInput);
+                type.OfType = BuildType(schema, typeInfo, typeInfo.SchemaType.TypeDotnet, isInput);
             }
             else if (clrType.Name == "EntityQueryType`1")
             {
@@ -184,7 +183,7 @@
                 type.Name = "String";
                 type.OfType = null;
             }
-            else if (clrType.GetTypeInfo().IsEnum)
+            else if (clrType.IsEnum)
             {
                 type.Kind = "ENUM";
                 type.Name = typeInfo.SchemaType.Name;
@@ -255,13 +254,13 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetQueryFields())
+            foreach (var field in schema.Type(schema.QueryContextName).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;
 
                 // Skipping ENUM type
-                if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                if (field.ReturnType.TypeDotnet.IsEnum)
                     continue;
 
                 //== Fields ==//
@@ -280,7 +279,7 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetMutations())
+            foreach (var field in schema.GetSchemaType(schema.MutationType, null).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;

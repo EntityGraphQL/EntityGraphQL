@@ -24,7 +24,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
@@ -49,7 +49,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
@@ -61,10 +61,10 @@ fragment info on Person {
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.AddField("activeProjects",
+            schema.Query().AddField("activeProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Active projects").IsNullable(false);
-            schema.AddField("oldProjects",
+            schema.Query().AddField("oldProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Old projects").IsNullable(false);
 
