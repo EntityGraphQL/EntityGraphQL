@@ -248,7 +248,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression schemaContext, Dictionary<string, Expression> args, bool contextChanged)
+        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, IGraphQLNode parentNode, ParameterExpression schemaContext, Dictionary<string, Expression> args, bool contextChanged)
         {
             var result = (ExpressionResult)fieldExpression;
 

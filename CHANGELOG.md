@@ -1,8 +1,9 @@
-# 2.0.0-beta1
+# 2.0.0-beta2
 
 Breaking changes
 
 - Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
+- `GetExpression` in Field Extensions are passed the parent IGraphQLNode - useful when your extension changed the original shape of the object graph, like the paging extensions
 
 Other changes
 

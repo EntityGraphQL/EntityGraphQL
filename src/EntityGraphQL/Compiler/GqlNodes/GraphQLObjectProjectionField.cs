@@ -61,7 +61,7 @@ namespace EntityGraphQL.Compiler
                 else
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
             }
-            var nextFieldContextExp = field.GetExpression(nextFieldContext, replacementNextFieldContext ?? ParentNode.NextFieldContext, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
+            var nextFieldContextExp = field.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
             nextFieldContext = nextFieldContextExp.Expression;
             AddServices(nextFieldContextExp.Services);
             AddConstantParameters(nextFieldContextExp.ConstantParameters);

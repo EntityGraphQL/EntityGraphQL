@@ -93,6 +93,60 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestMutationConstantParametersDoNotChange()
+        {
+            // This tests that whena mutation returns an Expression
+            // ctx => ctx.People.First(p => p.Id == myNewPerson.Id)
+            // that myNewPerson.Id does not get replace by something dumb like p.Id == p.Id
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var query = @"mutation AddPerson($names: [String]) {
+  addPersonNamesExpression(names: $names) {
+    id name lastName
+  }
+}";
+            var vars1 = new QueryVariables {
+                    {"names", new [] {"Bill", "Frank"}}
+                };
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(new QueryRequest
+            {
+                Query = query,
+                Variables = vars1
+            }, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data["addPersonNamesExpression"];
+            // we only have the fields requested
+            var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
+            Assert.Equal(0, addPersonResult.id);
+            Assert.Contains("name", resultFields);
+            Assert.Equal("Bill", addPersonResult.name);
+            Assert.Equal("Frank", addPersonResult.lastName);
+
+            // add another one to trigger the issue
+            results = schemaProvider.ExecuteRequest(new QueryRequest
+            {
+                Query = query,
+                Variables = new QueryVariables {
+                    {"names", new [] {"Mary", "Joe"}}
+                }
+            }, testSchema, null, null);
+            Assert.Null(results.Errors);
+            addPersonResult = results.Data["addPersonNamesExpression"];
+            // we only have the fields requested
+            resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
+            Assert.Equal(1, addPersonResult.id);
+            Assert.Contains("name", resultFields);
+            Assert.Equal("Mary", addPersonResult.name);
+            Assert.Equal("Joe", addPersonResult.lastName);
+        }
+
+        [Fact]
         public void SupportsMutationObject()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);

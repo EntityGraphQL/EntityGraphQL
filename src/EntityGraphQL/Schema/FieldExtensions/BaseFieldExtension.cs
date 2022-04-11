@@ -24,7 +24,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="expression">The current expression for the field</param>
         /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
         /// <returns></returns>
-        public virtual Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
+        public virtual Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, IGraphQLNode parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             return expression;
         }

@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
         protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode context)
         {
             QueryWalkerHelper.ProcessVariableDefinitions(schemaProvider, requestContext.Query.Variables, node);
-            var rootParameterContext = Expression.Parameter(schemaProvider.ContextType, $"ctx");
+            var rootParameterContext = Expression.Parameter(schemaProvider.ContextType, $"op_ctx");
 
             if (node.Operation == OperationType.Query)
             {

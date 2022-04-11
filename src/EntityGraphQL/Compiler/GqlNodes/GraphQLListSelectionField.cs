@@ -62,14 +62,10 @@ namespace EntityGraphQL.Compiler
                     listContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(listContext, ParentNode.NextFieldContext.Type, replacementNextFieldContext);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext.Name}2");
             }
-            var listContextExp = field?.GetExpression(listContext, ParentNode.NextFieldContext, schemaContext, parentArguments.MergeNew(arguments), contextChanged) ?? (ExpressionResult)ListExpression;
+            var listContextExp = field?.GetExpression(listContext, null, ParentNode, schemaContext, parentArguments.MergeNew(arguments), contextChanged) ?? (ExpressionResult)ListExpression;
             listContext = listContextExp.Expression;
             AddServices(listContextExp.Services);
             AddConstantParameters(listContextExp.ConstantParameters);
-            // ParentNode.RootParameeter is the original field context here
-            // extensions may have replaced the current field but we need to make sure the parameter is correct
-            if (ParentNode.RootParameter.Type != schemaContext?.Type)
-                listContext = replacer.ReplaceByType(listContext, ParentNode.RootParameter.Type, ParentNode.RootParameter);
 
             (listContext, nextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
 

@@ -29,7 +29,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="context">The context of the schema</param>
         /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
         /// <returns></returns>
-        Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer);
+        Expression GetExpression(Field field, Expression expression, ParameterExpression argExpression, dynamic arguments, Expression context, IGraphQLNode parentNode, bool servicesPass, ParameterReplacer parameterReplacer);
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet selected the fields for selection on this expression
         /// Not called for GraphQLFieldType.Scalar

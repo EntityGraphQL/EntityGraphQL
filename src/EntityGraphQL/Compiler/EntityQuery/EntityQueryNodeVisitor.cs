@@ -115,7 +115,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 return enumOrConstantValue;
             }
             var gqlField = schemaProvider.GetActualField(schemaType.Name, field, requestContext);
-            var exp = gqlField.GetExpression(gqlField.Resolve, currentContext, null, null, false);
+            var exp = gqlField.GetExpression(gqlField.Resolve, currentContext, null, null, null, false);
             return exp;
         }
 

@@ -10,6 +10,7 @@ namespace EntityGraphQL.Tests
 {
     internal class PeopleMutations
     {
+        private static int idCount = 0;
         [GraphQLMutation]
 
         public Person AddPerson(PeopleMutationsArgs args)
@@ -21,8 +22,18 @@ namespace EntityGraphQL.Tests
 
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
-            db.People.Add(new Person { Id = 11, Name = args.Names[0], LastName = args.Names[1] });
-            return ctx => ctx.People.First(p => p.Id == 11);
+            var id = 11;
+            var newPerson = new Person { Id = id, Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(newPerson);
+            return ctx => ctx.People.First(p => p.Id == id);
+        }
+        [GraphQLMutation]
+
+        public Expression<Func<TestDataContext, Person>> AddPersonNamesExpression(TestDataContext db, PeopleMutationsArgs args)
+        {
+            var newPerson = new Person { Id = idCount++, Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(newPerson);
+            return ctx => ctx.People.First(p => p.Id == newPerson.Id);
         }
 
         [GraphQLMutation]
@@ -101,7 +112,7 @@ namespace EntityGraphQL.Tests
             return true;
         }
     }
-    
+
     [MutationArguments]
     internal class ListArgs
     {
