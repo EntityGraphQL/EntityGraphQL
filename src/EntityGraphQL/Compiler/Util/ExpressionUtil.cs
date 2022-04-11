@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
@@ -48,7 +49,7 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static object? ChangeType(object? value, Type toType)
+        public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema)
         {
             if (value == null)
                 return null;
@@ -65,12 +66,12 @@ namespace EntityGraphQL.Compiler.Util
                     {
                         var prop = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                         if (prop != null)
-                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType));
+                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema));
                         else
                         {
                             var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                             if (field != null)
-                                field.SetValue(value, ChangeType(item.Value, field.FieldType));
+                                field.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
                         }
                     }
                     return value;
@@ -82,7 +83,7 @@ namespace EntityGraphQL.Compiler.Util
                     if (list == null)
                         throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                     foreach (var item in jsonEle.EnumerateArray())
-                        list.Add(ChangeType(item, eleType));
+                        list.Add(ChangeType(item, eleType, schema));
                     return list;
                 }
                 value = jsonEle.ToString();
@@ -132,12 +133,12 @@ namespace EntityGraphQL.Compiler.Util
                 {
                     var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
                     if (toProp != null)
-                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType));
+                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema));
                     else
                     {
                         var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
                         if (toField != null)
-                            toField.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType));
+                            toField.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
                     }
                 }
                 return newValue;
@@ -149,7 +150,7 @@ namespace EntityGraphQL.Compiler.Util
                 if (list == null)
                     throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in (IEnumerable)value)
-                    list.Add(ChangeType(item, eleType));
+                    list.Add(ChangeType(item, eleType, schema));
                 return list;
             }
             if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
@@ -158,7 +159,7 @@ namespace EntityGraphQL.Compiler.Util
             }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
             {
-                return ConvertObjectType(value, toType, fromType);
+                return ConvertObjectType(schema, value, toType, fromType);
             }
             if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
                 argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
@@ -174,31 +175,42 @@ namespace EntityGraphQL.Compiler.Util
             return value;
         }
 
-        public static object? ConvertObjectType(object? value, Type toType, Type valueObjType)
+        public static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType)
         {
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())
             {
                 var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
                 if (fromProp != null)
-                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType));
+                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema));
                 else
                 {
                     var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
                     if (fromField != null)
-                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType));
+                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema));
                 }
             }
             foreach (var toProperty in toType.GetProperties())
             {
                 var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
                 if (fromProp != null)
-                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType));
+                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema));
                 else
                 {
                     var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
                     if (fromField != null)
-                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType));
+                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema));
+                }
+            }
+
+            // Handle converting a string to EntityQueryType
+            if (schema != null && toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                if (value != null)
+                {
+                    var expression = BuildEntityQueryExpression(schema, toType.GetGenericArguments()[0], (string)value);
+                    var genericProp = toType.GetProperty("Query");
+                    genericProp.SetValue(newValue, expression);
                 }
             }
             return newValue;
@@ -461,6 +473,14 @@ namespace EntityGraphQL.Compiler.Util
             }
             var result = Expression.Lambda(newExp, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
             return result;
+        }
+
+        public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query)
+        {
+            var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(new QueryRequest() { Query = query }, null, null)).ExpressionResult.Expression;
+            expression = Expression.Lambda(expression, contextParam);
+            return expression;
         }
     }
 }

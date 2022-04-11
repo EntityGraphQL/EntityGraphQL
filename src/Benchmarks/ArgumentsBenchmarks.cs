@@ -55,7 +55,7 @@ namespace Benchmarks
 
             for (int i = 0; i < 10000; i++)
             {
-                var val = ExpressionUtil.ChangeType(variables["names"], typeof(InputType));
+                var val = ExpressionUtil.ChangeType(variables["names"], typeof(InputType), null);
             }
         }
 
@@ -68,7 +68,7 @@ namespace Benchmarks
 
             for (int i = 0; i < 10000; i++)
             {
-                var val = ExpressionUtil.ChangeType(variables["names"], typeof(List<InputType>));
+                var val = ExpressionUtil.ChangeType(variables["names"], typeof(List<InputType>), null);
             }
         }
     }

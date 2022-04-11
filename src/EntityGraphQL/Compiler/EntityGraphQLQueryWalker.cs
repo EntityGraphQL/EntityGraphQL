@@ -294,18 +294,6 @@ namespace EntityGraphQL.Compiler
             if (argValue == null)
                 return null;
 
-            if (argValue.GetType() == typeof(string))
-            {
-                // TODO constantExpression used?
-                var constVal = argValue is ConstantExpression expression ? expression.Value : argValue;
-                if (argType.Type.TypeDotnet.IsConstructedGenericType && argType.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-                {
-                    if (constVal == null)
-                        throw new EntityGraphQLCompilerException($"Argument '{argName}' on field '{fieldArgumentContext.Name}' can not be null");
-                    string query = (string)constVal;
-                    return BuildEntityQueryExpression(fieldArgumentContext, fieldArgumentContext.Name, argName, query);
-                }
-            }
             return argValue;
         }
 
@@ -349,23 +337,6 @@ namespace EntityGraphQL.Compiler
                     break;
             }
             return fieldResult;
-        }
-
-        private Expression BuildEntityQueryExpression(IField fieldArgumentContext, string fieldName, string argName, string query)
-        {
-            if (string.IsNullOrEmpty(query))
-            {
-                return Expression.Constant(null);
-            }
-            var prop = ((Field)fieldArgumentContext).Arguments.Values.FirstOrDefault(p => p.Name == argName && p.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>));
-            if (prop == null)
-                throw new EntityGraphQLCompilerException($"Can not find argument {argName} of type EntityQuery on field {fieldName}");
-
-            var eqlt = (BaseEntityQueryType)prop.DefaultValue!;
-            var contextParam = Expression.Parameter(eqlt.QueryType, $"q_{eqlt.QueryType.Name}");
-            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, requestContext).ExpressionResult.Expression;
-            expression = Expression.Lambda(expression, contextParam);
-            return expression;
         }
 
         protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode? context)

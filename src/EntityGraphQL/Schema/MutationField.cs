@@ -182,7 +182,7 @@ namespace EntityGraphQL.Schema
                 }
                 else
                 {
-                    value = ExpressionUtil.ChangeType(value, memberType);
+                    value = ExpressionUtil.ChangeType(value, memberType, null);
                 }
             }
             return value;

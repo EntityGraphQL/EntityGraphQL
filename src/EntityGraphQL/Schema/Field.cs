@@ -309,8 +309,11 @@ namespace EntityGraphQL.Schema
                     if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression expression)
                     {
                         // this value comes from the variables from the query document
-                        val = Expression.Lambda((Expression)args[argField.Name], docParam).Compile().DynamicInvoke(new[] { docVariables });
-                        propVals.Add((PropertyInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo).PropertyType));
+                        if (docVariables != null)
+                            val = Expression.Lambda((Expression)args[argField.Name], docParam).Compile().DynamicInvoke(new[] { docVariables });
+                        else
+                            val = args[argField.Name];
+                        propVals.Add((PropertyInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo).PropertyType, field.schema));
                     }
                     else
                     {
@@ -318,33 +321,23 @@ namespace EntityGraphQL.Schema
                         // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
                         if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                         {
-                            // make sure we create a new instance and not update the schema
-                            var entityQuery = Activator.CreateInstance(argField.Type.TypeDotnet);
-
-                            // set Query
-                            var hasValue = val != null;
-                            if (hasValue)
-                            {
-                                var genericProp = entityQuery.GetType().GetProperty("Query");
-                                genericProp.SetValue(entityQuery, val);
-                            }
-
                             if (argField.MemberInfo is PropertyInfo info)
-                                propVals.Add(info, entityQuery);
+                                propVals.Add((PropertyInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo).PropertyType, field.schema));
                             else
-                                fieldVals.Add((FieldInfo)argField.MemberInfo, entityQuery);
+                                fieldVals.Add((FieldInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((FieldInfo)argField.MemberInfo).FieldType, field.schema));
                         }
                         else
                         {
                             // this could be int to RequiredField<int>
                             if (val != null && val.GetType() != argField.RawType)
-                                val = ExpressionUtil.ChangeType(val, argField.RawType);
+                                val = ExpressionUtil.ChangeType(val, argField.RawType, field.schema);
                             if (argField.MemberInfo is PropertyInfo info)
                                 propVals.Add(info, val);
                             else
                                 fieldVals.Add((FieldInfo)argField.MemberInfo, val);
                         }
                     }
+
                 }
                 // create a copy of the anonymous object. It will have the default values set
                 // there is only 1 constructor for the anonymous type that takes all the property values
@@ -419,7 +412,7 @@ namespace EntityGraphQL.Schema
                         var parameters = c.GetParameters();
                         if (parameters.Count() == 1)
                         {
-                            item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType);
+                            item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType, field.schema);
                             constructor = memberType.GetConstructor(new[] { item?.GetType() });
                             break;
                         }

@@ -67,7 +67,7 @@ namespace EntityGraphQL.Compiler
                 {
                     if (!variables.ContainsKey(name) && value == null)
                         throw new EntityGraphQLExecutionException($"Variable {name} is required but was not supplied");
-                    VariableParameter.Type.GetField(name).SetValue(variablesToUse, ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? value, type));
+                    VariableParameter.Type.GetField(name).SetValue(variablesToUse, ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? value, type, null));
                 }
             }
 
