@@ -283,9 +283,12 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
             PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, parentNode, docParam, docVariables, contextChanged);
             // the expressions we collect have a different starting parameter. We need to change that
-            if (FieldParam != null && !contextChanged && parentNode?.NextFieldContext != null)
+            if (FieldParam != null && !contextChanged)
             {
-                result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, fieldContext ?? parentNode.NextFieldContext);
+                if (fieldContext != null)
+                    result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, fieldContext);
+                else if (parentNode?.NextFieldContext != null)
+                    result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, parentNode.NextFieldContext);
             }
             // need to make sure the schema context param is correct
             if (schemaContext != null && !contextChanged)
