@@ -201,7 +201,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, Expression>? arguments)
+        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object>? arguments)
         {
             if (fieldContext.ReturnType.IsList)
             {
@@ -230,7 +230,7 @@ namespace EntityGraphQL.Compiler
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerable
         /// </summary>
-        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, Expression>? arguments)
+        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object>? arguments)
         {
             if (context == null)
                 throw new EntityGraphQLCompilerException("context should not be null building select on collection");
@@ -253,7 +253,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="context"></param>
         /// <param name="selectContext"></param>
         /// <returns></returns>
-        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection, Dictionary<string, Expression>? arguments)
+        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection, Dictionary<string, object>? arguments)
         {
             if (context == null)
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
@@ -266,9 +266,9 @@ namespace EntityGraphQL.Compiler
             return graphQLNode;
         }
 
-        public Dictionary<string, Expression> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
+        public Dictionary<string, object> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
         {
-            var args = new Dictionary<string, Expression>();
+            var args = new Dictionary<string, object>();
             foreach (var arg in queryArguments)
             {
                 var argName = arg.Name.Value;
@@ -283,7 +283,7 @@ namespace EntityGraphQL.Compiler
             return args;
         }
 
-        public Expression? ParseArgument(IField fieldArgumentContext, ArgumentNode argument)
+        public object? ParseArgument(IField fieldArgumentContext, ArgumentNode argument)
         {
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null when visiting arguments");
@@ -306,7 +306,7 @@ namespace EntityGraphQL.Compiler
                     return BuildEntityQueryExpression(fieldArgumentContext, fieldArgumentContext.Name, argName, query);
                 }
             }
-            return Expression.Constant(argValue);
+            return argValue;
         }
 
         /// <summary>

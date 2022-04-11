@@ -11,7 +11,7 @@ namespace EntityGraphQL.Compiler
         private readonly MutationField mutationField;
         public BaseGraphQLQueryField? ResultSelection { get; set; }
 
-        public GraphQLMutationField(string name, MutationField mutationField, Dictionary<string, Expression>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public GraphQLMutationField(string name, MutationField mutationField, Dictionary<string, object>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
             : base(name, nextFieldContext, rootParameter, parentNode, args)
         {
             this.mutationField = mutationField;
@@ -29,12 +29,12 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, Expression> parentArguments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             if (ResultSelection == null)
                 throw new EntityGraphQLCompilerException($"Mutation {Name} should have a result selection");
 
-            return ResultSelection.GetNodeExpression(serviceProvider, fragments, parentArguments, schemaContext, withoutServiceFields, replacementNextFieldContext);
+            return ResultSelection.GetNodeExpression(serviceProvider, fragments, parentArguments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext);
         }
     }
 }

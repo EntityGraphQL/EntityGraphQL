@@ -276,12 +276,12 @@ namespace EntityGraphQL.Schema
             extension.Configure(schema, this);
         }
 
-        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, Expression> args, bool contextChanged)
+        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
         {
             var result = new ExpressionResult(fieldExpression, Services);
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             var parameterReplacer = new ParameterReplacer();
-            PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, contextChanged);
+            PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, docParam, docVariables, contextChanged);
             // the expressions we collect have a different starting parameter. We need to change that
             if (FieldParam != null && !contextChanged)
             {
@@ -295,7 +295,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        private void PrepareExpressionResult(Dictionary<string, Expression> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, bool servicesPass)
+        private void PrepareExpressionResult(Dictionary<string, object> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, ParameterExpression? docParam, object? docVariables, bool servicesPass)
         {
             if (field.ArgumentsType != null && args != null && FieldParam != null)
             {
@@ -305,35 +305,45 @@ namespace EntityGraphQL.Schema
                 // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
                 foreach (var argField in field.Arguments.Values)
                 {
-                    var val = BuildArgumentFromMember(args, field, argField.Name, argField.RawType, argField.DefaultValue);
-                    // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
-                    if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    object? val;
+                    if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression expression)
                     {
-                        // make sure we create a new instance and not update the schema
-                        var entityQuery = Activator.CreateInstance(argField.Type.TypeDotnet);
-
-                        // set Query
-                        var hasValue = val != null;
-                        if (hasValue)
-                        {
-                            var genericProp = entityQuery.GetType().GetProperty("Query");
-                            genericProp.SetValue(entityQuery, val);
-                        }
-
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, entityQuery);
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo, entityQuery);
+                        // this value comes from the variables from the query document
+                        val = Expression.Lambda((Expression)args[argField.Name], docParam).Compile().DynamicInvoke(new[] { docVariables });
+                        propVals.Add((PropertyInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo).PropertyType));
                     }
                     else
                     {
-                        // this could be int to RequiredField<int>
-                        if (val != null && val.GetType() != argField.RawType)
-                            val = ExpressionUtil.ChangeType(val, argField.RawType);
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, val);
+                        val = BuildArgumentFromMember(args, field, argField.Name, argField.RawType, argField.DefaultValue);
+                        // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
+                        if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                        {
+                            // make sure we create a new instance and not update the schema
+                            var entityQuery = Activator.CreateInstance(argField.Type.TypeDotnet);
+
+                            // set Query
+                            var hasValue = val != null;
+                            if (hasValue)
+                            {
+                                var genericProp = entityQuery.GetType().GetProperty("Query");
+                                genericProp.SetValue(entityQuery, val);
+                            }
+
+                            if (argField.MemberInfo is PropertyInfo info)
+                                propVals.Add(info, entityQuery);
+                            else
+                                fieldVals.Add((FieldInfo)argField.MemberInfo, entityQuery);
+                        }
                         else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
+                        {
+                            // this could be int to RequiredField<int>
+                            if (val != null && val.GetType() != argField.RawType)
+                                val = ExpressionUtil.ChangeType(val, argField.RawType);
+                            if (argField.MemberInfo is PropertyInfo info)
+                                propVals.Add(info, val);
+                            else
+                                fieldVals.Add((FieldInfo)argField.MemberInfo, val);
+                        }
                     }
                 }
                 // create a copy of the anonymous object. It will have the default values set
@@ -387,7 +397,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        private static object? BuildArgumentFromMember(Dictionary<string, Expression>? args, Field field, string memberName, Type memberType, object? defaultValue)
+        private static object? BuildArgumentFromMember(Dictionary<string, object>? args, Field field, string memberName, Type memberType, object? defaultValue)
         {
             string argName = memberName;
             // check we have required arguments
@@ -399,7 +409,7 @@ namespace EntityGraphQL.Schema
                 {
                     throw new EntityGraphQLCompilerException($"Field '{field.Name}' missing required argument '{argName}'");
                 }
-                var item = Expression.Lambda(args[argName]).Compile().DynamicInvoke();
+                var item = args[argName];
                 var constructor = memberType.GetConstructor(new[] { item.GetType() });
                 if (constructor == null)
                 {
@@ -430,7 +440,7 @@ namespace EntityGraphQL.Schema
             }
             else if (args != null && args.ContainsKey(argName))
             {
-                return Expression.Lambda(args[argName]).Compile().DynamicInvoke();
+                return args[argName];
             }
             else
             {

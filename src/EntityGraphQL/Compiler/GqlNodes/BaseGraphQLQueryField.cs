@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, Expression>? arguments)
+        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
             : base(name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             replacer = new ParameterReplacer();
@@ -21,7 +21,7 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
 
-        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -35,7 +35,7 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(fragments, withoutServiceFields))
                 {
-                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, arguments, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
+                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
                     if (fieldExp == null)
                         continue;
 

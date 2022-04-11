@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query = @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests
                 .UseFilter();
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query = @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Tests
                 .UseFilter();
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query = @"query Query($filter: String!) {
                     projects {
                         tasks(filter: $filter) { id }
                     }
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query = @"query Query($filter: String!) {
                     people(filter: $filter) { name }
                 }",
                 Variables = new QueryVariables { { "filter", "name == \"Luke\"" } }

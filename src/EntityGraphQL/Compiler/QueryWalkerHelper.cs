@@ -104,7 +104,7 @@ namespace EntityGraphQL.Compiler
             return argValue;
         }
 
-        public static void CheckRequiredArguments(IField actualField, Dictionary<string, Expression>? args)
+        public static void CheckRequiredArguments(IField actualField, Dictionary<string, object>? args)
         {
             foreach (var fieldArg in actualField.Arguments)
             {

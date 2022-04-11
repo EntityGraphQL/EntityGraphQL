@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
             DeprecationReason = reason;
         }
 
-        public async Task<object?> CallAsync(object? context, Dictionary<string, Expression>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
+        public async Task<object?> CallAsync(object? context, Dictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
         {
             if (context == null)
                 return null;
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        private object AssignArgValues(Dictionary<string, Expression> gqlRequestArgs, Func<string, string> fieldNamer)
+        private object AssignArgValues(Dictionary<string, object> gqlRequestArgs, Func<string, string> fieldNamer)
         {
             if (argInstanceType == null)
                 throw new ArgumentException($"{nameof(argInstanceType)} is null");
@@ -168,9 +168,9 @@ namespace EntityGraphQL.Schema
             return input.Cast<T>().ToList(); // Using LINQ for simplicity
         }
 
-        private object? GetValue(Dictionary<string, Expression> gqlRequestArgs, string memberName, Type memberType)
+        private object? GetValue(Dictionary<string, object> gqlRequestArgs, string memberName, Type memberType)
         {
-            object? value = Expression.Lambda(gqlRequestArgs[memberName]).Compile().DynamicInvoke();
+            object? value = gqlRequestArgs[memberName];
             if (value != null)
             {
                 Type type = value.GetType();
@@ -258,7 +258,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, Expression> args, bool contextChanged)
+        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
         {
             var result = (ExpressionResult)fieldExpression;
 

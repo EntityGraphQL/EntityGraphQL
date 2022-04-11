@@ -152,6 +152,10 @@ namespace EntityGraphQL.Compiler.Util
                     list.Add(ChangeType(item, eleType));
                 return list;
             }
+            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
+            {
+                return Activator.CreateInstance(toType, value);
+            }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
             {
                 return ConvertObjectType(value, toType, fromType);

@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Arguments from inline in the query
         /// </summary>
-        protected readonly Dictionary<string, Expression> arguments;
+        protected readonly Dictionary<string, object> arguments;
 
         /// <summary>
         /// Name of the field
@@ -39,13 +39,13 @@ namespace EntityGraphQL.Compiler
         public string Name { get; protected set; }
         protected IField? field;
 
-        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, Expression>? arguments)
+        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
-            this.arguments = arguments ?? new Dictionary<string, Expression>();
+            this.arguments = arguments ?? new Dictionary<string, object>();
             fieldExtensions = new List<IFieldExtension>();
         }
 
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, Expression> parentArguments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
+        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
 

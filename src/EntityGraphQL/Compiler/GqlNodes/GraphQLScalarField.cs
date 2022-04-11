@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField>? extractedFields;
 
-        public GraphQLScalarField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, Expression>? arguments)
+        public GraphQLScalarField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
             : base(name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
@@ -54,12 +54,12 @@ namespace EntityGraphQL.Compiler
             return extractedFields;
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, Expression> parentArguments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var result = field!.GetExpression(NextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), contextChanged);
+            var result = field!.GetExpression(NextFieldContext!, replacementNextFieldContext ?? ParentNode!.NextFieldContext!, schemaContext, parentArguments.MergeNew(arguments), docParam, docVariables, contextChanged);
             AddConstantParameters(result.ConstantParameters);
             AddServices(result.Services);
 
