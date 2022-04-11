@@ -1,8 +1,9 @@
-# 2.0.0-beta2
+# 2.0.0-beta3
 
 Breaking changes
 
 - Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
+- `GetExpression` in Field Extensions are passed the parent IGraphQLNode - useful when your extension changed the original shape of the object graph, like the paging extensions
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent

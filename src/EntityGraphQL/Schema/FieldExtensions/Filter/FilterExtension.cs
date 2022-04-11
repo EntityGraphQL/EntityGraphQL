@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             // data is already filtered
             if (servicesPass)

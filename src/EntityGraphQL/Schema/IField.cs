@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema
         /// <param name="previousContext"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged);
+        ExpressionResult GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged);
         Expression? Resolve { get; }
 
         IField UpdateExpression(Expression expression);

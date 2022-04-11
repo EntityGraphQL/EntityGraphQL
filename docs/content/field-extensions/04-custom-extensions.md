@@ -45,7 +45,7 @@ public class FormatStringExtension : IFieldExtension
     // This is called on compilation of a query if the query references this field
     // Good opportunity to check arguments
     // Most often you can update the expression here and return your new one
-    public Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
+    public Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (arguments.last == null && arguments.first == null)
             throw new ArgumentException($"Please provide at least the first or last argument");

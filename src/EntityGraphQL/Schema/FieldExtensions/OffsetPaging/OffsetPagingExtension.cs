@@ -74,7 +74,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         // update the Items field before we update the field.Resolve below
         itemsField = (Field)returnSchemaType.GetField("items", null);
         itemsField.UpdateExpression(field.Resolve);
-        itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions));
+        itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!));
         itemsField.ArgumentParam = field.ArgumentParam;
         // don't push field.FieldParam over as we rebuild the field from the parent context
         itemsField.ArgumentsType = field.ArgumentsType;
@@ -96,7 +96,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         return expression;
     }
 
-    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now
@@ -109,7 +109,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         // update the context
         foreach (var extension in extensions)
         {
-            newItemsExp = extension.GetExpression(field, newItemsExp, argExpression, arguments, context, servicesPass, parameterReplacer);
+            newItemsExp = extension.GetExpression(field, newItemsExp, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
 
         // Build our field expression and hold it for use in the next step

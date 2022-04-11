@@ -57,7 +57,7 @@ namespace EntityGraphQL.Compiler
 
             if (node.Operation == OperationType.Query)
             {
-                var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"ctx");
+                var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"op_ctx");
                 context = new GraphQLQueryStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLQueryStatement)context;
             }

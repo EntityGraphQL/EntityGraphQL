@@ -16,12 +16,13 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     private readonly ParameterExpression argsExpression;
 
     private readonly ParameterExpression argumentParam;
+    private readonly ParameterExpression originalFieldParam;
     private readonly Type listType;
     private readonly ParameterExpression firstSelectParam;
     private readonly bool isQueryable;
     private readonly List<IFieldExtension> extensions;
 
-    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argsExpression, ParameterExpression argumentParam, List<IFieldExtension> extensions)
+    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argsExpression, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam)
     {
         this.listType = listType;
         this.isQueryable = isQueryable;
@@ -29,15 +30,17 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         this.argsExpression = argsExpression;
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
         this.argumentParam = argumentParam;
+        this.originalFieldParam = fieldParam;
     }
 
-    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
-        expression = servicesPass ? expression : field.Resolve!;
+        // field.Resolve will be built with the original field context and needs to be updated
+        expression = servicesPass ? expression : parameterReplacer.Replace(field.Resolve!, originalFieldParam, parentNode!.RootParameter!);
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in extensions)
         {
-            expression = extension.GetExpression(field, expression, argExpression, arguments, context, servicesPass, parameterReplacer);
+            expression = extension.GetExpression(field, expression, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
 
         if (servicesPass)

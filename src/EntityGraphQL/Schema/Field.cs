@@ -276,16 +276,16 @@ namespace EntityGraphQL.Schema
             extension.Configure(schema, this);
         }
 
-        public ExpressionResult GetExpression(Expression fieldExpression, Expression fieldContext, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
+        public ExpressionResult GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
         {
             var result = new ExpressionResult(fieldExpression, Services);
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             var parameterReplacer = new ParameterReplacer();
-            PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, docParam, docVariables, contextChanged);
+            PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, parentNode, docParam, docVariables, contextChanged);
             // the expressions we collect have a different starting parameter. We need to change that
-            if (FieldParam != null && !contextChanged)
+            if (FieldParam != null && !contextChanged && parentNode?.NextFieldContext != null)
             {
-                result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, fieldContext);
+                result.Expression = parameterReplacer.Replace(result.Expression, FieldParam, fieldContext ?? parentNode.NextFieldContext);
             }
             // need to make sure the schema context param is correct
             if (schemaContext != null && !contextChanged)
@@ -295,7 +295,7 @@ namespace EntityGraphQL.Schema
         }
 
 
-        private void PrepareExpressionResult(Dictionary<string, object> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, ParameterExpression? docParam, object? docVariables, bool servicesPass)
+        private void PrepareExpressionResult(Dictionary<string, object> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass)
         {
             if (field.ArgumentsType != null && args != null && FieldParam != null)
             {
@@ -374,7 +374,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var m in Extensions)
                     {
-                        result.Expression = m.GetExpression(this, result.Expression, ArgumentParam, argumentValues, context, servicesPass, parameterReplacer);
+                        result.Expression = m.GetExpression(this, result.Expression, ArgumentParam, argumentValues, context, parentNode, servicesPass, parameterReplacer);
                     }
                 }
             }
@@ -384,7 +384,7 @@ namespace EntityGraphQL.Schema
                 {
                     foreach (var m in Extensions)
                     {
-                        result.Expression = m.GetExpression(this, result.Expression, ArgumentParam, null, context, servicesPass, parameterReplacer);
+                        result.Expression = m.GetExpression(this, result.Expression, ArgumentParam, null, context, parentNode, servicesPass, parameterReplacer);
                     }
                 }
             }
