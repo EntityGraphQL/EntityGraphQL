@@ -24,6 +24,8 @@ namespace EntityGraphQL.Compiler
     public abstract class BaseGraphQLField : IGraphQLNode
     {
         protected List<IFieldExtension> fieldExtensions;
+        protected readonly ISchemaProvider schema;
+
         public Expression? NextFieldContext { get; set; }
         public IGraphQLNode? ParentNode { get; set; }
         public ParameterExpression? RootParameter { get; set; }
@@ -41,7 +43,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; protected set; }
         protected IField? field;
 
-        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
+        public BaseGraphQLField(ISchemaProvider schema, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
@@ -49,6 +51,7 @@ namespace EntityGraphQL.Compiler
             ParentNode = parentNode;
             this.arguments = arguments ?? new Dictionary<string, object>();
             fieldExtensions = new List<IFieldExtension>();
+            this.schema = schema;
         }
 
         /// <summary>
@@ -84,7 +87,7 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
+        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables);
 
         public void AddServices(IEnumerable<Type>? services)
         {
@@ -152,6 +155,15 @@ namespace EntityGraphQL.Compiler
         internal void AddDirectives(List<GraphQLDirective> graphQLDirectives)
         {
             directives.AddRange(graphQLDirectives);
+        }
+        protected BaseGraphQLField ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+        {
+            BaseGraphQLField? result = field;
+            foreach (var directive in directives)
+            {
+                result = directive.ProcessField(schema, field, arguments, docParam, docVariables);
+            }
+            return result;
         }
     }
 }

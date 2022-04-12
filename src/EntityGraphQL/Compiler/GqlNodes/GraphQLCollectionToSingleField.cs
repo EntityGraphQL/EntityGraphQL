@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -35,8 +36,8 @@ namespace EntityGraphQL.Compiler
         private readonly GraphQLObjectProjectionField objectProjectionNode;
         private readonly Expression combineExpression;
 
-        public GraphQLCollectionToSingleField(GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
-            : base(objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
+        public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
+            : base(schema, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
             this.collectionSelectionNode = collectionNode;
             this.objectProjectionNode = objectProjectionNode;

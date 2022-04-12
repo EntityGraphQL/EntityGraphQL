@@ -14,8 +14,8 @@ namespace EntityGraphQL.Compiler
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField>? extractedFields;
 
-        public GraphQLScalarField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
-            : base(name, nextFieldContext, rootParameter, parentNode, arguments)
+        public GraphQLScalarField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+            : base(schema, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
@@ -29,8 +29,12 @@ namespace EntityGraphQL.Compiler
             return Services.Any();
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
         {
+            var result = (GraphQLScalarField)ProcessFieldDirectives(this, docParam, docVariables);
+            if (result == null)
+                return new List<BaseGraphQLField>();
+
             if (withoutServiceFields && Services.Any())
             {
                 var extractedFields = ExtractFields();
@@ -46,7 +50,7 @@ namespace EntityGraphQL.Compiler
                 return extractedFields;
 
             var extractor = new ExpressionExtractor();
-            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(field, null, i.Key, i.Value, RootParameter, ParentNode, arguments)
+            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, field, null, i.Key, i.Value, RootParameter, ParentNode, arguments)
             {
                 // do not carry the services over
                 Services = new List<Type>()

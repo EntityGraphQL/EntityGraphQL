@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
@@ -30,9 +31,14 @@ namespace EntityGraphQL.Directives
             return expression;
         }
 
-        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema, Func<string, string> fieldNamer)
+        public virtual BaseGraphQLField? ProcessField(BaseGraphQLField field, object arguments)
         {
-            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null, fieldNamer)).ToList();
+            return field;
+        }
+
+        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema)
+        {
+            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null, schema.SchemaFieldNamer)).ToList();
         }
     }
 }

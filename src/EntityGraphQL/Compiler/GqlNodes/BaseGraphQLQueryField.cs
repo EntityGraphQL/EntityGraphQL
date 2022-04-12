@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,13 +14,20 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
-            : base(name, nextFieldContext, rootParameter, parentNode, arguments)
+        protected BaseGraphQLQueryField(ISchemaProvider schema, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
+            : base(schema, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             replacer = new ParameterReplacer();
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
+        {
+            var result = (BaseGraphQLQueryField)ProcessFieldDirectives(this, docParam, docVariables);
+            if (result == null)
+                return new List<BaseGraphQLField>();
+
+            return new List<BaseGraphQLField> { this };
+        }
 
         protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
@@ -33,7 +41,7 @@ namespace EntityGraphQL.Compiler
             {
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
-                foreach (var subField in field.Expand(fragments, withoutServiceFields))
+                foreach (var subField in field.Expand(fragments, withoutServiceFields, docParam, docVariables))
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
                     if (fieldExp == null)

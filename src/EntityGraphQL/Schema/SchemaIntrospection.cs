@@ -322,7 +322,7 @@
             {
                 Description = directive.Description,
                 Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                Args = directive.GetArguments(schema, schema.SchemaFieldNamer).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
+                Args = directive.GetArguments(schema).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
                 {
                     Description = arg.Description,
                     DefaultValue = null,

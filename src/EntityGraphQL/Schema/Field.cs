@@ -182,7 +182,7 @@ namespace EntityGraphQL.Schema
             Expression? expression = fieldExpression;
             foreach (var directive in directives)
             {
-                expression = directive.Process(this.Schema, fieldExpression, args, docParam, docVariables, this.Schema.SchemaFieldNamer);
+                expression = directive.Process(Schema, fieldExpression, args, docParam, docVariables);
             }
             if (expression == null)
                 return null;

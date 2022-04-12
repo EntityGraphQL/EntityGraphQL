@@ -27,15 +27,18 @@ namespace EntityGraphQL.Compiler
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
         protected readonly Dictionary<string, ArgType> opDefinedVariables = new();
+        protected readonly ISchemaProvider schema;
+
         public ParameterExpression? OpVariableParameter { get; }
 
-        public ExecutableGraphQLStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> opVariables)
+        public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> opVariables)
         {
             Name = name;
             NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
             ParentNode = parentNode;
             opDefinedVariables = opVariables;
+            this.schema = schema;
             if (opDefinedVariables.Any())
             {
                 var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType));

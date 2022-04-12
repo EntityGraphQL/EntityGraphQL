@@ -31,8 +31,8 @@ namespace EntityGraphQL.Compiler
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
-        public GraphQLListSelectionField(IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
-            : base(name, nextFieldContext, rootParameter, context, arguments)
+        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
+            : base(schema, name, nextFieldContext, rootParameter, context, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             this.ListExpression = nodeExpression;
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField((Field)field!, null, i.Key, replaced, RootParameter, this, arguments)
+                        return new CompiledField(new GraphQLScalarField(schema, (Field)field!, null, i.Key, replaced, RootParameter, this, arguments)
                         {
                             Services = new List<Type>()
                         }, replaced);

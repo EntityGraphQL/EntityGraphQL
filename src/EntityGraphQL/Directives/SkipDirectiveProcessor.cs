@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Directives
 {
@@ -19,6 +20,14 @@ namespace EntityGraphQL.Directives
                 return null;
             return expression;
         }
+
+        public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object arguments)
+        {
+            if (((SkipArguments)arguments).@if)
+                return null;
+            return field;
+        }
+
     }
 
     public class SkipArguments

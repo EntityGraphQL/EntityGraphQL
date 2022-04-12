@@ -6,7 +6,6 @@ using EntityGraphQL.Compiler.Util;
 using System;
 using EntityGraphQL.Extensions;
 using HotChocolate.Language;
-using EntityGraphQL.Compiler.EntityQuery;
 
 namespace EntityGraphQL.Compiler
 {
@@ -58,14 +57,14 @@ namespace EntityGraphQL.Compiler
             if (node.Operation == OperationType.Query)
             {
                 var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"op_ctx");
-                context = new GraphQLQueryStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLQueryStatement)context;
             }
             else if (node.Operation == OperationType.Mutation)
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut");
-                context = new GraphQLMutationStatement(node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLMutationStatement)context;
             }
             else if (node.Operation == OperationType.Subscription)
@@ -164,7 +163,7 @@ namespace EntityGraphQL.Compiler
                 var mutationField = (MutationField)actualField;
 
                 var nextContextParam = Expression.Parameter(mutationField.ReturnType.TypeDotnet, $"mut_{actualField.Name}");
-                var graphqlMutationField = new GraphQLMutationField(resultName, mutationField, args, nextContextParam, nextContextParam, context);
+                var graphqlMutationField = new GraphQLMutationField(schemaProvider, resultName, mutationField, args, nextContextParam, nextContextParam, context);
 
                 if (node.SelectionSet != null)
                 {
@@ -172,7 +171,7 @@ namespace EntityGraphQL.Compiler
                     if (mutationField.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement
-                        var newSelect = new GraphQLListSelectionField(actualField, actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext!, select.RootParameter, select.RootParameter!, context, args);
+                        var newSelect = new GraphQLListSelectionField(schemaProvider, actualField, actualField.Extensions, resultName, (ParameterExpression)select.NextFieldContext!, select.RootParameter, select.RootParameter!, context, args);
                         foreach (var queryField in select.QueryFields)
                         {
                             newSelect.AddField(queryField);
@@ -196,7 +195,7 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField((Field)actualField, actualField.Extensions, resultName, nodeExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
+                    fieldResult = new GraphQLScalarField(schemaProvider, (Field)actualField, actualField.Extensions, resultName, nodeExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
                 }
 
                 if (node.Directives?.Any() == true)
@@ -230,7 +229,7 @@ namespace EntityGraphQL.Compiler
                 var returnType = schemaProvider.GetSchemaType(item1.Type.GetEnumerableOrArrayType()!, requestContext);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection, arguments);
-                return new GraphQLCollectionToSingleField(collectionNode, graphQLNode, listExp.Item2!);
+                return new GraphQLCollectionToSingleField(schemaProvider, collectionNode, graphQLNode, listExp.Item2!);
             }
             return graphQLNode;
         }
@@ -247,7 +246,7 @@ namespace EntityGraphQL.Compiler
             var elementType = returnType.TypeDotnet;
             var fieldParam = Expression.Parameter(elementType, $"p_{elementType.Name}");
 
-            var gqlNode = new GraphQLListSelectionField(actualField, actualField.Extensions, resultName, fieldParam, context.RootParameter, nodeExpression, context, arguments);
+            var gqlNode = new GraphQLListSelectionField(schemaProvider, actualField, actualField.Extensions, resultName, fieldParam, context.RootParameter, nodeExpression, context, arguments);
 
             // visit child fields. Will be more fields
             base.VisitSelectionSet(selection, gqlNode);
@@ -268,7 +267,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
             if (context.NextFieldContext == null && context.RootParameter == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext and context.RootParameter should not be null visiting field");
-            var graphQLNode = new GraphQLObjectProjectionField(actualField, actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter!, context, arguments);
+            var graphQLNode = new GraphQLObjectProjectionField(schemaProvider, actualField, actualField.Extensions, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter!, context, arguments);
 
             base.VisitSelectionSet(selection, graphQLNode);
 
@@ -372,7 +371,7 @@ namespace EntityGraphQL.Compiler
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
             var name = node.Name.Value;
-            BaseGraphQLField? fragField = new GraphQLFragmentField(name, null, context.RootParameter, context);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, name, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
                 fragField.AddDirectives(ProcessFieldDirectives(node.Directives));

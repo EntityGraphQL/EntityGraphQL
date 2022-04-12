@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLFragmentField : BaseGraphQLField
     {
-        public GraphQLFragmentField(string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nodeExpression, rootParameter, parentNode, null)
+        public GraphQLFragmentField(ISchemaProvider schema, string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(schema, name, nodeExpression, rootParameter, parentNode, null)
         {
         }
 
@@ -16,17 +17,15 @@ namespace EntityGraphQL.Compiler
         {
             return fragments.FirstOrDefault(f => f.Name == Name).QueryFields.Any(f => f.HasAnyServices(fragments));
         }
-        public GraphQLFragmentStatement? Fragment { get; private set; }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
         {
-            if (Fragment == null)
-            {
-                var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
-                Fragment = fragment;
-            }
+            var result = (GraphQLFragmentField)ProcessFieldDirectives(this, docParam, docVariables);
+            if (result == null)
+                return new List<BaseGraphQLField>();
 
-            return Fragment.QueryFields.SelectMany(f => f.Expand(fragments, withoutServiceFields));
+            var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+            return fragment.QueryFields.SelectMany(f => f.Expand(fragments, withoutServiceFields, docParam, docVariables));
         }
 
         public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)

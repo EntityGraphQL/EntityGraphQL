@@ -13,8 +13,8 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> variables)
-            : base(name, nodeExpression, rootParameter, parentNode, variables)
+        public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> variables)
+            : base(schema, name, nodeExpression, rootParameter, parentNode, variables)
         {
             Name = name;
         }
@@ -94,12 +94,12 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(null, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
+                        var collectionNode = new GraphQLListSelectionField(schema, null, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
                         foreach (var queryField in node.ResultSelection.QueryFields)
                         {
                             collectionNode.AddField(queryField);
                         }
-                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2!);
+                        var newNode = new GraphQLCollectionToSingleField(schema, collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2!);
                         resultExp = newNode;
                     }
                     else
