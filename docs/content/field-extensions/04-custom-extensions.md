@@ -37,7 +37,7 @@ public static class UseFormatExtension
 public class FormatStringExtension : IFieldExtension
 {
     // Configure the field. Do as much as we can here as it is only called once on registered.
-    public void Configure(ISchemaProvider schema, Field field)
+    public void Configure(ISchemaProvider schema, IField field)
     {
 
     }

@@ -16,11 +16,11 @@ namespace EntityGraphQL.Schema
         public string Description { get; set; }
         public GqlTypeInfo Type { get; private set; }
         public object? DefaultValue { get; set; }
-        public MemberInfo MemberInfo { get; internal set; }
+        public MemberInfo? MemberInfo { get; internal set; }
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
-        public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo memberInfo, Type rawType)
+        public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo? memberInfo, Type rawType)
         {
             Name = name;
             DotnetName = dotnetName;

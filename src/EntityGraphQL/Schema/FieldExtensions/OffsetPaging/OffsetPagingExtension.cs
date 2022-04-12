@@ -33,7 +33,7 @@ public class OffsetPagingExtension : BaseFieldExtension
     /// </summary>
     /// <param name="schema"></param>
     /// <param name="field"></param>
-    public override void Configure(ISchemaProvider schema, Field field)
+    public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.Resolve == null)
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
@@ -41,8 +41,11 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (!field.Resolve.Type.IsEnumerableOrArray())
             throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
+        if (field.FieldType == FieldType.Mutation)
+            throw new EntityGraphQLCompilerException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
+
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
-        this.field = field;
+        this.field = (Field)field;
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -58,7 +61,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         }
         returnType = returnSchemaType.TypeDotnet;
 
-        field.UpdateReturnType(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
+        field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
 
         // Update field arguments
         field.AddArguments(new OffsetArgs());

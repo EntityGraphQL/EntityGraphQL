@@ -147,6 +147,54 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestErrorOnVariableTypeMismatch()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($names: [String]) { # wrong variable type
+          addPersonInput(nameInput: $names) {
+            id name lastName
+          }
+        }",
+                // Object does not match the var definition in the AddPerson operation
+                Variables = new QueryVariables {
+                        { "names", new { name = "Lisa", lastName = "Simpson" } }
+                }
+            };
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Single(result.Errors);
+            Assert.Equal("Field error: addPersonInput - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
+        }
+
+        [Fact]
+        public void TestErrorOnVariableTypeMismatch2()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($names: [String]) { # wrong variable type
+          addPersonInput(nameInput: $names) {
+            id name lastName
+          }
+        }",
+                // variable matches the var definition but does not match the field expected type
+                Variables = new QueryVariables {
+                        { "names", new [] { "Lisa", "Simpson" } }
+                }
+            };
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Single(result.Errors);
+            Assert.Equal("Field error: addPersonInput - Variable or value used for argument 'nameInput' does not match argument type 'InputObject'", result.Errors.First().Message);
+        }
+
+        [Fact]
         public void SupportsMutationVariablesAnonObject()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
@@ -155,7 +203,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($names: [String]) {
+                Query = @"mutation AddPerson($names: InputObject) {
           addPersonInput(nameInput: $names) {
             id name lastName
           }
@@ -187,7 +235,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($names: [String]) {
+                Query = @"mutation AddPerson($names: InputObject) {
           addPersonInput(nameInput: $names) {
             id name lastName
           }
@@ -219,7 +267,7 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($names: [String]) {
+                Query = @"mutation AddPerson($names: InputObject) {
           addPersonInput(nameInput: $names) {
             id name lastName
           }

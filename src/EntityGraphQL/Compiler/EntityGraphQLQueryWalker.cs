@@ -80,7 +80,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        private Dictionary<string, (Type, object?)> ProcessVariableDefinitions(QueryVariables? variables, OperationDefinitionNode node)
+        private Dictionary<string, ArgType> ProcessVariableDefinitions(QueryVariables? variables, OperationDefinitionNode node)
         {
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
@@ -88,23 +88,33 @@ namespace EntityGraphQL.Compiler
             if (variables == null)
                 variables = new QueryVariables();
 
-            var documentVariables = new Dictionary<string, (Type, object?)>();
+            var documentVariables = new Dictionary<string, ArgType>();
 
             foreach (var item in node.VariableDefinitions)
             {
                 var argName = item.Variable.Name.Value;
                 object? defaultValue = null;
-                var gqlType = GetGqlType(item);
+                (var gqlTypeName, var isList, var isRequired) = GetGqlType(item);
 
-                var varType = schemaProvider.GetSchemaType(gqlType, null).TypeDotnet;
-                //variables.ContainsKey(argName) ? variables[argName]?.GetType() : QueryWalkerHelper.GetDotnetType(schemaProvider, ((NamedTypeNode)item.Type).Name.Value);
+                var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
+                var varType = schemaType.TypeDotnet;
                 if (varType == null)
                     throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
+                if (isList)
+                    varType = typeof(List<>).MakeGenericType(varType);
 
                 if (item.DefaultValue != null)
                     defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType))).Compile().DynamicInvoke();
 
-                documentVariables.Add(argName, (varType, defaultValue));
+                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varType)
+                {
+                    TypeNotNullable = isRequired,
+                    ElementTypeNullable = !isRequired
+                }, null, varType)
+                {
+                    DefaultValue = defaultValue,
+                    IsRequired = isRequired
+                });
 
                 var required = item.Type.Kind == SyntaxKind.NonNullType;
                 if (required && variables.ContainsKey(argName) == false)
@@ -115,14 +125,14 @@ namespace EntityGraphQL.Compiler
             return documentVariables;
         }
 
-        private static string GetGqlType(ISyntaxNode item)
+        private static (string typeName, bool isList, bool isRequired) GetGqlType(ISyntaxNode item)
         {
             return item.Kind switch
             {
-                SyntaxKind.NamedType => ((NamedTypeNode)item).Name.Value,
-                SyntaxKind.NonNullType => ((NonNullTypeNode)item).NamedType().Name.Value,
-                SyntaxKind.VariableDefinition => ((VariableDefinitionNode)item).Type.NamedType().Name.Value,
-                SyntaxKind.ListType => ((ListTypeNode)item).Type.NamedType().Name.Value,
+                SyntaxKind.NamedType => (((NamedTypeNode)item).Name.Value, false, false),
+                SyntaxKind.NonNullType => (((NonNullTypeNode)item).NamedType().Name.Value, false, true),
+                SyntaxKind.VariableDefinition => (((VariableDefinitionNode)item).Type.NamedType().Name.Value, ((VariableDefinitionNode)item).Type.Kind == SyntaxKind.ListType, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
+                SyntaxKind.ListType => (((ListTypeNode)item).Type.NamedType().Name.Value, true, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
                 _ => throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}"),
             };
         }
@@ -154,8 +164,7 @@ namespace EntityGraphQL.Compiler
                 var mutationField = (MutationField)actualField;
 
                 var nextContextParam = Expression.Parameter(mutationField.ReturnType.TypeDotnet, $"mut_{actualField.Name}");
-                // TODO add back args
-                var graphqlMutationField = new GraphQLMutationField(resultName, mutationField, null, nextContextParam, nextContextParam, context);
+                var graphqlMutationField = new GraphQLMutationField(resultName, mutationField, args, nextContextParam, nextContextParam, context);
 
                 if (node.SelectionSet != null)
                 {
@@ -310,7 +319,7 @@ namespace EntityGraphQL.Compiler
             if (argument.Value.Kind == SyntaxKind.Variable)
             {
                 string varKey = ((VariableNode)argument.Value).Name.Value;
-                var expression = Expression.PropertyOrField(currentOperation.VariableParameter, varKey);
+                var expression = Expression.PropertyOrField(currentOperation.OpVariableParameter, varKey);
                 return expression;
             }
             var constVal = QueryWalkerHelper.ProcessArgumentValue(schema, argument.Value, argName, argType);

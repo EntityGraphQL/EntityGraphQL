@@ -8,20 +8,21 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationField : BaseGraphQLQueryField
     {
-        private readonly MutationField mutationField;
+        public MutationField MutationField { get; set; }
+
         public BaseGraphQLQueryField? ResultSelection { get; set; }
 
         public GraphQLMutationField(string name, MutationField mutationField, Dictionary<string, object>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
             : base(name, nextFieldContext, rootParameter, parentNode, args)
         {
-            this.mutationField = mutationField;
+            this.MutationField = mutationField;
         }
 
-        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
+        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer, ParameterExpression? variableParameter, object? variablesToUse)
         {
             try
             {
-                return await mutationField.CallAsync(context, arguments, validator, serviceProvider, fieldNamer);
+                return await MutationField.CallAsync(context, arguments, validator, serviceProvider, variableParameter, variablesToUse, fieldNamer);
             }
             catch (EntityQuerySchemaException e)
             {

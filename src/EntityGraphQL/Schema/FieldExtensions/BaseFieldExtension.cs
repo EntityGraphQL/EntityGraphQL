@@ -13,7 +13,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="schema"></param>
         /// <param name="field"></param>
-        public virtual void Configure(ISchemaProvider schema, Field field) { }
+        public virtual void Configure(ISchemaProvider schema, IField field) { }
 
         /// <summary>
         /// Called when the field is used in a query. This is at the compiling of the query stage, it is before the

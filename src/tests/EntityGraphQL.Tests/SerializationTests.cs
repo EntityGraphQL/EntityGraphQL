@@ -54,7 +54,7 @@ namespace EntityGraphQL.Tests
             // Simulate a JSON request with System.Text.Json
             // variables will end up having JsonElements
             var q = @"{
-                ""query"": ""mutation AddPerson($names: [String]) { addPersonInput(nameInput: $names) { id name lastName } }"",
+                ""query"": ""mutation AddPerson($names: InputObject) { addPersonInput(nameInput: $names) { id name lastName } }"",
                 ""variables"": {
                     ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"" }
                 }

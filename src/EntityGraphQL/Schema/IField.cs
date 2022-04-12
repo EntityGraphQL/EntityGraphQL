@@ -17,12 +17,15 @@ namespace EntityGraphQL.Schema
     public interface IField
     {
         FieldType FieldType { get; }
+        ISchemaProvider Schema { get; }
+        ParameterExpression? FieldParam { get; set; }
         string? Description { get; }
         IDictionary<string, ArgType> Arguments { get; }
         ParameterExpression? ArgumentParam { get; }
+        Type? ArgumentsType { get; set; }
         string Name { get; }
         GqlTypeInfo ReturnType { get; }
-        List<IFieldExtension> Extensions { get; }
+        List<IFieldExtension> Extensions { get; set; }
         RequiredAuthorization? RequiredAuthorization { get; }
 
         bool IsDeprecated { get; set; }
@@ -46,5 +49,7 @@ namespace EntityGraphQL.Schema
         IField UpdateExpression(Expression expression);
 
         void AddExtension(IFieldExtension extension);
+        void AddArguments(object args);
+        IField Returns(GqlTypeInfo gqlTypeInfo);
     }
 }

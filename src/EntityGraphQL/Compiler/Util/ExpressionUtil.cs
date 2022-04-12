@@ -157,7 +157,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 return Activator.CreateInstance(toType, value);
             }
-            if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
+            if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
             {
                 return ConvertObjectType(schema, value, toType, fromType);
             }

@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="schema"></param>
         /// <param name="field"></param>
-        public override void Configure(ISchemaProvider schema, Field field)
+        public override void Configure(ISchemaProvider schema, IField field)
         {
             if (field.Resolve == null)
                 throw new EntityGraphQLCompilerException($"ConnectionPagingExtension requires a Resolve function set on the field");

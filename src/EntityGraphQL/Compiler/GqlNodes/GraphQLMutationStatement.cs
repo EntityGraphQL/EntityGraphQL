@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, (Type, object?)> variables)
+        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> variables)
             : base(name, nodeExpression, rootParameter, parentNode, variables)
         {
             Name = name;
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
                         timer = new Stopwatch();
                         timer.Start();
                     }
-                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, null);
+                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, variables);
                     if (options.IncludeDebugInfo == true)
                     {
                         timer?.Stop();
@@ -56,12 +56,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             if (context == null)
                 return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer);
+            object? docVariables = BuildDocumentVariables(ref variables);
+            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type

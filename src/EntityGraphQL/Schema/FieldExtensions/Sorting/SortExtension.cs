@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.direction = direction;
         }
 
-        public override void Configure(ISchemaProvider schema, Field field)
+        public override void Configure(ISchemaProvider schema, IField field)
         {
             if (field.Resolve == null)
                 throw new EntityGraphQLCompilerException($"SortExtension requires a Resolve function set on the field");
