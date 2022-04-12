@@ -20,6 +20,19 @@ namespace EntityGraphQL
         /// not a JsonElement/JObject (e.g. turn objects into more dictionaries)
         /// </summary>
         public QueryVariables? Variables { get; set; }
+
+        public Dictionary<string, Dictionary<string, object>> Extensions { get; set; } = new Dictionary<string, Dictionary<string, object>>();
+    }
+
+    public class PersistedQueryExtension : Dictionary<string, object>
+    {
+        public PersistedQueryExtension()
+        {
+            Version = 1;
+        }
+        public string Sha256Hash { get => (string)this[nameof(Sha256Hash)]; set => this[nameof(Sha256Hash)] = value; }
+
+        public int Version { get => (int)this[nameof(Version)]; set => this[nameof(Version)] = value; }
     }
 
     /// <summary>

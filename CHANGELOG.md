@@ -26,7 +26,14 @@ Clean up on the schema building APIs to make them more consistent, documented an
   - `ExecuteQuery` replaced by `ExecuteRequest`
   - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
 
-Other changes
+Addition changes
+
+- Support for persisted queries (enabled by default) - https://www.apollographql.com/docs/react/api/link/persisted-queries/
+- Support for a query cache of recent queries. Enabled by default. Caches the result of compiling the query document string to an AST. Execution is then applying the document level variables, building the expressions then execution
+- Better support for nested objects in `QueryVariables`
+- Small performance enhancements when building internal types
+
+Fixes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.
@@ -37,8 +44,6 @@ Other changes
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - Fix #72 - Handling dictionaries introspection - note it will try to create a scalar type `KeyValuePair<T1, T2>` in the schema by default
 - Fix handling argument types of unsigned short/int/long
-- Better support for nested objects in `QueryVariables`
-- Small performance enhancements when building internal types
 
 # 1.2.1
 

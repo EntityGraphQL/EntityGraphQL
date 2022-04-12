@@ -8,7 +8,6 @@ scalar Float
 scalar Boolean
 scalar String
 scalar ID
-scalar UInt
 scalar Date
 scalar StringKeyValuePair
 
@@ -42,13 +41,13 @@ type Query {
 	"""List of directors"""
 	directors(sort: DirectorsSortInput): [Person!]
 	"""Return a Movie by its Id"""
-	movie(id: UInt!): Movie
+	movie(id: Int!): Movie
 	"""Collection of Movies"""
 	movies: [Movie!]
 	"""Collection of Peoples"""
 	people: [Person!]
 	"""Return a Person by its Id"""
-	person(id: UInt!): Person
+	person(id: Int!): Person
 	"""List of writers"""
 	writers: [Person!]
 
@@ -62,9 +61,9 @@ type Mutation {
 	exampleNoArgsWithService: Int!
 	"""Add a new Movie object"""
 	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
-	addActor(firstName: String, lastName: String, movieId: UInt!): Person
-	addActor2(firstName: String, lastName: String, movieId: UInt!): [Person!]
-	addActor3(names: [String!], movieId: UInt!): [Person!]
+	addActor(firstName: String, lastName: String, movieId: Int!): Person
+	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
+	addActor3(names: [String!], movieId: Int!): [Person!]
 }
 
 """Information about subscriptions"""
@@ -73,7 +72,7 @@ type SubscriptionType {
 }
 
 type Movie {
-	id: UInt!
+	id: Int!
 	name: String
 	"""Enum of Genre"""
 	genre: Genre!
@@ -83,19 +82,19 @@ type Movie {
 	"""Writers in the movie"""
 	writers: [Person!]
 	director: Person
-	directorId: UInt
+	directorId: Int
 	rating: Float!
 }
 
 type Actor {
-	personId: UInt!
+	personId: Int!
 	person: Person
-	movieId: UInt!
+	movieId: Int!
 	movie: Movie
 }
 
 type Person {
-	id: UInt!
+	id: Int!
 	firstName: String!
 	lastName: String!
 	dob: Date!
@@ -115,9 +114,9 @@ type Person {
 }
 
 type Writer {
-	personId: UInt!
+	personId: Int!
 	person: Person
-	movieId: UInt!
+	movieId: Int!
 	movie: Movie
 }
 

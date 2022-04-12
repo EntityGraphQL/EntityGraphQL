@@ -47,7 +47,7 @@ namespace Benchmarks
         {
             var result = Schema.ExecuteRequest(query, context, Services, null, new ExecutionOptions
             {
-                NoExecution = true
+                // NoExecution = true
             });
             if (result.Errors != null)
                 throw new InvalidOperationException("query failed: " + string.Join("\n", result.Errors.Select(m => m.Message)));

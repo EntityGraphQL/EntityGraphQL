@@ -125,8 +125,9 @@ namespace EntityGraphQL.Compiler.Util
             }
             if (fromType.IsDictionary())
             {
+                var interfaceType = fromType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
                 // handle dictionary of dictionary representing the objects
-                if (fromType.GetGenericArguments()[0] != typeof(string))
+                if (interfaceType.GetGenericArguments()[0] != typeof(string))
                     throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
                 var newValue = Activator.CreateInstance(toType);
