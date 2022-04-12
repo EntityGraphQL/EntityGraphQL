@@ -1,7 +1,6 @@
 using Xunit;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -17,9 +16,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query {
-  people {
-      id
-      name @include(if: true)
+    people {
+        id
+        name @include(if: true)
     }
 }"
             };
@@ -35,9 +34,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query {
-  people {
-      id
-      name @include(if: false)
+    people {
+        id
+        name @include(if: false)
     }
 }"
             };
@@ -54,9 +53,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query MyQuery($include: Boolean!){
-  people {
-      id
-      name @include(if: $include)
+    people {
+        id
+        name @include(if: $include)
     }
 }",
                 Variables = new QueryVariables { { "include", true } }
@@ -74,9 +73,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query {
-  people {
-      id
-      name @skip(if: true)
+    people {
+        id
+        name @skip(if: true)
     }
 }"
             };
@@ -92,9 +91,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query {
-  people {
-      id
-      name @skip(if: false)
+    people {
+        id
+        name @skip(if: false)
     }
 }"
             };
@@ -110,9 +109,9 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query MyQuery($skip: Boolean!){
-  people {
-      id
-      name @skip(if: $skip)
+    people {
+        id
+        name @skip(if: $skip)
     }
 }",
                 Variables = new QueryVariables { { "skip", true } }

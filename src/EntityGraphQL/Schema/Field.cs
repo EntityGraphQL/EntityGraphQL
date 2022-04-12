@@ -177,12 +177,19 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        public override ExpressionResult GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
+        public override ExpressionResult? GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
         {
-            var result = new ExpressionResult(fieldExpression, Services);
+            Expression? expression = fieldExpression;
+            foreach (var directive in directives)
+            {
+                expression = directive.Process(this.Schema, fieldExpression, args, docParam, docVariables, this.Schema.SchemaFieldNamer);
+            }
+            if (expression == null)
+                return null;
+            var result = new ExpressionResult(expression, Services);
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             var parameterReplacer = new ParameterReplacer();
-            PrepareExpressionResult(args, this, result, parameterReplacer, fieldExpression, parentNode, docParam, docVariables, contextChanged);
+            PrepareExpressionResult(args, this, result, parameterReplacer, expression, parentNode, docParam, docVariables, contextChanged);
             // the expressions we collect have a different starting parameter. We need to change that
             if (FieldParam != null && !contextChanged)
             {
@@ -203,7 +210,7 @@ namespace EntityGraphQL.Schema
         {
             if (field.ArgumentsType != null && args != null && FieldParam != null)
             {
-                object argumentValues = BuildArgumentsObject(args, field, docParam, docVariables);
+                object argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables);
                 if (ArgumentParam != null)
                 {
                     // tell them this expression has another parameter

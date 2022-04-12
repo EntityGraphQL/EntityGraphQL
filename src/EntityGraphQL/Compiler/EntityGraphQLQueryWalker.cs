@@ -201,7 +201,7 @@ namespace EntityGraphQL.Compiler
 
                 if (node.Directives?.Any() == true)
                 {
-                    fieldResult = ProcessFieldDirectives(fieldResult, node.Directives);
+                    fieldResult.AddDirectives(ProcessFieldDirectives(node.Directives));
                 }
                 if (fieldResult != null)
                 {
@@ -326,26 +326,25 @@ namespace EntityGraphQL.Compiler
             return constVal;
         }
 
-        private BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, IEnumerable<DirectiveNode> directives)
+        private List<GraphQLDirective> ProcessFieldDirectives(IEnumerable<DirectiveNode> directives)
         {
-            BaseGraphQLField? fieldResult = field;
+            var result = new List<GraphQLDirective>();
             foreach (var directive in directives)
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
                 var argType = processor.GetArgumentsType();
                 var argObj = Activator.CreateInstance(argType);
+                var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
                 {
                     var prop = argType.GetProperty(arg.Name.Value);
                     var argVal = ProcessArgumentOrVariable(schemaProvider, requestContext.Query.Variables, arg, prop.PropertyType);
-                    prop.SetValue(argObj, argVal);
+                    if (argVal != null)
+                        args.Add(arg.Name.Value, argVal);
                 }
-                fieldResult = processor.ProcessField(fieldResult, argObj);
-
-                if (fieldResult == null)
-                    break;
+                result.Add(new GraphQLDirective(directive.Name.Value, processor, args));
             }
-            return fieldResult;
+            return result;
         }
 
         protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode? context)
@@ -376,7 +375,7 @@ namespace EntityGraphQL.Compiler
             BaseGraphQLField? fragField = new GraphQLFragmentField(name, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
-                fragField = ProcessFieldDirectives(fragField, node.Directives);
+                fragField.AddDirectives(ProcessFieldDirectives(node.Directives));
             }
             if (fragField != null)
             {

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {

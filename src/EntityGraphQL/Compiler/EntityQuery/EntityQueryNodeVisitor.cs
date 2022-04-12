@@ -124,8 +124,8 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 return enumOrConstantValue;
             }
             var gqlField = schemaType.GetField(field, requestContext);
-            var exp = gqlField.GetExpression(gqlField.Resolve!, currentContext, null, null, new Dictionary<string, object>(), null, null, false);
-            return exp;
+            var exp = gqlField.GetExpression(gqlField.Resolve!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false);
+            return exp!;
         }
 
         public override ExpressionResult VisitConstant(EntityQLParser.ConstantContext context)

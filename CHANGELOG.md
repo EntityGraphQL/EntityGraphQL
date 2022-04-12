@@ -7,6 +7,7 @@ Breaking changes
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
+- Directive interface for building custom directives has changed
 
 Clean up on the schema building APIs to make them more consistent, documented and concise
 

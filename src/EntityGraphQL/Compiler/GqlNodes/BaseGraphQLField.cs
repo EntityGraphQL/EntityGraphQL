@@ -32,6 +32,8 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         protected readonly Dictionary<string, object> arguments;
 
+        protected readonly List<GraphQLDirective> directives = new();
+
         /// <summary>
         /// Name of the field
         /// </summary>
@@ -145,6 +147,11 @@ namespace EntityGraphQL.Compiler
                 if (!this.constantParameters.ContainsKey(item.Key))
                     this.constantParameters.Add(item.Key, item.Value);
             }
+        }
+
+        internal void AddDirectives(List<GraphQLDirective> graphQLDirectives)
+        {
+            directives.AddRange(graphQLDirectives);
         }
     }
 }

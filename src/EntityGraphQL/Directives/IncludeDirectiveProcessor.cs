@@ -1,6 +1,6 @@
 using System;
 using System.ComponentModel;
-using EntityGraphQL.Compiler;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Directives
 {
@@ -8,16 +8,15 @@ namespace EntityGraphQL.Directives
     {
         public override string Name { get => "include"; }
         public override string Description { get => "Directs the executor to include this field or fragment only when the `if` argument is true."; }
-        public override bool ProcessesResult { get => false; }
         public override Type GetArgumentsType()
         {
             return typeof(IncludeArguments);
         }
 
-        public override BaseGraphQLField? ProcessQuery(BaseGraphQLField field, IncludeArguments arguments)
+        public override Expression? ProcessExpression(Expression expression, object arguments)
         {
-            if (arguments.@if)
-                return field;
+            if (((IncludeArguments)arguments).@if)
+                return expression;
             return null;
         }
     }

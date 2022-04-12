@@ -60,7 +60,7 @@ namespace EntityGraphQL.Schema
 
             if (gqlRequestArgs?.Count > 0)
             {
-                var argInstance = BuildArgumentsObject(gqlRequestArgs, this, variableParameter, docVariables);
+                var argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, gqlRequestArgs, Arguments.Values, ArgumentsType, variableParameter, docVariables);
                 VaildateModelBinding(argInstance, validator);
                 if (validator.Errors.Any())
                     return null;
@@ -151,7 +151,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public override ExpressionResult GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, bool contextChanged)
+        public override ExpressionResult? GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
         {
             var result = (ExpressionResult)fieldExpression;
 
