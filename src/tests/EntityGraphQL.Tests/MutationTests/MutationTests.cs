@@ -563,7 +563,7 @@ namespace EntityGraphQL.Tests
         public void TestFloatArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<FloatInput>("FloatInput", "FloatInput").AddAllFields();
             var gql = new QueryRequest
             {
@@ -582,7 +582,7 @@ namespace EntityGraphQL.Tests
         public void TestDoubleArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<DoubleInput>("DoubleInput", "DoubleInput").AddAllFields();
             var gql = new QueryRequest
             {
@@ -601,7 +601,7 @@ namespace EntityGraphQL.Tests
         public void TestDecimalArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<DecimalInput>("DecimalInput", "DecimalInput").AddAllFields();
             var gql = new QueryRequest
             {
