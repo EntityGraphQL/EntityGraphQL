@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler
         public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
             : base(schema, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
-            this.collectionSelectionNode = collectionNode;
+            collectionSelectionNode = collectionNode;
             this.objectProjectionNode = objectProjectionNode;
             this.combineExpression = combineExpression;
 
@@ -82,12 +82,7 @@ namespace EntityGraphQL.Compiler
             if (result == null)
                 return null;
 
-            foreach (var item in collectionSelectionNode.ConstantParameters)
-            {
-                if (!constantParameters.ContainsKey(item.Key))
-                    constantParameters.Add(item.Key, item.Value);
-            }
-
+            AddConstantParameters(collectionSelectionNode.ConstantParameters);
             var genericType = result.Type.GetEnumerableOrArrayType()!;
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505

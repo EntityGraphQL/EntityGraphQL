@@ -298,7 +298,7 @@ namespace EntityGraphQL.Compiler
 
             string argName = argument.Name.Value;
             var argType = fieldArgumentContext.GetArgumentType(argName);
-            var argValue = ProcessArgumentOrVariable(schemaProvider, requestContext.Query.Variables, argument, argType.Type.TypeDotnet);
+            var argValue = ProcessArgumentOrVariable(schemaProvider, argument, argType.Type.TypeDotnet);
             if (argValue == null)
                 return null;
 
@@ -309,7 +309,7 @@ namespace EntityGraphQL.Compiler
         /// Build the expression for the argument. A Variable ($name) will be a Expression.Parameter
         /// A inline value will be a Expression.Constant
         /// </summary>
-        private object? ProcessArgumentOrVariable(ISchemaProvider schema, QueryVariables? variables, ArgumentNode argument, Type argType)
+        private object? ProcessArgumentOrVariable(ISchemaProvider schema, ArgumentNode argument, Type argType)
         {
             if (currentOperation == null)
                 throw new EntityGraphQLCompilerException("currentOperation should not be null when visiting arguments");
@@ -337,7 +337,7 @@ namespace EntityGraphQL.Compiler
                 foreach (var arg in directive.Arguments)
                 {
                     var prop = argType.GetProperty(arg.Name.Value);
-                    var argVal = ProcessArgumentOrVariable(schemaProvider, requestContext.Query.Variables, arg, prop.PropertyType);
+                    var argVal = ProcessArgumentOrVariable(schemaProvider, arg, prop.PropertyType);
                     if (argVal != null)
                         args.Add(arg.Name.Value, argVal);
                 }

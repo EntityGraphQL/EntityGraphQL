@@ -50,7 +50,7 @@ namespace EntityGraphQL.Compiler
 
         internal void AddConstantParameter(ParameterExpression type, object value)
         {
-            constantParameters.Add(type, value);
+            constantParameters[type] = value;
         }
 
         internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)

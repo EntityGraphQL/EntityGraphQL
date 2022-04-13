@@ -56,11 +56,7 @@ namespace EntityGraphQL.Compiler
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
                     // pull any constant values up
-                    foreach (var item in subField.ConstantParameters)
-                    {
-                        if (!constantParameters.ContainsKey(item.Key))
-                            constantParameters.Add(item.Key, item.Value);
-                    }
+                    AddConstantParameters(subField.ConstantParameters);
                     Services.AddRange(subField.Services);
                 }
             }

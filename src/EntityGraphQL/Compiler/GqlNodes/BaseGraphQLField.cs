@@ -100,10 +100,7 @@ namespace EntityGraphQL.Compiler
         {
             QueryFields.Add(field);
             AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? ((GraphQLListSelectionField)field).Services : new List<Type>());
-            foreach (var item in field.ConstantParameters)
-            {
-                constantParameters.Add(item.Key, item.Value);
-            }
+            AddConstantParameters(field.ConstantParameters);
         }
 
         protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
@@ -147,8 +144,8 @@ namespace EntityGraphQL.Compiler
                 return;
             foreach (var item in constantParameters)
             {
-                if (!this.constantParameters.ContainsKey(item.Key))
-                    this.constantParameters.Add(item.Key, item.Value);
+                // replace them as new doc variables may be coming through
+                this.constantParameters[item.Key] = item.Value;
             }
         }
 
