@@ -44,6 +44,25 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
+
+        public float AddFloat(FloatInput args)
+        {
+            return args.Float;
+        }
+        [GraphQLMutation]
+
+        public double AddDouble(DoubleInput args)
+        {
+            return args.Double;
+        }
+        [GraphQLMutation]
+
+        public decimal AddDecimal(DecimalInput args)
+        {
+            return args.Decimal;
+        }
+
+        [GraphQLMutation]
         public Expression<Func<TestDataContext, Person>> AddPersonAdv(PeopleMutationsArgs args)
         {
             // test returning a constant in the expression which allows graphql selection over the schema (assuming the constant is a type in the schema)
@@ -154,5 +173,20 @@ namespace EntityGraphQL.Tests
     {
         public int Id { get; set; }
         public long IdLong { get; set; }
+    }
+    [MutationArguments]
+    public class FloatInput
+    {
+        public float Float { get; set; }
+    }
+    [MutationArguments]
+    public class DoubleInput
+    {
+        public double Double { get; set; }
+    }
+    [MutationArguments]
+    public class DecimalInput
+    {
+        public decimal Decimal { get; set; }
     }
 }

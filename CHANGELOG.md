@@ -1,4 +1,4 @@
-# 2.0.0-beta3
+# 2.0.0-beta5
 
 Breaking changes
 
@@ -44,6 +44,7 @@ Fixes
 - Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - Fix #72 - Handling dictionaries introspection - note it will try to create a scalar type `KeyValuePair<T1, T2>` in the schema by default
 - Fix handling argument types of unsigned short/int/long
+- Fix issue parsing float/double argument values
 
 # 1.2.1
 

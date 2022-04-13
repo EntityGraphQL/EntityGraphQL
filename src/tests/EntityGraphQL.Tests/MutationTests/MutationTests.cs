@@ -559,5 +559,62 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithListInt"]);
         }
+        [Fact]
+        public void TestFloatArgInputType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<FloatInput>("FloatInput", "FloatInput").AddAllFields();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          addFloat(float: 1.3)
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(1.3f, results.Data["addFloat"]);
+        }
+        [Fact]
+        public void TestDoubleArgInputType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<DoubleInput>("DoubleInput", "DoubleInput").AddAllFields();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          addDouble(double: 1.3)
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(1.3d, results.Data["addDouble"]);
+        }
+        [Fact]
+        public void TestDecimalArgInputType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<DecimalInput>("DecimalInput", "DecimalInput").AddAllFields();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          addDecimal(decimal: 1.3)
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(1.3m, results.Data["addDecimal"]);
+        }
     }
 }
