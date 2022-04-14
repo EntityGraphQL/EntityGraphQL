@@ -95,7 +95,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
             var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, field.ArgumentParam!, field.ArgumentParam!, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize);
             edgesField.AddExtension(edgesExtension);
-            field.ForwardArgumentsTo(edgesField);
+            edgesField.UseArgumentsFrom(field);
 
             // Rebuild expression so all the fields and types are known
             // and get it ready for completion at runtime (we need to know the selection fields to complete)

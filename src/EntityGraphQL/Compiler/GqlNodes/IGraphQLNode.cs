@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -12,5 +13,7 @@ namespace EntityGraphQL.Compiler
 
         List<BaseGraphQLField> QueryFields { get; }
         void AddField(BaseGraphQLField field);
+        IField? Field { get; }
+        Dictionary<string, object> Arguments { get; }
     }
 }

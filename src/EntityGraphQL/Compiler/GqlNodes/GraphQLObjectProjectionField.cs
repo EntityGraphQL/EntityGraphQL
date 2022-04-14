@@ -34,10 +34,9 @@ namespace EntityGraphQL.Compiler
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
         public GraphQLObjectProjectionField(ISchemaProvider schema, IField field, List<IFieldExtension> extensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
-            : base(schema, name, nextFieldContext, rootParameter, parentNode, arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = extensions;
-            this.field = field;
             this.AddServices(field.Services);
         }
 
@@ -47,7 +46,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             var nextFieldContext = NextFieldContext;
 
@@ -59,7 +58,7 @@ namespace EntityGraphQL.Compiler
                 else
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
-            var nextFieldContextExp = field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, arguments, docParam, docVariables, directives, contextChanged);
+            var nextFieldContextExp = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
             if (nextFieldContextExp == null)
                 return null;
             nextFieldContext = nextFieldContextExp.Expression;
@@ -169,7 +168,7 @@ namespace EntityGraphQL.Compiler
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(schema, field, null, i.Key, i.Value, result.RootParameter, result.ParentNode, arguments)
+                        .Select(i => new GraphQLScalarField(schema, Field, null, i.Key, i.Value, result.RootParameter, result.ParentNode, Arguments)
                         {
                             // do not push services into the fields extracted from a service field
                             Services = new List<Type>()

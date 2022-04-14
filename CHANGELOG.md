@@ -1,4 +1,4 @@
-# 2.0.0-beta5
+# 2.0.0-beta6
 
 Breaking changes
 

@@ -43,12 +43,17 @@ namespace EntityGraphQL.Compiler
             Operations = new List<ExecutableGraphQLStatement>();
             Fragments = new List<GraphQLFragmentStatement>();
             this.fieldNamer = fieldNamer;
+            Arguments = new Dictionary<string, object>();
         }
 
         public string Name
         {
             get => "Query Request Root";
         }
+
+        public IField? Field { get; }
+
+        public Dictionary<string, object> Arguments { get; }
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {

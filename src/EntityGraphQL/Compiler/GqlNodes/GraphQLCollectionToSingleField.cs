@@ -37,7 +37,7 @@ namespace EntityGraphQL.Compiler
         private readonly Expression combineExpression;
 
         public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
-            : base(schema, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
+            : base(schema, null, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
             collectionSelectionNode = collectionNode;
             this.objectProjectionNode = objectProjectionNode;
@@ -52,18 +52,18 @@ namespace EntityGraphQL.Compiler
             return Services?.Any() == true || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             Expression? exp;
             // this is a first pass || just a single pass
             if (withoutServiceFields || !HasAnyServices(fragments) && isRoot)
             {
-                exp = GetCollectionToSingleExpression(serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, parentArguments, docParam, docVariables);
+                exp = GetCollectionToSingleExpression(serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables);
             }
             else
             {
                 // second / last pass
-                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
+                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
             }
             if (exp == null)
                 return null;
@@ -75,10 +75,10 @@ namespace EntityGraphQL.Compiler
             return exp;
         }
 
-        private Expression? GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables)
+        private Expression? GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged, ParameterExpression? docParam, object? docVariables)
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(collectionSelectionNode, combineExpression);
-            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
+            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
             if (result == null)
                 return null;
 

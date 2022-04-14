@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -32,7 +33,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Arguments from inline in the query
         /// </summary>
-        protected readonly Dictionary<string, object> arguments;
+        public Dictionary<string, object> Arguments { get; }
 
         protected readonly List<GraphQLDirective> directives = new();
 
@@ -41,17 +42,18 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <value></value>
         public string Name { get; protected set; }
-        protected IField? field;
+        public IField? Field { get; }
 
-        public BaseGraphQLField(ISchemaProvider schema, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
+        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
-            this.arguments = arguments ?? new Dictionary<string, object>();
+            this.Arguments = arguments ?? new Dictionary<string, object>();
             fieldExtensions = new List<IFieldExtension>();
             this.schema = schema;
+            Field = field;
         }
 
         /// <summary>
@@ -79,13 +81,12 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="serviceProvider">Service provider to resolve services </param>
         /// <param name="fragments">Fragments in the query document</param>
-        /// <param name="parentArguments">Inline arguments from the parent fields. May be needed when a Field Extension rebuilds the schema shape</param>
         /// <param name="withoutServiceFields">If true the expression builds without fields that require services</param>
         /// <param name="replacementNextFieldContext">A replacement context from a selection without service fields</param>
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
+        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables);
 
@@ -158,9 +159,29 @@ namespace EntityGraphQL.Compiler
             BaseGraphQLField? result = field;
             foreach (var directive in directives)
             {
-                result = directive.ProcessField(schema, field, arguments, docParam, docVariables);
+                result = directive.ProcessField(schema, field, Arguments, docParam, docVariables);
             }
             return result;
+        }
+        protected Dictionary<string, object> ResolveArguments(Dictionary<string, object> arguments)
+        {
+            if (Field == null)
+                return arguments;
+
+            if (Field.UseArgumentsFromField == null)
+                return arguments;
+
+            if (ParentNode == null)
+                return arguments;
+
+            var node = ParentNode;
+            while (node != null)
+            {
+                if (node.Field != null && node.Field == Field.UseArgumentsFromField)
+                    arguments = arguments.MergeNew(node.Arguments);
+                node = node.ParentNode;
+            }
+            return arguments;
         }
     }
 }

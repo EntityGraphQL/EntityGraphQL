@@ -35,6 +35,7 @@ namespace EntityGraphQL.Schema
         bool HasArgumentByName(string argName);
         bool ArgumentsAreInternal { get; }
         IEnumerable<Type> Services { get; }
+        IField? UseArgumentsFromField { get; }
 
         /// <summary>
         /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
@@ -51,6 +52,6 @@ namespace EntityGraphQL.Schema
         void AddExtension(IFieldExtension extension);
         void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
-        void ForwardArgumentsTo(Field edgesField);
+        void UseArgumentsFrom(IField edgesField);
     }
 }

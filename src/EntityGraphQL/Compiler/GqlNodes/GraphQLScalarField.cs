@@ -15,12 +15,11 @@ namespace EntityGraphQL.Compiler
         private List<GraphQLScalarField>? extractedFields;
 
         public GraphQLScalarField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
-            : base(schema, name, nextFieldContext, rootParameter, parentNode, arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
             replacer = new ParameterReplacer();
-            this.field = field;
             this.AddServices(field?.Services);
         }
 
@@ -41,7 +40,7 @@ namespace EntityGraphQL.Compiler
                 if (extractedFields != null)
                     return extractedFields;
             }
-            return new List<BaseGraphQLField> { this };
+            return new List<BaseGraphQLField> { result };
         }
 
         private IEnumerable<BaseGraphQLField>? ExtractFields()
@@ -50,7 +49,7 @@ namespace EntityGraphQL.Compiler
                 return extractedFields;
 
             var extractor = new ExpressionExtractor();
-            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, field, null, i.Key, i.Value, RootParameter, ParentNode, arguments)
+            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, Field, null, i.Key, i.Value, RootParameter, ParentNode, Arguments)
             {
                 // do not carry the services over
                 Services = new List<Type>()
@@ -58,12 +57,12 @@ namespace EntityGraphQL.Compiler
             return extractedFields;
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var result = field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, arguments, docParam, docVariables, directives, contextChanged);
+            var result = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
             if (result == null)
                 return null;
             AddConstantParameters(result.ConstantParameters);

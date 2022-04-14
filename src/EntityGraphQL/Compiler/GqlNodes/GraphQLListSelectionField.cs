@@ -32,12 +32,11 @@ namespace EntityGraphQL.Compiler
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
         public GraphQLListSelectionField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
-            : base(schema, name, nextFieldContext, rootParameter, context, arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             this.ListExpression = nodeExpression;
             constantParameters = new Dictionary<ParameterExpression, object>();
-            this.field = field;
             this.AddServices(field?.Services);
         }
 
@@ -47,7 +46,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             var listContext = ListExpression;
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
@@ -60,7 +59,7 @@ namespace EntityGraphQL.Compiler
                     listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext!.Name}2");
             }
-            var listContextExp = field?.GetExpression(listContext, null, ParentNode!, schemaContext, arguments, docParam, docVariables, directives, contextChanged) ?? (ExpressionResult)ListExpression;
+            var listContextExp = Field?.GetExpression(listContext, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged) ?? (ExpressionResult)ListExpression;
             if (listContextExp == null)
                 return null;
             listContext = listContextExp.Expression;
@@ -107,7 +106,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField(schema, (Field)field!, null, i.Key, replaced, RootParameter, this, arguments)
+                        return new CompiledField(new GraphQLScalarField(schema, (Field)Field!, null, i.Key, replaced, RootParameter, this, Arguments)
                         {
                             Services = new List<Type>()
                         }, replaced);
