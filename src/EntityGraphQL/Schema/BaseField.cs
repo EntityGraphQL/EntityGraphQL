@@ -11,6 +11,8 @@ namespace EntityGraphQL.Schema
 {
     public abstract class BaseField : IField
     {
+        private readonly List<Field> forwardArgumentsToList = new();
+
         public abstract FieldType FieldType { get; }
         public ParameterExpression? FieldParam { get; set; }
 
@@ -115,6 +117,17 @@ namespace EntityGraphQL.Schema
         {
             ReturnType = gqlTypeInfo;
             return this;
+        }
+
+        public void ForwardArgumentsTo(Field field)
+        {
+            // Move the arguments definition to the new field as it needs them for processing
+            // don't push field.FieldParam over 
+            field.ArgumentsType = ArgumentsType;
+            field.ArgumentParam = ArgumentParam;
+            field.Arguments = Arguments;
+            field.ArgumentsAreInternal = true;
+            forwardArgumentsToList.Add(field);
         }
     }
 }

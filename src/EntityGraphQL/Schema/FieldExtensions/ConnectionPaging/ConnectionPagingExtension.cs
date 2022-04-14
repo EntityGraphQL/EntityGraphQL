@@ -93,14 +93,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.Extensions = field.Extensions.Skip(extensionsBeforePaging.Count).ToList();
 
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, field.ArgumentParam!, field.ArgumentParam!, extensionsBeforePaging, field.FieldParam!);
+            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, field.ArgumentParam!, field.ArgumentParam!, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize);
             edgesField.AddExtension(edgesExtension);
-            // Move the arguments definition to the Edges field as it needs them for processing
-            // don't push field.FieldParam over as we rebuild the field from the parent context
-            edgesField.ArgumentsType = field.ArgumentsType;
-            edgesField.ArgumentParam = field.ArgumentParam;
-            edgesField.Arguments = field.Arguments;
-            edgesField.ArgumentsAreInternal = true;
+            field.ForwardArgumentsTo(edgesField);
 
             // Rebuild expression so all the fields and types are known
             // and get it ready for completion at runtime (we need to know the selection fields to complete)
@@ -147,32 +142,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
             if (servicesPass)
                 return expression;
-
-            if (arguments == null)
-                arguments = new { };
-
-            // check and set up arguments
-            if (arguments.Before != null && arguments.After != null)
-                throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
-            if (arguments.First != null && arguments.First < 0)
-                throw new ArgumentException($"first argument can not be less than 0.");
-            if (arguments.Last != null && arguments.Last < 0)
-                throw new ArgumentException($"last argument can not be less than 0.");
-
-            if (maxPageSize.HasValue)
-            {
-                if (arguments.First != null && arguments.First > maxPageSize.Value)
-                    throw new ArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
-                if (arguments.Last != null && arguments.Last > maxPageSize.Value)
-                    throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
-            }
-
-            if (arguments.First == null && arguments.Last == null && defaultPageSize != null)
-                arguments.First = defaultPageSize;
-
-            // deserialize cursors here once (not many times in the fields)
-            arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
-            arguments.BeforeNum = ConnectionHelper.DeserializeCursor(arguments.Before);
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
             var edgeExpression = edgesField!.Resolve;

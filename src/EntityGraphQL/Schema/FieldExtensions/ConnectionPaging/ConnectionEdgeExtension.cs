@@ -17,12 +17,14 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
     private readonly ParameterExpression argumentParam;
     private readonly ParameterExpression originalFieldParam;
+    private readonly int? defaultPageSize;
+    private readonly int? maxPageSize;
     private readonly Type listType;
     private readonly ParameterExpression firstSelectParam;
     private readonly bool isQueryable;
     private readonly List<IFieldExtension> extensions;
 
-    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argsExpression, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam)
+    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argsExpression, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
     {
         this.listType = listType;
         this.isQueryable = isQueryable;
@@ -31,6 +33,8 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
         this.argumentParam = argumentParam;
         this.originalFieldParam = fieldParam;
+        this.defaultPageSize = defaultPageSize;
+        this.maxPageSize = maxPageSize;
     }
 
     public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
@@ -45,6 +49,32 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
         if (servicesPass)
             return expression; // don't need to do paging as it is done already
+
+        if (arguments == null)
+            arguments = new { };
+
+        // check and set up arguments
+        if (arguments.Before != null && arguments.After != null)
+            throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
+        if (arguments.First != null && arguments.First < 0)
+            throw new ArgumentException($"first argument can not be less than 0.");
+        if (arguments.Last != null && arguments.Last < 0)
+            throw new ArgumentException($"last argument can not be less than 0.");
+
+        // deserialize cursors here once (not many times in the fields)
+        arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
+        arguments.BeforeNum = ConnectionHelper.DeserializeCursor(arguments.Before);
+
+        if (maxPageSize.HasValue)
+        {
+            if (arguments.First != null && arguments.First > maxPageSize.Value)
+                throw new ArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
+            if (arguments.Last != null && arguments.Last > maxPageSize.Value)
+                throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
+        }
+
+        if (arguments.First == null && arguments.Last == null && defaultPageSize != null)
+            arguments.First = defaultPageSize;
 
         var edgeExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
             Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },

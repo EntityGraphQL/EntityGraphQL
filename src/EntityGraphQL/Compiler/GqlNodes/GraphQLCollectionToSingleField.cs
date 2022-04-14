@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
             else
             {
                 // second / last pass
-                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, parentArguments.MergeNew(arguments), docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
+                exp = objectProjectionNode.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
             }
             if (exp == null)
                 return null;
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Compiler
         private Expression? GetCollectionToSingleExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged, Dictionary<string, object> parentArguments, ParameterExpression? docParam, object? docVariables)
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(collectionSelectionNode, combineExpression);
-            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, parentArguments.MergeNew(arguments), docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
+            var result = collectionSelectionNode.GetNodeExpression(serviceProvider, fragments, arguments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged);
             if (result == null)
                 return null;
 

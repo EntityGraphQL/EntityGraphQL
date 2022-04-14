@@ -51,5 +51,6 @@ namespace EntityGraphQL.Schema
         void AddExtension(IFieldExtension extension);
         void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
+        void ForwardArgumentsTo(Field edgesField);
     }
 }
