@@ -45,6 +45,7 @@ Fixes
 - Fix #72 - Handling dictionaries introspection - note it will try to create a scalar type `KeyValuePair<T1, T2>` in the schema by default
 - Fix handling argument types of unsigned short/int/long
 - Fix issue parsing float/double argument values
+- Fix null exception with mutations returning a selection with a list field
 
 # 1.2.1
 
