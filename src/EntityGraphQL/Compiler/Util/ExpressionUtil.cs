@@ -155,6 +155,12 @@ namespace EntityGraphQL.Compiler.Util
                     list.Add(ChangeType(item, eleType, schema));
                 return list;
             }
+            if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
+                argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
+                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value?.ToString()))
+            {
+                return Guid.Parse(value!.ToString());
+            }
             if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
             {
                 return Activator.CreateInstance(toType, value);
@@ -162,12 +168,6 @@ namespace EntityGraphQL.Compiler.Util
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
             {
                 return ConvertObjectType(schema, value, toType, fromType);
-            }
-            if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
-                argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
-                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value?.ToString()))
-            {
-                return Guid.Parse(value!.ToString());
             }
             if (argumentNonNullType != valueNonNullType)
             {

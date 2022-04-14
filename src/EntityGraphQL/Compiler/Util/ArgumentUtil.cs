@@ -36,24 +36,13 @@ public static class ArgumentUtil
                 else
                 {
                     val = BuildArgumentFromMember(schema, args, fieldName, argField.Name, argField.RawType, argField.DefaultValue);
-                    // if this was a EntityQueryType we actually get a Func from BuildArgumentFromMember but the anonymous type requires EntityQueryType<>. We marry them here, this allows users to EntityQueryType<> as a Func in LINQ methods while not having it defined until runtime
-                    if (argField.Type.TypeDotnet.IsConstructedGenericType && argField.Type.TypeDotnet.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-                    {
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add((PropertyInfo)argField.MemberInfo, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo).PropertyType, schema));
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo!, ExpressionUtil.ChangeType(val, ((FieldInfo)argField.MemberInfo!).FieldType, schema));
-                    }
+                    // this could be int to RequiredField<int>
+                    if (val != null && val.GetType() != argField.RawType)
+                        val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
+                    if (argField.MemberInfo is PropertyInfo info)
+                        propVals.Add(info, val);
                     else
-                    {
-                        // this could be int to RequiredField<int>
-                        if (val != null && val.GetType() != argField.RawType)
-                            val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, val);
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo!, val);
-                    }
+                        fieldVals.Add((FieldInfo)argField.MemberInfo!, val);
                 }
             }
             catch (Exception ex)

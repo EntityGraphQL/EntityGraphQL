@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            return ConvertArgIfRequired(argValue, argType, argName);
+            return ExpressionUtil.ChangeType(argValue, argType, schema);
         }
 
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
@@ -113,36 +113,6 @@ namespace EntityGraphQL.Compiler
                 if (fieldArg.Value.IsRequired && args?.ContainsKey(fieldArg.Key) == false && fieldArg.Value.DefaultValue == null)
                     throw new EntityGraphQLCompilerException($"'{actualField.Name}' missing required argument '{fieldArg.Key}'");
             }
-        }
-
-        public static object? ConvertArgIfRequired(object? argValue, Type argType, string argName)
-        {
-            // TODO can replace with changetype?
-            if (argValue == null)
-                return null;
-
-            argType = argType.GetNonNullableType();
-
-            if ((argType == typeof(Guid) || argType == typeof(Guid?) ||
-                argType == typeof(RequiredField<Guid>) || argType == typeof(RequiredField<Guid?>)) &&
-                argValue?.GetType() == typeof(string) && GuidRegex.IsMatch(argValue?.ToString()))
-            {
-                return Guid.Parse(argValue!.ToString());
-            }
-
-            if (argType.IsEnum)
-            {
-                var enumType = argType.GetNonNullableType();
-                var argStr = argValue!.ToString();
-                var valueIndex = Enum.GetNames(enumType).ToList().FindIndex(n => n == argStr);
-                if (valueIndex == -1)
-                    throw new EntityGraphQLCompilerException($"Value {argStr} is not valid for argument {argName}");
-
-                var enumValue = Enum.GetValues(enumType).GetValue(valueIndex);
-                return enumValue;
-            }
-
-            return argValue;
         }
 
         public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
