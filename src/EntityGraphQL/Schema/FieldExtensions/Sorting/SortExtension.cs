@@ -83,37 +83,37 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (servicesPass)
                 return expression;
 
-            if (arguments != null && arguments!.Sort != null)
+            if (arguments != null && arguments!.Sort != null && arguments!.Sort.Count > 0)
             {
-                var first = true;
-                foreach (var fieldInfo in ((Type)arguments!.Sort.GetType()).GetFields())
+                var sortMethod = "OrderBy";
+                foreach (var sort in arguments!.Sort)
                 {
-                    var direction = (SortDirectionEnum?)fieldInfo.GetValue(arguments.Sort);
-                    if (!direction.HasValue)
-                        continue;
-
-                    string method;
-                    if (first)
+                    // find the field that tells us the order field
+                    foreach (var fieldInfo in ((Type)sort.GetType()).GetFields())
                     {
-                        method = "OrderBy";
-                        first = false;
+                        var direction = (SortDirectionEnum?)fieldInfo.GetValue(sort);
+                        if (!direction.HasValue)
+                            continue;
+
+                        string method = sortMethod;
+
+                        if (direction.Value == SortDirectionEnum.DESC)
+                            method += "Descending";
+
+                        var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
+
+                        var listParam = Expression.Parameter(listType);
+                        Expression sortField = listParam;
+                        expression = Expression.Call(
+                            methodType,
+                            method,
+                            new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
+                            expression,
+                            Expression.Lambda(Expression.PropertyOrField(sortField, fieldInfo.Name), listParam)
+                        );
+                        break;
                     }
-                    else
-                        method = "ThenBy";
-                    if (direction.Value == SortDirectionEnum.DESC)
-                        method += "Descending";
-
-                    var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
-
-                    var listParam = Expression.Parameter(listType);
-                    Expression sortField = listParam;
-                    expression = Expression.Call(
-                        methodType,
-                        method,
-                        new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
-                        expression,
-                        Expression.Lambda(Expression.PropertyOrField(sortField, fieldInfo.Name), listParam)
-                    );
+                    sortMethod = "ThenBy";
                 }
             }
             else if (defaultSort != null)

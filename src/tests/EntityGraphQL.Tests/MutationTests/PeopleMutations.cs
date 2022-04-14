@@ -178,15 +178,18 @@ namespace EntityGraphQL.Tests
     public class FloatInput
     {
         public float Float { get; set; }
+        public float? Float2 { get; set; }
     }
     [MutationArguments]
     public class DoubleInput
     {
         public double Double { get; set; }
+        public double? Double2 { get; set; }
     }
     [MutationArguments]
     public class DecimalInput
     {
         public decimal Decimal { get; set; }
+        public decimal? Decimal2 { get; set; }
     }
 }

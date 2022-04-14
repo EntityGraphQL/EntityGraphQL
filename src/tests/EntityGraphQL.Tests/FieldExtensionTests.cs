@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(first: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(first: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         edges {
                             node {
                                 name id lastName
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(take: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(take: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         items {
                             name id lastName
                         }
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(take: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(take: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         items {
                             name id age lastName
                         }
@@ -153,7 +153,7 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(first: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(first: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         edges {
                             node {
                                 name id lastName age
@@ -202,7 +202,7 @@ namespace EntityGraphQL.Tests
                 Query = @"{
                     projects {
                         name
-                        tasks(filter: ""id < 4"" sort: { id: DESC }) {
+                        tasks(filter: ""id < 4"" sort: [{ id: DESC }]) {
                             edges {
                                 node {
                                     name id

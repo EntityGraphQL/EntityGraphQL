@@ -1,7 +1,7 @@
 ---
-title: "Sorting"
-metaTitle: "Add sorting to your collection fields - EntityGraphQL"
-metaDescription: "Add sorting to your collection fields"
+title: 'Sorting'
+metaTitle: 'Add sorting to your collection fields - EntityGraphQL'
+metaDescription: 'Add sorting to your collection fields'
 ---
 
 Being able to sort or order you collections as you query them can be very powerful, especially when paired with paging. To easily add sorting functionality to your collection fields use the `UseSort()` field extension.
@@ -27,7 +27,7 @@ public class DemoContext : DbContext
 }
 ```
 
-This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `sort: <field_name>SortInput`.for example `PeopleSortInput`. The `SortInput` type will have nullable fields for each scalar type in the collection element type. You set which fields you want to use for sorting. Following the above `people` field with the `Person` class defined as:
+This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `sort: [<field_name>SortInput]`. For example `PeopleSortInput`. The `SortInput` type will have nullable fields for each scalar type in the collection element type. You set which fields you want to use for sorting. Following the above `people` field with the `Person` class defined as:
 
 ```
 public class Person
@@ -67,11 +67,11 @@ To sort the collection you set the fields with a direction:
 
 ```
 {
-    people(sort: {lastName: DESC}) { lastName }
+    people(sort: [{lastName: DESC}]) { lastName }
 }
 
 {
-    people(sort: {dob: ASC}) { lastName }
+    people(sort: [{dob: ASC}]) { lastName }
 }
 ```
 
@@ -79,7 +79,7 @@ Multiple fields is supported and are taken as ordered
 
 ```
 {
-    people(sort: {dob: ASC, lastName: DESC, firstName: ASC}) { lastName }
+    people(sort: [{dob: ASC}, {lastName: DESC}, {firstName: ASC}]) { lastName }
 }
 ```
 
@@ -110,7 +110,6 @@ schema.ReplaceField("people",
 ```
 
 This will result in only 2 options for sorting.
-
 
 ```
 input PeopleSortInput

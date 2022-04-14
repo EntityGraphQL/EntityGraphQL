@@ -8,6 +8,7 @@ Breaking changes
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
 - Directive interface for building custom directives has changed
+- `UseSort` field extension now takes an array of `SortInput<T>` so order of sorts is used
 
 Clean up on the schema building APIs to make them more consistent, documented and concise
 

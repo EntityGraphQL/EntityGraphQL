@@ -107,8 +107,6 @@ namespace EntityGraphQL.Compiler
                 variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
                 foreach (var (name, argType) in opDefinedVariables)
                 {
-                    // if (!variables.ContainsKey(name) && value == null)
-                    //     throw new EntityGraphQLExecutionException($"Variable {name} is required but was not supplied");
                     try
                     {
                         var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, null);
