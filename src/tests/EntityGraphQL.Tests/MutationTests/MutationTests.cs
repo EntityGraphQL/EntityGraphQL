@@ -620,7 +620,7 @@ namespace EntityGraphQL.Tests
         public void TestComplexReturn()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddInputType<DecimalInput>("DecimalInput", "DecimalInput").AddAllFields();
             var gql = new QueryRequest
             {
