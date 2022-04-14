@@ -1,4 +1,4 @@
-# 2.0.0-beta3
+# 2.0.0-beta5
 
 Breaking changes
 
@@ -9,6 +9,7 @@ Other changes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix issue parsing float/double argument values
+- Fix null exception with mutations returning a selection with a list field
 
 # 1.2.1
 

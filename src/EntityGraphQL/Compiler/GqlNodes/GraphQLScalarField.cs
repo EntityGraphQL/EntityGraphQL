@@ -22,7 +22,7 @@ namespace EntityGraphQL.Compiler
             Name = name;
             replacer = new ParameterReplacer();
             this.field = field;
-            this.AddServices(field.Services);
+            this.AddServices(field?.Services);
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)

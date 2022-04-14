@@ -500,5 +500,24 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(1.3m, results.Data["addDecimal"]);
         }
+        [Fact]
+        public void TestComplexReturn()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationFrom(new PeopleMutations());
+            schemaProvider.AddInputType<DecimalInput>("DecimalInput", "DecimalInput").AddAllFields();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson {
+                    addPerson(name: ""Luke"") { id name projects { name } }
+                }",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            var person = (dynamic)results.Data["addPerson"];
+            Assert.NotNull(person);
+        }
     }
 }

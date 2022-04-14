@@ -15,7 +15,7 @@ namespace EntityGraphQL.Tests
 
         public Person AddPerson(PeopleMutationsArgs args)
         {
-            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555 };
+            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
         }
 
         [GraphQLMutation]
