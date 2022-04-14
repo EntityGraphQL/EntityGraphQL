@@ -67,6 +67,15 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
+        public Field AddField(Field field)
+        {
+            if (fieldsByName.ContainsKey(field.Name))
+                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+
+            fieldsByName.Add(field.Name, field);
+            return field;
+        }
+
         /// <summary>
         /// Add a field from a simple member expression type e.g. ctx => ctx.SomeMember. The member name will be converted with fieldNamer for the field name
         /// Throws an exception if the member is not a simple member expression
@@ -82,14 +91,6 @@ namespace EntityGraphQL.Schema
             return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description);
         }
 
-        public Field AddField(Field field)
-        {
-            if (fieldsByName.ContainsKey(field.Name))
-                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
-
-            fieldsByName.Add(field.Name, field);
-            return field;
-        }
         /// <summary>
         /// Add a field with an expression to resolve it.
         /// Throws an exception if the field already exists
@@ -130,6 +131,38 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
+        /// Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        /// Throws an exception if the field already exists
+        /// </summary>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public FieldToResolve<TBaseType> AddField(string name, string? description)
+        {
+            var field = new FieldToResolve<TBaseType>(schema, name, description, null);
+            AddField(field);
+            return field;
+        }
+
+        /// <summary>
+        /// Add a field with arguments. Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        ///     field(arg: val)
+        /// Throws an exception if the field already exists
+        /// </summary>
+        /// <typeparam name="TParams"></typeparam>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="argTypes">An object that represents the arguments available for the field including default values or required fields. Anonymous objects are supported</param>
+        /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public FieldToResolveWithArgs<TBaseType, TParams> AddField<TParams>(string name, TParams argTypes, string? description)
+        {
+            var field = new FieldToResolveWithArgs<TBaseType, TParams>(schema, name, description, argTypes);
+            AddField(field);
+            return field;
+        }
+
+        /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.
         /// </summary>
         /// <typeparam name="TReturn"></typeparam>
@@ -161,6 +194,34 @@ namespace EntityGraphQL.Schema
             var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
+            fieldsByName[field.Name] = field;
+            return field;
+        }
+
+        /// <summary>
+        /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.
+        /// </summary>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public FieldToResolve<TBaseType> ReplaceField(string name, string? description)
+        {
+            var field = new FieldToResolve<TBaseType>(schema, name, description, null);
+            fieldsByName[field.Name] = field;
+            return field;
+        }
+
+        /// <summary>
+        /// Replaces a field by name with this new field with arguments. If the field does not exist, it will be added.
+        /// </summary>
+        /// <typeparam name="TParams"></typeparam>
+        /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
+        /// <param name="argTypes">An object that represents the arguments available for the field including default values or required fields. Anonymous objects are supported</param>
+        /// <param name="description">Description of the field for schema documentation</param>
+        /// <returns>The field object to perform further configuration</returns>
+        public FieldToResolveWithArgs<TBaseType, TParams> ReplaceField<TParams>(string name, TParams argTypes, string? description)
+        {
+            var field = new FieldToResolveWithArgs<TBaseType, TParams>(schema, name, description, argTypes);
             fieldsByName[field.Name] = field;
             return field;
         }

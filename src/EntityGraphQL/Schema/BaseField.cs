@@ -39,7 +39,7 @@ namespace EntityGraphQL.Schema
         /// <value></value>
         public IEnumerable<Type> Services { get; set; } = new List<Type>();
 
-        public Expression? Resolve { get; protected set; }
+        public Expression? ResolveExpression { get; protected set; }
 
         public ISchemaProvider Schema { get; set; }
         public Type? ArgumentsType { get; set; }
@@ -81,7 +81,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public IField UpdateExpression(Expression expression)
         {
-            Resolve = expression;
+            ResolveExpression = expression;
             return this;
         }
 
@@ -107,8 +107,8 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            if (ArgumentParam != null && Resolve != null)
-                Resolve = parameterReplacer.Replace(Resolve, ArgumentParam, argParam);
+            if (ArgumentParam != null && ResolveExpression != null)
+                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentParam, argParam);
 
             ArgumentParam = argParam;
             ArgumentsType = newArgType;

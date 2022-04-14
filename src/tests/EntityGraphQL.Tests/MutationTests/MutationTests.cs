@@ -329,7 +329,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.UpdateType<Person>(type =>
             {
-                type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
+                type.AddField("age", "Person's age")
+                    .ResolveWithService<AgeService>((p, service) => service.GetAge(p.Birthday));
             });
             schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter
@@ -370,7 +371,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.UpdateType<Person>(type =>
             {
-                type.AddField("age", p => WithService((AgeService service) => service.GetAge(p.Birthday)), "Person's age");
+                type.AddField("age", "Person's age")
+                    .ResolveWithService<AgeService>((p, service) => service.GetAge(p.Birthday));
             });
             schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Add a argument field with a require parameter

@@ -100,10 +100,11 @@ namespace EntityGraphQL.Tests
                 .UseFilter()
                 .UseSort()
                 .UseOffsetPaging();
-            schema.Type<Person>().AddField("age",
-                // use a filed not another relation/entity
-                (person) => ArgumentHelper.WithService((AgeService ager) => ager.GetAge(person.Birthday)),
-                "Persons age");
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>(
+                    // use a filed not another relation/entity
+                    (person, ager) => ager.GetAge(person.Birthday)
+                );
             var gql = new QueryRequest
             {
                 Query = @"{
@@ -146,10 +147,11 @@ namespace EntityGraphQL.Tests
                 .UseFilter()
                 .UseSort()
                 .UseConnectionPaging();
-            schema.Type<Person>().AddField("age",
-                // use a filed not another relation/entity
-                (person) => ArgumentHelper.WithService((AgeService ager) => ager.GetAge(person.Birthday)),
-                "Persons age");
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>(
+                    // use a filed not another relation/entity
+                    (person, ager) => ager.GetAge(person.Birthday)
+                );
             var gql = new QueryRequest
             {
                 Query = @"{
@@ -196,7 +198,8 @@ namespace EntityGraphQL.Tests
                 .UseSort()
                 .UseConnectionPaging(defaultPageSize: 2);
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
-            schema.Type<Task>().AddField("config", t => ArgumentHelper.WithService((ConfigService srv) => srv.Get(t.Id)), "Task config");
+            schema.Type<Task>().AddField("config", "Task config")
+                .ResolveWithService<ConfigService>((t, srv) => srv.Get(t.Id));
             var gql = new QueryRequest
             {
                 Query = @"{

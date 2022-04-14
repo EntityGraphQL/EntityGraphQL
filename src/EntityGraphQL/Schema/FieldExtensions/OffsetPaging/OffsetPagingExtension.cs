@@ -35,10 +35,10 @@ public class OffsetPagingExtension : BaseFieldExtension
     /// <param name="field"></param>
     public override void Configure(ISchemaProvider schema, IField field)
     {
-        if (field.Resolve == null)
+        if (field.ResolveExpression == null)
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
 
-        if (!field.Resolve.Type.IsEnumerableOrArray())
+        if (!field.ResolveExpression.Type.IsEnumerableOrArray())
             throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         if (field.FieldType == FieldType.Mutation)
@@ -68,7 +68,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (defaultPageSize.HasValue)
             field.Arguments["take"].DefaultValue = defaultPageSize.Value;
 
-        isQueryable = typeof(IQueryable).IsAssignableFrom(field.Resolve.Type);
+        isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
 
         // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
         extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is OffsetPagingExtension)).ToList();
@@ -76,13 +76,13 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         // update the Items field before we update the field.Resolve below
         itemsField = (Field)returnSchemaType.GetField("items", null);
-        itemsField.UpdateExpression(field.Resolve);
+        itemsField.UpdateExpression(field.ResolveExpression);
         itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!));
         itemsField.UseArgumentsFrom(field);
 
         // set up the field's expresison so the types are all good 
         // rebuilt below if needed
-        var fieldExpression = BuildTotalCountExpression(field, returnType, field.Resolve);
+        var fieldExpression = BuildTotalCountExpression(field, returnType, field.ResolveExpression);
         field.UpdateExpression(fieldExpression);
     }
 
@@ -104,7 +104,7 @@ public class OffsetPagingExtension : BaseFieldExtension
             throw new ArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
         // other extensions expect to run on the collection not our new shape
-        Expression newItemsExp = itemsField!.Resolve!;
+        Expression newItemsExp = itemsField!.ResolveExpression!;
         // update the context
         foreach (var extension in extensions)
         {

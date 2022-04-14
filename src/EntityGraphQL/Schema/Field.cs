@@ -36,38 +36,32 @@ namespace EntityGraphQL.Schema
 
             if (resolve != null)
             {
-                if (resolve.Body.NodeType == ExpressionType.Call && ((MethodCallExpression)resolve.Body).Method.DeclaringType == typeof(ArgumentHelper) && ((MethodCallExpression)resolve.Body).Method.Name == "WithService")
-                {
-                    // they are wanting services injected
-                    var call = (MethodCallExpression)resolve.Body;
-                    var lambdaExpression = (LambdaExpression)((UnaryExpression)call.Arguments.First()).Operand;
-                    Resolve = lambdaExpression.Body;
-                    Services = lambdaExpression.Parameters.Select(p => p.Type).ToList();
-                }
-                else
-                {
-                    Resolve = resolve.Body;
-                }
-                FieldParam = resolve.Parameters.First();
-                ArgumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
+                ProcessResolveExpression(resolve);
+            }
+        }
 
-                if (resolve.Body.NodeType == ExpressionType.MemberAccess)
-                {
-                    var memberExp = (MemberExpression)resolve.Body;
-                    ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(memberExp.Member) || ReturnType.TypeNotNullable;
-                    ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
+        protected void ProcessResolveExpression(LambdaExpression resolve)
+        {
+            ResolveExpression = resolve.Body;
+            FieldParam = resolve.Parameters.First();
+            ArgumentParam = resolve.Parameters.Count == 1 ? null : resolve.Parameters.ElementAt(1);
 
-                    var obsoleteAttribute = memberExp.Member.GetCustomAttribute<ObsoleteAttribute>();
-                    if (obsoleteAttribute != null)
-                    {
-                        IsDeprecated = true;
-                        DeprecationReason = obsoleteAttribute.Message;
-                    }
+            if (resolve.Body.NodeType == ExpressionType.MemberAccess)
+            {
+                var memberExp = (MemberExpression)resolve.Body;
+                ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(memberExp.Member) || ReturnType.TypeNotNullable;
+                ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
+
+                var obsoleteAttribute = memberExp.Member.GetCustomAttribute<ObsoleteAttribute>();
+                if (obsoleteAttribute != null)
+                {
+                    IsDeprecated = true;
+                    DeprecationReason = obsoleteAttribute.Message;
                 }
             }
         }
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims)
+        public Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims)
             : this(schema, name, resolve, description, returnType, claims)
         {
             if (argTypes != null)
@@ -204,7 +198,6 @@ namespace EntityGraphQL.Schema
 
             return result;
         }
-
 
         private void PrepareExpressionResult(Dictionary<string, object> args, Field field, ExpressionResult result, ParameterReplacer parameterReplacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass)
         {

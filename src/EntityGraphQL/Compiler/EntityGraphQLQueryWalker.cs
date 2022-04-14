@@ -187,7 +187,7 @@ namespace EntityGraphQL.Compiler
                 BaseGraphQLField? fieldResult;
                 var resultName = alias ?? actualField.Name;
 
-                var nodeExpression = actualField.Resolve;
+                var nodeExpression = actualField.ResolveExpression;
 
                 if (node.SelectionSet != null)
                 {

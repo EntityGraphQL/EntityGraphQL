@@ -12,6 +12,15 @@ Breaking changes
 
 Clean up on the schema building APIs to make them more consistent, documented and concise
 
+- Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery. Example
+
+```
+schema.Type<Person>().AddField("age", "A persons age")
+  .ResolveWithService<AgeService>(
+      (person, ageService) => ageService.GetAge(person.Birthday)
+  );
+```
+
 - Clean up of `SchemaType` APIs to add/replace/remove fields.
 - Remove `SchemaProvider.Add/ReplaceField` methods.
   - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema

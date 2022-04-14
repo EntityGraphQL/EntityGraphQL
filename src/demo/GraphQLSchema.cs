@@ -40,7 +40,8 @@ namespace demo
                 // really poor example of using services e.g. you could just do below but pretend the service does something crazy like calls an API
                 // type.AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
                 // AgeService needs to be added to the ServiceProvider
-                type.AddField("age", person => ArgumentHelper.WithService((AgeService ageService) => ageService.Calc(person)), "Show the person's age");
+                type.AddField("age", "Show the person's age")
+                    .ResolveWithService<AgeService>((person, ageService) => ageService.Calc(person));
                 type.AddField("filteredDirectorOf", new
                 {
                     filter = ArgumentHelper.EntityQuery<Movie>()

@@ -40,7 +40,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // field.Resolve will be built with the original field context and needs to be updated
-        expression = servicesPass ? expression : parameterReplacer.Replace(field.Resolve!, originalFieldParam, parentNode!.RootParameter!);
+        expression = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, originalFieldParam, parentNode!.RootParameter!);
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in extensions)
         {

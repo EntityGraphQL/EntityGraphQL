@@ -104,7 +104,7 @@
                         continue;
 
                     // Skipping custom fields added to schema
-                    if (field.Resolve?.NodeType == System.Linq.Expressions.ExpressionType.Call)
+                    if (field.ResolveExpression?.NodeType == System.Linq.Expressions.ExpressionType.Call)
                         continue;
 
                     // Skipping ENUM type

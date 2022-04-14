@@ -27,10 +27,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public override void Configure(ISchemaProvider schema, IField field)
         {
-            if (field.Resolve == null)
+            if (field.ResolveExpression == null)
                 throw new EntityGraphQLCompilerException($"SortExtension requires a Resolve function set on the field");
 
-            if (!field.Resolve.Type.IsEnumerableOrArray())
+            if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use SortExtension. Found type {field.ReturnType.TypeDotnet}");
 
             if (!schema.HasType(typeof(SortDirectionEnum)))

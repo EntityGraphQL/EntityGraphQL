@@ -43,10 +43,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         public override void Configure(ISchemaProvider schema, IField field)
         {
-            if (field.Resolve == null)
+            if (field.ResolveExpression == null)
                 throw new EntityGraphQLCompilerException($"ConnectionPagingExtension requires a Resolve function set on the field");
 
-            if (!field.Resolve.Type.IsEnumerableOrArray())
+            if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
             // Make sure required types are in the schema
@@ -86,7 +86,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // move expression
             // This is the original expression that was defined in the schema - the collection
             // UseConnectionPaging() basically moves it to originalField.edges
-            edgesField.UpdateExpression(field.Resolve);
+            edgesField.UpdateExpression(field.ResolveExpression);
             // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
             extensionsBeforePaging = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
             // the remaining extensions expect to be built from the ConnectionPaging shape
@@ -132,7 +132,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Conneciton fields asked for
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.Resolve);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression);
             var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
             field.UpdateExpression(fieldExpression);
         }
@@ -144,7 +144,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 return expression;
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
-            var edgeExpression = edgesField!.Resolve;
+            var edgeExpression = edgesField!.ResolveExpression;
 
             if (edgesField.Extensions.Any())
             {
