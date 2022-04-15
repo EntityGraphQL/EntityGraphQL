@@ -5,7 +5,7 @@ using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 using System.Collections.Generic;
 
-namespace EntityGraphQL.Tests.ConnectionPaging
+namespace EntityGraphQL.Tests.OffsetPaging
 {
     public class OffsetPagingTests
     {
@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField(
+            schema.Query().ReplaceField(
                 "people",
                 new
                 {
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging(defaultPageSize: 3);
             var gql = new QueryRequest
             {
@@ -223,7 +223,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseOffsetPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
@@ -241,7 +241,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("Argument take can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field error: people - Argument take can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestAttribute()
@@ -280,7 +280,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillProjectData(data);
 
-            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of tasks with paging metadata")
+            schema.Type<Project>().ReplaceField("tasks", project => project.Tasks.OrderBy(p => p.Id), "Return list of tasks with paging metadata")
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {

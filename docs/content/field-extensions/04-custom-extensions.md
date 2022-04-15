@@ -37,7 +37,7 @@ public static class UseFormatExtension
 public class FormatStringExtension : IFieldExtension
 {
     // Configure the field. Do as much as we can here as it is only called once on registered.
-    public void Configure(ISchemaProvider schema, Field field)
+    public void Configure(ISchemaProvider schema, IField field)
     {
 
     }
@@ -45,7 +45,7 @@ public class FormatStringExtension : IFieldExtension
     // This is called on compilation of a query if the query references this field
     // Good opportunity to check arguments
     // Most often you can update the expression here and return your new one
-    public Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+    public Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (arguments.last == null && arguments.first == null)
             throw new ArgumentException($"Please provide at least the first or last argument");
@@ -63,7 +63,7 @@ public class FormatStringExtension : IFieldExtension
         return expression;
     }
 
-    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam, ParameterReplacer parameterReplacer)
+    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // Called for object projection and collection fields. Giving you an opportunity to modify
         // the selection expression or the selection base expression.

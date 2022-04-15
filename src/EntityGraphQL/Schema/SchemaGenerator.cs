@@ -16,7 +16,8 @@ namespace EntityGraphQL.Schema
         {
             var scalars = new StringBuilder();
 
-            var rootQueryType = schema.GetSchemaTypeForDotnetType(schema.ContextType);
+            var rootQueryType = schema.GetSchemaType(schema.QueryContextType, null);
+            var mutationType = schema.GetSchemaType(schema.MutationType, null);
 
             foreach (var item in schema.GetScalarTypes().Distinct())
             {
@@ -25,14 +26,13 @@ namespace EntityGraphQL.Schema
 
             var enums = BuildEnumTypes(schema);
             var types = BuildSchemaTypes(schema);
-            var mutations = BuildMutations(schema);
-            var hasMutations = mutations.Any();
+            var hasMutations = mutationType.GetFields().Any();
 
             var queryTypes = MakeQueryType(schema);
 
             var schemaStr = $@"schema {{
     query: {rootQueryType.Name}
-    {(hasMutations ? "mutation: Mutation" : "")}
+    {(hasMutations ? "mutation: " + mutationType.Name : "")}
 }}
 
 {scalars}
@@ -43,27 +43,7 @@ type {rootQueryType.Name} {{
 }}
 {types}
 ";
-            if (hasMutations)
-            {
-                schemaStr += $@"type Mutation {{
-{mutations}
-}}";
-            }
             return schemaStr;
-        }
-
-        private static string BuildMutations(ISchemaProvider schema)
-        {
-            var mutations = new StringBuilder();
-            foreach (var item in schema.GetMutations())
-            {
-                if (!string.IsNullOrEmpty(item.Description))
-                    mutations.AppendLine($"\t\"\"\"{EscapeString(item.Description)}\"\"\"");
-
-                mutations.AppendLine($"\t{schema.SchemaFieldNamer(item.Name)}{GetGqlArgs(schema, item, "")}: {item.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(item)}");
-            }
-
-            return mutations.ToString();
         }
 
         private static string BuildEnumTypes(ISchemaProvider schema)
@@ -135,7 +115,7 @@ type {rootQueryType.Name} {{
 
         private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
         {
-            if (field.Arguments == null || !field.Arguments.Any())
+            if (field.Arguments == null || !field.Arguments.Any() || field.ArgumentsAreInternal)
                 return noArgs;
 
             var all = field.Arguments.Select(f => schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
@@ -148,7 +128,7 @@ type {rootQueryType.Name} {{
         {
             var sb = new StringBuilder();
 
-            foreach (var t in schema.GetQueryFields().OrderBy(s => s.Name))
+            foreach (var t in schema.Type(schema.QueryContextName).GetFields().OrderBy(s => s.Name))
             {
                 if (t.Name.StartsWith("__"))
                     continue;

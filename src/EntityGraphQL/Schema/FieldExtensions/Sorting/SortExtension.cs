@@ -25,12 +25,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
             this.direction = direction;
         }
 
-        public override void Configure(ISchemaProvider schema, Field field)
+        public override void Configure(ISchemaProvider schema, IField field)
         {
-            if (field.Resolve == null)
+            if (field.ResolveExpression == null)
                 throw new EntityGraphQLCompilerException($"SortExtension requires a Resolve function set on the field");
 
-            if (!field.Resolve.Type.IsEnumerableOrArray())
+            if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use SortExtension. Found type {field.ReturnType.TypeDotnet}");
 
             if (!schema.HasType(typeof(SortDirectionEnum)))
@@ -77,38 +77,43 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return type.IsEnumerableOrArray() || (type.IsClass && type != typeof(string));
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic arguments, Expression context, ParameterReplacer parameterReplacer)
+        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
-            if (arguments != null && arguments!.Sort != null)
+            // things are sorted already and the field shape has changed
+            if (servicesPass)
+                return expression;
+
+            if (arguments != null && arguments!.Sort != null && arguments!.Sort.Count > 0)
             {
-                var first = true;
-                foreach (var fieldInfo in ((Type)arguments!.Sort.GetType()).GetFields())
+                var sortMethod = "OrderBy";
+                foreach (var sort in arguments!.Sort)
                 {
-                    var direction = (SortDirectionEnum?)fieldInfo.GetValue(arguments.Sort);
-                    if (!direction.HasValue)
-                        continue;
-
-                    string method;
-                    if (first)
+                    // find the field that tells us the order field
+                    foreach (var fieldInfo in ((Type)sort.GetType()).GetFields())
                     {
-                        method = "OrderBy";
-                        first = false;
+                        var direction = (SortDirectionEnum?)fieldInfo.GetValue(sort);
+                        if (!direction.HasValue)
+                            continue;
+
+                        string method = sortMethod;
+
+                        if (direction.Value == SortDirectionEnum.DESC)
+                            method += "Descending";
+
+                        var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
+
+                        var listParam = Expression.Parameter(listType);
+                        Expression sortField = listParam;
+                        expression = Expression.Call(
+                            methodType,
+                            method,
+                            new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
+                            expression,
+                            Expression.Lambda(Expression.PropertyOrField(sortField, fieldInfo.Name), listParam)
+                        );
+                        break;
                     }
-                    else
-                        method = "ThenBy";
-                    if (direction.Value == SortDirectionEnum.DESC)
-                        method += "Descending";
-
-                    var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
-
-                    var listParam = Expression.Parameter(listType);
-                    expression = Expression.Call(
-                        methodType,
-                        method,
-                        new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
-                        expression,
-                        Expression.Lambda(Expression.PropertyOrField(listParam, fieldInfo.Name), listParam)
-                    );
+                    sortMethod = "ThenBy";
                 }
             }
             else if (defaultSort != null)

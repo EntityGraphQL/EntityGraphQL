@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -12,13 +13,13 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nodeExpression, rootParameter, parentNode)
+        public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> variables)
+            : base(schema, name, nodeExpression, rootParameter, parentNode, variables)
         {
             Name = name;
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
             foreach (GraphQLMutationField node in QueryFields)
@@ -26,8 +27,18 @@ namespace EntityGraphQL.Compiler
                 result[node.Name] = null;
                 try
                 {
-                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options);
-
+                    Stopwatch? timer = null;
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer = new Stopwatch();
+                        timer.Start();
+                    }
+                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, variables);
+                    if (options.IncludeDebugInfo == true)
+                    {
+                        timer?.Stop();
+                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                    }
                     result[node.Name] = data;
                 }
                 catch (Exception ex)
@@ -45,12 +56,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             if (context == null)
                 return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer);
+            object? docVariables = BuildDocumentVariables(ref variables);
+            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
@@ -82,12 +94,12 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(null, Name, node.ResultSelection.RootParameter!, node.ResultSelection.RootParameter, item1, node);
+                        var collectionNode = new GraphQLListSelectionField(schema, null, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
                         foreach (var queryField in node.ResultSelection.QueryFields)
                         {
                             collectionNode.AddField(queryField);
                         }
-                        var newNode = new GraphQLCollectionToSingleField(collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2!);
+                        var newNode = new GraphQLCollectionToSingleField(schema, collectionNode, (GraphQLObjectProjectionField)resultExp, listExp.Item2!);
                         resultExp = newNode;
                     }
                     else
@@ -106,7 +118,7 @@ namespace EntityGraphQL.Compiler
                 }
                 resultExp.RootParameter = mutationContextParam;
 
-                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options);
+                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options, docVariables);
                 return result;
             }
             // we now know the context as it is dynamically returned in a mutation
@@ -118,7 +130,7 @@ namespace EntityGraphQL.Compiler
             }
 
             // run the query select against the object they have returned directly from the mutation
-            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, options);
+            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, options, docVariables);
             return result;
         }
 

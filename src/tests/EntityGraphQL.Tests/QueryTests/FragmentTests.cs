@@ -24,7 +24,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
@@ -49,7 +49,7 @@ fragment info on Person {
 ");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
@@ -61,10 +61,10 @@ fragment info on Person {
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.AddField("activeProjects",
+            schema.Query().AddField("activeProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Active projects").IsNullable(false);
-            schema.AddField("oldProjects",
+            schema.Query().AddField("oldProjects",
                 ctx => ctx.Projects, // pretent you id some filtering here
                 "Old projects").IsNullable(false);
 
@@ -136,6 +136,57 @@ fragment frag on Project {
 
             var res = schema.ExecuteRequest(gql, context, null, null);
             Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestIntrospectionDoubleFragment()
+        {
+            var schema = new SchemaProvider<TestDataContext>();
+            schema.AddType<Person>("Person", "Person details", type =>
+            {
+                type.AddField("id", p => p.Id, "ID");
+            });
+
+            var gql = new QueryRequest
+            {
+                Query = @"query IntrospectionQuery {
+                    __type(name: ""Person"") {
+                        ...FullType
+                    }
+                }
+
+                fragment FullType on __Type {
+                    name
+                    fields(includeDeprecated: true) {
+                        name
+                        type {
+                            ...TypeRef
+                        }
+                    }
+                }
+
+                fragment TypeRef on __Type {
+                    kind
+                    name
+                    ofType {
+                        kind
+                        name
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+
+            var res = schema.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+            dynamic typeData = res.Data["__type"];
+            Assert.Equal("Person", typeData.name);
+            Assert.Single(typeData.fields);
+            var field = typeData.fields[0];
+            Assert.Equal("id", field.name);
+            Assert.Equal("NON_NULL", field.type.kind);
+            Assert.Equal("Int", field.type.ofType.name);
+            Assert.Equal("SCALAR", field.type.ofType.kind);
         }
     }
 }

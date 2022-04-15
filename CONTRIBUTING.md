@@ -2,19 +2,44 @@ Yes please :)
 
 Check out any open issues, or dive in and add some functionality. Below I'll try to outline a few interesting parts of the code base.
 
-# GraphQLCompiler
+# Schema Building
+
+`SchemaProvider` holds the mapping from the GraphQL schema to the dotnet types. It is the interface users use to build out thier schema. Users will add different types and fields to those types.
+
+GraphQL has 3 top level special types, the `Query`, `Mutation` & `Subscription`. We do not use `Subscription` yet.
+
+The `TContextType` in the `SchemaProvider` is the core context that the `Query` type is built from.
+
+Each type has a list of `Field`s. The `Mutation` type is implemented differently as we execute it differently but the core idea is it is still a type with a list of fields.
+
+## Key classes
+
+- `SchemaProvider`
+- `Field` & `MutationField`
+- `SchemaType` & `MutationType`
+
+# Compiling a QueryRequest
+
+## GraphQLCompiler
+
 `GraphQLCompiler` - runs everything. First it compiles the GraphQL document into an AST and then it uses the `EntityGraphQLQueryWalker` to walk that tree and build the resulting expression.
 
-# EntityGraphQLQueryWalker
+## EntityGraphQLQueryWalker
+
 In `EntityGraphQLQueryWalker` we visit all the GraphQL tokens defined in the grammer and process them. Basically we turn them into .Net expressions.
 
 Example, GQL
+
 ```gql
 query {
-    movies {
-        id name
-    }
-    actors { name age }
+  movies {
+    id
+    name
+  }
+  actors {
+    name
+    age
+  }
 }
 ```
 
@@ -24,16 +49,20 @@ An `ExecutableGraphQLStatement` is an abstract class and will be either a query 
 
 Each will have `QueryFields` which is a list of `BaseGraphQLField`. The follow inherit from `BaseGraphQLField`.
 
-# GraphQLFragmentField
+## GraphQLFragmentField
+
 `GraphQLFragmentField` represents a fragment selection. The fragment is defined in the `GraphQLDocument`.
 
-# GraphQLScalarField
+## GraphQLScalarField
+
 `GraphQLScalarField` represents a value. i.e. the field can not be queried further. E.g. a number, a string or a scalar type defined in the schema.
 
-# BaseGraphQLQueryField
+## BaseGraphQLQueryField
+
 `BaseGraphQLQueryField` is the base class for fields that we can queried.
 
 ## GraphQLMutationField
+
 `GraphQLMutationField` is a mutation field/call (within the mutation statement). e.g.
 
 ```gql
@@ -45,19 +74,25 @@ mutation MyMutation {
 It holds the selection of the result (`{ name }` above) and wraps up the execution the mutation and the final result seleciton against the mutation result.
 
 ## GraphQLObjectProjectionField
+
 `GraphQLObjectProjectionField` handles the building of expressions on fields that return objects (vs. lists). For example if your field returns a single `User` type and you have a GQL selection on it (`user { id name }`), this class builds the .NET expressions. It handles null checking and other cases.
 
 ## GraphQLListSelectionField
+
 `GraphQLListSelectionField` handles the building of expressions on fields that return lists/arrays. For example if your field returns a list of `User` types and you have a GQL selection on it (`users { id name }`), this class builds the .NET expressions.
 
 ## GraphQLCollectionToSingleField
+
 `GraphQLCollectionToSingleField` handles a case where a field may be built from a root list.
 
 For example:
 
 ```gql
 query {
-    movie(id: 1) { id name }
+  movie(id: 1) {
+    id
+    name
+  }
 }
 ```
 

@@ -8,22 +8,21 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationField : BaseGraphQLQueryField
     {
-        private readonly MutationType mutationType;
-        private readonly Dictionary<string, Expression>? args;
+        public MutationField MutationField { get; set; }
+
         public BaseGraphQLQueryField? ResultSelection { get; set; }
 
-        public GraphQLMutationField(string name, MutationType mutationType, Dictionary<string, Expression>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        public GraphQLMutationField(ISchemaProvider schema, string name, MutationField mutationField, Dictionary<string, object>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+            : base(schema, mutationField, name, nextFieldContext, rootParameter, parentNode, args)
         {
-            this.mutationType = mutationType;
-            this.args = args;
+            this.MutationField = mutationField;
         }
 
-        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer)
+        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, Func<string, string> fieldNamer, ParameterExpression? variableParameter, object? variablesToUse)
         {
             try
             {
-                return await mutationType.CallAsync(context, args, validator, serviceProvider, fieldNamer);
+                return await MutationField.CallAsync(context, Arguments, validator, serviceProvider, variableParameter, variablesToUse, fieldNamer);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -31,13 +30,12 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             if (ResultSelection == null)
-            {
-                throw new EntityGraphQLCompilerException($"Mutation {Name} has no result selection");
-            }
-            return ResultSelection.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, replacementNextFieldContext);
+                throw new EntityGraphQLCompilerException($"Mutation {Name} should have a result selection");
+
+            return ResultSelection.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext);
         }
     }
 }

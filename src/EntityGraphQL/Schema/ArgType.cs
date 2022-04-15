@@ -16,11 +16,11 @@ namespace EntityGraphQL.Schema
         public string Description { get; set; }
         public GqlTypeInfo Type { get; private set; }
         public object? DefaultValue { get; set; }
-        public MemberInfo MemberInfo { get; internal set; }
+        public MemberInfo? MemberInfo { get; internal set; }
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
-        public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo memberInfo, Type rawType)
+        public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo? memberInfo, Type rawType)
         {
             Name = name;
             DotnetName = dotnetName;
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
-            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.Type(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType()), typeToUse), memberInfo, type)
+            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse), memberInfo, type)
             {
                 DefaultValue = defaultValue,
                 IsRequired = markedRequired

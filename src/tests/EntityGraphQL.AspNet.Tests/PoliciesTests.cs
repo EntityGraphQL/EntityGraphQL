@@ -107,8 +107,8 @@ namespace EntityGraphQL.Tests
             var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
             schema.AddType<Task>("Task", "All about tasks")
-            .AddField(p => p.IsActive, "Is it active")
-            .RequiresAllPolicies("admin", "can-type");
+                .AddField(p => p.IsActive, "Is it active")
+                .RequiresAllPolicies("admin", "can-type");
 
             Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.Count());
             Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));

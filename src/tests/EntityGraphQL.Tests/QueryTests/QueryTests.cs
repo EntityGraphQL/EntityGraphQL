@@ -21,7 +21,7 @@ namespace EntityGraphQL.Tests
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().QueryFields);
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests
 }");
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().QueryFields);
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Single(result.Data);
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(tree.Operations);
             Assert.Equal(2, tree.Operations.First().QueryFields.Count);
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Tests
 	people { id name user { field1 } }
 }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Tests
         	}
         }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -151,7 +151,7 @@ namespace EntityGraphQL.Tests
         	people { id name projects { name } }
         }");
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -179,7 +179,7 @@ namespace EntityGraphQL.Tests
         		}
         	}
         }");
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
             var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
@@ -241,7 +241,7 @@ namespace EntityGraphQL.Tests
         }");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal("Project 3", ((dynamic)result.Data["projects"])[0].n);
         }
 
@@ -258,7 +258,7 @@ namespace EntityGraphQL.Tests
         }");
 
             Assert.Single(tree.Operations.First().QueryFields);
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null);
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data["people"]).projects).n);
         }
         [Fact]
@@ -295,7 +295,7 @@ query {
             {
                 context.People.Add(new Person());
             }
-            var qr = gql.ExecuteQuery(context, null);
+            var qr = gql.ExecuteQuery(context, null, null);
             dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
             // we only have the fields requested
             Assert.Equal(15, totalPeople);

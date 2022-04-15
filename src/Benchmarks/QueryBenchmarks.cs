@@ -69,7 +69,7 @@ namespace Benchmarks
         [GlobalSetup(Target = nameof(Query_ListWithTakeArg))]
         public void ModifyField()
         {
-            Schema.ReplaceField(
+            Schema.Query().ReplaceField(
                 "movies",
                 new
                 {

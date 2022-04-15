@@ -6,19 +6,16 @@ metaDescription: 'Combining multiple data sources in your GraphQL schema'
 
 EntityGraphQL lets you add fields that resolve data from other sources other than the core context you created your schema with. This is powerful as it let's you create a single API that brings together multiple data sources into an object graph.
 
-# `WithService<T>()` Fields
+# `ResolveWithService<TService>()` Fields
 
-To use other services in a field we use the `WithService()` method. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve services references in `WithService()`.
+To use other services in a field we use the ``ResolveWithService<TService>()` method on the field. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve the services.
 
 Let's use a service in our `Person` type example.
 
 ```
 schema.UpdateType<Person>(personType => {
-    personType.AddField(
-        "age",
-        person => WithService((IAgeService srv) => srv.GetAge(person.Dob)),
-        "Person's age"
-    );
+    personType.AddField("age", "Person's age")
+        .ResolveWithService<IAgeService>((person, srv) => srv.GetAge(person.Dob));
 });
 
 // Startup.cs
@@ -36,25 +33,16 @@ public class AgeService
 
 Now when someone requests the `age` field on a person the result will be resolved by executing the service `srv.GetAge(person.Dob)`. Of course you could calculate the age directly in the field's resolve expression without a service but this demonstrates how to use other services.
 
-_Note as `WithService` has a typed return `WithService<TService, TReturn>` you can let the compiler figure out the return type by typing the arguments in the `Func<>`. e.g._
-
-```
-WithService((IMyService mySer) => mySer.ReturnsInt())
-// vs
-WithService<IMyService, int>(mySer => mySer.ReturnsInt())
-```
-
 # Services With Non-Scalar Types
 
 A service can return any type. If it is a complex type you will need to add it to the schema.
 
 ```
-schema.AddField(
-    "users",
-    // ctx is the core context we created the schema with. For this field we don't use it
-    ctx => WithService((IUserService srv) => srv.GetUsers()),
-    "Get list of users"
-);
+schema.AddField("users", "Get list of users")
+    .ResolveWithService<IUserService>(
+        // ctx is the core context we created the schema with. For this field we don't use it
+        (ctx, srv) => srv.GetUsers(),
+    );
 
 schema.AddType<User>("User", "User information")
     .AddAllFields();
@@ -75,15 +63,14 @@ public class User
 
 With the User example above you might want to add fields to the `User` type that brings in data back from the core context. This let's you create a rich deep object graph for querying.
 
-When joining non-core context types back to the core context you need to use `WithService()` again.
+When joining non-core context types back to the core context you need to use `ResolveWithService()` again.
 
 ```
 schema.UpdateType<User>(userType => {
-    userType.AddField(
-        "tasks",
-        user => WithService((DemoContext db) => db.Projects.Where(project => project.AssignedToId == user.Id)),
-        "List of projects assigned to the user"
-    );
+    userType.AddField("tasks", "List of projects assigned to the user")
+        .ResolveWithService<DemoContext>(
+            (user, db) => db.Projects.Where(project => project.AssignedToId == user.Id)
+        );
 });
 ```
 
@@ -103,7 +90,7 @@ query {
 
 # Complex Service Types
 
-If the type you want to define in the schema has data resolved from multiple different methods inn your service you can create a service type class.
+If the type you want to define in the schema has data resolved from multiple different methods in your service you can create a service type class.
 
 Let's say we want a root-level `metrics` field where each sub-field uses a service to load the value. If someone only queries 1 of the fields you don't want all of them to resolve. To achieve this we can do the following.
 
@@ -131,10 +118,10 @@ var metricsType = adminSchema.AddType<Metrics>("Metrics", "Contains summary metr
     .AddAllFields();
 
 // add the root-level field
-adminSchema.AddField("metrics",
-    db => WithService((IMetricService m) => new Metrics(m)),
-    "Return summary metrics",
-    metricsType.Name);
+adminSchema.AddField("metrics", "Return summary metrics")
+    .ResolveWithService<IMetricService>(
+        (db, m) => new Metrics(m)
+    );
 }
 ```
 

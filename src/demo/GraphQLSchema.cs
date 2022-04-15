@@ -12,7 +12,7 @@ namespace demo
         public static void ConfigureSchema(SchemaProvider<DemoContext> demoSchema)
         {
             // Add custom root fields
-            demoSchema.UpdateQueryType(queryType =>
+            demoSchema.UpdateQuery(queryType =>
             {
                 demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
@@ -40,7 +40,8 @@ namespace demo
                 // really poor example of using services e.g. you could just do below but pretend the service does something crazy like calls an API
                 // type.AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
                 // AgeService needs to be added to the ServiceProvider
-                type.AddField("age", person => ArgumentHelper.WithService((AgeService ageService) => ageService.Calc(person)), "Show the person's age");
+                type.AddField("age", "Show the person's age")
+                    .ResolveWithService<AgeService>((person, ageService) => ageService.Calc(person));
                 type.AddField("filteredDirectorOf", new
                 {
                     filter = ArgumentHelper.EntityQuery<Movie>()
@@ -60,8 +61,8 @@ namespace demo
 
             // add some mutations (always last, or after the types they require have been added)
             demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
-            demoSchema.AddMutationFrom(new DemoMutations());
-            File.WriteAllText("schema.graphql", demoSchema.GetGraphQLSchema());
+            demoSchema.AddMutationsFrom(new DemoMutations());
+            File.WriteAllText("schema.graphql", demoSchema.ToGraphQLSchemaString());
         }
     }
 }

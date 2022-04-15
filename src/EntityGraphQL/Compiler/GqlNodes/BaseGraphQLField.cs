@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -22,23 +24,36 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode
     {
-        protected List<IFieldExtension> fieldExtensions = new();
+        protected List<IFieldExtension> fieldExtensions;
+        protected readonly ISchemaProvider schema;
+
         public Expression? NextFieldContext { get; set; }
         public IGraphQLNode? ParentNode { get; set; }
         public ParameterExpression? RootParameter { get; set; }
+        /// <summary>
+        /// Arguments from inline in the query
+        /// </summary>
+        public Dictionary<string, object> Arguments { get; }
+
+        protected readonly List<GraphQLDirective> directives = new();
 
         /// <summary>
         /// Name of the field
         /// </summary>
         /// <value></value>
         public string Name { get; protected set; }
+        public IField? Field { get; }
 
-        public BaseGraphQLField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
+        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
+            this.Arguments = arguments ?? new Dictionary<string, object>();
+            fieldExtensions = new List<IFieldExtension>();
+            this.schema = schema;
+            Field = field;
         }
 
         /// <summary>
@@ -48,7 +63,7 @@ namespace EntityGraphQL.Compiler
         protected Dictionary<ParameterExpression, object> constantParameters = new();
         public List<BaseGraphQLField> QueryFields { get; } = new();
         internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
-        public List<Type> Services { get; } = new List<Type>();
+        public List<Type> Services { get; set; } = new List<Type>();
         /// <summary>
         /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
@@ -71,11 +86,11 @@ namespace EntityGraphQL.Compiler
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
+        public abstract Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields);
+        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables);
 
-        public void AddServices(IEnumerable<Type> services)
+        public void AddServices(IEnumerable<Type>? services)
         {
             if (services == null)
                 return;
@@ -86,10 +101,7 @@ namespace EntityGraphQL.Compiler
         {
             QueryFields.Add(field);
             AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? ((GraphQLListSelectionField)field).Services : new List<Type>());
-            foreach (var item in field.ConstantParameters)
-            {
-                constantParameters.Add(item.Key, item.Value);
-            }
+            AddConstantParameters(field.ConstantParameters);
         }
 
         protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
@@ -104,13 +116,13 @@ namespace EntityGraphQL.Compiler
             return (baseExpression, listTypeParam);
         }
 
-        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             if (fieldExtensions != null)
             {
                 foreach (var extension in fieldExtensions)
                 {
-                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, parameterReplacer);
+                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
                 }
             }
             return (baseExpression, selectionExpressions, selectContextParam);
@@ -129,10 +141,47 @@ namespace EntityGraphQL.Compiler
 
         internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
         {
+            if (constantParameters == null)
+                return;
             foreach (var item in constantParameters)
             {
-                this.constantParameters.Add(item.Key, item.Value);
+                // replace them as new doc variables may be coming through
+                this.constantParameters[item.Key] = item.Value;
             }
+        }
+
+        internal void AddDirectives(List<GraphQLDirective> graphQLDirectives)
+        {
+            directives.AddRange(graphQLDirectives);
+        }
+        protected BaseGraphQLField ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+        {
+            BaseGraphQLField? result = field;
+            foreach (var directive in directives)
+            {
+                result = directive.ProcessField(schema, field, Arguments, docParam, docVariables);
+            }
+            return result;
+        }
+        protected Dictionary<string, object> ResolveArguments(Dictionary<string, object> arguments)
+        {
+            if (Field == null)
+                return arguments;
+
+            if (Field.UseArgumentsFromField == null)
+                return arguments;
+
+            if (ParentNode == null)
+                return arguments;
+
+            var node = ParentNode;
+            while (node != null)
+            {
+                if (node.Field != null && node.Field == Field.UseArgumentsFromField)
+                    arguments = arguments.MergeNew(node.Arguments);
+                node = node.ParentNode;
+            }
+            return arguments;
         }
     }
 }

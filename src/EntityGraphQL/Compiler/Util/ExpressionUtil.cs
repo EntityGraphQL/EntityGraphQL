@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
@@ -49,87 +50,124 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static object? ChangeType(object? value, Type type)
+        public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema)
         {
             if (value == null)
                 return null;
 
-            var objType = value.GetType();
+            var fromType = value.GetType();
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            if (typeof(JsonElement).IsAssignableFrom(objType))
+            if (typeof(JsonElement).IsAssignableFrom(fromType))
             {
                 var jsonEle = (JsonElement)value;
                 if (jsonEle.ValueKind == JsonValueKind.Object)
                 {
-                    value = Activator.CreateInstance(type);
+                    value = Activator.CreateInstance(toType);
                     foreach (var item in jsonEle.EnumerateObject())
                     {
-                        var prop = type.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                         if (prop != null)
-                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType));
+                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema));
                         else
                         {
-                            var field = type.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                            var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
                             if (field != null)
-                                field.SetValue(value, ChangeType(item.Value, field.FieldType));
+                                field.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
                         }
                     }
                     return value;
                 }
                 if (jsonEle.ValueKind == JsonValueKind.Array)
                 {
-                    var eleType = type.GetEnumerableOrArrayType()!;
-                    var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                    var eleType = toType.GetEnumerableOrArrayType()!;
+                    var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                    if (list == null)
+                        throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                     foreach (var item in jsonEle.EnumerateArray())
-                        list.Add(ChangeType(item, eleType));
+                        list.Add(ChangeType(item, eleType, schema));
                     return list;
                 }
                 value = jsonEle.ToString();
-                objType = value.GetType();
+                fromType = value.GetType();
+
+                if (value == null)
+                    return null;
             }
 
-            if (value == null)
-                return null;
-
-            if (type != typeof(string) && objType == typeof(string))
+            if (toType != typeof(string) && fromType == typeof(string))
             {
-                if (type == typeof(double) || type == typeof(double?))
+                if (toType == typeof(double) || toType == typeof(double?))
                     return double.Parse((string)value);
-                if (type == typeof(float) || type == typeof(float?))
+                if (toType == typeof(float) || toType == typeof(float?))
                     return float.Parse((string)value);
-                if (type == typeof(int) || type == typeof(int?))
+                if (toType == typeof(int) || toType == typeof(int?))
                     return int.Parse((string)value);
-                if (type == typeof(uint) || type == typeof(uint?))
+                if (toType == typeof(uint) || toType == typeof(uint?))
                     return uint.Parse((string)value);
-                if (type == typeof(DateTime) || type == typeof(DateTime?))
+                if (toType == typeof(DateTime) || toType == typeof(DateTime?))
                     return DateTime.Parse((string)value);
-                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
+                if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                     return DateTimeOffset.Parse((string)value);
             }
-            else if (type != typeof(long) && objType == typeof(long))
+            else if (toType != typeof(long) && fromType == typeof(long))
             {
-                if (type == typeof(DateTime) || type == typeof(DateTime?))
+                if (toType == typeof(DateTime) || toType == typeof(DateTime?))
                     return new DateTime((long)value!);
-                if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
+                if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                     return new DateTimeOffset((long)value!, TimeSpan.Zero);
             }
 
-            var argumentNonNullType = type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
-            var valueNonNullType = objType.IsNullableType() ? Nullable.GetUnderlyingType(objType) : objType;
-            if (argumentNonNullType.GetTypeInfo().IsEnum)
+            var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
+            var valueNonNullType = fromType.IsNullableType() ? Nullable.GetUnderlyingType(fromType) : fromType;
+            if (argumentNonNullType.IsEnum)
             {
                 return valueNonNullType == typeof(string) ? Enum.Parse(argumentNonNullType, (string)value) : Enum.ToObject(argumentNonNullType, value);
             }
-            if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType)
+            if (fromType.IsDictionary())
             {
-                // Might be a better/faster way?
-                var options = new JsonSerializerOptions
+                var interfaceType = fromType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                // handle dictionary of dictionary representing the objects
+                if (interfaceType.GetGenericArguments()[0] != typeof(string))
+                    throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
+
+                var newValue = Activator.CreateInstance(toType);
+                foreach (string key in ((IDictionary<string, object>)value).Keys)
                 {
-                    IncludeFields = true,
-                    PropertyNameCaseInsensitive = true,
-                };
-                value = JsonSerializer.Deserialize(JsonSerializer.Serialize(value, options), type, options);
-                return value;
+                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                    if (toProp != null)
+                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema));
+                    else
+                    {
+                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                        if (toField != null)
+                            toField.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
+                    }
+                }
+                return newValue;
+            }
+            if (toType.IsEnumerableOrArray())
+            {
+                var eleType = toType.GetEnumerableOrArrayType()!;
+                var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
+                if (list == null)
+                    throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
+                foreach (var item in (IEnumerable)value)
+                    list.Add(ChangeType(item, eleType, schema));
+                return list;
+            }
+            if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
+                argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
+                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value?.ToString()))
+            {
+                return Guid.Parse(value!.ToString());
+            }
+            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
+            {
+                return Activator.CreateInstance(toType, value);
+            }
+            if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
+            {
+                return ConvertObjectType(schema, value, toType, fromType);
             }
             if (argumentNonNullType != valueNonNullType)
             {
@@ -137,6 +175,47 @@ namespace EntityGraphQL.Compiler.Util
                 return newVal;
             }
             return value;
+        }
+
+        public static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType)
+        {
+            var newValue = Activator.CreateInstance(toType);
+            foreach (var toField in toType.GetFields())
+            {
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                if (fromProp != null)
+                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema));
+                else
+                {
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                    if (fromField != null)
+                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema));
+                }
+            }
+            foreach (var toProperty in toType.GetProperties())
+            {
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                if (fromProp != null)
+                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema));
+                else
+                {
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                    if (fromField != null)
+                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema));
+                }
+            }
+
+            // Handle converting a string to EntityQueryType
+            if (schema != null && toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                if (value != null)
+                {
+                    var expression = BuildEntityQueryExpression(schema, toType.GetGenericArguments()[0], (string)value);
+                    var genericProp = toType.GetProperty("Query");
+                    genericProp.SetValue(newValue, expression);
+                }
+            }
+            return newValue;
         }
 
         public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes, Func<string, string> fieldNamer)
@@ -309,7 +388,10 @@ namespace EntityGraphQL.Compiler.Util
                 throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
         }
@@ -325,7 +407,10 @@ namespace EntityGraphQL.Compiler.Util
             var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var newExp = Expression.New(dynamicType.GetConstructor(Type.EmptyTypes));
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
         }
@@ -352,11 +437,12 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
                 schemaContext ?? Expression.Constant(null),
             };
-            var call = Expression.Call(typeof(ExpressionUtil), "WrapFieldForNullCheckExec", null, arguments.ToArray());
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapFieldForNullCheckExec), null, arguments.ToArray());
             return call;
         }
 
         /// <summary>
+        /// DO NOT REMOVE. Used at runtuime.
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
         /// <param name="nullCheck">Object that we build the select on. Check if it is null first</param>
@@ -389,6 +475,14 @@ namespace EntityGraphQL.Compiler.Util
             }
             var result = Expression.Lambda(newExp, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
             return result;
+        }
+
+        public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query)
+        {
+            var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(new QueryRequest() { Query = query }, null, null)).ExpressionResult;
+            expression = Expression.Lambda(expression, contextParam);
+            return expression;
         }
     }
 }

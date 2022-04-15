@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,15 +14,22 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ParameterReplacer replacer;
 
-        protected BaseGraphQLQueryField(string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             replacer = new ParameterReplacer();
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields) => new List<BaseGraphQLField> { this };
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
+        {
+            var result = (BaseGraphQLQueryField)ProcessFieldDirectives(this, docParam, docVariables);
+            if (result == null)
+                return new List<BaseGraphQLField>();
 
-        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+            return new List<BaseGraphQLField> { this };
+        }
+
+        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())
@@ -33,9 +41,9 @@ namespace EntityGraphQL.Compiler
             {
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
-                foreach (var subField in field.Expand(fragments, withoutServiceFields))
+                foreach (var subField in field.Expand(fragments, withoutServiceFields, docParam, docVariables))
                 {
-                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
+                    var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, nextFieldContext, contextChanged: contextChanged);
                     if (fieldExp == null)
                         continue;
 
@@ -48,11 +56,7 @@ namespace EntityGraphQL.Compiler
                     selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
 
                     // pull any constant values up
-                    foreach (var item in subField.ConstantParameters)
-                    {
-                        if (!constantParameters.ContainsKey(item.Key))
-                            constantParameters.Add(item.Key, item.Value);
-                    }
+                    AddConstantParameters(subField.ConstantParameters);
                     Services.AddRange(subField.Services);
                 }
             }

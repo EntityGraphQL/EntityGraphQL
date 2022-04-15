@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
@@ -13,16 +13,16 @@ namespace EntityGraphQL.Compiler
 
         public string Name { get; }
 
+        public IField? Field { get; }
+
+        public Dictionary<string, object> Arguments { get; }
+
         public GraphQLFragmentStatement(string name, ParameterExpression selectContext, ParameterExpression rootParameter)
         {
             Name = name;
             NextFieldContext = selectContext;
             RootParameter = rootParameter;
-        }
-
-        internal List<Expression> Compile<TContext>(TContext context, GraphQLValidator validator, IServiceProvider services, List<GraphQLFragmentStatement> fragments, out List<object> allArgs)
-        {
-            throw new NotImplementedException();
+            Arguments = new Dictionary<string, object>();
         }
 
         public void AddField(BaseGraphQLField field)

@@ -18,7 +18,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -166,7 +166,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
@@ -265,7 +265,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField(
+            schema.Query().ReplaceField(
                 "people",
                 new
                 {
@@ -323,7 +323,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(defaultPageSize: 2);
             var gql = new QueryRequest
             {
@@ -373,7 +373,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
@@ -391,7 +391,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("first argument can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field error: people - first argument can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestMaxPageSizeLast()
@@ -400,7 +400,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
                 .UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
@@ -418,7 +418,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("last argument can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field error: people - last argument can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestAttribute()

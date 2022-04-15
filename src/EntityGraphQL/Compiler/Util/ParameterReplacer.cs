@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -16,8 +16,8 @@ namespace EntityGraphQL.Compiler.Util
         private Expression? newParam;
         private Type? toReplaceType;
         private ParameterExpression? toReplace;
-        private string? newFieldName;
         private bool finished;
+        private bool replaceWholeExpression;
         private string? newFieldNameForType;
 
         /// <summary>
@@ -29,14 +29,14 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="newParam"></param>
         /// <param name="newFieldName"></param>
         /// <returns></returns>
-        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, string? newFieldName = null)
+        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, bool replaceWholeExpression = false)
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
             this.toReplaceType = null;
-            this.newFieldName = newFieldName;
             this.newFieldNameForType = null;
             finished = false;
+            this.replaceWholeExpression = replaceWholeExpression;
             return Visit(node);
         }
 
@@ -45,9 +45,9 @@ namespace EntityGraphQL.Compiler.Util
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
             this.toReplace = null;
-            this.newFieldName = null;
             finished = false;
             this.newFieldNameForType = newContextFieldName;
+            replaceWholeExpression = false;
             return Visit(node);
         }
 
@@ -67,11 +67,36 @@ namespace EntityGraphQL.Compiler.Util
             return Expression.Lambda(body, p);
         }
 
+        protected override Expression VisitUnary(UnaryExpression node)
+        {
+            // RequiredField<> causes a convert
+            if (node.Operand != null)
+            {
+                var newNode = base.Visit(node.Operand);
+                if (node.NodeType == ExpressionType.Convert && node.Type == newNode.Type)
+                    return newNode;
+                return Expression.MakeUnary(node.NodeType, newNode, node.Type);
+            }
+            return base.VisitUnary(node);
+        }
+
         protected override Expression VisitMember(MemberExpression node)
         {
             // returned expression may have been modified and we need to rebuild
             if (node.Expression != null)
             {
+                if (replaceWholeExpression)
+                {
+                    // RequiredField<> causes a ctx.Field.Value
+                    if (node.Expression == toReplace || (node.Expression.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node.Expression).Expression == toReplace))
+                    {
+                        // var dotnetType = node.Expression.Type;
+                        // if (dotnetType != newParam!.Type)
+                        //     return Expression.Convert(newParam, node.Expression.Type.GetGenericArguments().FirstOrDefault() ?? dotnetType);
+                        return newParam!;
+                    }
+                }
+
                 Expression nodeExp;
                 var fieldName = node.Member.Name;
                 if (node.Expression.Type == toReplaceType)
@@ -86,35 +111,26 @@ namespace EntityGraphQL.Compiler.Util
                 if (finished)
                     return nodeExp;
 
-
-                if (newFieldName != null)
-                {
-                    var newField = nodeExp.Type.GetField(newFieldName);
-                    if (newField != null)
-                    {
-                        finished = true;
-                        nodeExp = Expression.Field(nodeExp, newField);
-                    }
-                    else
-                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
-                }
+                var field = nodeExp.Type.GetField(fieldName);
+                if (field != null)
+                    nodeExp = Expression.Field(nodeExp, field);
                 else
                 {
-                    var field = nodeExp.Type.GetField(fieldName);
-                    if (field != null)
-                        nodeExp = Expression.Field(nodeExp, field);
+                    var prop = nodeExp.Type.GetProperty(fieldName);
+                    if (prop != null)
+                        nodeExp = Expression.Property(nodeExp, prop);
                     else
-                    {
-                        var prop = nodeExp.Type.GetProperty(fieldName);
-                        if (prop != null)
-                            nodeExp = Expression.Property(nodeExp, prop);
-                        else
-                            nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
-                    }
+                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
                 }
                 return nodeExp;
             }
             return base.VisitMember(node);
+        }
+
+        protected override Expression VisitConstant(ConstantExpression node)
+        {
+            // we do not want to replace constant ParameterExpressions in a nullwrap            
+            return node;
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

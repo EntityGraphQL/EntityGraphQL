@@ -85,32 +85,32 @@ namespace EntityGraphQL.Schema
                     // add non-pural field with argument of ID
                     AddFieldWithIdArgumentIfExists(schema, contextType, f, fieldNamer);
                 }
-                schema.AddField(f);
+                schema.Query().AddField(f);
             }
             return schema;
         }
 
         private static void AddFieldWithIdArgumentIfExists<TContextType>(SchemaProvider<TContextType> schema, Type contextType, Field fieldProp, Func<string, string> fieldNamer)
         {
-            if (fieldProp.Resolve == null)
+            if (fieldProp.ResolveExpression == null)
                 throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
-            if (!fieldProp.Resolve.Type.IsEnumerableOrArray())
+            if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
                 return;
             var schemaType = fieldProp.ReturnType.SchemaType;
-            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
+            var idFieldDef = (Field)schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
-            if (idFieldDef.Resolve == null)
+            if (idFieldDef.ResolveExpression == null)
                 throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
             // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
             // This allows us to "insert" .Select() (and .Include()) before the .First()
-            var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.Resolve.Type);
+            var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.ResolveExpression.Type);
             var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
             var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
-            var argTypesValue = argTypes.GetTypeInfo().GetConstructors()[0].Invoke(new Type[0]);
+            var argTypesValue = Activator.CreateInstance(argTypes);
             var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
             Type arrayContextType = schemaType.TypeDotnet;
             var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.Resolve, idLambda);
+            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.ResolveExpression, idLambda);
 
             body = ExpressionUtil.MakeCallOnQueryable("FirstOrDefault", new Type[] { arrayContextType }, body);
             var contextParam = Expression.Parameter(contextType, $"cxt_{contextType.Name}");
@@ -132,8 +132,8 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization, fieldNamer);
-            schema.AddField(field);
+            var field = new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
+            schema.Query().AddField(field);
         }
 
         public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<string, string> fieldNamer, bool createNewComplexTypes = true)
@@ -179,12 +179,29 @@ namespace EntityGraphQL.Schema
             var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
-            var returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
-            var t = CacheType(returnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
+            Type returnType;
+            if (le.ReturnType.IsDictionary())
+            {
+                // check for dictionaries
+                if (!createNewComplexTypes)
+                    return null;
+                Type[] genericTypeArguments = le.ReturnType.GenericTypeArguments;
+                returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
+                if (!schema.HasType(returnType))
+                    schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
+            }
+            else
+                returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
+
+            var baseReturnType = returnType;
+            if (baseReturnType.IsEnumerableOrArray())
+                baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
+
+            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.Type(returnType), le.Body.Type);
-            var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims, fieldNamer);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type);
+            var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
             var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
             if (extensions?.Count > 0)
@@ -198,16 +215,11 @@ namespace EntityGraphQL.Schema
             return field;
         }
 
-        private static ISchemaType? CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static void CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
         {
-            if (propType.IsEnumerableOrArray())
-            {
-                propType = propType.GetEnumerableOrArrayType()!;
-            }
-
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
-                var typeInfo = propType.GetTypeInfo();
+                var typeInfo = propType;
                 string description = "";
                 var d = (DescriptionAttribute)typeInfo.GetCustomAttribute(typeof(DescriptionAttribute), false);
                 if (d != null)
@@ -222,36 +234,30 @@ namespace EntityGraphQL.Schema
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
                     var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
+                    if (method == null)
+                        throw new Exception("Could not find AddType method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var t = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
-                    t.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
+                    typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
-                    t.AddFields(fields);
-                    return t;
+                    typeAdded.AddFields(fields);
                 }
                 else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
                 {
-                    var t = schema.AddEnum(propType.Name, propType, description);
-                    return t;
+                    schema.AddEnum(propType.Name, propType, description);
                 }
-                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).GetTypeInfo().IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
+                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
                 {
                     Type type = Nullable.GetUnderlyingType(propType);
-                    var t = schema.AddEnum(type.Name, type, description);
-                    return t;
+                    schema.AddEnum(type.Name, type, description);
                 }
             }
-            else if (schema.HasType(propType.Name))
-            {
-                return schema.Type(propType.Name);
-            }
-            return null;
         }
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
         {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.Type(returnType.GetNonNullableOrEnumerableType()), returnType);
+            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType(), null), returnType);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
         public void TestUseConstFilter()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.ReplaceField("projects",
+            schema.Query().ReplaceField("projects",
                 new
                 {
                     search = (string)null

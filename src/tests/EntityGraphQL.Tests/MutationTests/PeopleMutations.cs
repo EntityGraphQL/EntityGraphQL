@@ -10,19 +10,30 @@ namespace EntityGraphQL.Tests
 {
     internal class PeopleMutations
     {
+        private static int idCount = 0;
         [GraphQLMutation]
 
         public Person AddPerson(PeopleMutationsArgs args)
         {
-            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555 };
+            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
         }
 
         [GraphQLMutation]
 
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
-            db.People.Add(new Person { Id = 11, Name = args.Names[0], LastName = args.Names[1] });
-            return ctx => ctx.People.First(p => p.Id == 11);
+            var id = 11;
+            var newPerson = new Person { Id = id, Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(newPerson);
+            return ctx => ctx.People.First(p => p.Id == id);
+        }
+        [GraphQLMutation]
+
+        public Expression<Func<TestDataContext, Person>> AddPersonNamesExpression(TestDataContext db, PeopleMutationsArgs args)
+        {
+            var newPerson = new Person { Id = idCount++, Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(newPerson);
+            return ctx => ctx.People.First(p => p.Id == newPerson.Id);
         }
 
         [GraphQLMutation]
@@ -30,6 +41,25 @@ namespace EntityGraphQL.Tests
         public Person AddPersonInput(PeopleMutationsArgs args)
         {
             return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };
+        }
+
+        [GraphQLMutation]
+
+        public float AddFloat(FloatInput args)
+        {
+            return args.Float;
+        }
+        [GraphQLMutation]
+
+        public double AddDouble(DoubleInput args)
+        {
+            return args.Double;
+        }
+        [GraphQLMutation]
+
+        public decimal AddDecimal(DecimalInput args)
+        {
+            return args.Decimal;
         }
 
         [GraphQLMutation]
@@ -101,7 +131,7 @@ namespace EntityGraphQL.Tests
             return true;
         }
     }
-    
+
     [MutationArguments]
     internal class ListArgs
     {
@@ -143,5 +173,23 @@ namespace EntityGraphQL.Tests
     {
         public int Id { get; set; }
         public long IdLong { get; set; }
+    }
+    [MutationArguments]
+    public class FloatInput
+    {
+        public float Float { get; set; }
+        public float? Float2 { get; set; }
+    }
+    [MutationArguments]
+    public class DoubleInput
+    {
+        public double Double { get; set; }
+        public double? Double2 { get; set; }
+    }
+    [MutationArguments]
+    public class DecimalInput
+    {
+        public decimal Decimal { get; set; }
+        public decimal? Decimal2 { get; set; }
     }
 }

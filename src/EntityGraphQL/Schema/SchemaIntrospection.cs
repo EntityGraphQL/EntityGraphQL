@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
@@ -105,11 +104,11 @@
                         continue;
 
                     // Skipping custom fields added to schema
-                    if (field.Resolve?.NodeType == System.Linq.Expressions.ExpressionType.Call)
+                    if (field.ResolveExpression?.NodeType == System.Linq.Expressions.ExpressionType.Call)
                         continue;
 
                     // Skipping ENUM type
-                    if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                    if (field.ReturnType.TypeDotnet.IsEnum)
                         continue;
 
                     inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true))
@@ -176,7 +175,7 @@
             {
                 type.Kind = "LIST";
                 type.Name = null;
-                type.OfType = BuildType(schema, typeInfo, clrType.GetEnumerableOrArrayType()!, isInput);
+                type.OfType = BuildType(schema, typeInfo, typeInfo.SchemaType.TypeDotnet, isInput);
             }
             else if (clrType.Name == "EntityQueryType`1")
             {
@@ -184,7 +183,7 @@
                 type.Name = "String";
                 type.OfType = null;
             }
-            else if (clrType.GetTypeInfo().IsEnum)
+            else if (clrType.IsEnum)
             {
                 type.Kind = "ENUM";
                 type.Name = typeInfo.SchemaType.Name;
@@ -255,13 +254,13 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetQueryFields())
+            foreach (var field in schema.Type(schema.QueryContextName).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;
 
                 // Skipping ENUM type
-                if (field.ReturnType.TypeDotnet.GetTypeInfo().IsEnum)
+                if (field.ReturnType.TypeDotnet.IsEnum)
                     continue;
 
                 //== Fields ==//
@@ -280,7 +279,7 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetMutations())
+            foreach (var field in schema.GetSchemaType(schema.MutationType, null).GetFields())
             {
                 if (field.Name.StartsWith("__"))
                     continue;
@@ -300,6 +299,9 @@
         private static List<InputValue> BuildArgs(ISchemaProvider schema, IField field)
         {
             var args = new List<InputValue>();
+            if (field.ArgumentsAreInternal)
+                return args;
+
             foreach (var arg in field.Arguments)
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
@@ -320,7 +322,7 @@
             {
                 Description = directive.Description,
                 Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
-                Args = directive.GetArguments(schema, schema.SchemaFieldNamer).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
+                Args = directive.GetArguments(schema).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
                 {
                     Description = arg.Description,
                     DefaultValue = null,

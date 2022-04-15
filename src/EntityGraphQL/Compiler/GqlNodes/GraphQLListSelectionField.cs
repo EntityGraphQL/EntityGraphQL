@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
@@ -19,7 +20,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
-        private readonly ExpressionExtractor extractor;
         public Expression ListExpression { get; internal set; }
 
         /// <summary>
@@ -31,13 +31,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
-        public GraphQLListSelectionField(IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context)
-            : base(name, nextFieldContext, rootParameter, context)
+        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             this.ListExpression = nodeExpression;
             constantParameters = new Dictionary<ParameterExpression, object>();
-            extractor = new ExpressionExtractor();
+            this.AddServices(field?.Services);
         }
 
         /// <summary>
@@ -46,25 +46,31 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
-            ParameterExpression nextFieldContext = (ParameterExpression)NextFieldContext!;
-            Expression? listContext = ListExpression;
-            if (contextChanged && Name != "__typename")
+            var listContext = ListExpression;
+            ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
+            if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
             {
                 var possibleField = replacementNextFieldContext?.Type.GetField(Name);
                 if (possibleField != null)
                     listContext = Expression.Field(replacementNextFieldContext, possibleField);
                 else
                     listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
-                nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext.Name}2");
+                nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext!.Name}2");
             }
+            (listContext, var argumentValues) = Field?.GetExpression(listContext!, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged) ?? (ListExpression, null);
+            if (argumentValues != null)
+                constantParameters[Field!.ArgumentParam!] = argumentValues;
+            if (listContext == null)
+                return null;
+            AddServices(Field?.Services);
 
             (listContext, var newNextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
             if (newNextFieldContext != null)
                 nextFieldContext = newNextFieldContext;
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext!, schemaContext!, contextChanged);
 
             if (selectionFields == null || !selectionFields.Any())
             {
@@ -73,35 +79,37 @@ namespace EntityGraphQL.Compiler
                 return listContext;
             }
 
-            (listContext, selectionFields, newNextFieldContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, nextFieldContext, replacer);
-            if (newNextFieldContext != null)
-                nextFieldContext = newNextFieldContext;
+            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, nextFieldContext, contextChanged, replacer);
             // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext, listContext, selectionFields.ExpressionOnly());
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext!, listContext, selectionFields.ExpressionOnly());
 
             if (!withoutServiceFields)
             {
                 // if selecting final graph make sure lists are evaluated
-                if (!isRoot && resultExpression.Type.IsEnumerableOrArray())
+                if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
                     resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
             }
 
             return resultExpression;
         }
 
-        protected override Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        protected override Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
-            var fields = base.GetSelectionFields(serviceProvider, fragments, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
+            var fields = base.GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
             if (withoutServiceFields && fields != null)
             {
+                var extractor = new ExpressionExtractor();
                 var extractedFields = extractor.Extract(ListExpression, (ParameterExpression)nextFieldContext, true);
                 if (extractedFields != null)
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField(null, i.Key, replaced, RootParameter, this), replaced);
+                        return new CompiledField(new GraphQLScalarField(schema, (Field)Field!, null, i.Key, replaced, RootParameter, this, Arguments)
+                        {
+                            Services = new List<Type>()
+                        }, replaced);
                     })
                     .ToList()
                     .ForEach(i =>

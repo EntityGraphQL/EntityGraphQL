@@ -38,12 +38,12 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public List<ExecutableGraphQLStatement> Operations { get; }
         public List<GraphQLFragmentStatement> Fragments { get; set; }
-
         public GraphQLDocument(Func<string, string> fieldNamer)
         {
             Operations = new List<ExecutableGraphQLStatement>();
             Fragments = new List<GraphQLFragmentStatement>();
             this.fieldNamer = fieldNamer;
+            Arguments = new Dictionary<string, object>();
         }
 
         public string Name
@@ -51,9 +51,13 @@ namespace EntityGraphQL.Compiler
             get => "Query Request Root";
         }
 
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, string? operationName = null, ExecutionOptions? options = null)
+        public IField? Field { get; }
+
+        public Dictionary<string, object> Arguments { get; }
+
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {
-            return ExecuteQueryAsync(context, services, operationName, options).Result;
+            return ExecuteQueryAsync(context, services, variables, operationName, options).Result;
         }
 
         /// <summary>
@@ -64,7 +68,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, string? operationName, ExecutionOptions? options = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
@@ -79,7 +83,7 @@ namespace EntityGraphQL.Compiler
             if (options == null)
                 options = new ExecutionOptions(); // defaults
 
-            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, options);
+            result.Data = await op.ExecuteAsync(context, validator, services, Fragments, fieldNamer, options, variables);
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);

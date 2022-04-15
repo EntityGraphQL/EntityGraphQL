@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -14,15 +13,15 @@ namespace EntityGraphQL.Compiler.EntityQuery
     {
         private readonly List<ParameterExpression> contextParams;
 
-        public LambdaExpression LambdaExpression { get { return Expression.Lambda(ExpressionResult.Expression, ContextParams.Concat(ExpressionResult.ConstantParameters.Keys).ToArray()); } }
+        public LambdaExpression LambdaExpression { get { return Expression.Lambda(ExpressionResult, ContextParams.Concat(ConstantParameters.Keys).ToArray()); } }
 
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get { return ExpressionResult.ConstantParameters; } }
+        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; } = new Dictionary<ParameterExpression, object>();
 
-        public ExpressionResult ExpressionResult { get; private set; }
+        public Expression ExpressionResult { get; private set; }
 
         public List<ParameterExpression> ContextParams { get { return contextParams; } }
 
-        public CompiledQueryResult(ExpressionResult expressionResult, List<ParameterExpression> contextParams)
+        public CompiledQueryResult(Expression expressionResult, List<ParameterExpression> contextParams)
         {
             this.ExpressionResult = expressionResult;
             this.contextParams = contextParams;

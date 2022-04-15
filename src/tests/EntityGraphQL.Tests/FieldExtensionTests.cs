@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static EntityGraphQL.Tests.ServiceFieldTests;
 
-namespace EntityGraphQL.Tests.ConnectionPaging
+namespace EntityGraphQL.Tests
 {
     public class FieldExtensionTests
     {
@@ -18,14 +18,14 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(first: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(first: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         edges {
                             node {
                                 name id lastName
@@ -58,14 +58,14 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseOffsetPaging();
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(take: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(take: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         items {
                             name id lastName
                         }
@@ -96,18 +96,19 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseOffsetPaging();
-            schema.Type<Person>().AddField("age",
-                // use a filed not another relation/entity
-                (person) => ArgumentHelper.WithService((AgeService ager) => ager.GetAge(person.Birthday)),
-                "Persons age");
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>(
+                    // use a filed not another relation/entity
+                    (person, ager) => ager.GetAge(person.Birthday)
+                );
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(take: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(take: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         items {
                             name id age lastName
                         }
@@ -142,18 +143,19 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people with paging metadata")
                 .UseFilter()
                 .UseSort()
                 .UseConnectionPaging();
-            schema.Type<Person>().AddField("age",
-                // use a filed not another relation/entity
-                (person) => ArgumentHelper.WithService((AgeService ager) => ager.GetAge(person.Birthday)),
-                "Persons age");
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>(
+                    // use a filed not another relation/entity
+                    (person, ager) => ager.GetAge(person.Birthday)
+                );
             var gql = new QueryRequest
             {
                 Query = @"{
-                    people(first: 2, sort: { name: ASC }, filter: ""lastName == \""Frank\"""") {
+                    people(first: 2, sort: [{ name: ASC }], filter: ""lastName == \""Frank\"""") {
                         edges {
                             node {
                                 name id lastName age
@@ -196,13 +198,14 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 .UseSort()
                 .UseConnectionPaging(defaultPageSize: 2);
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
-            schema.Type<Task>().AddField("config", t => ArgumentHelper.WithService((ConfigService srv) => srv.Get(t.Id)), "Task config");
+            schema.Type<Task>().AddField("config", "Task config")
+                .ResolveWithService<ConfigService>((t, srv) => srv.Get(t.Id));
             var gql = new QueryRequest
             {
                 Query = @"{
                     projects {
                         name
-                        tasks(filter: ""id < 4"" sort: { id: DESC }) {
+                        tasks(filter: ""id < 4"" sort: [{ id: DESC }]) {
                             edges {
                                 node {
                                     name id

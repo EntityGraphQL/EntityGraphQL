@@ -48,7 +48,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             ParameterExpression? contextParam = null;
 
             if (schemaProvider != null)
-                contextParam = Expression.Parameter(schemaProvider.ContextType, $"cxt_{schemaProvider.ContextType.Name}");
+                contextParam = Expression.Parameter(schemaProvider.QueryContextType, $"cxt_{schemaProvider.QueryContextType.Name}");
 
             var expression = CompileQuery(requestContext.Query.Query, contextParam, schemaProvider, requestContext, methodProvider);
 
@@ -66,11 +66,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
             }
             var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider);
 
-            var parameters = expression.Expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression.Expression).Parameters.ToList() : new List<ParameterExpression>();
+            var parameters = expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression).Parameters.ToList() : new List<ParameterExpression>();
             return new CompiledQueryResult(expression, parameters);
         }
 
-        private static ExpressionResult CompileQuery(string query, Expression? context, ISchemaProvider? schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider)
+        private static Expression CompileQuery(string query, Expression? context, ISchemaProvider? schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider)
         {
             var stream = new AntlrInputStream(query);
             var lexer = new EntityQLLexer(stream);

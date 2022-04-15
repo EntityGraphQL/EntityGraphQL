@@ -17,10 +17,10 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [PeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": [{ \"lastName\": \"DESC\" }] }")
             };
             var context = new TestDataContext().FillWithTestData();
             context.People.Add(new Person
@@ -41,10 +41,10 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [PeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"lastName\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": [{ \"lastName\": \"DESC\" }] }")
             };
             TestDataContext2 context = new();
             context.FillWithTestData();
@@ -77,10 +77,10 @@ namespace EntityGraphQL.Tests
                 });
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [PeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"height\": \"ASC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": [{ \"height\": \"ASC\" }] }")
             };
             var context = new TestDataContext().FillWithTestData();
             context.People.Add(new Person
@@ -173,12 +173,12 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [TasksSortInput]) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
                 }",
-                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": [{ \"id\": \"DESC\" }] }")
             };
             var context = new TestDataContext().FillWithTestData();
             var tree = schema.ExecuteRequest(gql, context, null, null);
@@ -200,14 +200,14 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [TasksSortInput]) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
                 }",
                 Variables = new QueryVariables
                 {
-                    { "sort", new IdSort { Id = SortDirectionEnum.DESC } }
+                    { "sort", new List<IdSort>{new IdSort { Id = SortDirectionEnum.DESC } }}
                 }
             };
             var context = new TestDataContext().FillWithTestData();
@@ -230,12 +230,12 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: PersonSortInput) {
+                Query = @"query($sort: [TasksSortInput]) {
                     project(id: 55) {
                         tasks(sort: $sort) { id }
                     }
                 }",
-                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": { \"id\": \"DESC\" } }")
+                Variables = JsonSerializer.Deserialize<QueryVariables>("{ \"sort\": [{ \"id\": \"DESC\" }] }")
             };
             var context = new TestDataContext().FillWithTestData();
             var tree = schema.ExecuteRequest(gql, context, null, null);

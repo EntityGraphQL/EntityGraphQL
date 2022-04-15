@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
     public class GraphQLScalarField : BaseGraphQLField
     {
-        private readonly ExpressionExtractor extractor;
         private readonly ParameterReplacer replacer;
         private List<GraphQLScalarField>? extractedFields;
 
-        public GraphQLScalarField(IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode)
-            : base(name, nextFieldContext, rootParameter, parentNode)
+        public GraphQLScalarField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
             this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
-            extractor = new ExpressionExtractor();
             replacer = new ParameterReplacer();
+            this.AddServices(field?.Services);
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
@@ -27,15 +28,19 @@ namespace EntityGraphQL.Compiler
             return Services.Any();
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields)
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
         {
+            var result = (GraphQLScalarField)ProcessFieldDirectives(this, docParam, docVariables);
+            if (result == null)
+                return new List<BaseGraphQLField>();
+
             if (withoutServiceFields && Services.Any())
             {
                 var extractedFields = ExtractFields();
                 if (extractedFields != null)
                     return extractedFields;
             }
-            return new List<BaseGraphQLField> { this };
+            return new List<BaseGraphQLField> { result };
         }
 
         private IEnumerable<BaseGraphQLField>? ExtractFields()
@@ -43,17 +48,30 @@ namespace EntityGraphQL.Compiler
             if (extractedFields != null)
                 return extractedFields;
 
-            extractedFields = extractor.Extract(NextFieldContext!, RootParameter!)?.Select(i => new GraphQLScalarField(null, i.Key, i.Value, RootParameter!, ParentNode!)).ToList();
+            var extractor = new ExpressionExtractor();
+            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, Field, null, i.Key, i.Value, RootParameter, ParentNode, Arguments)
+            {
+                // do not carry the services over
+                Services = new List<Type>()
+            }).ToList();
             return extractedFields;
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
         {
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var newExpression = NextFieldContext!;
-            if (contextChanged && Name != "__typename")
+            (var result, var argumentValues) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
+            AddServices(Field!.Services);
+            if (argumentValues != null)
+                constantParameters[Field!.ArgumentParam!] = argumentValues;
+            if (result == null)
+                return null;
+
+            var newExpression = result;
+
+            if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
             {
                 var selectedField = replacementNextFieldContext?.Type.GetField(Name);
                 if (!Services.Any() && selectedField != null)
