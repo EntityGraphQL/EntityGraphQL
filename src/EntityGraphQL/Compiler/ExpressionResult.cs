@@ -24,7 +24,7 @@ namespace EntityGraphQL.Compiler
             AddServices(services);
         }
 
-        public virtual Expression Expression { get; internal set; }
+        public Expression Expression { get; internal set; }
         public Type Type { get { return Expression.Type; } }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
@@ -53,13 +53,6 @@ namespace EntityGraphQL.Compiler
             constantParameters[type] = value;
         }
 
-        internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
-        {
-            foreach (var item in constantParameters)
-            {
-                AddConstantParameter(item.Key, item.Value);
-            }
-        }
         internal void AddServices(IEnumerable<Type> services)
         {
             if (services == null)

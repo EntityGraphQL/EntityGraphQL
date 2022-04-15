@@ -34,9 +34,9 @@ namespace EntityGraphQL.Compiler
             return (ExpressionResult)Expression.Constant(bool.Parse(s));
         }
 
-        public override ExpressionResult VisitDecimal(EntityQLParser.DecimalContext context)
+        public override ExpressionResult? VisitDecimal(EntityQLParser.DecimalContext context)
         {
-            return (ExpressionResult)Expression.Constant(Decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
+            return (ExpressionResult)Expression.Constant(decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
         }
 
         public override ExpressionResult? VisitString(EntityQLParser.StringContext context)

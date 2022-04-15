@@ -95,7 +95,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
                 if (exp != null)
                 {
-                    r.AddConstantParameters(exp.ConstantParameters);
                     r.AddServices(exp.Services);
                 }
                 exp = r;
