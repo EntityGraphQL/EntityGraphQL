@@ -121,5 +121,71 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.Equal("id", person.GetType().GetFields()[0].Name);
         }
+
+        [Fact]
+        public void TestDirectiveRoot()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var query = new QueryRequest
+            {
+                Query = @"query MyQuery($skip: Boolean!){
+    people @skip(if: $skip) {
+        id
+        name 
+    }
+}",
+                Variables = new QueryVariables { { "skip", true } }
+            };
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            Assert.Empty(result.Data);
+        }
+
+        [Fact]
+        public void TestDirectiveList()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var query = new QueryRequest
+            {
+                Query = @"query MyQuery($skip: Boolean!){
+    people {
+        id
+        name 
+        projects @skip(if: $skip) {
+            name
+        }
+    }
+}",
+                Variables = new QueryVariables { { "skip", true } }
+            };
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            dynamic person = ((dynamic)result.Data["people"])[0];
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+        }
+
+        [Fact]
+        public void TestDirectiveObject()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var query = new QueryRequest
+            {
+                Query = @"query MyQuery($skip: Boolean!){
+    people {
+        id
+        name 
+        manager @skip(if: $skip) {
+            name
+        }
+    }
+}",
+                Variables = new QueryVariables { { "skip", true } }
+            };
+            var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            dynamic person = ((dynamic)result.Data["people"])[0];
+            Assert.Equal(2, person.GetType().GetFields().Length);
+            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+        }
     }
 }
