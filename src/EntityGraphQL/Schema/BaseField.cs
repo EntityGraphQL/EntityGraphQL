@@ -68,7 +68,7 @@ namespace EntityGraphQL.Schema
             return Arguments[argName];
         }
 
-        public abstract ExpressionResult? GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged);
+        public abstract (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged);
         public bool HasArgumentByName(string argName)
         {
             return Arguments.ContainsKey(argName);

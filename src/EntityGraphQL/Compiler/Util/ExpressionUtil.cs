@@ -480,7 +480,7 @@ namespace EntityGraphQL.Compiler.Util
         public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query)
         {
             var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
-            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(new QueryRequest() { Query = query }, null, null)).ExpressionResult.Expression;
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(new QueryRequest() { Query = query }, null, null)).ExpressionResult;
             expression = Expression.Lambda(expression, contextParam);
             return expression;
         }

@@ -9,9 +9,9 @@ using System.Linq;
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
-    /// Compiles a constant value from a query into an ExpressionResult. null if the constant is a unknown identifier (ENUM)
+    /// Compiles a constant value from a query into an Expression. null if the constant is a unknown identifier (ENUM)
     /// </summary>
-    internal class ConstantVisitor : EntityQLBaseVisitor<ExpressionResult?>
+    internal class ConstantVisitor : EntityQLBaseVisitor<Expression?>
     {
         public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
         public static readonly Regex DateTimeRegex = new("^[0-9]{4}[-][0-9]{2}[-][0-9]{2}([T ][0-9]{2}[:][0-9]{2}[:][0-9]{2}(\\.[0-9]{1,7})?([-+][0-9]{3})?)?$", RegexOptions.IgnoreCase);
@@ -22,43 +22,43 @@ namespace EntityGraphQL.Compiler
             this.schema = schema;
         }
 
-        public override ExpressionResult? VisitInt(EntityQLParser.IntContext context)
+        public override Expression? VisitInt(EntityQLParser.IntContext context)
         {
             string s = context.GetText();
-            return (ExpressionResult)(s.StartsWith("-") ? Expression.Constant(long.Parse(s)) : Expression.Constant(long.Parse(s)));
+            return (s.StartsWith("-") ? Expression.Constant(long.Parse(s)) : Expression.Constant(long.Parse(s)));
         }
 
-        public override ExpressionResult? VisitBoolean(EntityQLParser.BooleanContext context)
+        public override Expression? VisitBoolean(EntityQLParser.BooleanContext context)
         {
             string s = context.GetText();
-            return (ExpressionResult)Expression.Constant(bool.Parse(s));
+            return Expression.Constant(bool.Parse(s));
         }
 
-        public override ExpressionResult? VisitDecimal(EntityQLParser.DecimalContext context)
+        public override Expression? VisitDecimal(EntityQLParser.DecimalContext context)
         {
-            return (ExpressionResult)Expression.Constant(decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
+            return Expression.Constant(decimal.Parse(context.GetText(), CultureInfo.InvariantCulture));
         }
 
-        public override ExpressionResult? VisitString(EntityQLParser.StringContext context)
+        public override Expression? VisitString(EntityQLParser.StringContext context)
         {
             // we may need to convert a string into a DateTime or Guid type
             string value = context.GetText()[1..^1].Replace("\\\"", "\"");
             if (GuidRegex.IsMatch(value))
-                return (ExpressionResult)Expression.Constant(Guid.Parse(value));
+                return Expression.Constant(Guid.Parse(value));
 
             if (DateTimeRegex.IsMatch(value))
-                return (ExpressionResult)Expression.Constant(DateTime.Parse(value));
+                return Expression.Constant(DateTime.Parse(value));
 
-            return (ExpressionResult)Expression.Constant(value);
+            return Expression.Constant(value);
         }
 
-        public override ExpressionResult? VisitNull(EntityQLParser.NullContext context)
+        public override Expression? VisitNull(EntityQLParser.NullContext context)
         {
-            var exp = (ExpressionResult)Expression.Constant(null);
+            var exp = Expression.Constant(null);
             return exp;
         }
 
-        public override ExpressionResult? VisitIdentity(EntityQLParser.IdentityContext context)
+        public override Expression? VisitIdentity(EntityQLParser.IdentityContext context)
         {
             if (schema == null)
                 throw new InvalidOperationException("Schema is not set");
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler
             if (enumField == null)
                 return null;
 
-            var exp = (ExpressionResult)Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
+            var exp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
             return exp;
         }
     }

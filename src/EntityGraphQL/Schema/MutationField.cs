@@ -151,16 +151,16 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public override ExpressionResult? GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
+        public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
         {
-            var result = (ExpressionResult)fieldExpression;
+            var result = fieldExpression;
 
             if (schemaContext != null)
             {
                 var parameterReplacer = new ParameterReplacer();
-                result.Expression = parameterReplacer.ReplaceByType(result.Expression, schemaContext.Type, schemaContext);
+                result = parameterReplacer.ReplaceByType(result, schemaContext.Type, schemaContext);
             }
-            return result;
+            return (result, null);
         }
     }
 }

@@ -62,13 +62,14 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Services.Any())
                 return null;
 
-            var result = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
+            (var result, var argumentValues) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
+            AddServices(Field!.Services);
+            if (argumentValues != null)
+                constantParameters[Field!.ArgumentParam!] = argumentValues;
             if (result == null)
                 return null;
-            AddConstantParameters(result.ConstantParameters);
-            AddServices(result.Services);
 
-            var newExpression = result.Expression;
+            var newExpression = result;
 
             if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
             {

@@ -59,12 +59,12 @@ namespace EntityGraphQL.Compiler
                     listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext!.Name}2");
             }
-            var listContextExp = Field?.GetExpression(listContext, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged) ?? (ExpressionResult)ListExpression;
-            if (listContextExp == null)
+            (listContext, var argumentValues) = Field?.GetExpression(listContext!, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged) ?? (ListExpression, null);
+            if (argumentValues != null)
+                constantParameters[Field!.ArgumentParam!] = argumentValues;
+            if (listContext == null)
                 return null;
-            listContext = listContextExp.Expression;
-            AddServices(listContextExp.Services);
-            AddConstantParameters(listContextExp.ConstantParameters);
+            AddServices(Field?.Services);
 
             (listContext, var newNextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
             if (newNextFieldContext != null)

@@ -8,10 +8,10 @@ using System.Collections.Generic;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
-    internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<ExpressionResult>
+    internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<Expression>
     {
         private readonly QueryRequestContext requestContext;
-        private ExpressionResult? currentContext;
+        private Expression? currentContext;
         private readonly ISchemaProvider? schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly ConstantVisitor constantVisitor;
@@ -19,13 +19,13 @@ namespace EntityGraphQL.Compiler.EntityQuery
         public EntityQueryNodeVisitor(Expression? expression, ISchemaProvider? schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext)
         {
             this.requestContext = requestContext;
-            currentContext = expression == null ? null : new ExpressionResult(expression);
+            currentContext = expression ?? null;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
             this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
-        public override ExpressionResult VisitBinary(EntityQLParser.BinaryContext context)
+        public override Expression VisitBinary(EntityQLParser.BinaryContext context)
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
@@ -45,13 +45,13 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
             if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
             {
-                return (ExpressionResult)Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+                return (Expression)Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
             }
 
-            return (ExpressionResult)Expression.MakeBinary(op, left, right);
+            return (Expression)Expression.MakeBinary(op, left, right);
         }
 
-        private ExpressionResult? DoObjectComparisonOnDifferentTypes(ExpressionType op, ExpressionResult left, ExpressionResult right)
+        private Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
         {
             var convertedToSameTypes = false;
 
@@ -68,35 +68,31 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 convertedToSameTypes = true;
             }
 
-            var result = convertedToSameTypes ? (ExpressionResult)Expression.MakeBinary(op, left, right) : null;
+            var result = convertedToSameTypes ? (Expression)Expression.MakeBinary(op, left, right) : null;
             return result;
         }
 
-        private static ExpressionResult ConvertToGuid(ExpressionResult expression)
+        private static Expression ConvertToGuid(Expression expression)
         {
-            return (ExpressionResult)Expression.Call(typeof(Guid), "Parse", null, (ExpressionResult)Expression.Call(expression, typeof(object).GetMethod("ToString")));
+            return (Expression)Expression.Call(typeof(Guid), "Parse", null, (Expression)Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
-        public override ExpressionResult VisitExpr(EntityQLParser.ExprContext context)
+        public override Expression VisitExpr(EntityQLParser.ExprContext context)
         {
             var r = Visit(context.body);
             return r;
         }
 
-        public override ExpressionResult VisitCallPath(EntityQLParser.CallPathContext context)
+        public override Expression VisitCallPath(EntityQLParser.CallPathContext context)
         {
             var startingContext = currentContext;
-            ExpressionResult? exp = null;
+            Expression? exp = null;
             foreach (var child in context.children)
             {
                 var r = Visit(child);
                 if (r == null)
                     continue;
 
-                if (exp != null)
-                {
-                    r.AddServices(exp.Services);
-                }
                 exp = r;
                 currentContext = exp;
             }
@@ -106,7 +102,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return exp;
         }
 
-        public override ExpressionResult VisitIdentity(EntityQLParser.IdentityContext context)
+        public override Expression VisitIdentity(EntityQLParser.IdentityContext context)
         {
             if (schemaProvider == null)
                 throw new EntityGraphQLCompilerException("SchemaProvider is null");
@@ -123,11 +119,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 return enumOrConstantValue;
             }
             var gqlField = schemaType.GetField(field, requestContext);
-            var exp = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false);
+            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false);
             return exp!;
         }
 
-        public override ExpressionResult VisitConstant(EntityQLParser.ConstantContext context)
+        public override Expression VisitConstant(EntityQLParser.ConstantContext context)
         {
             var result = constantVisitor.VisitConstant(context);
             if (result == null)
@@ -136,17 +132,17 @@ namespace EntityGraphQL.Compiler.EntityQuery
         }
 
 
-        public override ExpressionResult VisitIfThenElse(EntityQLParser.IfThenElseContext context)
+        public override Expression VisitIfThenElse(EntityQLParser.IfThenElseContext context)
         {
-            return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override ExpressionResult VisitIfThenElseInline(EntityQLParser.IfThenElseInlineContext context)
+        public override Expression VisitIfThenElseInline(EntityQLParser.IfThenElseInlineContext context)
         {
-            return (ExpressionResult)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
-        public override ExpressionResult VisitCall(EntityQLParser.CallContext context)
+        public override Expression VisitCall(EntityQLParser.CallContext context)
         {
             if (currentContext == null)
                 throw new EntityGraphQLCompilerException("CurrentContext is null");
@@ -160,16 +156,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             var outerContext = currentContext;
             // some methods might have a different inner context (IEnumerable etc)
             var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
-            currentContext = (ExpressionResult)methodArgContext;
+            currentContext = (Expression)methodArgContext;
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = (ExpressionResult)methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(e => e.Expression));
+            var call = (Expression)methodProvider.MakeCall(outerContext, methodArgContext, method, args);
             currentContext = call;
             return call;
         }
 
-        public override ExpressionResult VisitArgs(EntityQLParser.ArgsContext context)
+        public override Expression VisitArgs(EntityQLParser.ArgsContext context)
         {
             return VisitChildren(context);
         }
@@ -178,19 +174,19 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private ExpressionResult ConvertLeftOrRight(ExpressionType op, ExpressionResult left, ExpressionResult right)
+        private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-                right = (ExpressionResult)Expression.Convert(right, left.Type);
+                right = (Expression)Expression.Convert(right, left.Type);
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-                left = (ExpressionResult)Expression.Convert(left, right.Type);
+                left = (Expression)Expression.Convert(left, right.Type);
 
             else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
-                right = (ExpressionResult)Expression.Convert(right, left.Type);
+                right = (Expression)Expression.Convert(right, left.Type);
             else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
-                left = (ExpressionResult)Expression.Convert(left, right.Type);
+                left = (Expression)Expression.Convert(left, right.Type);
 
-            return (ExpressionResult)Expression.MakeBinary(op, left, right);
+            return (Expression)Expression.MakeBinary(op, left, right);
         }
 
         private Expression CheckConditionalTest(Expression test)

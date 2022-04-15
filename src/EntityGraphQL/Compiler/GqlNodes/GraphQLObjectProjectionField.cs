@@ -58,14 +58,13 @@ namespace EntityGraphQL.Compiler
                 else
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
-            var nextFieldContextExp = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
-            if (nextFieldContextExp == null)
+            (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
+            AddServices(Field!.Services);
+            if (argumentValues != null)
+                constantParameters[Field!.ArgumentParam!] = argumentValues;
+            if (nextFieldContext == null)
                 return null;
-            nextFieldContext = nextFieldContextExp.Expression;
-            AddServices(nextFieldContextExp.Services);
-            AddConstantParameters(nextFieldContextExp.ConstantParameters);
             bool needsServiceWrap = !withoutServiceFields && HasAnyServices(fragments);
-
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext!, null, replacer);
 
