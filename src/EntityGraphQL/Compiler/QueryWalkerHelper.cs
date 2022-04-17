@@ -64,9 +64,9 @@ namespace EntityGraphQL.Compiler
                     case SyntaxKind.FloatValue:
                         argValue = argType switch
                         {
-                            _ when argType == typeof(float) || argType == typeof(float?) => float.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(float) || argType == typeof(float?) => float.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
                             _ => argValue
                         };
                         break;
