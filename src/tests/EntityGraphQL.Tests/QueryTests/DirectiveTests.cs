@@ -1,6 +1,8 @@
+using System.Collections;
 using Xunit;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -159,7 +161,8 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data["people"])[0];
+            var fields = person.GetType().GetFields();
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));
@@ -183,7 +186,8 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data["people"])[0];
+            var fields = person.GetType().GetFields();
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));

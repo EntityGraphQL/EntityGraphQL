@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using EntityGraphQL.Compiler.Util;
@@ -62,9 +64,9 @@ namespace EntityGraphQL.Compiler
                     case SyntaxKind.FloatValue:
                         argValue = argType switch
                         {
-                            _ when argType == typeof(float) || argType == typeof(float?) => float.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(float) || argType == typeof(float?) => float.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
                             _ => argValue
                         };
                         break;
