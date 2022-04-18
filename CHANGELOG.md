@@ -9,8 +9,8 @@ Breaking changes
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
 - Directive interface for building custom directives has changed
 - `UseSort` field extension now takes an array of `SortInput<T>` so order of sorts is used
-
-Clean up on the schema building APIs to make them more consistent, documented and concise
+- Parsing floats/doubles/decimals now uses `CultureInfo.InvariantCulture`
+  Clean up on the schema building APIs to make them more consistent, documented and concise
 
 - Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery. Example
 

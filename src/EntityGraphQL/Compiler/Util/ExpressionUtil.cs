@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text.Json;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
@@ -107,6 +106,8 @@ namespace EntityGraphQL.Compiler.Util
                     return int.Parse((string)value);
                 if (toType == typeof(uint) || toType == typeof(uint?))
                     return uint.Parse((string)value);
+                if (toType == typeof(short) || toType == typeof(short?))
+                    return short.Parse((string)value);
                 if (toType == typeof(DateTime) || toType == typeof(DateTime?))
                     return DateTime.Parse((string)value);
                 if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
