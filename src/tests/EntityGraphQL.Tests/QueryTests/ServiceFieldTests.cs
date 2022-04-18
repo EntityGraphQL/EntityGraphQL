@@ -84,7 +84,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, pager.CallCount);
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Single(person.GetType().GetFields());
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("projects"));
         }
 
         [Fact]
@@ -139,9 +139,9 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Single(person.GetType().GetFields());
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("projects"));
             dynamic project = Enumerable.ElementAt((dynamic)person.projects, 0);
-            Assert.Equal("config", project.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.GetType().GetField("config"));
             Assert.Equal(1, srv.CallCount);
         }
 
@@ -183,8 +183,8 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, pager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.GetType().GetField("projects"));
+            Assert.NotNull(person.GetType().GetField("name"));
         }
 
         [Fact]
@@ -229,8 +229,8 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, pager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
-            Assert.Equal("manager", person.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.GetType().GetField("projects"));
+            Assert.NotNull(person.GetType().GetField("manager"));
         }
 
         [Fact]
@@ -276,8 +276,8 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, ager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("age", person.GetType().GetFields()[0].Name);
-            Assert.Equal("manager", person.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.GetType().GetField("age"));
+            Assert.NotNull(person.GetType().GetField("manager"));
         }
 
         [Fact]
@@ -326,8 +326,8 @@ namespace EntityGraphQL.Tests
             Type resultType = person.GetType();
             Assert.Single(resultType.GetFields());
             Assert.Equal("manager", resultType.GetFields()[0].Name);
-            Assert.Equal("name", person.manager.GetType().GetFields()[0].Name);
-            Assert.Equal("age", person.manager.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.manager.GetType().GetField("name"));
+            Assert.NotNull(person.manager.GetType().GetField("age"));
 
         }
 
@@ -460,7 +460,7 @@ namespace EntityGraphQL.Tests
             Assert.Single(projectType.GetFields());
             Assert.Equal("tasks", projectType.GetFields()[0].Name);
             Assert.Equal("settings", project.tasks.GetType().GetGenericArguments()[0].GetFields()[0].Name);
-            Assert.Equal("allowComments", project.tasks[0].settings.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.tasks[0].settings.GetType().GetField("allowComments"));
         }
 
         [Fact]
@@ -508,7 +508,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, projectType.GetFields().Count());
             Assert.Equal("totalTasks", projectType.GetFields()[0].Name);
             Assert.Equal("settings", projectType.GetFields()[1].Name);
-            Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.settings.GetType().GetField("allowComments"));
         }
 
         [Fact]
@@ -563,9 +563,9 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, settings.CallCount);
             Assert.Equal(2, projectType.GetFields().Count());
             Assert.Equal("owner", projectType.GetFields()[0].Name);
-            Assert.Equal("managerId", project.owner.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.owner.GetType().GetField("managerId"));
             Assert.Equal("settings", projectType.GetFields()[1].Name);
-            Assert.Equal("allowComments", project.settings.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.settings.GetType().GetField("allowComments"));
         }
 
         [Fact]

@@ -85,7 +85,7 @@ namespace EntityGraphQL.Tests
             var user = Enumerable.ElementAt((dynamic)result.Data["users"], 0);
             // we only have the fields requested
             Assert.Single(user.GetType().GetFields());
-            Assert.Equal("id", user.GetType().GetFields()[0].Name);
+            Assert.NotNull(user.GetType().GetField("id"));
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace EntityGraphQL.Tests
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "user");
             var user = person.user;
             Assert.Single(user.GetType().GetFields());
-            Assert.Equal("field1", user.GetType().GetFields()[0].Name);
+            Assert.NotNull(user.GetType().GetField("field1"));
         }
 
         [Fact]
@@ -164,7 +164,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, Enumerable.Count(projects));
             var project = Enumerable.ElementAt(projects, 0);
             Assert.Equal(1, project.GetType().GetFields().Length);
-            Assert.Equal("name", project.GetType().GetFields()[0].Name);
+            Assert.NotNull(project.GetType().GetField("name"));
         }
 
         [Fact]

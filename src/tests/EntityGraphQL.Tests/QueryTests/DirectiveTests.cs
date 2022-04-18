@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(result.Errors);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
         }
         [Fact]
         public void TestIncludeIfTrueVariable()
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
         }
         [Fact]
         public void TestSkipIfFalseConstant()
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
         }
 
         [Fact]
@@ -137,6 +137,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            Assert.Null(result.Errors);
             Assert.Empty(result.Data);
         }
 
@@ -160,8 +161,8 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
+            Assert.NotNull(person.GetType().GetField("name"));
         }
 
         [Fact]
@@ -184,8 +185,8 @@ namespace EntityGraphQL.Tests
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
+            Assert.NotNull(person.GetType().GetField("name"));
         }
     }
 }

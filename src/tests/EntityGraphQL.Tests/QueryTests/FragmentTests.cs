@@ -28,9 +28,9 @@ fragment info on Person {
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
-            Assert.Equal("projects", person.GetType().GetFields()[2].Name);
+            Assert.NotNull(person.GetType().GetField("id"));
+            Assert.NotNull(person.GetType().GetField("name"));
+            Assert.NotNull(person.GetType().GetField("projects"));
         }
         [Fact]
         public void SupportsFragmentWithDirective()
@@ -53,7 +53,7 @@ fragment info on Person {
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
-            Assert.Equal("projects", person.GetType().GetFields()[0].Name);
+            Assert.NotNull(person.GetType().GetField("projects"));
         }
 
         [Fact]

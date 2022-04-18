@@ -317,8 +317,8 @@ namespace EntityGraphQL.Tests
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal("projects", addPersonResult.GetType().GetFields()[2].Name);
+            Assert.NotNull(addPersonResult.GetType().GetField("id"));
+            Assert.NotNull(addPersonResult.GetType().GetField("projects"));
             Assert.Equal(1, Enumerable.Count(addPersonResult.projects));
             Assert.Equal("Bill", addPersonResult.name);
         }
@@ -361,8 +361,8 @@ namespace EntityGraphQL.Tests
             addPersonResult = addPersonResult.Value;
             // we only have the fields requested
             Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.NotNull(addPersonResult.GetType().GetField("id"));
+            Assert.NotNull(addPersonResult.GetType().GetField("age"));
         }
 
         [Fact]
@@ -402,8 +402,8 @@ namespace EntityGraphQL.Tests
             addPersonResult = Enumerable.First(addPersonResult);
             // we only have the fields requested
             Assert.Equal(2, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
-            Assert.Equal("age", addPersonResult.GetType().GetFields()[1].Name);
+            Assert.NotNull(addPersonResult.GetType().GetField("id"));
+            Assert.NotNull(addPersonResult.GetType().GetField("age"));
         }
 
         [Fact]
@@ -435,7 +435,7 @@ namespace EntityGraphQL.Tests
             addPersonResult = Enumerable.First(addPersonResult);
             // we only have the fields requested
             Assert.Equal(1, addPersonResult.GetType().GetFields().Length);
-            Assert.Equal("id", addPersonResult.GetType().GetFields()[0].Name);
+            Assert.NotNull(addPersonResult.GetType().GetField("id"));
         }
 
         [Fact]

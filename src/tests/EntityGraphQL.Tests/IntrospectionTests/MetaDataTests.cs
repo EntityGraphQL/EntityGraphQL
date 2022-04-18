@@ -25,7 +25,7 @@ namespace EntityGraphQL.Tests
             var user = Enumerable.First((dynamic)users.Data["users"]);
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
-            Assert.Equal("__typename", user.GetType().GetFields()[0].Name);
+            Assert.NotNull(user.GetType().GetField("__typename"));
             Assert.Equal("User", user.__typename);
         }
 

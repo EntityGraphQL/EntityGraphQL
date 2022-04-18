@@ -67,7 +67,6 @@ namespace EntityGraphQL.Compiler
 
             foreach (var fieldNode in QueryFields)
             {
-                result[fieldNode.Name] = null;
                 try
                 {
                     Stopwatch? timer = null;
@@ -77,7 +76,7 @@ namespace EntityGraphQL.Compiler
                         timer.Start();
                     }
 
-                    var data = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, docVariables);
+                    (var data, var didExecute) = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, docVariables);
 
                     if (options.IncludeDebugInfo == true)
                     {
@@ -85,7 +84,8 @@ namespace EntityGraphQL.Compiler
                         result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 
-                    result[fieldNode.Name] = data;
+                    if (didExecute)
+                        result[fieldNode.Name] = data;
                 }
                 catch (Exception ex)
                 {
@@ -122,7 +122,7 @@ namespace EntityGraphQL.Compiler
             return variablesToUse;
         }
 
-        protected object? CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
+        protected (object? result, bool didExecute) CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
         {
             object? runningContext = context;
 
@@ -146,9 +146,9 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    runningContext = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options, docVariables);
+                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, node, replacer, options, docVariables);
                     if (runningContext == null)
-                        return null;
+                        return (null, true);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
                     var newContextType = Expression.Parameter(runningContext.GetType(), "_ctx");
@@ -170,8 +170,12 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
-        protected object? ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
+        protected (object? result, bool didExecute) ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
         {
+            // they had a query with a directive that was skipped, resulting in an empty query?
+            if (expression == null)
+                return (null, false);
+
             var allArgs = new List<object> { context };
 
             var parameters = new List<ParameterExpression> { contextParam };
@@ -202,9 +206,9 @@ namespace EntityGraphQL.Compiler
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
 #if DEBUG
             if (options?.NoExecution == true)
-                return null;
+                return (null, false);
 #endif
-            return lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+            return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);
         }
 
         public void AddField(BaseGraphQLField field)

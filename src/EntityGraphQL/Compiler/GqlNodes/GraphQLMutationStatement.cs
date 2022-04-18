@@ -24,7 +24,6 @@ namespace EntityGraphQL.Compiler
             var result = new ConcurrentDictionary<string, object?>();
             foreach (GraphQLMutationField node in QueryFields)
             {
-                result[node.Name] = null;
                 try
                 {
                     Stopwatch? timer = null;
@@ -33,7 +32,7 @@ namespace EntityGraphQL.Compiler
                         timer = new Stopwatch();
                         timer.Start();
                     }
-                    var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, variables);
+                    (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, variables);
                     if (options.IncludeDebugInfo == true)
                     {
                         timer?.Stop();
@@ -56,17 +55,17 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        private async Task<(object?, bool)> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             if (context == null)
-                return null;
+                return (null, false);
             // run the mutation to get the context for the query select
             object? docVariables = BuildDocumentVariables(ref variables);
             var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
-                return result;
+                return (result, true);
 
             var resultExp = node.ResultSelection;
 
@@ -118,8 +117,8 @@ namespace EntityGraphQL.Compiler
                 }
                 resultExp.RootParameter = mutationContextParam;
 
-                result = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options, docVariables);
-                return result;
+                (result, _) = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options, docVariables);
+                return (result, true);
             }
             // we now know the context as it is dynamically returned in a mutation
             if (resultExp is GraphQLListSelectionField field)
@@ -130,8 +129,8 @@ namespace EntityGraphQL.Compiler
             }
 
             // run the query select against the object they have returned directly from the mutation
-            result = CompileAndExecuteNode(result, serviceProvider, fragments, node.ResultSelection, options, docVariables);
-            return result;
+            (result, _) = CompileAndExecuteNode(result!, serviceProvider, fragments, node.ResultSelection, options, docVariables);
+            return (result, true);
         }
 
         private static void SetupConstants(BaseGraphQLQueryField resultExp, Expression mutationContextExpression)
