@@ -9,7 +9,7 @@ namespace EntityGraphQL
     {
         private List<GraphQLError>? errors = null;
         public ReadOnlyCollection<GraphQLError>? Errors => errors?.AsReadOnly();
-        public ConcurrentDictionary<string, object?> Data { get; set; } = new();
+        public ConcurrentDictionary<string, object?>? Data { get; set; } = null;
 
         public QueryResult() { }
         public QueryResult(GraphQLError error)
