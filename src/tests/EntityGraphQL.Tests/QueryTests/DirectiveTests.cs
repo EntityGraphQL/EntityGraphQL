@@ -1,6 +1,8 @@
+using System.Collections;
 using Xunit;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -158,10 +160,12 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data["people"])[0];
+            var fields = person.GetType().GetFields();
+            var fieldsNames = ((IEnumerable)fields).Cast<dynamic>().Select(_ => _.Name);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains("id", fieldsNames);
+            Assert.Contains("name", fieldsNames);
         }
 
         [Fact]
@@ -182,10 +186,12 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data["people"])[0];
+            var fields = person.GetType().GetFields();
+            var fieldsNames = ((IEnumerable)fields).Cast<dynamic>().Select(_ => _.Name);
             Assert.Equal(2, person.GetType().GetFields().Length);
-            Assert.Equal("id", person.GetType().GetFields()[0].Name);
-            Assert.Equal("name", person.GetType().GetFields()[1].Name);
+            Assert.Contains("id", fieldsNames);
+            Assert.Contains("name", fieldsNames);
         }
     }
 }

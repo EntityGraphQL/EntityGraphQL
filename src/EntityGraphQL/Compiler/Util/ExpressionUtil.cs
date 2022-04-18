@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -97,9 +98,11 @@ namespace EntityGraphQL.Compiler.Util
             if (toType != typeof(string) && fromType == typeof(string))
             {
                 if (toType == typeof(double) || toType == typeof(double?))
-                    return double.Parse((string)value);
+                    return double.Parse((string)value, CultureInfo.InvariantCulture);
+                if (toType == typeof(decimal) || toType == typeof(decimal?))
+                    return decimal.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(float) || toType == typeof(float?))
-                    return float.Parse((string)value);
+                    return float.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(int) || toType == typeof(int?))
                     return int.Parse((string)value);
                 if (toType == typeof(uint) || toType == typeof(uint?))
