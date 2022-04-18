@@ -162,7 +162,6 @@ namespace EntityGraphQL.Tests
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
-            var fields = person.GetType().GetFields();
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));
@@ -187,7 +186,6 @@ namespace EntityGraphQL.Tests
             };
             var result = schemaProvider.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
-            var fields = person.GetType().GetFields();
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));
