@@ -1,7 +1,7 @@
 ---
-title: "Field Extensions"
-metaTitle: "Field Extensions - EntityGraphQL"
-metaDescription: "Extending your schema fields in EntityGraphQL"
+title: 'Field Extensions'
+metaTitle: 'Field Extensions - EntityGraphQL'
+metaDescription: 'Extending your schema fields in EntityGraphQL'
 ---
 
 EntityGraphQL provides field extension methods for modifying you field expressions with common use cases, such as paging collections.
@@ -11,9 +11,10 @@ The following highlights the provided field extensions in EntityGraphQL availabl
 - [`UseFilter`](/field-extensions/02-filtering) to add expression based filtering to collections
 - [`UseSort`](/field-extensions/03-sorting) to add a `sort` argument to your collections
 - [Paging](/field-extensions/01-paging)
-    - [`UseConnectionPaging`](/field-extensions/01-paging#connectionpagingmodel) for paging collections
-    - [`UseOffsetPaging`](/field-extensions/01-paging#offsetpaging) for paging collections
+  - [`UseConnectionPaging`](/field-extensions/01-paging#connectionpagingmodel) for paging collections
+  - [`UseOffsetPaging`](/field-extensions/01-paging#offsetpaging) for paging collections
 - [Creating](/field-extensions/04-custom-extensions) your own Field Extensions
 
-When combining multiple extensions together on a single field *order matters*. The correct order is
+When combining multiple extensions together on a single field _order matters_. The correct order is for the provided extensions is
+
 > Filter -> Sort -> Paging

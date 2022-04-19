@@ -1,30 +1,14 @@
 ---
-title: "Paging"
-metaTitle: "Add paging to your fields - EntityGraphQL"
-metaDescription: "Add paging to your GraphQL fields"
+title: 'Paging'
+metaTitle: 'Add paging to your fields - EntityGraphQL'
+metaDescription: 'Add paging to your GraphQL fields'
 ---
 
 Paging can be handled in any way you can build your field expressions. It all depends on your requirements and how you want your API to work.
 
-# Simple Skip/Take
-
-A simple example is to use `skip` and `take` arguments in your collection fields. For example in the schema we have been working with we could modify the `movies` field (and other collections) like so.
-
-```
-schemaProvider.ReplaceField(
-  "movies",
-  new { // add our field arguments
-    take = 10, // defaults
-    skip = 0
-  },
-  (db, args) => db.Movies
-    .Skip(args.skip) // do paging
-    .Take(args.take),
-  "Get a page of movies"
-);
-```
-
 The API user will just have to keep asking for more items until it doesn't get any results.
+
+Note: When using one of the below field extensions with any of the other field extensions, make sure the paging one is added last. Filter -> Sort -> Paging.
 
 # Connection Paging Model
 
@@ -119,6 +103,7 @@ movies(first: 4, after: "MQ==") {
 ```
 
 # Default & Max Page Size
+
 You can set an optional default page size or max page size for the connection paging model.
 
 ```
@@ -185,6 +170,7 @@ public class OffsetPage<TEntity>
 ```
 
 # Default & Max Page Size
+
 You can set an optional default page size or max page size for the offset paging model.
 
 ```
@@ -198,3 +184,21 @@ myField
 If the `take` argument is `null` the `defaultPageSize` value will be set to it.
 
 If the `take` argument is greater then the `maxPageSize` value an error is raised and the query will fail.
+
+# Custom Paging
+
+A simple example is to use `skip` and `take` arguments in your collection fields. For example in the schema we have been working with we could modify the `movies` field (and other collections) like so.
+
+```
+schemaProvider.ReplaceField(
+  "movies",
+  new { // add our field arguments
+    take = 10, // defaults
+    skip = 0
+  },
+  (db, args) => db.Movies
+    .Skip(args.skip) // do paging
+    .Take(args.take),
+  "Get a page of movies"
+);
+```

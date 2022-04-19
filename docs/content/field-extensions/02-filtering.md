@@ -29,6 +29,8 @@ public class DemoContext : DbContext
 
 This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `filter: String`.
 
+Note: When using with the paging or sort extensions ensure you call `UseFilter` before both others. If you are using the attribute, then ensure the Filter attribute comes before the other attributes.
+
 The `filter` argument takes a string that will be compiled to an expression and inserted into a `Where()` call. The expression is compiled against your schema and the context is the type of elements in the collection.
 
 For example, given `ctx => ctx.People` returns a `IEnumerable<Person>` and `Person` is defined as:
