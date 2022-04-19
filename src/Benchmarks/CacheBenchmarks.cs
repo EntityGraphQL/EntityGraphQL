@@ -32,7 +32,7 @@ namespace Benchmarks
 
             for (int i = 0; i < 10000; i++)
             {
-                graphQLCompiler.Compile(new QueryRequestContext(gql, null, null));
+                graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
             }
         }
 

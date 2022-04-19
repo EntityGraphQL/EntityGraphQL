@@ -3,9 +3,8 @@ using EntityGraphQL.Schema;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using EntityGraphQL.AspNet;
 
-namespace EntityGraphQL.Tests
+namespace EntityGraphQL.AspNet.Tests
 {
     public class PoliciesTests
     {

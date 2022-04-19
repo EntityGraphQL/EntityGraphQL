@@ -34,6 +34,7 @@ namespace EntityGraphQL.Schema
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly bool introspectionEnabled;
         private readonly MutationType mutationType;
+        public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -108,6 +109,15 @@ namespace EntityGraphQL.Schema
             directives.Add(skip.Name, skip);
         }
 
+        /// <summary>
+        /// Add a custom type converter. Used when converting query variables into the expected dotnet types
+        /// </summary>
+        /// <param name="typeConverter"></param>
+        public void AddCustomTypeConverter(ICustomTypeConverter typeConverter)
+        {
+            TypeConverters.Add(typeConverter.Type, typeConverter);
+        }
+
         private void SetupIntrospectionTypesAndField()
         {
             if (!introspectionEnabled)
@@ -131,7 +141,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions? options = null)
+        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
             return ExecuteRequestAsync(gql, context, serviceProvider, user, options).Result;
         }
@@ -146,7 +156,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider serviceProvider, ClaimsPrincipal user, ExecutionOptions? options = null)
+        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
             QueryResult result;
             try
@@ -172,7 +182,7 @@ namespace EntityGraphQL.Schema
                             throw new EntityGraphQLExecutionException("PersistedQueryNotFound");
                         else if (compiledQuery == null)
                         {
-                            compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                            compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                             queryCache.AddCompiledQuery(hash, compiledQuery);
                         }
                     }
@@ -183,7 +193,7 @@ namespace EntityGraphQL.Schema
                         if (options.EnableQueryCache)
                             compiledQuery = CompileQueryWithCache(gql, user);
                         else
-                            compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                            compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                     }
                 }
                 else if (options.EnableQueryCache)
@@ -202,7 +212,7 @@ namespace EntityGraphQL.Schema
                         throw new ArgumentNullException(nameof(gql.Query), "Query must be set unless you are using persisted queries");
                     }
 
-                    compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                    compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                 }
 
                 result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.Variables, gql.OperationName, options);
@@ -223,7 +233,7 @@ namespace EntityGraphQL.Schema
             return Task.FromResult(result);
         }
 
-        private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ClaimsPrincipal user)
+        private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ClaimsPrincipal? user)
         {
             GraphQLDocument? compiledQuery;
             // try to get the compiled query from the cache
@@ -239,7 +249,7 @@ namespace EntityGraphQL.Schema
             (compiledQuery, var hash) = queryCache.GetCompiledQuery(gql.Query, null);
             if (compiledQuery == null)
             {
-                compiledQuery = graphQLCompiler.Compile(new QueryRequestContext(gql, AuthorizationService, user));
+                compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                 queryCache.AddCompiledQuery(hash, compiledQuery);
             }
 

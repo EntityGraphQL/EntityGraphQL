@@ -50,49 +50,6 @@ public class PersistedQueriesTests
             Assert.Equal(5, Enumerable.Count(project.tasks));
         }
     }
-    [Fact]
-    public void TestPersistedQueryLookupJson()
-    {
-        var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var data = new TestDataContext();
-        FillProjectData(data);
-
-        var query = @"{ project(id: 99) { name tasks { name id } } }";
-        var hash = new QueryCache().ComputeHash(query);
-
-        var json = @"{
-            ""query"": """ + query + @""",
-            ""extensions"": {
-                ""persistedQuery"": {
-                    ""sha256Hash"": """ + hash + @""",
-                    ""version"": 1
-                }
-            }
-        }";
-        var gql = JsonSerializer.Deserialize<QueryRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
-        CheckResult(result);
-
-        gql = JsonSerializer.Deserialize<QueryRequest>(@"{
-            ""extensions"": {
-                ""persistedQuery"": {
-                    ""sha256Hash"": """ + hash + @""",
-                    ""version"": 1
-                }
-            }
-        }", new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
-        CheckResult(result);
-
-        static void CheckResult(QueryResult result)
-        {
-            Assert.Null(result.Errors);
-
-            dynamic project = result.Data["project"];
-            Assert.Equal(5, Enumerable.Count(project.tasks));
-        }
-    }
 
     [Fact]
     public void TestPersistedQueryLookupNotFound()

@@ -5,6 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
+    <!-- <nullable>enable</nullable> -->
   </PropertyGroup>
 
   <ItemGroup>

@@ -19,18 +19,9 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   not(), !
     public static class EntityQueryCompiler
     {
-        public static CompiledQueryResult Compile(QueryRequestContext requestContext)
-        {
-            return Compile(requestContext, null, new DefaultMethodProvider());
-        }
         public static CompiledQueryResult Compile(string query)
         {
-            return Compile(new QueryRequestContext(new QueryRequest { Query = query }, null, null), null, new DefaultMethodProvider());
-        }
-
-        public static CompiledQueryResult Compile(string query, ISchemaProvider schemaProvider, IMethodProvider? methodProvider = null)
-        {
-            return Compile(new QueryRequestContext(new QueryRequest { Query = query }, null, null), schemaProvider, methodProvider ?? new DefaultMethodProvider());
+            return Compile(query, null, new DefaultMethodProvider());
         }
 
         /// <summary>
@@ -40,17 +31,20 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static CompiledQueryResult Compile(QueryRequestContext requestContext, ISchemaProvider? schemaProvider, IMethodProvider methodProvider)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider? schemaProvider, IMethodProvider? methodProvider = null)
         {
-            if (requestContext.Query.Query == null)
-                throw new ArgumentNullException(nameof(requestContext.Query.Query));
+            if (query == null)
+                throw new ArgumentNullException(nameof(query));
 
             ParameterExpression? contextParam = null;
+
+            if (methodProvider == null)
+                methodProvider = new DefaultMethodProvider();
 
             if (schemaProvider != null)
                 contextParam = Expression.Parameter(schemaProvider.QueryContextType, $"cxt_{schemaProvider.QueryContextType.Name}");
 
-            var expression = CompileQuery(requestContext.Query.Query, contextParam, schemaProvider, requestContext, methodProvider);
+            var expression = CompileQuery(query, contextParam, schemaProvider, new QueryRequestContext(null, null), methodProvider);
 
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)

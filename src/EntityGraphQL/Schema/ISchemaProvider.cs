@@ -19,6 +19,7 @@ namespace EntityGraphQL.Schema
         Func<string, string> SchemaFieldNamer { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
         string QueryContextName { get; }
+        IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }
 
         void AddDirective(IDirectiveProcessor directive);
         ISchemaType AddEnum(string name, Type type, string description);

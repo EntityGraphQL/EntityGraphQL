@@ -29,7 +29,7 @@ namespace EntityGraphQL.Compiler
             return new List<BaseGraphQLField> { this };
         }
 
-        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
         {
             // do we have services at this level
             if (withoutServiceFields && Services.Any())

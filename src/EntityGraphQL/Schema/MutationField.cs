@@ -50,7 +50,7 @@ namespace EntityGraphQL.Schema
             DeprecationReason = reason;
         }
 
-        public async Task<object?> CallAsync(object? context, Dictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider serviceProvider, ParameterExpression? variableParameter, object? docVariables, Func<string, string> fieldNamer)
+        public async Task<object?> CallAsync(object? context, Dictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables, Func<string, string> fieldNamer)
         {
             if (context == null)
                 return null;
@@ -81,7 +81,7 @@ namespace EntityGraphQL.Schema
                     {
                         allArgs.Add(validator);
                     }
-                    else
+                    else if (serviceProvider != null)
                     {
                         var service = serviceProvider.GetService(p.ParameterType);
                         if (service == null)

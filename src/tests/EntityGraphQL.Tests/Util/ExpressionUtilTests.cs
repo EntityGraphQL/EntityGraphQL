@@ -1,6 +1,4 @@
-using System;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests.Util

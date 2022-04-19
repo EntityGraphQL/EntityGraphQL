@@ -268,16 +268,49 @@ public class QueryController : Controller
 }
 ```
 
-It is recommended to use [Newtonsoft.Json](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson) when using using .NET Core 3.1 due to problems with the System.Text.Json serialization in .NET Core 3.1 and dictionaries.
+## Configuring System.Text.Json
 
-You can use System.Text.Json with .NET Core 5.0+. If you use your own controller to execute GraphQL, configure System.Text.Json like so for best compatiablity with other tools.
+If you use your own controller/method to execute GraphQL and use `System.Text.Json`, it is best to configure it like below for best compatiablity with other tools.
 
 ```
 services.AddControllers()
     .AddJsonOptions(opts =>
     {
+        // Use enum field names instead of numbers
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // EntityGraphQL internally builds types with fields
         opts.JsonSerializerOptions.IncludeFields = true;
+        // The fields internally built already are named with fieldNamer (defaults to camelCase). This is
+        // for the properties on QueryResult (Data, Errors) to match what most tools etc expect (camelCase)
         opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 ```
+
+## Deserialization of QueryRequest & QueryVariables
+
+If you are using you're own controller/method to execute GraphQL and deserializing a graphql request like below into the `GraphQLRequest` object. You need to be aware of how your serializer handles nested `Dictionary<string, object>`.
+
+_Sample incoming json request_
+
+```
+{
+  "query": "mutation Mutate($var: ComplexInputType){ doUpdate($var) }",
+  "variables": {
+    "var": {
+      "name": "Lisa",
+      "lastName": "Simpson"
+    }
+  }
+}
+```
+
+Many deserilaizers will deserialize this into the `QueryRequest.Variables` object with the value of `var` as a `JsonElement` (`System.Text.Json`) or a `JObject` (`Newtonsoft.Json`). e.g.
+
+```
+var gql = JsonSerializer.Deserialize<QueryRequest>(query);
+Assert.True(gql.Variables["var"].GetType() == typeof(JsonElement));
+```
+
+What we want is a nested `Dictionary<string, object>`. `EntityGraphQL` handles System.Text.Json's `JsonElement` itself. However if you are using `Newtonsoft.Json` or another library (that doesn't deserialize to nested dictionaries) you will have to provide a custom type converter.
+
+See the serialization tests for [an example with Newtonsoft.Json](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).

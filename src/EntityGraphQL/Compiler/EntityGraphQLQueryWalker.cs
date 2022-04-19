@@ -16,6 +16,7 @@ namespace EntityGraphQL.Compiler
     internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?>
     {
         private readonly ISchemaProvider schemaProvider;
+        private readonly QueryVariables? variables;
         private readonly QueryRequestContext requestContext;
         private ExecutableGraphQLStatement? currentOperation;
 
@@ -25,10 +26,11 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public GraphQLDocument? Document { get; private set; }
 
-        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryRequestContext context)
+        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryVariables? variables, QueryRequestContext context)
         {
             this.requestContext = context;
             this.schemaProvider = schemaProvider;
+            this.variables = variables;
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
 
             // these are the variables that can change each request for the same query
-            var operationVariables = ProcessVariableDefinitions(requestContext.Query.Variables, node);
+            var operationVariables = ProcessVariableDefinitions(variables, node);
 
             if (node.Operation == OperationType.Query)
             {

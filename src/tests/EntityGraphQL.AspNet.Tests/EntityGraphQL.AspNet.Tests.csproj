@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../EntityGraphQL.AspNet/EntityGraphQL.AspNet.csproj" />
+    <ProjectReference Include="../EntityGraphQL.Tests/EntityGraphQL.Tests.csproj" />
   </ItemGroup>
   
   <ItemGroup>

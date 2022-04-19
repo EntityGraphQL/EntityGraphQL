@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EntityGraphQL.Tests
 {
-    internal class PeopleMutations
+    public class PeopleMutations
     {
         private static int idCount = 0;
         [GraphQLMutation]
@@ -133,19 +133,19 @@ namespace EntityGraphQL.Tests
     }
 
     [MutationArguments]
-    internal class ListArgs
+    public class ListArgs
     {
         public List<InputObject> Inputs { get; set; }
     }
 
     [MutationArguments]
-    internal class ListIntArgs
+    public class ListIntArgs
     {
         public List<InputObjectId> Inputs { get; set; }
     }
 
     [MutationArguments]
-    internal class PeopleMutationsArgs
+    public class PeopleMutationsArgs
     {
         public string Name { get; set; }
         public List<string> Names { get; set; }
@@ -154,13 +154,13 @@ namespace EntityGraphQL.Tests
     }
 
     [MutationArguments]
-    internal class GuidArgs
+    public class GuidArgs
     {
         [Required]
         public Guid Id { get; set; }
     }
     [MutationArguments]
-    internal class GuidNonNullArgs
+    public class GuidNonNullArgs
     {
         public Guid Id { get; set; }
     }

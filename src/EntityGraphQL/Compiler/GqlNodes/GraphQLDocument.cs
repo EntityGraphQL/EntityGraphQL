@@ -55,7 +55,7 @@ namespace EntityGraphQL.Compiler
 
         public Dictionary<string, object> Arguments { get; }
 
-        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
+        public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {
             return ExecuteQueryAsync(context, services, variables, operationName, options).Result;
         }
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="services">Service provider used for DI</param>
         /// <param name="operationName">Optional operation name</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider services, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)

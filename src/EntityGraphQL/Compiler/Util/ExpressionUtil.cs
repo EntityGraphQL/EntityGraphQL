@@ -56,6 +56,10 @@ namespace EntityGraphQL.Compiler.Util
                 return null;
 
             var fromType = value.GetType();
+
+            if (schema?.TypeConverters?.ContainsKey(fromType) == true)
+                return schema.TypeConverters[fromType].ChangeType(value, fromType, toType, schema);
+
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
             if (typeof(JsonElement).IsAssignableFrom(fromType))
             {
@@ -484,7 +488,7 @@ namespace EntityGraphQL.Compiler.Util
         public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query)
         {
             var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
-            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(new QueryRequest() { Query = query }, null, null)).ExpressionResult;
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null)).ExpressionResult;
             expression = Expression.Lambda(expression, contextParam);
             return expression;
         }

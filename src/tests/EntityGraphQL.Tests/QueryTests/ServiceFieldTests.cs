@@ -1217,7 +1217,7 @@ namespace EntityGraphQL.Tests
             var context = new TestDataContext();
             context.FillWithTestData();
 
-            var doc = new GraphQLCompiler(schema).Compile(new QueryRequestContext(gql, null, null));
+            var doc = new GraphQLCompiler(schema).Compile(gql, new QueryRequestContext(null, null));
 
             Assert.Single(doc.Operations);
             Assert.Single(doc.Operations[0].QueryFields);

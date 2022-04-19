@@ -21,13 +21,11 @@
     <PackageReference Include="Antlr4" Version="4.6.6" />
     <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-    <PackageReference Include="System.Text.Json" Version="6.0.2" />
+    <PackageReference Include="System.Text.Json" Version="6.0.3" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="HotChocolate.Language" Version="12.7.0" />
   </ItemGroup>
   <ItemGroup>

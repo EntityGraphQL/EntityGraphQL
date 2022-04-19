@@ -11,6 +11,18 @@ Breaking changes
 - `UseSort` field extension now takes an array of `SortInput<T>` so order of sorts is used
 - Parsing floats/doubles/decimals now uses `CultureInfo.InvariantCulture`
   Clean up on the schema building APIs to make them more consistent, documented and concise
+- Fix #89 - Remove JSON.NET dependency - This means internally if EntityGraphQL hits a `JObject` or `JToken` it does not know what to do with them. Make sure `QueryRequest.Variables` are fully deserialized. I.e. do not have any `JObject`/`JToken`s in there. Deserialize them to nested `Dictionary<string, object>`.
+
+If you use the EntityGraphQL.AspNet package and the `MapGraphQL()` method you do not need to worry about anything. EntityGraphQL.AspNet uses `System.Text.Json` and handles the nested `JsonElement`s with a custom type converter.
+
+If you are directly using `SchemaProvider.ExecuteRequest()` (i.e. from a Controller or elsewhere), and you are using `Newtonsoft.Json` to deserilaize the incoming `QueryRequest` you can add a custom converter to your schema to handle nested `JObject`/`JToken`s when encounted in query variables.
+
+```
+schema.AddCustomTypeConverter(new JObjectTypeConverter());
+schema.AddCustomTypeConverter(new JTokenTypeConverter());
+```
+
+See the [serialization tests for an example](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
 
 - Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery. Example
 
@@ -52,7 +64,6 @@ Fixes
 - Fix field name looks up that were not using the `fieldNamer` function in `SchemaProvider`
 - Fix bug where compiler would loop through all available arguments even if it already found the matching type
 - Fix argument types of unsigned short/int/long
-- Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
 - Fix #72 - Handling dictionaries introspection - note it will try to create a scalar type `KeyValuePair<T1, T2>` in the schema by default
 - Fix handling argument types of unsigned short/int/long
 - Fix issue parsing float/double argument values

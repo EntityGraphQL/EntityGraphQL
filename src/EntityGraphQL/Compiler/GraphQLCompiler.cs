@@ -30,22 +30,26 @@ namespace EntityGraphQL.Compiler
             {
                 variables = new QueryVariables();
             }
-            return Compile(new QueryRequestContext(new QueryRequest { Query = query, Variables = variables }, authService, user));
+            return Compile(new QueryRequest { Query = query, Variables = variables }, new QueryRequestContext(authService, user));
         }
         public GraphQLDocument Compile(QueryRequest query, IGqlAuthorizationService? authService = null, ClaimsPrincipal? user = null)
         {
-            return Compile(new QueryRequestContext(query, authService, user));
+            return Compile(query, new QueryRequestContext(authService, user));
         }
-        public GraphQLDocument Compile(QueryRequestContext context)
+        public GraphQLDocument Compile(string query, QueryRequestContext context)
         {
-            if (context.Query.Query == null)
+            return Compile(new QueryRequest { Query = query }, context);
+        }
+        public GraphQLDocument Compile(QueryRequest query, QueryRequestContext context)
+        {
+            if (query.Query == null)
                 throw new EntityGraphQLCompilerException($"GraphQL Query can not be null");
 
-            DocumentNode document = Utf8GraphQLParser.Parse(context.Query.Query, ParserOptions.Default);
-            var walker = new EntityGraphQLQueryWalker(schemaProvider, context);
+            DocumentNode document = Utf8GraphQLParser.Parse(query.Query, ParserOptions.Default);
+            var walker = new EntityGraphQLQueryWalker(schemaProvider, query.Variables, context);
             walker.Visit(document);
             if (walker.Document == null)
-                throw new EntityGraphQLCompilerException($"Error compiling query: {context.Query.Query}");
+                throw new EntityGraphQLCompilerException($"Error compiling query: {query.Query}");
             return walker.Document;
         }
     }

@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public virtual Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public virtual Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Compiler
                 {
                     try
                     {
-                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, null);
+                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, schema);
                         OpVariableParameter.Type.GetField(name).SetValue(variablesToUse, argValue);
                     }
                     catch (Exception ex)
@@ -122,7 +122,7 @@ namespace EntityGraphQL.Compiler
             return variablesToUse;
         }
 
-        protected (object? result, bool didExecute) CompileAndExecuteNode(object context, IServiceProvider serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
+        protected (object? result, bool didExecute) CompileAndExecuteNode(object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
         {
             object? runningContext = context;
 
@@ -170,7 +170,7 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
-        protected (object? result, bool didExecute) ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
+        protected (object? result, bool didExecute) ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)

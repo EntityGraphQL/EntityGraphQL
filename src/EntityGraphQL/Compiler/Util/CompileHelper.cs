@@ -8,7 +8,7 @@ namespace EntityGraphQL.Compiler
 {
     public static class GraphQLHelper
     {
-        public static Expression InjectServices(IServiceProvider serviceProvider, IEnumerable<Type> services, List<object> allArgs, Expression expression, List<ParameterExpression> parameters, ParameterReplacer replacer)
+        public static Expression InjectServices(IServiceProvider? serviceProvider, IEnumerable<Type> services, List<object> allArgs, Expression expression, List<ParameterExpression> parameters, ParameterReplacer replacer)
         {
             foreach (var serviceType in services.Distinct())
             {
@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
                 {
                     srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
                     parameters.Add(srvParam);
-                    var service = serviceProvider.GetService(serviceType);
+                    var service = serviceProvider!.GetService(serviceType);
                     allArgs.Add(service);
                 }
 
