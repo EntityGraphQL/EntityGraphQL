@@ -202,7 +202,7 @@ namespace EntityGraphQL.Schema
         private (Expression, object?) PrepareFieldExpression(Dictionary<string, object> args, Field field, Expression result, ParameterReplacer parameterReplacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass)
         {
             object? argumentValues = null;
-            if (field.ArgumentsType != null && args != null && FieldParam != null)
+            if (field.ArgumentsType != null && FieldParam != null)
             {
                 argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables);
                 if (Extensions.Count > 0)

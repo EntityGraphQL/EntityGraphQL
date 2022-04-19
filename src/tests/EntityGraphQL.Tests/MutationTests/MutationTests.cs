@@ -497,7 +497,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("'needsGuid' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Equal("Field error: needsGuid - 'needsGuid' missing required argument 'id'", results.Errors[0].Message);
         }
 
         [Fact]
@@ -517,7 +517,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Equal("Field error: needsGuidNonNull - 'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
         }
         [Fact]
         public void TestListArgInputType()

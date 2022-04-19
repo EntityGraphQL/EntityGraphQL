@@ -108,15 +108,6 @@ namespace EntityGraphQL.Compiler
             return argValue;
         }
 
-        public static void CheckRequiredArguments(IField actualField, Dictionary<string, object>? args)
-        {
-            foreach (var fieldArg in actualField.Arguments)
-            {
-                if (fieldArg.Value.IsRequired && args?.ContainsKey(fieldArg.Key) == false && fieldArg.Value.DefaultValue == null)
-                    throw new EntityGraphQLCompilerException($"'{actualField.Name}' missing required argument '{fieldArg.Key}'");
-            }
-        }
-
         public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
         {
             var list = (IList)Activator.CreateInstance(fieldArgType);

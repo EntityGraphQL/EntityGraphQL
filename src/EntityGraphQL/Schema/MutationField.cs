@@ -58,9 +58,9 @@ namespace EntityGraphQL.Schema
             // args in the mutation method
             var allArgs = new List<object>();
 
-            if (gqlRequestArgs?.Count > 0)
+            if (Arguments.Count > 0)
             {
-                var argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, gqlRequestArgs, Arguments.Values, ArgumentsType, variableParameter, docVariables);
+                var argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
                 VaildateModelBinding(argInstance, validator);
                 if (validator.Errors.Any())
                     return null;

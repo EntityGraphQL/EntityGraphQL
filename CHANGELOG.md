@@ -54,9 +54,10 @@ Addition changes
 - Support for a query cache of recent queries. Enabled by default. Caches the result of compiling the query document string to an AST. Execution is then applying the document level variables, building the expressions then execution
 - Better support for nested objects in `QueryVariables`
 - Small performance enhancements when building internal types
+- Performance of compiling and building expressions has been improved. Reducing average compiling time (not including execution of expression) by 45%
 - Reduction in allocation when compiling queries
 
-Fixes
+  Fixes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.

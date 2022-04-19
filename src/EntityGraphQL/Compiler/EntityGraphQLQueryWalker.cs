@@ -16,7 +16,7 @@ namespace EntityGraphQL.Compiler
     internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?>
     {
         private readonly ISchemaProvider schemaProvider;
-        private readonly QueryVariables? variables;
+        private readonly QueryVariables variables;
         private readonly QueryRequestContext requestContext;
         private ExecutableGraphQLStatement? currentOperation;
 
@@ -30,6 +30,8 @@ namespace EntityGraphQL.Compiler
         {
             this.requestContext = context;
             this.schemaProvider = schemaProvider;
+            if (variables == null)
+                variables = new QueryVariables();
             this.variables = variables;
         }
 
@@ -54,7 +56,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
 
             // these are the variables that can change each request for the same query
-            var operationVariables = ProcessVariableDefinitions(variables, node);
+            var operationVariables = ProcessVariableDefinitions(node);
 
             if (node.Operation == OperationType.Query)
             {
@@ -81,13 +83,10 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        private Dictionary<string, ArgType> ProcessVariableDefinitions(QueryVariables? variables, OperationDefinitionNode node)
+        private Dictionary<string, ArgType> ProcessVariableDefinitions(OperationDefinitionNode node)
         {
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
-
-            if (variables == null)
-                variables = new QueryVariables();
 
             var documentVariables = new Dictionary<string, ArgType>();
 
@@ -138,11 +137,6 @@ namespace EntityGraphQL.Compiler
             };
         }
 
-        public void Visit(DocumentNode document)
-        {
-            this.Visit(document, null);
-        }
-
         protected override void VisitField(FieldNode node, IGraphQLNode? context)
         {
             if (context == null)
@@ -156,8 +150,6 @@ namespace EntityGraphQL.Compiler
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var alias = node.Alias?.Value;
-
-            QueryWalkerHelper.CheckRequiredArguments(actualField, args);
 
             if (actualField.FieldType == FieldType.Mutation)
             {

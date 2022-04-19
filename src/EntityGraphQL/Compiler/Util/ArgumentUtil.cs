@@ -18,6 +18,9 @@ public static class ArgumentUtil
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
         {
+            if (argField.IsRequired && !args.ContainsKey(argField.Name) && argField.DefaultValue == null)
+                throw new EntityGraphQLCompilerException($"'{fieldName}' missing required argument '{argField.Name}'");
+
             object? val;
             try
             {

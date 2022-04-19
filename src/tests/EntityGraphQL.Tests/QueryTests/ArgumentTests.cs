@@ -50,10 +50,14 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
-                user { id }
-            }"));
-            Assert.Equal("'user' missing required argument 'id'", ex.Message);
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    user { id }
+                }"
+            };
+            var result = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Equal("Field error: user - 'user' missing required argument 'id'", result.Errors[0].Message);
         }
 
         [Fact]
@@ -62,10 +66,14 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), h = ArgumentHelper.Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"query {
+            var gql = new QueryRequest
+            {
+                Query = @"query {
                         user { id }
-                    }"));
-            Assert.Equal("'user' missing required argument 'id'", ex.Message);
+                    }"
+            };
+            var result = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Equal("Field error: user - 'user' missing required argument 'id'", result.Errors[0].Message);
         }
 
         [Fact]

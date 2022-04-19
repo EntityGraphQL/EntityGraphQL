@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
 
             DocumentNode document = Utf8GraphQLParser.Parse(query.Query, ParserOptions.Default);
             var walker = new EntityGraphQLQueryWalker(schemaProvider, query.Variables, context);
-            walker.Visit(document);
+            walker.Visit(document, null);
             if (walker.Document == null)
                 throw new EntityGraphQLCompilerException($"Error compiling query: {query.Query}");
             return walker.Document;
