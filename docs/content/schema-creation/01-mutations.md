@@ -15,7 +15,7 @@ In EntityGraphQL mutations are just .NET methods with the `[GraphQLMutation]` at
 ```
 public class PeopleMutations
 {
-    [GraphQLMutation("Add a new person to the system)]
+    [GraphQLMutation("Add a new person to the system")]
     public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
     {
         var person = new Person
