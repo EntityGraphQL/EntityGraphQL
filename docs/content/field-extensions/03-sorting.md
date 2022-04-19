@@ -6,6 +6,8 @@ metaDescription: 'Add sorting to your collection fields'
 
 Being able to sort or order you collections as you query them can be very powerful, especially when paired with paging. To easily add sorting functionality to your collection fields use the `UseSort()` field extension.
 
+Note: When using with one of the paging extensions ensure you call UseSort first.  If you are using the attribute, then ensure the Sort attribute comes bafore the paging attribute.
+
 ```
 schema.ReplaceField("people",
     ctx => ctx.People,
