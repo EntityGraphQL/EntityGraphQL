@@ -43,12 +43,16 @@ namespace Benchmarks
             return Services.GetService<BenchmarkContext>();
         }
 
-        protected void RunQuery(BenchmarkContext context, QueryRequest query)
+        /// <summary>
+        /// Run query
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="query"></param>
+        /// <param name="options"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        protected void RunQuery(BenchmarkContext context, QueryRequest query, ExecutionOptions options = null)
         {
-            var result = Schema.ExecuteRequest(query, context, Services, null, new ExecutionOptions
-            {
-                // NoExecution = true
-            });
+            var result = Schema.ExecuteRequest(query, context, Services, null, options);
             if (result.Errors != null)
                 throw new InvalidOperationException("query failed: " + string.Join("\n", result.Errors.Select(m => m.Message)));
         }

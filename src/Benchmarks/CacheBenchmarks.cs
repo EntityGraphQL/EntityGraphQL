@@ -6,6 +6,9 @@ using EntityGraphQL.Schema;
 namespace Benchmarks
 {
     /// <summary>
+    /// Was testing the difference between always doing the first stage compile vs. a hash and look up for caching purposes
+    /// 
+    /// Has and look up is quicker of course
     /// </summary>
     [ShortRunJob]
     public class CacheBenchmarks : BaseBenchmark

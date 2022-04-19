@@ -6,6 +6,8 @@ using EntityGraphQL.Compiler.Util;
 namespace Benchmarks
 {
     /// <summary>
+    /// Was testing the performance of using reflection to build the correct types from variables or using System.Text.Json
+    /// 
     /// Reflection wins
     /// |                      Method |        Job |              Toolchain | IterationCount | LaunchCount | WarmupCount |        Mean |        Error |     StdDev |
     /// |---------------------------- |----------- |----------------------- |--------------- |------------ |------------ |------------:|-------------:|-----------:|

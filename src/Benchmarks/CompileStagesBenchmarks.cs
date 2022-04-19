@@ -6,6 +6,10 @@ using EntityGraphQL.Schema;
 namespace Benchmarks
 {
     /// <summary>
+    /// Comparing the different stages of compiling.
+    /// Stage 1 - query to Expressions and metadata. This can be cached and reused with different variables
+    /// Stage 2 - the stage1 result into a final LambdaExpression that is executed. This may be built twice and executed twice, 
+    /// once without service field and then with
     /// </summary>
     [ShortRunJob]
     public class CompileStagesBenchmarks : BaseBenchmark

@@ -6,7 +6,9 @@ using EntityGraphQL.Schema.FieldExtensions;
 
 namespace Benchmarks
 {
-    // [SimpleJob(launchCount: 1, warmupCount: 3, targetCount: 5)]
+    /// <summary>
+    /// Testing different ways of paging data
+    /// </summary>
     [ShortRunJob]
     public class PagingBenchmarks : BaseBenchmark
     {

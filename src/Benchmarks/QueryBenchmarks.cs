@@ -2,9 +2,13 @@ using System.Linq;
 using BenchmarkDotNet.Attributes;
 using EntityGraphQL;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace Benchmarks
 {
+    /// <summary>
+    /// Was used to test if the replacement of the Antlr4 parser was faster. Yes it was!
+    /// </summary>
     [ShortRunJob]
     public class QueryBenchmarks : BaseBenchmark
     {
@@ -18,6 +22,9 @@ namespace Benchmarks
                         id name released
                     }
                 }"
+            }, new ExecutionOptions
+            {
+                NoExecution = true
             });
         }
 
@@ -34,6 +41,9 @@ namespace Benchmarks
                         }
                     }
                 }"
+            }, new ExecutionOptions
+            {
+                NoExecution = true
             });
         }
         [Benchmark]
@@ -52,6 +62,9 @@ namespace Benchmarks
                         }
                     }
                 }"
+            }, new ExecutionOptions
+            {
+                NoExecution = true
             });
         }
         [Benchmark]
@@ -64,6 +77,9 @@ namespace Benchmarks
                         id name released
                     }
                 }"
+            }, new ExecutionOptions
+            {
+                NoExecution = true
             });
         }
         [GlobalSetup(Target = nameof(Query_ListWithTakeArg))]
@@ -88,6 +104,9 @@ namespace Benchmarks
                         id name released
                     }
                 }"
+            }, new ExecutionOptions
+            {
+                NoExecution = true
             });
         }
     }
