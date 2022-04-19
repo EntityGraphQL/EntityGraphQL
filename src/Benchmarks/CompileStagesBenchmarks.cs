@@ -10,8 +10,22 @@ namespace Benchmarks
     /// Stage 1 - query to Expressions and metadata. This can be cached and reused with different variables
     /// Stage 2 - the stage1 result into a final LambdaExpression that is executed. This may be built twice and executed twice, 
     /// once without service field and then with
+    /// 
+    /// 1.2.x
+    /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
+    /// |------------------- |---------:|--------:|--------:|--------:|----------:|
+    /// |  FirstStageCompile | 164.9 us | 3.28 us | 4.60 us | 18.0664 |     38 KB |
+    /// | SecondStageCompile | 103.7 us | 1.57 us | 1.40 us | 25.1465 |     52 KB |  
+    ///                Total | 268.6                                        90
+    /// 
+    /// 2.0.0
+    /// |             Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
+    /// |------------------- |----------:|---------:|---------:|--------:|----------:|
+    /// |  FirstStageCompile |  39.71 us | 0.294 us | 0.275 us | 11.9629 |     25 KB |
+    /// | SecondStageCompile | 142.50 us | 0.324 us | 0.271 us | 28.5645 |     58 KB |
+    ///                        182.21                                          82
     /// </summary>
-    [ShortRunJob]
+    [MemoryDiagnoser]
     public class CompileStagesBenchmarks : BaseBenchmark
     {
         private readonly string query = @"{
@@ -42,19 +56,13 @@ namespace Benchmarks
         [Benchmark]
         public void FirstStageCompile()
         {
-            for (int i = 0; i < 10000; i++)
-            {
-                graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
-            }
+            graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
         }
 
         [Benchmark]
         public void SecondStageCompile()
         {
-            for (int i = 0; i < 10000; i++)
-            {
-                compiledDocument.ExecuteQuery(GetContext(), null, null, null, new ExecutionOptions { NoExecution = true });
-            }
+            compiledDocument.ExecuteQuery(GetContext(), null, null, null, new ExecutionOptions { NoExecution = true });
         }
     }
 }

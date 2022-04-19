@@ -54,8 +54,8 @@ Addition changes
 - Support for a query cache of recent queries. Enabled by default. Caches the result of compiling the query document string to an AST. Execution is then applying the document level variables, building the expressions then execution
 - Better support for nested objects in `QueryVariables`
 - Small performance enhancements when building internal types
-- Performance of compiling and building expressions has been improved. Reducing average compiling time (not including execution of expression) by 45%
-- Reduction in allocation when compiling queries
+- Performance of compiling and building expressions has been improved. Reducing average compiling time (not including execution of expression) by 30+%
+- Reduction in memory allocation when compiling queries by around 10%
 
   Fixes
 
