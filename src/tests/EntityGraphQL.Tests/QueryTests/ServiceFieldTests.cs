@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
                         }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager();
+            EntityPager pager = new();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -221,7 +221,7 @@ namespace EntityGraphQL.Tests
                         }
             };
             var serviceCollection = new ServiceCollection();
-            EntityPager pager = new EntityPager();
+            EntityPager pager = new();
             serviceCollection.AddSingleton(pager);
 
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -360,14 +360,14 @@ namespace EntityGraphQL.Tests
                         },
             };
             var serviceCollection = new ServiceCollection();
-            UserService userService = new UserService();
+            UserService userService = new();
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
-            Assert.Equal(2, res.Data["user"].GetType().GetFields().Count());
+            Assert.Equal(2, res.Data["user"].GetType().GetFields().Length);
             Assert.Equal("id", res.Data["user"].GetType().GetFields().ElementAt(0).Name);
             Assert.Equal("projects", res.Data["user"].GetType().GetFields().ElementAt(1).Name);
         }
@@ -505,7 +505,7 @@ namespace EntityGraphQL.Tests
             Type projectType = project.GetType();
             Assert.Null(res.Errors);
             Assert.Equal(1, settings.CallCount);
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("totalTasks", projectType.GetFields()[0].Name);
             Assert.Equal("settings", projectType.GetFields()[1].Name);
             Assert.NotNull(project.settings.GetType().GetField("allowComments"));
@@ -561,7 +561,7 @@ namespace EntityGraphQL.Tests
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
             Assert.Equal(1, settings.CallCount);
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("owner", projectType.GetFields()[0].Name);
             Assert.NotNull(project.owner.GetType().GetField("managerId"));
             Assert.Equal("settings", projectType.GetFields()[1].Name);
@@ -615,7 +615,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("config", projectType.GetFields()[0].Name);
             Assert.Equal("tasks", projectType.GetFields()[1].Name);
         }
@@ -664,7 +664,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("config", projectType.GetFields()[0].Name);
             Assert.Equal("tasks", projectType.GetFields()[1].Name);
         }
@@ -714,7 +714,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("config", projectType.GetFields()[0].Name);
             Assert.Equal("tasks", projectType.GetFields()[1].Name);
         }
@@ -764,7 +764,7 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
-            Assert.Equal(2, projectType.GetFields().Count());
+            Assert.Equal(2, projectType.GetFields().Length);
             Assert.Equal("config", projectType.GetFields()[0].Name);
             Assert.Equal("tasks", projectType.GetFields()[1].Name);
         }

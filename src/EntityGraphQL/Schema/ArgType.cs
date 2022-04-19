@@ -28,6 +28,8 @@ namespace EntityGraphQL.Schema
             Type = type;
             MemberInfo = memberInfo;
             RawType = rawType;
+            DefaultValue = null;
+            IsRequired = false;
         }
 
         public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue, Func<string, string> fieldNamer)

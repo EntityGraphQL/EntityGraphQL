@@ -1,7 +1,6 @@
 using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
-using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using static EntityGraphQL.Tests.ServiceFieldTests;
 using System.Reflection;
