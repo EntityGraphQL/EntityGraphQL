@@ -7,7 +7,7 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions
 {
-    public class FilterExtension : BaseFieldExtension
+    public class FilterExpressionExtension : BaseFieldExtension
     {
         private bool isQueryable;
         private Type? listType;
@@ -20,10 +20,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public override void Configure(ISchemaProvider schema, IField field)
         {
             if (field.ResolveExpression == null)
-                throw new EntityGraphQLCompilerException($"FilterExtension requires a Resolve function set on the field");
+                throw new EntityGraphQLCompilerException($"FilterExpressionExtension requires a Resolve function set on the field");
 
             if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-                throw new ArgumentException($"Expression for field {field.Name} must be a collection to use FilterExtension. Found type {field.ReturnType.TypeDotnet}");
+                throw new ArgumentException($"Expression for field {field.Name} must be a collection to use FilterExpressionExtension. Found type {field.ReturnType.TypeDotnet}");
 
             listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
 

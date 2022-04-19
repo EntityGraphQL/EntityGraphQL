@@ -1,7 +1,7 @@
 ---
-title: "Filtering"
-metaTitle: "Add filtering to your fields - EntityGraphQL"
-metaDescription: "Add filtering to your fields"
+title: 'Filtering'
+metaTitle: 'Add filtering to your fields - EntityGraphQL'
+metaDescription: 'Add filtering to your fields'
 ---
 
 To quickly add filtering capabilities to your collection fields use the `UseFilter()` field extension.
@@ -26,7 +26,6 @@ public class DemoContext : DbContext
     public DbSet<Actor> Actors { get; set; }
 }
 ```
-
 
 This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `filter: String`.
 
@@ -72,6 +71,7 @@ We can write some filter expressions like so:
 ```
 
 The expression language supports the following constants:
+
 - Booleans - `true` & `false`
 - Integers - e.g. `2`, `-8`
 - Floats - e.g. `0.2`, `-8.3`
@@ -79,6 +79,7 @@ The expression language supports the following constants:
 - Strings - `"within double quotes"`
 
 The expression language supports the following operators:
+
 - `-` - Subtraction
 - `+` - Addition
 - `*` - Multiply
@@ -94,10 +95,11 @@ The expression language supports the following operators:
 - `and` or `&&` - And
 
 The expression language supports the follow methods:
+
 - `List.where(filter)`, or `List.filter(filter)` - Filter the list
 - `List.any(filter)` - Return `true` if any of the items in the list match the filter. Otherwise `false`
 - `List.first(filter?)` - Return the first item from a list. Optionally by a filter
-- `List.last(filter?)` -  Return the last item from a list. Optionally by a filter
+- `List.last(filter?)` - Return the last item from a list. Optionally by a filter
 - `List.take(int)` - Return the first `x` items
 - `List.skip(int)` - Return the items after `x`
 - `List.count(filter?)` - Return the count of a list. Optionally counting items that match a filter
