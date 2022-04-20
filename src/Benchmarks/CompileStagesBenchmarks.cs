@@ -21,9 +21,9 @@ namespace Benchmarks
     /// 2.0.0
     /// |             Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
     /// |------------------- |----------:|---------:|---------:|--------:|----------:|
-    /// |  FirstStageCompile |  39.71 us | 0.294 us | 0.275 us | 11.9629 |     25 KB |
-    /// | SecondStageCompile | 142.50 us | 0.324 us | 0.271 us | 28.5645 |     58 KB |
-    ///                        182.21                                          82
+    /// |  FirstStageCompile |  32.05 us | 0.179 us | 0.159 us | 11.9629 |     25 KB |
+    /// | SecondStageCompile | 127.41 us | 0.554 us | 0.519 us | 28.3203 |     58 KB |
+    ///                        159.46                                          82
     /// </summary>
     [MemoryDiagnoser]
     public class CompileStagesBenchmarks : BaseBenchmark

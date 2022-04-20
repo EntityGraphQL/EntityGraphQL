@@ -88,7 +88,9 @@ namespace demo
                 endpoints.MapControllers();
                 endpoints.MapGraphQL<DemoContext>(options: new ExecutionOptions
                 {
+#if DEBUG
                     IncludeDebugInfo = true
+#endif
                 });
             });
         }

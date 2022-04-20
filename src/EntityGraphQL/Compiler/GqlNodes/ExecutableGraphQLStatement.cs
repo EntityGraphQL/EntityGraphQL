@@ -69,20 +69,23 @@ namespace EntityGraphQL.Compiler
             {
                 try
                 {
+#if DEBUG
                     Stopwatch? timer = null;
                     if (options.IncludeDebugInfo == true)
                     {
                         timer = new Stopwatch();
                         timer.Start();
                     }
+#endif
 
                     (var data, var didExecute) = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, docVariables);
-
+#if DEBUG
                     if (options.IncludeDebugInfo == true)
                     {
                         timer?.Stop();
                         result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
+#endif
 
                     if (didExecute)
                         result[fieldNode.Name] = data;

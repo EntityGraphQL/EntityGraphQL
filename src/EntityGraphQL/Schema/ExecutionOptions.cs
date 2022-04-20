@@ -24,13 +24,13 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool EnableQueryCache { get; set; } = true;
 
+#if DEBUG
         /// <summary>
         /// Include timing information about query execution
         /// </summary>
         /// <value></value>
         public bool IncludeDebugInfo { get; set; } = false;
 
-#if DEBUG
         /// <summary>
         /// Do not eecute the expression. Used for performance testing on EntityGraphQL code
         /// </summary>
