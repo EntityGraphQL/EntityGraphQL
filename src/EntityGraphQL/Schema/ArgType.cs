@@ -24,7 +24,7 @@ namespace EntityGraphQL.Schema
         {
             Name = name;
             DotnetName = dotnetName;
-            Description = "";
+            Description = string.Empty;
             Type = type;
             MemberInfo = memberInfo;
             RawType = rawType;

@@ -168,7 +168,7 @@ namespace EntityGraphQL.Schema
                 return null;
 
             // Get Description from ComponentModel.DescriptionAttribute
-            string description = "";
+            string description = string.Empty;
             var d = (DescriptionAttribute)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
             if (d != null)
             {
@@ -220,7 +220,7 @@ namespace EntityGraphQL.Schema
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
                 var typeInfo = propType;
-                string description = "";
+                string description = string.Empty;
                 var d = (DescriptionAttribute)typeInfo.GetCustomAttribute(typeof(DescriptionAttribute), false);
                 if (d != null)
                 {

@@ -8,7 +8,7 @@ namespace EntityGraphQL.Schema
         internal static string EscapeString(string? input)
         {
             if (input == null)
-                return "";
+                return string.Empty;
             return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
 
@@ -108,7 +108,7 @@ type {rootQueryType.Name} {{
         private static object GetDeprecation(IField field)
         {
             if (!field.IsDeprecated)
-                return "";
+                return string.Empty;
 
             return $" @deprecated(reason: \"{EscapeString(field.DeprecationReason)}\")";
         }
@@ -121,7 +121,7 @@ type {rootQueryType.Name} {{
             var all = field.Arguments.Select(f => schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
 
             var args = string.Join(", ", all);
-            return string.IsNullOrEmpty(args) ? "" : $"({args})";
+            return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
         }
 
         private static string MakeQueryType(ISchemaProvider schema)

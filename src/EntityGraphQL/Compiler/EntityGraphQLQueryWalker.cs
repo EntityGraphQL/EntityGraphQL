@@ -61,14 +61,14 @@ namespace EntityGraphQL.Compiler
             if (node.Operation == OperationType.Query)
             {
                 var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"op_ctx");
-                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLQueryStatement)context;
             }
             else if (node.Operation == OperationType.Mutation)
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut");
-                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? "", rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLMutationStatement)context;
             }
             else if (node.Operation == OperationType.Subscription)
@@ -116,8 +116,7 @@ namespace EntityGraphQL.Compiler
                     IsRequired = isRequired
                 });
 
-                var required = item.Type.Kind == SyntaxKind.NonNullType;
-                if (required && variables.ContainsKey(argName) == false)
+                if (item.Type.Kind == SyntaxKind.NonNullType && variables.ContainsKey(argName) == false)
                 {
                     throw new EntityGraphQLCompilerException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
                 }
@@ -144,16 +143,14 @@ namespace EntityGraphQL.Compiler
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
-            var fieldName = node.Name.Value;
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
-            var actualField = schemaType.GetField(fieldName, requestContext);
+            var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
-            var alias = node.Alias?.Value;
+            var resultName = node.Alias?.Value ?? actualField.Name;
 
             if (actualField.FieldType == FieldType.Mutation)
             {
-                var resultName = alias ?? actualField.Name;
                 var mutationField = (MutationField)actualField;
 
                 var nextContextParam = Expression.Parameter(mutationField.ReturnType.TypeDotnet, $"mut_{actualField.Name}");
@@ -184,17 +181,14 @@ namespace EntityGraphQL.Compiler
             else
             {
                 BaseGraphQLField? fieldResult;
-                var resultName = alias ?? actualField.Name;
-
-                var nodeExpression = actualField.ResolveExpression;
 
                 if (node.SelectionSet != null)
                 {
-                    fieldResult = ParseFieldSelect(nodeExpression!, actualField, resultName, context, node.SelectionSet, args);
+                    fieldResult = ParseFieldSelect(actualField.ResolveExpression!, actualField, resultName, context, node.SelectionSet, args);
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(schemaProvider, (Field)actualField, actualField.Extensions, resultName, nodeExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
+                    fieldResult = new GraphQLScalarField(schemaProvider, (Field)actualField, actualField.Extensions, resultName, actualField.ResolveExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
                 }
 
                 if (node.Directives?.Any() == true)
@@ -224,10 +218,9 @@ namespace EntityGraphQL.Compiler
             {
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
-                var item1 = listExp.Item1;
-                var returnType = schemaProvider.GetSchemaType(item1.Type.GetEnumerableOrArrayType()!, requestContext);
+                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, requestContext);
                 // TODO this doubles the field visit
-                var collectionNode = BuildDynamicSelectOnCollection(fieldContext, item1, returnType, name, context, selection, arguments);
+                var collectionNode = BuildDynamicSelectOnCollection(fieldContext, listExp.Item1, returnType, name, context, selection, arguments);
                 return new GraphQLCollectionToSingleField(schemaProvider, collectionNode, graphQLNode, listExp.Item2!);
             }
             return graphQLNode;
@@ -295,9 +288,7 @@ namespace EntityGraphQL.Compiler
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null when visiting arguments");
 
-            var argType = fieldArgumentContext.GetArgumentType(argName);
-            var argValue = ProcessArgumentOrVariable(argName, schemaProvider, argument, argType.Type.TypeDotnet);
-            return argValue;
+            return ProcessArgumentOrVariable(argName, schemaProvider, argument, fieldArgumentContext.GetArgumentType(argName).Type.TypeDotnet);
         }
 
         /// <summary>
@@ -308,15 +299,12 @@ namespace EntityGraphQL.Compiler
         {
             if (currentOperation == null)
                 throw new EntityGraphQLCompilerException("currentOperation should not be null when visiting arguments");
-            
+
             if (argument.Value.Kind == SyntaxKind.Variable)
             {
-                string varKey = ((VariableNode)argument.Value).Name.Value;
-                var expression = Expression.PropertyOrField(currentOperation.OpVariableParameter, varKey);
-                return expression;
+                return Expression.PropertyOrField(currentOperation.OpVariableParameter, ((VariableNode)argument.Value).Name.Value);
             }
-            var constVal = QueryWalkerHelper.ProcessArgumentValue(schema, argument.Value, argName, argType);
-            return constVal;
+            return QueryWalkerHelper.ProcessArgumentValue(schema, argument.Value, argName, argType);
         }
 
         private List<GraphQLDirective> ProcessFieldDirectives(IEnumerable<DirectiveNode> directives)
@@ -329,9 +317,7 @@ namespace EntityGraphQL.Compiler
                 var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
                 {
-                    var argName = arg.Name.Value;
-                    var prop = argType.GetProperty(argName);
-                    var argVal = ProcessArgumentOrVariable(argName, schemaProvider, arg, prop.PropertyType);
+                    var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argType.GetProperty(arg.Name.Value).PropertyType);
                     if (argVal != null)
                         args.Add(arg.Name.Value, argVal);
                 }
@@ -364,8 +350,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
-            var name = node.Name.Value;
-            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, name, null, context.RootParameter, context);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
                 fragField.AddDirectives(ProcessFieldDirectives(node.Directives));
