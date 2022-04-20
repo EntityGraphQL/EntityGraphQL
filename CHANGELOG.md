@@ -3,8 +3,7 @@
 Breaking changes
 
 - Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
-- `GetExpression` in Field Extensions are passed the parent IGraphQLNode - useful when your extension changed the original shape of the object graph, like the paging extensions
-- Fix #89 - Remove JSON.NET dependency - please make sure any `QueryRequest.Variables` do not have `JObject`s in there. Deserialize them to `Dictionary<string, object>`
+- `GetExpression` in Field Extensions is passed the parent IGraphQLNode - useful when your extension changed the original shape of the object graph, like the paging extensions
 - `services.AddGraphQLSchema` adopts a more ASP.NET style `options` callback overload to configure the creation of the schema
 - `MapGraphQL` implementation now returns `400` Bad Request status code if the query results contains errors, as a bad query was sent
 - Directive interface for building custom directives has changed
@@ -24,7 +23,7 @@ schema.AddCustomTypeConverter(new JTokenTypeConverter());
 
 See the [serialization tests for an example](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
 
-- Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery. Example
+- Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery in your IDE. Example
 
 ```
 schema.Type<Person>().AddField("age", "A persons age")
@@ -34,19 +33,19 @@ schema.Type<Person>().AddField("age", "A persons age")
 ```
 
 - Clean up of `SchemaType` APIs to add/replace/remove fields.
-- Remove `SchemaProvider.Add/ReplaceField` methods.
-  - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema
-- Additions to the `Field` API to add more uncommon functionality to chaining methods
-- Remove `SchemaProvider.UpdateQueryType()`, use `SchemaProvider.UpdateQuery(type => {})`
-- Remove `SchemaProvider.TypeHasField()`
-- Remove `SchemaProvider.GetQueryFields()` - use `SchemaProvider.Query.GetFields()`
-- Renamed `GetGraphQLSchema()` to `ToGraphQLSchemaString()`
-- Renamed `AddMutationFrom()` to `AddMutationsFrom()`
-- Removed Obsolete methods:
-  - `RequiresAllClaims` replaced by `RequiresAllRoles`
-  - `RequiresAnyClaim` replaced by `RequiresAnyRole`
-  - `ExecuteQuery` replaced by `ExecuteRequest`
-  - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
+  - Remove `SchemaProvider.Add/ReplaceField` methods.
+    - Use `SchemaProvider.Query().Add/ReplaceField()` or `SchemaProvider.UpdateQuery(queryType => {})` to make changes to the root Query type in the schema
+  - Additions to the `Field` API to add more uncommon functionality to chaining methods
+  - Remove `SchemaProvider.UpdateQueryType()`, use `SchemaProvider.UpdateQuery(type => {})`
+  - Remove `SchemaProvider.TypeHasField()`
+  - Remove `SchemaProvider.GetQueryFields()` - use `SchemaProvider.Query.GetFields()`
+  - Renamed `GetGraphQLSchema()` to `ToGraphQLSchemaString()`
+  - Renamed `AddMutationFrom()` to `AddMutationsFrom()`
+  - Removed Obsolete methods:
+    - `RequiresAllClaims` replaced by `RequiresAllRoles`
+    - `RequiresAnyClaim` replaced by `RequiresAnyRole`
+    - `ExecuteQuery` replaced by `ExecuteRequest`
+    - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
 
 Addition changes
 
@@ -69,6 +68,7 @@ Addition changes
 - Fix handling argument types of unsigned short/int/long
 - Fix issue parsing float/double argument values
 - Fix null exception with mutations returning a selection with a list field
+- Fix directives on mutation fields
 
 # 1.2.1
 

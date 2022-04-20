@@ -22,27 +22,31 @@ namespace EntityGraphQL.Compiler
         public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
-            foreach (GraphQLMutationField node in QueryFields)
+            foreach (GraphQLMutationField field in QueryFields)
             {
                 try
                 {
-                    Stopwatch? timer = null;
-                    if (options.IncludeDebugInfo == true)
+                    object? docVariables = BuildDocumentVariables(ref variables);
+                    foreach (GraphQLMutationField node in field.Expand(fragments, true, OpVariableParameter, docVariables))
                     {
-                        timer = new Stopwatch();
-                        timer.Start();
+                        Stopwatch? timer = null;
+                        if (options.IncludeDebugInfo == true)
+                        {
+                            timer = new Stopwatch();
+                            timer.Start();
+                        }
+                        (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, docVariables);
+                        if (options.IncludeDebugInfo == true)
+                        {
+                            timer?.Stop();
+                            result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                        }
+                        result[node.Name] = data;
                     }
-                    (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, variables);
-                    if (options.IncludeDebugInfo == true)
-                    {
-                        timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
-                    }
-                    result[node.Name] = data;
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLExecutionException(node.Name, ex);
+                    throw new EntityGraphQLExecutionException(field.Name, ex);
                 }
             }
             return result;
@@ -55,12 +59,11 @@ namespace EntityGraphQL.Compiler
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<(object?, bool)> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        private async Task<(object?, bool)> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, object? docVariables)
         {
             if (context == null)
                 return (null, false);
             // run the mutation to get the context for the query select
-            object? docVariables = BuildDocumentVariables(ref variables);
             var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more

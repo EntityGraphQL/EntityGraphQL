@@ -174,6 +174,11 @@ namespace EntityGraphQL.Compiler
                     }
                     graphqlMutationField.ResultSelection = select;
                 }
+                if (node.Directives?.Any() == true)
+                {
+                    graphqlMutationField.AddDirectives(ProcessFieldDirectives(node.Directives));
+                }
+
                 context.AddField(graphqlMutationField);
             }
             else
