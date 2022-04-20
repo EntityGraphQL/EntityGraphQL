@@ -29,18 +29,22 @@ namespace EntityGraphQL.Compiler
                     object? docVariables = BuildDocumentVariables(ref variables);
                     foreach (GraphQLMutationField node in field.Expand(fragments, true, OpVariableParameter, docVariables))
                     {
+#if DEBUG
                         Stopwatch? timer = null;
                         if (options.IncludeDebugInfo == true)
                         {
                             timer = new Stopwatch();
                             timer.Start();
                         }
+#endif
                         (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, docVariables);
+#if DEBUG
                         if (options.IncludeDebugInfo == true)
                         {
                             timer?.Stop();
                             result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                         }
+#endif
                         result[node.Name] = data;
                     }
                 }

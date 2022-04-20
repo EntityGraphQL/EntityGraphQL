@@ -28,14 +28,13 @@ namespace EntityGraphQL.Compiler.Util
 
         public static Expression MakeCallOnEnumerable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
-            var type = typeof(Enumerable);
             try
             {
-                return Expression.Call(type, methodName, genericTypes, parameters);
+                return Expression.Call(typeof(Enumerable), methodName, genericTypes, parameters);
             }
             catch (InvalidOperationException ex)
             {
-                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}", ex);
+                throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {typeof(Enumerable)}", ex);
             }
         }
 
@@ -139,7 +138,7 @@ namespace EntityGraphQL.Compiler.Util
                     throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
                 var newValue = Activator.CreateInstance(toType);
-                foreach (string key in ((IDictionary<string, object>)value).Keys)
+                foreach (string key in ((IDictionary<string, object>)value!).Keys)
                 {
                     var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
                     if (toProp != null)
@@ -185,7 +184,7 @@ namespace EntityGraphQL.Compiler.Util
             return value;
         }
 
-        public static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType)
+        private static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType)
         {
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())

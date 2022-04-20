@@ -74,7 +74,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         private static Expression ConvertToGuid(Expression expression)
         {
-            return (Expression)Expression.Call(typeof(Guid), "Parse", null, (Expression)Expression.Call(expression, typeof(object).GetMethod("ToString")));
+            return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")));
         }
 
         public override Expression VisitExpr(EntityQLParser.ExprContext context)

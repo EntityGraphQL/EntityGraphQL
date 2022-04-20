@@ -273,7 +273,7 @@ namespace EntityGraphQL.Compiler
             return graphQLNode;
         }
 
-        public Dictionary<string, object> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
+        private Dictionary<string, object> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
         {
             var args = new Dictionary<string, object>();
             foreach (var arg in queryArguments)
@@ -283,24 +283,20 @@ namespace EntityGraphQL.Compiler
                 {
                     throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
                 }
-                var r = ParseArgument(field, arg);
+                var r = ParseArgument(argName, field, arg);
                 if (r != null)
                     args.Add(argName, r);
             }
             return args;
         }
 
-        public object? ParseArgument(IField fieldArgumentContext, ArgumentNode argument)
+        private object? ParseArgument(string argName, IField fieldArgumentContext, ArgumentNode argument)
         {
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null when visiting arguments");
 
-            string argName = argument.Name.Value;
             var argType = fieldArgumentContext.GetArgumentType(argName);
-            var argValue = ProcessArgumentOrVariable(schemaProvider, argument, argType.Type.TypeDotnet);
-            if (argValue == null)
-                return null;
-
+            var argValue = ProcessArgumentOrVariable(argName, schemaProvider, argument, argType.Type.TypeDotnet);
             return argValue;
         }
 
@@ -308,12 +304,11 @@ namespace EntityGraphQL.Compiler
         /// Build the expression for the argument. A Variable ($name) will be a Expression.Parameter
         /// A inline value will be a Expression.Constant
         /// </summary>
-        private object? ProcessArgumentOrVariable(ISchemaProvider schema, ArgumentNode argument, Type argType)
+        private object? ProcessArgumentOrVariable(string argName, ISchemaProvider schema, ArgumentNode argument, Type argType)
         {
             if (currentOperation == null)
                 throw new EntityGraphQLCompilerException("currentOperation should not be null when visiting arguments");
-
-            var argName = argument.Name.Value;
+            
             if (argument.Value.Kind == SyntaxKind.Variable)
             {
                 string varKey = ((VariableNode)argument.Value).Name.Value;
@@ -331,12 +326,12 @@ namespace EntityGraphQL.Compiler
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
                 var argType = processor.GetArgumentsType();
-                var argObj = Activator.CreateInstance(argType);
                 var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
                 {
-                    var prop = argType.GetProperty(arg.Name.Value);
-                    var argVal = ProcessArgumentOrVariable(schemaProvider, arg, prop.PropertyType);
+                    var argName = arg.Name.Value;
+                    var prop = argType.GetProperty(argName);
+                    var argVal = ProcessArgumentOrVariable(argName, schemaProvider, arg, prop.PropertyType);
                     if (argVal != null)
                         args.Add(arg.Name.Value, argVal);
                 }

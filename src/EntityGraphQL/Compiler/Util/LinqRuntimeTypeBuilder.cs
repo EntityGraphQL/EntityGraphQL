@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -18,21 +19,10 @@ namespace EntityGraphQL.Compiler.Util
         // Names can't be > 1024 length, so we store them against Guids
         private static readonly Dictionary<string, Guid> typesByName = new();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string GetTypeKey(Dictionary<string, Type> fields)
         {
-            string key = string.Empty;
-            foreach (var field in fields.OrderBy(f => f.Key))
-            {
-                key = MakeKey(key, field.Key, field.Value);
-            }
-
-            return $"anon.{key}";
-        }
-
-        private static string MakeKey(string key, string fieldName, Type fieldType)
-        {
-            key += fieldName + fieldType.GetHashCode();
-            return key;
+            return fields.OrderBy(f => f.Key).Aggregate("anon.", (current, field) => current + (field.Key + field.Value.GetHashCode()));
         }
 
         public static Type GetDynamicType(Dictionary<string, Type> fields)

@@ -90,7 +90,7 @@ namespace EntityGraphQL.Compiler
 
         public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables);
 
-        public void AddServices(IEnumerable<Type>? services)
+        protected void AddServices(IEnumerable<Type>? services)
         {
             if (services == null)
                 return;
@@ -100,41 +100,32 @@ namespace EntityGraphQL.Compiler
         public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
-            AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? ((GraphQLListSelectionField)field).Services : new List<Type>());
+            AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? field.Services : null);
             AddConstantParameters(field.ConstantParameters);
         }
 
         protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
         {
-            if (fieldExtensions != null)
+            foreach (var extension in fieldExtensions)
             {
-                foreach (var extension in fieldExtensions)
-                {
-                    (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, listTypeParam, parameterReplacer);
-                }
+                (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, listTypeParam, parameterReplacer);
             }
             return (baseExpression, listTypeParam);
         }
 
         protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
-            if (fieldExtensions != null)
+            foreach (var extension in fieldExtensions)
             {
-                foreach (var extension in fieldExtensions)
-                {
-                    (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
-                }
+                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
             }
             return (baseExpression, selectionExpressions, selectContextParam);
         }
         protected Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
         {
-            if (fieldExtensions != null)
+            foreach (var extension in fieldExtensions)
             {
-                foreach (var extension in fieldExtensions)
-                {
-                    expression = extension.ProcessScalarExpression(expression, parameterReplacer);
-                }
+                expression = extension.ProcessScalarExpression(expression, parameterReplacer);
             }
             return expression;
         }
@@ -154,7 +145,7 @@ namespace EntityGraphQL.Compiler
         {
             directives.AddRange(graphQLDirectives);
         }
-        protected BaseGraphQLField ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+        protected BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
         {
             BaseGraphQLField? result = field;
             foreach (var directive in directives)

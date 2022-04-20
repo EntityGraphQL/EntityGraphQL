@@ -22,7 +22,7 @@ namespace EntityGraphQL.Compiler
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
         {
-            var result = (BaseGraphQLQueryField)ProcessFieldDirectives(this, docParam, docVariables);
+            var result = ProcessFieldDirectives(this, docParam, docVariables);
             if (result == null)
                 return new List<BaseGraphQLField>();
 

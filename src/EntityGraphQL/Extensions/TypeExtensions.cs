@@ -27,7 +27,21 @@ namespace EntityGraphQL.Extensions
 
         public static bool IsDictionary(this Type source)
         {
-            return source.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+            return IsGenericTypeDictionary(source);
+        }
+
+        private static bool IsGenericTypeDictionary(Type source)
+        {
+            var isDictionary = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IDictionary<,>);
+            if (isDictionary) return isDictionary;
+            
+            foreach (var intType in source.GetInterfaces())
+            {
+                isDictionary = IsGenericTypeDictionary(intType);
+                if (isDictionary)
+                    break;
+            }
+            return isDictionary;
         }
 
         /// <summary>
@@ -41,28 +55,25 @@ namespace EntityGraphQL.Extensions
                 return false;
 
             if (source.IsArray)
-            {
                 return true;
-            }
+
             var isEnumerable = false;
             if (source.IsGenericType && !source.IsNullableType())
-            {
                 isEnumerable = IsGenericTypeEnumerable(source);
-            }
+
             return isEnumerable;
         }
 
         private static bool IsGenericTypeEnumerable(Type source)
         {
             bool isEnumerable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
-            if (!isEnumerable)
+            if (isEnumerable) return isEnumerable;
+            
+            foreach (var intType in source.GetInterfaces())
             {
-                foreach (var intType in source.GetInterfaces())
-                {
-                    isEnumerable = IsGenericTypeEnumerable(intType);
-                    if (isEnumerable)
-                        break;
-                }
+                isEnumerable = IsGenericTypeEnumerable(intType);
+                if (isEnumerable)
+                    break;
             }
 
             return isEnumerable;

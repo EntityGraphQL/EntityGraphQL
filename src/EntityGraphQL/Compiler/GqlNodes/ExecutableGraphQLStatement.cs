@@ -169,11 +169,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, isRoot: true);
             }
 
-            var data = ExecuteExpression(expression!, runningContext, contextParam, serviceProvider, node, replacer, options!, docVariables);
+            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options!, docVariables);
             return data;
         }
 
-        protected (object? result, bool didExecute) ExecuteExpression(Expression expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
+        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)

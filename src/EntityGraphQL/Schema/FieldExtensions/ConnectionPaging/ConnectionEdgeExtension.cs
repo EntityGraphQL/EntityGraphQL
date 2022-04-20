@@ -124,7 +124,9 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         // remove the above Select(new ConnectionEdge<T>(), ...)
         baseExpression = ((MethodCallExpression)baseExpression).Arguments[0];
         // remove null check as it is not required
-        var anonNewExpression = ((ConditionalExpression)selectionExpressions["node"].Expression).IfFalse;
+        var anonNewExpression = selectionExpressions["node"].Expression;
+        if (selectionExpressions["node"].Expression.NodeType == ExpressionType.Conditional)
+            anonNewExpression = ((ConditionalExpression)anonNewExpression).IfFalse;
         var anonType = anonNewExpression.Type;
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(anonType);
         var edgeParam = Expression.Parameter(edgeType, "newEdgeParam");

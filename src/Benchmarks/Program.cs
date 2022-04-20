@@ -2,23 +2,21 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
-namespace Benchmarks
+namespace Benchmarks;
+class Program
 {
-    class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(
-                args,
-                new DebugInProcessConfig()
-            );
-            // var queryBench = new PagingBenchmarks();
+        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(
+            args,
+            new DebugInProcessConfig()
+        );
 
-            // for (int i = 0; i < 1000; i++)
-            // {
-            //     Console.WriteLine($"Executing {i} ...");
-            //     queryBench.NoExtension();
-            // }
-        }
+        // var bench = new CompileStagesBenchmarks();
+        // for (int i = 0; i < 1; i++)
+        // {
+        //     // bench.FirstStageCompile();
+        //     bench.SecondStageCompile();
+        // }
     }
 }
