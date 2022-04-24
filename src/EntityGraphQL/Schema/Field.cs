@@ -171,7 +171,7 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
+        public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? expression = fieldExpression;
             foreach (var directive in directives)
@@ -182,19 +182,18 @@ namespace EntityGraphQL.Schema
                 return (null, null);
             var result = expression;
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
-            var parameterReplacer = new ParameterReplacer();
-            (result, var argumentValues) = PrepareFieldExpression(args, this, result, parameterReplacer, expression, parentNode, docParam, docVariables, contextChanged);
+            (result, var argumentValues) = PrepareFieldExpression(args, this, result, replacer, expression, parentNode, docParam, docVariables, contextChanged);
             // the expressions we collect have a different starting parameter. We need to change that
             if (FieldParam != null && !contextChanged)
             {
                 if (fieldContext != null)
-                    result = parameterReplacer.Replace(result, FieldParam, fieldContext);
+                    result = replacer.Replace(result, FieldParam, fieldContext);
                 else if (parentNode?.NextFieldContext != null)
-                    result = parameterReplacer.Replace(result, FieldParam, parentNode.NextFieldContext);
+                    result = replacer.Replace(result, FieldParam, parentNode.NextFieldContext);
             }
             // need to make sure the schema context param is correct
             if (schemaContext != null && !contextChanged)
-                result = parameterReplacer.ReplaceByType(result, schemaContext.Type, schemaContext);
+                result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
 
             return (result, argumentValues);
         }

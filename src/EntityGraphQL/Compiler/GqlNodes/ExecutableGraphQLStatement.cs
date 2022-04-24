@@ -144,7 +144,7 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, isRoot: true, false, replacer);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
@@ -158,7 +158,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true);
+                    expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true, replacer);
                     contextParam = newContextType;
                 }
             }
@@ -166,7 +166,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, isRoot: true);
+                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
             var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options!, docVariables);
@@ -207,10 +207,10 @@ namespace EntityGraphQL.Compiler
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
-#if DEBUG
+            // #if DEBUG
             if (options?.NoExecution == true)
                 return (null, false);
-#endif
+            // #endif
             return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);
         }
 

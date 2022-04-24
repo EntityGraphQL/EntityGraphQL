@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -44,7 +45,7 @@ namespace EntityGraphQL.Schema
         /// <param name="previousContext"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged);
+        (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
         Expression? ResolveExpression { get; }
 
         IField UpdateExpression(Expression expression);

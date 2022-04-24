@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -46,7 +45,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext = null, bool isRoot = false, bool contextChanged = false)
+        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             var nextFieldContext = NextFieldContext;
 
@@ -58,7 +57,7 @@ namespace EntityGraphQL.Compiler
                 else
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
-            (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged);
+            (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged, replacer);
             AddServices(Field!.Services);
             if (argumentValues != null)
                 constantParameters[Field!.ArgumentParam!] = argumentValues;
@@ -68,14 +67,14 @@ namespace EntityGraphQL.Compiler
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext!, null, replacer);
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged);
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
             {
-                nextFieldContext = WrapWithNullCheck(selectionFields, serviceProvider, nextFieldContext, schemaContext, contextChanged);
+                nextFieldContext = WrapWithNullCheck(selectionFields, serviceProvider, nextFieldContext, schemaContext, contextChanged, replacer);
             }
             else
             {
@@ -112,7 +111,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="replacementNextFieldContext"></param>
         /// <param name="schemaContext"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged)
+        private Expression WrapWithNullCheck(Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc

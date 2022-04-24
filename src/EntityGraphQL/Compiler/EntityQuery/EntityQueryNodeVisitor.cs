@@ -119,7 +119,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 return enumOrConstantValue;
             }
             var gqlField = schemaType.GetField(field, requestContext);
-            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false);
+            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
             return exp!;
         }
 

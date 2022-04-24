@@ -114,17 +114,6 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        /// <summary>
-        /// Used at runtime below!!
-        /// </summary>
-        /// <param name="input"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        private static List<T> ConvertArray<T>(Array input)
-        {
-            return input.Cast<T>().ToList(); // Using LINQ for simplicity
-        }
-
         private void VaildateModelBinding(object entity, GraphQLValidator validator)
         {
             Type argType = entity.GetType();
@@ -151,14 +140,13 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged)
+        public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             var result = fieldExpression;
 
             if (schemaContext != null)
             {
-                var parameterReplacer = new ParameterReplacer();
-                result = parameterReplacer.ReplaceByType(result, schemaContext.Type, schemaContext);
+                result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
             }
             return (result, null);
         }

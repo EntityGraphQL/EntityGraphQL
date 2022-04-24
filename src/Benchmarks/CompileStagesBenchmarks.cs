@@ -19,11 +19,10 @@ namespace Benchmarks
     ///                Total | 268.6                                        90
     /// 
     /// 2.0.0
-    /// |             Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
-    /// |------------------- |----------:|---------:|---------:|--------:|----------:|
-    /// |  FirstStageCompile |  31.89 us | 0.143 us | 0.134 us | 11.7188 |     24 KB |
-    /// | SecondStageCompile | 129.44 us | 0.548 us | 0.513 us | 27.8320 |     57 KB |
-    ///                        161.33                                          81
+    /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
+    /// |------------------- |---------:|--------:|--------:|--------:|----------:|
+    /// |            Compile | 161.3 us | 1.07 us | 1.00 us | 39.0625 |     81 KB |
+    /// 
     /// </summary>
     [MemoryDiagnoser]
     public class CompileStagesBenchmarks : BaseBenchmark
@@ -41,7 +40,6 @@ namespace Benchmarks
                 }";
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly QueryRequest gql;
-        private readonly GraphQLDocument compiledDocument;
 
         public CompileStagesBenchmarks()
         {
@@ -50,18 +48,12 @@ namespace Benchmarks
             {
                 Query = query
             };
-            compiledDocument = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
         }
 
         [Benchmark]
-        public void FirstStageCompile()
+        public void Compile()
         {
-            graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
-        }
-
-        [Benchmark]
-        public void SecondStageCompile()
-        {
+            var compiledDocument = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
             compiledDocument.ExecuteQuery(GetContext(), null, null, null, new ExecutionOptions { NoExecution = true });
         }
     }

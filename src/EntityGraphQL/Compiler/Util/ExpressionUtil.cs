@@ -295,7 +295,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="baseExp"></param>
         /// <param name="nextExp"></param>
         /// <returns></returns>
-        public static Expression CombineExpressions(Expression baseExp, Expression nextExp)
+        public static Expression CombineExpressions(Expression baseExp, Expression nextExp, ParameterReplacer replacer)
         {
             switch (nextExp.NodeType)
             {
@@ -315,7 +315,7 @@ namespace EntityGraphQL.Compiler.Util
                                     exp = ((UnaryExpression)item).Operand;
                                 }
                                 var lambda = (LambdaExpression)exp;
-                                exp = new ParameterReplacer().Replace(lambda, lambda.Parameters.First(), newParam);
+                                exp = replacer.Replace(lambda, lambda.Parameters.First(), newParam);
                                 args.Add(exp);
                             }
                             var call = MakeCallOnQueryable(mc.Method.Name, baseExp.Type.GetGenericArguments().ToArray(), args.ToArray());

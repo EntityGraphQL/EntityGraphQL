@@ -67,7 +67,7 @@ namespace EntityGraphQL.Compiler
             else if (node.Operation == OperationType.Mutation)
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
-                var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut");
+                var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut_ctx");
                 context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, context, operationVariables);
                 currentOperation = (GraphQLMutationStatement)context;
             }

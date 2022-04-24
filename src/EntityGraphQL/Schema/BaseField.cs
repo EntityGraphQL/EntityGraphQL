@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field extension to this field
+        /// Add a field extension to this field 
         /// </summary>
         /// <param name="extension"></param>
         public void AddExtension(IFieldExtension extension)
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Schema
             return Arguments[argName];
         }
 
-        public abstract (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged);
+        public abstract (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
         public bool HasArgumentByName(string argName)
         {
             return Arguments.ContainsKey(argName);
