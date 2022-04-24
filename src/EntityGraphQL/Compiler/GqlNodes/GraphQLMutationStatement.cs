@@ -100,7 +100,7 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(schema, null, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
+                        var collectionNode = new GraphQLListSelectionField(schema, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
                         foreach (var queryField in node.ResultSelection.QueryFields)
                         {
                             collectionNode.AddField(queryField);

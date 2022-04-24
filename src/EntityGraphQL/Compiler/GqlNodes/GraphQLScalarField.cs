@@ -12,10 +12,9 @@ namespace EntityGraphQL.Compiler
     {
         private List<GraphQLScalarField>? extractedFields;
 
-        public GraphQLScalarField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+        public GraphQLScalarField(ISchemaProvider schema, IField? field, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
-            this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             Name = name;
             this.AddServices(field?.Services);
         }
@@ -46,7 +45,7 @@ namespace EntityGraphQL.Compiler
                 return extractedFields;
 
             var extractor = new ExpressionExtractor();
-            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, Field, null, i.Key, i.Value, RootParameter, ParentNode, Arguments)
+            extractedFields = extractor.Extract(NextFieldContext!, ParentNode!.NextFieldContext!, true)?.Select(i => new GraphQLScalarField(schema, Field, i.Key, i.Value, RootParameter, ParentNode, Arguments)
             {
                 // do not carry the services over
                 Services = new List<Type>()

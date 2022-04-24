@@ -25,16 +25,14 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
-        /// <param name="fieldExtensions">Any field extensions to apply to the expressions</param>
         /// <param name="name">Name of the field. Could be the alias that the user provided</param>
         /// <param name="nextFieldContext">A context for a field building on this. This will be the list element parameter</param>
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
-        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, IEnumerable<IFieldExtension>? fieldExtensions, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
+        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
-            this.fieldExtensions = fieldExtensions?.ToList() ?? new List<IFieldExtension>();
             this.ListExpression = nodeExpression;
             constantParameters = new Dictionary<ParameterExpression, object>();
             this.AddServices(field?.Services);
@@ -106,7 +104,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField(schema, (Field)Field!, null, i.Key, replaced, RootParameter, this, Arguments)
+                        return new CompiledField(new GraphQLScalarField(schema, Field, i.Key, replaced, RootParameter, this, Arguments)
                         {
                             Services = new List<Type>()
                         }, replaced);

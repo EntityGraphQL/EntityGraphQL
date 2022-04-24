@@ -4,6 +4,9 @@ using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
+    /// <summary>
+    /// Comiles a Graph QL query document string into an AST for processing.
+    /// </summary>
     public class GraphQLCompiler
     {
         private readonly ISchemaProvider schemaProvider;

@@ -32,10 +32,9 @@ namespace EntityGraphQL.Compiler
         /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
-        public GraphQLObjectProjectionField(ISchemaProvider schema, IField field, List<IFieldExtension> extensions, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+        public GraphQLObjectProjectionField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
-            this.fieldExtensions = extensions;
             this.AddServices(field.Services);
         }
 
@@ -166,7 +165,7 @@ namespace EntityGraphQL.Compiler
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(schema, Field, null, i.Key, i.Value, result.RootParameter, result.ParentNode, Arguments)
+                        .Select(i => new GraphQLScalarField(schema, Field, i.Key, i.Value, result.RootParameter, result.ParentNode, Arguments)
                         {
                             // do not push services into the fields extracted from a service field
                             Services = new List<Type>()

@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -24,7 +23,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode
     {
-        protected List<IFieldExtension> fieldExtensions;
         protected readonly ISchemaProvider schema;
 
         public Expression? NextFieldContext { get; set; }
@@ -51,7 +49,6 @@ namespace EntityGraphQL.Compiler
             RootParameter = rootParameter;
             ParentNode = parentNode;
             this.Arguments = arguments ?? new Dictionary<string, object>();
-            fieldExtensions = new List<IFieldExtension>();
             this.schema = schema;
             Field = field;
         }
@@ -106,7 +103,9 @@ namespace EntityGraphQL.Compiler
 
         protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(GraphQLFieldType fieldType, Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
         {
-            foreach (var extension in fieldExtensions)
+            if (Field == null)
+                return (baseExpression, listTypeParam);
+            foreach (var extension in Field.Extensions)
             {
                 (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(fieldType, baseExpression, listTypeParam, parameterReplacer);
             }
@@ -115,7 +114,9 @@ namespace EntityGraphQL.Compiler
 
         protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
-            foreach (var extension in fieldExtensions)
+            if (Field == null)
+                return (baseExpression, selectionExpressions, selectContextParam);
+            foreach (var extension in Field.Extensions)
             {
                 (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(fieldType, baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
             }
@@ -123,7 +124,9 @@ namespace EntityGraphQL.Compiler
         }
         protected Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
         {
-            foreach (var extension in fieldExtensions)
+            if (Field == null)
+                return expression;
+            foreach (var extension in Field.Extensions)
             {
                 expression = extension.ProcessScalarExpression(expression, parameterReplacer);
             }
