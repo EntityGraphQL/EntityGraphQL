@@ -56,7 +56,7 @@ namespace EntityGraphQL.Compiler
                     case SyntaxKind.ObjectValue:
                         {
                             // this should be an Input type
-                            var obj = Activator.CreateInstance(argType);
+                            var obj = Activator.CreateInstance(argType)!;
                             argValue = ProcessObjectValue(schema, argumentValue, argName, argType, obj);
                         }
                         break;
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Compiler
 
         public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
         {
-            var list = (IList)Activator.CreateInstance(fieldArgType);
+            var list = (IList)Activator.CreateInstance(fieldArgType)!;
             var listType = list.GetType().GetEnumerableOrArrayType();
             if (listType == null)
                 throw new EntityGraphQLCompilerException($"Argument {argName} is not a list");

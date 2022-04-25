@@ -69,7 +69,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
 
             var argType = typeof(SortInput<>).MakeGenericType(schemaSortType.TypeDotnet);
-            field.AddArguments(Activator.CreateInstance(argType));
+            field.AddArguments(Activator.CreateInstance(argType)!);
         }
 
         private bool IsNotInputType(Type type)
@@ -102,10 +102,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
                         var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
 
-                        var listParam = Expression.Parameter(listType);
+                        var listParam = Expression.Parameter(listType!);
                         Expression sortField = listParam;
                         expression = Expression.Call(
-                            methodType,
+                            methodType!,
                             method,
                             new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
                             expression,
@@ -118,9 +118,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
             else if (defaultSort != null)
             {
-                var listParam = Expression.Parameter(listType);
+                var listParam = Expression.Parameter(listType!);
                 expression = Expression.Call(
-                        methodType,
+                        methodType!,
                         direction == SortDirectionEnum.ASC ? "OrderBy" : "OrderByDescending",
                         new Type[] { listType!, defaultSort.Body.Type },
                         expression,

@@ -93,10 +93,10 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            object result;
+            object? result;
             if (isAsync)
             {
-                result = await (dynamic)method.Invoke(mutationClassInstance, allArgs.ToArray());
+                result = await (dynamic?)method.Invoke(mutationClassInstance, allArgs.ToArray());
             }
             else
             {
@@ -114,12 +114,12 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        private void VaildateModelBinding(object entity, GraphQLValidator validator)
+        private static void VaildateModelBinding(object entity, GraphQLValidator validator)
         {
             Type argType = entity.GetType();
             foreach (var prop in argType.GetProperties())
             {
-                object value = prop.GetValue(entity, null);
+                object? value = prop.GetValue(entity, null);
 
                 // set default message in-case user didn't provide a custom one
                 string error = $"{prop.Name} is required";

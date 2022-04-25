@@ -221,7 +221,7 @@ namespace EntityGraphQL.Schema
             {
                 logger?.LogError(aex, "Error executing QueryRequest");
                 // error with the whole query
-                result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException.Message : aex.Message));
+                result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException!.Message : aex.Message));
             }
             catch (Exception ex)
             {
@@ -279,7 +279,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddType(Type contextType, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false);
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false)!;
             FinishAddingType(contextType, name, newType);
             return newType;
         }
@@ -355,7 +355,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddInputType(Type type, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false);
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false)!;
             FinishAddingType(type, name, newType);
 
             return newType;
@@ -370,7 +370,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description)
         {
-            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, false, false, true);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, false, false, true)!;
             schematTypes.Add(gqlTypeName, schemaType);
             return schemaType;
         }

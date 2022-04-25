@@ -97,7 +97,7 @@ namespace EntityGraphQL.Schema
             if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
                 return;
             var schemaType = fieldProp.ReturnType.SchemaType;
-            var idFieldDef = (Field)schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
+            var idFieldDef = schemaType.GetFields().FirstOrDefault(f => f.Name == "id");
             if (idFieldDef == null)
                 return;
 
@@ -169,7 +169,7 @@ namespace EntityGraphQL.Schema
 
             // Get Description from ComponentModel.DescriptionAttribute
             string description = string.Empty;
-            var d = (DescriptionAttribute)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
+            var d = (DescriptionAttribute?)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
             if (d != null)
             {
                 description = d.Description;
@@ -221,7 +221,7 @@ namespace EntityGraphQL.Schema
             {
                 var typeInfo = propType;
                 string description = string.Empty;
-                var d = (DescriptionAttribute)typeInfo.GetCustomAttribute(typeof(DescriptionAttribute), false);
+                var d = (DescriptionAttribute?)typeInfo.GetCustomAttribute(typeof(DescriptionAttribute), false);
                 if (d != null)
                 {
                     description = d.Description;
@@ -237,7 +237,7 @@ namespace EntityGraphQL.Schema
                     if (method == null)
                         throw new Exception("Could not find AddType method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description });
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
@@ -247,9 +247,9 @@ namespace EntityGraphQL.Schema
                 {
                     schema.AddEnum(propType.Name, propType, description);
                 }
-                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType).IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType).Name))
+                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType)!.IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType)!.Name))
                 {
-                    Type type = Nullable.GetUnderlyingType(propType);
+                    Type type = Nullable.GetUnderlyingType(propType)!;
                     schema.AddEnum(type.Name, type, description);
                 }
             }
