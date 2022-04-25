@@ -57,7 +57,7 @@ namespace Benchmarks
 
             for (int i = 0; i < 10000; i++)
             {
-                var val = ExpressionUtil.ChangeType(variables["names"], typeof(InputType), null);
+                ExpressionUtil.ChangeType(variables["names"], typeof(InputType), null);
             }
         }
 
@@ -70,7 +70,7 @@ namespace Benchmarks
 
             for (int i = 0; i < 10000; i++)
             {
-                var val = ExpressionUtil.ChangeType(variables["names"], typeof(List<InputType>), null);
+                ExpressionUtil.ChangeType(variables["names"], typeof(List<InputType>), null);
             }
         }
     }
@@ -78,14 +78,14 @@ namespace Benchmarks
     // this would be the anonymous class created in compiling the query
     internal class InputType
     {
-        public string name;
-        public string lastName;
+        public string name = string.Empty;
+        public string lastName = string.Empty;
     }
 
     // This would be the class they pass in that matches the schema but is different from the anonymous class
     internal class InputType2
     {
-        public string Name;
-        public string LastName;
+        public string Name = string.Empty;
+        public string LastName = string.Empty;
     }
 }
