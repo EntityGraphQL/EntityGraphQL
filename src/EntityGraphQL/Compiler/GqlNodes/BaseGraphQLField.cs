@@ -64,8 +64,9 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public virtual bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services?.Any() == true || QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasAnyServices(fragments)) == true;
         }
+
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
         /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()
@@ -74,10 +75,14 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="serviceProvider">Service provider to resolve services </param>
         /// <param name="fragments">Fragments in the query document</param>
+        /// <param name="docParam">ParameterExpression for the variables defined in the request document</param>
+        /// <param name="docVariables">Resolved values of the variables passed in the request document</param>
+        /// <param name="schemaContext">ParameterExpression of the schema's Query context</param>
         /// <param name="withoutServiceFields">If true the expression builds without fields that require services</param>
         /// <param name="replacementNextFieldContext">A replacement context from a selection without service fields</param>
         /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
+        /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
         public abstract Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
 
@@ -121,7 +126,7 @@ namespace EntityGraphQL.Compiler
             return expression;
         }
 
-        internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
+        public void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
         {
             foreach (var item in constantParameters)
             {
@@ -130,7 +135,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        internal void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
+        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
         {
             directives.AddRange(graphQLDirectives);
         }

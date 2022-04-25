@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
                 {
 #if DEBUG
                     Stopwatch? timer = null;
-                    if (options.IncludeDebugInfo == true)
+                    if (options.IncludeDebugInfo)
                     {
                         timer = new Stopwatch();
                         timer.Start();
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Compiler
 
                     (var data, var didExecute) = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, docVariables);
 #if DEBUG
-                    if (options.IncludeDebugInfo == true)
+                    if (options.IncludeDebugInfo)
                     {
                         timer?.Stop();
                         result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
@@ -94,7 +94,7 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex is TargetInvocationException ? ex.InnerException : ex);
+                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex is TargetInvocationException ? ex.InnerException! : ex);
                 }
             }
             return Task.FromResult(result);
@@ -142,7 +142,7 @@ namespace EntityGraphQL.Compiler
             Expression? expression = null;
             var contextParam = node.RootParameter;
 
-            if (node.HasAnyServices(fragments) && options?.ExecuteServiceFieldsSeparately == true)
+            if (node.HasAnyServices(fragments) && options.ExecuteServiceFieldsSeparately == true)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
@@ -151,7 +151,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, node, replacer, options, docVariables);
+                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, node, replacer, options);
                     if (runningContext == null)
                         return (null, true);
 
@@ -171,7 +171,7 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options!, docVariables);
+            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options);
             return data;
         }
 
@@ -183,7 +183,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
+        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
@@ -213,12 +213,12 @@ namespace EntityGraphQL.Compiler
             // evaluate everything
             if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
             {
-                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
+                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
             // #if DEBUG
-            if (options.NoExecution == true)
+            if (options.NoExecution)
                 return (null, false);
             // #endif
             return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);

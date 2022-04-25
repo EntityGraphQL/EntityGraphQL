@@ -1221,7 +1221,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(doc.Operations);
             Assert.Single(doc.Operations[0].QueryFields);
-            Assert.True(doc.Operations[0].QueryFields[0].HasAnyServices(new List<GraphQLFragmentStatement>()));
+            Assert.True(doc.Operations[0].Services.Any());
         }
 
         public class AgeService

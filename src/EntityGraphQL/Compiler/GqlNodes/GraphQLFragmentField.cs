@@ -19,7 +19,9 @@ namespace EntityGraphQL.Compiler
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return fragments.FirstOrDefault(f => f.Name == Name).QueryFields.Any(f => f.HasAnyServices(fragments));
+            var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
+
+            return graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name)!.QueryFields.Any(f => f.HasAnyServices(graphQlFragmentStatements));
         }
 
         public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
@@ -32,24 +34,25 @@ namespace EntityGraphQL.Compiler
             var fields = fragment.QueryFields.SelectMany(f => f.Expand(fragments, withoutServiceFields, fieldContext, docParam, docVariables));
             // the current op did not know about services in the fragment as the fragment definition may be after the operation in the query
             // we now know  if there are services we need to know about for executing
+            var baseGraphQlFields = fields as BaseGraphQLField[] ?? fields.ToArray();
             if (!withoutServiceFields)
             {
                 if (document.AddServiceToCurrentOperation == null)
                     throw new EntityGraphQLCompilerException("AddServiceToCurrentOperation is null");
                 var services = new HashSet<Type>();
-                foreach (var field in fields)
+                foreach (var field in baseGraphQlFields)
                 {
                     GetServices(services, field);
                 }
 
                 document.AddServiceToCurrentOperation(services);
             }
-            return fields;
+            return baseGraphQlFields;
         }
 
         private void GetServices(HashSet<Type> services, BaseGraphQLField gqlField)
         {
-            if (gqlField.Field != null && gqlField.Field.Services.Any() == true)
+            if (gqlField.Field != null && gqlField.Field.Services.Any())
             {
                 foreach (var service in gqlField.Field.Services)
                 {

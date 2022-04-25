@@ -20,7 +20,7 @@ namespace Benchmarks
     /// 2.0.0
     /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
     /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |            Compile | 131.7 us | 0.36 us | 0.34 us | 29.2969 |     60 KB |
+    /// |            Compile | 130.8 us | 0.52 us | 0.49 us | 29.2969 |     60 KB |
     /// 
     /// </summary>
     [MemoryDiagnoser]

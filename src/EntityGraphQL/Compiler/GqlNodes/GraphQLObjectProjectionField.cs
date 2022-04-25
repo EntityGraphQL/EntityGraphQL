@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
 
             if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
             {
-                var possibleField = replacementNextFieldContext?.Type.GetField(Name);
+                var possibleField = replacementNextFieldContext.Type.GetField(Name);
                 if (possibleField != null)
                     nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
                 else
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler
                 return null;
             bool needsServiceWrap = !withoutServiceFields && Field?.Services.Any() == true;
 
-            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext!, null, replacer);
+            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, null, replacer);
 
             var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
@@ -79,7 +79,7 @@ namespace EntityGraphQL.Compiler
                 if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
                 {
                     // make a null check from this new expression
-                    nextFieldContext = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, nextFieldContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp, anonType);
+                    nextFieldContext = Expression.Condition(Expression.MakeBinary(ExpressionType.Equal, nextFieldContext, Expression.Constant(null)), Expression.Constant(null, anonType), newExp!, anonType);
                 }
                 else
                 {
@@ -100,11 +100,12 @@ namespace EntityGraphQL.Compiler
         /// by wrapping the whole thing in a method that does the null check once.
         /// This means we build the fieldExpressions on a parameter of the result type
         /// </summary>
+        /// <param name="selectionFields">Fields to select once we know if this result is null or not</param>
         /// <param name="serviceProvider"></param>
-        /// <param name="fragments"></param>
-        /// <param name="withoutServiceFields"></param>
-        /// <param name="replacementNextFieldContext"></param>
+        /// <param name="nextFieldContext">The expression that the selection fields will be built from</param>
         /// <param name="schemaContext"></param>
+        /// <param name="contextChanged">Has the context changes (second pass with services)</param>
+        /// <param name="replacer"></param>
         /// <returns></returns>
         private Expression WrapWithNullCheck(Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {

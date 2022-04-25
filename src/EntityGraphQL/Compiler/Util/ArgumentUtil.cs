@@ -24,15 +24,15 @@ public static class ArgumentUtil
             object? val;
             try
             {
-                if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression expression)
+                if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression argExpression)
                 {
                     // this value comes from the variables from the query document
                     if (docVariables != null)
-                        val = Expression.Lambda((Expression)args[argField.Name], docParam).Compile().DynamicInvoke(new[] { docVariables });
+                        val = Expression.Lambda(argExpression, docParam).Compile().DynamicInvoke(new[] { docVariables });
                     else
-                        val = args[argField.Name];
+                        val = argExpression;
                     if (argField.MemberInfo is PropertyInfo info)
-                        propVals.Add((PropertyInfo)argField.MemberInfo!, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo!).PropertyType, schema));
+                        propVals.Add(info!, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo!).PropertyType, schema));
                     else
                         fieldVals.Add((FieldInfo)argField.MemberInfo!, ExpressionUtil.ChangeType(val, ((FieldInfo)argField.MemberInfo!).FieldType, schema));
                 }

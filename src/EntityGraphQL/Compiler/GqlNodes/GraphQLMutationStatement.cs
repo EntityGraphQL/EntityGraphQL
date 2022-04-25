@@ -36,7 +36,7 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, docVariables);
+                        var data = await ExecuteAsync(node, context, validator, serviceProvider, fragments, options, docVariables);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {
@@ -58,24 +58,29 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Execute the current mutation
         /// </summary>
+        /// <param name="node">The mutation field to execute</param>
         /// <param name="context">The context instance that will be used</param>
+        /// <param name="validator">Error validator, passed to mutations</param>
         /// <param name="serviceProvider">A service provider to look up any dependencies</param>
+        /// <param name="fragments"></param>
+        /// <param name="options">Execution options</param>
+        /// <param name="docVariables">Resolved values of variables pass in request</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<(object?, bool)> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables)
         {
             if (context == null)
-                return (null, false);
+                return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, fieldNamer, OpVariableParameter, docVariables);
+            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, schema.SchemaFieldNamer, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
-                return (result, true);
+                return result;
 
             var resultExp = node.ResultSelection;
 
-            if (typeof(LambdaExpression).IsAssignableFrom(result.GetType()))
+            if (result is LambdaExpression mutationLambda)
             {
                 // If they have returned an Expression, we need to join the select Expression with the
                 // expression they returned which gives us the full Expression executable over the whole
@@ -86,7 +91,6 @@ namespace EntityGraphQL.Compiler
                 // i.e. they'll be returning a list of items or a specific item
                 // We want to take the field selection from the GraphQL query and add a LINQ Select() onto the expression
 
-                var mutationLambda = (LambdaExpression)result;
                 var mutationContextParam = mutationLambda.Parameters.First();
 
                 var mutationContextExpression = mutationLambda.Body;
@@ -124,7 +128,7 @@ namespace EntityGraphQL.Compiler
                 resultExp.RootParameter = mutationContextParam;
 
                 (result, _) = CompileAndExecuteNode(context, serviceProvider, fragments, resultExp, options, docVariables);
-                return (result, true);
+                return result;
             }
             // we now know the context as it is dynamically returned in a mutation
             if (resultExp is GraphQLListSelectionField field)
@@ -136,7 +140,7 @@ namespace EntityGraphQL.Compiler
 
             // run the query select against the object they have returned directly from the mutation
             (result, _) = CompileAndExecuteNode(result!, serviceProvider, fragments, node.ResultSelection, options, docVariables);
-            return (result, true);
+            return result;
         }
 
         private static void SetupConstants(BaseGraphQLQueryField resultExp, Expression mutationContextExpression)

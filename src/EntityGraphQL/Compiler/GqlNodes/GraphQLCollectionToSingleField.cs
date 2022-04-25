@@ -46,7 +46,8 @@ namespace EntityGraphQL.Compiler
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return collectionSelectionNode.HasAnyServices(fragments) || objectProjectionNode.HasAnyServices(fragments) || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+            var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
+            return collectionSelectionNode.HasAnyServices(graphQlFragmentStatements) || objectProjectionNode.HasAnyServices(graphQlFragmentStatements) || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(graphQlFragmentStatements)) == true;
         }
 
         public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
@@ -82,14 +83,14 @@ namespace EntityGraphQL.Compiler
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
             if (isRoot)
-                result = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { genericType }, result);
+                result = ExpressionUtil.MakeCallOnEnumerable("ToList", new [] { genericType }, result);
 
             // rebuild the .First/FirstOrDefault/etc
             Expression exp;
             if (capMethod == null)
                 exp = ExpressionUtil.CombineExpressions(result, combineExpression, replacer);
             else
-                exp = ExpressionUtil.MakeCallOnQueryable(capMethod, new Type[] { genericType }, result);
+                exp = ExpressionUtil.MakeCallOnQueryable(capMethod, new [] { genericType }, result);
             return exp;
         }
     }

@@ -24,11 +24,14 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
+        /// <param name="schema">The Schema Provider that defines the graphql schema</param>
+        /// <param name="field">Field from the schema that this GraphQLListSelectionField is built from</param>
         /// <param name="name">Name of the field. Could be the alias that the user provided</param>
         /// <param name="nextFieldContext">A context for a field building on this. This will be the list element parameter</param>
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
+        /// <param name="arguments"></param>
         public GraphQLListSelectionField(ISchemaProvider schema, IField? field, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
@@ -48,12 +51,12 @@ namespace EntityGraphQL.Compiler
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
             {
-                var possibleField = replacementNextFieldContext?.Type.GetField(Name);
+                var possibleField = replacementNextFieldContext.Type.GetField(Name);
                 if (possibleField != null)
                     listContext = Expression.Field(replacementNextFieldContext, possibleField);
                 else
                     listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
-                nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType(), $"{nextFieldContext!.Name}2");
+                nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
             (listContext, var argumentValues) = Field?.GetExpression(listContext!, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
             if (argumentValues != null)
@@ -65,7 +68,7 @@ namespace EntityGraphQL.Compiler
             if (newNextFieldContext != null)
                 nextFieldContext = newNextFieldContext;
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext!, schemaContext!, contextChanged, replacer);
+            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
             if (selectionFields == null || !selectionFields.Any())
             {
@@ -82,7 +85,7 @@ namespace EntityGraphQL.Compiler
             {
                 // if selecting final graph make sure lists are evaluated
                 if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-                    resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new Type[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
+                    resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
             }
 
             return resultExpression;

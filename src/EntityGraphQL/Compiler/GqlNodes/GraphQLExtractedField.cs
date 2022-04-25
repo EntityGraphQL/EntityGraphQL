@@ -23,7 +23,7 @@ internal class GraphQLExtractedField : BaseGraphQLField
         throw new NotImplementedException();
     }
 
-    public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+    public override Expression GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
     {
         var exp = replacer.ReplaceByType(NextFieldContext!, fieldContext.Type, fieldContext);
         return exp;

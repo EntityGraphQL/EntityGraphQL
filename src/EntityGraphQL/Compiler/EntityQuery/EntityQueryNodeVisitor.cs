@@ -45,10 +45,10 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
             if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
             {
-                return (Expression)Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
             }
 
-            return (Expression)Expression.MakeBinary(op, left, right);
+            return Expression.MakeBinary(op, left, right);
         }
 
         private Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
@@ -156,11 +156,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
             var outerContext = currentContext;
             // some methods might have a different inner context (IEnumerable etc)
             var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
-            currentContext = (Expression)methodArgContext;
+            currentContext = methodArgContext;
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = (Expression)methodProvider.MakeCall(outerContext, methodArgContext, method, args);
+            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args);
             currentContext = call;
             return call;
         }
@@ -177,16 +177,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-                right = (Expression)Expression.Convert(right, left.Type);
+                right = Expression.Convert(right, left.Type);
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-                left = (Expression)Expression.Convert(left, right.Type);
+                left = Expression.Convert(left, right.Type);
 
             else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
-                right = (Expression)Expression.Convert(right, left.Type);
+                right = Expression.Convert(right, left.Type);
             else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
-                left = (Expression)Expression.Convert(left, right.Type);
+                left = Expression.Convert(left, right.Type);
 
-            return (Expression)Expression.MakeBinary(op, left, right);
+            return Expression.MakeBinary(op, left, right);
         }
 
         private Expression CheckConditionalTest(Expression test)

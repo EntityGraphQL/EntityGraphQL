@@ -67,7 +67,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         /// <param name="context">Instance of the context type of the schema</param>
         /// <param name="serviceProvider">Service provider used for DI</param>
-        /// <param name="operationName">Optional operation name</param>
+        /// <param name="variables">Variables passed in the request</param>
+        /// <param name="operationName">Optional name of operation to execute. If null the first operation will be executed</param>
+        /// <param name="options">Options for execution.</param>
         /// <returns></returns>
         public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider? serviceProvider, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
         {

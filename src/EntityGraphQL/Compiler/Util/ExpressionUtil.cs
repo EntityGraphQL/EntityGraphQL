@@ -56,7 +56,7 @@ namespace EntityGraphQL.Compiler.Util
 
             var fromType = value.GetType();
 
-            if (schema?.TypeConverters?.ContainsKey(fromType) == true)
+            if (schema?.TypeConverters.ContainsKey(fromType) == true)
                 return schema.TypeConverters[fromType].ChangeType(value, fromType, toType, schema);
 
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
@@ -119,9 +119,9 @@ namespace EntityGraphQL.Compiler.Util
             else if (toType != typeof(long) && fromType == typeof(long))
             {
                 if (toType == typeof(DateTime) || toType == typeof(DateTime?))
-                    return new DateTime((long)value!);
+                    return new DateTime((long)value);
                 if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
-                    return new DateTimeOffset((long)value!, TimeSpan.Zero);
+                    return new DateTimeOffset((long)value, TimeSpan.Zero);
             }
 
             var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Compiler.Util
                     throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
                 var newValue = Activator.CreateInstance(toType);
-                foreach (string key in ((IDictionary<string, object>)value!).Keys)
+                foreach (string key in ((IDictionary<string, object>)value).Keys)
                 {
                     var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
                     if (toProp != null)
@@ -164,7 +164,7 @@ namespace EntityGraphQL.Compiler.Util
             }
             if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
                 argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
-                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value?.ToString()))
+                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value.ToString()))
             {
                 return Guid.Parse(value!.ToString());
             }
@@ -460,7 +460,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object? WrapFieldForNullCheckExec(object nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
