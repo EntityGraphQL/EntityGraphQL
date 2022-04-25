@@ -156,14 +156,14 @@ namespace EntityGraphQL.Compiler
             if (Field.UseArgumentsFromField == null)
                 return arguments;
 
-            if (ParentNode == null)
-                return arguments;
-
             var node = ParentNode;
             while (node != null)
             {
                 if (node.Field != null && node.Field == Field.UseArgumentsFromField)
+                {
                     arguments = arguments.MergeNew(node.Arguments);
+                    break;
+                }
                 node = node.ParentNode;
             }
             return arguments;
