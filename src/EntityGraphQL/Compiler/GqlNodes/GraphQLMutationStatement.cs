@@ -13,10 +13,9 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> variables)
-            : base(schema, name, nodeExpression, rootParameter, parentNode, variables)
+        public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
+            : base(schema, name, nodeExpression, rootParameter, variables)
         {
-            Name = name;
         }
 
         public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
@@ -27,11 +26,11 @@ namespace EntityGraphQL.Compiler
                 try
                 {
                     object? docVariables = BuildDocumentVariables(ref variables);
-                    foreach (GraphQLMutationField node in field.Expand(fragments, true, OpVariableParameter, docVariables))
+                    foreach (GraphQLMutationField node in field.Expand(fragments, true, NextFieldContext!, OpVariableParameter, docVariables))
                     {
 #if DEBUG
                         Stopwatch? timer = null;
-                        if (options.IncludeDebugInfo == true)
+                        if (options.IncludeDebugInfo)
                         {
                             timer = new Stopwatch();
                             timer.Start();
@@ -39,7 +38,7 @@ namespace EntityGraphQL.Compiler
 #endif
                         (var data, var didExecute) = await ExecuteAsync(node, context, validator, serviceProvider, fragments, fieldNamer, options, docVariables);
 #if DEBUG
-                        if (options.IncludeDebugInfo == true)
+                        if (options.IncludeDebugInfo)
                         {
                             timer?.Stop();
                             result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;

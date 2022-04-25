@@ -21,8 +21,6 @@ namespace EntityGraphQL.Compiler
         public Expression? NextFieldContext { get; set; }
         public IGraphQLNode? ParentNode { get; set; }
         public ParameterExpression? RootParameter { get; set; }
-        public string Name { get; protected set; }
-        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
         /// <summary>
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
@@ -35,12 +33,16 @@ namespace EntityGraphQL.Compiler
 
         public Dictionary<string, object> Arguments { get; }
 
-        public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, ArgType> opVariables)
+        public string Name { get; }
+
+        public List<BaseGraphQLField> QueryFields { get; } = new();
+        public HashSet<Type> Services { get; } = new();
+
+        public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
         {
             Name = name;
             NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
-            ParentNode = parentNode;
             opDefinedVariables = opVariables;
             this.schema = schema;
             Arguments = new Dictionary<string, object>();
@@ -173,6 +175,14 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
+        public void AddServices(IEnumerable<Type> services)
+        {
+            foreach (var service in services)
+            {
+                Services.Add(service);
+            }
+        }
+
         private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options, object? docVariables)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
@@ -187,7 +197,7 @@ namespace EntityGraphQL.Compiler
             // inject dependencies into the fullSelection
             if (serviceProvider != null)
             {
-                expression = GraphQLHelper.InjectServices(serviceProvider, node.Services, allArgs, expression, parameters, replacer);
+                expression = GraphQLHelper.InjectServices(serviceProvider, Services, allArgs, expression, parameters, replacer);
             }
 
             if (node.ConstantParameters.Any())
@@ -208,7 +218,7 @@ namespace EntityGraphQL.Compiler
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
             // #if DEBUG
-            if (options?.NoExecution == true)
+            if (options.NoExecution == true)
                 return (null, false);
             // #endif
             return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);

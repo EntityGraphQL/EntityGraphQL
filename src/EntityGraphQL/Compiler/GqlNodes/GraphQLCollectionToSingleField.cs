@@ -42,14 +42,11 @@ namespace EntityGraphQL.Compiler
             collectionSelectionNode = collectionNode;
             this.objectProjectionNode = objectProjectionNode;
             this.combineExpression = combineExpression;
-
-            AddServices(objectProjectionNode.Services);
-            AddServices(collectionSelectionNode.Services);
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Services?.Any() == true || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+            return collectionSelectionNode.HasAnyServices(fragments) || objectProjectionNode.HasAnyServices(fragments) || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
         }
 
         public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
@@ -68,8 +65,6 @@ namespace EntityGraphQL.Compiler
             if (exp == null)
                 return null;
 
-            Services.AddRange(objectProjectionNode.Services);
-            Services.AddRange(collectionSelectionNode.Services);
             AddConstantParameters(objectProjectionNode.ConstantParameters);
 
             return exp;

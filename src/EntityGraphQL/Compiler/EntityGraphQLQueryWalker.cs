@@ -45,13 +45,11 @@ namespace EntityGraphQL.Compiler
             if (context != null)
                 throw new ArgumentException("context should be null", nameof(context));
 
-            context = Document = new GraphQLDocument(schemaProvider.SchemaFieldNamer);
+            Document = new GraphQLDocument(schemaProvider.SchemaFieldNamer);
             base.VisitDocument(node, context);
         }
         protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode? context)
         {
-            if (context == null)
-                throw new EntityGraphQLCompilerException("context should not be null visiting operation definition");
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
 
@@ -61,14 +59,14 @@ namespace EntityGraphQL.Compiler
             if (node.Operation == OperationType.Query)
             {
                 var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"op_ctx");
-                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
                 currentOperation = (GraphQLQueryStatement)context;
             }
             else if (node.Operation == OperationType.Mutation)
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut_ctx");
-                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, context, operationVariables);
+                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
                 currentOperation = (GraphQLMutationStatement)context;
             }
             else if (node.Operation == OperationType.Subscription)
@@ -145,6 +143,9 @@ namespace EntityGraphQL.Compiler
 
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
+
+            // so the op knows what services it needs to inject
+            currentOperation?.AddServices(actualField.Services);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var resultName = node.Alias?.Value ?? actualField.Name;
@@ -328,8 +329,8 @@ namespace EntityGraphQL.Compiler
 
         protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode? context)
         {
-            if (context == null)
-                throw new EntityGraphQLCompilerException("context can not be null in VisitFragmentDefinition");
+            if (Document == null)
+                throw new EntityGraphQLCompilerException("Document can not be null in VisitFragmentDefinition");
             // top level statement in GQL doc. Defines the fragment fields.
             // Add to the fragments and return null
             var typeName = node.TypeCondition.Name.Value;
@@ -337,7 +338,7 @@ namespace EntityGraphQL.Compiler
             var fragParameter = Expression.Parameter(schemaProvider.Type(typeName).TypeDotnet, $"frag_{typeName}");
             var fragDef = new GraphQLFragmentStatement(node.Name.Value, fragParameter, fragParameter);
 
-            ((GraphQLDocument)context).Fragments.Add(fragDef);
+            Document.Fragments.Add(fragDef);
 
             base.VisitFragmentDefinition(node, fragDef);
         }
@@ -350,7 +351,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
-            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context, Document!);
             if (node.Directives?.Any() == true)
             {
                 fragField.AddDirectives(ProcessFieldDirectives(node.Directives));

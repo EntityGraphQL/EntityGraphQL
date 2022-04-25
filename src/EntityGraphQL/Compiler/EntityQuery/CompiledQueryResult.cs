@@ -29,10 +29,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         public object Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
-            if (ConstantParameters != null)
-            {
-                allArgs.AddRange(ConstantParameters.Values);
-            }
+            allArgs.AddRange(ConstantParameters.Values);
             return LambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         }
     }

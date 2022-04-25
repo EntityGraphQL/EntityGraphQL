@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -27,7 +26,6 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
-        /// <param name="extensions">Field extensions to apply to the expressions</param>
         /// <param name="name">Name of the field</param>
         /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
@@ -35,7 +33,6 @@ namespace EntityGraphQL.Compiler
         public GraphQLObjectProjectionField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
-            this.AddServices(field.Services);
         }
 
         /// <summary>
@@ -57,12 +54,11 @@ namespace EntityGraphQL.Compiler
                     nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
             }
             (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, Arguments, docParam, docVariables, directives, contextChanged, replacer);
-            AddServices(Field!.Services);
             if (argumentValues != null)
                 constantParameters[Field!.ArgumentParam!] = argumentValues;
             if (nextFieldContext == null)
                 return null;
-            bool needsServiceWrap = !withoutServiceFields && HasAnyServices(fragments);
+            bool needsServiceWrap = !withoutServiceFields && Field?.Services.Any() == true;
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext!, null, replacer);
 
@@ -117,18 +113,16 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object>(ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(ConstantParameters.Keys);
 
-            var updatedExpression = Services.Any() ? GraphQLHelper.InjectServices(serviceProvider, Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
+            var updatedExpression = Field?.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, Field!.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
-            var selectionParamValues = new List<object>();
-            selectionParamValues.AddRange(fieldParamValues);
 
             if (contextChanged)
             {
                 foreach (var item in selectionFields)
                 {
-                    if (item.Value.Field.Services.Any())
+                    if (item.Value.Field.Field?.Services.Any() == true)
                         item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                     else if (item.Key != "__typename") // this is a static selection of the type name
                                                        // pre service selection has selected the fields as the names we expect already
@@ -145,13 +139,13 @@ namespace EntityGraphQL.Compiler
 
             (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, updatedExpression, selectionFields, null, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
-            var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+            var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Field!.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
-            updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, selectionParamValues, nullWrapParam, schemaContext);
+            updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             var result = (GraphQLObjectProjectionField?)ProcessFieldDirectives(this, docParam, docVariables);
             if (result == null)
@@ -161,22 +155,18 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && result.NextFieldContext?.NodeType == ExpressionType.Call)
             {
                 var extractor = new ExpressionExtractor();
-                var fieldsRequiredForServices = extractor.Extract(result.NextFieldContext, result.ParentNode!.NextFieldContext!, true);
+                var fieldsRequiredForServices = extractor.Extract(result.NextFieldContext, fieldContext, true);
                 if (fieldsRequiredForServices != null)
                 {
                     var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLScalarField(schema, Field, i.Key, i.Value, result.RootParameter, result.ParentNode, Arguments)
-                        {
-                            // do not push services into the fields extracted from a service field
-                            Services = new List<Type>()
-                        })
+                        .Select(i => new GraphQLExtractedField(schema, i.Key, i.Value, fieldContext))
                         .ToList();
 
                     if (fields.Any())
                         return fields;
                 }
             }
-            return base.Expand(fragments, withoutServiceFields, docParam, docVariables);
+            return base.Expand(fragments, withoutServiceFields, fieldContext, docParam, docVariables);
         }
     }
 }

@@ -987,7 +987,7 @@ namespace EntityGraphQL.Tests
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
-            dynamic project = (dynamic)res.Data["task"];
+            dynamic project = res.Data["task"];
         }
 
         [Fact]

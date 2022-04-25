@@ -345,8 +345,8 @@ namespace EntityGraphQL.Tests
         }
         ",
                 Variables = new QueryVariables {
-                            {"name", "Bill"}
-                        }
+                    {"name", "Bill"}
+                }
             };
             var serviceCollection = new ServiceCollection();
             var service = new AgeService();

@@ -24,16 +24,13 @@ namespace EntityGraphQL.Compiler
     public abstract class BaseGraphQLField : IGraphQLNode
     {
         protected readonly ISchemaProvider schema;
-
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
-        public ParameterExpression? RootParameter { get; set; }
-        /// <summary>
-        /// Arguments from inline in the query
-        /// </summary>
-        public Dictionary<string, object> Arguments { get; }
-
         protected readonly List<GraphQLDirective> directives = new();
+        /// <summary>
+        /// Any values for a parameter that had a constant value in the query document.
+        /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
+        /// </summary>
+        protected Dictionary<ParameterExpression, object> constantParameters = new();
+        internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
 
         /// <summary>
         /// Name of the field
@@ -41,7 +38,14 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public string Name { get; protected set; }
         public IField? Field { get; }
-
+        public List<BaseGraphQLField> QueryFields { get; } = new();
+        public Expression? NextFieldContext { get; set; }
+        public IGraphQLNode? ParentNode { get; set; }
+        public ParameterExpression? RootParameter { get; set; }
+        /// <summary>
+        /// Arguments from inline in the query
+        /// </summary>
+        public Dictionary<string, object> Arguments { get; }
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
@@ -54,21 +58,13 @@ namespace EntityGraphQL.Compiler
         }
 
         /// <summary>
-        /// Any values for a parameter that had a constant value in the query document.
-        /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
-        /// </summary>
-        protected Dictionary<ParameterExpression, object> constantParameters = new();
-        public List<BaseGraphQLField> QueryFields { get; } = new();
-        internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
-        public List<Type> Services { get; set; } = new List<Type>();
-        /// <summary>
         /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
         public virtual bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Services?.Any() == true || QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
+            return Field?.Services?.Any() == true || QueryFields?.Any(f => f.HasAnyServices(fragments)) == true;
         }
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
@@ -85,19 +81,11 @@ namespace EntityGraphQL.Compiler
         /// <returns></returns>
         public abstract Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables);
-
-        protected void AddServices(IEnumerable<Type>? services)
-        {
-            if (services == null)
-                return;
-            Services.AddRange(services);
-        }
+        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
 
         public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
-            AddServices(field.GetType() == typeof(GraphQLListSelectionField) ? field.Services : null);
             AddConstantParameters(field.ConstantParameters);
         }
 
@@ -135,8 +123,6 @@ namespace EntityGraphQL.Compiler
 
         internal void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
         {
-            if (constantParameters == null)
-                return;
             foreach (var item in constantParameters)
             {
                 // replace them as new doc variables may be coming through
@@ -144,7 +130,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        internal void AddDirectives(List<GraphQLDirective> graphQLDirectives)
+        internal void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
         {
             directives.AddRange(graphQLDirectives);
         }

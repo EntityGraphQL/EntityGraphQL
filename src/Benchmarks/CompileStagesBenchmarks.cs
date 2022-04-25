@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using EntityGraphQL;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 
 namespace Benchmarks
@@ -21,7 +20,7 @@ namespace Benchmarks
     /// 2.0.0
     /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
     /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |            Compile | 161.4 us | 1.09 us | 1.02 us | 38.5742 |     79 KB |
+    /// |            Compile | 131.7 us | 0.36 us | 0.34 us | 29.2969 |     60 KB |
     /// 
     /// </summary>
     [MemoryDiagnoser]
@@ -38,23 +37,23 @@ namespace Benchmarks
                         }
                     }
                 }";
-        private readonly GraphQLCompiler graphQLCompiler;
+
         private readonly QueryRequest gql;
+        private readonly BenchmarkContext context;
 
         public CompileStagesBenchmarks()
         {
-            graphQLCompiler = new GraphQLCompiler(Schema);
             gql = new QueryRequest
             {
                 Query = query
             };
+            context = GetContext();
         }
 
         [Benchmark]
         public void Compile()
         {
-            var compiledDocument = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
-            compiledDocument.ExecuteQuery(GetContext(), null, null, null, new ExecutionOptions { NoExecution = true });
+            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions { NoExecution = true });
         }
     }
 }

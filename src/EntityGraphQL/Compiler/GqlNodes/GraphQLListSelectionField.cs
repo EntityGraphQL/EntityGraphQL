@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler
 {
@@ -35,7 +34,6 @@ namespace EntityGraphQL.Compiler
         {
             this.ListExpression = nodeExpression;
             constantParameters = new Dictionary<ParameterExpression, object>();
-            this.AddServices(field?.Services);
         }
 
         /// <summary>
@@ -62,7 +60,6 @@ namespace EntityGraphQL.Compiler
                 constantParameters[Field!.ArgumentParam!] = argumentValues;
             if (listContext == null)
                 return null;
-            AddServices(Field?.Services);
 
             (listContext, var newNextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
             if (newNextFieldContext != null)
@@ -72,7 +69,7 @@ namespace EntityGraphQL.Compiler
 
             if (selectionFields == null || !selectionFields.Any())
             {
-                if (withoutServiceFields && Services.Any())
+                if (withoutServiceFields && Field?.Services.Any() == true)
                     return null;
                 return listContext;
             }
@@ -104,10 +101,7 @@ namespace EntityGraphQL.Compiler
                     extractedFields.ToDictionary(i => i.Key, i =>
                     {
                         var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLScalarField(schema, Field, i.Key, replaced, RootParameter, this, Arguments)
-                        {
-                            Services = new List<Type>()
-                        }, replaced);
+                        return new CompiledField(new GraphQLExtractedField(schema, i.Key, replaced, NextFieldContext!), replaced);
                     })
                     .ToList()
                     .ForEach(i =>

@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, ParameterExpression? docParam, object? docVariables)
+        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             var result = ProcessFieldDirectives(this, docParam, docVariables);
             if (result == null)
@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
             // do we have services at this level
-            if (withoutServiceFields && Services.Any())
+            if (withoutServiceFields && Field?.Services.Any() == true)
                 return null;
 
             var selectionFields = new Dictionary<string, CompiledField>(StringComparer.OrdinalIgnoreCase);
@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler
             {
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
-                foreach (var subField in field.Expand(fragments, withoutServiceFields, docParam, docVariables))
+                foreach (var subField in field.Expand(fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
                 {
                     var fieldExp = subField.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, nextFieldContext, false, contextChanged, replacer);
                     if (fieldExp == null)
@@ -55,7 +55,6 @@ namespace EntityGraphQL.Compiler
 
                     // pull any constant values up
                     AddConstantParameters(subField.ConstantParameters);
-                    Services.AddRange(subField.Services);
                 }
             }
 
