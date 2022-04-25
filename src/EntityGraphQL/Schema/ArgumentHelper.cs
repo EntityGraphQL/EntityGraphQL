@@ -9,11 +9,22 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public static class ArgumentHelper
     {
+        /// <summary>
+        /// Creates a required argument with the specified type.
+        /// </summary>
+        /// <typeparam name="TType"></typeparam>
+        /// <returns></returns>
         public static RequiredField<TType> Required<TType>()
         {
             return new RequiredField<TType>();
         }
 
+        /// <summary>
+        /// Creates a field argument that takes a String value which will be compiled into an expression and used to filter the collection
+        /// The argument will not be null if not supplied. Has .HasValue on this argument to test if it have a filter expression.
+        /// </summary>
+        /// <typeparam name="TType"></typeparam>
+        /// <returns></returns>
         public static EntityQueryType<TType> EntityQuery<TType>()
         {
             return new EntityQueryType<TType>();

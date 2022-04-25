@@ -21,7 +21,9 @@ namespace EntityGraphQL.Tests
 	users(filter: ""field2 == \""2\"" "") { field2 }
 }",
             };
-            var tree = schemaProvider.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -41,12 +43,64 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
             };
-            var tree = schemaProvider.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
             var user = Enumerable.First(users);
             Assert.Equal("2", user.field2);
+        }
+
+        [Fact]
+        public void FilterExpressionWithNoValue()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String) {
+                    users(filter: $filter) { field2 }
+                }",
+                // do not pass any values. p.filter.HasValue will be false (and work)
+                Variables = new QueryVariables()
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(2, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.field2);
+            user = Enumerable.ElementAt(users, 1);
+            Assert.Equal("99", user.field2);
+        }
+
+        [Fact]
+        public void FilterExpressionWithNoValueNoDocVar()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+            var gql = new QueryRequest
+            {
+                Query = @"query Query() {
+                    users { field2 }
+                }",
+                // do not pass any values. p.filter.HasValue will be false (and work)
+                Variables = new QueryVariables()
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(2, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.field2);
+            user = Enumerable.ElementAt(users, 1);
+            Assert.Equal("99", user.field2);
         }
 
         [Fact]

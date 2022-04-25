@@ -52,7 +52,16 @@ namespace EntityGraphQL.Compiler.Util
         public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema)
         {
             if (value == null)
+            {
+                if (toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                {
+                    // we don't want a null value. We want an empty EntityQueryType
+                    var entityQuery = Activator.CreateInstance(toType);
+                    return entityQuery;
+                }
+
                 return null;
+            }
 
             var fromType = value.GetType();
 

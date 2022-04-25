@@ -6,5 +6,13 @@ public interface ICustomTypeConverter
 {
     Type Type { get; }
 
-    object? ChangeType(object value, Type fromType, Type toType, ISchemaProvider? schema);
+    /// <summary>
+    /// Change a non-null value from fromType to toType using you're custom method
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="fromType"></param>
+    /// <param name="toType"></param>
+    /// <param name="schema"></param>
+    /// <returns></returns>
+    object? ChangeType(object value, Type fromType, Type toType, ISchemaProvider schema);
 }

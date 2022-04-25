@@ -35,7 +35,7 @@ namespace EntityGraphQL.Extensions
 
         public static IEnumerable<TSource> WhereWhen<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter, bool applyPredicate)
         {
-            if (filter.HasValue && applyPredicate)
+            if (applyPredicate)
                 return Queryable.Where(source.AsQueryable(), filter.Query);
             return source;
         }

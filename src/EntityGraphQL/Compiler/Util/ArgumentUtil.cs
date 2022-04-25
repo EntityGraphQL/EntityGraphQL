@@ -122,7 +122,7 @@ public static class ArgumentUtil
         }
         else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
-            return args != null && args.ContainsKey(argName) ? args[argName] : null;
+            return args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType);
         }
         else if (args != null && args.ContainsKey(argName))
         {
