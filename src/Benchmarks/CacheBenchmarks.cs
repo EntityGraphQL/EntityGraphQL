@@ -24,31 +24,32 @@ namespace Benchmarks
                         }
                     }
                 }";
-        [Benchmark]
-        public void FirstStageCompile()
+        private readonly GraphQLCompiler graphQLCompiler;
+        private readonly QueryRequest gql;
+        private readonly QueryCache queryCache;
+
+        public CacheBenchmarks()
         {
-            var graphQLCompiler = new GraphQLCompiler(Schema);
-            var gql = new QueryRequest
+            graphQLCompiler = new GraphQLCompiler(Schema);
+            gql = new QueryRequest
             {
                 Query = query
             };
 
-            for (int i = 0; i < 10000; i++)
-            {
-                graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
-            }
+            queryCache = new QueryCache();
+            queryCache.AddCompiledQuery(query, new GraphQLDocument((name) => name));
+        }
+
+        [Benchmark]
+        public void FirstStageCompile()
+        {
+            graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
         }
 
         [Benchmark]
         public void HashAndLookup()
         {
-            var queryCache = new QueryCache();
-            queryCache.AddCompiledQuery(query, new GraphQLDocument((name) => name));
-
-            for (int i = 0; i < 10000; i++)
-            {
-                queryCache.GetCompiledQuery(query, null);
-            }
+            queryCache.GetCompiledQuery(query, null);
         }
     }
 }
