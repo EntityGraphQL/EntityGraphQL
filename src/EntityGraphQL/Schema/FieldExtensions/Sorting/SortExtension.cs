@@ -64,7 +64,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     fields.Add(prop.Name, directionType);
                 }
                 // build SortInput
-                var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields);
+                var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, sortInputName);
                 schemaSortType = schema.AddInputType(argSortType, sortInputName, $"Sort arguments for {field.Name}").AddAllFields();
             }
 

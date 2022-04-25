@@ -69,6 +69,7 @@ Addition changes
 - Fix issue parsing float/double argument values
 - Fix null exception with mutations returning a selection with a list field
 - Fix directives on mutation fields
+- Fix #110 - Field using the wrong sort input object when the fields are the same
 
 # 1.2.1
 

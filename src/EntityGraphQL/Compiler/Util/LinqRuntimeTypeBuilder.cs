@@ -22,17 +22,17 @@ namespace EntityGraphQL.Compiler.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string GetTypeKey(Dictionary<string, Type> fields)
         {
-            return fields.OrderBy(f => f.Key).Aggregate("anon.", (current, field) => current + (field.Key + field.Value.GetHashCode()));
+            return fields.OrderBy(f => f.Key).Aggregate("anon.", (current, field) => current + field.Key + field.Value.GetHashCode());
         }
 
-        public static Type GetDynamicType(Dictionary<string, Type> fields)
+        public static Type GetDynamicType(Dictionary<string, Type> fields, string? typeName = null)
         {
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
             if (0 == fields.Count)
                 throw new ArgumentOutOfRangeException(nameof(fields), "fields must have at least 1 field definition");
 
-            string className = GetTypeKey(fields);
+            string className = typeName != null ? $"anon.{typeName}" : GetTypeKey(fields);
             lock (typesByName)
             {
                 if (!typesByName.ContainsKey(className))
