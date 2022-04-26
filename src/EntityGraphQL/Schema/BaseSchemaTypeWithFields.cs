@@ -7,8 +7,8 @@ namespace EntityGraphQL.Schema
 {
     public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType where TFieldType : IField
     {
-        protected readonly ISchemaProvider schema;
-        protected readonly Dictionary<string, TFieldType> fieldsByName = new();
+        internal ISchemaProvider Schema { get; }
+        internal Dictionary<string, TFieldType> FieldsByName { get; } = new();
         public abstract Type TypeDotnet { get; }
         public string Name { get; }
         public string? Description { get; }
@@ -19,7 +19,7 @@ namespace EntityGraphQL.Schema
 
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         {
-            this.schema = schema;
+            this.Schema = schema;
             Name = name;
             Description = description;
             RequiredAuthorization = requiredAuthorization;
@@ -35,15 +35,15 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
         public IField GetField(string identifier, QueryRequestContext? requestContext)
         {
-            if (fieldsByName.ContainsKey(identifier))
+            if (FieldsByName.ContainsKey(identifier))
             {
-                var field = fieldsByName[identifier];
+                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
 
-                return fieldsByName[identifier];
+                return FieldsByName[identifier];
             }
 
             throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on type '{Name}'");
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Schema
         /// <returns>List of Field objects</returns>
         public IEnumerable<IField> GetFields()
         {
-            return fieldsByName.Values.Cast<IField>();
+            return FieldsByName.Values.Cast<IField>();
         }
         /// <summary>
         /// Checks if this type has a field with the given name
@@ -63,9 +63,9 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public bool HasField(string identifier, QueryRequestContext? requestContext)
         {
-            if (fieldsByName.ContainsKey(identifier))
+            if (FieldsByName.ContainsKey(identifier))
             {
-                var field = fieldsByName[identifier];
+                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     return false;
 
@@ -86,10 +86,10 @@ namespace EntityGraphQL.Schema
 
         public IField AddField(IField field)
         {
-            if (fieldsByName.ContainsKey(field.Name))
+            if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
-            fieldsByName.Add(field.Name, (TFieldType)field);
+            FieldsByName.Add(field.Name, (TFieldType)field);
             return field;
         }
 
@@ -99,9 +99,9 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         public void RemoveField(string name)
         {
-            if (fieldsByName.ContainsKey(name))
+            if (FieldsByName.ContainsKey(name))
             {
-                fieldsByName.Remove(name);
+                FieldsByName.Remove(name);
             }
         }
     }

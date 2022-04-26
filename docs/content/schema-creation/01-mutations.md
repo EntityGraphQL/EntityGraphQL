@@ -4,13 +4,15 @@ metaTitle: 'Adding mutations to your schema - EntityGraphQL'
 metaDescription: 'Add mutations to your GraphQL schema'
 ---
 
-Lets add some mutations. Mutations are GraphQLs way all allowing modifications to data.
+Mutations are GraphQLs way of allowing you to make modifications to your data.
 
 Read more about GraphQL mutations [here](https://graphql.org/learn/queries/#mutations).
 
-In EntityGraphQL mutations are just .NET methods with the `[GraphQLMutation]` attribute that receive arguments, perform work (update data etc.) and return data. You can contain these in a mutation class where related mutations can be located near each other.
+In EntityGraphQL mutations are just .NET methods and there are a few ways to add or define them.
 
-# Adding a Mutation
+# Adding Mutations from a class
+
+You can keep related mutations in a class and marked each mutation method with the `[GraphQLMutation]` attribute and use the `schema.AddMutationsFrom()`.
 
 ```
 public class PeopleMutations
@@ -56,6 +58,37 @@ mutation {
 ```
 
 Above we use our mutation to add a person and select their `fullName` and `id` in the result.
+
+# Adding a Mutations as a Delegate
+
+You can also add individual mutation methods to the mutation type as delegates or inline methods.
+
+```
+public class PeopleMutations
+{
+    public class void Configure(ISchemaProvider<DemoContext> schema)
+    {
+        schema.Mutation().Add("peopleMutations", "Add a new person to the system", AddNewPerson);
+
+        schema.Mutation().Add("peopleMutations", "Do somethign else", (OtherArgs args) => {
+            // ... mutate logic here
+        });
+    }
+
+    public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
+    {
+        var person = new Person
+        {
+            FirstName = args.FirstName,
+            LastName = args.LastName,
+        };
+        db.People.Add(person);
+        db.SaveChanges();
+
+        return (ctx) => ctx.People.First(p => p.Id == person.Id);
+    }
+}
+```
 
 # Why Use `Expression` Return Type
 
@@ -145,7 +178,7 @@ If you do not supply a non empty string as the `name` argument for the mutation 
 
 If your model validation fails from a `RequiredAttribute` you mutation method _will not be called_.
 
-You can also add multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
+Throwing an exception in your mutation (or field resolve expression) will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
 ```
 public class MovieMutations

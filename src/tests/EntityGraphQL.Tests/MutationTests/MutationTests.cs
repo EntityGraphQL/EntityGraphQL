@@ -636,5 +636,49 @@ namespace EntityGraphQL.Tests
             var person = (dynamic)results.Data["addPerson"];
             Assert.NotNull(person);
         }
+        [Fact]
+        public void TestStaticMethod()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation StaticTest {
+                    doGreatThingStaticly
+                }",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["doGreatThingStaticly"];
+            Assert.True((bool)result);
+        }
+        [Fact]
+        public void TestClassMethod()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            // test example where you might have a builder class set things up
+            schemaProvider.Mutation().Add("doGreatThingsHere", DoGreatThingsHere);
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation StaticTest {
+                    doGreatThingsHere
+                }",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["doGreatThingsHere"];
+            Assert.True((bool)result);
+        }
+
+        private bool DoGreatThingsHere()
+        {
+            return true;
+        }
     }
 }

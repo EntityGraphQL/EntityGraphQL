@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using EntityGraphQL.Schema;
 using Xunit;
 

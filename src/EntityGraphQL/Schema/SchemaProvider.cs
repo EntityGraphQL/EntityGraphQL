@@ -20,7 +20,7 @@ namespace EntityGraphQL.Schema
     public class SchemaProvider<TContextType> : ISchemaProvider
     {
         public Type QueryContextType { get { return queryType.TypeDotnet; } }
-        public Type MutationType { get { return mutationType.TypeDotnet; } }
+        public Type MutationType { get { return mutationType.SchemaType.TypeDotnet; } }
         public Func<string, string> SchemaFieldNamer { get; }
         public IGqlAuthorizationService AuthorizationService { get; set; }
         protected Dictionary<string, ISchemaType> schematTypes = new();
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Schema
 
             var mutationType = new MutationType(this, "Mutation", "Mutation schema", null);
             this.mutationType = mutationType;
-            schematTypes.Add(mutationType.Name, mutationType);
+            schematTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
 
             if (introspectionEnabled)
             {
@@ -396,7 +396,7 @@ namespace EntityGraphQL.Schema
         /// <typeparam name="TType"></typeparam>
         public void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull
         {
-            mutationType.AddMutationsFrom(mutationClassInstance);
+            mutationType.AddFrom(mutationClassInstance);
         }
 
         /// <summary>
@@ -561,6 +561,17 @@ namespace EntityGraphQL.Schema
         /// Provide a callback to update the root query schema type - add/remove/modify fields to the root query
         /// </summary>
         public void UpdateQuery(Action<SchemaType<TContextType>> configure) => configure(queryType);
+
+        /// <summary>
+        /// Return the Root Mutation schema type. Use this to add/remove/modify mutation fields
+        /// </summary>
+        /// <returns>Root mutation schema type</returns>
+        public MutationType Mutation() => mutationType;
+
+        /// <summary>
+        /// Provide a callback to update the root query schema type - add/remove/modify fields to the root query
+        /// </summary>
+        public void UpdateMutation(Action<MutationType> configure) => configure(mutationType);
 
         /// <summary>
         /// Add an Enum type to the schema

@@ -1,4 +1,4 @@
-# 2.0.0-beta6
+# 2.0.0-beta7
 
 Breaking changes
 
@@ -55,6 +55,7 @@ Addition changes
 - Small performance enhancements when building internal types
 - Performance of compiling and building expressions has been improved - it is about 2 times faster. Note this is just building the expressions, not executing them which triggers your services/EF/etc
 - Reduction in memory allocation when compiling queries by around 30%
+- You can no add/define mutation methods as delegates/anonymous functions etc.
 
   Fixes
 

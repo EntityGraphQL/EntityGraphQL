@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(schema, enumName, null, description, new GqlTypeInfo(() => schema.GetSchemaType(TypeDotnet, null), TypeDotnet), schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var schemaField = new Field(Schema, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, schema, autoCreateEnumTypes, schema.SchemaFieldNamer, autoCreateNewComplexTypes);
+                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, Schema, autoCreateEnumTypes, Schema.SchemaFieldNamer, autoCreateNewComplexTypes);
                 AddFields(fields);
             }
             return this;
@@ -69,10 +69,10 @@ namespace EntityGraphQL.Schema
 
         public Field AddField(Field field)
         {
-            if (fieldsByName.ContainsKey(field.Name))
+            if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
-            fieldsByName.Add(field.Name, field);
+            FieldsByName.Add(field.Name, field);
             return field;
         }
 
@@ -88,7 +88,7 @@ namespace EntityGraphQL.Schema
         public Field AddField<TReturn>(Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return AddField(schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description);
+            return AddField(Schema.SchemaFieldNamer(exp.Member.Name), fieldSelection, description);
         }
 
         /// <summary>
@@ -102,9 +102,9 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public Field AddField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
         {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -123,9 +123,9 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
         {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -139,7 +139,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public FieldToResolve<TBaseType> AddField(string name, string? description)
         {
-            var field = new FieldToResolve<TBaseType>(schema, name, description, null);
+            var field = new FieldToResolve<TBaseType>(Schema, name, description, null);
             AddField(field);
             return field;
         }
@@ -157,7 +157,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public FieldToResolveWithArgs<TBaseType, TParams> AddField<TParams>(string name, TParams argTypes, string? description)
         {
-            var field = new FieldToResolveWithArgs<TBaseType, TParams>(schema, name, description, argTypes);
+            var field = new FieldToResolveWithArgs<TBaseType, TParams>(Schema, name, description, argTypes);
             AddField(field);
             return field;
         }
@@ -172,10 +172,10 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public Field ReplaceField<TReturn>(string name, Expression<Func<TBaseType, TReturn>> fieldSelection, string? description)
         {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
-            fieldsByName[field.Name] = field;
+            var field = new Field(Schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
+            FieldsByName[field.Name] = field;
             return field;
         }
 
@@ -191,10 +191,10 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
         {
-            var requiredAuth = schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
+            var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(TReturn), null), requiredAuth);
-            fieldsByName[field.Name] = field;
+            var field = new Field(Schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
+            FieldsByName[field.Name] = field;
             return field;
         }
 
@@ -206,8 +206,8 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public FieldToResolve<TBaseType> ReplaceField(string name, string? description)
         {
-            var field = new FieldToResolve<TBaseType>(schema, name, description, null);
-            fieldsByName[field.Name] = field;
+            var field = new FieldToResolve<TBaseType>(Schema, name, description, null);
+            FieldsByName[field.Name] = field;
             return field;
         }
 
@@ -221,8 +221,8 @@ namespace EntityGraphQL.Schema
         /// <returns>The field object to perform further configuration</returns>
         public FieldToResolveWithArgs<TBaseType, TParams> ReplaceField<TParams>(string name, TParams argTypes, string? description)
         {
-            var field = new FieldToResolveWithArgs<TBaseType, TParams>(schema, name, description, argTypes);
-            fieldsByName[field.Name] = field;
+            var field = new FieldToResolveWithArgs<TBaseType, TParams>(Schema, name, description, argTypes);
+            FieldsByName[field.Name] = field;
             return field;
         }
 
@@ -234,7 +234,7 @@ namespace EntityGraphQL.Schema
         public Field GetField(Expression<Func<TBaseType, object>> fieldSelection)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            return GetField(schema.SchemaFieldNamer(exp.Member.Name), null);
+            return GetField(Schema.SchemaFieldNamer(exp.Member.Name), null);
         }
         public new Field GetField(string identifier, QueryRequestContext? requestContext)
         {
@@ -248,7 +248,7 @@ namespace EntityGraphQL.Schema
         public void RemoveField(Expression<Func<TBaseType, object>> fieldSelection)
         {
             var exp = ExpressionUtil.CheckAndGetMemberExpression(fieldSelection);
-            RemoveField(schema.SchemaFieldNamer(exp.Member.Name));
+            RemoveField(Schema.SchemaFieldNamer(exp.Member.Name));
         }
 
         /// <summary>
