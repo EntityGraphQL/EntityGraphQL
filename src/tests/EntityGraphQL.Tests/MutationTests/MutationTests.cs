@@ -190,7 +190,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Single(result.Errors);
-            Assert.Equal("Field error: addPersonInput - Variable or value used for argument 'nameInput' does not match argument type 'InputObject'", result.Errors.First().Message);
+            Assert.Equal("Variable or value used for argument 'nameInput' does not match argument type 'InputObject' on field 'addPersonInput'", result.Errors.First().Message);
         }
 
         [Fact]
@@ -496,7 +496,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field error: needsGuid - 'needsGuid' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Equal("Field 'needsGuid' missing required argument 'id'", results.Errors[0].Message);
         }
 
         [Fact]
@@ -508,15 +508,14 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          needsGuidNonNull
-        }
-        ",
+                    needsGuidNonNull
+                }",
             };
 
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field error: needsGuidNonNull - 'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Equal("Field 'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
         }
         [Fact]
         public void TestListArgInputType()

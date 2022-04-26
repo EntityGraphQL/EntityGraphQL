@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
@@ -17,6 +18,11 @@ namespace EntityGraphQL.Schema
         public GqlTypeInfo Type { get; private set; }
         public object? DefaultValue { get; set; }
         public MemberInfo? MemberInfo { get; internal set; }
+
+        private RequiredAttribute? requiredAttribute;
+        private RangeAttribute? rangeAttribute;
+        private StringLengthAttribute? stringLengthAttribute;
+
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
@@ -58,12 +64,6 @@ namespace EntityGraphQL.Schema
                 // We are saying here it must be provided by the query
                 defaultValue = null;
             }
-            else if (field.GetCustomAttribute(typeof(RequiredAttribute), false) != null
-                || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
-            {
-                markedRequired = true;
-                defaultValue = null;
-            }
 
             var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse), memberInfo, type)
             {
@@ -71,7 +71,15 @@ namespace EntityGraphQL.Schema
                 IsRequired = markedRequired
             };
 
-            if (markedRequired)
+            arg.rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute;
+            arg.stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute;
+            arg.requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute;
+            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
+            {
+                arg.IsRequired = true;
+            }
+
+            if (arg.IsRequired)
                 arg.Type.TypeNotNullable = true;
             if (arg.Type.TypeNotNullable)
                 arg.IsRequired = true;
@@ -82,6 +90,27 @@ namespace EntityGraphQL.Schema
             }
 
             return arg;
+        }
+
+        /// <summary>
+        /// Validate that the value for the argument meets the requirements of the argument
+        /// </summary>
+        /// <param name="val"></param>
+        /// <param name="fieldName"></param>
+        /// <param name="validationErrors"></param>
+        /// <exception cref="EntityGraphQLCompilerException"></exception>
+        public void Validate(object? val, string fieldName, IList<string> validationErrors)
+        {
+            if (requiredAttribute != null && !requiredAttribute.IsValid(val))
+                validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' missing required argument '{Name}'");
+            else if (IsRequired && val == null && DefaultValue == null)
+                validationErrors.Add($"Field '{fieldName}' missing required argument '{Name}'");
+
+            if (rangeAttribute != null && !rangeAttribute.IsValid(val))
+                validationErrors.Add(rangeAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {rangeAttribute.ErrorMessage}" : $"Field '{fieldName}' failed the range validation.");
+
+            if (stringLengthAttribute != null && !stringLengthAttribute.IsValid(val))
+                validationErrors.Add(stringLengthAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {stringLengthAttribute.ErrorMessage}" : $"Field '{fieldName}' failed the string length validation.");
         }
     }
 }

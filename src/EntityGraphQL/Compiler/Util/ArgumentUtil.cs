@@ -15,12 +15,10 @@ public static class ArgumentUtil
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
         var fieldVals = new Dictionary<FieldInfo, object?>();
+        var validationErrors = new List<string>();
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
         {
-            if (argField.IsRequired && !args.ContainsKey(argField.Name) && argField.DefaultValue == null)
-                throw new EntityGraphQLCompilerException($"'{fieldName}' missing required argument '{argField.Name}'");
-
             object? val;
             try
             {
@@ -38,7 +36,7 @@ public static class ArgumentUtil
                 }
                 else
                 {
-                    val = BuildArgumentFromMember(schema, args, fieldName, argField.Name, argField.RawType, argField.DefaultValue);
+                    val = BuildArgumentFromMember(schema, args, fieldName, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
@@ -47,12 +45,15 @@ public static class ArgumentUtil
                     else
                         fieldVals.Add((FieldInfo)argField.MemberInfo!, val);
                 }
+                argField.Validate(val, fieldName, validationErrors);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new EntityGraphQLCompilerException($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}'", ex);
+                validationErrors.Add($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'");
             }
         }
+        if (validationErrors.Any())
+            throw new EntityGraphQLValidationException(validationErrors);
         // create a copy of the anonymous object. It will have the default values set
         // there is only 1 constructor for the anonymous type that takes all the property values
         var con = argumentsType!.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
@@ -83,7 +84,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    private static object? BuildArgumentFromMember(ISchemaProvider schema, Dictionary<string, object>? args, string fieldName, string memberName, Type memberType, object? defaultValue)
+    private static object? BuildArgumentFromMember(ISchemaProvider schema, Dictionary<string, object>? args, string fieldName, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
     {
         string argName = memberName;
         // check we have required arguments
@@ -93,7 +94,8 @@ public static class ArgumentUtil
             // but just incase
             if (args == null || !args.ContainsKey(argName))
             {
-                throw new EntityGraphQLCompilerException($"Field '{fieldName}' missing required argument '{argName}'");
+                validationErrors.Add($"Field '{fieldName}' missing required argument '{argName}'");
+                return null;
             }
             var item = args[argName];
             var constructor = memberType.GetConstructor(new[] { item.GetType() });
@@ -114,7 +116,8 @@ public static class ArgumentUtil
 
             if (constructor == null)
             {
-                throw new EntityGraphQLCompilerException($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
+                validationErrors.Add($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
+                return null;
             }
 
             var typedVal = constructor.Invoke(new[] { item });

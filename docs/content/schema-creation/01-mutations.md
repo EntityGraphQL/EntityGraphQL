@@ -163,22 +163,23 @@ Later we'll learn how to access services within fields of the query schema.
 
 # Validation
 
-You can use the `System.ComponentModel.DataAnnotations.Required` attribute to add validaiton to your mutation arguments. Example
+You can use the `[Required]`, `[Range]` & `[StringLength]` attributes to add validaiton to your mutation arguments. Example
 
 ```
 public class ActorArgs
 {
   [Required(AllowEmptyStrings = false, ErrorMessage = "Actor Name is required")]
   public string Name { get; set; }
+  [Range(0, 900, ErrorMessage = "Age must be positive and less than 900")]
   public int Age { get; set; }
+  [StringLength(200, ErrorMessage = "Description must be less than 200 characters")]
+  public string Description { get; set; }
 }
 ```
 
-If you do not supply a non empty string as the `name` argument for the mutation you'll get an error message.
+If any of those validations fail, the graph QL result will have errors for each one that failed. If your model validation fails your mutation method _will not be called_.
 
-If your model validation fails from a `RequiredAttribute` you mutation method _will not be called_.
-
-Throwing an exception in your mutation (or field resolve expression) will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
+Throwing an exception in your mutation will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
 ```
 public class MovieMutations

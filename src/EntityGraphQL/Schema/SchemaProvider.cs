@@ -217,11 +217,25 @@ namespace EntityGraphQL.Schema
 
                 result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.Variables, gql.OperationName, options);
             }
+            catch (EntityGraphQLValidationException ex)
+            {
+                logger?.LogError(ex, "Error executing QueryRequest");
+                result = new QueryResult();
+                ex.ValidationErrors.ForEach(e => result.AddError(e));
+            }
             catch (AggregateException aex)
             {
                 logger?.LogError(aex, "Error executing QueryRequest");
-                // error with the whole query
-                result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException!.Message : aex.Message));
+                if (aex.InnerExceptions.Count == 1 && aex.InnerException is EntityGraphQLValidationException exception)
+                {
+                    result = new QueryResult();
+                    exception.ValidationErrors.ForEach(e => result.AddError(e));
+                }
+                else
+                {
+                    // error with the whole query
+                    result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException!.Message : aex.Message));
+                }
             }
             catch (Exception ex)
             {

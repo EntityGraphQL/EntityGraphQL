@@ -92,6 +92,10 @@ namespace EntityGraphQL.Compiler
                     if (didExecute)
                         result[fieldNode.Name] = data;
                 }
+                catch (EntityGraphQLValidationException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     throw new EntityGraphQLExecutionException(fieldNode.Name, ex is TargetInvocationException ? ex.InnerException! : ex);

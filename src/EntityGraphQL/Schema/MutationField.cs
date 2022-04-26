@@ -26,7 +26,7 @@ namespace EntityGraphQL.Schema
             this.isAsync = isAsync;
 
             ArgumentsType = method.GetParameters()
-                .FirstOrDefault(p => p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)?.ParameterType;
+                .SingleOrDefault(p => p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)?.ParameterType;
             if (ArgumentsType != null)
             {
                 foreach (var item in ArgumentsType.GetProperties())

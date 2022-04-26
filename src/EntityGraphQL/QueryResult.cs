@@ -21,6 +21,11 @@ namespace EntityGraphQL
             this.errors = errors.ToList();
         }
 
+        public void AddError(string error)
+        {
+            AddError(new GraphQLError(error));
+        }
+
         public void AddError(GraphQLError error)
         {
             if (errors == null)
