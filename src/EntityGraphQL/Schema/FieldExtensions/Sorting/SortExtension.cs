@@ -77,7 +77,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return type.IsEnumerableOrArray() || (type.IsClass && type != typeof(string));
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+        public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             // things are sorted already and the field shape has changed
             if (servicesPass)

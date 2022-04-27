@@ -57,7 +57,8 @@ namespace EntityGraphQL.Tests
                 }"
             };
             var result = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
-            Assert.Equal("Field 'user' missing required argument 'id'", result.Errors[0].Message);
+            Assert.Single(result.Errors);
+            Assert.Equal("Field 'user' - missing required argument 'id'", result.Errors[0].Message);
         }
 
         [Fact]
@@ -73,7 +74,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
             var result = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
-            Assert.Equal("Field 'user' missing required argument 'id'", result.Errors[0].Message);
+            Assert.Equal("Field 'user' - missing required argument 'id'", result.Errors[0].Message);
         }
 
         [Fact]

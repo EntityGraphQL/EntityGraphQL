@@ -30,7 +30,7 @@ namespace EntityGraphQL.Tests
             Assert.NotNull(results.Errors);
             // error from execution that prevented a valid response, the data entry in the response should be null
             Assert.Null(results.Data);
-            Assert.Equal("Field error: addPersonError - Name can not be null (Parameter 'name')", results.Errors[0].Message);
+            Assert.Equal("Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors[0].Message);
         }
 
         [Fact]

@@ -102,15 +102,15 @@ namespace EntityGraphQL.Schema
         public void Validate(object? val, string fieldName, IList<string> validationErrors)
         {
             if (requiredAttribute != null && !requiredAttribute.IsValid(val))
-                validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' missing required argument '{Name}'");
+                validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
             else if (IsRequired && val == null && DefaultValue == null)
-                validationErrors.Add($"Field '{fieldName}' missing required argument '{Name}'");
+                validationErrors.Add($"Field '{fieldName}' - missing required argument '{Name}'");
 
             if (rangeAttribute != null && !rangeAttribute.IsValid(val))
-                validationErrors.Add(rangeAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {rangeAttribute.ErrorMessage}" : $"Field '{fieldName}' failed the range validation.");
+                validationErrors.Add(rangeAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {rangeAttribute.ErrorMessage}" : $"Field '{fieldName}' - failed the range validation.");
 
             if (stringLengthAttribute != null && !stringLengthAttribute.IsValid(val))
-                validationErrors.Add(stringLengthAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {stringLengthAttribute.ErrorMessage}" : $"Field '{fieldName}' failed the string length validation.");
+                validationErrors.Add(stringLengthAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {stringLengthAttribute.ErrorMessage}" : $"Field '{fieldName}' - failed the string length validation.");
         }
     }
 }

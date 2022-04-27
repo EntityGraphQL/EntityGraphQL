@@ -83,7 +83,7 @@ namespace EntityGraphQL.Compiler
             {
                 if (!schemaType.HasField(item.Name.Value, null))
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
-                var schemaField = (Field)schemaType.GetField(item.Name.Value, null);
+                var schemaField = schemaType.GetField(item.Name.Value, null);
 
                 if (schemaField.ResolveExpression == null)
                     throw new EntityGraphQLCompilerException($"Field {item.Name.Value} on type {schemaType.Name} has no resolve expression");

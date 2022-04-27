@@ -21,13 +21,13 @@ public class GraphQLDirective
 
     public Expression? Process(ISchemaProvider schema, Expression fieldExpression, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
-        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
+        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
         return processor.ProcessExpression(fieldExpression, arguments);
     }
 
     public BaseGraphQLField? ProcessField(ISchemaProvider schema, BaseGraphQLField field, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
-        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
+        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
         return processor.ProcessField(field, arguments);
     }
 }

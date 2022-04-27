@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -13,7 +14,7 @@ namespace EntityGraphQL.Schema
     {
         public IField? UseArgumentsFromField { get; set; }
 
-        public abstract FieldType FieldType { get; }
+        public abstract GraphQLQueryFieldType FieldType { get; }
         public ParameterExpression? FieldParam { get; set; }
 
         public string Description { get; protected set; }
@@ -39,10 +40,14 @@ namespace EntityGraphQL.Schema
         /// <value></value>
         public IEnumerable<Type> Services { get; set; } = new List<Type>();
 
+        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => argumentValidators; }
+
         public Expression? ResolveExpression { get; protected set; }
 
         public ISchemaProvider Schema { get; set; }
         public Type? ArgumentsType { get; set; }
+
+        protected List<Action<ArgumentValidatorContext>> argumentValidators = new();
 
         protected BaseField(ISchemaProvider schema, string name, string? description, GqlTypeInfo returnType)
         {
@@ -128,6 +133,24 @@ namespace EntityGraphQL.Schema
             Arguments = field.Arguments;
             ArgumentsAreInternal = true;
             UseArgumentsFromField = field;
+        }
+
+        public IField AddValidator<TValidator>() where TValidator : IArgumentValidator
+        {
+            var validator = (IArgumentValidator)Activator.CreateInstance<TValidator>();
+            argumentValidators.Add((context) => validator.ValidateAsync(context));
+            return this;
+        }
+
+        public IField AddValidator(Action<ArgumentValidatorContext> callback)
+        {
+            argumentValidators.Add(callback);
+            return this;
+        }
+        public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
+        {
+            argumentValidators.Add((context) => callback(context).Wait());
+            return this;
         }
     }
 }

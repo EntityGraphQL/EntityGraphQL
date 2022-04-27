@@ -166,7 +166,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Single(result.Errors);
-            Assert.Equal("Field error: addPersonInput - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
+            Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
         }
 
         [Fact]
@@ -496,7 +496,8 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field 'needsGuid' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Single(results.Errors);
+            Assert.Equal("Field 'needsGuid' - missing required argument 'id'", results.Errors[0].Message);
         }
 
         [Fact]
@@ -515,7 +516,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field 'needsGuidNonNull' missing required argument 'id'", results.Errors[0].Message);
+            Assert.Equal("Field 'needsGuidNonNull' - missing required argument 'id'", results.Errors[0].Message);
         }
         [Fact]
         public void TestListArgInputType()

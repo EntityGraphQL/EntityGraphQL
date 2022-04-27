@@ -11,7 +11,7 @@ namespace EntityGraphQL.Schema
 {
     public class MutationField : BaseField
     {
-        public override FieldType FieldType { get; } = FieldType.Mutation;
+        public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Mutation;
         private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private readonly bool isAsync;
@@ -57,13 +57,11 @@ namespace EntityGraphQL.Schema
 
             // args in the mutation method
             var allArgs = new List<object>();
+            object? argInstance = null;
 
             if (Arguments.Count > 0)
             {
-                var argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
-                VaildateModelBinding(argInstance, validator);
-                if (validator.Errors.Any())
-                    return null;
+                argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
 
                 // add parameters and any DI services
                 foreach (var p in method.GetParameters())
@@ -93,6 +91,20 @@ namespace EntityGraphQL.Schema
                 }
             }
 
+            if (argumentValidators.Count > 0)
+            {
+                var validatorContext = new ArgumentValidatorContext(this, argInstance);
+                foreach (var argValidator in argumentValidators)
+                {
+                    argValidator(validatorContext);
+                    argInstance = validatorContext.Arguments;
+                }
+                if (validatorContext.Errors.Count > 0)
+                {
+                    throw new EntityGraphQLValidationException(validatorContext.Errors);
+                }
+            }
+
             object? result;
             if (isAsync)
             {
@@ -112,32 +124,6 @@ namespace EntityGraphQL.Schema
                 }
             }
             return result;
-        }
-
-        private static void VaildateModelBinding(object entity, GraphQLValidator validator)
-        {
-            Type argType = entity.GetType();
-            foreach (var prop in argType.GetProperties())
-            {
-                object? value = prop.GetValue(entity, null);
-
-                // set default message in-case user didn't provide a custom one
-                string error = $"{prop.Name} is required";
-
-                if (validator.Errors.Any(x => x.Message == error))
-                    return;
-
-                if (prop.GetCustomAttribute(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute)) is System.ComponentModel.DataAnnotations.RequiredAttribute attr)
-                {
-                    if (attr.ErrorMessage != null)
-                        error = attr.ErrorMessage;
-
-                    if (value == null)
-                        validator.AddError(error);
-                    else if (!attr.AllowEmptyStrings && prop.PropertyType == typeof(string) && ((string)value).Length == 0)
-                        validator.AddError(error);
-                }
-            }
         }
 
         public override (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)

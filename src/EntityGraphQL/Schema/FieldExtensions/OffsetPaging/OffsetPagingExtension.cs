@@ -13,8 +13,8 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// </summary>
 public class OffsetPagingExtension : BaseFieldExtension
 {
-    private Field? itemsField;
-    private Field? field;
+    private IField? itemsField;
+    private IField? field;
     private List<IFieldExtension> extensions = new();
     private bool isQueryable;
     private Type? listType;
@@ -41,11 +41,11 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
             throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
-        if (field.FieldType == FieldType.Mutation)
+        if (field.FieldType == GraphQLQueryFieldType.Mutation)
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
 
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
-        this.field = (Field)field;
+        this.field = field;
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -75,7 +75,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
 
         // update the Items field before we update the field.Resolve below
-        itemsField = (Field)returnSchemaType.GetField("items", null);
+        itemsField = returnSchemaType.GetField("items", null);
         itemsField.UpdateExpression(field.ResolveExpression);
         itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!));
         itemsField.UseArgumentsFrom(field);
@@ -95,7 +95,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         return expression;
     }
 
-    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now

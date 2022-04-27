@@ -226,15 +226,14 @@ namespace EntityGraphQL.Schema
             catch (AggregateException aex)
             {
                 logger?.LogError(aex, "Error executing QueryRequest");
-                if (aex.InnerExceptions.Count == 1 && aex.InnerException is EntityGraphQLValidationException exception)
+                result = new QueryResult();
+
+                foreach (var ex in aex.InnerExceptions)
                 {
-                    result = new QueryResult();
-                    exception.ValidationErrors.ForEach(e => result.AddError(e));
-                }
-                else
-                {
-                    // error with the whole query
-                    result = new QueryResult(new GraphQLError(aex.InnerExceptions.Count == 1 ? aex.InnerException!.Message : aex.Message));
+                    if (ex is EntityGraphQLValidationException exception)
+                        exception.ValidationErrors.ForEach(e => result.AddError(e));
+                    else
+                        result.AddError(ex.Message);
                 }
             }
             catch (Exception ex)

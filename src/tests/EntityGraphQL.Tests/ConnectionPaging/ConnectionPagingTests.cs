@@ -391,7 +391,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("Field error: people - first argument can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field 'people' - first argument can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestMaxPageSizeLast()
@@ -418,7 +418,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("Field error: people - last argument can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field 'people' - last argument can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestAttribute()

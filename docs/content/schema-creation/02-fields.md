@@ -1,7 +1,7 @@
 ---
-title: "Field Arguments"
-metaTitle: "Adding arguments to your GraphQL fields - EntityGraphQL"
-metaDescription: "Add arguments to your GraphQL fields"
+title: 'Field Arguments'
+metaTitle: 'Adding arguments to your GraphQL fields - EntityGraphQL'
+metaDescription: 'Add arguments to your GraphQL fields'
 ---
 
 GraphQL supports [arguments](https://graphql.org/learn/queries/#arguments) on query fields. We saw this already with the `SchemaBuilder.FromObject()` helper method. It created a field with an `id` argument to select a single item by id. Of course you can create fields with your own arguments to expand the functionality of you GraphQL APi.
@@ -26,6 +26,7 @@ schema.AddField(
 ```
 
 Let's break this down.
+
 - Each property of the anonymous object will be an argument on the GraphQL field. In this case we have 1 argument named `id`
 - `ArgumentHelper.Required<T>()` lets EntityGraphQL know that the argument is required and will error if it is not supplied in the query
 - The field resolve expression now has 2 parameters, the original context and the anonymous object type which at execution time will contain the argument values
@@ -36,6 +37,8 @@ It is worth noting that the GraphQL name of the argument will be that of the pro
 # Required arguments
 
 As you see above to make an argument required use the `ArgumentHelper.Required<T>()` method.
+
+See Validation for further information.
 
 # Optional arguments
 

@@ -9,11 +9,6 @@ namespace EntityGraphQL.Directives
     {
         public override string Name { get => "skip"; }
         public override string Description { get => "Directs the executor to skip this field or fragment when the `if` argument is true."; }
-        public override Type GetArgumentsType()
-        {
-            return typeof(SkipArguments);
-        }
-
         public override Expression? ProcessExpression(Expression expression, object arguments)
         {
             if (((SkipArguments)arguments).@if)

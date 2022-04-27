@@ -9,11 +9,6 @@ namespace EntityGraphQL.Directives
     {
         public override string Name { get => "include"; }
         public override string Description { get => "Directs the executor to include this field or fragment only when the `if` argument is true."; }
-        public override Type GetArgumentsType()
-        {
-            return typeof(IncludeArguments);
-        }
-
         public override Expression? ProcessExpression(Expression expression, object arguments)
         {
             if (((IncludeArguments)arguments).@if)

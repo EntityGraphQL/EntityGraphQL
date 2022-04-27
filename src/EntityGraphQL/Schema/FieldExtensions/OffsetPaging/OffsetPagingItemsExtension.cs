@@ -22,7 +22,7 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         this.originalFieldParam = fieldParam;
     }
 
-    public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // other extensions expect to run on the collection not our new shape
         Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, this.originalFieldParam, parentNode!.RootParameter!);

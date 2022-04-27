@@ -64,7 +64,7 @@ namespace EntityGraphQL.Compiler
             if (listContext == null)
                 return null;
 
-            (listContext, var newNextFieldContext) = ProcessExtensionsPreSelection(GraphQLFieldType.ListSelection, listContext, nextFieldContext, replacer);
+            (listContext, var newNextFieldContext) = ProcessExtensionsPreSelection(listContext, nextFieldContext, replacer);
             if (newNextFieldContext != null)
                 nextFieldContext = newNextFieldContext;
 
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler
                 return listContext;
             }
 
-            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(GraphQLFieldType.ListSelection, listContext, selectionFields, nextFieldContext, contextChanged, replacer);
+            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, contextChanged, replacer);
             // build a .Select(...) - returning a IEnumerable<>
             var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext!, listContext, selectionFields.ExpressionOnly());
 

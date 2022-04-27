@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
-        private Field? edgesField;
+        private IField? edgesField;
         private Type? listType;
         private bool isQueryable;
         private Type? returnType;
@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.AddArguments(new ConnectionArgs());
 
             // set up Extension on Edges.Node field to handle the Select() insertion
-            edgesField = (Field)returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
+            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
             // move expression
             // This is the original expression that was defined in the schema - the collection
             // UseConnectionPaging() basically moves it to originalField.edges
@@ -137,7 +137,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.UpdateExpression(fieldExpression);
         }
 
-        public override Expression GetExpression(Field field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+        public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
             if (servicesPass)

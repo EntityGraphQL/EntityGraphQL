@@ -150,7 +150,7 @@ namespace EntityGraphQL.Compiler
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var resultName = node.Alias?.Value ?? actualField.Name;
 
-            if (actualField.FieldType == FieldType.Mutation)
+            if (actualField.FieldType == Schema.GraphQLQueryFieldType.Mutation)
             {
                 var mutationField = (MutationField)actualField;
 

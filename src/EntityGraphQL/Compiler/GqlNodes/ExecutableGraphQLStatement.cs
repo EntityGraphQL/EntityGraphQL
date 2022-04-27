@@ -92,13 +92,22 @@ namespace EntityGraphQL.Compiler
                     if (didExecute)
                         result[fieldNode.Name] = data;
                 }
+                catch (AggregateException aex)
+                {
+                    var errors = aex.InnerExceptions.SelectMany<Exception, string>(ex => ex is EntityGraphQLValidationException vex ? vex.ValidationErrors : new[] { $"Field '{fieldNode.Name}' - {ex.Message}" });
+                    throw new EntityGraphQLValidationException(errors);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex.InnerException!);
+                }
                 catch (EntityGraphQLValidationException)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex is TargetInvocationException ? ex.InnerException! : ex);
+                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex);
                 }
             }
             return Task.FromResult(result);

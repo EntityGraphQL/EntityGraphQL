@@ -241,7 +241,7 @@ namespace EntityGraphQL.Tests.OffsetPaging
 
             var result = schema.ExecuteRequest(gql, data, null, null);
             Assert.NotNull(result.Errors);
-            Assert.Equal("Field error: people - Argument take can not be greater than 2.", result.Errors[0].Message);
+            Assert.Equal("Field 'people' - Argument take can not be greater than 2.", result.Errors[0].Message);
         }
         [Fact]
         public void TestAttribute()

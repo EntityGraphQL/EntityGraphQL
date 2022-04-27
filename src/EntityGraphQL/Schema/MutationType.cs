@@ -24,7 +24,7 @@ public class MutationType
     /// </summary>
     /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
     /// <typeparam name="TType"></typeparam>
-    public void AddFrom<TType>(TType mutationClassInstance) where TType : notnull
+    public MutationType AddFrom<TType>(TType mutationClassInstance) where TType : notnull
     {
         Type type = mutationClassInstance.GetType();
         var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
@@ -36,6 +36,7 @@ public class MutationType
                 AddMutationMethod(name, mutationClassInstance, classLevelRequiredAuth, method, attribute.Description);
             }
         }
+        return this;
     }
 
     /// <summary>
@@ -43,9 +44,9 @@ public class MutationType
     /// name using the SchemaFieldNamer. Use the [Description] attribute on the method to set the description.
     /// </summary>
     /// <param name="mutationDelegate">A method to execute the mutation logic</param>
-    public void Add(Delegate mutationDelegate)
+    public MutationField Add(Delegate mutationDelegate)
     {
-        Add(SchemaType.Schema.SchemaFieldNamer(mutationDelegate.Method.Name), mutationDelegate);
+        return Add(SchemaType.Schema.SchemaFieldNamer(mutationDelegate.Method.Name), mutationDelegate);
     }
 
     /// <summary>
@@ -53,10 +54,10 @@ public class MutationType
     /// </summary>
     /// <param name="mutationName">Mutation field name</param>
     /// <param name="mutationDelegate">A method to execute the mutation logic</param>
-    public void Add(string mutationName, Delegate mutationDelegate)
+    public MutationField Add(string mutationName, Delegate mutationDelegate)
     {
         var description = (mutationDelegate.Method.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description ?? string.Empty;
-        Add(mutationName, description, mutationDelegate);
+        return Add(mutationName, description, mutationDelegate);
     }
 
     /// <summary>
@@ -64,12 +65,12 @@ public class MutationType
     /// </summary>
     /// <param name="mutationName">Mutation field name</param>
     /// <param name="mutationDelegate">A method to execute the mutation logic</param>
-    public void Add(string mutationName, string description, Delegate mutationDelegate)
+    public MutationField Add(string mutationName, string description, Delegate mutationDelegate)
     {
-        AddMutationMethod(mutationName, mutationDelegate.Target, null, mutationDelegate.Method, description);
+        return AddMutationMethod(mutationName, mutationDelegate.Target, null, mutationDelegate.Method, description);
     }
 
-    private void AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description) where TType : notnull
+    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description) where TType : notnull
     {
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
@@ -79,16 +80,26 @@ public class MutationType
         var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
         var typeName = SchemaType.Schema.GetSchemaType(actualReturnType.GetNonNullableOrEnumerableType(), null).Name;
         var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType);
-        var mutationType = new MutationField(SchemaType.Schema, name, returnType, mutationClassInstance, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer);
+        var mutationField = new MutationField(SchemaType.Schema, name, returnType, mutationClassInstance, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer);
+
+        var validators = method.GetCustomAttributes<ArgumentValidatorAttribute>();
+        if (validators != null)
+        {
+            foreach (var validator in validators)
+            {
+                mutationField.AddValidator(validator.Validator.ValidateAsync);
+            }
+        }
 
         var obsoleteAttribute = method.GetCustomAttribute<ObsoleteAttribute>();
         if (obsoleteAttribute != null)
         {
-            mutationType.IsDeprecated = true;
-            mutationType.DeprecationReason = obsoleteAttribute.Message;
+            mutationField.IsDeprecated = true;
+            mutationField.DeprecationReason = obsoleteAttribute.Message;
         }
 
-        SchemaType.FieldsByName[name] = mutationType;
+        SchemaType.FieldsByName[name] = mutationField;
+        return mutationField;
     }
 
     /// <summary>

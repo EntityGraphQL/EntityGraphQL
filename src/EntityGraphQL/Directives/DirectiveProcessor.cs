@@ -15,7 +15,7 @@ namespace EntityGraphQL.Directives
     /// </summary>
     public abstract class DirectiveProcessor<TArguments> : IDirectiveProcessor
     {
-        public abstract Type GetArgumentsType();
+        public Type GetArgumentsType() => typeof(TArguments);
         public abstract string Name { get; }
         public abstract string Description { get; }
 
@@ -31,6 +31,12 @@ namespace EntityGraphQL.Directives
             return expression;
         }
 
+        /// <summary>
+        /// Implement this to make changes to the field before the expressions are built
+        /// </summary>
+        /// <param name="field"></param>
+        /// <param name="arguments"></param>
+        /// <returns></returns>
         public virtual BaseGraphQLField? ProcessField(BaseGraphQLField field, object arguments)
         {
             return field;

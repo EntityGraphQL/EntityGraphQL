@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -14,7 +15,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class Field : BaseField, IField
     {
-        public override FieldType FieldType { get; } = FieldType.Query;
+        public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Query;
 
         public IEnumerable<string> RequiredArgumentNames
         {
@@ -183,6 +184,8 @@ namespace EntityGraphQL.Schema
             var result = expression;
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             (result, var argumentValues) = PrepareFieldExpression(args, this, result, replacer, expression, parentNode, docParam, docVariables, contextChanged);
+            if (result == null)
+                return (null, null);
             // the expressions we collect have a different starting parameter. We need to change that
             if (FieldParam != null && !contextChanged)
             {
@@ -198,29 +201,33 @@ namespace EntityGraphQL.Schema
             return (result, argumentValues);
         }
 
-        private (Expression, object?) PrepareFieldExpression(Dictionary<string, object> args, Field field, Expression result, ParameterReplacer parameterReplacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass)
+        private (Expression? fieldExpression, object? arguments) PrepareFieldExpression(Dictionary<string, object> args, Field field, Expression? fieldExpression, ParameterReplacer parameterReplacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass)
         {
             object? argumentValues = null;
+            Expression? result = fieldExpression;
             if (field.ArgumentsType != null && FieldParam != null)
             {
-                argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables);
-                if (Extensions.Count > 0)
+                argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables);
+            }
+            if (Extensions.Count > 0)
+            {
+                foreach (var m in Extensions)
                 {
-                    foreach (var m in Extensions)
-                    {
+                    if (result != null)
                         result = m.GetExpression(this, result, ArgumentParam, argumentValues, context, parentNode, servicesPass, parameterReplacer);
-                    }
                 }
             }
-            else
+
+            if (argumentValidators.Count > 0)
             {
-                if (Extensions.Count > 0)
+                var invokeContext = new ArgumentValidatorContext(field, argumentValues);
+                foreach (var m in argumentValidators)
                 {
-                    foreach (var m in Extensions)
-                    {
-                        result = m.GetExpression(this, result, ArgumentParam, null, context, parentNode, servicesPass, parameterReplacer);
-                    }
+                    m(invokeContext);
+                    argumentValues = invokeContext.Arguments;
                 }
+                if (invokeContext.Errors.Any())
+                    throw new EntityGraphQLValidationException(invokeContext.Errors);
             }
             return (result, argumentValues);
         }

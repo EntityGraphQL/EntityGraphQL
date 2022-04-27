@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object BuildArgumentsObject(ISchemaProvider schema, string fieldName, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
+    public static object BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
@@ -57,7 +57,7 @@ public static class ArgumentUtil
         // create a copy of the anonymous object. It will have the default values set
         // there is only 1 constructor for the anonymous type that takes all the property values
         var con = argumentsType!.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
-        object argumentValues;
+        object? argumentValues;
         if (con != null)
         {
             argumentValues = con.Invoke(propVals.Values.ToArray());
@@ -81,6 +81,22 @@ public static class ArgumentUtil
             }
         }
 
+        if (field != null)
+        {
+            var validators = argumentsType!.GetCustomAttributes<ArgumentValidatorAttribute>();
+            if (validators != null)
+            {
+                var context = new ArgumentValidatorContext(field, argumentValues);
+                foreach (var validator in validators)
+                {
+                    validator.Validator.ValidateAsync(context).Wait();
+                    argumentValues = context.Arguments;
+                }
+                if (context.Errors.Any())
+                    throw new EntityGraphQLValidationException(context.Errors);
+            }
+        }
+
         return argumentValues;
     }
 
@@ -90,11 +106,9 @@ public static class ArgumentUtil
         // check we have required arguments
         if (memberType.GetGenericArguments().Any() && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
         {
-            // shouldn't get here as QueryWalkerHelper.CheckRequiredArguments is called in the compiler
-            // but just incase
+            // Error is created by caller on arg validation
             if (args == null || !args.ContainsKey(argName))
             {
-                validationErrors.Add($"Field '{fieldName}' missing required argument '{argName}'");
                 return null;
             }
             var item = args[argName];

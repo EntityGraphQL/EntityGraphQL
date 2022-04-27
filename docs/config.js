@@ -29,6 +29,7 @@ const config = {
       '/schema-creation',
       '/serialization-naming',
       '/authorization',
+      '/validation',
       '/field-extensions',
       '/entity-framework',
       '/integration',

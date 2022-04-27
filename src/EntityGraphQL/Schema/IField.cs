@@ -7,7 +7,7 @@ using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
 {
-    public enum FieldType
+    public enum GraphQLQueryFieldType
     {
         Query,
         Mutation,
@@ -17,7 +17,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface IField
     {
-        FieldType FieldType { get; }
+        GraphQLQueryFieldType FieldType { get; }
         ISchemaProvider Schema { get; }
         ParameterExpression? FieldParam { get; set; }
         string? Description { get; }
@@ -36,6 +36,7 @@ namespace EntityGraphQL.Schema
         bool HasArgumentByName(string argName);
         bool ArgumentsAreInternal { get; }
         IEnumerable<Type> Services { get; }
+        IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
         IField? UseArgumentsFromField { get; }
 
         /// <summary>
@@ -54,5 +55,7 @@ namespace EntityGraphQL.Schema
         void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
         void UseArgumentsFrom(IField edgesField);
+        IField AddValidator<TValidator>() where TValidator : IArgumentValidator;
+        IField AddValidator(Action<ArgumentValidatorContext> callback);
     }
 }

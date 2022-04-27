@@ -52,11 +52,12 @@ Addition changes
 - Support for persisted queries (enabled by default) - https://www.apollographql.com/docs/react/api/link/persisted-queries/
 - Support for a query cache of recent queries. Enabled by default. Caches the result of compiling the query document string to an AST. Execution is then applying the document level variables, building the expressions then execution
 - Better support for nested objects in `QueryVariables`
-- Small performance enhancements when building internal types
+- Performance enhancements when building internal types for arguments
 - Performance of compiling and building expressions has been improved - it is about 2 times faster. Note this is just building the expressions, not executing them which triggers your services/EF/etc
 - Reduction in memory allocation when compiling queries by around 30%
 - You can no add/define mutation methods as delegates/anonymous functions etc.
 - You can now use `[Range]` & `[StringLength]` attributes on your arguments for more validation options
+- Introduced custom argument validators - a simple way to act on field arguments before execution. Great for custom/complex input validation on arguments. Use `field.AddValidator()`
 
   Fixes
 

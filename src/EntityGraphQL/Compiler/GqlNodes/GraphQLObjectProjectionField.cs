@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler
                 return null;
             bool needsServiceWrap = !withoutServiceFields && Field?.Services.Any() == true;
 
-            (nextFieldContext, _) = ProcessExtensionsPreSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, null, replacer);
+            (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
             var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
             }
             else
             {
-                (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, nextFieldContext, selectionFields, null, contextChanged, replacer);
+                (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, contextChanged, replacer);
                 // build a new {...} - returning a single object {}
                 var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
                 if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
@@ -138,7 +138,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(GraphQLFieldType.ObjectProjection, updatedExpression, selectionFields, null, contextChanged, replacer);
+            (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Field!.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
