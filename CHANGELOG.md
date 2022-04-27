@@ -59,7 +59,7 @@ Addition changes
 - You can now use `[Range]` & `[StringLength]` attributes on your arguments for more validation options
 - Introduced custom argument validators - a simple way to act on field arguments before execution. Great for custom/complex input validation on arguments. Use `field.AddValidator()` or the `ArgumentValidatorAttribute` attribute.
 
-  Fixes
+Fixes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.
