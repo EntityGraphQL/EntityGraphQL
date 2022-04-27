@@ -165,3 +165,42 @@ public class PersonArgs
 ```
 
 # Validation with Attributes
+
+You can use the `ArgumentValidator` attribute to register validator on input arguments as well. These can be used on
+
+- Mutation methods - Will trigger validation for the arguments for the mutation
+- Mutation arguments class - the arguments passed to a mutation
+- Typed query arguments - if you have typed query arguments with this attribute they will be validated. If you use anonymous argument types you will need to use `AddValidator()`
+
+```
+// On mutation arguments directly
+[MutationArguments]
+[ArgumentValidator(typeof(PersonValidator))]
+public class PersonArgs
+{
+    public string Name { get; set; }
+}
+
+// On the mutation method
+public class Mutations
+{
+    [GraphQLMutation]
+    [ArgumentValidator(typeof(PersonValidator))]
+    public static bool AddPerson(PersonArgs args)
+    {
+        // ...
+    }
+}
+
+// On query args
+schema.Query().AddField("movies",
+    new MovieQueryArgs(),
+    (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
+    "List of movies");
+
+[ArgumentValidator(typeof(MovieValidator))]
+public class MovieQueryArgs
+{
+    public string Title { get; set; }
+}
+```

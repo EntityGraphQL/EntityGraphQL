@@ -57,7 +57,7 @@ Addition changes
 - Reduction in memory allocation when compiling queries by around 30%
 - You can no add/define mutation methods as delegates/anonymous functions etc.
 - You can now use `[Range]` & `[StringLength]` attributes on your arguments for more validation options
-- Introduced custom argument validators - a simple way to act on field arguments before execution. Great for custom/complex input validation on arguments. Use `field.AddValidator()`
+- Introduced custom argument validators - a simple way to act on field arguments before execution. Great for custom/complex input validation on arguments. Use `field.AddValidator()` or the `ArgumentValidatorAttribute` attribute.
 
   Fixes
 
