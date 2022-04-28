@@ -84,28 +84,20 @@ namespace EntityGraphQL.AspNet.Tests
     {
         public Type Type => typeof(JObject);
 
-        public object ChangeType(object value, Type fromType, Type toType, ISchemaProvider schema)
+        public object ChangeType(object value, Type toType, ISchemaProvider schema)
         {
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            if (fromType == typeof(JObject))
-            {
-                return ((JObject)value).ToObject(toType);
-            }
-            return value;
+            return ((JObject)value).ToObject(toType);
         }
     }
     internal class JTokenTypeConverter : ICustomTypeConverter
     {
         public Type Type => typeof(JToken);
 
-        public object ChangeType(object value, Type fromType, Type toType, ISchemaProvider schema)
+        public object ChangeType(object value, Type toType, ISchemaProvider schema)
         {
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            if (typeof(JToken).IsAssignableFrom(fromType))
-            {
-                return ((JToken)value).ToObject(toType);
-            }
-            return value;
+            return ((JToken)value).ToObject(toType);
         }
     }
 }

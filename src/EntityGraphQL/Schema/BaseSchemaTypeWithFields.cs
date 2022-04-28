@@ -11,7 +11,7 @@ namespace EntityGraphQL.Schema
         internal Dictionary<string, TFieldType> FieldsByName { get; } = new();
         public abstract Type TypeDotnet { get; }
         public string Name { get; }
-        public string? Description { get; }
+        public string? Description { get; set; }
         public abstract bool IsInput { get; }
         public abstract bool IsEnum { get; }
         public abstract bool IsScalar { get; }

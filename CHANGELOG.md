@@ -1,4 +1,4 @@
-# 2.0.0-beta7
+# 2.0.0
 
 Breaking changes
 
@@ -58,6 +58,8 @@ Addition changes
 - You can no add/define mutation methods as delegates/anonymous functions etc.
 - You can now use `[Range]` & `[StringLength]` attributes on your arguments for more validation options
 - Introduced custom argument validators - a simple way to act on field arguments before execution. Great for custom/complex input validation on arguments. Use `field.AddValidator()` or the `ArgumentValidatorAttribute` attribute.
+- Using `AddAllFields(true)` on an `InputType` will add the sub-complex class types as `InputType`s as well
+- New option to auto add other classes found on mutation arguments as `InputType`s when adding a mutation
 
 Fixes
 

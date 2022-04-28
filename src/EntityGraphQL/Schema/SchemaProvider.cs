@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
@@ -110,7 +112,11 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a custom type converter. Used when converting query variables into the expected dotnet types
+        /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming varables from 
+        /// the rquest which may be strings or JSON into the dotnet tyopes on the argument classes.
+        /// For example a string to DateTime converter.
+        /// 
+        /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
         /// </summary>
         /// <param name="typeConverter"></param>
         public void AddCustomTypeConverter(ICustomTypeConverter typeConverter)
@@ -324,6 +330,10 @@ namespace EntityGraphQL.Schema
         private void FinishAddingType(Type contextType, string name, ISchemaType tt)
         {
             tt.RequiredAuthorization = AuthorizationService.GetRequiredAuthFromType(contextType);
+            if (string.IsNullOrEmpty(tt.Description))
+            {
+                tt.Description = contextType.GetCustomAttribute<DescriptionAttribute>()?.Description;
+            }
             schematTypes.Add(name, tt);
         }
 
@@ -405,11 +415,12 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Add any methods marked with GraphQLMutationAttribute in the given object to the schema. Method names are added as using fieldNamer
         /// </summary>
-        /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
         /// <typeparam name="TType"></typeparam>
-        public void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull
+        /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
+        /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
+        public void AddMutationsFrom<TType>(TType mutationClassInstance, bool autoAddInputTypes = false) where TType : notnull
         {
-            mutationType.AddFrom(mutationClassInstance);
+            mutationType.AddFrom(mutationClassInstance, autoAddInputTypes);
         }
 
         /// <summary>

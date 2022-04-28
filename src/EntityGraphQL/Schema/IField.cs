@@ -57,5 +57,26 @@ namespace EntityGraphQL.Schema
         void UseArgumentsFrom(IField edgesField);
         IField AddValidator<TValidator>() where TValidator : IArgumentValidator;
         IField AddValidator(Action<ArgumentValidatorContext> callback);
+
+        /// <summary>
+        /// To access this field all roles listed here are required
+        /// </summary>
+        /// <param name="roles"></param>
+        IField RequiresAllRoles(params string[] roles);
+        /// <summary>
+        /// To access this field any role listed is required
+        /// </summary>
+        /// <param name="roles"></param>
+        IField RequiresAnyRole(params string[] roles);
+        /// <summary>
+        /// To access this field all policies listed here are required
+        /// </summary>
+        /// <param name="policies"></param>
+        IField RequiresAllPolicies(params string[] policies);
+        /// <summary>
+        /// To access this field any policy listed is required
+        /// </summary>
+        /// <param name="policies"></param>
+        IField RequiresAnyPolicy(params string[] policies);
     }
 }

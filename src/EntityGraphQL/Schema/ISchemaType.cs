@@ -7,7 +7,7 @@ namespace EntityGraphQL.Schema
     {
         Type TypeDotnet { get; }
         string Name { get; }
-        string? Description { get; }
+        string? Description { get; set; }
         bool IsInput { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }

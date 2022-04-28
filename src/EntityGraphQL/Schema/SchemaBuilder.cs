@@ -136,7 +136,7 @@ namespace EntityGraphQL.Schema
             schema.Query().AddField(field);
         }
 
-        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<string, string> fieldNamer, bool createNewComplexTypes = true)
+        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, Func<string, string> fieldNamer, bool createNewComplexTypes = true, bool isInputType = false)
         {
             if (fieldNamer == null)
                 fieldNamer = DefaultNamer;
@@ -149,20 +149,20 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
+                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes, fieldNamer, isInputType);
                 if (f != null)
                     fields.Add(f);
             }
             foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
+                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, createNewComplexTypes, fieldNamer, isInputType);
                 if (f != null)
                     fields.Add(f);
             }
             return fields;
         }
 
-        private static Field? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static Field? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
                 return null;
@@ -197,7 +197,7 @@ namespace EntityGraphQL.Schema
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
-            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer);
+            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer, isInputType);
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type);
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Schema
             return field;
         }
 
-        private static void CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer)
+        private static void CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
         {
             if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
             {
@@ -233,14 +233,14 @@ namespace EntityGraphQL.Schema
                     // dynamcially call generic method
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
-                    var method = schema.GetType().GetMethod("AddType", new[] { typeof(string), typeof(string) });
+                    var method = schema.GetType().GetMethod(isInputType ? "AddInputType" : "AddType", new[] { typeof(string), typeof(string) });
                     if (method == null)
                         throw new Exception("Could not find AddType method on schema");
                     method = method.MakeGenericMethod(propType);
                     var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
-                    var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer);
+                    var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer, createNewComplexTypes, isInputType);
                     typeAdded.AddFields(fields);
                 }
                 else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))

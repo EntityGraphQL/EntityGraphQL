@@ -14,5 +14,5 @@ public interface ICustomTypeConverter
     /// <param name="toType"></param>
     /// <param name="schema"></param>
     /// <returns></returns>
-    object? ChangeType(object value, Type fromType, Type toType, ISchemaProvider schema);
+    object? ChangeType(object value, Type toType, ISchemaProvider schema);
 }

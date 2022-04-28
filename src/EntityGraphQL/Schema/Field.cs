@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -70,64 +69,6 @@ namespace EntityGraphQL.Schema
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, schema.SchemaFieldNamer);
                 ArgumentsType = argTypes.GetType();
             }
-        }
-
-        /// <summary>
-        /// To access this field all roles listed here are required
-        /// </summary>
-        /// <param name="roles"></param>
-        public Field RequiresAllRoles(params string[] roles)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllRoles(roles);
-            return this;
-        }
-
-        /// <summary>
-        /// To access this field any role listed is required
-        /// </summary>
-        /// <param name="roles"></param>
-        public Field RequiresAnyRole(params string[] roles)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllRoles(roles);
-            return this;
-        }
-
-        /// <summary>
-        /// To access this field all policies listed here are required
-        /// </summary>
-        /// <param name="policies"></param>
-        public Field RequiresAllPolicies(params string[] policies)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAllPolicies(policies);
-            return this;
-        }
-
-        /// <summary>
-        /// To access this field any policy listed is required
-        /// </summary>
-        /// <param name="policies"></param>
-        public Field RequiresAnyPolicy(params string[] policies)
-        {
-            if (RequiredAuthorization == null)
-                RequiredAuthorization = new RequiredAuthorization();
-            RequiredAuthorization.RequiresAnyPolicy(policies);
-            return this;
-        }
-
-        /// <summary>
-        /// Clears any authorization requirements for this field
-        /// </summary>
-        /// <returns></returns>
-        public Field ClearAuthorization()
-        {
-            RequiredAuthorization = null;
-            return this;
         }
 
         /// <summary>

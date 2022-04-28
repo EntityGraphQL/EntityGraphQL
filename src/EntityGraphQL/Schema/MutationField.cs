@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema
 {
@@ -16,7 +17,7 @@ namespace EntityGraphQL.Schema
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
@@ -34,14 +35,24 @@ namespace EntityGraphQL.Schema
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null, fieldNamer));
+                    AddInputTypesInArguments(schema, autoAddInputTypes, item.PropertyType);
+
                 }
                 foreach (var item in ArgumentsType.GetFields())
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null, fieldNamer));
+                    AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
                 }
             }
+        }
+
+        private static void AddInputTypesInArguments(ISchemaProvider schema, bool autoAddInputTypes, Type propType)
+        {
+            var inputType = propType.GetEnumerableOrArrayType() ?? propType;
+            if (autoAddInputTypes && !schema.HasType(inputType))
+                schema.AddInputType(inputType, inputType.Name, null).AddAllFields(true);
         }
 
         public void Deprecate(string reason)

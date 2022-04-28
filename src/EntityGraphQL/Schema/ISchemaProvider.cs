@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema
         ISchemaType AddEnum(string name, Type type, string description);
         SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
         ISchemaType AddInputType(Type type, string name, string? description);
-        void AddMutationsFrom<TType>(TType mutationClassInstance) where TType : notnull;
+        void AddMutationsFrom<TType>(TType mutationClassInstance, bool autoAddInputTypes = false) where TType : notnull;
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
