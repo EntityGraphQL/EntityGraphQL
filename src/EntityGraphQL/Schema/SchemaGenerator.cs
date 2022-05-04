@@ -95,11 +95,11 @@ type {rootQueryType.Name} {{
                     _ => "type"
                 };
 
-                var extends = string.IsNullOrWhiteSpace(typeItem.BaseType)
+                var implements = string.IsNullOrWhiteSpace(typeItem.BaseType)
                     ? ""
-                    : $"extends {typeItem.BaseType} ";
+                    : $"implements {typeItem.BaseType} ";
 
-                types.AppendLine($"{type} {typeItem.Name} {extends}{{");
+                types.AppendLine($"{type} {typeItem.Name} {implements}{{");
                 foreach (var field in typeItem.GetFields())
                 {
                     if (field.Name.StartsWith("__"))

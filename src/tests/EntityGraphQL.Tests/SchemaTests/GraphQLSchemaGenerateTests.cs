@@ -242,15 +242,15 @@ namespace EntityGraphQL.Tests
         public void TestAbstractClass()
         {
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Dog>("Dog", "Dogs are animals", "Animal");
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Cat>("Cat", "Cats are animals", "Animal");
+            schemaProvider.AddInheritedType<AbstractClassTestSchema.Dog>("Dog", "Dogs are animals", "Animal").AddAllFields();
+            schemaProvider.AddInheritedType<AbstractClassTestSchema.Cat>("Cat", "Cats are animals", "Animal").AddAllFields();
 
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains(@"interface Animal", schema);
 
-            Assert.Contains(@"type Cat extends Animal", schema);
-            Assert.Contains(@"type Dog extends Animal", schema);
+            Assert.Contains(@"type Cat implements Animal", schema);
+            Assert.Contains(@"type Dog implements Animal", schema);
         }
     }
 
@@ -306,7 +306,6 @@ namespace EntityGraphQL.Tests
     public class AbstractClassTestSchema
     {      
         public List<Animal> Animals { get; set; }
-        
 
         public abstract class Animal
         {
