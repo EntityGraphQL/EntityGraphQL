@@ -90,6 +90,19 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.Query().AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
             Assert.Equal("Field people already exists on type Query. Use ReplaceField() if this is intended.", ex.Message);
         }
+
+        [Fact]
+        public void AbstractClassesBecomeInterfaces()
+        {            
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
+            Assert.True(schemaProvider.Type<AbstractClass>().IsInterface);
+            Assert.Equal(2, schemaProvider.Type<AbstractClass>().GetFields().Count());
+
+            schemaProvider.AddType<InheritedClass>("InheritedClass");
+            Assert.False(schemaProvider.Type<InheritedClass>().IsInterface);
+            Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
+        }
+
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
@@ -100,6 +113,21 @@ namespace EntityGraphQL.Tests
         private class TestSchema2
         {
             public IEnumerable<Property> Properties { get; }
+        }
+
+        private class TestSchema3
+        {
+            public IEnumerable<AbstractClass> AbstractClasses { get; }            
+        }
+
+        private abstract class AbstractClass
+        {
+            public int Field1 { get; }            
+        }
+
+        private class InheritedClass : AbstractClass
+        {
+            public int Field2 { get; }
         }
 
         private class TestEntity

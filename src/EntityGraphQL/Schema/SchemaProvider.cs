@@ -622,7 +622,7 @@ namespace EntityGraphQL.Schema
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, false, false, true);
             FinishAddingType(type, name, schemaType);
-            return schemaType.AddAllFields();
+            return schemaType;
         }
 
         /// <summary>
@@ -632,11 +632,11 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddInterface<TInterface>(string name, string description)
+        public ISchemaType AddInterface<TInterface>(string name, string? description)
         {
-            var schemaType = new SchemaType<object>(this, typeof(TInterface), name, description, null, false, false, true);
+            var schemaType = new SchemaType<TInterface>(this, name, description, null, false, false, false, true);
             FinishAddingType(typeof(TInterface), name, schemaType);
-            return schemaType.AddAllFields();
+            return schemaType;
         }
 
         /// <summary>
