@@ -37,10 +37,7 @@ namespace EntityGraphQL.Tests
                 person.AddField(p => p.LastName, "Person's last name");
                 person.AddField(p => p.Gender, "Person's gender");
                 // You can provide a name for the field and in composite fields you are required to
-                person.AddField("fullName", p => p.Name + " " + p.LastName, "Person's full name");
-
-                AddInterface<IProject>("ProjectInterface", "Details of a project");
-                AddInterface<ProjectBase>("ProjectBase", "Details of a project");
+                person.AddField("fullName", p => p.Name + " " + p.LastName, "Person's full name");                
 
                 var project = AddType<Project>("Project", "Details of a project");
                 project.AddField(p => p.Id, "Unique identifier for the project");

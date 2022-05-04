@@ -95,9 +95,9 @@ type {rootQueryType.Name} {{
                     _ => "type"
                 };
 
-                var extends = string.IsNullOrWhiteSpace(typeItem.Extends)
+                var extends = string.IsNullOrWhiteSpace(typeItem.BaseType)
                     ? ""
-                    : $" extends {typeItem.Extends}";
+                    : $"extends {typeItem.BaseType} ";
 
                 types.AppendLine($"{type} {typeItem.Name} {extends}{{");
                 foreach (var field in typeItem.GetFields())

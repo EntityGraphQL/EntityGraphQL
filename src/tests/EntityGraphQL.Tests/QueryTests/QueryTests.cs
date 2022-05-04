@@ -3,6 +3,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using EntityGraphQL.Tests.ApiVersion1;
 
 namespace EntityGraphQL.Tests
 {
@@ -299,6 +300,32 @@ query {
             dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
             // we only have the fields requested
             Assert.Equal(15, totalPeople);
+        }
+
+
+        [Fact]
+        public void TestInheritance()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animals {
+        __typename
+        name
+    }
+}");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() {  Name = "steve", HasBone = true});
+            context.Animals.Add(new Cat() {  Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animals = (dynamic)qr.Data["animals"];
+            // we only have the fields requested
+            Assert.Equal(2, animals.Count);
+
+            Assert.Equal("Dog", animals[0].__typename);
+            Assert.Equal("Cat", animals[1].__typename);
         }
     }
 }

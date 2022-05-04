@@ -12,7 +12,7 @@ namespace EntityGraphQL.Schema
         bool IsInterface{ get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
-        string? Extends { get; }
+        string? BaseType { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<IField> GetFields();

@@ -277,6 +277,21 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a new type into the schema with TBaseType as its context
+        /// inheriting from another type
+        /// </summary>
+        /// <param name="name">Name of the type</param>
+        /// <param name="description">description of the type</param>
+        /// <typeparam name="TBaseType"></typeparam>
+        /// <returns>The added type for further changes via chaining</returns>
+        public SchemaType<TBaseType> AddInheritedType<TBaseType>(string name, string? description, string baseType)
+        {
+            var schemaType = new SchemaType<TBaseType>(this, name, description, null, baseType: baseType);
+            FinishAddingType(typeof(TBaseType), name, schemaType);
+            return schemaType;
+        }
+
+        /// <summary>
+        /// Add a new type into the schema with TBaseType as its context
         /// </summary>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
@@ -298,7 +313,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddType(Type contextType, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false, false)!;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false, false, null)!;
             FinishAddingType(contextType, name, newType);
             return newType;
         }
@@ -378,7 +393,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddInputType(Type type, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false, false)!;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false, false, null)!;
             FinishAddingType(type, name, newType);
 
             return newType;
@@ -393,7 +408,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description)
         {
-            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, false, false, true)!;
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, false, false, true, false, null)!;
             schematTypes.Add(gqlTypeName, schemaType);
             return schemaType;
         }

@@ -237,6 +237,21 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("Obsolete @deprecated(reason: \"This is an obsolete genre\")", schema);
         }
+
+        [Fact]
+        public void TestAbstractClass()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+            schemaProvider.AddInheritedType<AbstractClassTestSchema.Dog>("Dog", "Dogs are animals", "Animal");
+            schemaProvider.AddInheritedType<AbstractClassTestSchema.Cat>("Cat", "Cats are animals", "Animal");
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            // this exists as it is not null
+            Assert.Contains(@"interface Animal", schema);
+
+            Assert.Contains(@"type Cat extends Animal", schema);
+            Assert.Contains(@"type Dog extends Animal", schema);
+        }
     }
 
     public class IgnoreTestMutations
@@ -287,6 +302,29 @@ namespace EntityGraphQL.Tests
         public string Hidden { get; set; }
     }
 
+
+    public class AbstractClassTestSchema
+    {      
+        public List<Animal> Animals { get; set; }
+        
+
+        public abstract class Animal
+        {
+            public string Name { get; set; }
+        }
+
+        public abstract class Cat : Animal
+        {
+            public int Lives { get; set; }
+        }
+
+        public abstract class Dog : Animal
+        {
+            public int Bones { get; set; }
+        }
+    }
+
+    
     public class IgnoreTestSchema
     {
         public IgnoreTestSchema()
