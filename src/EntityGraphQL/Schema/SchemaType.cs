@@ -32,7 +32,10 @@ namespace EntityGraphQL.Schema
             BaseType = baseType;
             if (!isScalar)
             {
-                AddField("__typename", t => name, "Type name").IsNullable(false);                
+                AddField("__typename", t => name, "Type name").IsNullable(false);
+                //AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
+                //AddField("__typename", "Type name")
+                //    .ResolveWithService<int>((t, srv) => schema.Type(t!.GetType().Name).Name);
             }
         }
 

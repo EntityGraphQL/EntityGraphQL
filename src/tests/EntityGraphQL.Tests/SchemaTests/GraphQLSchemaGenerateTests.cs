@@ -313,12 +313,12 @@ namespace EntityGraphQL.Tests
             public string Name { get; set; }
         }
 
-        public abstract class Cat : Animal
+        public class Cat : Animal
         {
             public int Lives { get; set; }
         }
 
-        public abstract class Dog : Animal
+        public class Dog : Animal
         {
             public int Bones { get; set; }
         }
