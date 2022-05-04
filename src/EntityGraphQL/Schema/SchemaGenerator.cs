@@ -88,7 +88,18 @@ type {rootQueryType.Name} {{
                 if (!string.IsNullOrEmpty(typeItem.Description))
                     types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
 
-                types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
+                var type = typeItem switch
+                {
+                    { IsInput: true } => "input",
+                    { IsInterface: true } => "interface",
+                    _ => "type"
+                };
+
+                var extends = string.IsNullOrWhiteSpace(typeItem.Extends)
+                    ? ""
+                    : $" extends {typeItem.Extends}";
+
+                types.AppendLine($"{type} {typeItem.Name} {extends}{{");
                 foreach (var field in typeItem.GetFields())
                 {
                     if (field.Name.StartsWith("__"))

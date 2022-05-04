@@ -65,5 +65,19 @@ namespace EntityGraphQL.Tests
             schema.RemoveTypeAndAllFields("Project");
             Assert.Empty(schema.Query().GetFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }
+        [Fact]
+        public void SupportsInterfaces()
+        {
+            var schema = new TestObjectGraphSchema();
+            Assert.Equal("ProjectInterface", schema.Type("ProjectInterface").Name);
+            Assert.True(schema.Type("ProjectInterface").IsInterface);
+        }
+        [Fact]
+        public void SupportsAbstract()
+        {
+            var schema = new TestObjectGraphSchema();
+            Assert.Equal("ProjectBase", schema.Type("ProjectBase").Name);
+            Assert.True(schema.Type("ProjectBase").IsInterface);
+        }
     }
 }

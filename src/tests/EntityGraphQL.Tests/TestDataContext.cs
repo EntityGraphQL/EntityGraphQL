@@ -14,11 +14,17 @@ namespace EntityGraphQL.Tests
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
         public IEnumerable<Project> Projects { get; set; }
+        public IEnumerable<ProjectBase> ProjectsBase { get; set; }
+        public IEnumerable<IProject> ProjectsInterface { get; set; }
+
         public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
         public List<User> Users { get; set; } = new List<User>();
     }
+
+    public abstract class ProjectBase { }
+    public interface IProject { }
 
     public class ProjectOld
     {

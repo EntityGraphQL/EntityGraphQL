@@ -298,7 +298,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddType(Type contextType, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false)!;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false, false)!;
             FinishAddingType(contextType, name, newType);
             return newType;
         }
@@ -378,7 +378,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddInputType(Type type, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false)!;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false, false)!;
             FinishAddingType(type, name, newType);
 
             return newType;
@@ -608,6 +608,34 @@ namespace EntityGraphQL.Schema
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, false, true);
             FinishAddingType(type, name, schemaType);
+            return schemaType.AddAllFields();
+        }
+
+        /// <summary>
+        /// Add an interface type to the schema
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public ISchemaType AddInterface(Type type, string name, string description)
+        {
+            var schemaType = new SchemaType<object>(this, type, name, description, null, false, false, true);
+            FinishAddingType(type, name, schemaType);
+            return schemaType.AddAllFields();
+        }
+
+        /// <summary>
+        /// Add an interface type to the schema
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public ISchemaType AddInterface<TInterface>(string name, string description)
+        {
+            var schemaType = new SchemaType<object>(this, typeof(TInterface), name, description, null, false, false, true);
+            FinishAddingType(typeof(TInterface), name, schemaType);
             return schemaType.AddAllFields();
         }
 

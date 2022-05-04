@@ -12,19 +12,22 @@ namespace EntityGraphQL.Schema
         public override bool IsInput { get; }
         public override bool IsEnum { get; }
         public override bool IsScalar { get; }
+        public override bool IsInterface { get; }
+        public override string? Extends { get; }
 
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar, isInterface)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false)
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;
+            IsInterface = isInterface;
             RequiredAuthorization = requiredAuthorization;
             if (!isScalar)
                 AddField("__typename", t => name, "Type name").IsNullable(false);
