@@ -49,7 +49,7 @@ namespace EntityGraphQL.Compiler
         {
             var listContext = ListExpression;
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
-            if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
+            if (contextChanged && replacementNextFieldContext != null)
             {
                 var possibleField = replacementNextFieldContext.Type.GetField(Name);
                 if (possibleField != null)
