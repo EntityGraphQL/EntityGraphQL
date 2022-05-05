@@ -675,6 +675,28 @@ namespace EntityGraphQL.Tests
             dynamic result = results.Data["doGreatThingsHere"];
             Assert.True((bool)result);
         }
+        [Fact]
+        public void TestNoArgMutationWithService()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+                    noArgsWithService
+                }",
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["noArgsWithService"]);
+        }
 
         private bool DoGreatThingsHere()
         {

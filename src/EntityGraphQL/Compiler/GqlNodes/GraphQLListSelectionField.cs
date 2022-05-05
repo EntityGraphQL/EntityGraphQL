@@ -91,27 +91,14 @@ namespace EntityGraphQL.Compiler
             return resultExpression;
         }
 
-        protected override Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
             var fields = base.GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
-            if (withoutServiceFields && fields != null)
+            if (withoutServiceFields && Field?.Services?.Any() == true)
             {
-                var extractor = new ExpressionExtractor();
-                var extractedFields = extractor.Extract(ListExpression, (ParameterExpression)nextFieldContext, true);
-                if (extractedFields != null)
-                    extractedFields.ToDictionary(i => i.Key, i =>
-                    {
-                        var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                        return new CompiledField(new GraphQLExtractedField(schema, i.Key, replaced, NextFieldContext!), replaced);
-                    })
-                    .ToList()
-                    .ForEach(i =>
-                    {
-                        if (!fields.ContainsKey(i.Key))
-                            fields.Add(i.Key, i.Value);
-                    });
+                ExtractRequiredFieldsForPreServiceRun(ListExpression, Name, nextFieldContext, replacer, fields);
             }
 
             return fields;

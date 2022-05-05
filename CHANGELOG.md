@@ -1,3 +1,8 @@
+# 2.0.1
+
+- Fix regression where non service fields in service fields were not being pulled forward to the stage one expression execution.
+- Fix regression where services were not be passed to a mutation with no arguments
+
 # 2.0.0
 
 Breaking changes

@@ -27,12 +27,26 @@ namespace EntityGraphQL.Compiler
             return new List<BaseGraphQLField> { this };
         }
 
-        protected virtual Dictionary<string, CompiledField>? GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        protected void ExtractRequiredFieldsForPreServiceRun(Expression extractFrom, string fieldName, Expression nextFieldContext, ParameterReplacer replacer, Dictionary<string, CompiledField> fields)
         {
-            // do we have services at this level
-            if (withoutServiceFields && Field?.Services.Any() == true)
-                return null;
+            var extractor = new ExpressionExtractor();
+            var extractedFields = extractor.Extract(extractFrom, nextFieldContext, true, fieldName);
+            if (extractedFields != null)
+                extractedFields.ToDictionary(i => i.Key, i =>
+                {
+                    var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
+                    return new CompiledField(new GraphQLExtractedField(schema, i.Key, replaced, nextFieldContext), replaced);
+                })
+                .ToList()
+                .ForEach(i =>
+                {
+                    if (!fields.ContainsKey(i.Key))
+                        fields.Add(i.Key, i.Value);
+                });
+        }
 
+        protected virtual Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        {
             var selectionFields = new Dictionary<string, CompiledField>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var field in QueryFields)
@@ -45,20 +59,26 @@ namespace EntityGraphQL.Compiler
                     if (fieldExp == null)
                         continue;
 
-                    // if this came from a fragment we need to fix the expression context
-                    if (nextFieldContext != null && field is GraphQLFragmentField)
+                    // do we have services at this level
+                    if (withoutServiceFields && Field?.Services.Any() == true)
+                        ExtractRequiredFieldsForPreServiceRun(fieldExp, subField.Name, nextFieldContext!, replacer, selectionFields);
+                    else
                     {
-                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
+                        // if this came from a fragment we need to fix the expression context
+                        if (nextFieldContext != null && field is GraphQLFragmentField)
+                        {
+                            fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
+                        }
+
+                        selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
+
+                        // pull any constant values up
+                        AddConstantParameters(subField.ConstantParameters);
                     }
-
-                    selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
-
-                    // pull any constant values up
-                    AddConstantParameters(subField.ConstantParameters);
                 }
             }
 
-            return selectionFields.Count == 0 ? null : selectionFields;
+            return selectionFields.Count == 0 ? new Dictionary<string, CompiledField>() : selectionFields;
         }
     }
 }

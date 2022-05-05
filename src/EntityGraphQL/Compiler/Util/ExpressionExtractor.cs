@@ -14,14 +14,16 @@ namespace EntityGraphQL.Compiler.Util
         private Expression? currentExpression;
         private string? contextParamFieldName;
         private bool matchByType;
+        private string? rootFieldName;
 
-        internal IDictionary<string, Expression>? Extract(Expression node, Expression rootContext, bool matchByType = false)
+        internal IDictionary<string, Expression>? Extract(Expression node, Expression rootContext, bool matchByType = false, string? rootFieldName = null)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, Expression>();
             currentExpression = null;
             contextParamFieldName = null;
             this.matchByType = matchByType;
+            this.rootFieldName = rootFieldName;
             Visit(node);
             return extractedExpressions.Count > 0 ? extractedExpressions : null;
         }
@@ -58,9 +60,19 @@ namespace EntityGraphQL.Compiler.Util
                 Visit(node.Object);
                 currentExpression = prevExp;
             }
-            foreach (var arg in node.Arguments)
+            var startAt = 0;
+            if (node.Object is null) // static method
             {
+                startAt = 1;
+                currentExpression = node;
+                contextParamFieldName = rootFieldName;
+                Visit(node.Arguments[0]);
+            }
+            for (int i = startAt; i < node.Arguments.Count; i++)
+            {
+                Expression arg = node.Arguments[i];
                 currentExpression = null;
+                contextParamFieldName = null;
                 Visit(arg);
             }
             currentExpression = null;

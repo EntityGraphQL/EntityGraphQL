@@ -2,11 +2,11 @@ using Xunit;
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using System.Linq;
-using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Tests
 {
@@ -1223,22 +1223,50 @@ namespace EntityGraphQL.Tests
             Assert.Single(doc.Operations[0].QueryFields);
             Assert.True(doc.Operations[0].Services.Any());
         }
-
-        public class AgeService
+        [Fact]
+        public void TestNullCheckInNullCheckOnService()
         {
-            public AgeService()
-            {
-                CallCount = 0;
-            }
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            // don't need the service but want it to trigger the service logic
+            schema.Query().AddField("currentPerson", "Returns current person")
+                .ResolveWithService<AgeService>((ctx, srv) => ctx.People.FirstOrDefault());
 
-            public int CallCount { get; private set; }
-
-            public int GetAge(DateTime? birthday)
+            schema.UpdateType<Person>(personSchema => personSchema.AddField("projectNames", person => person.Projects.Select(u => u.Name), "Get project names"));
+            var gql = new QueryRequest
             {
-                CallCount += 1;
-                // you could do smarter things here like use other services
-                return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
-            }
+                Query = @"query {
+                    currentPerson {
+                        projectNames
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            context.People.Clear();
+            context.People.Add(new Person
+            {
+                Projects = new List<Project>()
+            });
+
+            var serviceCollection = new ServiceCollection();
+            AgeService service = new();
+            serviceCollection.AddSingleton(service);
+
+            // what we want to test here is that person.Projects.Select(u => u.Name) is pulled up into the pre-services expression
+            // As it will allow EF to include that data otherwise person.Projects will be null
+
+            var graphQLCompiler = new GraphQLCompiler(schema);
+            var compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
+            var query = compiledQuery.Operations[0];
+            var node = query.QueryFields[0];
+
+            // first stage without services
+            // person.Projects.Select(u => u.Name) is pulled up
+            var expression = node.GetNodeExpression(serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
+
+            Assert.NotNull(expression);
+            var fieldAssignment = (MemberAssignment)((MemberInitExpression)((LambdaExpression)((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression).Arguments[0]).Arguments[0]).Arguments[1]).Body).Bindings[0];
+            Assert.Equal("projectNames", fieldAssignment.Member.Name);
         }
 
         public class ConfigService
@@ -1358,6 +1386,22 @@ namespace EntityGraphQL.Tests
         {
             CallCount += 1;
             return new List<User> { new User() };
+        }
+    }
+    public class AgeService
+    {
+        public AgeService()
+        {
+            CallCount = 0;
+        }
+
+        public int CallCount { get; private set; }
+
+        public int GetAge(DateTime? birthday)
+        {
+            CallCount += 1;
+            // you could do smarter things here like use other services
+            return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
         }
     }
 

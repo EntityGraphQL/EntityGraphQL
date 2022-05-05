@@ -61,6 +61,11 @@ namespace EntityGraphQL.Tests
         {
             return args.Decimal;
         }
+        [GraphQLMutation]
+        public bool NoArgsWithService(AgeService ageService)
+        {
+            return ageService != null;
+        }
 
         [GraphQLMutation]
         public Expression<Func<TestDataContext, Person>> AddPersonAdv(PeopleMutationsArgs args)
