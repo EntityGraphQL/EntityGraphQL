@@ -57,6 +57,68 @@ type Person {
 }
 ```
 
+# Interfaces and Implements keyword
+
+GraphQL supports [Interfaces](https://graphql.org/learn/schema/#interfaces) allowing you to define a abstract base type that multiple other types might implement.
+
+EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces, however you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
+
+```
+public abstract class Character {
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public IEnumerable<Character> Friends { get; set; }
+    public IEnumerable<Episode> AppearsIn { get; set; }
+}
+
+public class Human : Droid {
+  public IEnumerable<Starship> starships { get; set; }
+  public int TotalCredits { get; set;}
+}
+
+public class Droid : Character {
+    public stirng PrimaryFunction { get; set;}
+}
+
+// creating our schema
+schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
+    .AddAllFields();
+
+schema.AddInheritedType<Human>(name: "Human", "", baseType: "Character")
+    .AddAllFields();
+
+schema.AddInheritedType<Droid>(name: "Droid", "", baseType: "Character");
+    .AddAllFields();
+```
+
+produces the graphql schema:
+
+```
+interface Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+}
+
+type Human implements Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+  starships: [Starship]
+  totalCredits: Int
+}
+
+type Droid implements Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+  primaryFunction: String
+}
+```
+
 # Input Types
 
 We've seen passing scalar values, like enums, numbers or strings, as arguments into a field. [Input types](https://graphql.org/learn/schema/#input-types) allow us to define complex types that can be used as an argument. This is particularly valuable in the case of mutations, where you might want to pass in a whole object to be created.
