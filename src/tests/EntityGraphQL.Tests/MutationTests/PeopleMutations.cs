@@ -143,6 +143,24 @@ namespace EntityGraphQL.Tests
         {
             return true;
         }
+
+        [GraphQLMutation]
+        static public bool NullableGuidArgs(NullableGuidArgs args)
+        {
+            if (args.Id != null)
+                throw new ArgumentException("Guid can not be a value");
+            if (args.Int != null)
+                throw new ArgumentException("Int can not be a value");
+            if (args.Float != null)
+                throw new ArgumentException("Float can not be a value");
+            if (args.Double != null)
+                throw new ArgumentException("Double can not be a value");
+            if (args.Bool != null)
+                throw new ArgumentException("Bool can not be a value");
+            if (args.Enum != null)
+                throw new ArgumentException("Enum can not be a value");
+            return true;
+        }
     }
 
     [MutationArguments]
@@ -164,6 +182,16 @@ namespace EntityGraphQL.Tests
         public List<string> Names { get; set; }
 
         public InputObject NameInput { get; set; }
+    }
+    [MutationArguments]
+    public class NullableGuidArgs
+    {
+        public Guid? Id { get; set; }
+        public int? Int { get; set; }
+        public float? Float { get; set; }
+        public double? Double { get; set; }
+        public bool? Bool { get; set; }
+        public Gender? Enum { get; set; }
     }
 
     [MutationArguments]

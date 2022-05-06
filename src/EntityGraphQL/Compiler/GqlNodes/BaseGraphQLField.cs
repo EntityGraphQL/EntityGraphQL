@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
         public IGraphQLNode? ParentNode { get; set; }
         public ParameterExpression? RootParameter { get; set; }
         /// <summary>
-        /// Arguments from inline in the query
+        /// Arguments from inline in the query - not $ variables
         /// </summary>
         public Dictionary<string, object> Arguments { get; }
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)

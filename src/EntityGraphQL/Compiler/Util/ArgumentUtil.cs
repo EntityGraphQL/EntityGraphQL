@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
+    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
@@ -40,10 +40,13 @@ public static class ArgumentUtil
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
-                    if (argField.MemberInfo is PropertyInfo info)
-                        propVals.Add(info, val);
-                    else
-                        fieldVals.Add((FieldInfo)argField.MemberInfo!, val);
+                    if (argField.MemberInfo != null)
+                    {
+                        if (argField.MemberInfo is PropertyInfo info)
+                            propVals.Add(info, val);
+                        else
+                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
+                    }
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }

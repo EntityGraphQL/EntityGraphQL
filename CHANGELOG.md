@@ -1,3 +1,7 @@
+# 2.0.2
+
+- fix regression where non-required (nullable) document variables would be set their non-nullable default value. E.g. `Guid`
+
 # 2.0.1
 
 - Fix regression where non service fields in service fields were not being pulled forward to the stage one expression execution.

@@ -76,7 +76,7 @@ namespace EntityGraphQL.Compiler
             if (context == null)
                 return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, schema.SchemaFieldNamer, OpVariableParameter, docVariables);
+            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type

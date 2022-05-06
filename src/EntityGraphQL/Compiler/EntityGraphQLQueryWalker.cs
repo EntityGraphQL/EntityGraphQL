@@ -95,20 +95,25 @@ namespace EntityGraphQL.Compiler
                 (var gqlTypeName, var isList, var isRequired) = GetGqlType(item);
 
                 var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
-                var varType = schemaType.TypeDotnet;
-                if (varType == null)
+                var varTypeInSchema = schemaType.TypeDotnet;
+                if (varTypeInSchema == null)
                     throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
+
+                if (!isRequired && (varTypeInSchema.IsValueType || varTypeInSchema.IsEnum))
+                    varTypeInSchema = typeof(Nullable<>).MakeGenericType(varTypeInSchema);
+
                 if (isList)
-                    varType = typeof(List<>).MakeGenericType(varType);
+                    varTypeInSchema = typeof(List<>).MakeGenericType(varTypeInSchema);
 
                 if (item.DefaultValue != null)
-                    defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType))).Compile().DynamicInvoke();
+                    defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varTypeInSchema))).Compile().DynamicInvoke();
 
-                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varType)
+
+                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varTypeInSchema)
                 {
                     TypeNotNullable = isRequired,
                     ElementTypeNullable = !isRequired
-                }, null, varType)
+                }, null, varTypeInSchema)
                 {
                     DefaultValue = defaultValue,
                     IsRequired = isRequired
