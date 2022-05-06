@@ -36,7 +36,7 @@ namespace EntityGraphQL.Compiler
         /// Name of the field
         /// </summary>
         /// <value></value>
-        public string Name { get; protected set; }
+        public string Name { get; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
         public Expression? NextFieldContext { get; set; }
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Arguments from inline in the query - not $ variables
         /// </summary>
-        public Dictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object> Arguments { get; }
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;
@@ -148,25 +148,26 @@ namespace EntityGraphQL.Compiler
             }
             return result;
         }
-        protected Dictionary<string, object> ResolveArguments(Dictionary<string, object> arguments)
+        protected Dictionary<string, object> ResolveArguments(IReadOnlyDictionary<string, object> arguments)
         {
+            var result = new Dictionary<string, object>(arguments);
             if (Field == null)
-                return arguments;
+                return result;
 
             if (Field.UseArgumentsFromField == null)
-                return arguments;
+                return result;
 
             var node = ParentNode;
             while (node != null)
             {
                 if (node.Field != null && node.Field == Field.UseArgumentsFromField)
                 {
-                    arguments = arguments.MergeNew(node.Arguments);
+                    result = result.MergeNew(node.Arguments);
                     break;
                 }
                 node = node.ParentNode;
             }
-            return arguments;
+            return result;
         }
     }
 }

@@ -13,7 +13,6 @@ internal class GraphQLExtractedField : BaseGraphQLField
     public GraphQLExtractedField(ISchemaProvider schema, string name, Expression fieldExpression, Expression fieldContext)
     : base(schema, null, name, fieldExpression, null, null, null)
     {
-        Name = name;
         NextFieldContext = fieldExpression;
         this.fieldContext = fieldContext;
     }

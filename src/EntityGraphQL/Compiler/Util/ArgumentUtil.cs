@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
+    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
@@ -36,7 +36,7 @@ public static class ArgumentUtil
                 }
                 else
                 {
-                    val = BuildArgumentFromMember(schema, args, fieldName, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    val = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
@@ -103,7 +103,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    private static object? BuildArgumentFromMember(ISchemaProvider schema, Dictionary<string, object>? args, string fieldName, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
+    private static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
     {
         string argName = memberName;
         // check we have required arguments

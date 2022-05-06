@@ -26,10 +26,10 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLDocument : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
-        public ParameterExpression? RootParameter { get; set; }
-        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
+        public Expression? NextFieldContext { get; }
+        public IGraphQLNode? ParentNode { get; }
+        public ParameterExpression? RootParameter { get; }
+        public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
         private readonly Func<string, string> fieldNamer;
         public Action<IEnumerable<Type>>? AddServiceToCurrentOperation;
 
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
 
         public IField? Field { get; }
 
-        public Dictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object> Arguments { get; }
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {

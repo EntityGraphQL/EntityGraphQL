@@ -18,9 +18,9 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class ExecutableGraphQLStatement : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
-        public ParameterExpression? RootParameter { get; set; }
+        public Expression? NextFieldContext { get; }
+        public IGraphQLNode? ParentNode { get; }
+        public ParameterExpression? RootParameter { get; }
         /// <summary>
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
@@ -31,7 +31,7 @@ namespace EntityGraphQL.Compiler
 
         public IField? Field { get; }
 
-        public Dictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object> Arguments { get; }
 
         public string Name { get; }
 
