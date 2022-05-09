@@ -4,6 +4,9 @@ using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler
 {
+    /// <summary>
+    /// Class to hold required services ro constant parameters required to execute the compiled query
+    /// </summary>
     public class CompileContext
     {
         private readonly HashSet<Type> servicesCollected = new();

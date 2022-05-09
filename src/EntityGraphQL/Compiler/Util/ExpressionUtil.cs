@@ -68,6 +68,9 @@ namespace EntityGraphQL.Compiler.Util
             if (schema?.TypeConverters.ContainsKey(fromType) == true)
                 return schema.TypeConverters[fromType].ChangeType(value, toType, schema);
 
+            if (fromType == toType)
+                return value;
+
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
             if (typeof(JsonElement).IsAssignableFrom(fromType))
             {

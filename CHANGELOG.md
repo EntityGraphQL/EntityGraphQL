@@ -1,6 +1,7 @@
 # 2.0.3
 
 - Fix thread safety issue with cached queries
+- Fix support for using arrays in field argument definitions
 
 # 2.0.2
 

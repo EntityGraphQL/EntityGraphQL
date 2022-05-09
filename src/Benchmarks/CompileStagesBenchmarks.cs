@@ -20,8 +20,8 @@ namespace Benchmarks
     /// 2.0.0
     /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
     /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |            Compile | 130.8 us | 0.52 us | 0.49 us | 29.2969 |     60 KB |
-    /// 
+    /// |     CompileNoCache | 187.3 us | 1.78 us | 1.67 us | 38.0859 |     78 KB |
+    /// |       CompileCache | 150.3 us | 1.25 us | 1.04 us | 29.5410 |     61 KB |
     /// </summary>
     [MemoryDiagnoser]
     public class CompileStagesBenchmarks : BaseBenchmark
