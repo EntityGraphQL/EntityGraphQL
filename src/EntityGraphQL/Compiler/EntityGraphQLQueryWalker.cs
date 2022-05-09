@@ -149,13 +149,10 @@ namespace EntityGraphQL.Compiler
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
-            // so the op knows what services it needs to inject
-            currentOperation?.AddServices(actualField.Services);
-
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var resultName = node.Alias?.Value ?? actualField.Name;
 
-            if (actualField.FieldType == Schema.GraphQLQueryFieldType.Mutation)
+            if (actualField.FieldType == GraphQLQueryFieldType.Mutation)
             {
                 var mutationField = (MutationField)actualField;
 
@@ -356,7 +353,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
-            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context, Document!);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
                 fragField.AddDirectives(ProcessFieldDirectives(node.Directives));

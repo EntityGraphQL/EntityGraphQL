@@ -13,16 +13,15 @@ internal class GraphQLExtractedField : BaseGraphQLField
     public GraphQLExtractedField(ISchemaProvider schema, string name, Expression fieldExpression, Expression fieldContext)
     : base(schema, null, name, fieldExpression, null, null, null)
     {
-        NextFieldContext = fieldExpression;
         this.fieldContext = fieldContext;
     }
 
-    public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+    public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
     {
         throw new NotImplementedException();
     }
 
-    public override Expression GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+    public override Expression GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
     {
         var exp = replacer.ReplaceByType(NextFieldContext!, fieldContext.Type, fieldContext);
         return exp;

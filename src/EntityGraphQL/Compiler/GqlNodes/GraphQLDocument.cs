@@ -31,7 +31,6 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? RootParameter { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
         private readonly Func<string, string> fieldNamer;
-        public Action<IEnumerable<Type>>? AddServiceToCurrentOperation;
 
         /// <summary>
         /// A list of graphql operations. These could be mutations or queries
@@ -81,10 +80,6 @@ namespace EntityGraphQL.Compiler
             var result = new QueryResult();
             var validator = new GraphQLValidator();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
-            AddServiceToCurrentOperation = (IEnumerable<Type> services) =>
-            {
-                op.AddServices(services);
-            };
 
             // execute the selected operation
             if (options == null)

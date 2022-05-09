@@ -25,12 +25,6 @@ namespace EntityGraphQL.Compiler
     {
         protected readonly ISchemaProvider schema;
         protected readonly List<GraphQLDirective> directives = new();
-        /// <summary>
-        /// Any values for a parameter that had a constant value in the query document.
-        /// They are extracted out to parameters instead of inline ConstantExpression for future query caching possibilities
-        /// </summary>
-        protected Dictionary<ParameterExpression, object> constantParameters = new();
-        internal Dictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
 
         /// <summary>
         /// Name of the field
@@ -39,8 +33,8 @@ namespace EntityGraphQL.Compiler
         public string Name { get; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
+        public Expression? NextFieldContext { get; }
+        public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; set; }
         /// <summary>
         /// Arguments from inline in the query - not $ variables
@@ -84,14 +78,13 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+        public abstract Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
+        public abstract IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
 
         public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
-            AddConstantParameters(field.ConstantParameters);
         }
 
         protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
@@ -124,15 +117,6 @@ namespace EntityGraphQL.Compiler
                 expression = extension.ProcessScalarExpression(expression, parameterReplacer);
             }
             return expression;
-        }
-
-        public void AddConstantParameters(IReadOnlyDictionary<ParameterExpression, object> constantParameters)
-        {
-            foreach (var item in constantParameters)
-            {
-                // replace them as new doc variables may be coming through
-                this.constantParameters[item.Key] = item.Value;
-            }
         }
 
         public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)

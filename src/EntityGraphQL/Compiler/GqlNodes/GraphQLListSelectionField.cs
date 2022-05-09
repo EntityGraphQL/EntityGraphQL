@@ -36,7 +36,6 @@ namespace EntityGraphQL.Compiler
             : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
             this.ListExpression = nodeExpression;
-            constantParameters = new Dictionary<ParameterExpression, object>();
         }
 
         /// <summary>
@@ -45,7 +44,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             var listContext = ListExpression;
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
@@ -60,7 +59,7 @@ namespace EntityGraphQL.Compiler
             }
             (listContext, var argumentValues) = Field?.GetExpression(listContext!, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
             if (argumentValues != null)
-                constantParameters[Field!.ArgumentParam!] = argumentValues;
+                compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (listContext == null)
                 return null;
 
@@ -68,7 +67,7 @@ namespace EntityGraphQL.Compiler
             if (newNextFieldContext != null)
                 nextFieldContext = newNextFieldContext;
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
+            var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
             if (selectionFields == null || !selectionFields.Any())
             {
@@ -88,12 +87,15 @@ namespace EntityGraphQL.Compiler
                     resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
             }
 
+            if (Field?.Services.Any() == true)
+                compileContext.AddServices(Field.Services);
+
             return resultExpression;
         }
 
-        protected override Dictionary<string, CompiledField> GetSelectionFields(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        protected override Dictionary<string, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
-            var fields = base.GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
+            var fields = base.GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
             // extract possible fields from listContext (might be .Where(), OrderBy() etc)
             if (withoutServiceFields && Field?.Services?.Any() == true)

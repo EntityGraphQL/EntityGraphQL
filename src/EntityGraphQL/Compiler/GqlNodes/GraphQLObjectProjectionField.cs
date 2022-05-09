@@ -41,7 +41,7 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             var nextFieldContext = NextFieldContext;
 
@@ -55,21 +55,21 @@ namespace EntityGraphQL.Compiler
             }
             (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer);
             if (argumentValues != null)
-                constantParameters[Field!.ArgumentParam!] = argumentValues;
+                compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (nextFieldContext == null)
                 return null;
             bool needsServiceWrap = !withoutServiceFields && Field?.Services.Any() == true;
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
-            var selectionFields = GetSelectionFields(serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
+            var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
             {
-                nextFieldContext = WrapWithNullCheck(selectionFields, serviceProvider, nextFieldContext, schemaContext, contextChanged, replacer);
+                nextFieldContext = WrapWithNullCheck(compileContext, selectionFields, serviceProvider, nextFieldContext, schemaContext, contextChanged, replacer);
             }
             else
             {
@@ -86,6 +86,9 @@ namespace EntityGraphQL.Compiler
                     nextFieldContext = newExp;
                 }
             }
+
+            if (Field?.Services.Any() == true)
+                compileContext.AddServices(Field.Services);
 
             return nextFieldContext;
         }
@@ -107,13 +110,14 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">Has the context changes (second pass with services)</param>
         /// <param name="replacer"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        private Expression WrapWithNullCheck(CompileContext compileContext, Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc
-            var fieldParamValues = new List<object>(ConstantParameters.Values);
-            var fieldParams = new List<ParameterExpression>(ConstantParameters.Keys);
+            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
+            var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
+            // TODO services injected here?
             var updatedExpression = Field?.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, Field!.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
@@ -146,7 +150,7 @@ namespace EntityGraphQL.Compiler
             return updatedExpression;
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             var result = (GraphQLObjectProjectionField?)ProcessFieldDirectives(this, docParam, docVariables);
             if (result == null)
@@ -167,7 +171,7 @@ namespace EntityGraphQL.Compiler
                         return fields;
                 }
             }
-            return base.Expand(fragments, withoutServiceFields, fieldContext, docParam, docVariables);
+            return base.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
         }
     }
 }

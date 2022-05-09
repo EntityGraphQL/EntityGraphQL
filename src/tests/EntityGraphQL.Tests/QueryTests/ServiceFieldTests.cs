@@ -1221,7 +1221,6 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(doc.Operations);
             Assert.Single(doc.Operations[0].QueryFields);
-            Assert.True(doc.Operations[0].Services.Any());
         }
         [Fact]
         public void TestNullCheckInNullCheckOnService()
@@ -1262,7 +1261,7 @@ namespace EntityGraphQL.Tests
 
             // first stage without services
             // person.Projects.Select(u => u.Name) is pulled up
-            var expression = node.GetNodeExpression(serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
+            var expression = node.GetNodeExpression(new CompileContext(), serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
 
             Assert.NotNull(expression);
             var fieldAssignment = (MemberAssignment)((MemberInitExpression)((LambdaExpression)((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression).Arguments[0]).Arguments[0]).Arguments[1]).Body).Bindings[0];

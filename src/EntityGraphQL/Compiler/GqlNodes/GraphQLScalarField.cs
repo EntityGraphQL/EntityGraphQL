@@ -19,7 +19,7 @@ namespace EntityGraphQL.Compiler
             return Field?.Services.Any() == true;
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             var result = ProcessFieldDirectives(this, docParam, docVariables);
             if (result == null)
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Compiler
             return extractedFields;
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (withoutServiceFields && Field?.Services.Any() == true)
                 return null;
@@ -49,7 +49,7 @@ namespace EntityGraphQL.Compiler
             (var result, var argumentValues) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer);
 
             if (argumentValues != null)
-                constantParameters[Field!.ArgumentParam!] = argumentValues;
+                compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (result == null)
                 return null;
 
@@ -65,6 +65,9 @@ namespace EntityGraphQL.Compiler
 
             }
             newExpression = ProcessScalarExpression(newExpression, replacer);
+
+            if (Field?.Services.Any() == true)
+                compileContext.AddServices(Field.Services);
             return newExpression;
         }
     }

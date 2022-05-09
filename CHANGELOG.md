@@ -1,3 +1,7 @@
+# 2.0.3
+
+- Fix thread safety issue with cached queries
+
 # 2.0.2
 
 - fix regression where non-required (nullable) document variables would be set their non-nullable default value. E.g. `Guid`
