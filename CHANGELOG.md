@@ -1,3 +1,7 @@
+# 2.0.4
+
+- Fix using QueryFilter with an empty string treats it as no value - i.e. no filter
+
 # 2.0.3
 
 - Fix thread safety issue with cached queries

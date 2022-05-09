@@ -227,7 +227,7 @@ namespace EntityGraphQL.Compiler.Util
             // Handle converting a string to EntityQueryType
             if (schema != null && toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
             {
-                if (value != null)
+                if (value != null && !string.IsNullOrWhiteSpace((string)value))
                 {
                     var expression = BuildEntityQueryExpression(schema, toType.GetGenericArguments()[0], (string)value);
                     var genericProp = toType.GetProperty("Query");
