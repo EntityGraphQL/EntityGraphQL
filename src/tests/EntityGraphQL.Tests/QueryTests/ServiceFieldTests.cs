@@ -373,7 +373,7 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestServicesReconnectToSchemaContext2()
+        public void TestServicesReconnectToSchemaContextListOf()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
@@ -382,7 +382,7 @@ namespace EntityGraphQL.Tests
                 .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
 
             schema.Query().ReplaceField("users", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUsers());
+                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
 
             var gql = new QueryRequest
             {
@@ -412,6 +412,77 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, users[0].GetType().GetFields().Length);
             Assert.Equal("id", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
             Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
+        public void TestServicesMultipleReconnectToSchemaContextListOf_WithoutSelectionOfNeededDbField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // root field is a service returning a list of items
+            schema.Query().ReplaceField("users", "Get current user")
+                .ResolveWithService<UserService>((_, users) => users.GetUsers(10));
+
+            // connect back to a entity in the DB context
+            schema.Type<User>().ReplaceField("projects", "Peoples projects")
+                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+
+            schema.Type<User>().AddField("currentTask", "Peoples current task")
+                .ResolveWithService<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ 
+                    users {
+                        # missing id but required for the projects/currentTask fields
+                        field1 # from user
+                        projects { name } 
+                        currentTask { name }
+                    } 
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Name = "Project 1",
+                        Owner = new Person
+                        {
+                            Id = 10,
+                        }
+                    }
+                },
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Name = "Task 1",
+                        Assignee = new Person
+                        {
+                            Id = 10,
+                        }
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic users = res.Data["users"];
+            Assert.Equal(3, users[0].GetType().GetFields().Length);
+            Assert.Equal("field1", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
+            Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+            Assert.Equal("currentTask", Enumerable.ElementAt(users[0].GetType().GetFields(), 2).Name);
+            dynamic user = users[0];
+            Assert.Equal("Task 1", user.currentTask.name);
+            Assert.Equal("Project 1", user.projects[0].name);
         }
 
         [Fact]
@@ -1381,10 +1452,14 @@ namespace EntityGraphQL.Tests
             CallCount += 1;
             return new User();
         }
-        public IEnumerable<User> GetUsers()
+        public IEnumerable<User> GetUsers(int? id = null)
         {
             CallCount += 1;
-            return new List<User> { new User() };
+            return new List<User> { new User
+                {
+                    Id = id ?? 0,
+                }
+            };
         }
     }
     public class AgeService

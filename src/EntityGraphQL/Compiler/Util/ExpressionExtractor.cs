@@ -39,15 +39,33 @@ namespace EntityGraphQL.Compiler.Util
                 extractedExpressions![contextParamFieldName] = currentExpression;
             return base.VisitParameter(node);
         }
+        protected override Expression VisitBinary(BinaryExpression node)
+        {
+            // reset currents
+            currentExpression = null;
+            contextParamFieldName = null;
+            var left = base.Visit(node.Left);
 
+            currentExpression = null;
+            contextParamFieldName = null;
+            var right = base.Visit(node.Right);
+            return Expression.MakeBinary(node.NodeType, left, right);
+        }
         protected override Expression VisitMember(MemberExpression node)
         {
+            var weCaptured = false;
             if (currentExpression == null)
             {
                 currentExpression = node;
                 contextParamFieldName = node.Member.Name;
+                weCaptured = true;
             }
             var result = base.VisitMember(node);
+            if (weCaptured)
+            {
+                currentExpression = null;
+                contextParamFieldName = null;
+            }
             return result;
         }
 
@@ -76,6 +94,7 @@ namespace EntityGraphQL.Compiler.Util
                 Visit(arg);
             }
             currentExpression = null;
+            contextParamFieldName = null;
             return node;
         }
     }

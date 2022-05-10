@@ -1,7 +1,8 @@
 # 2.0.4
 
 - Fix using QueryFilter with an empty string treats it as no value - i.e. no filter
-- Fix issue where the type of an array variable defined as required `[Type!]!` was incorrectly reflected
+- Fix - the type of an array variable defined as required `[Type!]!` was incorrectly reflected
+- Fix - service type's field used in a field's expression was not being extracted into the select. E.g. service field `User.project` has an expression requiring the `user.id` which is not included in the GraphQL query.
 
 # 2.0.3
 
