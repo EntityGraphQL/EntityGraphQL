@@ -92,7 +92,7 @@ namespace EntityGraphQL.Compiler
             {
                 var argName = item.Variable.Name.Value;
                 object? defaultValue = null;
-                (var gqlTypeName, var isList, var isRequired) = GetGqlType(item);
+                (var gqlTypeName, var isList, var isRequired) = GetGqlType(item.Type);
 
                 var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
                 var varTypeInSchema = schemaType.TypeDotnet;
@@ -107,7 +107,6 @@ namespace EntityGraphQL.Compiler
 
                 if (item.DefaultValue != null)
                     defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varTypeInSchema))).Compile().DynamicInvoke();
-
 
                 documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varTypeInSchema)
                 {
@@ -127,15 +126,18 @@ namespace EntityGraphQL.Compiler
             return documentVariables;
         }
 
-        private static (string typeName, bool isList, bool isRequired) GetGqlType(ISyntaxNode item)
+        private static (string typeName, bool isList, bool isRequired) GetGqlType(ITypeNode item)
         {
-            return item.Kind switch
+            switch (item.Kind)
             {
-                SyntaxKind.NamedType => (((NamedTypeNode)item).Name.Value, false, false),
-                SyntaxKind.NonNullType => (((NonNullTypeNode)item).NamedType().Name.Value, false, true),
-                SyntaxKind.VariableDefinition => (((VariableDefinitionNode)item).Type.NamedType().Name.Value, ((VariableDefinitionNode)item).Type.Kind == SyntaxKind.ListType, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
-                SyntaxKind.ListType => (((ListTypeNode)item).Type.NamedType().Name.Value, true, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
-                _ => throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}"),
+                case SyntaxKind.NamedType: return (((NamedTypeNode)item).Name.Value, false, false);
+                case SyntaxKind.NonNullType:
+                    {
+                        var (_, isList, _) = GetGqlType(((NonNullTypeNode)item).Type);
+                        return (((NonNullTypeNode)item).NamedType().Name.Value, isList, true);
+                    }
+                case SyntaxKind.ListType: return (((ListTypeNode)item).Type.NamedType().Name.Value, true, false);
+                default: throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}");
             };
         }
 

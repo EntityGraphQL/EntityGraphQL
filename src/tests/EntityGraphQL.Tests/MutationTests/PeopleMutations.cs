@@ -136,6 +136,8 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public bool TaskWithList(ListArgs args)
         {
+            if (args?.Inputs == null)
+                throw new Exception("Inputs can not be null");
             return true;
         }
         [GraphQLMutation]
@@ -160,6 +162,15 @@ namespace EntityGraphQL.Tests
             if (args.Enum != null)
                 throw new ArgumentException("Enum can not be a value");
             return true;
+        }
+        [GraphQLMutation]
+        static public string[] ListOfGuidArgs(ListOfGuidArgs args)
+        {
+            if (args.Ids == null)
+                throw new ArgumentException("Ids can not be null");
+            if (args.Ids.Any(i => i == Guid.Empty))
+                throw new ArgumentException("Ids can not be empty GUID values");
+            return args.Ids.Select(g => g.ToString()).ToArray();
         }
     }
 
@@ -232,5 +243,11 @@ namespace EntityGraphQL.Tests
     {
         public decimal Decimal { get; set; }
         public decimal? Decimal2 { get; set; }
+    }
+
+    [MutationArguments]
+    public class ListOfGuidArgs
+    {
+        public List<Guid> Ids { get; set; }
     }
 }

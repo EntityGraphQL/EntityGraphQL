@@ -51,6 +51,56 @@ namespace EntityGraphQL.AspNet.Tests
         }
 
         [Fact]
+        public void JsonNewtonsoftArray()
+        {
+            // test that even though we don't know about JArray they are IEnumerable and can easily be handled
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
+            schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            {
+                ""query"": ""mutation AddPerson($ids: [ID]) {
+                    listOfGuidArgs(ids: $ids)
+                }"",
+                ""variables"": {
+                    ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
+                }
+            }");
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(result.Errors);
+            dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
+            // we only have the fields requested
+            Assert.Equal("cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da", addPersonResult[0]);
+        }
+
+        [Fact]
+        public void JsonNewtonsoftArray2()
+        {
+            // test that even though we don't know about JArray they are IEnumerable and can easily be handled
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
+            schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            {
+                ""query"": ""mutation AddPerson($ids: [ID!]!) {
+                    listOfGuidArgs(ids: $ids)
+                }"",
+                ""variables"": {
+                    ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
+                }
+            }");
+            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(result.Errors);
+            dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
+            // we only have the fields requested
+            Assert.Equal("cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da", addPersonResult[0]);
+        }
+
+        [Fact]
         public void TextJsonJsonElement()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);

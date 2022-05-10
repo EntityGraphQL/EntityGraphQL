@@ -1,6 +1,7 @@
 # 2.0.4
 
 - Fix using QueryFilter with an empty string treats it as no value - i.e. no filter
+- Fix issue where the type of an array variable defined as required `[Type!]!` was incorrectly reflected
 
 # 2.0.3
 
