@@ -24,7 +24,9 @@ namespace Benchmarks
                 }"
             }, new ExecutionOptions
             {
+#if DEBUG
                 NoExecution = true
+#endif
             });
         }
 
@@ -43,7 +45,9 @@ namespace Benchmarks
                 }"
             }, new ExecutionOptions
             {
+#if DEBUG
                 NoExecution = true
+#endif
             });
         }
         [Benchmark]
@@ -64,7 +68,9 @@ namespace Benchmarks
                 }"
             }, new ExecutionOptions
             {
+#if DEBUG
                 NoExecution = true
+#endif
             });
         }
         [Benchmark]
@@ -79,7 +85,9 @@ namespace Benchmarks
                 }"
             }, new ExecutionOptions
             {
+#if DEBUG
                 NoExecution = true
+#endif
             });
         }
         [GlobalSetup(Target = nameof(Query_ListWithTakeArg))]
@@ -106,7 +114,9 @@ namespace Benchmarks
                 }"
             }, new ExecutionOptions
             {
+#if DEBUG
                 NoExecution = true
+#endif
             });
         }
     }

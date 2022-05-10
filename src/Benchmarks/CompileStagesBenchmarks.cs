@@ -53,12 +53,24 @@ namespace Benchmarks
         [Benchmark]
         public void CompileNoCache()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions { NoExecution = true, EnableQueryCache = false });
+            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = false
+            });
         }
         [Benchmark]
         public void CompileCache()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions { NoExecution = true, EnableQueryCache = true });
+            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = true
+            });
         }
     }
 }

@@ -10,28 +10,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        dotnet: ["3.1.x", "5.0.x", "6.0.x"]
+
     steps:
       - uses: actions/checkout@v3
-      - name: Setup .NET 3.1
+      - name: Setup .NET ${{ matrix.dotnet }}
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: 3.1.x
-      - name: Setup .NET 5.0
-        uses: actions/setup-dotnet@v2
-        with:
-          dotnet-version: 5.0.x
-      - name: Setup .NET 6.0
-        uses: actions/setup-dotnet@v2
-        with:
-          dotnet-version: 6.0.x
+          dotnet-version: ${{ matrix.dotnet }}
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore -c Release
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build -c Release --no-restore
       - name: Test
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test -c Release --no-restore --no-build --verbosity normal
       - name: Package
-        run: dotnet pack --no-restore -c Release
+        run: dotnet pack -c Release --no-restore --no-build
       - name: Upload EntityGraphQL packages
         uses: actions/upload-artifact@v3
         with:
