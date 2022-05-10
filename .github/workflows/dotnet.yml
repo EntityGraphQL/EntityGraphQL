@@ -21,13 +21,13 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Restore dependencies
-        run: dotnet restore -c Release
+        run: dotnet restore
       - name: Build
-        run: dotnet build -c Release --no-restore
+        run: dotnet build --no-restore
       - name: Test
-        run: dotnet test -c Release --no-restore --no-build --verbosity normal
+        run: dotnet test --no-restore --no-build --verbosity normal
       - name: Package
-        run: dotnet pack -c Release --no-restore --no-build
+        run: dotnet pack -c Release --no-restore
       - name: Upload EntityGraphQL packages
         uses: actions/upload-artifact@v3
         with:
