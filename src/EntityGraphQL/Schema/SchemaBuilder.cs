@@ -233,11 +233,14 @@ namespace EntityGraphQL.Schema
                     // dynamcially call generic method
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
-                    var method = schema.GetType().GetMethod(isInputType ? "AddInputType" : "AddType", new[] { typeof(string), typeof(string) });
+
+                    var addMethod = isInputType ? "AddInputType" : (typeInfo.IsInterface || typeInfo.IsAbstract) ? "AddInterface" : "AddType";
+
+                    var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
                     if (method == null)
-                        throw new Exception("Could not find AddType method on schema");
+                        throw new Exception($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;                    
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, fieldNamer, createNewComplexTypes, isInputType);

@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
         {
             var nextFieldContext = NextFieldContext;
 
-            if (contextChanged && Name != "__typename" && replacementNextFieldContext != null)
+            if (contextChanged && replacementNextFieldContext != null)
             {
                 var possibleField = replacementNextFieldContext.Type.GetField(Name);
                 if (possibleField != null)

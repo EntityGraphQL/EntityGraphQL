@@ -12,22 +12,28 @@ namespace EntityGraphQL.Schema
         public override bool IsInput { get; }
         public override bool IsEnum { get; }
         public override bool IsScalar { get; }
+        public override bool IsInterface { get; }
+        public override string? BaseType { get; }
 
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar, isInterface, baseType)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;
+            IsInterface = isInterface;
             RequiredAuthorization = requiredAuthorization;
+            BaseType = baseType;
             if (!isScalar)
-                AddField("__typename", t => name, "Type name").IsNullable(false);
+            {
+                AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
+            }
         }
 
         /// <summary>
@@ -160,7 +166,7 @@ namespace EntityGraphQL.Schema
             var field = new FieldToResolveWithArgs<TBaseType, TParams>(Schema, name, description, argTypes);
             AddField(field);
             return field;
-        }
+        }       
 
         /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.

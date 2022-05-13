@@ -13,8 +13,10 @@ namespace EntityGraphQL.Schema
         public string Name { get; }
         public string? Description { get; set; }
         public abstract bool IsInput { get; }
+        public abstract bool IsInterface { get; }
         public abstract bool IsEnum { get; }
         public abstract bool IsScalar { get; }
+        public abstract string? BaseType { get; }
         public RequiredAuthorization? RequiredAuthorization { get; set; }
 
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
