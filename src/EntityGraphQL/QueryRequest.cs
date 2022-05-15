@@ -49,15 +49,19 @@ namespace EntityGraphQL
     /// <summary>
     /// Describes any errors that might happen while resolving the query request
     /// </summary>
-    public class GraphQLError
+    public class GraphQLError : Dictionary<string, object>
     {
-        private string message;
+        private static readonly string MessageKey = "message";
 
-        public GraphQLError(string message)
+        public string Message { get => (string)this[MessageKey]; }
+
+        public Dictionary<string, object>? Extensions { get => (Dictionary<string, object>)this.GetValueOrDefault(QueryResult.ExtensionsKey); }
+
+        public GraphQLError(string message, IDictionary<string, object>? extensions)
         {
-            this.message = message;
+            this[MessageKey] = message;
+            if (extensions != null)
+                this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
         }
-
-        public string Message { get => message; set => message = value; }
     }
 }

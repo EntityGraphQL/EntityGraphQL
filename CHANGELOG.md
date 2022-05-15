@@ -1,5 +1,9 @@
-# 2.0.4
+# 2.1.0
 
+- Added support for interfaces - thanks @bzbetty
+- Added `EntityGraphQLException` - use this to throw exceptions and add more error data to the error result via extensions
+- `GraphQLValidator` now supports adding custom data via the extensions field
+- `ResolveWithService` methods will throw an exception if the expression returns `Task` as we need the result. Use `.GetAwaiter().GetResult()`. Expression do not support `async`/`await` as it is a compiler feature and we need the actual result to build the expression and return the data
 - Fix using QueryFilter with an empty string treats it as no value - i.e. no filter
 - Fix - the type of an array variable defined as required `[Type!]!` was incorrectly reflected
 - Fix - service type's field used in a field's expression was not being extracted into the select. E.g. service field `User.project` has an expression requiring the `user.id` which is not included in the GraphQL query.

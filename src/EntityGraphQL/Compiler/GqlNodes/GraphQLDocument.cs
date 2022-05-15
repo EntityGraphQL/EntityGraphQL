@@ -57,7 +57,7 @@ namespace EntityGraphQL.Compiler
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {
-            return ExecuteQueryAsync(context, services, variables, operationName, options).Result;
+            return ExecuteQueryAsync(context, services, variables, operationName, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace EntityGraphQL.Compiler
             if (options == null)
                 options = new ExecutionOptions(); // defaults
 
-            result.Data = await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables);
+            result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables));
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);

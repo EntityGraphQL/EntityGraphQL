@@ -149,7 +149,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
-            return ExecuteRequestAsync(gql, context, serviceProvider, user, options).Result;
+            return ExecuteRequestAsync(gql, context, serviceProvider, user, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -238,15 +238,22 @@ namespace EntityGraphQL.Schema
                 {
                     if (ex is EntityGraphQLValidationException exception)
                         exception.ValidationErrors.ForEach(e => result.AddError(e));
+                    else if (ex is EntityGraphQLException gqlException)
+                        result.AddError(ex.Message, gqlException.Extensions);
                     else
                         result.AddError(ex.Message);
                 }
+            }
+            catch (EntityGraphQLException ex)
+            {
+                result = new QueryResult();
+                result.AddError(ex.Message, ex.Extensions);
             }
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error executing QueryRequest");
                 // error with the whole query
-                result = new QueryResult(new GraphQLError(ex.Message));
+                result = new QueryResult(new GraphQLError(ex.Message, null));
             }
 
             return Task.FromResult(result);

@@ -1,49 +1,58 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace EntityGraphQL
 {
-    public class QueryResult
+    public class QueryResult : Dictionary<string, object>
     {
-        private List<GraphQLError>? errors = null;
-        public ReadOnlyCollection<GraphQLError>? Errors => errors?.AsReadOnly();
-        public ConcurrentDictionary<string, object?>? Data { get; set; } = null;
+        private static readonly string DataKey = "data";
+        private static readonly string ErrorsKey = "errors";
+        internal static readonly string ExtensionsKey = "extensions";
+        public List<GraphQLError>? Errors => (List<GraphQLError>)this.GetValueOrDefault(ErrorsKey);
+        public Dictionary<string, object?>? Data { get => (Dictionary<string, object?>)this.GetValueOrDefault(DataKey); }
+        /// <summary>
+        /// Use Extensions to add any custom data for the result
+        /// </summary>
+        public Dictionary<string, object>? Extensions { get => (Dictionary<string, object>)this.GetValueOrDefault(ExtensionsKey); }
 
         public QueryResult() { }
         public QueryResult(GraphQLError error)
         {
-            errors = new List<GraphQLError> { error };
+            this[ErrorsKey] = new List<GraphQLError> { error };
         }
         public QueryResult(IEnumerable<GraphQLError> errors)
         {
-            this.errors = errors.ToList();
+            this[ErrorsKey] = errors.ToList();
         }
+        public bool HasErrors() => Errors?.Count > 0;
 
-        public void AddError(string error)
+        public void AddError(string error, IDictionary<string, object>? extensions = null)
         {
-            AddError(new GraphQLError(error));
+            AddError(new GraphQLError(error, extensions));
         }
 
         public void AddError(GraphQLError error)
         {
-            if (errors == null)
+            if (!this.ContainsKey(ErrorsKey))
             {
-                errors = new List<GraphQLError>();
+                this[ErrorsKey] = new List<GraphQLError>();
             }
 
-            errors.Add(error);
+            ((List<GraphQLError>)this[ErrorsKey]).Add(error);
         }
 
         public void AddErrors(IEnumerable<GraphQLError> errors)
         {
-            if (this.errors == null)
+            if (!this.ContainsKey(ErrorsKey))
             {
-                this.errors = new List<GraphQLError>();
+                this[ErrorsKey] = new List<GraphQLError>();
             }
+            ((List<GraphQLError>)this[ErrorsKey]).AddRange(errors);
+        }
 
-            this.errors.AddRange(errors);
+        public void SetData(IDictionary<string, object?> data)
+        {
+            this[DataKey] = data.ToDictionary(d => d.Key, d => d.Value);
         }
     }
 }

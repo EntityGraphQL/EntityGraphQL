@@ -92,7 +92,7 @@ public static class ArgumentUtil
                 var context = new ArgumentValidatorContext(field, argumentValues);
                 foreach (var validator in validators)
                 {
-                    validator.Validator.ValidateAsync(context).Wait();
+                    validator.Validator.ValidateAsync(context).GetAwaiter().GetResult();
                     argumentValues = context.Arguments;
                 }
                 if (context.Errors.Any())

@@ -37,7 +37,7 @@ namespace EntityGraphQL.AspNet
                     foreach (var policy in requiredAuth.Policies)
                     {
                         // each policy now is an OR
-                        var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).Result.Succeeded);
+                        var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
                         allPoliciesValid = allPoliciesValid && hasValidPolicy;
                         if (!allPoliciesValid)
                             break;

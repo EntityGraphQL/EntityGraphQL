@@ -60,7 +60,10 @@ namespace EntityGraphQL.Tests
         public User User { get; set; }
         public double Height { get; set; }
         // fake an error
-        public static string Error { get => throw new Exception("Field failed to execute"); set => throw new Exception("Field failed to execute"); }
+        public string Error
+        {
+            get => throw new EntityGraphQLException("Field failed to execute", new Dictionary<string, object> { { "code", 1 } }); set => throw new Exception("Field failed to execute");
+        }
 
         public double GetHeight(HeightUnit unit)
         {

@@ -48,7 +48,50 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext().FillWithTestData();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field 'error' not found on type 'Person'", results.Errors[0].Message);
+            Assert.Equal("Field 'people' - Field failed to execute", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void TestErrorFieldNotIncludedInResponseWhenNoErrors()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    locations { id }
+                }"
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.False(results.HasErrors());
+            var result = System.Text.Json.JsonSerializer.Serialize(results);
+            Assert.DoesNotContain("errors", result);
+            Assert.Contains("data", result);
+        }
+
+        [Fact]
+        public void TestExtensionException()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people { error }
+                }"
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.True(results.HasErrors());
+            Assert.NotNull(results.Errors);
+            var error = results.Errors[0];
+            Assert.NotNull(error.Extensions);
+            Assert.Equal(1, error.Extensions["code"]);
+            var result = System.Text.Json.JsonSerializer.Serialize(results);
+            Assert.Contains("errors", result);
+            Assert.DoesNotContain("data", result);
         }
     }
 }
