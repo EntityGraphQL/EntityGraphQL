@@ -4,6 +4,7 @@ using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using static EntityGraphQL.Tests.ServiceFieldTests;
 using Microsoft.Extensions.DependencyInjection;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Tests
 {
@@ -102,6 +103,44 @@ namespace EntityGraphQL.Tests
 
             Assert.Null(res.Errors);
             Assert.Equal("ProjectConfig", ((dynamic)res.Data["projects"])[0].settings.__typename);
+        }
+
+        [Fact]
+        public void TestConnectionPaging__typename()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext().FillWithTestData();
+
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people {
+                        edges {
+                            node {
+                                name
+                                __typename
+                            }
+                            __typename
+                        }
+                        pageInfo {
+                            __typename
+                        }
+                        __typename
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteRequest(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(data.People.Count, Enumerable.Count(people.edges));
+            Assert.Equal("PersonConnection", people.__typename);
+            Assert.Equal("Person", people.edges[0].node.__typename);
+            Assert.Equal("PersonEdge", people.edges[0].__typename);
+            Assert.Equal("PageInfo", people.pageInfo.__typename);
         }
     }
 }

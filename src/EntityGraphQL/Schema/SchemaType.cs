@@ -32,7 +32,12 @@ namespace EntityGraphQL.Schema
             BaseType = baseType;
             if (!isScalar)
             {
-                AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
+                if (isInterface)
+                    // Because the type might actually be the type extending from the interface we need to look it up
+                    AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
+                else
+                    // Simple and allows FieldExtensions that create new types that are not interfaces not have to worry about updating the typename expression
+                    AddField("__typename", _ => Name, "Type name").IsNullable(false);
             }
         }
 
