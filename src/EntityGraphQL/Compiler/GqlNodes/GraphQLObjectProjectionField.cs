@@ -127,10 +127,9 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in selectionFields)
                 {
-                    if (item.Value.Field.Field?.Services.Any() == true)
+                    if (item.Value.Field.Field?.Services.Any() == true || item.Key == "__typename")
                         item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
-                    else if (item.Key != "__typename") // this is a static selection of the type name
-                                                       // pre service selection has selected the fields as the names we expect already
+                    else
                         item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key);
                 }
             }

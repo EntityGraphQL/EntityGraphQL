@@ -166,7 +166,7 @@ namespace EntityGraphQL.Schema
             var field = new FieldToResolveWithArgs<TBaseType, TParams>(Schema, name, description, argTypes);
             AddField(field);
             return field;
-        }       
+        }
 
         /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.

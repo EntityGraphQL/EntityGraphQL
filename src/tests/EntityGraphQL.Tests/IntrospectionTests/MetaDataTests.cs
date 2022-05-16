@@ -1,9 +1,9 @@
 using Xunit;
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
+using static EntityGraphQL.Tests.ServiceFieldTests;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -15,13 +15,13 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void Supports__typename()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider).Compile(@"query {
 	users { __typename id }
 }");
 
-            var users = tree.ExecuteQuery(new TestSchema(), null, null);
+            var users = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             var user = Enumerable.First((dynamic)users.Data["users"]);
             // we only have the fields requested
             Assert.Equal(2, user.GetType().GetFields().Length);
@@ -29,48 +29,79 @@ namespace EntityGraphQL.Tests
             Assert.Equal("User", user.__typename);
         }
 
-        private class TestSchema
+        [Fact]
+        public void TestServiceFieldTypeWithTypename()
         {
-            public string Hello { get { return "returned value"; } }
-            public IEnumerable<Person> People { get { return new List<Person> { new Person() }; } }
-            public IEnumerable<User> Users { get { return new List<User> { new User() }; } }
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+            schema.Type<Project>().AddField("settings", "Return settings")
+                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .IsNullable(false);
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    projects {
+                        settings {
+                            type
+                            __typename
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext().FillWithTestData();
+
+            var serviceCollection = new ServiceCollection();
+            ConfigService service = new();
+            serviceCollection.AddSingleton(service);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+
+            Assert.Null(res.Errors);
+            Assert.Equal("ProjectConfig", ((dynamic)res.Data["projects"])[0].settings.__typename);
         }
 
-        private class DbTestSchema
+        [Fact]
+        public void TestTypenameOnAllTypes()
         {
-            public string Hello { get { return "returned value"; } }
-            public DbSet<Person> People { get; }
-            public DbSet<User> Users { get; }
-        }
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+            schema.Type<Project>().AddField("settings", "Return settings")
+                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .IsNullable(false);
 
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    projects {
+                        # on list
+                        __typename
+                        settings {
+                            # on service
+                            __typename
+                        }
+                        owner {
+                            # on object
+                            __typename
+                        }
+                    }
+                    project(id: 1) {
+                        __typename
+                    }
+                }"
+            };
 
-        private class User
-        {
-            public int Id { get { return 100; } }
-            public int Field1 { get { return 2; } }
-            public string Field2 { get { return "2"; } }
-            public Person Relation { get { return new Person(); } }
-            public Task NestedRelation { get { return new Task(); } }
-        }
+            var context = new TestDataContext().FillWithTestData();
 
-        private class Person
-        {
-            public int Id { get { return 99; } }
-            public string Name { get { return "Luke"; } }
-            public string LastName { get { return "Last Name"; } }
-            public User User { get { return new User(); } }
-            public IEnumerable<Project> Projects { get { return new List<Project> { new Project() }; } }
-        }
-        private class Project
-        {
-            public int Id { get { return 55; } }
-            public string Name { get { return "Project 3"; } }
-            public IEnumerable<Task> Tasks { get { return new List<Task> { new Task() }; } }
-        }
-        private class Task
-        {
-            public int Id { get { return 33; } }
-            public string Name { get { return "Task 1"; } }
+            var serviceCollection = new ServiceCollection();
+            ConfigService service = new();
+            serviceCollection.AddSingleton(service);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+
+            Assert.Null(res.Errors);
+            Assert.Equal("ProjectConfig", ((dynamic)res.Data["projects"])[0].settings.__typename);
         }
     }
 }
