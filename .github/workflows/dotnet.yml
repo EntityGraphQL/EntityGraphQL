@@ -19,11 +19,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build -c Release --no-restore
       - name: Test
-        run: dotnet test -nodereuse:false --no-restore --verbosity normal
+        run: dotnet test -c Release --no-restore --no-build --verbosity normal
       - name: Package
-        run: dotnet pack -c Release --no-restore
+        run: dotnet pack -c Release --no-restore --no-build
       - name: Upload EntityGraphQL packages
         uses: actions/upload-artifact@v3
         with:
