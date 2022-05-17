@@ -54,6 +54,10 @@ namespace EntityGraphQL.Compiler
                 {
                     throw new EntityGraphQLException(field.Name, ex);
                 }
+                catch (EntityGraphQLValidationException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     throw new EntityGraphQLExecutionException(field.Name, ex);
