@@ -50,9 +50,9 @@ namespace EntityGraphQL.Compiler
                         result[node.Name] = data;
                     }
                 }
-                catch (EntityGraphQLValidationException)
+                catch (EntityGraphQLException ex)
                 {
-                    throw;
+                    throw new EntityGraphQLException(field.Name, ex);
                 }
                 catch (Exception ex)
                 {
