@@ -174,7 +174,7 @@ namespace EntityGraphQL.Compiler
                         return (null, true);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                    var newContextType = Expression.Parameter(runningContext.GetType(), "_ctx");
+                    var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
 
                     // new context
                     compileContext = new();

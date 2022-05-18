@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -54,7 +55,8 @@ namespace EntityGraphQL.Compiler.Util
         protected override Expression VisitMember(MemberExpression node)
         {
             var weCaptured = false;
-            if (currentExpression == null)
+            // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
+            if (currentExpression == null && !node.Expression.Type.IsNullableType())
             {
                 currentExpression = node;
                 contextParamFieldName = node.Member.Name;

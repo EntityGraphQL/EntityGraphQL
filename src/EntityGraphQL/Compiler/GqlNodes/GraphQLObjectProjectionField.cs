@@ -62,6 +62,10 @@ namespace EntityGraphQL.Compiler
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
+            // if we have services and they don't want service fields, return the expression only for extraction
+            if (withoutServiceFields && Field?.Services.Any() == true && !isRoot)
+                return nextFieldContext;
+
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;

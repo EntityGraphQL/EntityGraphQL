@@ -40,6 +40,11 @@ namespace EntityGraphQL.Compiler
         /// Arguments from inline in the query - not $ variables
         /// </summary>
         public IReadOnlyDictionary<string, object> Arguments { get; }
+        /// <summary>
+        /// True if this field has services
+        /// </summary>
+        public bool HasServices { get => Field?.Services.Any() == true; }
+
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
             Name = name;

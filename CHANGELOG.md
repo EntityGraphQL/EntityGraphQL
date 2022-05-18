@@ -1,3 +1,7 @@
+# 2.1.1
+
+- Fix - issue where a nullable value was incorrectly being called
+
 # 2.1.0
 
 - Added support for interfaces - thanks @bzbetty

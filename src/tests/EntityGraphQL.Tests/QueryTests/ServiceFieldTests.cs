@@ -1079,7 +1079,7 @@ namespace EntityGraphQL.Tests
                 Query = @"query {
             task(id: 1) { # context collection to single
                 project {
-                    config {
+                    config { # service
                         type
                     }
                 }
@@ -1337,6 +1337,46 @@ namespace EntityGraphQL.Tests
             Assert.NotNull(expression);
             var fieldAssignment = (MemberAssignment)((MemberInitExpression)((LambdaExpression)((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression).Arguments[0]).Arguments[0]).Arguments[1]).Body).Bindings[0];
             Assert.Equal("projectNames", fieldAssignment.Member.Name);
+        }
+
+        [Fact]
+        public void TestServiceFieldNullableCheckOnChildObject()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Query().ReplaceField("users", "Get current user")
+                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
+
+            // join back to DB Context
+            schema.UpdateType<User>(userSchema =>
+                userSchema.ReplaceField("relation", "Get relation")
+                    // We want the expression to return null
+                    .ResolveWithService<TestDataContext>((user, ctx) => user.RelationId.HasValue ? ctx.People.FirstOrDefault(u => u.Id == user.RelationId.Value) : null)
+            );
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ 
+                    users { 
+                        field2 
+                        relation { id } 
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic users = res.Data["users"];
+            Assert.Equal(2, users[0].GetType().GetFields().Length);
+            Assert.Equal("field2", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
+            Assert.Equal("relation", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
         }
 
         public class ConfigService

@@ -44,6 +44,7 @@ namespace EntityGraphQL.Tests
         public string Field2 { get; set; }
         public Person Relation { get; set; }
         public Task NestedRelation { get; set; }
+        public int? RelationId { get; set; }
     }
 
     public class Person

@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler
                         continue;
 
                     // do we have services at this level
-                    if (withoutServiceFields && Field?.Services.Any() == true)
+                    if (withoutServiceFields && (subField.HasServices || Field?.Services.Any() == true))
                         ExtractRequiredFieldsForPreServiceRun(fieldExp, subField.Name, nextFieldContext!, replacer, selectionFields);
                     else
                     {
