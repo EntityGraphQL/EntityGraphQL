@@ -88,6 +88,7 @@ namespace EntityGraphQL.Tests
         public Person Owner { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
+        public DateTime? Updated { get; set; }
     }
 
     public class Task

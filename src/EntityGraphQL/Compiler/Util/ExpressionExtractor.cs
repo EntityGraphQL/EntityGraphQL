@@ -56,7 +56,8 @@ namespace EntityGraphQL.Compiler.Util
         {
             var weCaptured = false;
             // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
-            if (currentExpression == null && !node.Expression.Type.IsNullableType())
+            // node.Expression can be null if it is a static member - e.g. DateTime.MaxValue
+            if (currentExpression == null && !node.Expression?.Type.IsNullableType() == true)
             {
                 currentExpression = node;
                 contextParamFieldName = node.Member.Name;

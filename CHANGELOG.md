@@ -1,3 +1,7 @@
+# 2.1.2
+
+- Fix - issue with a field using a static member e.g. DateTime.MaxValue
+
 # 2.1.1
 
 - Fix - issue where a nullable value was incorrectly being called
