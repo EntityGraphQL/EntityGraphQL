@@ -3,6 +3,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -39,6 +40,7 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(5, Enumerable.Count(people));
         }
+
         [Fact]
         public void QueryWithDefaultArguments()
         {
@@ -62,6 +64,7 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(10, Enumerable.Count(people));
         }
+
         [Fact]
         public void QueryWithDefaultArgumentsOverrideCodeDefault()
         {
@@ -87,6 +90,30 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(6, Enumerable.Count(people));
         }
+
+        [Fact]
+        public void QueryVariableDefinitionRequiredBySchemaItIsNotRequired()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mute($id: ID!) { # required here but not in the actual schema
+                    nullableGuidArgs(id: $id)
+                }",
+                Variables = new QueryVariables { { "id", null } },
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' is null while the variable definition is non-null. Please update query document or supply a non-null value.", results.Errors[0].Message);
+        }
+
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
             schema.Query().ReplaceField("person",

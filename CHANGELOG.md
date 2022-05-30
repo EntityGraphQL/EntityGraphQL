@@ -1,3 +1,7 @@
+# 2.1.3
+
+- Fix - Throw an error if your query document defines a non-null variable and a null value is supplied
+
 # 2.1.2
 
 - Fix - issue with a field using a static member e.g. DateTime.MaxValue

@@ -133,7 +133,13 @@ namespace EntityGraphQL.Compiler
                     try
                     {
                         var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, schema);
+                        if (argValue == null && argType.IsRequired)
+                            throw new EntityGraphQLCompilerException($"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value.");
                         OpVariableParameter.Type.GetField(name).SetValue(variablesToUse, argValue);
+                    }
+                    catch (EntityGraphQLCompilerException)
+                    {
+                        throw;
                     }
                     catch (Exception ex)
                     {
