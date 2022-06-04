@@ -30,7 +30,7 @@ namespace EntityGraphQL.AspNet
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
             if (requiredAuth != null && requiredAuth.Any() && user != null)
             {
-                // check polcies if principal with used
+                // check polices if principal with used
                 if (authService != null)
                 {
                     var allPoliciesValid = true;

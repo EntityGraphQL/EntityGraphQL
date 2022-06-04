@@ -4,6 +4,7 @@ using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
 using EntityGraphQL.Tests.ApiVersion1;
+using Microsoft.CSharp.RuntimeBinder;
 
 namespace EntityGraphQL.Tests
 {
@@ -44,7 +45,7 @@ namespace EntityGraphQL.Tests
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Single(result.Data);
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            object person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -61,6 +62,21 @@ namespace EntityGraphQL.Tests
 	people { id }
 }"); });
             Assert.Equal("Field 'id' not found on type 'Person'", ex.Message);
+        }
+
+        [Fact]
+        public void WildcardQueriesHonorRemovedFields() {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Type<Person>().RemoveField(p => p.Id);
+            var tree = new GraphQLCompiler(schema).Compile(@"
+{
+	people
+}");
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            var ex = Assert.Throws<RuntimeBinderException>(() => {
+                int id = person.Id;
+            });
         }
 
         [Fact]
@@ -262,6 +278,7 @@ namespace EntityGraphQL.Tests
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data["people"]).projects).n);
         }
+
         [Fact]
         public void EnumTest()
         {
@@ -301,7 +318,6 @@ query {
             // we only have the fields requested
             Assert.Equal(15, totalPeople);
         }
-
 
         [Fact]
         public void TestInheritance()
