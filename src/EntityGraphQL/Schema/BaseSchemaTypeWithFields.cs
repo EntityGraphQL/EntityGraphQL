@@ -101,10 +101,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         public void RemoveField(string name)
         {
-            if (FieldsByName.ContainsKey(name))
-            {
-                FieldsByName.Remove(name);
-            }
+            FieldsByName.Remove(name);
         }
     }
 }
