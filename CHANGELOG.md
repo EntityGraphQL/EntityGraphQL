@@ -1,6 +1,7 @@
 # 2.1.3
 
 - Fix - Throw an error if your query document defines a non-null variable and a null value is supplied
+- Service fields that return a list of items are now wrapped in a null check expression like service fields that return a single object are
 
 # 2.1.2
 

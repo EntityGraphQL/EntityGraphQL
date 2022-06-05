@@ -899,16 +899,6 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().AddField("configType", "Get project config")
                 .ResolveWithService<ConfigService>((p, srv) => srv.Get(0).Type);
 
-            schema.Query().ReplaceField("projects",
-                new
-                {
-                    search = (string)null,
-                },
-                (ctx, args) => ctx.Projects
-                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
-                    .OrderBy(p => p.Description),
-                "List of projects");
-
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
@@ -916,10 +906,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-            project(id: 0) {
-                configType
-            }
-        }"
+                    project(id: 0) {
+                        configType
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -1379,6 +1369,118 @@ namespace EntityGraphQL.Tests
             Assert.Equal("relation", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
         }
 
+        [Fact]
+        public void TestServiceFieldReturnsNullList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("configs", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetNullList(p.Id));
+
+            schema.Query().ReplaceField("project",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .SingleOrDefault(),
+                "project details");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 0) {
+                        configs { type }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 0,
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["project"];
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("configs", projectType.GetFields()[0].Name);
+            Assert.Null(project.configs);
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
+        public void TestServiceFieldReturnsList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("configs", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(p.Id))
+                .IsNullable(false);
+
+            schema.Query().ReplaceField("project",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .SingleOrDefault(),
+                "project details");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 0) {
+                        configs { type }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 0,
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["project"];
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("configs", projectType.GetFields()[0].Name);
+            Assert.Empty(project.configs);
+            // null check should not cause multiple calls
+            Assert.Equal(1, srv.CallCount);
+        }
+
         public class ConfigService
         {
             public ConfigService()
@@ -1395,6 +1497,17 @@ namespace EntityGraphQL.Tests
                 {
                     Type = "Something"
                 };
+            }
+
+            public ProjectConfig[] GetNullList(int id)
+            {
+                CallCount += 1;
+                return null;
+            }
+            public ProjectConfig[] GetList(int id)
+            {
+                CallCount += 1;
+                return Array.Empty<ProjectConfig>();
             }
         }
 

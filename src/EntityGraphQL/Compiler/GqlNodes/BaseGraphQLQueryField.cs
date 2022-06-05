@@ -12,7 +12,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
-
         protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
@@ -26,6 +25,8 @@ namespace EntityGraphQL.Compiler
 
             return new List<BaseGraphQLField> { this };
         }
+
+        protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && Field?.Services.Any() == true;
 
         protected void ExtractRequiredFieldsForPreServiceRun(Expression extractFrom, string fieldName, Expression nextFieldContext, ParameterReplacer replacer, Dictionary<string, CompiledField> fields)
         {

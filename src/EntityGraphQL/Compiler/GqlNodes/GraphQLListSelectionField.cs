@@ -77,18 +77,25 @@ namespace EntityGraphQL.Compiler
             }
 
             (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, contextChanged, replacer);
-            // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext!, listContext, selectionFields.ExpressionOnly());
-
-            if (!withoutServiceFields)
-            {
-                // if selecting final graph make sure lists are evaluated
-                if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-                    resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
-            }
 
             if (Field?.Services.Any() == true)
                 compileContext.AddServices(Field.Services);
+
+            if (!withoutServiceFields)
+            {
+                bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
+                if (needsServiceWrap)
+                {
+                    var wrappedExpression = WrapWithNullCheck(compileContext, nextFieldContext!, listContext, selectionFields.ExpressionOnly(), serviceProvider, schemaContext, replacer);
+                    return wrappedExpression;
+                }
+            }
+            // build a .Select(...) - returning a IEnumerable<>
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext!, listContext, selectionFields.ExpressionOnly());
+
+            // if selecting final graph make sure lists are evaluated
+            if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+                resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
 
             return resultExpression;
         }
@@ -104,6 +111,30 @@ namespace EntityGraphQL.Compiler
             }
 
             return fields;
+        }
+
+        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, Expression> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
+        {
+            // null check on listContext which may be a call to a service that we do not want to call twice
+            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
+            var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
+
+            // TODO services injected here - is this needed?
+            var updatedListContext = listContext;
+            if (compileContext.Services.Any() == true)
+            {
+                updatedListContext = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, listContext, fieldParams, replacer);
+                selectExpressions = selectExpressions.ToDictionary(i => i.Key, i => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, i.Value, fieldParams, replacer));
+            }
+
+            // replace with null_wrap
+            // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
+            var nullWrapParam = Expression.Parameter(updatedListContext.Type, "nullwrap");
+
+            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(selectParam, nullWrapParam, selectExpressions);
+
+            updatedListContext = ExpressionUtil.WrapListFieldForNullCheck(updatedListContext, callOnList, fieldParams, fieldParamValues, nullWrapParam, schemaContext);
+            return updatedListContext;
         }
     }
 }

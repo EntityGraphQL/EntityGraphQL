@@ -58,7 +58,7 @@ namespace EntityGraphQL.Compiler
                 compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (nextFieldContext == null)
                 return null;
-            bool needsServiceWrap = !withoutServiceFields && Field?.Services.Any() == true;
+            bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
@@ -69,6 +69,9 @@ namespace EntityGraphQL.Compiler
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;
+
+            if (Field?.Services.Any() == true)
+                compileContext.AddServices(Field.Services);
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
@@ -90,9 +93,6 @@ namespace EntityGraphQL.Compiler
                     nextFieldContext = newExp;
                 }
             }
-
-            if (Field?.Services.Any() == true)
-                compileContext.AddServices(Field.Services);
 
             return nextFieldContext;
         }
@@ -121,8 +121,8 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
-            // TODO services injected here?
-            var updatedExpression = Field?.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, Field!.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
+            // TODO services injected here - is this needed?
+            var updatedExpression = compileContext.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
@@ -149,7 +149,7 @@ namespace EntityGraphQL.Compiler
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Field!.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
-            updatedExpression = ExpressionUtil.WrapFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
+            updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
         }
 
