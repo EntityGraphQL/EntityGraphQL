@@ -17,6 +17,7 @@ namespace EntityGraphQL.Schema
         public abstract bool IsEnum { get; }
         public abstract bool IsScalar { get; }
         public abstract string? BaseType { get; }
+        public bool RequiresSelection => !IsScalar && !IsEnum;
         public RequiredAuthorization? RequiredAuthorization { get; set; }
 
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)

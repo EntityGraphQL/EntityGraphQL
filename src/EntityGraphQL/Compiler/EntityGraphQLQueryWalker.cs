@@ -191,6 +191,11 @@ namespace EntityGraphQL.Compiler
                 {
                     fieldResult = ParseFieldSelect(actualField.ResolveExpression!, actualField, resultName, context, node.SelectionSet, args);
                 }
+                else if (actualField.ReturnType.SchemaType.RequiresSelection)
+                {
+                    // wild card query - select out all the fields for the object
+                    throw new EntityGraphQLCompilerException($"Field '{actualField.Name}' requires a selection set defining the fields you would like to select.");
+                }
                 else
                 {
                     fieldResult = new GraphQLScalarField(schemaProvider, actualField, resultName, actualField.ResolveExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);

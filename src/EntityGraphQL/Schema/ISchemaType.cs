@@ -9,9 +9,10 @@ namespace EntityGraphQL.Schema
         string Name { get; }
         string? Description { get; set; }
         bool IsInput { get; }
-        bool IsInterface{ get; }
+        bool IsInterface { get; }
         bool IsEnum { get; }
         bool IsScalar { get; }
+        bool RequiresSelection { get; }
         string? BaseType { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);

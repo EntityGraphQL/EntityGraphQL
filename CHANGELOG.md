@@ -2,6 +2,7 @@
 
 - Fix - Throw an error if your query document defines a non-null variable and a null value is supplied
 - Service fields that return a list of items are now wrapped in a null check expression like service fields that return a single object are
+- Fix - Object fields not included in the schema could be returned when the selection set was missing from the query. Now missing selection sets on list or object fields in queries throw an error. Selection sets are required in graphql queries for non scalar/enum field types. Thanks @breyed
 
 # 2.1.2
 
