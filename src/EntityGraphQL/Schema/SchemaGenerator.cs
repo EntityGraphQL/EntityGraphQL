@@ -84,6 +84,9 @@ type {rootQueryType.Name} {{
                 if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar)
                     continue;
 
+                if (!typeItem.GetFields().Any())
+                    continue;
+
                 types.AppendLine();
                 if (!string.IsNullOrEmpty(typeItem.Description))
                     types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");

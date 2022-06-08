@@ -676,7 +676,6 @@ namespace EntityGraphQL.Schema
         /// <returns>String containing the schema definition</returns>
         public string ToGraphQLSchemaString()
         {
-            var extraMappings = customTypeMappings.ToDictionary(k => k.Key, v => v.Value);
             return SchemaGenerator.Make(this);
         }
 

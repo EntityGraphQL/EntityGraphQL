@@ -1,3 +1,7 @@
+# 2.1.4
+
+- Fix #123 do not output types with no fields in the schema definition
+
 # 2.1.3
 
 - Fix - Throw an error if your query document defines a non-null variable and a null value is supplied

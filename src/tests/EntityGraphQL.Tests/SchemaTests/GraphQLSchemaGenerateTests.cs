@@ -252,6 +252,16 @@ namespace EntityGraphQL.Tests
             Assert.Contains(@"type Cat implements Animal", schema);
             Assert.Contains(@"type Dog implements Animal", schema);
         }
+
+        [Fact]
+        public void TestNoMutations()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.DoesNotContain("mutation:", schema);
+            Assert.DoesNotContain($"type {schemaProvider.Mutation().SchemaType.Name}", schema);
+        }
     }
 
     public class IgnoreTestMutations
@@ -304,7 +314,7 @@ namespace EntityGraphQL.Tests
 
 
     public class AbstractClassTestSchema
-    {      
+    {
         public List<Animal> Animals { get; set; }
 
         public abstract class Animal
@@ -323,7 +333,7 @@ namespace EntityGraphQL.Tests
         }
     }
 
-    
+
     public class IgnoreTestSchema
     {
         public IgnoreTestSchema()
