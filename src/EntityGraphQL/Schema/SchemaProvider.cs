@@ -65,8 +65,10 @@ namespace EntityGraphQL.Schema
             schematTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, false, false, true));
 
             customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
+                {typeof(sbyte), new GqlTypeInfo(() => Type("Int"), typeof(sbyte))},
                 {typeof(short), new GqlTypeInfo(() => Type("Int"), typeof(short))},
                 {typeof(long), new GqlTypeInfo(() => Type("Int"), typeof(long))},
+                {typeof(byte), new GqlTypeInfo(() => Type("Int"), typeof(byte))},
                 {typeof(ushort), new GqlTypeInfo(() => Type("Int"), typeof(ushort))},
                 {typeof(uint), new GqlTypeInfo(() => Type("Int"), typeof(uint))},
                 {typeof(ulong), new GqlTypeInfo(() => Type("Int"), typeof(ulong))},
