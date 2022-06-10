@@ -4,11 +4,11 @@ metaTitle: 'Advanced types - EntityGraphQL'
 metaDescription: 'Advanced types in EntityGraphQL'
 ---
 
-So far we've only been dealing with GraphQL Object types. Types that are part of the object graph and have fields. These are the most common type in our schema, but lets look at the other types we can use.
+So far we've only been dealing with GraphQL Object types. Types that are part of the object graph and have fields. These are the most common type in our schema, but let's look at the other types we can use.
 
 # Scalar Types
 
-We learnt previous that the [GraphQL spec](https://graphql.org/learn/schema/#scalar-types) defines the following built in scalar types.
+We learnt previously that the [GraphQL spec](https://graphql.org/learn/schema/#scalar-types) defines the following built in scalar types.
 
 - Int: A signed 32‐bit integer.
 - Float: A signed double-precision floating-point value.
@@ -86,7 +86,7 @@ type Person {
 
 GraphQL supports [Interfaces](https://graphql.org/learn/schema/#interfaces) allowing you to define a abstract base type that multiple other types might implement.
 
-EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces, however you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
+EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces; however, you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
 
 ```
 public abstract class Character {
@@ -148,7 +148,7 @@ type Droid implements Character {
 
 We've seen passing scalar values, like enums, numbers or strings, as arguments into a field. [Input types](https://graphql.org/learn/schema/#input-types) allow us to define complex types that can be used as an argument. This is particularly valuable in the case of mutations, where you might want to pass in a whole object to be created.
 
-Input types differ to regular Object types largely because they can't have arguments on their fields. There are just a data object. As described in the spec
+Input types differ to regular Object types largely because they can't have arguments on their fields. There are just a data object. As described in the spec:
 
 > The fields on an input object type can themselves refer to input object types, but you can't mix input and output types in your schema. Input object types also can't have arguments on their fields.
 
@@ -274,7 +274,7 @@ POST localhost:5000/graphql
 
 # Lists and Non-Null
 
-GraphQL defines [type modifiers](https://graphql.org/learn/schema/#lists-and-non-null) specifically for declaring that a is a list or can not be `null`. In a schema these are `[T]` and `!`. For example a GraphQL schema might have the following.
+GraphQL defines [type modifiers](https://graphql.org/learn/schema/#lists-and-non-null) specifically for declaring that a field is a list or cannot be `null`. In a schema these are `[T]` and `!`. For example, a GraphQL schema might have the following.
 
 ```
 enum Gender {
@@ -293,9 +293,9 @@ type Person {
 
 The `!` on all the fields tells API users that those fields will not be `null`. And the `[]` around the `Person` type on the `friends` field types the API users that the field returns a list of `Person` objects.
 
-EntityGraphQL will automatically figure out fields that return lists based on if the resolve expression returns an array or `IEnumerable<T>`.
+EntityGraphQL will automatically figure out fields that return lists based on if the resolve expression returns `IEnumerable<T>`.
 
-Similarly EntityGraphQL will mark non-nullable .NET types as non-null in thr GraphQL schema. If you need to change that you can use `field.IsNullable(bool)`.
+Similarly, EntityGraphQL will mark non-nullable .NET types as non-null in thr GraphQL schema. If you need to change that, you can use `field.IsNullable(bool)`.
 
 Lets say we know a person's first and last name will never be null.
 
