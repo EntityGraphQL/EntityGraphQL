@@ -1,12 +1,13 @@
 ---
-title: "Other Types"
-metaTitle: "Advanced types - EntityGraphQL"
-metaDescription: "Advanced types in EntityGraphQL"
+title: 'Other Types'
+metaTitle: 'Advanced types - EntityGraphQL'
+metaDescription: 'Advanced types in EntityGraphQL'
 ---
 
 So far we've only been dealing with GraphQL Object types. Types that are part of the object graph and have fields. These are the most common type in our schema, but lets look at the other types we can use.
 
 # Scalar Types
+
 We learnt previous that the [GraphQL spec](https://graphql.org/learn/schema/#scalar-types) defines the following built in scalar types.
 
 - Int: A signed 32‐bit integer.
@@ -17,10 +18,34 @@ We learnt previous that the [GraphQL spec](https://graphql.org/learn/schema/#sca
 
 We of course can add our own. Scalar types help you describe the data in you schema. Unlike Object types they don't have fields you can query, they result in data. Ultimately you are likely serializing the data to JSON for transport.
 
-Adding a scalar type tells EntityGraphQL that the object should just be returned. i.e. there is no selection available on it. A good example is `DateTime`. We just want to return the  `DateTime` value. Not have it as an Object type where you could select certain properties from it (Although that is valid).
+Adding a scalar type tells EntityGraphQL that the object should just be returned. i.e. there is no selection available on it. A good example is `DateTime`. We just want to return the `DateTime` value. Not have it as an Object type where you could select certain properties from it (Although you could set that up).
 
 ```
 schema.AddScalarType<DateTime>("DateTime", "Represents a date and time.");
+```
+
+It also adds the type as a scalar type in the schema. You can also tell EntityGraphQL to auto-map a type to a schema type with `AddTypeMapping<TFromType>(string gqlType)`. For example
+
+```
+schema.AddTypeMapping<short>("Int");
+```
+
+By default EntityGraphQL maps these types to GraphQL types.
+
+```
+sbyte   ->  Int
+short   ->  Int
+ushort  ->  Int
+long    ->  Int
+ulong   ->  Int
+byte    ->  Int
+int     ->  Int
+uint    ->  Int
+float   ->  Float
+double  ->  Float
+decimal ->  Float
+byte[]  ->  String
+bool    ->  Boolean
 ```
 
 # Enum Types
@@ -41,7 +66,7 @@ public enum Gender {
 schema.AddEnum("Gender", typeof(Gender), "A persons Gender");
 ```
 
-The GraphQL schema produce from this helps document and describe the data model to API uses. Example GraphQL schema below
+The GraphQL schema produced from this helps document and describe the data model to API users. Example GraphQL schema below
 
 ```
 enum Gender {
