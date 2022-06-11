@@ -1,6 +1,7 @@
 # 2.1.4
 
 - Fix #123 do not output types with no fields in the schema definition
+- Fix issue calling `ToList` in an expression that then used a `IQueryable` `FirstOrDefault` or friends. Resulting in an invalid expression at runtime
 
 # 2.1.3
 

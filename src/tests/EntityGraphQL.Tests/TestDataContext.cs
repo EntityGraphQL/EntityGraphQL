@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System;
+using System.Linq;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
@@ -10,10 +12,14 @@ namespace EntityGraphQL.Tests
     /// </summary>
     public class TestDataContext
     {
+        [GraphQLIgnore]
+        private IEnumerable<Project> projects = new List<Project>();
+
         public int TotalPeople => People.Count;
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
-        public IEnumerable<Project> Projects { get; set; }
+        public IEnumerable<Project> Projects { get => projects; set => projects = value; }
+        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
         public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();

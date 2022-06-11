@@ -1481,6 +1481,74 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, srv.CallCount);
         }
 
+        [Fact]
+        public void TestServiceFieldWithQueryable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id))
+                .IsNullable(false);
+            schema.Type<Project>().AddField("task", p => p.Tasks.FirstOrDefault(), "A task");
+
+            schema.Query().ReplaceField("projects",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.QueryableProjects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .OrderBy(c => c.Id)
+                    .ThenBy(p => p.Description),
+                "projects");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        config { type }
+                        task {
+                            id
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 0,
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                            }
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var projects = (dynamic)res.Data["projects"];
+            Type projectType = Enumerable.First(projects).GetType();
+            Assert.Equal(2, projectType.GetFields().Length);
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            // null check should not cause multiple calls
+            Assert.Equal(1, srv.CallCount);
+        }
+
         public class ConfigService
         {
             public ConfigService()
