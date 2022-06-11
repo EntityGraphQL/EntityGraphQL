@@ -155,7 +155,7 @@ Input types differ to regular Object types largely because they can't have argum
 ```
 public class PeopleMutations
 {
-    [GraphQLMutation("Add a new person to the system)]
+    [GraphQLMutation("Add a new person to the system")]
     public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
     {
         var person = new Person
@@ -193,7 +193,7 @@ You could of course use the `Person` class from your data model directly and be 
 ```
 public class PeopleMutations
 {
-    [GraphQLMutation("Add a new person to the system)]
+    [GraphQLMutation("Add a new person to the system")]
     public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
     {
         db.People.Add(args.PersonInput);
