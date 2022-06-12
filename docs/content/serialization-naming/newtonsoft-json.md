@@ -35,10 +35,21 @@ internal class JTokenTypeConverter : ICustomTypeConverter
     }
 }
 
+internal class JValueTypeConverter : ICustomTypeConverter
+{
+    public Type Type => typeof(JValue);
+
+    public object ChangeType(object value, Type toType, ISchemaProvider schema)
+    {
+        return ((JValue)value).ToString();
+    }
+}
+
 // Where you build schema
 
 schema.AddCustomTypeConverter(new JObjectTypeConverter());
 schema.AddCustomTypeConverter(new JTokenTypeConverter());
+schema.AddCustomTypeConverter(new JValueTypeConverter());
 ```
 
-Now EntityGraphQL can convert `JObject` & `JToken` types to classes/types using your version of Newtonsoft.Json. You can use `ICustomTypeConverter` to handle any customer conversion.
+Now EntityGraphQL can convert `JObject`, `JToken` & `JValue` types to classes/types using your version of Newtonsoft.Json. You can use `ICustomTypeConverter` to handle any customer conversion.

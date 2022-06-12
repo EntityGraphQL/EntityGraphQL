@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using EntityGraphQL.Schema;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace EntityGraphQL.Tests
 {
@@ -30,6 +32,7 @@ namespace EntityGraphQL.Tests
     {
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Gender
     {
         Female,

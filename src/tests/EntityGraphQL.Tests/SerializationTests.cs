@@ -101,6 +101,31 @@ namespace EntityGraphQL.AspNet.Tests
         }
 
         [Fact]
+        public void JsonNewtonsoftJValue()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
+            schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+            schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());
+
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            {
+                ""query"": ""mutation AddPerson($name: String! $gender: Gender!) {
+                    addPerson(name: $name gender: $gender) { gender }
+                }"",
+                ""variables"": {
+                    ""name"": ""Alex"",
+                    ""gender"": ""Male""
+                }
+            }");
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+        }
+
+        [Fact]
         public void TextJsonJsonElement()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
@@ -148,6 +173,15 @@ namespace EntityGraphQL.AspNet.Tests
         {
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
             return ((JToken)value).ToObject(toType);
+        }
+    }
+    internal class JValueTypeConverter : ICustomTypeConverter
+    {
+        public Type Type => typeof(JValue);
+
+        public object ChangeType(object value, Type toType, ISchemaProvider schema)
+        {
+            return ((JValue)value).ToString();
         }
     }
 }

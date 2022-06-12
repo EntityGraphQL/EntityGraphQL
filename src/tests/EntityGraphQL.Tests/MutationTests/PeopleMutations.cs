@@ -193,6 +193,7 @@ namespace EntityGraphQL.Tests
         public List<string> Names { get; set; }
 
         public InputObject NameInput { get; set; }
+        public Gender? Gender { get; set; }
     }
     [MutationArguments]
     public class NullableGuidArgs
