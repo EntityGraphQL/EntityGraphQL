@@ -2,9 +2,9 @@ using Xunit;
 using System.Linq;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
-using static EntityGraphQL.Tests.ServiceFieldTests;
 using System.Reflection;
 using System.Collections.Generic;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -540,6 +540,29 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestListArgInputTypeUsingVariables()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mutate($var: [InputObject!]) {
+                    taskWithList(inputs: $var)
+                }",
+                Variables = new QueryVariables {
+                    {"var", "[{name: \"Bill\"}, {name: \"Bob\"}]"}
+                }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["taskWithList"]);
+        }
+
+        [Fact]
         public void
         TestListIntArgInputType()
         {
@@ -674,6 +697,126 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThingsHere"];
             Assert.True((bool)result);
+        }
+        [Fact]
+        public void TestNoArgMutationWithService()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+                    noArgsWithService
+                }",
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["noArgsWithService"]);
+        }
+
+        [Fact]
+        public void TestNullableGuid()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mute($id: ID, $int: Int, $float: Float, $double: Float, $bool: Boolean, $enum: Gender) {
+                    nullableGuidArgs(id: $id, int: $int, float: $float, double: $double, bool: $bool, enum: $enum)
+                }",
+                Variables = new QueryVariables {
+                    { "id", (object)null } ,
+                    { "float", (object)null } ,
+                    { "double", (object)null } ,
+                    { "int", (object)null } ,
+                    { "bool", (object)null } ,
+                    { "enum", (object)null } ,
+                },
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            Assert.Equal(true, results.Data["nullableGuidArgs"]);
+        }
+        [Fact]
+        public void TestNullableGuidEmptyString()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mute($id: ID) {
+                    nullableGuidArgs
+                }",
+                Variables = new QueryVariables { { "id", "" } },
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var service = new AgeService();
+            serviceCollection.AddSingleton(service);
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' can not be applied to defined variable type 'ID'", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void TestListGuidTypeUsingVariables()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mutate($ids: [ID]) {
+                    listOfGuidArgs(ids: $ids)
+                }",
+                Variables = new QueryVariables {
+                    {"ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } }
+                }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
+            Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
+        }
+
+        [Fact]
+        public void TestListGuidTypeUsingVariablesRequired()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mutate($ids: [ID!]!) {
+                    listOfGuidArgs(ids: $ids)
+                }",
+                Variables = new QueryVariables {
+                    {"ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } }
+                }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
+            Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
         }
 
         private bool DoGreatThingsHere()

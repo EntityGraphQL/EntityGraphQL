@@ -9,15 +9,19 @@ namespace EntityGraphQL.Directives
     {
         public override string Name { get => "skip"; }
         public override string Description { get => "Directs the executor to skip this field or fragment when the `if` argument is true."; }
-        public override Expression? ProcessExpression(Expression expression, object arguments)
+        public override Expression? ProcessExpression(Expression expression, object? arguments)
         {
+            if (arguments is null)
+                throw new ArgumentNullException("Argument 'if' is requred for @skip directive");
             if (((SkipArguments)arguments).@if)
                 return null;
             return expression;
         }
 
-        public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object arguments)
+        public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments)
         {
+            if (arguments is null)
+                throw new ArgumentNullException("Argument 'if' is requred for @skip directive");
             if (((SkipArguments)arguments).@if)
                 return null;
             return field;

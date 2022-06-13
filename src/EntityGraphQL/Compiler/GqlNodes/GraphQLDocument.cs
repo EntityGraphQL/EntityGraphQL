@@ -26,12 +26,11 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLDocument : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
-        public ParameterExpression? RootParameter { get; set; }
-        public List<BaseGraphQLField> QueryFields { get; protected set; } = new List<BaseGraphQLField>();
+        public Expression? NextFieldContext { get; }
+        public IGraphQLNode? ParentNode { get; }
+        public ParameterExpression? RootParameter { get; }
+        public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
         private readonly Func<string, string> fieldNamer;
-        public Action<IEnumerable<Type>>? AddServiceToCurrentOperation;
 
         /// <summary>
         /// A list of graphql operations. These could be mutations or queries
@@ -54,11 +53,11 @@ namespace EntityGraphQL.Compiler
 
         public IField? Field { get; }
 
-        public Dictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object> Arguments { get; }
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {
-            return ExecuteQueryAsync(context, services, variables, operationName, options).Result;
+            return ExecuteQueryAsync(context, services, variables, operationName, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -81,16 +80,12 @@ namespace EntityGraphQL.Compiler
             var result = new QueryResult();
             var validator = new GraphQLValidator();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
-            AddServiceToCurrentOperation = (IEnumerable<Type> services) =>
-            {
-                op.AddServices(services);
-            };
 
             // execute the selected operation
             if (options == null)
                 options = new ExecutionOptions(); // defaults
 
-            result.Data = await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables);
+            result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables));
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);

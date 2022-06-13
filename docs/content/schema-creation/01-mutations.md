@@ -43,7 +43,7 @@ public class AddPersonArgs
 Now we can add it to the schema.
 
 ```
-schema.AddMutationFrom(new PeopleMutations());
+schema.AddMutationsFrom(new PeopleMutations());
 ```
 
 Now we can add people!

@@ -28,11 +28,11 @@ Now we need to add some types to our schema which we will use as return types fo
 
 - Object types - a type that is part of the object graph and has fields. These are the most common type you will use in your schema
 - Scalar types - An Object type has fields that can be queried. Scalar types resolve to concrete data. GraphQL spec defines the following built in scalar types (of course you can add your own)
-  - Int: A signed 32‐bit integer.
+  - Int: A signed 32-bit integer.
   - Float: A signed double-precision floating-point value.
-  - String: A UTF‐8 character sequence.
+  - String: A UTF-8 character sequence.
   - Boolean: true or false.
-  - ID: The ID scalar type represents a unique identifier, often used to refetch an object or as the key for a cache. The ID type is serialized in the same way as a String; however, defining it as an ID signifies that it is not intended to be human‐readable.
+  - ID: The ID scalar type represents a unique identifier, often used to refetch an object or as the key for a cache. The ID type is serialized in the same way as a String; however, defining it as an ID signifies that it is not intended to be human-readable.
     Types are a just a name and a list of fields on that type. This lets EntityGraphQL know how to map a GraphQL type back to a .NET type.
 - Enumeration types - enumeration types are a special kind of scalar that is restricted to a particular set of allowed values
 

@@ -34,7 +34,7 @@ namespace EntityGraphQL.Extensions
         {
             var isDictionary = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IDictionary<,>);
             if (isDictionary) return isDictionary;
-            
+
             foreach (var intType in source.GetInterfaces())
             {
                 isDictionary = IsGenericTypeDictionary(intType);
@@ -64,11 +64,11 @@ namespace EntityGraphQL.Extensions
             return isEnumerable;
         }
 
-        private static bool IsGenericTypeEnumerable(Type source)
+        public static bool IsGenericTypeEnumerable(this Type source)
         {
             bool isEnumerable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
             if (isEnumerable) return isEnumerable;
-            
+
             foreach (var intType in source.GetInterfaces())
             {
                 isEnumerable = IsGenericTypeEnumerable(intType);

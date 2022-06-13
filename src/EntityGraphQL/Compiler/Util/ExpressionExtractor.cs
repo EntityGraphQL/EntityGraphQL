@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -14,14 +15,16 @@ namespace EntityGraphQL.Compiler.Util
         private Expression? currentExpression;
         private string? contextParamFieldName;
         private bool matchByType;
+        private string? rootFieldName;
 
-        internal IDictionary<string, Expression>? Extract(Expression node, Expression rootContext, bool matchByType = false)
+        internal IDictionary<string, Expression>? Extract(Expression node, Expression rootContext, bool matchByType = false, string? rootFieldName = null)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, Expression>();
             currentExpression = null;
             contextParamFieldName = null;
             this.matchByType = matchByType;
+            this.rootFieldName = rootFieldName;
             Visit(node);
             return extractedExpressions.Count > 0 ? extractedExpressions : null;
         }
@@ -37,15 +40,35 @@ namespace EntityGraphQL.Compiler.Util
                 extractedExpressions![contextParamFieldName] = currentExpression;
             return base.VisitParameter(node);
         }
+        protected override Expression VisitBinary(BinaryExpression node)
+        {
+            // reset currents
+            currentExpression = null;
+            contextParamFieldName = null;
+            var left = base.Visit(node.Left);
 
+            currentExpression = null;
+            contextParamFieldName = null;
+            var right = base.Visit(node.Right);
+            return Expression.MakeBinary(node.NodeType, left, right);
+        }
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (currentExpression == null)
+            var weCaptured = false;
+            // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
+            // node.Expression can be null if it is a static member - e.g. DateTime.MaxValue
+            if (currentExpression == null && !node.Expression?.Type.IsNullableType() == true)
             {
                 currentExpression = node;
                 contextParamFieldName = node.Member.Name;
+                weCaptured = true;
             }
             var result = base.VisitMember(node);
+            if (weCaptured)
+            {
+                currentExpression = null;
+                contextParamFieldName = null;
+            }
             return result;
         }
 
@@ -58,12 +81,23 @@ namespace EntityGraphQL.Compiler.Util
                 Visit(node.Object);
                 currentExpression = prevExp;
             }
-            foreach (var arg in node.Arguments)
+            var startAt = 0;
+            if (node.Object is null) // static method
             {
+                startAt = 1;
+                currentExpression = node;
+                contextParamFieldName = rootFieldName;
+                Visit(node.Arguments[0]);
+            }
+            for (int i = startAt; i < node.Arguments.Count; i++)
+            {
+                Expression arg = node.Arguments[i];
                 currentExpression = null;
+                contextParamFieldName = null;
                 Visit(arg);
             }
             currentExpression = null;
+            contextParamFieldName = null;
             return node;
         }
     }

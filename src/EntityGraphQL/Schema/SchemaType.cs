@@ -12,22 +12,33 @@ namespace EntityGraphQL.Schema
         public override bool IsInput { get; }
         public override bool IsEnum { get; }
         public override bool IsScalar { get; }
+        public override bool IsInterface { get; }
+        public override string? BaseType { get; }
 
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar, isInterface, baseType)
         {
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;
+            IsInterface = isInterface;
             RequiredAuthorization = requiredAuthorization;
+            BaseType = baseType;
             if (!isScalar)
-                AddField("__typename", t => name, "Type name").IsNullable(false);
+            {
+                if (isInterface)
+                    // Because the type might actually be the type extending from the interface we need to look it up
+                    AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
+                else
+                    // Simple and allows FieldExtensions that create new types that are not interfaces not have to worry about updating the typename expression
+                    AddField("__typename", _ => Name, "Type name").IsNullable(false);
+            }
         }
 
         /// <summary>

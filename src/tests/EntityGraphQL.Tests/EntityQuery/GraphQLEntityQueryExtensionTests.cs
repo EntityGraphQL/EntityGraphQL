@@ -32,6 +32,44 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportEntityQueryEmptyString()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+	users(filter: """") { field2 }
+}",
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(2, Enumerable.Count(users));
+        }
+
+        [Fact]
+        public void SupportEntityQueryStringWhitespace()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+	users(filter: ""  "") { field2 }
+}",
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.Users.Add(new User { Field2 = "99" });
+            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(2, Enumerable.Count(users));
+        }
+
+        [Fact]
         public void SupportEntityQueryArgument()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);

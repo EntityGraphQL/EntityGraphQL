@@ -204,3 +204,46 @@ public class MovieQueryArgs
     public string Title { get; set; }
 }
 ```
+
+# Extensions - adding custom data to errors
+
+Errors often can be useful for end users. Other times they are for the developers. You can use the extensions field to add additional information to your errors to help you make a choice about the error. I.e. like showing it directly to the user. Extensions are defined as `Dictionary<string, object>`
+
+```
+public class MovieMutations
+{
+  [GraphQLMutation]
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, GraphQLValidator validator)
+  {
+    if (string.IsNullOrEmpty(args.Name))
+      validator.AddError("Name argument is required", new Dictionary<string, object> {{"type", 1}});
+    if (args.age <= 0)
+      validator.AddError("Age argument must be positive", new Dictionary<string, object> {{"type", 1}});
+
+    if (validator.HasErrors)
+      return null;
+
+    // do your magic here. e.g. with EF or other business logic
+    //...
+  }
+}
+```
+
+The result will look like this
+
+```
+{
+    "errors": [
+        {
+            "message": "Name argument is required",
+            "extensions": {
+                "type": 1
+            }
+        }
+    ]
+}
+```
+
+You can they check the `type` field on the error and display it to the user.
+
+You can also `throw` the `EntityGraphQLException` which also takes an extensions arguments.
