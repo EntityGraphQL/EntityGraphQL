@@ -61,7 +61,7 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, Schema, autoCreateEnumTypes, Schema.SchemaFieldNamer, autoCreateNewComplexTypes, true);
+                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, Schema, autoCreateEnumTypes, false, Schema.SchemaFieldNamer, autoCreateNewComplexTypes, true);
                 AddFields(fields);
             }
             return this;

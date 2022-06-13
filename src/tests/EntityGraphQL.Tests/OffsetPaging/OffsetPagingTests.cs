@@ -407,5 +407,12 @@ namespace EntityGraphQL.Tests.OffsetPaging
                 LastName = lname
             };
         }
+
+        [Fact]
+        public void IdPropertyStillGenerated()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
+        }
     }
 }
