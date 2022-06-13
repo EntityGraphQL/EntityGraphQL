@@ -415,6 +415,48 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestServicesReconnectToSchemaContextFromObject()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // Linking a type from a service back to the schema context
+            schema.Type<User>().ReplaceField("project", "Peoples project")
+                .ResolveWithService<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner.Id == user.Id));
+
+            schema.Query().ReplaceField("user", "Get current user")
+                .ResolveWithService<UserService>((ctx, users) => users.GetUser());
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ user { id project { __typename id } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Projects = new List<Project>()
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic user = res.Data["user"];
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("id", Enumerable.ElementAt(user.GetType().GetFields(), 0).Name);
+            Assert.Equal("project", Enumerable.ElementAt(user.GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
         public void TestServicesMultipleReconnectToSchemaContextListOf_WithoutSelectionOfNeededDbField()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -1513,7 +1555,7 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"{
                     projects {
-                        config { type }
+                        config { type __typename }
                         task {
                             id
                         }

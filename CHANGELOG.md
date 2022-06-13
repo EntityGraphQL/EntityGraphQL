@@ -1,3 +1,7 @@
+# 2.1.5
+
+- Fix null exception in service field from an object field
+
 # 2.1.4
 
 - Fix #123 do not output types with no fields in the schema definition

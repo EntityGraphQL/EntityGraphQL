@@ -147,7 +147,7 @@ namespace EntityGraphQL.Compiler
 
             (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
-            var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, f.Value.Field.Field!.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+            var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
             updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
