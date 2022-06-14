@@ -26,7 +26,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLDocument : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; set; }
+        public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();

@@ -147,7 +147,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
-            
+
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
@@ -354,22 +354,37 @@ namespace EntityGraphQL.Compiler
 
         protected override void VisitInlineFragment(InlineFragmentNode node, IGraphQLNode? context)
         {
-            IGraphQLNode? newContext = context;
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null visiting inline fragment");
 
-            if (node.TypeCondition is not null)
+            if (node.TypeCondition is not null && context is not null)
             {
                 var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, requestContext);
                 if (type != null)
-                {
-                    //animals = animals.Select(a => a is Dog ? new { a.name, a.hasBone } :  new { a.name }
-
+                {                    
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
-                    newContext = new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter);
+                    var newContext = new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter);
+                    base.VisitInlineFragment(node, newContext);
+
+                    //copy the fragment fields over to the select context and cast the type so we can access the property
+                    foreach (var queryField in newContext.QueryFields)
+                    {
+                        var resolveExpression = Expression.Condition(
+                              test: Expression.TypeIs(context.NextFieldContext, type.TypeDotnet),
+                              ifTrue: Expression.Property(Expression.Convert(context.NextFieldContext, type.TypeDotnet), queryField.Name),
+                              ifFalse: Expression.Default(queryField.NextFieldContext?.Type)
+                        );
+
+                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, resolveExpression!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);                        
+                        context.AddField(fieldResult);
+                    }
+                }
+                else
+                {
+                    base.VisitInlineFragment(node, context);
                 }
             }
-
-            base.VisitInlineFragment(node, newContext);
-        }        
+        }
 
         protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode? context)
         {

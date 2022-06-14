@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
-        public Expression? NextFieldContext { get; set; }
+        public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; set; }
         /// <summary>
