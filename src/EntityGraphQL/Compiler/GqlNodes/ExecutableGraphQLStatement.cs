@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class ExecutableGraphQLStatement : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; }
+        public Expression? NextFieldContext { get; set; }
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; }
         /// <summary>

@@ -273,6 +273,7 @@ namespace EntityGraphQL.Schema
             RequiredAuthorization.RequiresAllRoles(roles);
             return this;
         }
+        
         /// <summary>
         /// To access this type any of the roles listed is required
         /// </summary>

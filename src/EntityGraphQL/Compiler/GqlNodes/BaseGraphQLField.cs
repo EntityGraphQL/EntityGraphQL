@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
-        public Expression? NextFieldContext { get; }
+        public Expression? NextFieldContext { get; set; }
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; set; }
         /// <summary>
@@ -54,6 +54,17 @@ namespace EntityGraphQL.Compiler
             this.Arguments = arguments ?? new Dictionary<string, object>();
             this.schema = schema;
             Field = field;
+        }
+
+        public BaseGraphQLField(BaseGraphQLField context, Expression? nextFieldContext)
+        {
+            Name = context.Name;
+            NextFieldContext = nextFieldContext;
+            RootParameter = context.RootParameter;
+            ParentNode = context.ParentNode;
+            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
+            this.schema = context.schema;
+            Field = context.Field;
         }
 
         /// <summary>

@@ -7,7 +7,7 @@ namespace EntityGraphQL.Compiler
     public interface IGraphQLNode
     {
         string Name { get; }
-        Expression? NextFieldContext { get; }
+        Expression? NextFieldContext { get; set; }
         IGraphQLNode? ParentNode { get; }
         ParameterExpression? RootParameter { get; }
 

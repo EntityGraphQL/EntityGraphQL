@@ -38,6 +38,12 @@ namespace EntityGraphQL.Compiler
             this.ListExpression = nodeExpression;
         }
 
+        public GraphQLListSelectionField(GraphQLListSelectionField context, ParameterExpression? nextFieldContext)
+           : base(context, nextFieldContext)
+        {
+            this.ListExpression = context.ListExpression;
+        }
+
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
         /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()

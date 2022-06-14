@@ -147,7 +147,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
-
+            
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
@@ -351,6 +351,25 @@ namespace EntityGraphQL.Compiler
 
             base.VisitFragmentDefinition(node, fragDef);
         }
+
+        protected override void VisitInlineFragment(InlineFragmentNode node, IGraphQLNode? context)
+        {
+            IGraphQLNode? newContext = context;
+
+            if (node.TypeCondition is not null)
+            {
+                var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, requestContext);
+                if (type != null)
+                {
+                    //animals = animals.Select(a => a is Dog ? new { a.name, a.hasBone } :  new { a.name }
+
+                    var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
+                    newContext = new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter);
+                }
+            }
+
+            base.VisitInlineFragment(node, newContext);
+        }        
 
         protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode? context)
         {
