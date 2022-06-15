@@ -380,10 +380,10 @@ query {
         __typename
         name
         ... on Cat {
-            lives
+            lives 
         }
         ...on Dog {
-            hasBone
+            hasBone 
         }
     }
 }

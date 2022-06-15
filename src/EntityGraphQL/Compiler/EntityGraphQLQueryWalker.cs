@@ -369,13 +369,7 @@ namespace EntityGraphQL.Compiler
                     //copy the fragment fields over to the select context and cast the type so we can access the property
                     foreach (var queryField in newContext.QueryFields)
                     {
-                        var resolveExpression = Expression.Condition(
-                              test: Expression.TypeIs(context.NextFieldContext, type.TypeDotnet),
-                              ifTrue: Expression.Property(Expression.Convert(context.NextFieldContext, type.TypeDotnet), queryField.Name),
-                              ifFalse: Expression.Default(queryField.NextFieldContext?.Type)
-                        );
-
-                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, resolveExpression!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);                        
+                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);                        
                         context.AddField(fieldResult);
                     }
                 }
