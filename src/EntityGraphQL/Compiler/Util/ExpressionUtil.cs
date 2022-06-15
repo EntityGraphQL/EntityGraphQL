@@ -422,14 +422,17 @@ namespace EntityGraphQL.Compiler.Util
             //make a query that checks type of object and returns the valid properties for that specific type
             else
             {
-                var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressions.ToDictionary(f => f.Key, f => f.Value.Type));
-                if (dynamicType == null)
+                var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
+                    fieldExpressions
+                       .Where(i => i.Value is MemberExpression)
+                       .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
+                       .ToDictionary(i => i.Key, i => i.Value.Type)
+                    
+                );
+                if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
-                var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
-                if (constructor == null)
-                    throw new EntityGraphQLCompilerException("Could not create dynamic type");
-
+                
                 Expression? previous = null;
                 foreach (var type in validTypes)
                 {
@@ -438,13 +441,18 @@ namespace EntityGraphQL.Compiler.Util
                        .Where(i => ((MemberExpression)i.Value).Expression.Type.IsAssignableFrom(type) || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value);
 
-                    var tadsf = new ConversionVisitor(currentContextParam, type);
+                    var conversionVisitor = new ConversionVisitor(currentContextParam, type);
 
-                    var bindings = dynamicType
+                    var specificDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnType.ToDictionary(i => i.Key, i => i.Value.Type), parentType: baseDynamicType);
+                    var constructor = specificDynamicType.GetConstructor(Type.EmptyTypes);
+                    if (constructor == null)
+                        throw new EntityGraphQLCompilerException("Could not create dynamic type");
+
+                    var bindings = specificDynamicType
                         .GetFields()
                         .Where(p => fieldsOnType.Keys.Contains(p.Name))
                         .Select(p => Expression.Bind(p,
-                             tadsf.Visit(fieldsOnType[p.Name])
+                             conversionVisitor.Visit(fieldsOnType[p.Name])
                         ))
                         .OfType<MemberBinding>();
 
@@ -456,7 +464,8 @@ namespace EntityGraphQL.Compiler.Util
                         previous = Expression.Condition(
                               test: Expression.TypeIs(currentContextParam, type),
                               ifTrue: memberInit,
-                              ifFalse: previous
+                              ifFalse: previous,
+                              type: baseDynamicType
                         );
                     }
                     else
@@ -468,8 +477,8 @@ namespace EntityGraphQL.Compiler.Util
                 var selector = Expression.Lambda(previous, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
 
-                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
-                      MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
+                      MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
                 return call;
             }
         }

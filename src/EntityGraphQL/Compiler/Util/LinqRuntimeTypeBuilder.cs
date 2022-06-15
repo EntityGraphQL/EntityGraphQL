@@ -25,11 +25,11 @@ namespace EntityGraphQL.Compiler.Util
             return fields.OrderBy(f => f.Key).Aggregate("anon.", (current, field) => current + field.Key + field.Value.GetHashCode());
         }
 
-        public static Type GetDynamicType(Dictionary<string, Type> fields, string? typeName = null)
+        public static Type GetDynamicType(Dictionary<string, Type> fields, string? typeName = null, Type? parentType = null)
         {
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
-            if (0 == fields.Count)
+            if (0 == fields.Count && parentType == null)
                 throw new ArgumentOutOfRangeException(nameof(fields), "fields must have at least 1 field definition");
 
             string className = typeName != null ? $"anon.{typeName}" : GetTypeKey(fields);
@@ -44,10 +44,13 @@ namespace EntityGraphQL.Compiler.Util
                 if (builtTypes.ContainsKey(classId))
                     return builtTypes[classId];
 
-                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable);
-
+                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable, parentType);
+                
                 foreach (var field in fields)
                 {
+                    if (parentType != null && parentType.GetField(field.Key) != null)
+                        continue;
+
                     typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
                 }
 
