@@ -660,5 +660,12 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             [UseConnectionPaging]
             public override List<Person> People { get; set; } = new List<Person>();
         }
+
+        [Fact]
+        public void IdPropertyStillGenerated()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
+        }
     }
 }
