@@ -1,3 +1,8 @@
+# 2.1.6
+
+- Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
+- Fix - when adding Mutation argument types only search for public instance properties. @breyed
+
 # 2.1.5
 
 - Fix null exception in service field from an object field
