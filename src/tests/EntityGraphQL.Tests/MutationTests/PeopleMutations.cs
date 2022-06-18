@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EntityGraphQL.Tests
 {
-    public class PeopleMutations
+    public class PeopleMutations : IMutations
     {
         private static int idCount = 0;
         [GraphQLMutation]

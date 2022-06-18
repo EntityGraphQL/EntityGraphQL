@@ -13,15 +13,13 @@ namespace EntityGraphQL.Schema
     public class MutationField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Mutation;
-        private readonly object mutationClassInstance;
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
-            this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             RequiredAuthorization = requiredAuth;
             this.isAsync = isAsync;
@@ -114,6 +112,19 @@ namespace EntityGraphQL.Schema
                 {
                     throw new EntityGraphQLValidationException(validatorContext.Errors);
                 }
+            }
+
+            object? mutationClassInstance = null;
+            //try instantiate the mutation class using the service provider
+            if (serviceProvider != null)
+            {
+                mutationClassInstance = serviceProvider.GetService(method.DeclaringType);
+            }
+
+            //fallback to activator create instance
+            if(mutationClassInstance == null)
+            {
+                mutationClassInstance = Activator.CreateInstance(method.DeclaringType);
             }
 
             object? result;

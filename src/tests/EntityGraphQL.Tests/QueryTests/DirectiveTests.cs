@@ -195,7 +195,7 @@ namespace EntityGraphQL.Tests
         public void TestDirectiveOnMutation()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.AddMutationsFrom(new PeopleMutations());
+            schema.AddMutationsFrom<PeopleMutations>();
             var query = new QueryRequest
             {
                 Query = @"mutation MyQuery($skip: Boolean!){
