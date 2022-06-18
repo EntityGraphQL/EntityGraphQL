@@ -37,13 +37,11 @@ public class MutationType
         foreach (Type type in types)
         {
             var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
-            foreach (var method in type.GetMethods())
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
-                if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
-                {
-                    string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
-                    AddMutationMethod(name, classLevelRequiredAuth, method, attribute.Description, autoAddInputTypes);
-                }
+                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) as GraphQLMutationAttribute;
+                string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
+                AddMutationMethod(name, classLevelRequiredAuth, method, attribute?.Description ?? "", autoAddInputTypes);
             }
         }
         return this;
