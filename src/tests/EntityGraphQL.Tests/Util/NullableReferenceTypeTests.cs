@@ -12,6 +12,8 @@ namespace EntityGraphQL.Tests.Util
 
         public class WithoutNullableRefEnabled
         {
+            public int NonNullableInt { get; set; }
+            public int? NullableInt { get; set; }
             public string Nullable { get; set; }
             public IEnumerable<Test> Tests { get; set; }
         }
@@ -19,13 +21,23 @@ namespace EntityGraphQL.Tests.Util
         [Fact]
         public void TestNullableWithoutNullableRefEnabled()
         {
-            var propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("Nullable");            
+            var propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NonNullableInt");            
+            Assert.False(propertyInfo.IsNullable());
+
+            propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NullableInt");
             Assert.True(propertyInfo.IsNullable());
 
+            propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("Nullable");
+            Assert.True(propertyInfo.IsNullable());
+
+            propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("Tests");
+            Assert.True(propertyInfo.IsNullable());
 
             var schema = SchemaBuilder.FromObject<WithoutNullableRefEnabled>();
             var schemaString = schema.ToGraphQLSchemaString();
 
+            Assert.Contains(@"nonNullableInt: Int!", schemaString);
+            Assert.Contains(@"nullableInt: Int", schemaString);
             Assert.Contains(@"nullable: String", schemaString);
             Assert.Contains(@"tests: [Test!]", schemaString);
         }
@@ -33,6 +45,8 @@ namespace EntityGraphQL.Tests.Util
 #nullable enable
         public class WithNullableRefEnabled
         {
+            public int NonNullableInt { get; set; }
+            public int? NullableInt { get; set; }
             public string NonNullable { get; set; } = "";
             public string? Nullable { get; set; }
             public IEnumerable<Test> Tests { get; set; } = new List<Test>();
@@ -43,7 +57,13 @@ namespace EntityGraphQL.Tests.Util
         [Fact]
         public void TestNullableWithNullableRefEnabled()
         {
-            var propertyInfo = typeof(WithNullableRefEnabled).GetProperty("Nullable");
+            var propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NonNullableInt");
+            Assert.False(propertyInfo.IsNullable());
+
+            propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NullableInt");
+            Assert.True(propertyInfo.IsNullable());
+
+            propertyInfo = typeof(WithNullableRefEnabled).GetProperty("Nullable");
             Assert.True(propertyInfo.IsNullable());
 
             propertyInfo = typeof(WithNullableRefEnabled).GetProperty("NonNullable");
@@ -52,6 +72,8 @@ namespace EntityGraphQL.Tests.Util
             var schema = SchemaBuilder.FromObject<WithNullableRefEnabled>();
             var schemaString = schema.ToGraphQLSchemaString();
 
+            Assert.Contains(@"nonNullableInt: Int!", schemaString);
+            Assert.Contains(@"nullableInt: Int", schemaString);
             Assert.Contains(@"nullable: String", schemaString);
             Assert.Contains(@"nonNullable: String!", schemaString);
             Assert.Contains(@"tests: [Test!]!", schemaString);
