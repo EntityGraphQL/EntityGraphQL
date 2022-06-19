@@ -95,7 +95,7 @@ namespace EntityGraphQL.Tests
         public void QueryVariableDefinitionRequiredBySchemaItIsNotRequired()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             var gql = new QueryRequest
             {
                 Query = @"mutation Mute($id: ID!) { # required here but not in the actual schema

@@ -14,7 +14,7 @@ public class ValidationTests
     public void TestValidationAttributesOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>();
+        schema.AddMutationsFrom(new ValidationTestsMutations());
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {

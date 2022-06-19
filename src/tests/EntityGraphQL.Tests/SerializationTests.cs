@@ -21,7 +21,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             // Simulate a JSON request with JSON.NET
@@ -55,7 +55,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
 
@@ -80,7 +80,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
 
@@ -104,7 +104,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftJValue()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());
@@ -130,7 +130,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom(new PeopleMutations());
             // Simulate a JSON request with System.Text.Json
             // variables will end up having JsonElements
             var q = @"{
