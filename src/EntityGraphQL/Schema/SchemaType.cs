@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(Schema, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var schemaField = new Field(Schema, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {

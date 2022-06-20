@@ -237,6 +237,18 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("Obsolete @deprecated(reason: \"This is an obsolete genre\")", schema);
         }
+
+        [Fact]
+        public void TestNullableRefTypeMutationField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            schemaProvider.AddMutationsFrom(new NullableRefTypeMutations());
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            // this exists as it is not null
+            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album\r\n", schema);
+            Assert.Contains("addAlbum2(name: String!, genre: Genre!): Album!", schema);
+            Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album\r\n", schema);
+        }
     }
 
     public class IgnoreTestMutations
@@ -277,7 +289,51 @@ namespace EntityGraphQL.Tests
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
+
     }
+
+    public class NullableRefTypeMutations
+    {
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+
+#nullable enable
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album>> AddAlbum2(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+
+
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album?>> AddAlbum3(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+#nullable restore
+    }
+
 
     public class MovieArgs
     {

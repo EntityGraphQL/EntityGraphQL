@@ -65,7 +65,7 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
-            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse), memberInfo, type)
+            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, memberInfo), memberInfo, type)
             {
                 DefaultValue = defaultValue,
                 IsRequired = markedRequired

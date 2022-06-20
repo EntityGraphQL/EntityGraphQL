@@ -106,16 +106,49 @@ namespace EntityGraphQL.Extensions
         }
 
 
-        public static bool IsNullable(this PropertyInfo property) =>
-           IsNullableHelper(property.PropertyType, property.DeclaringType, property.CustomAttributes);
+        public static bool IsNullable(this MemberInfo memberInfo)
+        {
+            if (memberInfo is PropertyInfo property)
+            {
+                return IsNullableHelper(property.PropertyType, property.DeclaringType, property.CustomAttributes);
+            }
 
-        public static bool IsNullable(this FieldInfo field) =>
-            IsNullableHelper(field.FieldType, field.DeclaringType, field.CustomAttributes);
+            if (memberInfo is FieldInfo fieldInfo)
+            {
+                return IsNullableHelper(fieldInfo.FieldType, fieldInfo.DeclaringType, fieldInfo.CustomAttributes);
+            }
+
+            if (memberInfo is MethodInfo methodInfo)
+            {
+                return IsNullableHelper(
+                    methodInfo.GetActualReturnType(),
+                    methodInfo,
+                    methodInfo.ReturnParameter.CustomAttributes
+                );
+            }
+
+            return true;
+        }
+
+        private static Type GetActualReturnType(this MethodInfo methodInfo)
+        {
+            for (var type = methodInfo.ReturnType; type != null; type = type.GetGenericArguments().Last())
+            {
+                if (!type.IsGenericType)
+                {
+                    return type;
+                }
+            }
+
+            throw new Exception("Could not figure out return type");
+        }
 
         private static bool IsNullableHelper(Type memberType, MemberInfo? declaringType, IEnumerable<CustomAttributeData> customAttributes)
         {
             if (memberType.IsValueType)
+            {
                 return Nullable.GetUnderlyingType(memberType) != null;
+            }
 
             var nullable = customAttributes
                 .FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute");
@@ -125,9 +158,9 @@ namespace EntityGraphQL.Extensions
                 if (attributeArgument.ArgumentType == typeof(byte[]))
                 {
                     var args = (ReadOnlyCollection<CustomAttributeTypedArgument>)attributeArgument.Value!;
-                    if (args.Count > 0 && args[0].ArgumentType == typeof(byte))
+                    if (args.Count > 0 && args.Last().ArgumentType == typeof(byte))
                     {
-                        return (byte)args[0].Value! == 2;
+                        return (byte)args.Last().Value! == 2;
                     }
                 }
                 else if (attributeArgument.ArgumentType == typeof(byte))

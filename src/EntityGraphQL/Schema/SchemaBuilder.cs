@@ -199,17 +199,11 @@ namespace EntityGraphQL.Schema
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
-            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer, isInputType);
-
-            bool nullableRefType = true;
-            if (prop is PropertyInfo x)
-            {
-                nullableRefType = x.IsNullable();
-            }
+            CacheType(baseReturnType, schema, createEnumTypes, createNewComplexTypes, fieldNamer, isInputType);          
 
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullableReferenceType: nullableRefType);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
             
             var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
