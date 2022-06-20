@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, Dictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
+    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
@@ -36,14 +36,17 @@ public static class ArgumentUtil
                 }
                 else
                 {
-                    val = BuildArgumentFromMember(schema, args, fieldName, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    val = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
-                    if (argField.MemberInfo is PropertyInfo info)
-                        propVals.Add(info, val);
-                    else
-                        fieldVals.Add((FieldInfo)argField.MemberInfo!, val);
+                    if (argField.MemberInfo != null)
+                    {
+                        if (argField.MemberInfo is PropertyInfo info)
+                            propVals.Add(info, val);
+                        else
+                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
+                    }
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }
@@ -89,7 +92,7 @@ public static class ArgumentUtil
                 var context = new ArgumentValidatorContext(field, argumentValues);
                 foreach (var validator in validators)
                 {
-                    validator.Validator.ValidateAsync(context).Wait();
+                    validator.Validator.ValidateAsync(context).GetAwaiter().GetResult();
                     argumentValues = context.Arguments;
                 }
                 if (context.Errors.Any())
@@ -100,7 +103,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    private static object? BuildArgumentFromMember(ISchemaProvider schema, Dictionary<string, object>? args, string fieldName, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
+    private static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
     {
         string argName = memberName;
         // check we have required arguments

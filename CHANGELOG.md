@@ -1,3 +1,55 @@
+# 2.1.6
+
+- Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
+- Fix - when adding Mutation argument types only search for public instance properties. @breyed
+
+# 2.1.5
+
+- Fix null exception in service field from an object field
+
+# 2.1.4
+
+- Fix #123 do not output types with no fields in the schema definition
+- Fix issue calling `ToList` in an expression that then used a `IQueryable` `FirstOrDefault` or friends. Resulting in an invalid expression at runtime
+
+# 2.1.3
+
+- Fix - Throw an error if your query document defines a non-null variable and a null value is supplied
+- Service fields that return a list of items are now wrapped in a null check expression like service fields that return a single object are
+- Fix - Object fields not included in the schema could be returned when the selection set was missing from the query. Now missing selection sets on list or object fields in queries throw an error. Selection sets are required in graphql queries for non scalar/enum field types. Thanks @breyed
+
+# 2.1.2
+
+- Fix - issue with a field using a static member e.g. DateTime.MaxValue
+
+# 2.1.1
+
+- Fix - issue where a nullable value was incorrectly being called
+
+# 2.1.0
+
+- Added support for interfaces - thanks @bzbetty
+- Added `EntityGraphQLException` - use this to throw exceptions and add more error data to the error result via extensions
+- `GraphQLValidator` now supports adding custom data via the extensions field
+- `ResolveWithService` methods will throw an exception if the expression returns `Task` as we need the result. Use `.GetAwaiter().GetResult()`. Expression do not support `async`/`await` as it is a compiler feature and we need the actual result to build the expression and return the data
+- Fix using QueryFilter with an empty string treats it as no value - i.e. no filter
+- Fix - the type of an array variable defined as required `[Type!]!` was incorrectly reflected
+- Fix - service type's field used in a field's expression was not being extracted into the select. E.g. service field `User.project` has an expression requiring the `user.id` which is not included in the GraphQL query.
+
+# 2.0.3
+
+- Fix thread safety issue with cached queries
+- Fix support for using arrays in field argument definitions
+
+# 2.0.2
+
+- fix regression where non-required (nullable) document variables would be set their non-nullable default value. E.g. `Guid`
+
+# 2.0.1
+
+- Fix regression where non service fields in service fields were not being pulled forward to the stage one expression execution.
+- Fix regression where services were not be passed to a mutation with no arguments
+
 # 2.0.0
 
 Breaking changes

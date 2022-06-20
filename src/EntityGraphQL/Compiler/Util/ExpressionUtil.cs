@@ -66,7 +66,13 @@ namespace EntityGraphQL.Compiler.Util
             var fromType = value.GetType();
 
             if (schema?.TypeConverters.ContainsKey(fromType) == true)
-                return schema.TypeConverters[fromType].ChangeType(value, toType, schema);
+            {
+                value = schema.TypeConverters[fromType].ChangeType(value, toType, schema);
+                fromType = value?.GetType()!;
+            }
+
+            if (value == null || fromType == toType)
+                return value;
 
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
             if (typeof(JsonElement).IsAssignableFrom(fromType))
@@ -224,7 +230,7 @@ namespace EntityGraphQL.Compiler.Util
             // Handle converting a string to EntityQueryType
             if (schema != null && toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
             {
-                if (value != null)
+                if (value != null && !string.IsNullOrWhiteSpace((string)value))
                 {
                     var expression = BuildEntityQueryExpression(schema, toType.GetGenericArguments()[0], (string)value);
                     var genericProp = toType.GetProperty("Query");
@@ -442,7 +448,7 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static Expression WrapFieldForNullCheck(Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        internal static Expression WrapObjectProjectionFieldForNullCheck(Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new List<Expression> {
                 nullCheckExpression,
@@ -453,7 +459,7 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
                 schemaContext ?? Expression.Constant(null),
             };
-            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapFieldForNullCheckExec), null, arguments.ToArray());
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapObjectProjectionFieldForNullCheckExec), null, arguments.ToArray());
             return call;
         }
 
@@ -469,7 +475,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object? WrapFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapObjectProjectionFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
@@ -490,6 +496,45 @@ namespace EntityGraphQL.Compiler.Util
                 args.Add(nullCheck);
             }
             var result = Expression.Lambda(newExp, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
+            return result;
+        }
+
+        internal static Expression WrapListFieldForNullCheck(Expression nullCheckExpression, Expression callOnList, IEnumerable<ParameterExpression> paramsForFieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        {
+            var arguments = new List<Expression> {
+                nullCheckExpression,
+                Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
+                Expression.Constant(callOnList),
+                Expression.Constant(paramsForFieldExpressions.ToList()),
+                Expression.Constant(fieldSelectParamValues),
+                schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
+                schemaContext ?? Expression.Constant(null),
+            };
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapListFieldForNullCheckExec), null, arguments.ToArray());
+            return call;
+        }
+
+        public static object? WrapListFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, Expression callOnList, List<ParameterExpression> paramsForFieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        {
+            if (nullCheck == null)
+                return null;
+
+            var args = new List<object>();
+            args.AddRange(fieldSelectParamValues);
+            if (schemaContextParam != null)
+            {
+                args.Add(schemaContextValue);
+                if (!paramsForFieldExpressions.Contains(schemaContextParam))
+                    paramsForFieldExpressions.Add(schemaContextParam);
+            }
+            if (nullWrapParam != null)
+            {
+                if (!paramsForFieldExpressions.Contains(nullWrapParam))
+                    paramsForFieldExpressions.Add(nullWrapParam);
+                args.Add(nullCheck);
+            }
+            callOnList = MakeCallOnEnumerable("ToList", new[] { callOnList.Type.GetEnumerableOrArrayType()! }, callOnList);
+            var result = Expression.Lambda(callOnList, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
             return result;
         }
 

@@ -2,11 +2,11 @@ using Xunit;
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using System.Linq;
-using static EntityGraphQL.Schema.ArgumentHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Tests
 {
@@ -373,7 +373,7 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestServicesReconnectToSchemaContext2()
+        public void TestServicesReconnectToSchemaContextListOf()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
@@ -382,7 +382,7 @@ namespace EntityGraphQL.Tests
                 .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
 
             schema.Query().ReplaceField("users", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUsers());
+                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
 
             var gql = new QueryRequest
             {
@@ -412,6 +412,119 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, users[0].GetType().GetFields().Length);
             Assert.Equal("id", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
             Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
+        public void TestServicesReconnectToSchemaContextFromObject()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // Linking a type from a service back to the schema context
+            schema.Type<User>().ReplaceField("project", "Peoples project")
+                .ResolveWithService<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner.Id == user.Id));
+
+            schema.Query().ReplaceField("user", "Get current user")
+                .ResolveWithService<UserService>((ctx, users) => users.GetUser());
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ user { id project { __typename id } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>(),
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Projects = new List<Project>()
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic user = res.Data["user"];
+            Assert.Equal(2, user.GetType().GetFields().Length);
+            Assert.Equal("id", Enumerable.ElementAt(user.GetType().GetFields(), 0).Name);
+            Assert.Equal("project", Enumerable.ElementAt(user.GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
+        public void TestServicesMultipleReconnectToSchemaContextListOf_WithoutSelectionOfNeededDbField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // root field is a service returning a list of items
+            schema.Query().ReplaceField("users", "Get current user")
+                .ResolveWithService<UserService>((_, users) => users.GetUsers(10));
+
+            // connect back to a entity in the DB context
+            schema.Type<User>().ReplaceField("projects", "Peoples projects")
+                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+
+            schema.Type<User>().AddField("currentTask", "Peoples current task")
+                .ResolveWithService<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ 
+                    users {
+                        # missing id but required for the projects/currentTask fields
+                        field1 # from user
+                        projects { name } 
+                        currentTask { name }
+                    } 
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Name = "Project 1",
+                        Owner = new Person
+                        {
+                            Id = 10,
+                        }
+                    }
+                },
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Name = "Task 1",
+                        Assignee = new Person
+                        {
+                            Id = 10,
+                        }
+                    }
+                }
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic users = res.Data["users"];
+            Assert.Equal(3, users[0].GetType().GetFields().Length);
+            Assert.Equal("field1", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
+            Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+            Assert.Equal("currentTask", Enumerable.ElementAt(users[0].GetType().GetFields(), 2).Name);
+            dynamic user = users[0];
+            Assert.Equal("Task 1", user.currentTask.name);
+            Assert.Equal("Project 1", user.projects[0].name);
         }
 
         [Fact]
@@ -828,16 +941,6 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().AddField("configType", "Get project config")
                 .ResolveWithService<ConfigService>((p, srv) => srv.Get(0).Type);
 
-            schema.Query().ReplaceField("projects",
-                new
-                {
-                    search = (string)null,
-                },
-                (ctx, args) => ctx.Projects
-                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
-                    .OrderBy(p => p.Description),
-                "List of projects");
-
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
@@ -845,10 +948,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-            project(id: 0) {
-                configType
-            }
-        }"
+                    project(id: 0) {
+                        configType
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -1008,7 +1111,7 @@ namespace EntityGraphQL.Tests
                 Query = @"query {
             task(id: 1) { # context collection to single
                 project {
-                    config {
+                    config { # service
                         type
                     }
                 }
@@ -1221,24 +1324,271 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(doc.Operations);
             Assert.Single(doc.Operations[0].QueryFields);
-            Assert.True(doc.Operations[0].Services.Any());
+        }
+        [Fact]
+        public void TestNullCheckInNullCheckOnService()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            // don't need the service but want it to trigger the service logic
+            schema.Query().AddField("currentPerson", "Returns current person")
+                .ResolveWithService<AgeService>((ctx, srv) => ctx.People.FirstOrDefault());
+
+            schema.UpdateType<Person>(personSchema => personSchema.AddField("projectNames", person => person.Projects.Select(u => u.Name), "Get project names"));
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    currentPerson {
+                        projectNames
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            context.People.Clear();
+            context.People.Add(new Person
+            {
+                Projects = new List<Project>()
+            });
+
+            var serviceCollection = new ServiceCollection();
+            AgeService service = new();
+            serviceCollection.AddSingleton(service);
+
+            // what we want to test here is that person.Projects.Select(u => u.Name) is pulled up into the pre-services expression
+            // As it will allow EF to include that data otherwise person.Projects will be null
+
+            var graphQLCompiler = new GraphQLCompiler(schema);
+            var compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
+            var query = compiledQuery.Operations[0];
+            var node = query.QueryFields[0];
+
+            // first stage without services
+            // person.Projects.Select(u => u.Name) is pulled up
+            var expression = node.GetNodeExpression(new CompileContext(), serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
+
+            Assert.NotNull(expression);
+            var fieldAssignment = (MemberAssignment)((MemberInitExpression)((LambdaExpression)((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression).Arguments[0]).Arguments[0]).Arguments[1]).Body).Bindings[0];
+            Assert.Equal("projectNames", fieldAssignment.Member.Name);
         }
 
-        public class AgeService
+        [Fact]
+        public void TestServiceFieldNullableCheckOnChildObject()
         {
-            public AgeService()
-            {
-                CallCount = 0;
-            }
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            public int CallCount { get; private set; }
+            schema.Query().ReplaceField("users", "Get current user")
+                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
 
-            public int GetAge(DateTime? birthday)
+            // join back to DB Context
+            schema.UpdateType<User>(userSchema =>
+                userSchema.ReplaceField("relation", "Get relation")
+                    // We want the expression to return null
+                    .ResolveWithService<TestDataContext>((user, ctx) => user.RelationId.HasValue ? ctx.People.FirstOrDefault(u => u.Id == user.RelationId.Value) : null)
+            );
+
+            var gql = new QueryRequest
             {
-                CallCount += 1;
-                // you could do smarter things here like use other services
-                return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
-            }
+                Query = @"{ 
+                    users { 
+                        field2 
+                        relation { id } 
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic users = res.Data["users"];
+            Assert.Equal(2, users[0].GetType().GetFields().Length);
+            Assert.Equal("field2", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
+            Assert.Equal("relation", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
+        public void TestServiceFieldReturnsNullList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("configs", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetNullList(p.Id));
+
+            schema.Query().ReplaceField("project",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .SingleOrDefault(),
+                "project details");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 0) {
+                        configs { type }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 0,
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["project"];
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("configs", projectType.GetFields()[0].Name);
+            Assert.Null(project.configs);
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
+        public void TestServiceFieldReturnsList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("configs", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(p.Id))
+                .IsNullable(false);
+
+            schema.Query().ReplaceField("project",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.Projects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .SingleOrDefault(),
+                "project details");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 0) {
+                        configs { type }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 0,
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["project"];
+            Type projectType = project.GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("configs", projectType.GetFields()[0].Name);
+            Assert.Empty(project.configs);
+            // null check should not cause multiple calls
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
+        public void TestServiceFieldWithQueryable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id))
+                .IsNullable(false);
+            schema.Type<Project>().ReplaceField("task", p => p.Tasks.FirstOrDefault(), "A task");
+
+            schema.Query().ReplaceField("projects",
+                new
+                {
+                    id = (int?)null,
+                    search = (string)null,
+                },
+                (ctx, args) => ctx.QueryableProjects
+                    .WhereWhen(c => c.Id == args.id, args.id != null)
+                    .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                    .OrderBy(c => c.Id)
+                    .ThenBy(p => p.Description),
+                "projects");
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        config { type __typename }
+                        task {
+                            id
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 0,
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                            }
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var projects = (dynamic)res.Data["projects"];
+            Type projectType = Enumerable.First(projects).GetType();
+            Assert.Equal(2, projectType.GetFields().Length);
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+            // null check should not cause multiple calls
+            Assert.Equal(1, srv.CallCount);
         }
 
         public class ConfigService
@@ -1257,6 +1607,17 @@ namespace EntityGraphQL.Tests
                 {
                     Type = "Something"
                 };
+            }
+
+            public ProjectConfig[] GetNullList(int id)
+            {
+                CallCount += 1;
+                return null;
+            }
+            public ProjectConfig[] GetList(int id)
+            {
+                CallCount += 1;
+                return Array.Empty<ProjectConfig>();
             }
         }
 
@@ -1354,10 +1715,35 @@ namespace EntityGraphQL.Tests
             CallCount += 1;
             return new User();
         }
-        public IEnumerable<User> GetUsers()
+        public IEnumerable<User> GetUsers(int? id = null)
         {
             CallCount += 1;
-            return new List<User> { new User() };
+            return new List<User> { new User
+                {
+                    Id = id ?? 0,
+                }
+            };
+        }
+    }
+    public class AgeService
+    {
+        public AgeService()
+        {
+            CallCount = 0;
+        }
+
+        public int CallCount { get; private set; }
+
+        public async System.Threading.Tasks.Task<int> GetAgeAsync(DateTime? birthday)
+        {
+            return await System.Threading.Tasks.Task.Run(() => birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0);
+        }
+
+        public int GetAge(DateTime? birthday)
+        {
+            CallCount += 1;
+            // you could do smarter things here like use other services
+            return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
         }
     }
 

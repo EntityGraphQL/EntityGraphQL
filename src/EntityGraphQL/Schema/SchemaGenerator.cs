@@ -84,11 +84,25 @@ type {rootQueryType.Name} {{
                 if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar)
                     continue;
 
+                if (!typeItem.GetFields().Any())
+                    continue;
+
                 types.AppendLine();
                 if (!string.IsNullOrEmpty(typeItem.Description))
                     types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
 
-                types.AppendLine($"{(typeItem.IsInput ? "input" : "type")} {typeItem.Name} {{");
+                var type = typeItem switch
+                {
+                    { IsInput: true } => "input",
+                    { IsInterface: true } => "interface",
+                    _ => "type"
+                };
+
+                var implements = string.IsNullOrWhiteSpace(typeItem.BaseType)
+                    ? ""
+                    : $"implements {typeItem.BaseType} ";
+
+                types.AppendLine($"{type} {typeItem.Name} {implements}{{");
                 foreach (var field in typeItem.GetFields())
                 {
                     if (field.Name.StartsWith("__"))

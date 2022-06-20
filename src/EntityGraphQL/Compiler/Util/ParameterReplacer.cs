@@ -166,12 +166,22 @@ namespace EntityGraphQL.Compiler.Util
             else if (baseCallIsEnumerable && !node.Type.IsEnumerableOrArray() && node.Arguments.Count == 1 && !string.IsNullOrEmpty(newFieldNameForType))
             {
                 // field is going from collection to a single - if execution is split over non service fields and then with
-                // the nex context doesn't have the collection to single. It only has the single
+                // the next context doesn't have the collection to single. It only has the single
                 var newField = base.Visit(node.Arguments[0]);
                 if (newField != null)
                     return newField;
             }
-            return base.VisitMethodCall(node);
+
+            var callOn = node.Object;
+            if (callOn != null)
+            {
+                if (callOn.Type == toReplaceType)
+                    callOn = newParam!;
+                else
+                    callOn = base.Visit(callOn);
+            }
+
+            return Expression.Call(callOn, node.Method, node.Arguments.Select(base.Visit).ToArray());
         }
     }
 }

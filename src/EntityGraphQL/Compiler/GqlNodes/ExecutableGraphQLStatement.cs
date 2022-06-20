@@ -18,9 +18,9 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class ExecutableGraphQLStatement : IGraphQLNode
     {
-        public Expression? NextFieldContext { get; set; }
-        public IGraphQLNode? ParentNode { get; set; }
-        public ParameterExpression? RootParameter { get; set; }
+        public Expression? NextFieldContext { get; }
+        public IGraphQLNode? ParentNode { get; }
+        public ParameterExpression? RootParameter { get; }
         /// <summary>
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
@@ -31,12 +31,11 @@ namespace EntityGraphQL.Compiler
 
         public IField? Field { get; }
 
-        public Dictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object> Arguments { get; }
 
         public string Name { get; }
 
         public List<BaseGraphQLField> QueryFields { get; } = new();
-        public HashSet<Type> Services { get; } = new();
 
         public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
         {
@@ -80,7 +79,7 @@ namespace EntityGraphQL.Compiler
                     }
 #endif
 
-                    (var data, var didExecute) = CompileAndExecuteNode(context, serviceProvider, fragments, fieldNode, options, docVariables);
+                    (var data, var didExecute) = CompileAndExecuteNode(new CompileContext(), context, serviceProvider, fragments, fieldNode, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -92,6 +91,10 @@ namespace EntityGraphQL.Compiler
                     if (didExecute)
                         result[fieldNode.Name] = data;
                 }
+                catch (EntityGraphQLException ex)
+                {
+                    throw new EntityGraphQLException(fieldNode.Name, ex);
+                }
                 catch (AggregateException aex)
                 {
                     var errors = aex.InnerExceptions.SelectMany<Exception, string>(ex => ex is EntityGraphQLValidationException vex ? vex.ValidationErrors : new[] { $"Field '{fieldNode.Name}' - {ex.Message}" });
@@ -99,6 +102,8 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (TargetInvocationException ex)
                 {
+                    if (ex.InnerException is EntityGraphQLException vex)
+                        throw new EntityGraphQLException(fieldNode.Name, vex);
                     throw new EntityGraphQLExecutionException(fieldNode.Name, ex.InnerException!);
                 }
                 catch (EntityGraphQLValidationException)
@@ -128,7 +133,13 @@ namespace EntityGraphQL.Compiler
                     try
                     {
                         var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, schema);
+                        if (argValue == null && argType.IsRequired)
+                            throw new EntityGraphQLCompilerException($"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value.");
                         OpVariableParameter.Type.GetField(name).SetValue(variablesToUse, argValue);
+                    }
+                    catch (EntityGraphQLCompilerException)
+                    {
+                        throw;
                     }
                     catch (Exception ex)
                     {
@@ -140,7 +151,7 @@ namespace EntityGraphQL.Compiler
             return variablesToUse;
         }
 
-        protected (object? result, bool didExecute) CompileAndExecuteNode(object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
+        protected (object? result, bool didExecute) CompileAndExecuteNode(CompileContext compileContext, object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
         {
             object? runningContext = context;
 
@@ -159,21 +170,24 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, isRoot: true, false, replacer);
+                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, isRoot: true, false, replacer);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, node, replacer, options);
+                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext);
                     if (runningContext == null)
                         return (null, true);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                    var newContextType = Expression.Parameter(runningContext.GetType(), "_ctx");
+                    var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
+
+                    // new context
+                    compileContext = new();
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true, replacer);
+                    expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true, replacer);
                     contextParam = newContextType;
                 }
             }
@@ -181,22 +195,14 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
+                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, node, replacer, options);
+            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext);
             return data;
         }
 
-        public void AddServices(IEnumerable<Type> services)
-        {
-            foreach (var service in services)
-            {
-                Services.Add(service);
-            }
-        }
-
-        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, BaseGraphQLField node, ParameterReplacer replacer, ExecutionOptions options)
+        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
@@ -210,17 +216,17 @@ namespace EntityGraphQL.Compiler
             // inject dependencies into the fullSelection
             if (serviceProvider != null)
             {
-                expression = GraphQLHelper.InjectServices(serviceProvider, Services, allArgs, expression, parameters, replacer);
+                expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer);
             }
 
-            if (node.ConstantParameters.Any())
+            if (compileContext.ConstantParameters.Any())
             {
-                foreach (var item in node.ConstantParameters)
+                foreach (var item in compileContext.ConstantParameters)
                 {
                     expression = replacer.ReplaceByType(expression, item.Key.Type, item.Key);
                 }
-                parameters.AddRange(node.ConstantParameters.Keys);
-                allArgs.AddRange(node.ConstantParameters.Values);
+                parameters.AddRange(compileContext.ConstantParameters.Keys);
+                allArgs.AddRange(compileContext.ConstantParameters.Values);
             }
 
             // evaluate everything
@@ -230,10 +236,10 @@ namespace EntityGraphQL.Compiler
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
-            // #if DEBUG
+#if DEBUG
             if (options.NoExecution)
                 return (null, false);
-            // #endif
+#endif
             return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);
         }
 

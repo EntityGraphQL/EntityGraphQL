@@ -109,14 +109,23 @@ namespace EntityGraphQL.Compiler
 
         public static object ProcessListArgument(ISchemaProvider schema, List<IValueNode> values, string argName, Type fieldArgType)
         {
-            var list = (IList)Activator.CreateInstance(fieldArgType)!;
+            IList list;
+            if (fieldArgType.IsInterface && fieldArgType.IsGenericType && fieldArgType.IsGenericTypeEnumerable())
+                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(fieldArgType.GetEnumerableOrArrayType()))!;
+            else
+                list = (IList)Activator.CreateInstance(fieldArgType, values.Count)!;
+
             var listType = list.GetType().GetEnumerableOrArrayType();
             if (listType == null)
                 throw new EntityGraphQLCompilerException($"Argument {argName} is not a list");
 
-            foreach (var item in values)
+            for (int i = 0; i < values.Count; i++)
             {
-                list.Add(ProcessArgumentValue(schema, item, argName, listType));
+                IValueNode? item = values[i];
+                if (fieldArgType.IsArray)
+                    list[i] = ProcessArgumentValue(schema, item, argName, listType);
+                else
+                    list.Add(ProcessArgumentValue(schema, item, argName, listType));
             }
 
             return list;

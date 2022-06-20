@@ -61,6 +61,11 @@ namespace EntityGraphQL.Tests
         {
             return args.Decimal;
         }
+        [GraphQLMutation]
+        public bool NoArgsWithService(AgeService ageService)
+        {
+            return ageService != null;
+        }
 
         [GraphQLMutation]
         public Expression<Func<TestDataContext, Person>> AddPersonAdv(PeopleMutationsArgs args)
@@ -131,12 +136,41 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public bool TaskWithList(ListArgs args)
         {
+            if (args?.Inputs == null)
+                throw new Exception("Inputs can not be null");
             return true;
         }
         [GraphQLMutation]
         public bool TaskWithListInt(ListIntArgs args)
         {
             return true;
+        }
+
+        [GraphQLMutation]
+        static public bool NullableGuidArgs(NullableGuidArgs args)
+        {
+            if (args.Id != null)
+                throw new ArgumentException("Guid can not be a value");
+            if (args.Int != null)
+                throw new ArgumentException("Int can not be a value");
+            if (args.Float != null)
+                throw new ArgumentException("Float can not be a value");
+            if (args.Double != null)
+                throw new ArgumentException("Double can not be a value");
+            if (args.Bool != null)
+                throw new ArgumentException("Bool can not be a value");
+            if (args.Enum != null)
+                throw new ArgumentException("Enum can not be a value");
+            return true;
+        }
+        [GraphQLMutation]
+        static public string[] ListOfGuidArgs(ListOfGuidArgs args)
+        {
+            if (args.Ids == null)
+                throw new ArgumentException("Ids can not be null");
+            if (args.Ids.Any(i => i == Guid.Empty))
+                throw new ArgumentException("Ids can not be empty GUID values");
+            return args.Ids.Select(g => g.ToString()).ToArray();
         }
     }
 
@@ -159,6 +193,17 @@ namespace EntityGraphQL.Tests
         public List<string> Names { get; set; }
 
         public InputObject NameInput { get; set; }
+        public Gender? Gender { get; set; }
+    }
+    [MutationArguments]
+    public class NullableGuidArgs
+    {
+        public Guid? Id { get; set; }
+        public int? Int { get; set; }
+        public float? Float { get; set; }
+        public double? Double { get; set; }
+        public bool? Bool { get; set; }
+        public Gender? Enum { get; set; }
     }
 
     [MutationArguments]
@@ -199,5 +244,11 @@ namespace EntityGraphQL.Tests
     {
         public decimal Decimal { get; set; }
         public decimal? Decimal2 { get; set; }
+    }
+
+    [MutationArguments]
+    public class ListOfGuidArgs
+    {
+        public List<Guid> Ids { get; set; }
     }
 }

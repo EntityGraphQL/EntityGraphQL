@@ -30,14 +30,14 @@ namespace EntityGraphQL.AspNet
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
             if (requiredAuth != null && requiredAuth.Any() && user != null)
             {
-                // check polcies if principal with used
+                // check polices if principal with used
                 if (authService != null)
                 {
                     var allPoliciesValid = true;
                     foreach (var policy in requiredAuth.Policies)
                     {
                         // each policy now is an OR
-                        var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).Result.Succeeded);
+                        var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
                         allPoliciesValid = allPoliciesValid && hasValidPolicy;
                         if (!allPoliciesValid)
                             break;

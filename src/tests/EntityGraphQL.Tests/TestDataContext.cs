@@ -1,5 +1,9 @@
 using System.Collections.Generic;
 using System;
+using System.Linq;
+using EntityGraphQL.Schema;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace EntityGraphQL.Tests
 {
@@ -10,10 +14,14 @@ namespace EntityGraphQL.Tests
     /// </summary>
     public class TestDataContext
     {
+        [GraphQLIgnore]
+        private IEnumerable<Project> projects = new List<Project>();
+
         public int TotalPeople => People.Count;
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
-        public IEnumerable<Project> Projects { get; set; }
+        public IEnumerable<Project> Projects { get => projects; set => projects = value; }
+        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
         public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
@@ -24,6 +32,7 @@ namespace EntityGraphQL.Tests
     {
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Gender
     {
         Female,
@@ -44,6 +53,7 @@ namespace EntityGraphQL.Tests
         public string Field2 { get; set; }
         public Person Relation { get; set; }
         public Task NestedRelation { get; set; }
+        public int? RelationId { get; set; }
     }
 
     public class Person
@@ -60,7 +70,10 @@ namespace EntityGraphQL.Tests
         public User User { get; set; }
         public double Height { get; set; }
         // fake an error
-        public static string Error { get => throw new Exception("Field failed to execute"); set => throw new Exception("Field failed to execute"); }
+        public string Error
+        {
+            get => throw new EntityGraphQLException("Field failed to execute", new Dictionary<string, object> { { "code", 1 } }); set => throw new Exception("Field failed to execute");
+        }
 
         public double GetHeight(HeightUnit unit)
         {
@@ -84,6 +97,7 @@ namespace EntityGraphQL.Tests
         public Person Owner { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
+        public DateTime? Updated { get; set; }
     }
 
     public class Task

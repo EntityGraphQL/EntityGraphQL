@@ -136,6 +136,10 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 
     public override bool IsScalar => false;
 
+    public override bool IsInterface => false;
+
+    public override string? BaseType => null;
+
     public MutationSchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         : base(schema, name, description, requiredAuthorization)
     {

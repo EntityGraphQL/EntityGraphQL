@@ -206,7 +206,7 @@ namespace EntityGraphQL.Schema
         }
         public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
         {
-            argumentValidators.Add((context) => callback(context).Wait());
+            argumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
             return this;
         }
     }

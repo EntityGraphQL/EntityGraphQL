@@ -3,6 +3,8 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using EntityGraphQL.Tests.ApiVersion1;
+using Microsoft.CSharp.RuntimeBinder;
 
 namespace EntityGraphQL.Tests
 {
@@ -43,7 +45,7 @@ namespace EntityGraphQL.Tests
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Single(result.Data);
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            object person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -56,20 +58,61 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Person>().RemoveField(p => p.Id);
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => { var tree = new GraphQLCompiler(schema).Compile(@"
-{
-	people { id }
-}"); });
+            {
+                people { id }
+            }"); });
             Assert.Equal("Field 'id' not found on type 'Person'", ex.Message);
+        }
+
+        [Fact]
+        public void WildcardQueriesHonorRemovedFieldsOnList()
+        {
+            // empty schema
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Type<Person>().RemoveField(p => p.Id);
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"
+            {
+                people
+            }"));
+            Assert.Equal("Field 'people' requires a selection set defining the fields you would like to select.", ex.Message);
+        }
+
+        [Fact]
+        public void WildcardQueriesHonorRemovedFieldsOnListFromEmpty()
+        {
+            // empty schema
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
+            schema.Query().AddField("people", p => p.People, "People");
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"
+            {
+                people
+            }"));
+            Assert.Equal("Field 'people' requires a selection set defining the fields you would like to select.", ex.Message);
+        }
+
+        [Fact]
+        public void WildcardQueriesHonorRemovedFieldsOnObject()
+        {
+            // empty schema
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
+            schema.Query().AddField("person", new { id = ArgumentHelper.Required<int>() }, (p, args) => p.People.FirstOrDefault(p => p.Id == args.id), "Person");
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => new GraphQLCompiler(schema).Compile(@"
+            {
+                person(id: 1)
+            }"));
+            Assert.Equal("Field 'person' requires a selection set defining the fields you would like to select.", ex.Message);
         }
 
         [Fact]
         public void CanParseMultipleEntityQuery()
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
-{
-	people { id name }
-	users { id }
-}");
+            {
+                people { id name }
+                users { id }
+            }");
 
             Assert.Single(tree.Operations);
             Assert.Equal(2, tree.Operations.First().QueryFields.Count);
@@ -261,6 +304,7 @@ namespace EntityGraphQL.Tests
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data["people"]).projects).n);
         }
+
         [Fact]
         public void EnumTest()
         {
@@ -299,6 +343,31 @@ query {
             dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
             // we only have the fields requested
             Assert.Equal(15, totalPeople);
+        }
+
+        [Fact]
+        public void TestInheritance()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animals {
+        __typename
+        name
+    }
+}");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animals = (dynamic)qr.Data["animals"];
+            // we only have the fields requested
+            Assert.Equal(2, animals.Count);
+
+            Assert.Equal("Dog", animals[0].__typename);
+            Assert.Equal("Cat", animals[1].__typename);
         }
     }
 }

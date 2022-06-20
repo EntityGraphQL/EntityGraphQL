@@ -92,23 +92,27 @@ namespace EntityGraphQL.Compiler
             {
                 var argName = item.Variable.Name.Value;
                 object? defaultValue = null;
-                (var gqlTypeName, var isList, var isRequired) = GetGqlType(item);
+                (var gqlTypeName, var isList, var isRequired) = GetGqlType(item.Type);
 
                 var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
-                var varType = schemaType.TypeDotnet;
-                if (varType == null)
+                var varTypeInSchema = schemaType.TypeDotnet;
+                if (varTypeInSchema == null)
                     throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
+
+                if (!isRequired && (varTypeInSchema.IsValueType || varTypeInSchema.IsEnum))
+                    varTypeInSchema = typeof(Nullable<>).MakeGenericType(varTypeInSchema);
+
                 if (isList)
-                    varType = typeof(List<>).MakeGenericType(varType);
+                    varTypeInSchema = typeof(List<>).MakeGenericType(varTypeInSchema);
 
                 if (item.DefaultValue != null)
-                    defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varType))).Compile().DynamicInvoke();
+                    defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varTypeInSchema))).Compile().DynamicInvoke();
 
-                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varType)
+                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varTypeInSchema)
                 {
                     TypeNotNullable = isRequired,
                     ElementTypeNullable = !isRequired
-                }, null, varType)
+                }, null, varTypeInSchema)
                 {
                     DefaultValue = defaultValue,
                     IsRequired = isRequired
@@ -122,15 +126,18 @@ namespace EntityGraphQL.Compiler
             return documentVariables;
         }
 
-        private static (string typeName, bool isList, bool isRequired) GetGqlType(ISyntaxNode item)
+        private static (string typeName, bool isList, bool isRequired) GetGqlType(ITypeNode item)
         {
-            return item.Kind switch
+            switch (item.Kind)
             {
-                SyntaxKind.NamedType => (((NamedTypeNode)item).Name.Value, false, false),
-                SyntaxKind.NonNullType => (((NonNullTypeNode)item).NamedType().Name.Value, false, true),
-                SyntaxKind.VariableDefinition => (((VariableDefinitionNode)item).Type.NamedType().Name.Value, ((VariableDefinitionNode)item).Type.Kind == SyntaxKind.ListType, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
-                SyntaxKind.ListType => (((ListTypeNode)item).Type.NamedType().Name.Value, true, ((VariableDefinitionNode)item).Type.NamedType().Kind == SyntaxKind.NonNullType),
-                _ => throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}"),
+                case SyntaxKind.NamedType: return (((NamedTypeNode)item).Name.Value, false, false);
+                case SyntaxKind.NonNullType:
+                    {
+                        var (_, isList, _) = GetGqlType(((NonNullTypeNode)item).Type);
+                        return (((NonNullTypeNode)item).NamedType().Name.Value, isList, true);
+                    }
+                case SyntaxKind.ListType: return (((ListTypeNode)item).Type.NamedType().Name.Value, true, false);
+                default: throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}");
             };
         }
 
@@ -144,13 +151,10 @@ namespace EntityGraphQL.Compiler
             var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
-            // so the op knows what services it needs to inject
-            currentOperation?.AddServices(actualField.Services);
-
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var resultName = node.Alias?.Value ?? actualField.Name;
 
-            if (actualField.FieldType == Schema.GraphQLQueryFieldType.Mutation)
+            if (actualField.FieldType == GraphQLQueryFieldType.Mutation)
             {
                 var mutationField = (MutationField)actualField;
 
@@ -186,6 +190,11 @@ namespace EntityGraphQL.Compiler
                 if (node.SelectionSet != null)
                 {
                     fieldResult = ParseFieldSelect(actualField.ResolveExpression!, actualField, resultName, context, node.SelectionSet, args);
+                }
+                else if (actualField.ReturnType.SchemaType.RequiresSelection)
+                {
+                    // wild card query - select out all the fields for the object
+                    throw new EntityGraphQLCompilerException($"Field '{actualField.Name}' requires a selection set defining the fields you would like to select.");
                 }
                 else
                 {
@@ -351,7 +360,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
-            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context, Document!);
+            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
                 fragField.AddDirectives(ProcessFieldDirectives(node.Directives));

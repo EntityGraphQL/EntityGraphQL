@@ -304,6 +304,67 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, Enumerable.Count(people));
         }
         [Fact]
+        public void ArrayArg()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Query().ReplaceField("people", new
+            {
+                names = (string[])null
+            },
+            (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+
+            var gql = new GraphQLCompiler(schema).Compile(@"
+        query {
+            people(names: [""bill"", ""jill""]) { name }
+        }");
+            var context = new TestDataContext().FillWithTestData();
+            context.People.Add(new Person
+            {
+                Id = 99,
+                Guid = new Guid("cccc34cc-abbb-4444-1111-ccddeeff0033"),
+                Name = "jill",
+                LastName = "Last Name",
+                Birthday = new DateTime(2000, 1, 1, 1, 1, 1, 1),
+                Height = 177,
+            });
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(2, context.People.Count);
+            Assert.Equal(1, Enumerable.Count(people));
+        }
+        [Fact]
+        public void EnumerableArg()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Query().ReplaceField("people", new
+            {
+                // EntityGraphQL will automatically use a List<string>
+                names = (IEnumerable<string>)null
+            },
+            (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+
+            var gql = new GraphQLCompiler(schema).Compile(@"
+        query {
+            people(names: [""bill"", ""jill""]) { name }
+        }");
+            var context = new TestDataContext().FillWithTestData();
+            context.People.Add(new Person
+            {
+                Id = 99,
+                Guid = new Guid("cccc34cc-abbb-4444-1111-ccddeeff0033"),
+                Name = "jill",
+                LastName = "Last Name",
+                Birthday = new DateTime(2000, 1, 1, 1, 1, 1, 1),
+                Height = 177,
+            });
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic people = (dynamic)qr.Data["people"];
+            // we only have the fields requested
+            Assert.Equal(2, context.People.Count);
+            Assert.Equal(1, Enumerable.Count(people));
+        }
+        [Fact]
         public void ObjectArg()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();

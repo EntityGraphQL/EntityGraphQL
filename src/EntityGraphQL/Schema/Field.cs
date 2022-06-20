@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -171,6 +172,23 @@ namespace EntityGraphQL.Schema
                     throw new EntityGraphQLValidationException(invokeContext.Errors);
             }
             return (result, argumentValues);
+        }
+
+        protected void SetUpField(LambdaExpression fieldExpression)
+        {
+            ProcessResolveExpression(fieldExpression);
+            // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
+            var returnType = fieldExpression.Body.Type;
+            if (fieldExpression.Body.NodeType == ExpressionType.Convert)
+                returnType = ((UnaryExpression)fieldExpression.Body).Operand.Type;
+
+            if (fieldExpression.Body.NodeType == ExpressionType.Call)
+                returnType = ((MethodCallExpression)fieldExpression.Body).Type;
+
+            if (typeof(Task).IsAssignableFrom(returnType))
+                throw new EntityGraphQLCompilerException($"Field {Name} is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
+
+            ReturnType = SchemaBuilder.MakeGraphQlType(Schema, returnType, null);
         }
     }
 }

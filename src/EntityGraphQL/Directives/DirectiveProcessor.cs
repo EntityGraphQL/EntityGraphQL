@@ -25,7 +25,7 @@ namespace EntityGraphQL.Directives
         /// <param name="value"></param>
         /// <param name="arguments"></param>
         /// <returns></returns>
-        public virtual Expression? ProcessExpression(Expression expression, object arguments)
+        public virtual Expression? ProcessExpression(Expression expression, object? arguments)
         {
             // default return the value
             return expression;
@@ -37,7 +37,7 @@ namespace EntityGraphQL.Directives
         /// <param name="field"></param>
         /// <param name="arguments"></param>
         /// <returns></returns>
-        public virtual BaseGraphQLField? ProcessField(BaseGraphQLField field, object arguments)
+        public virtual BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments)
         {
             return field;
         }

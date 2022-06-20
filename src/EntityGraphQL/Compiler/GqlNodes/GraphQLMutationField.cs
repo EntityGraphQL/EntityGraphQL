@@ -19,11 +19,11 @@ namespace EntityGraphQL.Compiler
             this.MutationField = mutationField;
         }
 
-        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, Func<string, string> fieldNamer, ParameterExpression? variableParameter, object? variablesToUse)
+        public async Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
         {
             try
             {
-                return await MutationField.CallAsync(context, Arguments, validator, serviceProvider, variableParameter, variablesToUse, fieldNamer);
+                return await MutationField.CallAsync(context, Arguments, validator, serviceProvider, variableParameter, variablesToUse);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -31,12 +31,12 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression? GetNodeExpression(IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (ResultSelection == null)
                 throw new EntityGraphQLCompilerException($"Mutation {Name} should have a result selection");
 
-            return ResultSelection.GetNodeExpression(serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+            return ResultSelection.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
         }
     }
 }
