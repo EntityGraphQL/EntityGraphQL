@@ -16,6 +16,7 @@ namespace EntityGraphQL.Tests.Util
             public int? NullableInt { get; set; }
             public string Nullable { get; set; }
             public IEnumerable<Test> Tests { get; set; }
+            public IEnumerable<Test> NullableMethod() { return null!; }
         }
 
         [Fact]
@@ -32,6 +33,9 @@ namespace EntityGraphQL.Tests.Util
 
             propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("Tests");
             Assert.True(propertyInfo.IsNullable());
+
+            var methodInfo = typeof(WithoutNullableRefEnabled).GetMethod("NullableMethod");
+            Assert.True(methodInfo.IsNullable());
 
             var schema = SchemaBuilder.FromObject<WithoutNullableRefEnabled>();
             var schemaString = schema.ToGraphQLSchemaString();
@@ -51,6 +55,8 @@ namespace EntityGraphQL.Tests.Util
             public string? Nullable { get; set; }
             public IEnumerable<Test> Tests { get; set; } = new List<Test>();
             public IEnumerable<Test>? Tests2 { get; set; }
+            public IEnumerable<Test> NonNullableMethod() { return null!; }
+            public IEnumerable<Test?> NullableMethod() { return null!; }
         }
 #nullable restore
 
@@ -68,6 +74,12 @@ namespace EntityGraphQL.Tests.Util
 
             propertyInfo = typeof(WithNullableRefEnabled).GetProperty("NonNullable");
             Assert.False(propertyInfo.IsNullable());
+
+            var methodInfo = typeof(WithNullableRefEnabled).GetMethod("NullableMethod");
+            Assert.True(methodInfo.IsNullable());
+
+            methodInfo = typeof(WithNullableRefEnabled).GetMethod("NonNullableMethod");
+            Assert.False(methodInfo.IsNullable());
 
             var schema = SchemaBuilder.FromObject<WithNullableRefEnabled>();
             var schemaString = schema.ToGraphQLSchemaString();
