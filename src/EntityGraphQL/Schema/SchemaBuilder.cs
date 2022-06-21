@@ -10,6 +10,7 @@ using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
+using System.Collections.ObjectModel;
 
 namespace EntityGraphQL.Schema
 {
@@ -156,6 +157,7 @@ namespace EntityGraphQL.Schema
             return fields;
         }
 
+
         private static IEnumerable<Field>? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
@@ -191,10 +193,12 @@ namespace EntityGraphQL.Schema
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
+
             CacheType(baseReturnType, schema, createEnumTypes, autoCreateIdArguments, createNewComplexTypes, fieldNamer, isInputType);
+
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
             if (autoCreateIdArguments)
