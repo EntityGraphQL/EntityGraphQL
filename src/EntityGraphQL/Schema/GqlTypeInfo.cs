@@ -16,14 +16,13 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="schemaTypeGetter">Func to get the ISchemaType. Lookup is func as the type might be added later. It is cached after first look up</param>
         /// <param name="typeDotnet">The dotnet type as it is. E.g. the List<T> etc. </param>
-        /// <param name="nullableValueTypes">value types are nullable. Used for arguments where they may have default values</param>
-        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, bool nullableValueTypes = false)
+        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet)
         {
             SchemaTypeGetter = schemaTypeGetter;
 
             TypeDotnet = typeDotnet;
             IsList = TypeDotnet.IsEnumerableOrArray();
-            TypeNotNullable = !nullableValueTypes && TypeDotnet.IsValueType && !TypeDotnet.IsNullableType();
+            TypeNotNullable = TypeDotnet.IsValueType && !TypeDotnet.IsNullableType();
             ElementTypeNullable = false;
         }
 

@@ -245,11 +245,11 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationsFrom(new NullableRefTypeMutations());
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
-            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album\r\n", schema);
+            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
             Assert.Contains("addAlbum2(name: String!, genre: Genre!): Album!", schema);
-            Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album\r\n", schema);
+            Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album", schema);
         }
-        
+
         [Fact]
         public void TestAbstractClass()
         {

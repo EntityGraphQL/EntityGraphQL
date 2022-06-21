@@ -1,5 +1,6 @@
-# 2.1.6
+# 2.2.0
 
+- Add support for nullable reference types - meaning the correct GraphQL schema nullable definitions are generated. @bzbetty
 - Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
 
