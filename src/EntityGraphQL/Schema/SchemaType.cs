@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler.Util;
@@ -10,6 +11,7 @@ namespace EntityGraphQL.Schema
     {
         public override Type TypeDotnet { get; }
         public override bool IsInput { get; }
+        public override bool IsOneOf { get; }
         public override bool IsEnum { get; }
         public override bool IsScalar { get; }
         public override bool IsInterface { get; }
@@ -24,6 +26,7 @@ namespace EntityGraphQL.Schema
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
+            IsOneOf = dotnetType.CustomAttributes.Any(i => i.AttributeType == typeof(GraphQLOneOfAttribute));
             IsInput = isInput;
             IsEnum = isEnum;
             IsScalar = isScalar;

@@ -102,7 +102,9 @@ type {rootQueryType.Name} {{
                     ? ""
                     : $"implements {typeItem.BaseType} ";
 
-                types.AppendLine($"{type} {typeItem.Name} {implements}{{");
+                var oneOf = typeItem.IsOneOf ? "@oneOf " : "";
+
+                types.AppendLine($"{type} {typeItem.Name} {implements}{oneOf}{{");
                 foreach (var field in typeItem.GetFields())
                 {
                     if (field.Name.StartsWith("__"))

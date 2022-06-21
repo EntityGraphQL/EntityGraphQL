@@ -132,6 +132,8 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 
     public override bool IsInput => false;
 
+    public override bool IsOneOf => false;
+
     public override bool IsEnum => false;
 
     public override bool IsScalar => false;
