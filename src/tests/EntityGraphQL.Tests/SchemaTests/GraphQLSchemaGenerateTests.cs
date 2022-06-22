@@ -248,6 +248,68 @@ namespace EntityGraphQL.Tests
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
             Assert.Contains("addAlbum2(name: String!, genre: Genre!): Album!", schema);
             Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album", schema);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                  query {
+                    __type(name: ""Mutation"") {                        
+                        fields {
+                            name
+                            type  { 
+                                kind
+                                name
+                                ofType {
+                                    name
+                                    kind
+                                }
+                            }
+                            args {
+                                name 
+                                type { kind name }
+                            }
+                        }
+                    }
+                  }
+                "
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            Assert.Null(res.Errors);
+
+            var mutation = ((dynamic)res.Data["__type"]);
+
+            Assert.Equal("addAlbum", mutation.fields[0].name);
+            Assert.Equal("Album", mutation.fields[0].type.name);
+            Assert.Equal("OBJECT", mutation.fields[0].type.kind);
+            Assert.Equal(null, mutation.fields[0].type.ofType);
+            Assert.Equal("name", mutation.fields[0].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[0].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[0].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[0].args[1].type.kind);
+
+            Assert.Equal("addAlbum2", mutation.fields[1].name);
+            Assert.Equal(null, mutation.fields[1].type.name);
+            Assert.Equal("NON_NULL", mutation.fields[1].type.kind);
+            Assert.Equal("Album", mutation.fields[1].type.ofType.name);
+            Assert.Equal("name", mutation.fields[1].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[1].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[1].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[1].args[1].type.kind);
+
+            Assert.Equal("addAlbum3", mutation.fields[2].name);
+            Assert.Equal("Album", mutation.fields[2].type.name);
+            Assert.Equal("OBJECT", mutation.fields[2].type.kind);
+            Assert.Equal(null, mutation.fields[2].type.ofType);
+            Assert.Equal("name", mutation.fields[2].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[2].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[2].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[2].args[1].type.kind);
         }
 
         [Fact]
