@@ -103,6 +103,95 @@ namespace EntityGraphQL.Tests
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
         }
 
+        [Fact]
+        public void AbstractClassesBecomeInterfacesIntrospection()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""AbstractClass"") {
+            name
+            kind
+          }
+        }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            Assert.Null(res.Errors);
+            
+            Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).kind);
+        }
+
+
+        [Fact]
+        public void InheritedClassesBecomeObjectsIntrospection()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
+            schemaProvider.AddType<InheritedClass>("InheritedClass");
+            Assert.False(schemaProvider.Type<InheritedClass>().IsInterface);
+            Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query IntrospectionQuery {
+                      __type(name: ""InheritedClass"") {
+                        name
+                        kind
+                      }
+                    }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("InheritedClass", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
+        }
+
+        [Fact]
+        public void NonAbstractClassesBecomeObjectsIntrospection()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema2>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""Property"") {
+            name
+            kind
+          }
+        }"
+            };
+                
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestSchema2(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("Property", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
+        }
+
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
