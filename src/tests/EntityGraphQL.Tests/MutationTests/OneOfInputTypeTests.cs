@@ -27,6 +27,30 @@ namespace EntityGraphQL.Tests
             Assert.Contains("input InputObject {", schema);
             Assert.Contains("one: Int!\r\n", schema);
             Assert.Contains("two: Int!\r\n", schema);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query IntrospectionQuery {
+                      __type(name: ""InputObject"") {
+                        name
+                        kind
+                        oneField
+                      }
+                    }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data["__type"]).kind);
+            Assert.False(((dynamic)res.Data["__type"]).oneField);
         }
 
         [GraphQLOneOf]
@@ -47,6 +71,30 @@ namespace EntityGraphQL.Tests
             Assert.Contains("input InputObject @oneOf {", schema);
             Assert.Contains("one: Int\r\n", schema);
             Assert.Contains("two: Int\r\n", schema);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query IntrospectionQuery {
+                      __type(name: ""InputObject"") {
+                        name
+                        kind
+                        oneField
+                      }
+                    }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data["__type"]).kind);
+            Assert.True(((dynamic)res.Data["__type"]).oneField);
         }
     }
 }
