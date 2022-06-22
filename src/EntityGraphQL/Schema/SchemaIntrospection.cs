@@ -72,8 +72,16 @@
 
                 var typeElement = new TypeElement(kind, st.Name)
                 {
-                    Description = st.Description
+                    Description = st.Description,                   
                 };
+
+                if(!string.IsNullOrEmpty(st.BaseType))
+                {
+                    typeElement.Interfaces = new[]
+                    {
+                        new TypeElement("INTERFACE", st.BaseType)
+                    };
+                }
 
                 types.Add(typeElement);
             }

@@ -136,7 +136,7 @@ namespace EntityGraphQL.Tests
         public void InheritedClassesBecomeObjectsIntrospection()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
-            schemaProvider.AddType<InheritedClass>("InheritedClass");
+            schemaProvider.AddInheritedType<InheritedClass>("InheritedClass", "", "AbstractClass");
             Assert.False(schemaProvider.Type<InheritedClass>().IsInterface);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
 
@@ -147,6 +147,10 @@ namespace EntityGraphQL.Tests
                       __type(name: ""InheritedClass"") {
                         name
                         kind
+                        interfaces {
+                            name
+                            kind
+                        }
                       }
                     }"
             };
@@ -161,6 +165,9 @@ namespace EntityGraphQL.Tests
 
             Assert.Equal("InheritedClass", ((dynamic)res.Data["__type"]).name);
             Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
+
+            Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).interfaces[0].kind);
+            Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).interfaces[0].name);
         }
 
         [Fact]
