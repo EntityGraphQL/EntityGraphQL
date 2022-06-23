@@ -75,11 +75,11 @@ namespace EntityGraphQL.Tests
 
             Assert.Equal("Dog", schema.Type("Dog").Name);
             Assert.False(schema.Type("Dog").IsInterface);
-            Assert.Equal("Animal", schema.Type("Dog").BaseType);
+            Assert.Equal("Animal", schema.Type("Dog").BaseTypes[0].Name);
 
             Assert.Equal("Cat", schema.Type("Cat").Name);
             Assert.False(schema.Type("Cat").IsInterface);
-            Assert.Equal("Animal", schema.Type("Cat").BaseType);
+            Assert.Equal("Animal", schema.Type("Cat").BaseTypes[0].Name);
         }
     }
 }

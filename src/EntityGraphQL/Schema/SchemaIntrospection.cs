@@ -75,12 +75,9 @@
                     Description = st.Description,                   
                 };
 
-                if(!string.IsNullOrEmpty(st.BaseType))
+                if(st.BaseTypes != null && st.BaseTypes.Count() > 0)
                 {
-                    typeElement.Interfaces = new[]
-                    {
-                        new TypeElement("INTERFACE", st.BaseType)
-                    };
+                    typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();                    
                 }
 
                 types.Add(typeElement);

@@ -98,9 +98,12 @@ type {rootQueryType.Name} {{
                     _ => "type"
                 };
 
-                var implements = string.IsNullOrWhiteSpace(typeItem.BaseType)
-                    ? ""
-                    : $"implements {typeItem.BaseType} ";
+
+                var implements = "";
+
+                if (typeItem.BaseTypes != null && typeItem.BaseTypes.Count() > 0) {
+                    implements += $"implements {string.Join(" & ", typeItem.BaseTypes.Select(i => i.Name))} ";
+                }
 
                 types.AppendLine($"{type} {typeItem.Name} {implements}{{");
                 foreach (var field in typeItem.GetFields())

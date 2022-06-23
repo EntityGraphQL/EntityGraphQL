@@ -12,12 +12,21 @@ namespace EntityGraphQL.Schema
         public abstract Type TypeDotnet { get; }
         public string Name { get; }
         public string? Description { get; set; }
-        public abstract bool IsInput { get; }
-        public abstract bool IsInterface { get; }
-        public abstract bool IsEnum { get; }
-        public abstract bool IsScalar { get; }
-        public abstract string? BaseType { get; }
-        public bool RequiresSelection => !IsScalar && !IsEnum;
+        public GqlTypeEnum GqlType { get; protected set; }
+
+        protected List<ISchemaType> _baseTypes = new List<ISchemaType>();
+        public IList<ISchemaType> BaseTypes => _baseTypes.AsReadOnly();
+
+        [Obsolete]
+        public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
+        [Obsolete]
+        public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
+        [Obsolete]
+        public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
+        [Obsolete]
+        public bool IsScalar { get { return GqlType == GqlTypeEnum.Scalar; } }
+        
+        public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;
         public RequiredAuthorization? RequiredAuthorization { get; set; }
 
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
@@ -104,5 +113,9 @@ namespace EntityGraphQL.Schema
         {
             FieldsByName.Remove(name);
         }
+
+        public abstract ISchemaType AddAllBaseTypes();
+        public abstract ISchemaType AddBaseType<TClrType>();
+        public abstract ISchemaType AddBaseType(string name);
     }
 }

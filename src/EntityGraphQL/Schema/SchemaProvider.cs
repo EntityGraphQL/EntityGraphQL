@@ -55,14 +55,14 @@ namespace EntityGraphQL.Schema
             queryCache = new QueryCache();
 
             // default GQL scalar types
-            schemaTypes.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, false, false, true));
-            schemaTypes.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, false, false, true));
-            schemaTypes.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, false, false, true));
-            schemaTypes.Add("String", new SchemaType<string>(this, "String", "String scalar", null, false, false, true));
-            schemaTypes.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, false, false, true));
+            schemaTypes.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("Float", new SchemaType<double>(this, "Float", "Float scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("String", new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar));
 
             // default custom scalar for DateTime
-            schemaTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, false, false, true));
+            schemaTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar));
 
             customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
                 {typeof(sbyte), new GqlTypeInfo(() => Type("Int"), typeof(sbyte))},
@@ -78,7 +78,7 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, "Query", "Query schema", null);
+            var queryContext = new SchemaType<TContextType>(this, "Query", "Query schema", null, GqlTypeEnum.Object);
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
@@ -292,9 +292,10 @@ namespace EntityGraphQL.Schema
         /// <param name="description">description of the type</param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns>The added type for further changes via chaining</returns>
+        [Obsolete]
         public SchemaType<TBaseType> AddInheritedType<TBaseType>(string name, string? description, string baseType)
         {
-            var schemaType = new SchemaType<TBaseType>(this, name, description, null, baseType: baseType);
+            var schemaType = new SchemaType<TBaseType>(this, name, description, null, GqlTypeEnum.Object, baseType: baseType);
             FinishAddingType(typeof(TBaseType), name, schemaType);
             return schemaType;
         }
@@ -308,7 +309,8 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
         {
-            var schemaType = new SchemaType<TBaseType>(this, name, description, null);
+            var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypeEnum.Interface: GqlTypeEnum.Object;
+            var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
             FinishAddingType(typeof(TBaseType), name, schemaType);
             return schemaType;
         }
@@ -322,7 +324,8 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddType(Type contextType, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, false, false, false, false, null)!;
+            var gqlType = contextType.IsAbstract || contextType.IsInterface ? GqlTypeEnum.Interface : GqlTypeEnum.Object;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, gqlType, null)!;
             FinishAddingType(contextType, name, newType);
             return newType;
         }
@@ -402,7 +405,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddInputType(Type type, string name, string? description)
         {
-            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, true, false, false, false, null)!;
+            var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypeEnum.Input, null)!;
             FinishAddingType(type, name, newType);
 
             return newType;
@@ -417,7 +420,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description)
         {
-            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, false, false, true, false, null)!;
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, GqlTypeEnum.Scalar, null)!;
             schemaTypes.Add(gqlTypeName, schemaType);
             return schemaType;
         }
@@ -431,7 +434,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description)
         {
-            var schemaType = new SchemaType<TType>(this, gqlTypeName, description, null, false, false, true);
+            var schemaType = new SchemaType<TType>(this, gqlTypeName, description, null, GqlTypeEnum.Scalar);
             schemaTypes.Add(gqlTypeName, schemaType);
             return schemaType;
         }
@@ -630,7 +633,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddEnum(string name, Type type, string description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, false, true);
+            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Enum);
             FinishAddingType(type, name, schemaType);
             return schemaType.AddAllFields();
         }
@@ -644,7 +647,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddInterface(Type type, string name, string description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, false, false, true);
+            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Interface);
             FinishAddingType(type, name, schemaType);
             return schemaType;
         }
@@ -658,7 +661,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddInterface<TInterface>(string name, string? description)
         {
-            var schemaType = new SchemaType<TInterface>(this, name, description, null, false, false, false, true);
+            var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypeEnum.Interface);
             FinishAddingType(typeof(TInterface), name, schemaType);
             return schemaType;
         }
