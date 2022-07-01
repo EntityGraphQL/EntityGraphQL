@@ -175,6 +175,12 @@ namespace EntityGraphQL.Compiler.Util
                     throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in (IEnumerable)value)
                     list.Add(ChangeType(item, eleType, schema));
+                if (toType.IsArray)
+                {
+                    // if toType is array [] we can't use a List<>
+                    var result = Expression.Lambda(Expression.Call(typeof(Enumerable), "ToArray", new[] { eleType }, Expression.Constant(list))).Compile().DynamicInvoke();
+                    return result;
+                }
                 return list;
             }
             if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||

@@ -5,6 +5,7 @@
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
 - Fix interface query introspection. @bzbetty
 - Fix #137 - multiple line endings were used in the schema output
+- Fix - make sure we use an array for arguemnts when expected instead of a list<>
 
 # 2.1.5
 
