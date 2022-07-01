@@ -29,6 +29,7 @@ namespace EntityGraphQL.Schema
             var queryTypes = MakeQueryType(schema);
 
             var schemaBuilder = new StringBuilder("schema {");
+            schemaBuilder.AppendLine();
             schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
             if (mutationType.GetFields().Any())
                 schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");

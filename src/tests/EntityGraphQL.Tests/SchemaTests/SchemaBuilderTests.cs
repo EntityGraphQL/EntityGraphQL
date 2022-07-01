@@ -72,6 +72,16 @@ namespace EntityGraphQL.Tests
             Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
         [Fact]
+        public void AutoAddArgumentForIdBase()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var argumentTypes = schema.Type<TestSchema>().GetField("project", null).Arguments;
+            Assert.Single(argumentTypes);
+            Assert.Equal("id", argumentTypes.First().Key);
+            Assert.Equal(typeof(Guid), argumentTypes.First().Value.Type.TypeDotnet);
+            Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
+        }
+        [Fact]
         public void AutoAddArgumentForIdGuid()
         {
             var schema = SchemaBuilder.FromObject<TestSchema2>();
@@ -93,7 +103,7 @@ namespace EntityGraphQL.Tests
 
         [Fact]
         public void AbstractClassesBecomeInterfaces()
-        {            
+        {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
             Assert.True(schemaProvider.Type<AbstractClass>().IsInterface);
             Assert.Equal(2, schemaProvider.Type<AbstractClass>().GetFields().Count());
@@ -126,7 +136,7 @@ namespace EntityGraphQL.Tests
 
             var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
-            
+
             Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).name);
             Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).kind);
         }
@@ -185,7 +195,7 @@ namespace EntityGraphQL.Tests
           }
         }"
             };
-                
+
 
             var context = new TestDataContext
             {
@@ -204,6 +214,23 @@ namespace EntityGraphQL.Tests
         {
             public TestEntity SomeRelation { get; }
             public IEnumerable<Person> People { get; }
+            public IEnumerable<IdInherited> Projects { get; }
+        }
+
+        private class IdInherited : HasId, ISomething
+        {
+
+        }
+
+        private interface ISomething
+        {
+            string Name { get; }
+        }
+
+        private abstract class HasId
+        {
+            public Guid Id { get; set; }
+            public string Name { get; set; }
         }
 
         private class TestSchema2
@@ -213,12 +240,12 @@ namespace EntityGraphQL.Tests
 
         private class TestSchema3
         {
-            public IEnumerable<AbstractClass> AbstractClasses { get; }            
+            public IEnumerable<AbstractClass> AbstractClasses { get; }
         }
 
         private abstract class AbstractClass
         {
-            public int Field1 { get; }            
+            public int Field1 { get; }
         }
 
         private class InheritedClass : AbstractClass

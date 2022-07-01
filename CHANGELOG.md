@@ -1,5 +1,6 @@
 # 2.2.0
 
+- `FromObject` / default schema generator now adds single fields within non root-level fields. E.g. if a root-level field is a list of `people` and each person has a list of `projects` (and projects has an id) is will create a field on `project(id)` field on person
 - Add support for nullable reference types - meaning the correct GraphQL schema nullable definitions are generated. @bzbetty
 - Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
