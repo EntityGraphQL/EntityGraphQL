@@ -443,10 +443,9 @@ namespace EntityGraphQL.Schema
         /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
         /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
         /// <param name="addNonAttributedMethods">If true, add any method in the mutation class even if it isn't marked with the mutation attribute</param>
-        public void AddMutationsFrom<TType>(TType? mutationClassInstance =  null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
-
+        public void AddMutationsFrom<TType>(TType? mutationClassInstance = null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
         {
-            mutationType.AddFrom(mutationClassInstance, autoAddInputTypes, addNonAttributedMethods);
+            mutationType.AddFrom((TType?)null, autoAddInputTypes, addNonAttributedMethods);
         }
 
         /// <summary>

@@ -83,7 +83,7 @@ public class MutationType
         return AddMutationMethod(mutationName, mutationDelegate.Target, null, mutationDelegate.Method, description, autoAddInputTypes);
     }
 
-    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes) 
+    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes)
     {
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);

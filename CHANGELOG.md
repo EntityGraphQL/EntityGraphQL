@@ -1,7 +1,19 @@
+# 2.3.0
+
+Changes:
+
+- `AddMutationsFrom` now uses the `ServiceProvider` instance to create the mutation class allowing dependency injection at the contructor level like Controllers. @bzbetty
+- You can still provide an instance of the mutation class that will be used instead which is the same behaviour as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
+
 # 2.2.0
+
+Changes:
 
 - `FromObject` / default schema generator now adds single fields within non root-level fields. E.g. if a root-level field is a list of `people` and each person has a list of `projects` (and projects has an id) is will create a field on `project(id)` field on person
 - Add support for nullable reference types - meaning the correct GraphQL schema nullable definitions are generated. @bzbetty
+
+Fixes:
+
 - Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
 - Fix interface query introspection. @bzbetty
