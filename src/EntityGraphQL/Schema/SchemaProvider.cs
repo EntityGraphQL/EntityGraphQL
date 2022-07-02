@@ -309,7 +309,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
         {
-            var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypeEnum.Interface: GqlTypeEnum.Object;
+            var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypeEnum.Interface : GqlTypeEnum.Object;
             var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
             FinishAddingType(typeof(TBaseType), name, schemaType);
             return schemaType;
@@ -726,11 +726,19 @@ namespace EntityGraphQL.Schema
 
         private void RemoveFieldsOfType(string schemaType, ISchemaType contextType)
         {
-            foreach (var field in contextType.GetFields().ToList())
+            foreach (var field in contextType.GetFields())
             {
-                if (field.ReturnType.SchemaType.Name == schemaType)
+                try
                 {
-                    contextType.RemoveField(field.Name);
+                    if (field.ReturnType.SchemaType.Name == schemaType)
+                    {
+                        contextType.RemoveField(field.Name);
+                    }
+                }
+                catch (EntityGraphQLCompilerException)
+                {
+                    // SchemaType looks up the type in the schema. And there is a chance that type is not in there
+                    // either not added or removed previously
                 }
             }
         }

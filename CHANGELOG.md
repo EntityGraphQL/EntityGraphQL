@@ -2,8 +2,15 @@
 
 Changes:
 
-- `AddMutationsFrom` now uses the `ServiceProvider` instance to create the mutation class allowing dependency injection at the contructor level like Controllers. @bzbetty
+- `AddMutationsFrom` now uses the `ServiceProvider` instance to create the mutation class allowing dependency injection at the contructor level like Controllers.
 - You can still provide an instance of the mutation class that will be used instead which is the same behaviour as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
+- Allow types to inherit from multiple base classes/interfaces
+- Cleanup SchemaType to use an enum instead of lots of boolean type variables. Previous constructor is obsolete
+- Cleanup Interfaces api - added a `AddAllBaseTypes`, `AddBaseType` and `AddBaseType(string)` which provides a lot more flexiblity. See updated docs
+
+Fixes:
+
+- Fix #120 - Error when using `provider.RemoveTypeAndAllFields` and a field of the removing type had a type that has not been added to the schema
 
 # 2.2.0
 
