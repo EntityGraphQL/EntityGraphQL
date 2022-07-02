@@ -139,23 +139,28 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 {
     public override Type TypeDotnet => typeof(MutationType);
 
-    public override bool IsInput => false;
-
-    public override bool IsEnum => false;
-
-    public override bool IsScalar => false;
-
-    public override bool IsInterface => false;
-
-    public override string? BaseType => null;
-
     public MutationSchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         : base(schema, name, description, requiredAuthorization)
     {
+        GqlType = GqlTypeEnum.Mutation;
     }
 
     public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
     {
         return this;
+    }
+
+    public override ISchemaType AddAllBaseTypes()
+    {
+        throw new Exception("Cannot add base types to a mutation");
+    }
+    public override ISchemaType AddBaseType<TClrType>()
+    {
+        throw new Exception("Cannot add base types to a mutation");
+
+    }
+    public override ISchemaType AddBaseType(string name)
+    {
+        throw new Exception("Cannot add base types to a mutation");
     }
 }

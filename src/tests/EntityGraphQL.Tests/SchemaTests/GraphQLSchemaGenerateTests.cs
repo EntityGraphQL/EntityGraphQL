@@ -316,8 +316,12 @@ namespace EntityGraphQL.Tests
         public void TestAbstractClass()
         {
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Dog>("Dog", "Dogs are animals", "Animal").AddAllFields();
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Cat>("Cat", "Cats are animals", "Animal").AddAllFields();
+
+            schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals");
+
+            schemaProvider.UpdateType<AbstractClassTestSchema.Fish>(x => x.AddBaseType("Animal").AddAllFields());
 
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -325,6 +329,27 @@ namespace EntityGraphQL.Tests
 
             Assert.Contains(@"type Cat implements Animal", schema);
             Assert.Contains(@"type Dog implements Animal", schema);
+            Assert.Contains(@"type Fish implements Animal", schema);
+        }
+
+        [Fact]
+        public void TestMultipleInheritance()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+
+            schemaProvider.AddType<AbstractClassTestSchema.ISwim>("").AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals").AddAllBaseTypes().AddAllFields();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            // this exists as it is not null
+            Assert.Contains(@"interface Animal", schema);
+            Assert.Contains(@"interface ISwim", schema);
+
+            Assert.Contains(@"type Cat implements Animal", schema);
+            Assert.Contains(@"type Dog implements Animal", schema);
+            Assert.Contains(@"type Fish implements Animal & ISwim", schema);
         }
 
         [Fact]
@@ -440,6 +465,11 @@ namespace EntityGraphQL.Tests
             public string Name { get; set; }
         }
 
+        public interface ISwim
+        {
+            public int Fins { get; set; }
+        }
+
         public class Cat : Animal
         {
             public int Lives { get; set; }
@@ -448,6 +478,11 @@ namespace EntityGraphQL.Tests
         public class Dog : Animal
         {
             public int Bones { get; set; }
+        }
+
+        public class Fish : Animal, ISwim
+        {
+            public int Fins { get; set; }
         }
     }
 

@@ -105,11 +105,11 @@ namespace EntityGraphQL.Tests
         public void AbstractClassesBecomeInterfaces()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
-            Assert.True(schemaProvider.Type<AbstractClass>().IsInterface);
+            Assert.Equal(GqlTypeEnum.Interface, schemaProvider.Type<AbstractClass>().GqlType);
             Assert.Equal(2, schemaProvider.Type<AbstractClass>().GetFields().Count());
 
             schemaProvider.AddType<InheritedClass>("InheritedClass");
-            Assert.False(schemaProvider.Type<InheritedClass>().IsInterface);
+            Assert.Equal(GqlTypeEnum.Object, schemaProvider.Type<InheritedClass>().GqlType);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
         }
 
@@ -146,8 +146,8 @@ namespace EntityGraphQL.Tests
         public void InheritedClassesBecomeObjectsIntrospection()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
-            schemaProvider.AddInheritedType<InheritedClass>("InheritedClass", "", "AbstractClass");
-            Assert.False(schemaProvider.Type<InheritedClass>().IsInterface);
+            schemaProvider.AddType<InheritedClass>("").AddAllBaseTypes();
+            Assert.Equal(GqlTypeEnum.Object, schemaProvider.Type<InheritedClass>().GqlType);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
 
             var gql = new QueryRequest
