@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -25,16 +26,24 @@ public class MutationType
     /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
     /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
     /// <typeparam name="TType"></typeparam>
-    public MutationType AddFrom<TType>(TType mutationClassInstance, bool autoAddInputTypes = false) where TType : notnull
+    public MutationType AddFrom<TType>(TType? mutationClassInstance = null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
     {
-        Type type = mutationClassInstance.GetType();
-        var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
-        foreach (var method in type.GetMethods())
+        var types = typeof(TType).Assembly
+                            .GetTypes()
+                            .Where(x => x.IsClass && !x.IsAbstract)
+                            .Where(x => typeof(TType).IsAssignableFrom(x));
+
+        foreach (Type type in types)
         {
-            if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
+            var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
-                string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
-                AddMutationMethod(name, mutationClassInstance, classLevelRequiredAuth, method, attribute.Description, autoAddInputTypes);
+                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) as GraphQLMutationAttribute;
+                if (attribute != null || addNonAttributedMethods)
+                {
+                    string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
+                    AddMutationMethod(name, mutationClassInstance, classLevelRequiredAuth, method, attribute?.Description ?? "", autoAddInputTypes);
+                }
             }
         }
         return this;
@@ -74,7 +83,7 @@ public class MutationType
         return AddMutationMethod(mutationName, mutationDelegate.Target, null, mutationDelegate.Method, description, autoAddInputTypes);
     }
 
-    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes) where TType : notnull
+    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes) 
     {
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
