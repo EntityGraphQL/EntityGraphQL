@@ -10,7 +10,8 @@ Changes:
 
 Fixes:
 
-- Fix #120 - Error when using `provider.RemoveTypeAndAllFields` and a field of the removing type had a type that has not been added to the schema
+- Fix #120 - Error when using `schema.RemoveTypeAndAllFields` and a field of the removing type had a type that has not been added to the schema
+- Fix #143 - Error building a null check expression in certain cases.
 
 # 2.2.0
 
