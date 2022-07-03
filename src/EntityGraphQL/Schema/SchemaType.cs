@@ -31,7 +31,7 @@ namespace EntityGraphQL.Schema
 
 
         public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
-            : base(schema, name, description, requiredAuthorization)                
+            : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
             GqlType = gqlType;
@@ -324,12 +324,12 @@ namespace EntityGraphQL.Schema
         public override ISchemaType AddAllBaseTypes()
         {
             var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
-            if(baseType != null)
+            if (baseType != null)
             {
                 _baseTypes.Add(baseType);
             }
 
-            foreach (var i in this.TypeDotnet.GetInterfaces())
+            foreach (var i in TypeDotnet.GetInterfaces())
             {
                 var interfaceType = Schema.GetSchemaType(i, null);
                 if (interfaceType != null)
@@ -338,7 +338,7 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-          return this;
+            return this;
         }
 
         public override ISchemaType AddBaseType<TypeDotnet>()

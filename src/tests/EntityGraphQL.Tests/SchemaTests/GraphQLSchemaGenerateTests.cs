@@ -313,7 +313,7 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestAbstractClass()
+        public void TestAbstractClassToGraphQLSchemaString()
         {
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
 
@@ -333,7 +333,7 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestMultipleInheritance()
+        public void TestMultipleInheritanceToGraphQLSchemaString()
         {
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
 
