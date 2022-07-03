@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
                     listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
-            (listContext, var argumentValues) = Field?.GetExpression(listContext!, null, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
+            (listContext, var argumentValues) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
             if (argumentValues != null)
                 compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (listContext == null)

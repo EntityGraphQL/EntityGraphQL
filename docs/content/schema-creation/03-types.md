@@ -109,11 +109,18 @@ public class Droid : Character {
 schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
     .AddAllFields();
 
-schema.AddInheritedType<Human>(name: "Human", "", baseType: "Character")
-    .AddAllFields();
+schema.AddType<Human>("")
+    .AddAllFields()
+    .AddAllBaseTypes();
 
-schema.AddInheritedType<Droid>(name: "Droid", "", baseType: "Character");
-    .AddAllFields();
+schema.AddType<Droid>("");
+    .AddBaseType<Character>();
+
+// or
+
+schema.AddType<Droid>("");
+    .AddBaseType("Character");
+
 ```
 
 produces the graphql schema:

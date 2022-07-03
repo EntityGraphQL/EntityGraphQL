@@ -239,11 +239,89 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestNullableRefTypeMutationField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            schemaProvider.AddMutationsFrom(new NullableRefTypeMutations());
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            // this exists as it is not null
+            Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
+            Assert.Contains("addAlbum2(name: String!, genre: Genre!): Album!", schema);
+            Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album", schema);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                  query {
+                    __type(name: ""Mutation"") {                        
+                        fields {
+                            name
+                            type  { 
+                                kind
+                                name
+                                ofType {
+                                    name
+                                    kind
+                                }
+                            }
+                            args {
+                                name 
+                                type { kind name }
+                            }
+                        }
+                    }
+                  }
+                "
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            Assert.Null(res.Errors);
+
+            var mutation = ((dynamic)res.Data["__type"]);
+
+            Assert.Equal("addAlbum", mutation.fields[0].name);
+            Assert.Equal("Album", mutation.fields[0].type.name);
+            Assert.Equal("OBJECT", mutation.fields[0].type.kind);
+            Assert.Equal(null, mutation.fields[0].type.ofType);
+            Assert.Equal("name", mutation.fields[0].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[0].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[0].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[0].args[1].type.kind);
+
+            Assert.Equal("addAlbum2", mutation.fields[1].name);
+            Assert.Equal(null, mutation.fields[1].type.name);
+            Assert.Equal("NON_NULL", mutation.fields[1].type.kind);
+            Assert.Equal("Album", mutation.fields[1].type.ofType.name);
+            Assert.Equal("name", mutation.fields[1].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[1].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[1].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[1].args[1].type.kind);
+
+            Assert.Equal("addAlbum3", mutation.fields[2].name);
+            Assert.Equal("Album", mutation.fields[2].type.name);
+            Assert.Equal("OBJECT", mutation.fields[2].type.kind);
+            Assert.Equal(null, mutation.fields[2].type.ofType);
+            Assert.Equal("name", mutation.fields[2].args[0].name);
+            Assert.Equal("NON_NULL", mutation.fields[2].args[0].type.kind);
+            Assert.Equal("genre", mutation.fields[2].args[1].name);
+            Assert.Equal("NON_NULL", mutation.fields[2].args[1].type.kind);
+        }
+
+        [Fact]
         public void TestAbstractClass()
         {
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Dog>("Dog", "Dogs are animals", "Animal").AddAllFields();
-            schemaProvider.AddInheritedType<AbstractClassTestSchema.Cat>("Cat", "Cats are animals", "Animal").AddAllFields();
+
+            schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals");
+
+            schemaProvider.UpdateType<AbstractClassTestSchema.Fish>(x => x.AddBaseType("Animal").AddAllFields());
 
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -251,6 +329,27 @@ namespace EntityGraphQL.Tests
 
             Assert.Contains(@"type Cat implements Animal", schema);
             Assert.Contains(@"type Dog implements Animal", schema);
+            Assert.Contains(@"type Fish implements Animal", schema);
+        }
+
+        [Fact]
+        public void TestMultipleInheritance()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+
+            schemaProvider.AddType<AbstractClassTestSchema.ISwim>("").AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals").AddAllBaseTypes().AddAllFields();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            // this exists as it is not null
+            Assert.Contains(@"interface Animal", schema);
+            Assert.Contains(@"interface ISwim", schema);
+
+            Assert.Contains(@"type Cat implements Animal", schema);
+            Assert.Contains(@"type Dog implements Animal", schema);
+            Assert.Contains(@"type Fish implements Animal & ISwim", schema);
         }
 
         [Fact]
@@ -302,7 +401,51 @@ namespace EntityGraphQL.Tests
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
+
     }
+
+    public class NullableRefTypeMutations
+    {
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+
+#nullable enable
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album>> AddAlbum2(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+
+
+        [GraphQLMutation]
+        public Expression<Func<IgnoreTestSchema, Album?>> AddAlbum3(IgnoreTestSchema db, Album args)
+        {
+            var newAlbum = new Album
+            {
+                Id = new Random().Next(100),
+                Name = args.Name,
+            };
+            db.Albums.Add(newAlbum);
+            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+        }
+#nullable restore
+    }
+
 
     public class MovieArgs
     {
@@ -322,6 +465,11 @@ namespace EntityGraphQL.Tests
             public string Name { get; set; }
         }
 
+        public interface ISwim
+        {
+            public int Fins { get; set; }
+        }
+
         public class Cat : Animal
         {
             public int Lives { get; set; }
@@ -330,6 +478,11 @@ namespace EntityGraphQL.Tests
         public class Dog : Animal
         {
             public int Bones { get; set; }
+        }
+
+        public class Fish : Animal, ISwim
+        {
+            public int Fins { get; set; }
         }
     }
 

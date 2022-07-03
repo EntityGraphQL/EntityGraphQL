@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Collections.ObjectModel;
 
 namespace EntityGraphQL.Extensions
 {
@@ -101,6 +103,86 @@ namespace EntityGraphQL.Extensions
         public static bool IsNullableType(this Type t)
         {
             return t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
+
+
+        public static bool IsNullable(this MemberInfo memberInfo)
+        {
+            if (memberInfo is PropertyInfo property)
+            {
+                return IsNullableHelper(property.PropertyType, property.DeclaringType, property.CustomAttributes);
+            }
+
+            if (memberInfo is FieldInfo fieldInfo)
+            {
+                return IsNullableHelper(fieldInfo.FieldType, fieldInfo.DeclaringType, fieldInfo.CustomAttributes);
+            }
+
+            if (memberInfo is MethodInfo methodInfo)
+            {
+                return IsNullableHelper(
+                    methodInfo.GetActualReturnType(),
+                    methodInfo,
+                    methodInfo.ReturnParameter.CustomAttributes
+                );
+            }
+
+            return true;
+        }
+
+        private static Type GetActualReturnType(this MethodInfo methodInfo)
+        {
+            for (var type = methodInfo.ReturnType; type != null; type = type.GetGenericArguments().Last())
+            {
+                if (!type.IsGenericType)
+                {
+                    return type;
+                }
+            }
+
+            throw new Exception("Could not figure out return type");
+        }
+
+        private static bool IsNullableHelper(Type memberType, MemberInfo? declaringType, IEnumerable<CustomAttributeData> customAttributes)
+        {
+            if (memberType.IsValueType)
+            {
+                return Nullable.GetUnderlyingType(memberType) != null;
+            }
+
+            var nullable = customAttributes
+                .FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute");
+            if (nullable != null && nullable.ConstructorArguments.Count == 1)
+            {
+                var attributeArgument = nullable.ConstructorArguments[0];
+                if (attributeArgument.ArgumentType == typeof(byte[]))
+                {
+                    var args = (ReadOnlyCollection<CustomAttributeTypedArgument>)attributeArgument.Value!;
+                    if (args.Count > 0 && args.Last().ArgumentType == typeof(byte))
+                    {
+                        return (byte)args.Last().Value! == 2;
+                    }
+                }
+                else if (attributeArgument.ArgumentType == typeof(byte))
+                {
+                    return (byte)attributeArgument.Value! == 2;
+                }
+            }
+
+            for (var type = declaringType; type != null; type = type.DeclaringType)
+            {
+                var context = type.CustomAttributes
+                    .FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute");
+                if (context != null &&
+                    context.ConstructorArguments.Count == 1 &&
+                    context.ConstructorArguments[0].ArgumentType == typeof(byte))
+                {
+                    return (byte)context.ConstructorArguments[0].Value! == 2;
+                }
+            }
+
+            // Couldn't find a suitable attribute
+            return true;
         }
     }
 }

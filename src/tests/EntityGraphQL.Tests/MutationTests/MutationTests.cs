@@ -663,7 +663,7 @@ namespace EntityGraphQL.Tests
         public void TestStaticMethod()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.Mutation().AddFrom(new PeopleMutations());
+            schemaProvider.Mutation().AddFrom<PeopleMutations>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -823,5 +823,122 @@ namespace EntityGraphQL.Tests
         {
             return true;
         }
+
+        [Fact]
+        public void TestAddFromMultipleClassesImplementingInterface()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom<IMutations>();
+        
+
+            Assert.Equal(20, schemaProvider.Mutation().SchemaType.GetFields().Count());
+        }
+
+        public class NonAttributeMarkedMethod
+        {
+            public Person AddPerson(PeopleMutationsArgs args)
+            {
+                return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
+            }
+        }
+
+        [Fact]
+        public void TestAddFromMultipleClassesImplementingInterfaceByDefault()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>();
+
+
+            Assert.Empty(schemaProvider.Mutation().SchemaType.GetFields());
+        }
+
+        [Fact]
+        public void TestAddFromMultipleClassesImplementingInterfaceWhenEnabled()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>(addNonAttributedMethods: true);
+
+            Assert.NotEmpty(schemaProvider.Mutation().SchemaType.GetFields());
+        }
+
+        public class MutationClassInstantiationTest
+        {
+            private int _value;
+
+            public MutationClassInstantiationTest() { }
+
+            public MutationClassInstantiationTest(int value)
+            {
+                _value = value;
+            }
+
+            public int GetValue()
+            {
+                return _value;
+            }
+        }
+
+        [Fact]
+        public void TestRightValueReturnedFromAlreadyInstantiatedMutationClass()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom(new MutationClassInstantiationTest(1), addNonAttributedMethods: true);
+
+
+            var gql = new QueryRequest
+            {
+                Query = @"mutation getValue() {
+                    getValue()
+                }"
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);            
+            Assert.Equal(1, results.Data["getValue"]);
+        }
+
+        [Fact]
+        public void TestRightValueReturnedFromActivatorCreateMutationClass()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(addNonAttributedMethods: true);
+
+            var gql = new QueryRequest
+            {
+                Query = @"mutation getValue() {
+                    getValue()
+                }"
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            Assert.Equal(0, results.Data["getValue"]);
+        }
+
+        [Fact]
+        public void TestRightValueReturnedFromServiceProviderMutationClass()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(addNonAttributedMethods: true);
+
+            var gql = new QueryRequest
+            {
+                Query = @"mutation getValue() {
+                    getValue()
+                }"
+            };
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton(new MutationClassInstantiationTest(2));
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(results.Errors);
+            Assert.Equal(2, results.Data["getValue"]);
+        }
+
+       
     }
 }

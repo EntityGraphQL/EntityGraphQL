@@ -1532,7 +1532,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Project>().AddField("config", "Get project configs if they exists")
                 .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id))
                 .IsNullable(false);
-            schema.Type<Project>().AddField("task", p => p.Tasks.FirstOrDefault(), "A task");
+            schema.Type<Project>().ReplaceField("task", p => p.Tasks.FirstOrDefault(), "A task");
 
             schema.Query().ReplaceField("projects",
                 new

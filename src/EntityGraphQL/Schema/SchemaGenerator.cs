@@ -26,24 +26,27 @@ namespace EntityGraphQL.Schema
 
             var enums = BuildEnumTypes(schema);
             var types = BuildSchemaTypes(schema);
-            var hasMutations = mutationType.GetFields().Any();
-
             var queryTypes = MakeQueryType(schema);
 
-            var schemaStr = $@"schema {{
-    query: {rootQueryType.Name}
-    {(hasMutations ? "mutation: " + mutationType.Name : "")}
-}}
+            var schemaBuilder = new StringBuilder("schema {");
+            schemaBuilder.AppendLine();
+            schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
+            if (mutationType.GetFields().Any())
+                schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
+            schemaBuilder.AppendLine("}");
 
-{scalars}
-{enums}
+            schemaBuilder.AppendLine();
 
-type {rootQueryType.Name} {{
-{queryTypes}
-}}
-{types}
-";
-            return schemaStr;
+            schemaBuilder.AppendLine(scalars.ToString());
+            schemaBuilder.AppendLine(enums);
+            schemaBuilder.AppendLine();
+
+            schemaBuilder.AppendLine($"type {rootQueryType.Name} {{");
+            schemaBuilder.AppendLine(queryTypes);
+            schemaBuilder.AppendLine("}");
+
+            schemaBuilder.AppendLine(types);
+            return schemaBuilder.ToString();
         }
 
         private static string BuildEnumTypes(ISchemaProvider schema)
@@ -98,9 +101,12 @@ type {rootQueryType.Name} {{
                     _ => "type"
                 };
 
-                var implements = string.IsNullOrWhiteSpace(typeItem.BaseType)
-                    ? ""
-                    : $"implements {typeItem.BaseType} ";
+
+                var implements = "";
+
+                if (typeItem.BaseTypes != null && typeItem.BaseTypes.Count() > 0) {
+                    implements += $"implements {string.Join(" & ", typeItem.BaseTypes.Select(i => i.Name))} ";
+                }
 
                 types.AppendLine($"{type} {typeItem.Name} {implements}{{");
                 foreach (var field in typeItem.GetFields())

@@ -63,11 +63,22 @@
             var types = new List<TypeElement>();
 
             foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
-            {
-                var typeElement = new TypeElement("OBJECT", st.Name)
+            {                
+                var kind = st switch
                 {
-                    Description = st.Description
+                    { IsInterface: true } => "INTERFACE",
+                    _ => "OBJECT"
                 };
+
+                var typeElement = new TypeElement(kind, st.Name)
+                {
+                    Description = st.Description,                   
+                };
+
+                if(st.BaseTypes != null && st.BaseTypes.Count() > 0)
+                {
+                    typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();                    
+                }
 
                 types.Add(typeElement);
             }
