@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests.Util
         [Fact]
         public void TestNullableWithoutNullableRefEnabled()
         {
-            var propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NonNullableInt");            
+            var propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NonNullableInt");
             Assert.False(propertyInfo.IsNullable());
 
             propertyInfo = typeof(WithoutNullableRefEnabled).GetProperty("NullableInt");
@@ -110,7 +110,7 @@ namespace EntityGraphQL.Tests.Util
                             }
                             args {
                                 name 
-                                type { kind name }
+                                type { name kind }
                             }
                         }
                     }
@@ -118,16 +118,11 @@ namespace EntityGraphQL.Tests.Util
                 "
             };
 
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
-            };
-
             var res = schema.ExecuteRequest(gql, new WithNullableRefEnabled(), null, null);
             Assert.Null(res.Errors);
 
-            var type = ((dynamic)res.Data["__type"]);
-           
+            var type = (dynamic)res.Data["__type"];
+
             Assert.Equal(@"{""name"":""nullable"",""type"":{""kind"":""SCALAR"",""name"":""String"",""ofType"":null},""args"":[]}", JsonConvert.SerializeObject(type.fields[0]));
             Assert.Equal(@"{""name"":""nonNullable"",""type"":{""kind"":""NON_NULL"",""name"":null,""ofType"":{""name"":""String"",""kind"":""SCALAR""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[1]));
             Assert.Equal(@"{""name"":""nonNullableInt"",""type"":{""kind"":""NON_NULL"",""name"":null,""ofType"":{""name"":""Int"",""kind"":""SCALAR""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[2]));
