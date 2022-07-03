@@ -14,8 +14,10 @@ namespace EntityGraphQL.Schema
         public string? Description { get; set; }
         public GqlTypeEnum GqlType { get; protected set; }
 
-        protected List<ISchemaType> _baseTypes = new List<ISchemaType>();
-        public IList<ISchemaType> BaseTypes => _baseTypes.AsReadOnly();
+        protected List<ISchemaType> baseTypes = new();
+        public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
+        [Obsolete("Multiple base types are now supported. Use BaseTypes")]
+        public string? BaseType => BaseTypes?.FirstOrDefault()?.Name;
 
         [Obsolete]
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
@@ -25,7 +27,7 @@ namespace EntityGraphQL.Schema
         public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
         [Obsolete]
         public bool IsScalar { get { return GqlType == GqlTypeEnum.Scalar; } }
-        
+
         public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;
         public RequiredAuthorization? RequiredAuthorization { get; set; }
 

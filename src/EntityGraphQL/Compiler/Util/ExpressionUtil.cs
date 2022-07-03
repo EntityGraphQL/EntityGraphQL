@@ -380,23 +380,22 @@ namespace EntityGraphQL.Compiler.Util
 
         class ConversionVisitor : ExpressionVisitor
         {
-            private Expression _param;
-            private Type _type;
+            private readonly Expression parameter;
+            private readonly Type convertTo;
 
-            public ConversionVisitor(Expression param, Type type)
+            public ConversionVisitor(Expression parameter, Type convertTo)
             {
-                _param = param;
-                _type = type;
+                this.parameter = parameter;
+                this.convertTo = convertTo;
             }
             protected override Expression VisitMember(MemberExpression node)
             {
                 //don't convert param for __typename
                 if (node.Member.DeclaringType == typeof(ISchemaType))
                     return node;
-                
-                return Expression.PropertyOrField(Expression.Convert(_param, _type), node.Member.Name);                
-            }
 
+                return Expression.PropertyOrField(Expression.Convert(parameter, convertTo), node.Member.Name);
+            }
         }
 
         /// <summary>
@@ -405,15 +404,15 @@ namespace EntityGraphQL.Compiler.Util
         public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
         {
             if (!fieldExpressions.Any())
-                return baseExp;            
+                return baseExp;
 
-            //get a list of distinct types asked for in the query (fragments for interfaces)
+            // get a list of distinct types asked for in the query (fragments for interfaces)
             var validTypes = fieldExpressions.Values.OfType<MemberExpression>()
                 .Where(i => currentContextParam.Type.IsAssignableFrom(((MemberExpression)i).Expression.Type))
                 .Select(i => i.Expression.Type)
                 .Distinct();
 
-            //If 0 or 1 valid types then default to basic behaviour
+            // If 0 or 1 valid types then default to basic behaviour
             if (validTypes.Count() < 2)
             {
                 var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
@@ -425,7 +424,7 @@ namespace EntityGraphQL.Compiler.Util
                     MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
                 return call;
             }
-            //make a query that checks type of object and returns the valid properties for that specific type
+            // make a query that checks type of object and returns the valid properties for that specific type
             else
             {
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
@@ -433,12 +432,12 @@ namespace EntityGraphQL.Compiler.Util
                        .Where(i => i.Value is MemberExpression)
                        .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value.Type)
-                    
+
                 );
                 if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
-                
+
                 Expression? previous = null;
                 foreach (var type in validTypes)
                 {

@@ -10,9 +10,22 @@ namespace EntityGraphQL.Schema
     {
         public override Type TypeDotnet { get; }
 
-        [Obsolete]
+        [Obsolete("Please use the constructors that use the GqlTypeEnum argument")]
         public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization,
+                isInput ? GqlTypeEnum.Input :
+                isEnum ? GqlTypeEnum.Enum :
+                isScalar ? GqlTypeEnum.Scalar :
+                isInterface ? GqlTypeEnum.Interface :
+                GqlTypeEnum.Object,
+                baseType
+            )
+        {
+        }
+
+        [Obsolete("Please use the constructors that use the GqlTypeEnum argument")]
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
+        : this(schema, dotnetType, name, description, requiredAuthorization,
                 isInput ? GqlTypeEnum.Input :
                 isEnum ? GqlTypeEnum.Enum :
                 isScalar ? GqlTypeEnum.Scalar :
@@ -50,7 +63,7 @@ namespace EntityGraphQL.Schema
 
             if (baseType != null)
             {
-                _baseTypes.Add(schema.GetSchemaType(baseType, null));
+                baseTypes.Add(schema.GetSchemaType(baseType, null));
             }
         }
 
@@ -326,7 +339,7 @@ namespace EntityGraphQL.Schema
             var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
             if (baseType != null)
             {
-                _baseTypes.Add(baseType);
+                baseTypes.Add(baseType);
             }
 
             foreach (var i in TypeDotnet.GetInterfaces())
@@ -334,7 +347,7 @@ namespace EntityGraphQL.Schema
                 var interfaceType = Schema.GetSchemaType(i, null);
                 if (interfaceType != null)
                 {
-                    _baseTypes.Add(interfaceType);
+                    baseTypes.Add(interfaceType);
                 }
             }
 
@@ -344,14 +357,14 @@ namespace EntityGraphQL.Schema
         public override ISchemaType AddBaseType<TypeDotnet>()
         {
             var baseType = Schema.GetSchemaType(typeof(TypeDotnet), null);
-            _baseTypes.Add(baseType);
+            baseTypes.Add(baseType);
             return this;
         }
 
         public override ISchemaType AddBaseType(string name)
         {
             var baseType = Schema.GetSchemaType(name, null);
-            _baseTypes.Add(baseType);
+            baseTypes.Add(baseType);
             return this;
         }
     }
