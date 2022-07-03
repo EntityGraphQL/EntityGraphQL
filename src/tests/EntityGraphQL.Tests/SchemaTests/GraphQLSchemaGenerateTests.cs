@@ -138,12 +138,11 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("hiddenField", schema);
             // this exists as it is available for querying
-            //Assert.Contains("type Album {\n\tid: Int!\n\tname: String!\n\thiddenInputField: String\n\tgenre: Genre!\n}", schema);
             Assert.Contains(@"type Album {
+	genre: Genre!
+	hiddenInputField: String
 	id: Int!
 	name: String!
-	hiddenInputField: String
-	genre: Genre!
 }", schema);
             // doesn't include the hidden input fields
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
@@ -167,12 +166,13 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains(@"type Album {
+	genre: Genre!
+	hiddenInputField: String
 	id: Int!
 	name: String!
-	hiddenInputField: String
-	genre: Genre!
 }", schema);
         }
+
         [Fact]
         public void TestNullableEnumInType()
         {
@@ -184,6 +184,7 @@ namespace EntityGraphQL.Tests
 	type: ArtistType
 }", schema);
         }
+
         [Fact]
         public void TestNotNullArgs()
         {
@@ -193,6 +194,7 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
         }
+
         [Fact]
         public void TestNotNullEnumerableElementByDefault()
         {

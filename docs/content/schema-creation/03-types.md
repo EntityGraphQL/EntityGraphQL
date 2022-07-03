@@ -151,6 +151,22 @@ type Droid implements Character {
 }
 ```
 
+You can query these types with inline fragments;
+
+```
+query {
+    characters {
+        name
+        ... on Human {
+            totalCredits
+        }
+        ... on Droid {
+            primaryFunction
+        }
+    }
+}
+```
+
 # Input Types
 
 We've seen passing scalar values, like enums, numbers or strings, as arguments into a field. [Input types](https://graphql.org/learn/schema/#input-types) allow us to define complex types that can be used as an argument. This is particularly valuable in the case of mutations, where you might want to pass in a whole object to be created.

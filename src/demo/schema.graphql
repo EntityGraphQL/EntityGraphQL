@@ -1,45 +1,44 @@
 schema {
-    query: Query
-    mutation: Mutation
+	query: Query
+	mutation: Mutation
 }
 
-scalar Int
-scalar Float
 scalar Boolean
-scalar String
-scalar ID
 scalar Date
+scalar Float
+scalar ID
+scalar Int
+scalar String
 scalar StringKeyValuePair
-
 
 enum Genre {
 	"""Action movie type"""
 	Action
-	"""Drama movie type"""
-	Drama
 	"""Comedy movie type"""
 	Comedy
+	"""Drama movie type"""
+	Drama
 	"""Horror movie type"""
 	Horror
 	"""Scifi movie type"""
 	Scifi
 }
 
-	"""Sort direction enum"""
+"""Sort direction enum"""
 enum SortDirectionEnum {
 	ASC
 	DESC
 }
 
-
+"""Query schema"""
 type Query {
 	"""actors paged by connection & edges and orderable"""
-	actors(filter: String, sort: [ActorsSortInput!], first: Int, after: String, last: Int, before: String): PersonConnection
+	actors(filter: String!, sort: [ActorsSortInput!]!, first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
 	attributes: [StringKeyValuePair!]
 	"""List of directors"""
-	directors(sort: [DirectorsSortInput!]): [Person!]
+	directors(sort: [DirectorsSortInput!]!): [Person!]
 	"""Return a Movie by its Id"""
 	movie(id: Int!): Movie
 	"""Collection of Movies"""
@@ -50,140 +49,139 @@ type Query {
 	person(id: Int!): Person
 	"""List of writers"""
 	writers: [Person!]
-
-}
-
-"""Mutation schema"""
-type Mutation {
-	"""Example of a mutation that takes 0 arguments"""
-	exampleNoArgs: Movie
-	"""Example of a mutation that does not use the context or argments but does use registered services"""
-	exampleNoArgsWithService: Int!
-	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
-	addActor(firstName: String, lastName: String, movieId: Int!): Person
-	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
-	addActor3(names: [String!], movieId: Int!): [Person!]
-}
-
-"""Information about subscriptions"""
-type SubscriptionType {
-	name: String
-}
-
-type Movie {
-	id: Int!
-	name: String
-	"""Enum of Genre"""
-	genre: Genre!
-	released: Date!
-	"""Actors in the movie"""
-	actors: [Person!]
-	"""Writers in the movie"""
-	writers: [Person!]
-	director: Person
-	directorId: Int
-	rating: Float!
 }
 
 type Actor {
-	personId: Int!
-	person: Person
-	movieId: Int!
 	movie: Movie
-}
-
-type Person {
-	id: Int!
-	firstName: String!
-	lastName: String!
-	dob: Date!
-	"""Movies they acted in"""
-	actorIn: [Movie!]
-	"""Movies they wrote"""
-	writerOf: [Movie!]
-	directorOf: [Movie!]
-	died: Date
-	isDeleted: Boolean!
-	"""Person's name"""
-	name: String
-	"""Show the person's age"""
-	age: Int!
-	"""Get Director of based on filter"""
-	filteredDirectorOf(filter: String): [Movie!]
-}
-
-type Writer {
-	personId: Int!
-	person: Person
 	movieId: Int!
-	movie: Movie
-}
-
-"""Metadata about a person connection (paging over people)"""
-type PersonConnection {
-	"""Edge information about each node in the collection"""
-	edges: [PersonEdge!]!
-	"""Total count of items in the collection"""
-	totalCount: Int!
-	"""Information about this page of data"""
-	pageInfo: PageInfo!
-}
-
-"""Sort arguments for directors"""
-input DirectorsSortInput {
-	id: SortDirectionEnum
-	firstName: SortDirectionEnum
-	lastName: SortDirectionEnum
-	dob: SortDirectionEnum
-	died: SortDirectionEnum
-	isDeleted: SortDirectionEnum
+	person: Person
+	personId: Int!
 }
 
 """Sort arguments for actors"""
 input ActorsSortInput {
-	id: SortDirectionEnum
-	firstName: SortDirectionEnum
-	lastName: SortDirectionEnum
-	dob: SortDirectionEnum
 	died: SortDirectionEnum
+	dob: SortDirectionEnum
+	firstName: SortDirectionEnum
+	id: SortDirectionEnum
 	isDeleted: SortDirectionEnum
+	lastName: SortDirectionEnum
+}
+
+"""Detail item"""
+input Detail {
+	description: String
+}
+
+"""Sort arguments for directors"""
+input DirectorsSortInput {
+	died: SortDirectionEnum
+	dob: SortDirectionEnum
+	firstName: SortDirectionEnum
+	id: SortDirectionEnum
+	isDeleted: SortDirectionEnum
+	lastName: SortDirectionEnum
+}
+
+type Movie {
+	"""Actors in the movie"""
+	actors: [Person!]
+	director: Person
+	directorId: Int
+	"""Enum of Genre"""
+	genre: Genre!
+	id: Int!
+	name: String
+	rating: Float!
+	released: Date!
+	"""Writers in the movie"""
+	writers: [Person!]
 }
 
 """Metadata about a page of data"""
 type PageInfo {
 	"""Last cursor in the page. Use this as the next from argument"""
 	endCursor: String!
-	"""Start cursor in the page. Use this to go backwards with the before argument"""
-	startCursor: String!
 	"""If there is more data after this page"""
 	hasNextPage: Boolean!
 	"""If there is data previous to this page"""
 	hasPreviousPage: Boolean!
+	"""Start cursor in the page. Use this to go backwards with the before argument"""
+	startCursor: String!
+}
+
+type Person {
+	"""Movies they acted in"""
+	actorIn: [Movie!]
+	"""Show the person's age"""
+	age: Int!
+	died: Date
+	directorOf: [Movie!]
+	dob: Date!
+	"""Get Director of based on filter"""
+	filteredDirectorOf(filter: String): [Movie!]
+	firstName: String!
+	id: Int!
+	isDeleted: Boolean!
+	lastName: String!
+	"""Person's name"""
+	name: String
+	"""Movies they wrote"""
+	writerOf: [Movie!]
+}
+
+"""Metadata about a person connection (paging over people)"""
+type PersonConnection {
+	"""Edge information about each node in the collection"""
+	edges: [PersonEdge!]!
+	"""Information about this page of data"""
+	pageInfo: PageInfo!
+	"""Total count of items in the collection"""
+	totalCount: Int!
 }
 
 """Metadata about an edge of page result"""
 type PersonEdge {
-	"""The item of the collection"""
-	node: Person!
 	"""The cursor for this items position within the collection"""
 	cursor: String!
+	"""The item of the collection"""
+	node: Person!
 }
 
 """Metadata about a Person page (paging over people)"""
 type PersonPage {
-	"""Items in the page"""
-	items: [Person!]
-	"""True if there is more data before this page"""
-	hasPreviousPage: Boolean!
 	"""True if there is more data after this page"""
 	hasNextPage: Boolean!
+	"""True if there is more data before this page"""
+	hasPreviousPage: Boolean!
+	"""Items in the page"""
+	items: [Person!]!
 	"""Count of the total items in the collection"""
 	totalItems: Int!
 }
 
-"""Detail item"""
-input Detail {
-	description: String
+"""Information about subscriptions"""
+type SubscriptionType {
+	name: String!
+}
+
+type Writer {
+	movie: Movie
+	movieId: Int!
+	person: Person
+	personId: Int!
+}
+
+"""Mutation schema"""
+type Mutation {
+	addActor(firstName: String, lastName: String, movieId: Int!): Person
+	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
+	addActor3(names: [String!], movieId: Int!): [Person!]
+	"""Add a new Movie object"""
+	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
+	"""Example of a mutation that takes 0 arguments"""
+	exampleNoArgs: Movie
+	"""Example of a mutation that does not use the context or argments but does use registered services"""
+	exampleNoArgsWithService: Int!
 }
 

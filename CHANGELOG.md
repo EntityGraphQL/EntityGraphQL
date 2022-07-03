@@ -8,6 +8,7 @@ Changes:
 - Cleanup SchemaType to use an enum instead of lots of boolean type variables. Previous constructor is obsolete
 - Cleanup Interfaces api - added a `AddAllBaseTypes`, `AddBaseType` and `AddBaseType(string)` which provides a lot more flexiblity. See updated docs
 - Added support for Inline Fragments for types that have interfaces
+- `ToGraphQLSchemaString` now orders types and fields by name for consistency regardless of order of fields added and to reduce differences when diffing the schema
 
 Fixes:
 
