@@ -432,11 +432,9 @@ namespace EntityGraphQL.Compiler.Util
                        .Where(i => i.Value is MemberExpression)
                        .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value.Type)
-
                 );
                 if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
-
 
                 Expression? previous = null;
                 foreach (var type in validTypes)

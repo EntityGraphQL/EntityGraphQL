@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util
 {
@@ -53,12 +52,14 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            if (toReplace != null && toReplace == node) 
-                //leave param type so we can do conversions later,
-                //but if namespace is null then do conversion as it's not an entity type it's a generated type
-                //(need better way to detect this)
-                if(newParam!.Type.Namespace == null || newParam!.Type == node.Type)
+            if (toReplace != null && toReplace == node)
+            {
+                // leave param type so we can do conversions later,
+                // but if namespace is null then do conversion as it's not an entity type it's a generated type
+                // (need better way to detect this)
+                if (newParam!.Type.Namespace == null || newParam!.Type == node.Type)
                     return newParam!;
+            }
             if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
                 return newParam!;
             return node;
@@ -94,9 +95,6 @@ namespace EntityGraphQL.Compiler.Util
                     // RequiredField<> causes a ctx.Field.Value
                     if (node.Expression == toReplace || (node.Expression.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node.Expression).Expression == toReplace))
                     {
-                        // var dotnetType = node.Expression.Type;
-                        // if (dotnetType != newParam!.Type)
-                        //     return Expression.Convert(newParam, node.Expression.Type.GetGenericArguments().FirstOrDefault() ?? dotnetType);
                         return newParam!;
                     }
                 }
