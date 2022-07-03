@@ -378,22 +378,115 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
+        class ConversionVisitor : ExpressionVisitor
+        {
+            private Expression _param;
+            private Type _type;
+
+            public ConversionVisitor(Expression param, Type type)
+            {
+                _param = param;
+                _type = type;
+            }
+            protected override Expression VisitMember(MemberExpression node)
+            {
+                //don't convert param for __typename
+                if (node.Member.DeclaringType == typeof(ISchemaType))
+                    return node;
+                
+                return Expression.PropertyOrField(Expression.Convert(_param, _type), node.Member.Name);                
+            }
+
+        }
+
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
         public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
         {
             if (!fieldExpressions.Any())
-                return baseExp;
+                return baseExp;            
 
-            var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
-            if (memberInit == null || dynamicType == null) // nothing to select
-                return baseExp;
-            var selector = Expression.Lambda(memberInit, currentContextParam);
-            var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
-            var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
-                MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
-            return call;
+            //get a list of distinct types asked for in the query (fragments for interfaces)
+            var validTypes = fieldExpressions.Values.OfType<MemberExpression>()
+                .Where(i => currentContextParam.Type.IsAssignableFrom(((MemberExpression)i).Expression.Type))
+                .Select(i => i.Expression.Type)
+                .Distinct();
+
+            //If 0 or 1 valid types then default to basic behaviour
+            if (validTypes.Count() < 2)
+            {
+                var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
+                if (memberInit == null || dynamicType == null) // nothing to select
+                    return baseExp;
+                var selector = Expression.Lambda(memberInit, currentContextParam);
+                var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
+                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
+                    MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+                return call;
+            }
+            //make a query that checks type of object and returns the valid properties for that specific type
+            else
+            {
+                var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
+                    fieldExpressions
+                       .Where(i => i.Value is MemberExpression)
+                       .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
+                       .ToDictionary(i => i.Key, i => i.Value.Type)
+                    
+                );
+                if (baseDynamicType == null)
+                    throw new EntityGraphQLCompilerException("Could not create dynamic type");
+
+                
+                Expression? previous = null;
+                foreach (var type in validTypes)
+                {
+                    var fieldsOnType = fieldExpressions
+                       .Where(i => i.Value is MemberExpression)
+                       .Where(i => ((MemberExpression)i.Value).Expression.Type.IsAssignableFrom(type) || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
+                       .ToDictionary(i => i.Key, i => i.Value);
+
+                    var conversionVisitor = new ConversionVisitor(currentContextParam, type);
+
+                    var specificDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnType.ToDictionary(i => i.Key, i => i.Value.Type), parentType: baseDynamicType);
+                    var constructor = specificDynamicType.GetConstructor(Type.EmptyTypes);
+                    if (constructor == null)
+                        throw new EntityGraphQLCompilerException("Could not create dynamic type");
+
+                    var bindings = specificDynamicType
+                        .GetFields()
+                        .Where(p => fieldsOnType.Keys.Contains(p.Name))
+                        .Select(p => Expression.Bind(p,
+                             conversionVisitor.Visit(fieldsOnType[p.Name])
+                        ))
+                        .OfType<MemberBinding>();
+
+                    var newExp = Expression.New(constructor);
+                    var memberInit = Expression.MemberInit(newExp, bindings);
+
+                    if (previous != null)
+                    {
+                        previous = Expression.Condition(
+                              test: Expression.TypeIs(currentContextParam, type),
+                              ifTrue: memberInit,
+                              ifFalse: previous,
+                              type: baseDynamicType
+                        );
+                    }
+                    else
+                    {
+                        previous = memberInit;
+                    }
+                }
+
+                var selector = Expression.Lambda(previous, currentContextParam);
+                var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
+
+                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
+                      MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
+                return call;
+            }
         }
 
         public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, out Type dynamicType)

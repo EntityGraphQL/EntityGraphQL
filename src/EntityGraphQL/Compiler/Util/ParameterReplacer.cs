@@ -53,8 +53,12 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            if (toReplace != null && toReplace == node)
-                return newParam!;
+            if (toReplace != null && toReplace == node) 
+                //leave param type so we can do conversions later,
+                //but if namespace is null then do conversion as it's not an entity type it's a generated type
+                //(need better way to detect this)
+                if(newParam!.Type.Namespace == null || newParam!.Type == node.Type)
+                    return newParam!;
             if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
                 return newParam!;
             return node;

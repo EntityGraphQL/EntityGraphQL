@@ -17,6 +17,11 @@ namespace EntityGraphQL.Compiler
         {
         }
 
+        protected BaseGraphQLQueryField(BaseGraphQLQueryField context, Expression? nextFieldContext)
+            : base(context, nextFieldContext)
+        {
+        }
+
         public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             var result = ProcessFieldDirectives(this, docParam, docVariables);

@@ -26,7 +26,8 @@ namespace EntityGraphQL.Tests
                 UpdateQuery(query =>
                 {
                     query.AddField(ctx => ctx.Animals, "All animals in the world");                    
-                });
+                });               
+
             }
         }
     }
