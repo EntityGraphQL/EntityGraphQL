@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using EntityGraphQL.Directives;
     using EntityGraphQL.Extensions;
     using EntityGraphQL.Schema.Models;
 
@@ -63,7 +64,7 @@
             var types = new List<TypeElement>();
 
             foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
-            {                
+            {
                 var kind = st switch
                 {
                     { IsInterface: true } => "INTERFACE",
@@ -72,12 +73,12 @@
 
                 var typeElement = new TypeElement(kind, st.Name)
                 {
-                    Description = st.Description,                   
+                    Description = st.Description,
                 };
 
-                if(st.BaseTypes != null && st.BaseTypes.Count() > 0)
+                if (st.BaseTypes != null && st.BaseTypes.Count() > 0)
                 {
-                    typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();                    
+                    typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
                 }
 
                 types.Add(typeElement);
@@ -144,6 +145,7 @@
         {
             var types = new List<TypeElement>();
 
+            // filter to ENUM type ONLY!
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsEnum))
             {
                 var typeElement = new TypeElement("ENUM", schemaType.Name)
@@ -156,8 +158,7 @@
 
                 var enumTypes = new List<EnumValue>();
 
-                //filter to ENUM type ONLY!
-                foreach (Field field in schemaType.GetFields())
+                foreach (var field in schemaType.GetFields().Cast<Field>())
                 {
                     if (field.Name.StartsWith("__"))
                         continue;
@@ -320,7 +321,7 @@
                 args.Add(new InputValue(arg.Key, type)
                 {
                     DefaultValue = null,
-                    Description = null,
+                    Description = arg.Value.Description,
                 });
             }
 
@@ -332,7 +333,7 @@
             var directives = schema.GetDirectives().Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,
-                Locations = new string[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" },
+                Locations = directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)),
                 Args = directive.GetArguments(schema).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
                 {
                     Description = arg.Description,

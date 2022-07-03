@@ -18,6 +18,7 @@ namespace EntityGraphQL.Directives
         public Type GetArgumentsType() => typeof(TArguments);
         public abstract string Name { get; }
         public abstract string Description { get; }
+        public abstract List<ExecutableDirectiveLocation> On { get; }
 
         /// <summary>
         /// Implement this to make changes to the expression that will execute

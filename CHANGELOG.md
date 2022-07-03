@@ -1,3 +1,13 @@
+# 3.0.0
+
+Breaking changes:
+
+- `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
+
+Changes:
+
+- `ToGraphQLSchemaString` now outputs directives in the schema
+
 # 2.3.0
 
 Changes:

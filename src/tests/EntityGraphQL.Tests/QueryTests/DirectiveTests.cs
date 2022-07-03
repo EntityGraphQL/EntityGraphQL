@@ -1,8 +1,7 @@
-using System.Collections;
 using Xunit;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
-using System.Linq;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Tests
 {
@@ -209,5 +208,33 @@ namespace EntityGraphQL.Tests
             var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Empty(result.Data);
         }
+
+        [Fact]
+        public void TestDirectiveInSchemaOutputWithArgs()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var result = schema.ToGraphQLSchemaString();
+            Assert.Contains("directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT", result);
+        }
+
+        [Fact]
+        public void TestCustomDirectiveOnFieldInSchemaOutput()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddDirective(new ExampleDirective());
+
+            var result = schema.ToGraphQLSchemaString();
+            Assert.Contains("directive @example on FIELD", result);
+        }
+    }
+
+    internal class ExampleDirective : DirectiveProcessor<object>
+    {
+        public override string Name => "example";
+
+        public override string Description => "Actually does nothing";
+
+        public override List<ExecutableDirectiveLocation> On => new() { ExecutableDirectiveLocation.FIELD };
     }
 }
