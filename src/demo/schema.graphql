@@ -30,7 +30,7 @@ enum SortDirectionEnum {
 	DESC
 }
 
-"""Query schema"""
+"""The query type represents all of the entry points into the object graph"""
 type Query {
 	"""actors paged by connection & edges and orderable"""
 	actors(filter: String!, sort: [ActorsSortInput!]!, first: Int, after: String, last: Int, before: String): PersonConnection
@@ -172,7 +172,7 @@ type Writer {
 	personId: Int!
 }
 
-"""Mutation schema"""
+"""The mutation type schema represents all of the mutation functions in the schema"""
 type Mutation {
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
 	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]

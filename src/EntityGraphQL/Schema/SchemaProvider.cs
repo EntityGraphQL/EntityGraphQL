@@ -78,11 +78,11 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, "Query", "Query schema", null, GqlTypeEnum.Object);
+            var queryContext = new SchemaType<TContextType>(this, "Query", "The query type represents all of the entry points into the object graph", null, GqlTypeEnum.Object);
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
-            var mutationType = new MutationType(this, "Mutation", "Mutation schema", null);
+            var mutationType = new MutationType(this, "Mutation", "The mutation type schema represents all of the mutation functions in the schema", null);
             this.mutationType = mutationType;
             schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
 
