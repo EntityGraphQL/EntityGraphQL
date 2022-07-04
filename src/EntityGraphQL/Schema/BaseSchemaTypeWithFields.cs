@@ -17,13 +17,9 @@ namespace EntityGraphQL.Schema
         protected List<ISchemaType> baseTypes = new();
         public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
 
-        [Obsolete]
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
-        [Obsolete]
         public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
-        [Obsolete]
         public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
-        [Obsolete]
         public bool IsScalar { get { return GqlType == GqlTypeEnum.Scalar; } }
 
         public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;

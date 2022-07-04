@@ -5,6 +5,7 @@ Breaking changes:
 - `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
 - Removed obsolete `ISchemaType.BaseType`. Use `ISchemaType.BaseTypes`
 - Cleaned up `SchemaType` constructors - using `GqlTypeEnum` instead of many boolean flags
+- Removed obsolete `SchemaProvider.AddInheritedType<TBaseType>`
 
 Changes:
 

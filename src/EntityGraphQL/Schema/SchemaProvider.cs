@@ -286,22 +286,6 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a new type into the schema with TBaseType as its context
-        /// inheriting from another type
-        /// </summary>
-        /// <param name="name">Name of the type</param>
-        /// <param name="description">description of the type</param>
-        /// <typeparam name="TBaseType"></typeparam>
-        /// <returns>The added type for further changes via chaining</returns>
-        [Obsolete]
-        public SchemaType<TBaseType> AddInheritedType<TBaseType>(string name, string? description, string baseType)
-        {
-            var schemaType = new SchemaType<TBaseType>(this, name, description, null, GqlTypeEnum.Object, baseType: baseType);
-            FinishAddingType(typeof(TBaseType), name, schemaType);
-            return schemaType;
-        }
-
-        /// <summary>
-        /// Add a new type into the schema with TBaseType as its context
         /// </summary>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
