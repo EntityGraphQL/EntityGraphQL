@@ -10,38 +10,11 @@ namespace EntityGraphQL.Schema
     {
         public override Type TypeDotnet { get; }
 
-        [Obsolete("Please use the constructors that use the GqlTypeEnum argument")]
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization,
-                isInput ? GqlTypeEnum.Input :
-                isEnum ? GqlTypeEnum.Enum :
-                isScalar ? GqlTypeEnum.Scalar :
-                isInterface ? GqlTypeEnum.Interface :
-                GqlTypeEnum.Object,
-                baseType
-            )
-        {
-        }
-
-        [Obsolete("Please use the constructors that use the GqlTypeEnum argument")]
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
-        : this(schema, dotnetType, name, description, requiredAuthorization,
-                isInput ? GqlTypeEnum.Input :
-                isEnum ? GqlTypeEnum.Enum :
-                isScalar ? GqlTypeEnum.Scalar :
-                isInterface ? GqlTypeEnum.Interface :
-                GqlTypeEnum.Object,
-                baseType
-            )
-        {
-        }
-
         public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, gqlType, baseType)
         {
 
         }
-
 
         public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
