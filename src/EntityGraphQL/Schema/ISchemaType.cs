@@ -14,8 +14,6 @@ namespace EntityGraphQL.Schema
         bool IsEnum { get; }
         bool IsScalar { get; }
         bool RequiresSelection { get; }
-        [Obsolete("Multiple base types are now supported. Use BaseTypes")]
-        string? BaseType { get; }
         IList<ISchemaType> BaseTypes { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);

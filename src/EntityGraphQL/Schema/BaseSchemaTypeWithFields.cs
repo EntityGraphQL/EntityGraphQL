@@ -16,8 +16,6 @@ namespace EntityGraphQL.Schema
 
         protected List<ISchemaType> baseTypes = new();
         public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
-        [Obsolete("Multiple base types are now supported. Use BaseTypes")]
-        public string? BaseType => BaseTypes?.FirstOrDefault()?.Name;
 
         [Obsolete]
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
