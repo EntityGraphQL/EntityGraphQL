@@ -48,7 +48,7 @@ schema.AddMutationsFrom<PeopleMutations>();
 
 EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with [GraphQLMutation] applied).
 
-For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations`. Dependency injection on the constructor and mutation methods follows the same pattern as [in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/dependency-injection).
+For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations` and provides services to it through [dependency injection](#dependenciesinjection&services).
 
 **Register all mutation controllers implementing or derving from a type**
 
@@ -178,25 +178,25 @@ This means we have access to the full schema graph from the core context of the 
 
 You likely want to access some services in your mutations. EntityGraphQL supports dependency injection. When you execute a query make sure you pass in an `IServiceProvider`. Here is an example with ASP.NET.
 
-_Note if you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
+_Note: If you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
 
 ```
 var results = _schemaProvider.ExecuteRequest(query, demoContext, HttpContext.RequestServices, null);
 ```
 
-EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it in the method signature of the mutation. This includes both constructor arguments (when a mutation class instance is not provided) and method arguments for the specific mutation.
+EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it as a parameter of the mutation controller constructor or a mutation method.
 
 ```
 // in Startup.cs
 services.AddSingleton<IDemoService, DemoService>();
 
 // your mutation method
-[GraphQLMutation("Add a new person to the system)]
+[GraphQLMutation("Add a new person to the system.")]
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args, IDemoService demoService)
 {
     // do something cool with demoService
 
-    return (ctx) => ctx.People.First(p => p.Id == person.Id);
+    return (db) => db.People.First(p => p.Id == person.Id);
 }
 ```
 
