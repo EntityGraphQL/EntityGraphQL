@@ -26,8 +26,8 @@ namespace EntityGraphQL.Tests
                 UpdateQuery(query =>
                 {
                     query.AddField(ctx => ctx.Animals, "All animals in the world");
+                    query.AddField("animal", new { id = ArgumentHelper.Required<int>() }, (ctx, args) => ctx.Animals.FirstOrDefault(a => a.Id == args.id), "Animal by id");
                 });
-
             }
         }
     }

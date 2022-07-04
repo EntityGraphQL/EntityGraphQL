@@ -259,8 +259,8 @@ namespace EntityGraphQL.Tests
                         fields {
                             name
                             type  { 
-                                kind
                                 name
+                                kind
                                 ofType {
                                     name
                                     kind
@@ -268,7 +268,7 @@ namespace EntityGraphQL.Tests
                             }
                             args {
                                 name 
-                                type { kind name }
+                                type { name kind }
                             }
                         }
                     }
@@ -276,15 +276,10 @@ namespace EntityGraphQL.Tests
                 "
             };
 
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
-            };
-
             var res = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
             Assert.Null(res.Errors);
 
-            var mutation = ((dynamic)res.Data["__type"]);
+            var mutation = (dynamic)res.Data["__type"];
 
             Assert.Equal("addAlbum", mutation.fields[0].name);
             Assert.Equal("Album", mutation.fields[0].type.name);

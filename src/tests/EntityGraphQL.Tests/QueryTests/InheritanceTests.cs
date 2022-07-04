@@ -68,5 +68,69 @@ query {
             Assert.Equal("george", animals[1].name);
             Assert.Equal(9, animals[1].lives);
         }
+
+        [Fact]
+        public void TestInheritanceExtraFieldsOnObjectDog()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animal(id: 9) {
+        __typename
+        name
+        ... on Cat {
+            lives 
+        }
+        ...on Dog {
+            hasBone 
+        }
+    }
+}
+");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animal = qr.Data["animal"];
+            Assert.Equal("Dog", animal.__typename);
+            Assert.Equal("steve", animal.name);
+            Assert.True(animal.hasBone);
+            // does not have the cat field
+            Assert.Null(animal.GetType().GetField("lives"));
+        }
+
+        [Fact]
+        public void TestInheritanceExtraFieldsOnObjectCat()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animal(id: 2) {
+        __typename
+        name
+        ... on Cat {
+            lives 
+        }
+        ...on Dog {
+            hasBone 
+        }
+    }
+}
+");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animal = qr.Data["animal"];
+            Assert.Equal("Cat", animal.__typename);
+            Assert.Equal("george", animal.name);
+            Assert.Equal(9, animal.lives);
+            // does not have the dog field
+            Assert.Null(animal.GetType().GetField("hasBone"));
+        }
     }
 }

@@ -41,8 +41,8 @@ query IntrospectionQuery {
 }
 
 fragment FullType on __Type {
-  kind
   name
+  kind
   description
   fields(includeDeprecated: true) {
     name
@@ -83,29 +83,29 @@ fragment InputValue on __InputValue {
 }
 
 fragment TypeRef on __Type {
-  kind
   name
+  kind
   ofType {
-    kind
     name
+    kind
     ofType {
-      kind
       name
+      kind
       ofType {
-        kind
         name
+        kind
         ofType {
-          kind
           name
+          kind
           ofType {
-            kind
             name
+            kind
             ofType {
-              kind
               name
+              kind
               ofType {
-                kind
                 name
+                kind
               }
             }
           }

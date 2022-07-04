@@ -361,15 +361,17 @@ namespace EntityGraphQL.Compiler
             {
                 var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, requestContext);
                 if (type != null)
-                {                    
+                {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
-                    var newContext = new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter);
+                    BaseGraphQLField newContext = context is GraphQLListSelectionField ?
+                        new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter) :
+                        new GraphQLObjectProjectionField((GraphQLObjectProjectionField)context!, fragParameter);
                     base.VisitInlineFragment(node, newContext);
 
                     //copy the fragment fields over to the select context and cast the type so we can access the property
                     foreach (var queryField in newContext.QueryFields)
                     {
-                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);                        
+                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);
                         context.AddField(fieldResult);
                     }
                 }
