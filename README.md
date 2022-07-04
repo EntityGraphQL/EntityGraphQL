@@ -1,4 +1,5 @@
 # Entity GraphQL
+
 ## A GraphQL library for .NET Core
 
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
@@ -15,6 +16,7 @@ _Please explore, give feedback or join the development._
 If you're looking for a dotnet library to generate code to query an API from a GraphQL schema see https://github.com/lukemurray/DotNetGraphQLQueryGen
 
 ## Installation
+
 Via Nuget
 
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
@@ -58,6 +60,7 @@ public class Location {
   public string Name { get; set; }
 }
 ```
+
 ## 2. Create a route
 
 Here is an example for a ASP.NET. You will also need to install EntityGraphQL.AspNet to use `MapGraphQL`. You can also build you own endpoint, see docs.
@@ -87,6 +90,7 @@ public class Startup {
 ```
 
 This sets up 1 end point:
+
 - `POST` at `/graphql` where the body of the post is a GraphQL query
 - You can authorize that route how you would any ASP.NET route. See Authorization below for details on having parts of the schema requiring Authorization/Claims
 
@@ -95,13 +99,16 @@ _Note - As of version 1.1+ the EntityGraphQL.AspNet extension helper uses System
 ## 3. Build awesome applications
 
 You can now make a request to your API. For example
+
 ```
   POST localhost:5000/graphql
   {
     properties { id name }
   }
 ```
+
 Will return the following result.
+
 ```json
 {
   "data": {
@@ -118,7 +125,9 @@ Will return the following result.
   }
 }
 ```
+
 Maybe you only want a specific property
+
 ```
   {
     property(id: 11) {
@@ -126,7 +135,9 @@ Maybe you only want a specific property
     }
   }
 ```
+
 Will return the following result.
+
 ```json
 {
   "data": {
@@ -137,7 +148,9 @@ Will return the following result.
   }
 }
 ```
+
 If you need a deeper graph or relations, just ask
+
 ```
   {
     properties {
@@ -152,7 +165,9 @@ If you need a deeper graph or relations, just ask
     }
   }
 ```
+
 Will return the following result.
+
 ```json
 {
   "data": {
@@ -185,14 +200,18 @@ Will return the following result.
 Visit [documentation](https://entitygraphql.github.io/) for more information.
 
 # Using expressions else where (EQL)
+
 Lets say you have a screen in your application listing properties that can be configured per customer or user to only show exactly what they are interested in. Instead of having a bunch of checkboxes and complex radio buttons etc. you can allow a simple EQL statement to configure the results shown. Or use those UI components to build the query.
+
 ```cs
   // This might be a configured EQL statement for filtering the results. It has a context of Property
   (type.id = 2) or (type.id = 3) and type.name = "Farm"
 ```
+
 This would compile to `(Property p) => (p.Type.Id == 2 || p.Type.Id == 3) && p.Type.Name == "Farm";`
 
 This can then be used in various Linq functions either in memory or against an ORM.
+
 ```csharp
 // we create a schema provider to compile the statement against our Property type
 var schemaProvider = SchemaBuilder.FromObject<Property>();
@@ -202,6 +221,7 @@ var thingsToShow = myProperties.Where(compiledResult.LambdaExpression);
 ```
 
 Another example is you want a customised calculated field. You can execute a compiled result passing in an instance of the context type.
+
 ```csharp
 // You'd take this from some configuration
 var eql = @"if location.name = ""Mars"" then (cost + 5) * type.premium else (cost * type.premium) / 3"
@@ -209,5 +229,16 @@ var compiledResult = EntityQueryCompiler.Compile(eql, schemaProvider);
 var theRealPrice = compiledResult.Execute<decimal>(myPropertyInstance);
 ```
 
+# Versioning
+
+We do our best to follow [Semantic Versioning](https://semver.org):
+
+Given a version number `MAJOR.MINOR.PATCH`, an increment in:
+
+- `MAJOR` version is when we make incompatible API changes,
+- `MINOR` version is when we add functionality in a backwards compatible manner, and
+- `PATCH` version is when we make backwards compatible bug fixes.
+
 # Contribute & Join the Development
+
 Please do. Pull requests are very welcome. See the open issues for bugs or features that would be useful.
