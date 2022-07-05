@@ -78,11 +78,11 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, "Query", "The query type represents all of the entry points into the object graph", null, GqlTypeEnum.Object);
+            var queryContext = new SchemaType<TContextType>(this, "Query", null, null, GqlTypeEnum.Object);
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
-            var mutationType = new MutationType(this, "Mutation", "The mutation type schema represents all of the mutation functions in the schema", null);
+            var mutationType = new MutationType(this, "Mutation", null, null);
             this.mutationType = mutationType;
             schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
 
@@ -114,8 +114,8 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming varables from 
-        /// the rquest which may be strings or JSON into the dotnet tyopes on the argument classes.
+        /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from 
+        /// the request which may be strings or JSON into the dotnet types on the argument classes.
         /// For example a string to DateTime converter.
         /// 
         /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
