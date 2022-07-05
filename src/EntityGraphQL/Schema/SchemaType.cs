@@ -308,18 +308,18 @@ namespace EntityGraphQL.Schema
 
 
         public override ISchemaType AddAllBaseTypes()
-        {
-            var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
-            if (baseType != null)
+        {            
+            if (Schema.HasType(TypeDotnet.BaseType))
             {
+                var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
                 baseTypes.Add(baseType);
             }
 
             foreach (var i in TypeDotnet.GetInterfaces())
             {
-                var interfaceType = Schema.GetSchemaType(i, null);
-                if (interfaceType != null)
+                if (Schema.HasType(i))
                 {
+                    var interfaceType = Schema.GetSchemaType(i, null);
                     baseTypes.Add(interfaceType);
                 }
             }
