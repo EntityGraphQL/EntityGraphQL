@@ -20,6 +20,20 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
+        public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
+        {
+            return new Person { Name = string.IsNullOrEmpty(name) ? "Default" : name, Id = 555, Projects = new List<Project>() };
+        }
+
+        [GraphQLMutation]
+
+        public Person AddPersonSingleArgument(InputObject nameInput)
+        {
+            return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
+        }
+
+        [GraphQLMutation]
+
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
             var id = 11;

@@ -22,8 +22,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($name: String!) {
-  addPerson(name: $name) { id name }
-}",
+                  addPerson(name: $name) { id name }
+                }",
                 Variables = new QueryVariables { { "na", "Frank" } }
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -31,6 +31,48 @@ namespace EntityGraphQL.Tests
             var err = Enumerable.First(res.Errors);
             Assert.Equal("Missing required variable 'name' on operation 'AddPerson'", err.Message);
         }
+
+        [Fact]
+        public void TestSeparateArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSeparateArguments($name: String!, $names: [String!], $nameInput: InputObject, $gender: Gender) {
+                  addPersonSeparateArguments(name: $name, names: $names, nameInput: $nameInput, gender: $gender) { id name }
+                }",
+                Variables = new QueryVariables { 
+                    { "name", "Frank" },
+                    { "names", new [] { "Frank" } },
+                    { "nameInput", null },
+                    { "gender", Gender.Female }
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSingleArgument()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSingleArgument($nameInput: InputObject) {
+                  addPersonSingleArgument(nameInput: $nameInput) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "nameInput", new InputObject() { Name = "Frank" } },
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
 
         [Fact]
         public void SupportsMutationOptional()
@@ -42,10 +84,10 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"
                 mutation AddPerson($name: String) {
-  addPerson(name: $name) {
-    id name
-  }
-}",
+                  addPerson(name: $name) {
+                    id name
+                  }
+                }",
                 Variables = new QueryVariables { }
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -719,7 +761,8 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
-        }
+        }      
+
 
         [Fact]
         public void TestNullableGuid()
@@ -750,6 +793,10 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["nullableGuidArgs"]);
         }
+
+
+
+
         [Fact]
         public void TestNullableGuidEmptyString()
         {
@@ -830,8 +877,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.Mutation().AddFrom<IMutations>();
         
-
-            Assert.Equal(20, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(22, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
