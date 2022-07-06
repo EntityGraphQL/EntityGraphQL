@@ -835,7 +835,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.Mutation().AddFrom<IMutations>();
         
-            Assert.Equal(22, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(23, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
