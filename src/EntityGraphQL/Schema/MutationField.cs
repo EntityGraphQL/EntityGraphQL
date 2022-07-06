@@ -92,10 +92,29 @@ namespace EntityGraphQL.Schema
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
                     allArgs.Add(argInstance!);
                 }
-                else if(docVariables!= null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))// && gqlRequestArgs[p.Name].GetType() == p.ParameterType)
+                else if(docVariables!= null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
                 {
-                    var value = docVariables.GetType().GetField(p.Name).GetValue(docVariables);
-                    allArgs.Add(value);
+                    var validationErrors = new List<string>();
+                    var argField = Arguments[p.Name];
+                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    // this could be int to RequiredField<int>
+                    if (value != null && value.GetType() != argField.RawType)
+                    {
+                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
+                    }
+
+                    if(value == null)
+                    {
+                        var field = docVariables.GetType().GetField(p.Name);
+                        if (field != null)
+                        {
+                            value = field.GetValue(docVariables);
+                        }
+                    }
+
+                    argField.Validate(value, p.Name, validationErrors);
+
+                    allArgs.Add(value!);
                 }
                 else if (p.ParameterType == context.GetType())
                 {

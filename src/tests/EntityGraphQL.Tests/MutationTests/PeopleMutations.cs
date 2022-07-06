@@ -27,6 +27,13 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
+        public Person AddPersonPrimitive(int id, string name, DateTime birthday, decimal weight, Gender? gender)
+        {
+            return new Person { Name = string.IsNullOrEmpty(name) ? "Default" : name, Id = 555, Projects = new List<Project>() };
+        }
+
+        [GraphQLMutation]
+
         public Person AddPersonSingleArgument(InputObject nameInput)
         {
             return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };

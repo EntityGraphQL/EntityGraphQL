@@ -33,48 +33,6 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestSeparateArguments()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
-            // Add a argument field with a require parameter
-            var gql = new QueryRequest
-            {
-                Query = @"mutation AddPersonSeparateArguments($name: String!, $names: [String!], $nameInput: InputObject, $gender: Gender) {
-                  addPersonSeparateArguments(name: $name, names: $names, nameInput: $nameInput, gender: $gender) { id name }
-                }",
-                Variables = new QueryVariables { 
-                    { "name", "Frank" },
-                    { "names", new [] { "Frank" } },
-                    { "nameInput", null },
-                    { "gender", Gender.Female }
-                }
-            };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
-            Assert.Null(res.Errors);
-        }
-
-        [Fact]
-        public void TestSingleArgument()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
-            // Add a argument field with a require parameter
-            var gql = new QueryRequest
-            {
-                Query = @"mutation AddPersonSingleArgument($nameInput: InputObject) {
-                  addPersonSingleArgument(nameInput: $nameInput) { id name }
-                }",
-                Variables = new QueryVariables {
-                    { "nameInput", new InputObject() { Name = "Frank" } },
-                }
-            };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
-            Assert.Null(res.Errors);
-        }
-
-
-        [Fact]
         public void SupportsMutationOptional()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
