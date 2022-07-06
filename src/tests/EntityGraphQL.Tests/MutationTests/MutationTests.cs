@@ -896,29 +896,5 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(0, results.Data["getValue"]);
         }
-
-        [Fact]
-        public void TestRightValueReturnedFromServiceProviderMutationClass()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(addNonAttributedMethods: true);
-
-            var gql = new QueryRequest
-            {
-                Query = @"mutation getValue() {
-                    getValue()
-                }"
-            };
-
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton(new MutationClassInstantiationTest(2));
-
-            var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
-            Assert.Null(results.Errors);
-            Assert.Equal(2, results.Data["getValue"]);
-        }
-
-
     }
 }
