@@ -48,7 +48,7 @@ schema.AddMutationsFrom<PeopleMutations>();
 
 EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with `[GraphQLMutation]` applied) to the schema.
 
-For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations`, any parameters for the constructor are resolved via the service provider and [dependency injection](#dependenciesinjection&services). DI is also used to inject services into the mutation methods, allowing you to have an empty constructor.
+For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations`. The constructor and mutation methods accept services passed through [dependency injection](#dependenciesinjection&services).
 
 **Register all mutation controllers implementing or derving from a type**
 
