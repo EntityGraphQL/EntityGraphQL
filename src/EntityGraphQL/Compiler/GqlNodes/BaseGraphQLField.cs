@@ -47,8 +47,6 @@ namespace EntityGraphQL.Compiler
 
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
         {
-            if (name.StartsWith("__"))
-                throw new ArgumentException($"Field name cannot begin with '__' as this is used exclusively by GraphQL’s introspection system");
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
