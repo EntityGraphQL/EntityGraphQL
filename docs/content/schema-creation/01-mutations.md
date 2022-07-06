@@ -46,7 +46,7 @@ You can add the mutation controller to a schema in the following ways:
 schema.AddMutationsFrom<PeopleMutations>();
 ```
 
-EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with [GraphQLMutation] applied).
+EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with `[GraphQLMutation]` applied).
 
 For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations` and provides services to it through [dependency injection](#dependenciesinjection&services).
 
@@ -64,7 +64,7 @@ If the type parameter to `AddMutationsFrom` is an interface or base class, Entit
 schema.AddMutationsFrom(new PeopleMutations());
 ```
 
-EntityGraphQL will find all methods marked as [GraphQLMutation] on the PeopleMuations type and add them as mutations.
+EntityGraphQL will find all methods marked as `[GraphQLMutation]` on the PeopleMuations type and add them as mutations.
 
 When calling the mutation it will use the instance of the PeopleMuations you provided.
 
@@ -98,7 +98,7 @@ _Obsolete_
 If true, any class types seen in the mutation argument properties will be added to the schema
 
 **addNonAttributedMethods**
-If true, EntityGraphQL will add any method in the mutation class as a mutation without needing the [GraphQLMutation] attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
+If true, EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
 # Adding a Mutations as a Delegate
 
