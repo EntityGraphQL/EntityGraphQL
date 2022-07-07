@@ -8,6 +8,7 @@ Breaking changes:
 - Removed obsolete `SchemaProvider.AddInheritedType<TBaseType>`
 - Removed the instance parameter from `AddMutationsFrom` and friends. Mutation "controllers" are now always created per request like an asp.net controller. Use DI for any constructor parameters
 - Renamed `ISchemaType.AddBaseType` to `ISchemaType.Implements` to align with GraphQL language
+  - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
 
 Changes:
 

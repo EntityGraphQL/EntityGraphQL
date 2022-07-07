@@ -629,7 +629,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddInterface(Type type, string name, string description)
+        public ISchemaType AddInterface(Type type, string name, string? description)
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Interface);
             FinishAddingType(type, name, schemaType);

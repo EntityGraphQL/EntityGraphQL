@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema
@@ -329,14 +330,36 @@ namespace EntityGraphQL.Schema
 
         public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            var baseType = Schema.GetSchemaType(typeof(TClrType), null);
-            baseTypes.Add(baseType);
+            var type = typeof(TClrType);
+            var hasInterface = Schema.HasType(type);
+            ISchemaType? interfaceType = null;
+            if (hasInterface)
+            {
+                interfaceType = Schema.GetSchemaType(type, null);
+
+                if (!interfaceType.IsInterface)
+                    throw new EntityGraphQLCompilerException($"Schema type {type.Name} can not be implemented as it is not an interface. You can only implement interfaces");
+            }
+            else if (!hasInterface && addTypeIfNotInSchema)
+            {
+                interfaceType = Schema.AddInterface<TClrType>(type.Name, null);
+
+                if (addAllFieldsOnAddedType)
+                    interfaceType.AddAllFields();
+            }
+            if (interfaceType == null)
+                throw new EntityGraphQLCompilerException($"No schema interface found for dotnet type {type.Name}. Make sure you add the interface to the schema. Or use parameter addTypeIfNotInSchema = true");
+
+            baseTypes.Add(interfaceType);
             return this;
         }
         public override ISchemaType Implements(string typeName)
         {
-            var baseType = Schema.GetSchemaType(typeName, null);
-            baseTypes.Add(baseType);
+            var interfaceType = Schema.GetSchemaType(typeName, null);
+            if (!interfaceType.IsInterface)
+                throw new EntityGraphQLCompilerException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
+
+            baseTypes.Add(interfaceType);
             return this;
         }
     }
