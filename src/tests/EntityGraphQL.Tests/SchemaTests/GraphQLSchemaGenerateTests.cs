@@ -316,10 +316,10 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
 
             schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").Implements<Animal>().AddAllFields();
             schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals");
 
-            schemaProvider.UpdateType<AbstractClassTestSchema.Fish>(x => x.AddBaseType("Animal").AddAllFields());
+            schemaProvider.UpdateType<AbstractClassTestSchema.Fish>(x => x.Implements("Animal").AddAllFields());
 
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -337,7 +337,7 @@ namespace EntityGraphQL.Tests
 
             schemaProvider.AddType<AbstractClassTestSchema.ISwim>("").AddAllFields();
             schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").AddAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").AddBaseType<Animal>().AddAllFields();
+            schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").Implements<Animal>().AddAllFields();
             schemaProvider.AddType<AbstractClassTestSchema.Fish>("Fish are animals").AddAllBaseTypes().AddAllFields();
 
             var schema = schemaProvider.ToGraphQLSchemaString();

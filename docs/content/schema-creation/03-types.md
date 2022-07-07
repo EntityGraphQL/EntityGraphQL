@@ -96,7 +96,7 @@ public abstract class Character {
     public IEnumerable<Episode> AppearsIn { get; set; }
 }
 
-public class Human : Droid {
+public class Human : Character {
   public IEnumerable<Starship> starships { get; set; }
   public int TotalCredits { get; set;}
 }
@@ -111,16 +111,10 @@ schema.AddInterface<Character>(name: "Character", description: "represents any c
 
 schema.AddType<Human>("")
     .AddAllFields()
-    .AddAllBaseTypes();
+    .Implements<Character>();
 
 schema.AddType<Droid>("");
-    .AddBaseType<Character>();
-
-// or
-
-schema.AddType<Droid>("");
-    .AddBaseType("Character");
-
+    .Implements<Character>();
 ```
 
 produces the graphql schema:

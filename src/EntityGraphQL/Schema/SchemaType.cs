@@ -327,16 +327,15 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        public override ISchemaType AddBaseType<TypeDotnet>()
+        public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            var baseType = Schema.GetSchemaType(typeof(TypeDotnet), null);
+            var baseType = Schema.GetSchemaType(typeof(TClrType), null);
             baseTypes.Add(baseType);
             return this;
         }
-
-        public override ISchemaType AddBaseType(string name)
+        public override ISchemaType Implements(string typeName)
         {
-            var baseType = Schema.GetSchemaType(name, null);
+            var baseType = Schema.GetSchemaType(typeName, null);
             baseTypes.Add(baseType);
             return this;
         }
