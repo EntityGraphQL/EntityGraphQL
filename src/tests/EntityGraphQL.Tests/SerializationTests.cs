@@ -19,7 +19,7 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void JsonNewtonsoft()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
@@ -54,7 +54,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftArray()
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
@@ -79,7 +79,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftArray2()
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
@@ -128,7 +128,7 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void TextJsonJsonElement()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             // Simulate a JSON request with System.Text.Json

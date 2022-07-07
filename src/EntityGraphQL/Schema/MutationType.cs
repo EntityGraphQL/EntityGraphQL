@@ -144,7 +144,7 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
         GqlType = GqlTypeEnum.Mutation;
     }
 
-    public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
+    public override ISchemaType AddAllFields(SchemaBuilderOptions? options = null)
     {
         return this;
     }

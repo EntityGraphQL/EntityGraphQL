@@ -309,7 +309,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void EnumTest()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var gql = new QueryRequest
             {
                 Query = @"{
@@ -349,7 +349,7 @@ query {
         [Fact]
         public void TestDeepQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<DeepContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<DeepContext>();
             var gql = new QueryRequest
             {
                 Query = @"query deep { levelOnes { levelTwo { level3 { name }} }}",

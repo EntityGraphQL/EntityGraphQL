@@ -45,10 +45,9 @@ namespace EntityGraphQL.Schema
         /// Using reflection, add all the public Fields and Properties from the dotnet type as fields on the 
         /// schema type. Quick helper method to build out schemas
         /// </summary>
-        /// <param name="autoCreateNewComplexTypes"></param>
-        /// <param name="autoCreateEnumTypes"></param>
+        /// <param name="options">Default SchemaBuilderOptions are used if null (default)</param>
         /// <returns>The schema type the fields were added to</returns>
-        public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
+        public override ISchemaType AddAllFields(SchemaBuilderOptions? options = null)
         {
             if (GqlType == GqlTypeEnum.Enum)
             {
@@ -72,7 +71,9 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, Schema, autoCreateEnumTypes, false, Schema.SchemaFieldNamer, autoCreateNewComplexTypes, true);
+                if (options == null)
+                    options = new SchemaBuilderOptions();
+                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, Schema, options, GqlType == GqlTypeEnum.Input);
                 AddFields(fields);
             }
             return this;

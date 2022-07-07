@@ -51,7 +51,7 @@ namespace EntityGraphQL.Schema
         {
             var inputType = propType.GetEnumerableOrArrayType() ?? propType;
             if (autoAddInputTypes && !schema.HasType(inputType))
-                schema.AddInputType(inputType, inputType.Name, null).AddAllFields(true);
+                schema.AddInputType(inputType, inputType.Name, null).AddAllFields();
         }
 
         public void Deprecate(string reason)

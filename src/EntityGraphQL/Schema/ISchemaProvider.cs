@@ -45,7 +45,7 @@ namespace EntityGraphQL.Schema
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         bool HasType(string typeName);
         bool HasType(Type type);
-        void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes);
+        void PopulateFromContext(SchemaBuilderOptions? options = null);
         ISchemaProvider RemoveType<TType>();
         ISchemaProvider RemoveType(string schemaType);
         void RemoveTypeAndAllFields<TSchemaType>();
