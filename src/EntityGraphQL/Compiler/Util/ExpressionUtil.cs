@@ -266,7 +266,7 @@ namespace EntityGraphQL.Compiler.Util
             type2.GetFields().ToList().ForEach(f => fields.Add(f.Name, f.FieldType));
             type2.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
 
-            var newType = LinqRuntimeTypeBuilder.GetDynamicType(fields);
+            var newType = LinqRuntimeTypeBuilder.GetDynamicType(fields, "mergedArgs");
             return newType;
         }
 
@@ -401,21 +401,21 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
+        public static Expression MakeSelectWithDynamicType(string fieldDescription, ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
 
             // get a list of distinct types asked for in the query (fragments for interfaces)
             var validTypes = fieldExpressions.Values.OfType<MemberExpression>()
-                .Where(i => currentContextParam.Type.IsAssignableFrom(((MemberExpression)i).Expression.Type))
+                .Where(i => currentContextParam.Type.IsAssignableFrom(i.Expression.Type))
                 .Select(i => i.Expression.Type)
                 .Distinct();
 
             // If 0 or 1 valid types then default to basic behaviour
             if (validTypes.Count() < 2)
             {
-                var memberInit = CreateNewExpression(fieldExpressions, out Type dynamicType);
+                var memberInit = CreateNewExpression(fieldDescription, fieldExpressions, out Type dynamicType);
                 if (memberInit == null || dynamicType == null) // nothing to select
                     return baseExp;
                 var selector = Expression.Lambda(memberInit, currentContextParam);
@@ -431,7 +431,8 @@ namespace EntityGraphQL.Compiler.Util
                     fieldExpressions
                        .Where(i => i.Value is MemberExpression)
                        .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
-                       .ToDictionary(i => i.Key, i => i.Value.Type)
+                       .ToDictionary(i => i.Key, i => i.Value.Type),
+                    fieldDescription
                 );
                 if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
@@ -446,7 +447,7 @@ namespace EntityGraphQL.Compiler.Util
 
                     var conversionVisitor = new ConversionVisitor(currentContextParam, type);
 
-                    var specificDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnType.ToDictionary(i => i.Key, i => i.Value.Type), parentType: baseDynamicType);
+                    var specificDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnType.ToDictionary(i => i.Key, i => i.Value.Type), fieldDescription, parentType: baseDynamicType);
                     var constructor = specificDynamicType.GetConstructor(Type.EmptyTypes);
                     if (constructor == null)
                         throw new EntityGraphQLCompilerException("Could not create dynamic type");
@@ -486,7 +487,7 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
-        public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
+        public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
 
@@ -501,7 +502,7 @@ namespace EntityGraphQL.Compiler.Util
             if (!fieldExpressionsByName.Any())
                 return null;
 
-            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
+            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
             if (dynamicType == null)
                 throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
@@ -514,7 +515,7 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        private static Expression CreateNewExpression(Dictionary<string, Expression> fieldExpressions)
+        private static Expression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
             foreach (var item in fieldExpressions)
@@ -522,7 +523,7 @@ namespace EntityGraphQL.Compiler.Util
                 // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
                 fieldExpressionsByName[item.Key] = item.Value;
             }
-            var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type));
+            var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
@@ -544,9 +545,10 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static Expression WrapObjectProjectionFieldForNullCheck(Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        internal static Expression WrapObjectProjectionFieldForNullCheck(string fieldDescription, Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new List<Expression> {
+                Expression.Constant(fieldDescription),
                 nullCheckExpression,
                 Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
                 Expression.Constant(paramsForFieldExpressions.ToList()),
@@ -571,12 +573,12 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object? WrapObjectProjectionFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapObjectProjectionFieldForNullCheckExec(string fieldDescription, object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
 
-            var newExp = CreateNewExpression(fieldExpressions);
+            var newExp = CreateNewExpression(fieldDescription, fieldExpressions);
             var args = new List<object>();
             args.AddRange(fieldSelectParamValues);
             if (schemaContextParam != null)

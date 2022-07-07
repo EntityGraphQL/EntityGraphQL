@@ -11,6 +11,7 @@ Breaking changes:
 Changes:
 
 - `ToGraphQLSchemaString` now outputs directives in the schema
+- #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
 
 # 2.3.0
 
