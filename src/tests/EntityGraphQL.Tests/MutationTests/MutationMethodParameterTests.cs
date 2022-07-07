@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -86,7 +86,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -104,8 +104,8 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSingleArgument_AutoAddInputTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);            
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Tests
         public void TestSeparateArguments_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
-            schemaProvider.AddMutationsFrom(new PeopleMutations(), true);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
