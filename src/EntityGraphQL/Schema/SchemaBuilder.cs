@@ -10,11 +10,12 @@ using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
+using System.Collections.ObjectModel;
 
 namespace EntityGraphQL.Schema
 {
     /// <summary>
-    /// A simple schema provider to automattically create a query schema based on an object.
+    /// A simple schema provider to automatically create a query schema based on an object.
     /// Commonly used with a DbContext.
     /// </summary>
     public static class SchemaBuilder
@@ -67,7 +68,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Given the type TContextType recursively create a query schema based on the public properties of the object. Schema is added into the provider schema
         /// </summary>
-        /// <param name="schema">Schema tp add types to.</param>
+        /// <param name="schema">Schema to add types to.</param>
         /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
         /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
         /// <typeparam name="TContextType"></typeparam>
@@ -156,6 +157,7 @@ namespace EntityGraphQL.Schema
             return fields;
         }
 
+
         private static IEnumerable<Field>? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
@@ -191,10 +193,12 @@ namespace EntityGraphQL.Schema
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
+
             CacheType(baseReturnType, schema, createEnumTypes, autoCreateIdArguments, createNewComplexTypes, fieldNamer, isInputType);
+
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
             var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
             if (autoCreateIdArguments)

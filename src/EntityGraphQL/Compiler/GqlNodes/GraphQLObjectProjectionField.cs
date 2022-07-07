@@ -35,6 +35,11 @@ namespace EntityGraphQL.Compiler
         {
         }
 
+        public GraphQLObjectProjectionField(GraphQLObjectProjectionField context, ParameterExpression? nextFieldContext)
+            : base(context, nextFieldContext)
+        {
+        }
+
         /// <summary>
         /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
         /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()

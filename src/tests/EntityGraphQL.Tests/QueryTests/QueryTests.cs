@@ -5,6 +5,7 @@ using EntityGraphQL.Compiler;
 using System.Collections.Generic;
 using EntityGraphQL.Tests.ApiVersion1;
 using Microsoft.CSharp.RuntimeBinder;
+using Microsoft.EntityFrameworkCore;
 
 namespace EntityGraphQL.Tests
 {
@@ -346,28 +347,38 @@ query {
         }
 
         [Fact]
-        public void TestInheritance()
+        public void TestDeepQuery()
         {
-            var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
-query {
-    animals {
-        __typename
-        name
+            var schemaProvider = SchemaBuilder.FromObject<DeepContext>(false);
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { levelOnes { levelTwo { level3 { name }} }}",
+            };
+
+            var testSchema = new DeepContext();
+
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+        }
     }
-}");
 
-            var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
-            context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
+    public class DeepContext
+    {
+        public IList<LevelOne> LevelOnes { get; set; } = new List<LevelOne>();
 
-            var qr = gql.ExecuteQuery(context, null, null);
-            dynamic animals = (dynamic)qr.Data["animals"];
-            // we only have the fields requested
-            Assert.Equal(2, animals.Count);
+        public class LevelOne
+        {
+            public LevelTwo LevelTwo { get; set; }
+        }
 
-            Assert.Equal("Dog", animals[0].__typename);
-            Assert.Equal("Cat", animals[1].__typename);
+        public class LevelTwo
+        {
+            public ICollection<LevelThree> Level3 { get; set; } = new List<LevelThree>();
+        }
+
+        public class LevelThree
+        {
+            public string Name { get; set; }
         }
     }
 }

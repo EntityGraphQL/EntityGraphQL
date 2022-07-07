@@ -10,37 +10,36 @@ namespace EntityGraphQL.Schema
     public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<Field>
     {
         public override Type TypeDotnet { get; }
-        public override bool IsInput { get; }
         public override bool IsOneOf { get; }
-        public override bool IsEnum { get; }
-        public override bool IsScalar { get; }
-        public override bool IsInterface { get; }
-        public override string? BaseType { get; }
 
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
-            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, isInput, isEnum, isScalar, isInterface, baseType)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
+            : this(schema, typeof(TBaseType), name, description, requiredAuthorization, gqlType, baseType)
         {
+
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, bool isInput = false, bool isEnum = false, bool isScalar = false, bool isInterface = false, string? baseType = null)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
             IsOneOf = dotnetType.CustomAttributes.Any(i => i.AttributeType == typeof(GraphQLOneOfAttribute));
-            IsInput = isInput;
-            IsEnum = isEnum;
-            IsScalar = isScalar;
-            IsInterface = isInterface;
+            GqlType = gqlType;
+
             RequiredAuthorization = requiredAuthorization;
-            BaseType = baseType;
-            if (!isScalar)
+
+            if (gqlType != GqlTypeEnum.Scalar)
             {
-                if (isInterface)
+                if (gqlType == GqlTypeEnum.Interface)
                     // Because the type might actually be the type extending from the interface we need to look it up
                     AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
                 else
                     // Simple and allows FieldExtensions that create new types that are not interfaces not have to worry about updating the typename expression
                     AddField("__typename", _ => Name, "Type name").IsNullable(false);
+            }
+
+            if (baseType != null)
+            {
+                baseTypes.Add(schema.GetSchemaType(baseType, null));
             }
         }
 
@@ -53,7 +52,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The schema type the fields were added to</returns>
         public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
         {
-            if (IsEnum)
+            if (GqlType == GqlTypeEnum.Enum)
             {
                 foreach (var field in TypeDotnet.GetFields())
                 {
@@ -62,7 +61,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString();
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(Schema, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var schemaField = new Field(Schema, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     if (obsoleteAttribute != null)
                     {
@@ -307,6 +306,41 @@ namespace EntityGraphQL.Schema
             if (RequiredAuthorization == null)
                 RequiredAuthorization = new RequiredAuthorization();
             RequiredAuthorization.RequiresAnyPolicy(policies);
+            return this;
+        }
+
+
+        public override ISchemaType AddAllBaseTypes()
+        {
+            var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
+            if (baseType != null)
+            {
+                baseTypes.Add(baseType);
+            }
+
+            foreach (var i in TypeDotnet.GetInterfaces())
+            {
+                var interfaceType = Schema.GetSchemaType(i, null);
+                if (interfaceType != null)
+                {
+                    baseTypes.Add(interfaceType);
+                }
+            }
+
+            return this;
+        }
+
+        public override ISchemaType AddBaseType<TypeDotnet>()
+        {
+            var baseType = Schema.GetSchemaType(typeof(TypeDotnet), null);
+            baseTypes.Add(baseType);
+            return this;
+        }
+
+        public override ISchemaType AddBaseType(string name)
+        {
+            var baseType = Schema.GetSchemaType(name, null);
+            baseTypes.Add(baseType);
             return this;
         }
     }

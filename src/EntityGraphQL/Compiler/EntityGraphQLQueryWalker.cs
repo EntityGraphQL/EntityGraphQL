@@ -352,6 +352,36 @@ namespace EntityGraphQL.Compiler
             base.VisitFragmentDefinition(node, fragDef);
         }
 
+        protected override void VisitInlineFragment(InlineFragmentNode node, IGraphQLNode? context)
+        {
+            if (context == null)
+                throw new EntityGraphQLCompilerException("context should not be null visiting inline fragment");
+
+            if (node.TypeCondition is not null && context is not null)
+            {
+                var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, requestContext);
+                if (type != null)
+                {
+                    var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
+                    BaseGraphQLField newContext = context is GraphQLListSelectionField ?
+                        new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter) :
+                        new GraphQLObjectProjectionField((GraphQLObjectProjectionField)context!, fragParameter);
+                    base.VisitInlineFragment(node, newContext);
+
+                    //copy the fragment fields over to the select context and cast the type so we can access the property
+                    foreach (var queryField in newContext.QueryFields)
+                    {
+                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);
+                        context.AddField(fieldResult);
+                    }
+                }
+                else
+                {
+                    base.VisitInlineFragment(node, context);
+                }
+            }
+        }
+
         protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode? context)
         {
             if (context == null)

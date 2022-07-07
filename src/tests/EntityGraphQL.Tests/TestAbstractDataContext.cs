@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -15,6 +14,7 @@ namespace EntityGraphQL.Tests
 
     public abstract class Animal
     {
+        public int Id { get; set; }
         public string Name { get; set; }
     }
     public class Cat : Animal

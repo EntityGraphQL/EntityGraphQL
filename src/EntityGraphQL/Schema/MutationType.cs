@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -25,16 +26,24 @@ public class MutationType
     /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
     /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
     /// <typeparam name="TType"></typeparam>
-    public MutationType AddFrom<TType>(TType mutationClassInstance, bool autoAddInputTypes = false) where TType : notnull
+    public MutationType AddFrom<TType>(TType? mutationClassInstance = null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
     {
-        Type type = mutationClassInstance.GetType();
-        var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
-        foreach (var method in type.GetMethods())
+        var types = typeof(TType).Assembly
+                            .GetTypes()
+                            .Where(x => x.IsClass && !x.IsAbstract)
+                            .Where(x => typeof(TType).IsAssignableFrom(x));
+
+        foreach (Type type in types)
         {
-            if (method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) is GraphQLMutationAttribute attribute)
+            var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
-                string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
-                AddMutationMethod(name, mutationClassInstance, classLevelRequiredAuth, method, attribute.Description, autoAddInputTypes);
+                var attribute = method.GetCustomAttribute(typeof(GraphQLMutationAttribute)) as GraphQLMutationAttribute;
+                if (attribute != null || addNonAttributedMethods)
+                {
+                    string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
+                    AddMutationMethod(name, mutationClassInstance, classLevelRequiredAuth, method, attribute?.Description ?? "", autoAddInputTypes);
+                }
             }
         }
         return this;
@@ -74,7 +83,7 @@ public class MutationType
         return AddMutationMethod(mutationName, mutationDelegate.Target, null, mutationDelegate.Method, description, autoAddInputTypes);
     }
 
-    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes) where TType : notnull
+    private MutationField AddMutationMethod<TType>(string name, TType mutationClassInstance, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes)
     {
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
@@ -83,7 +92,7 @@ public class MutationType
             requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
         var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
         var typeName = SchemaType.Schema.GetSchemaType(actualReturnType.GetNonNullableOrEnumerableType(), null).Name;
-        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType);
+        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method);
         var mutationField = new MutationField(SchemaType.Schema, name, returnType, mutationClassInstance, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, autoAddInputTypes);
 
         var validators = method.GetCustomAttributes<ArgumentValidatorAttribute>();
@@ -129,26 +138,30 @@ public class MutationType
 public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 {
     public override Type TypeDotnet => typeof(MutationType);
-
-    public override bool IsInput => false;
-
     public override bool IsOneOf => false;
-
-    public override bool IsEnum => false;
-
-    public override bool IsScalar => false;
-
-    public override bool IsInterface => false;
-
-    public override string? BaseType => null;
 
     public MutationSchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         : base(schema, name, description, requiredAuthorization)
     {
+        GqlType = GqlTypeEnum.Mutation;
     }
 
     public override ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true)
     {
         return this;
+    }
+
+    public override ISchemaType AddAllBaseTypes()
+    {
+        throw new Exception("Cannot add base types to a mutation");
+    }
+    public override ISchemaType AddBaseType<TClrType>()
+    {
+        throw new Exception("Cannot add base types to a mutation");
+
+    }
+    public override ISchemaType AddBaseType(string name)
+    {
+        throw new Exception("Cannot add base types to a mutation");
     }
 }

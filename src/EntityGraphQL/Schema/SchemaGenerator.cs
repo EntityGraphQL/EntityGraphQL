@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using System.Text;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -14,52 +16,57 @@ namespace EntityGraphQL.Schema
 
         internal static string Make(ISchemaProvider schema)
         {
-            var scalars = new StringBuilder();
-
             var rootQueryType = schema.GetSchemaType(schema.QueryContextType, null);
             var mutationType = schema.GetSchemaType(schema.MutationType, null);
 
-            foreach (var item in schema.GetScalarTypes().Distinct())
-            {
-                scalars.AppendLine($"scalar {item.Name}");
-            }
-
-            var enums = BuildEnumTypes(schema);
             var types = BuildSchemaTypes(schema);
-            var hasMutations = mutationType.GetFields().Any();
 
-            var queryTypes = MakeQueryType(schema);
+            var schemaBuilder = new StringBuilder("schema {");
+            schemaBuilder.AppendLine();
+            schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
+            if (mutationType.GetFields().Any())
+                schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
+            schemaBuilder.AppendLine("}");
 
-            var schemaStr = $@"schema {{
-    query: {rootQueryType.Name}
-    {(hasMutations ? "mutation: " + mutationType.Name : "")}
-}}
+            schemaBuilder.AppendLine();
 
-{scalars}
-{enums}
+            foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
+            {
+                schemaBuilder.AppendLine($"scalar {item.Name}");
+            }
+            schemaBuilder.AppendLine();
 
-type {rootQueryType.Name} {{
-{queryTypes}
-}}
-{types}
-";
-            return schemaStr;
+            foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
+            {
+                schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
+            }
+            schemaBuilder.AppendLine();
+
+            schemaBuilder.Append(BuildEnumTypes(schema));
+
+            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.GetSchemaType(schema.QueryContextName, null)));
+
+            schemaBuilder.Append(types);
+
+            if (schema.Mutation().SchemaType.GetFields().Any())
+                schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType));
+
+            return schemaBuilder.ToString();
         }
 
         private static string BuildEnumTypes(ISchemaProvider schema)
         {
             var types = new StringBuilder();
-            foreach (var typeItem in schema.GetNonContextTypes())
+            foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
                 if (typeItem.Name.StartsWith("__") || !typeItem.IsEnum)
                     continue;
 
-                types.AppendLine();
                 if (!string.IsNullOrEmpty(typeItem.Description))
-                    types.AppendLine($"\t\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
+                    types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
 
                 types.AppendLine($"enum {typeItem.Name} {{");
-                foreach (var field in typeItem.GetFields())
+                foreach (var field in typeItem.GetFields().OrderBy(t => t.Name))
                 {
                     if (field.Name.StartsWith("__"))
                         continue;
@@ -71,6 +78,7 @@ type {rootQueryType.Name} {{
 
                 }
                 types.AppendLine("}");
+                types.AppendLine();
             }
 
             return types.ToString();
@@ -79,43 +87,15 @@ type {rootQueryType.Name} {{
         private static string BuildSchemaTypes(ISchemaProvider schema)
         {
             var types = new StringBuilder();
-            foreach (var typeItem in schema.GetNonContextTypes())
+            foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
-                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar)
+                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name)
                     continue;
 
                 if (!typeItem.GetFields().Any())
                     continue;
 
-                types.AppendLine();
-                if (!string.IsNullOrEmpty(typeItem.Description))
-                    types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
-
-                var type = typeItem switch
-                {
-                    { IsInput: true } => "input",
-                    { IsInterface: true } => "interface",
-                    _ => "type"
-                };
-
-                var implements = string.IsNullOrWhiteSpace(typeItem.BaseType)
-                    ? ""
-                    : $"implements {typeItem.BaseType} ";
-
-                var oneOf = typeItem.IsOneOf ? "@oneOf " : "";
-
-                types.AppendLine($"{type} {typeItem.Name} {implements}{oneOf}{{");
-                foreach (var field in typeItem.GetFields())
-                {
-                    if (field.Name.StartsWith("__"))
-                        continue;
-
-                    if (!string.IsNullOrEmpty(field.Description))
-                        types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
-
-                    types.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(field)}");
-                }
-                types.AppendLine("}");
+                types.AppendLine(OutputSchemaType(schema, typeItem));
             }
 
             return types.ToString();
@@ -140,18 +120,49 @@ type {rootQueryType.Name} {{
             return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
         }
 
-        private static string MakeQueryType(ISchemaProvider schema)
+        private static object GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
+        {
+            var args = directive.GetArguments(schema);
+            if (args == null || !args.Any())
+                return string.Empty;
+
+            var allArgs = string.Join(", ", args.Select(f => f.Name + ": " + f.Type.GqlTypeForReturnOrArgument));
+            return string.IsNullOrEmpty(allArgs) ? string.Empty : $"({allArgs})";
+        }
+
+        private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType)
         {
             var sb = new StringBuilder();
 
-            foreach (var t in schema.Type(schema.QueryContextName).GetFields().OrderBy(s => s.Name))
+            if (!string.IsNullOrEmpty(schemaType.Description))
+                sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
+
+            var type = schemaType switch
             {
-                if (t.Name.StartsWith("__"))
-                    continue;
-                if (!string.IsNullOrEmpty(t.Description))
-                    sb.AppendLine($"\t\"\"\"{EscapeString(t.Description)}\"\"\"");
-                sb.AppendLine($"\t{schema.SchemaFieldNamer(t.Name)}{GetGqlArgs(schema, t)}: {t.ReturnType.GqlTypeForReturnOrArgument}");
+                { IsInput: true } => "input",
+                { IsInterface: true } => "interface",
+                _ => "type"
+            };
+
+            var implements = "";
+            if (schemaType.BaseTypes != null && schemaType.BaseTypes.Count() > 0)
+            {
+                implements += $"implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))} ";
             }
+
+            var oneOf = typeItem.IsOneOf ? "@oneOf " : "";
+
+            sb.AppendLine($"{type} {schemaType.Name} {implements}{oneOf}{{");
+
+            foreach (var field in schemaType.GetFields().OrderBy(s => s.Name))
+            {
+                if (field.Name.StartsWith("__"))
+                    continue;
+                if (!string.IsNullOrEmpty(field.Description))
+                    sb.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
+                sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(field)}");
+            }
+            sb.AppendLine("}");
 
             return sb.ToString();
         }

@@ -1,7 +1,47 @@
-# 2.1.6
+# 3.0.0
+
+Breaking changes:
+
+- `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
+- Removed obsolete `ISchemaType.BaseType`. Use `ISchemaType.BaseTypes`
+- Cleaned up `SchemaType` constructors - using `GqlTypeEnum` instead of many boolean flags
+- Removed obsolete `SchemaProvider.AddInheritedType<TBaseType>`
+
+Changes:
+
+- `ToGraphQLSchemaString` now outputs directives in the schema
+
+# 2.3.0
+
+Changes:
+
+- `AddMutationsFrom` now can use the `ServiceProvider` instance to create the mutation class allowing dependency injection at the constructor level like Controllers.
+- You can still provide an instance of the mutation class that will be used instead which is the same behaviour as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
+- Allow types to inherit from multiple base classes/interfaces
+- Cleanup SchemaType to use an enum instead of lots of boolean type variables. Previous constructor is obsolete
+- Cleanup Interfaces api - added a `AddAllBaseTypes`, `AddBaseType` and `AddBaseType(string)` which provides a lot more flexiblity. See updated docs
+- Added support for Inline Fragments for types that have interfaces
+- `ToGraphQLSchemaString` now orders types and fields by name for consistency regardless of order of fields added and to reduce differences when diffing the schema
+
+Fixes:
+
+- Fix #120 - Error when using `schema.RemoveTypeAndAllFields` and a field of the removing type had a type that has not been added to the schema
+- Fix #143 - Error building a null check expression in certain cases.
+
+# 2.2.0
+
+Changes:
+
+- `FromObject` / default schema generator now adds single fields within non root-level fields. E.g. if a root-level field is a list of `people` and each person has a list of `projects` (and projects has an id) is will create a field on `project(id)` field on person
+- Add support for nullable reference types - meaning the correct GraphQL schema nullable definitions are generated. @bzbetty
+
+Fixes:
 
 - Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
+- Fix interface query introspection. @bzbetty
+- Fix #137 - multiple line endings were used in the schema output
+- Fix - make sure we use an array for arguemnts when expected instead of a list<>
 
 # 2.1.5
 

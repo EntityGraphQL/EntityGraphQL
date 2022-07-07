@@ -166,11 +166,11 @@ fragment frag on Project {
                 }
 
                 fragment TypeRef on __Type {
-                    kind
                     name
+                    kind
                     ofType {
-                        kind
                         name
+                        kind
                     }
                 }"
             };

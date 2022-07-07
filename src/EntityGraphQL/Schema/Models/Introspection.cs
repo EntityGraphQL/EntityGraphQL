@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema.Models
 
         public InputValue[] InputFields { get; set; } = new InputValue[0];
 
-        public TypeElement[] Interfaces { get; private set; } = new TypeElement[0];
+        public TypeElement[] Interfaces { get; set; } = new TypeElement[0];
 
         public EnumValue[] EnumValues { get; set; } = new EnumValue[0];
 

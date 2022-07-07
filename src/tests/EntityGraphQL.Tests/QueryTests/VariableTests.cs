@@ -114,6 +114,32 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' is null while the variable definition is non-null. Please update query document or supply a non-null value.", results.Errors[0].Message);
         }
 
+        [Fact]
+        public void QueryVariableArrayGetsAList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            schema.Query().AddField("test", new { ids = (Guid[])null }, (db, args) => db.People.Where(p => args.ids.Any(a => a == p.Guid)), "test field");
+            var gql = new QueryRequest
+            {
+                Query = @"query ($ids: [ID]) {
+                    test(ids: $ids) { id }
+                }",
+                // assume JSON deserialiser created a List<> but we need an array []
+                Variables = new QueryVariables { { "ids", new[] { "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6" } } },
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+        }
+
+        // TODO - better error message
+        // [Fact]
+        // public void TestVariableUndefined()
+        // {
+
+        // }
+
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
             schema.Query().ReplaceField("person",

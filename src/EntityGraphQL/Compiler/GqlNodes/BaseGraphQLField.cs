@@ -56,6 +56,17 @@ namespace EntityGraphQL.Compiler
             Field = field;
         }
 
+        public BaseGraphQLField(BaseGraphQLField context, Expression? nextFieldContext)
+        {
+            Name = context.Name;
+            NextFieldContext = nextFieldContext;
+            RootParameter = context.RootParameter;
+            ParentNode = context.ParentNode;
+            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
+            this.schema = context.schema;
+            Field = context.Field;
+        }
+
         /// <summary>
         /// Field is a complex expression (using a method or function) that returns a single object (not IEnumerable)
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service

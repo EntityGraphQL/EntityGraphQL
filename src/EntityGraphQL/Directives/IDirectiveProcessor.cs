@@ -10,6 +10,7 @@ namespace EntityGraphQL.Directives
     {
         string Name { get; }
         string Description { get; }
+        List<ExecutableDirectiveLocation> On { get; }
         /// <summary>
         /// Return the Type used for the directive arguments
         /// </summary>
