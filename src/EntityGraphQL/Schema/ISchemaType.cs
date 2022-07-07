@@ -47,7 +47,13 @@ namespace EntityGraphQL.Schema
         void AddFields(IEnumerable<IField> fields);
         IField AddField(IField field);
         void RemoveField(string name);
-        ISchemaType AddAllBaseTypes();
+        /// <summary>
+        /// Searches the dotnet type for any interfaces or base type and marks this schema type as implementing those interfaces in the schema.
+        /// </summary>
+        /// <param name="addTypeIfNotInSchema">If true and the TClrType type is not already in the schema it will be added as an interface. If the type is in the schema it must be an interface</param>
+        /// <param name="addAllFieldsOnAddedType">If true and addTypeIfNotInSchema = true and the type is added by this method (was not 
+        /// <returns></returns>
+        ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
         /// <summary>
         /// Tells the schema that this type implements another type of TClrType.
         /// </summary>
