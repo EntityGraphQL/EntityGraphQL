@@ -458,10 +458,6 @@ namespace EntityGraphQL.Tests
     {
         public List<Animal> Animals { get; set; }
 
-        public abstract class Animal
-        {
-            public string Name { get; set; }
-        }
 
         public interface ISwim
         {
