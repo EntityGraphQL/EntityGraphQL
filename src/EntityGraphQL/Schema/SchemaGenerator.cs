@@ -150,7 +150,7 @@ namespace EntityGraphQL.Schema
                 implements += $"implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))} ";
             }
 
-            var oneOf = typeItem.IsOneOf ? "@oneOf " : "";
+            var oneOf = schemaType.IsOneOf ? "@oneOf " : "";
 
             sb.AppendLine($"{type} {schemaType.Name} {implements}{oneOf}{{");
 
