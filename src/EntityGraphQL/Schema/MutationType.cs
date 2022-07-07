@@ -149,16 +149,15 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
         return this;
     }
 
-    public override ISchemaType AddAllBaseTypes()
+    public override ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         throw new Exception("Cannot add base types to a mutation");
     }
-    public override ISchemaType AddBaseType<TClrType>()
+    public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         throw new Exception("Cannot add base types to a mutation");
-
     }
-    public override ISchemaType AddBaseType(string name)
+    public override ISchemaType Implements(string typeName)
     {
         throw new Exception("Cannot add base types to a mutation");
     }

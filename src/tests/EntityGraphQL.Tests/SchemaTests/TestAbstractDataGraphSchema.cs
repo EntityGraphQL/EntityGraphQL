@@ -20,8 +20,8 @@ namespace EntityGraphQL.Tests
                 var animal = AddInterface<Animal>(name: "Animal", description: "An animal");
                 animal.AddAllFields();
 
-                AddType<Dog>("Dog type").AddAllBaseTypes().AddAllFields();
-                AddType<Cat>("Cat type").AddAllBaseTypes().AddAllFields();
+                AddType<Dog>("Dog type").ImplementAllBaseTypes().AddAllFields();
+                AddType<Cat>("Cat type").ImplementAllBaseTypes().AddAllFields();
 
                 UpdateQuery(query =>
                 {
