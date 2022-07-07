@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 
 namespace EntityGraphQL.Schema
@@ -306,38 +307,58 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-
-        public override ISchemaType AddAllBaseTypes()
+        public override ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            var baseType = Schema.GetSchemaType(TypeDotnet.BaseType, null);
-            if (baseType != null)
+            if (TypeDotnet.BaseType != null)
             {
-                baseTypes.Add(baseType);
+                Implements(TypeDotnet.BaseType, addTypeIfNotInSchema, addAllFieldsOnAddedType);
             }
 
             foreach (var i in TypeDotnet.GetInterfaces())
             {
-                var interfaceType = Schema.GetSchemaType(i, null);
-                if (interfaceType != null)
-                {
-                    baseTypes.Add(interfaceType);
-                }
+                Implements(i, addTypeIfNotInSchema, addAllFieldsOnAddedType);
             }
 
             return this;
         }
 
-        public override ISchemaType AddBaseType<TypeDotnet>()
+        public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            var baseType = Schema.GetSchemaType(typeof(TypeDotnet), null);
-            baseTypes.Add(baseType);
-            return this;
+            var type = typeof(TClrType);
+            return Implements(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
         }
 
-        public override ISchemaType AddBaseType(string name)
+        private ISchemaType Implements(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            var baseType = Schema.GetSchemaType(name, null);
-            baseTypes.Add(baseType);
+            var hasInterface = Schema.HasType(type);
+            ISchemaType? interfaceType = null;
+            if (hasInterface)
+            {
+                interfaceType = Schema.GetSchemaType(type, null);
+
+                if (!interfaceType.IsInterface)
+                    throw new EntityGraphQLCompilerException($"Schema type {type.Name} can not be implemented as it is not an interface. You can only implement interfaces");
+            }
+            else if (!hasInterface && addTypeIfNotInSchema)
+            {
+                interfaceType = Schema.AddInterface(type, type.Name, null);
+
+                if (addAllFieldsOnAddedType)
+                    interfaceType.AddAllFields();
+            }
+            if (interfaceType == null)
+                throw new EntityGraphQLCompilerException($"No schema interface found for dotnet type {type.Name}. Make sure you add the interface to the schema. Or use parameter addTypeIfNotInSchema = true");
+
+            baseTypes.Add(interfaceType);
+            return this;
+        }
+        public override ISchemaType Implements(string typeName)
+        {
+            var interfaceType = Schema.GetSchemaType(typeName, null);
+            if (!interfaceType.IsInterface)
+                throw new EntityGraphQLCompilerException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
+
+            baseTypes.Add(interfaceType);
             return this;
         }
     }

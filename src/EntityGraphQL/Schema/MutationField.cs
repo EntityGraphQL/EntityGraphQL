@@ -7,21 +7,20 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema
 {
     public class MutationField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Mutation;
-        private readonly object? mutationClassInstance;
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object? mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
-            this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             RequiredAuthorization = requiredAuth;
             this.isAsync = isAsync;
@@ -150,20 +149,16 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            object? instance = mutationClassInstance;
+            object? instance = null;
+            // we create an instance _per request_ injecting any parameters to the constructor
+            // We kind of treat a mutation class like an asp.net controller
+            // and we do not want to register them in the service provider to avoid the same issues controllers would have
+            // with different lifetime objects
             if (instance == null)
             {
-                //try instantiate the mutation class using the service provider
-                if (serviceProvider != null)
-                {
-                    instance = serviceProvider.GetService(method.DeclaringType);
-                }
-
-                //fallback to activator create instance
-                if (instance == null)
-                {
-                    instance = Activator.CreateInstance(method.DeclaringType);
-                }
+                instance = serviceProvider != null ?
+                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType) :
+                    Activator.CreateInstance(method.DeclaringType);
             }
 
             object? result;

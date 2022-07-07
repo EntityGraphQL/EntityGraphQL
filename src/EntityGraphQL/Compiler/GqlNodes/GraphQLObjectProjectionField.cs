@@ -87,7 +87,7 @@ namespace EntityGraphQL.Compiler
             {
                 (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, contextChanged, replacer);
                 // build a new {...} - returning a single object {}
-                var newExp = ExpressionUtil.CreateNewExpression(selectionFields.ExpressionOnly(), out Type anonType);
+                var newExp = ExpressionUtil.CreateNewExpression(Name, selectionFields.ExpressionOnly(), out Type anonType);
                 if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
                 {
                     // make a null check from this new expression
@@ -154,7 +154,7 @@ namespace EntityGraphQL.Compiler
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
-            updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
+            updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
         }
 

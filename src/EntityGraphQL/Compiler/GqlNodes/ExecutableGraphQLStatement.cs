@@ -47,8 +47,8 @@ namespace EntityGraphQL.Compiler
             Arguments = new Dictionary<string, object>();
             if (opDefinedVariables.Any())
             {
-                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType));
-                OpVariableParameter = Expression.Parameter(variableType, "doc_vars");
+                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
+                OpVariableParameter = Expression.Parameter(variableType, "docVars");
             }
         }
 

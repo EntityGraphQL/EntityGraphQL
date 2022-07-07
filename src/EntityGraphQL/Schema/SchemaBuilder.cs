@@ -80,7 +80,7 @@ namespace EntityGraphQL.Schema
             var contextType = typeof(TContextType);
             var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes, autoCreateIdArguments, fieldNamer);
             foreach (var f in rootFields)
-            {             
+            {
                 schema.Query().AddField(f);
             }
             return schema;
@@ -105,7 +105,7 @@ namespace EntityGraphQL.Schema
             // This allows us to "insert" .Select() (and .Include()) before the .First()
             var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.ResolveExpression.Type);
             var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
-            var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType);
+            var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType, fieldProp.Name);
             var argTypesValue = Activator.CreateInstance(argTypes);
             var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
             Type arrayContextType = schemaType.TypeDotnet;
@@ -128,7 +128,7 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            return new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);            
+            return new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
         }
 
         public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, Func<string, string> fieldNamer, bool createNewComplexTypes = true, bool isInputType = false)
@@ -205,7 +205,7 @@ namespace EntityGraphQL.Schema
             {
                 // add non-pural field with argument of ID
                 var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType, field, fieldNamer);
-                if(idArgField != null)
+                if (idArgField != null)
                 {
                     yield return idArgField;
                 }
@@ -248,7 +248,7 @@ namespace EntityGraphQL.Schema
                     if (method == null)
                         throw new Exception($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;                    
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, createEnumTypes, autoCreateIdArguments, fieldNamer, createNewComplexTypes, isInputType);

@@ -110,8 +110,8 @@ namespace EntityGraphQL.Schema
             FieldsByName.Remove(name);
         }
 
-        public abstract ISchemaType AddAllBaseTypes();
-        public abstract ISchemaType AddBaseType<TClrType>();
-        public abstract ISchemaType AddBaseType(string name);
+        public abstract ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
+        public abstract ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
+        public abstract ISchemaType Implements(string typeName);
     }
 }
