@@ -68,10 +68,11 @@ namespace EntityGraphQL.Schema
             // args in the mutation method
             var allArgs = new List<object>();
             object? argInstance = null;
+            var validationErrors = new List<string>();
 
             if (Arguments.Count > 0)
             {
-                argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
+                argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
             }
 
             // add parameters and any DI services
@@ -109,10 +110,15 @@ namespace EntityGraphQL.Schema
                     argValidator(validatorContext);
                     argInstance = validatorContext.Arguments;
                 }
-                if (validatorContext.Errors.Count > 0)
+                if (validatorContext.Errors != null && validatorContext.Errors.Count > 0)
                 {
-                    throw new EntityGraphQLValidationException(validatorContext.Errors);
+                    validationErrors.AddRange(validatorContext.Errors);
                 }
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                throw new EntityGraphQLValidationException(validationErrors.Distinct());
             }
 
             object? instance = null;

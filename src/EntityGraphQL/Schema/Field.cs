@@ -149,7 +149,14 @@ namespace EntityGraphQL.Schema
             Expression? result = fieldExpression;
             if (field.ArgumentsType != null && FieldParam != null)
             {
-                argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables);
+
+                var validationErrors = new List<string>();
+                argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables, validationErrors);
+
+                if (validationErrors.Count > 0)
+                {
+                    throw new EntityGraphQLValidationException(validationErrors);
+                }
             }
             if (Extensions.Count > 0)
             {

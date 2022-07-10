@@ -19,7 +19,7 @@ public class ValidationTests
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
-                addMovie(price: 150 rating: ""this is too long"") {
+                addMovie(price: 150 rating: ""this is too long"", cast: [{ actor: """" character: ""Barney"" }]) {
                     id
                 }
             }",
@@ -28,12 +28,14 @@ public class ValidationTests
         var testContext = new ValidationTestsContext();
         var results = schema.ExecuteRequest(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
-        Assert.Equal(5, results.Errors.Count);
+        Assert.Equal(7, results.Errors.Count);
         Assert.Equal("Field 'addMovie' - Title is required", results.Errors[0].Message);
         Assert.Equal("Field 'addMovie' - Date is required", results.Errors[1].Message);
         Assert.Equal("Field 'addMovie' - Genre must be specified", results.Errors[2].Message);
         Assert.Equal("Field 'addMovie' - Price must be between $1 and $100", results.Errors[3].Message);
         Assert.Equal("Field 'addMovie' - Rating must be less than 5 characters", results.Errors[4].Message);
+        Assert.Equal("Field 'addMovie' - Actor is required", results.Errors[5].Message);
+        Assert.Equal("Field 'addMovie' - Character must be less than 5 characters", results.Errors[6].Message);
     }
 
     [Fact]
