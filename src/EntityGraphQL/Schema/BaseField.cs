@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
+using EntityGraphQL.Schema.Validators;
 
 namespace EntityGraphQL.Schema
 {
@@ -56,6 +57,7 @@ namespace EntityGraphQL.Schema
             Name = name;
             ReturnType = returnType;
             Extensions = new List<IFieldExtension>();
+            AddValidator<DataAnnotationsValidator>();
         }
 
         /// <summary>

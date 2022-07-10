@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
@@ -14,7 +15,7 @@ public class ValidationTests
     public void TestValidationAttributesOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(true);
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -33,6 +34,28 @@ public class ValidationTests
         Assert.Equal("Field 'addMovie' - Genre must be specified", results.Errors[2].Message);
         Assert.Equal("Field 'addMovie' - Price must be between $1 and $100", results.Errors[3].Message);
         Assert.Equal("Field 'addMovie' - Rating must be less than 5 characters", results.Errors[4].Message);
+    }
+
+    [Fact]
+    public void TestValidationAttributesOnNestedMutationArgs()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(true);
+        var gql = new QueryRequest
+        {
+            Query = @"mutation Mutate {
+                addMovie(title: ""movie name"" releaseDate: ""2020-01-01"" genre: ""Comedy"" price: 99 rating: ""short"", cast: [{ actor: """" character: ""Barney"" }]) {
+                    id
+                }
+            }",
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        Assert.NotNull(results.Errors);
+        Assert.Equal(2, results.Errors.Count);
+        Assert.Equal("Field 'addMovie' - Actor is required", results.Errors[0].Message);
+        Assert.Equal("Field 'addMovie' - Character must be less than 5 characters", results.Errors[1].Message);
     }
 
     [Fact]
@@ -420,6 +443,17 @@ internal class MovieArg
 
     [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")]
     public string Rating { get; set; }
+
+    public IList<CastMemberArg> Cast { get; set; }
+}
+
+internal class CastMemberArg
+{
+    [Required(ErrorMessage = "Actor is required")]
+    [StringLength(20, ErrorMessage = "Actor Name must be less than 20 characters")]
+    public string Actor { get; set; }
+    [StringLength(5, ErrorMessage = "Character must be less than 5 characters")]
+    public string Character { get; set; }
 }
 
 [MutationArguments]
