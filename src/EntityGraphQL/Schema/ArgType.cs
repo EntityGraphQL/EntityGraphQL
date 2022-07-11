@@ -20,9 +20,6 @@ namespace EntityGraphQL.Schema
         public MemberInfo? MemberInfo { get; internal set; }
 
         private RequiredAttribute? requiredAttribute;
-        private RangeAttribute? rangeAttribute;
-        private StringLengthAttribute? stringLengthAttribute;
-
         public bool IsRequired { get; set; }
         public Type RawType { get; private set; }
 
@@ -71,8 +68,6 @@ namespace EntityGraphQL.Schema
                 IsRequired = markedRequired
             };
 
-            arg.rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute;
-            arg.stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute;
             arg.requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute;
             if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
             {
@@ -105,12 +100,6 @@ namespace EntityGraphQL.Schema
                 validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
             else if (IsRequired && val == null && DefaultValue == null)
                 validationErrors.Add($"Field '{fieldName}' - missing required argument '{Name}'");
-
-            if (rangeAttribute != null && !rangeAttribute.IsValid(val))
-                validationErrors.Add(rangeAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {rangeAttribute.ErrorMessage}" : $"Field '{fieldName}' - failed the range validation.");
-
-            if (stringLengthAttribute != null && !stringLengthAttribute.IsValid(val))
-                validationErrors.Add(stringLengthAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {stringLengthAttribute.ErrorMessage}" : $"Field '{fieldName}' - failed the string length validation.");
         }
     }
 }
