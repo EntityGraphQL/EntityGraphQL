@@ -147,16 +147,10 @@ namespace EntityGraphQL.Schema
         {
             object? argumentValues = null;
             Expression? result = fieldExpression;
+            var validationErrors = new List<string>();
             if (field.ArgumentsType != null && FieldParam != null)
             {
-
-                var validationErrors = new List<string>();
                 argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables, validationErrors);
-
-                if (validationErrors.Count > 0)
-                {
-                    throw new EntityGraphQLValidationException(validationErrors);
-                }
             }
             if (Extensions.Count > 0)
             {
@@ -175,9 +169,16 @@ namespace EntityGraphQL.Schema
                     m(invokeContext);
                     argumentValues = invokeContext.Arguments;
                 }
-                if (invokeContext.Errors.Any())
-                    throw new EntityGraphQLValidationException(invokeContext.Errors);
+
+                validationErrors.AddRange(invokeContext.Errors);                
             }
+
+
+            if (validationErrors.Count > 0)
+            {
+                throw new EntityGraphQLValidationException(validationErrors);
+            }
+
             return (result, argumentValues);
         }
 

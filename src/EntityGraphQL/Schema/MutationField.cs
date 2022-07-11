@@ -118,7 +118,7 @@ namespace EntityGraphQL.Schema
 
             if (validationErrors.Count > 0)
             {
-                throw new EntityGraphQLValidationException(validationErrors.Distinct());
+                throw new EntityGraphQLValidationException(validationErrors);
             }
 
             object? instance = null;

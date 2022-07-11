@@ -168,9 +168,9 @@ public class ValidationTests
         var results = schema.ExecuteRequest(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(3, results.Errors.Count);
-        Assert.Equal("Field 'movies' - Title must be less than 5 characters", results.Errors[0].Message);
-        Assert.Equal("Field 'movies' - Price must be between $1 and $100", results.Errors[1].Message);
-        Assert.Equal("Field 'movies' - Genre is required", results.Errors[2].Message);
+        Assert.Equal("Field 'movies' - Genre is required", results.Errors[0].Message);
+        Assert.Equal("Field 'movies' - Title must be less than 5 characters", results.Errors[1].Message);
+        Assert.Equal("Field 'movies' - Price must be between $1 and $100", results.Errors[2].Message);        
     }
 
     [Fact]
