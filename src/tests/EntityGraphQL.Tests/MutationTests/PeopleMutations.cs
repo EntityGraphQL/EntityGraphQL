@@ -147,6 +147,15 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
+        public async Task<bool> regexValidation(RegexArgs args)
+        {
+            return await Task<bool>.Run(() =>
+            {
+                return true;
+            });
+        }
+
+        [GraphQLMutation]
         static public bool NullableGuidArgs(NullableGuidArgs args)
         {
             if (args.Id != null)
@@ -216,6 +225,15 @@ namespace EntityGraphQL.Tests
     public class GuidNonNullArgs
     {
         public Guid Id { get; set; }
+    }
+
+    [MutationArguments]
+    public class RegexArgs
+    {
+        [RegularExpression("[^a]+", ErrorMessage = "Title does not match required format")]
+        public string Title { get; set; }
+        [RegularExpression("steve", ErrorMessage = "Author does not match required format")]
+        public string Author { get; set; }
     }
     public class InputObject
     {
