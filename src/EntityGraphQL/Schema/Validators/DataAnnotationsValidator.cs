@@ -20,6 +20,10 @@ namespace EntityGraphQL.Schema.Validators
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Validate the arguments against the validation attributes in the specified method
+        /// </summary>
+        /// <param name="context"></param>
         private void ValidateMethodArguments(ArgumentValidatorContext context)
         {
             if (context.Method != null)
@@ -31,17 +35,34 @@ namespace EntityGraphQL.Schema.Validators
 
                     for (int i = 0; i < parameters.Length; i++)
                     {
-                        var customAttributes = parameters![i].GetCustomAttributes(typeof(ValidationAttribute), true).OfType<ValidationAttribute>();
-
-                        Validator.ValidateValue(value.Current, new ValidationContext(context.Arguments), customAttributes);
-
                         if (!value.MoveNext())
                             break;
+
+                        var customAttributes = parameters![i].GetCustomAttributes(typeof(ValidationAttribute), true).OfType<ValidationAttribute>();
+                        if (customAttributes.Any())
+                        {
+                            var results = new List<ValidationResult>();
+                            if (!Validator.TryValidateValue(value.Current, new ValidationContext(value.Current), results, customAttributes))
+                            {
+                                results.ForEach(result =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                                    {
+                                        context.AddError(result.ErrorMessage);
+                                    }
+                                });
+                            }
+                        }
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Validate the values of the object recursively against the validation attributes on the object itself 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="obj"></param>
         private void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
         {
             if (obj == null)
