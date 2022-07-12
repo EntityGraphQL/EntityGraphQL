@@ -24,57 +24,59 @@ namespace EntityGraphQL.Schema.Validators
                 return;
 
             var results = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(obj, new ValidationContext(obj), results, true))
+
+            if (obj is IEnumerable asEnumerable)
             {
-                results.ForEach(result =>
+                foreach (var enumObj in asEnumerable)
                 {
-                    if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
-                    {
-                        context.AddError(result.ErrorMessage);
-                    }
-                });
+                    ValidateObjectRecursive(context, enumObj);
+                }
             }
-
-            var properties = obj!.GetType().GetProperties().Where(prop => prop.CanRead
-                && prop.GetIndexParameters().Length == 0).ToList();
-
-            foreach (var property in properties)
+            else
             {
-                var value = property.GetValue(obj, null);
-
-                if (property.PropertyType == typeof(string) || property.PropertyType.IsValueType)
+                if (!Validator.TryValidateObject(obj, new ValidationContext(obj), results, true))
                 {
-                    continue;
-                }
-
-                if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
-                {
-                    if(value == null)
+                    results.ForEach(result =>
                     {
-                        context.AddError($"missing required argument '{property.Name}'");
-                    }
-                    continue;
+                        if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                        {
+                            context.AddError(result.ErrorMessage);
+                        }
+                    });
                 }
 
-                if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-                {
-                    continue;
-                }
+                var properties = obj!.GetType().GetProperties().Where(prop => prop.CanRead
+                    && prop.GetIndexParameters().Length == 0).ToList();
 
-                if (value == null)
+                foreach (var property in properties)
                 {
-                    continue;
-                }
+                    var value = property.GetValue(obj, null);
 
-                if (value is IEnumerable asEnumerable)
-                {
-                    foreach (var enumObj in asEnumerable)
+                    if (property.PropertyType == typeof(string) || property.PropertyType.IsValueType)
                     {
-                        ValidateObjectRecursive(context, enumObj);
+                        continue;
                     }
-                }
-                else
-                {
+
+                    if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                    {
+                        if (value == null)
+                        {
+                            context.AddError($"missing required argument '{property.Name}'");
+                        }
+                        continue;
+                    }
+
+                    if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    {
+                        continue;
+                    }
+
+                    if (value == null)
+                    {
+                        continue;
+                    }
+
+
                     ValidateObjectRecursive(context, value);
                 }
             }
