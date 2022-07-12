@@ -15,7 +15,31 @@ namespace EntityGraphQL.Schema.Validators
         public Task ValidateAsync(ArgumentValidatorContext context)
         {
             ValidateObjectRecursive(context, context.Arguments);
+            ValidateMethodArguments(context);
+
             return Task.CompletedTask;
+        }
+
+        private void ValidateMethodArguments(ArgumentValidatorContext context)
+        {
+            if (context.Method != null)
+            {
+                if (context.Arguments is IEnumerable asEnumerable)
+                {
+                    var value = asEnumerable.GetEnumerator();
+                    ParameterInfo[] parameters = context.Method.GetParameters();
+
+                    for (int i = 0; i < parameters.Length; i++)
+                    {
+                        var customAttributes = parameters![i].GetCustomAttributes(typeof(ValidationAttribute), true).OfType<ValidationAttribute>();
+
+                        Validator.ValidateValue(value.Current, new ValidationContext(context.Arguments), customAttributes);
+
+                        if (!value.MoveNext())
+                            break;
+                    }
+                }
+            }
         }
 
         private void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
