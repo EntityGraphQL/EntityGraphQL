@@ -16,6 +16,14 @@ Changes:
 - `ToGraphQLSchemaString` now outputs directives in the schema
 - #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
 
+# 2.3.1
+
+Fixes:
+
+- #163 - Fix to handle null property in a nested object when processing a System.Text.Json deserialised query document
+- #164 - Fix to support inline fragments in a fragment
+- #166 - Add missing `!=` operator in the fitler expression language and make sure precedence is correct for logic operators
+
 # 2.3.0
 
 Changes:
