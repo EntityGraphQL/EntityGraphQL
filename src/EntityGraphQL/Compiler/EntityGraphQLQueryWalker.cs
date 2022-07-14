@@ -363,9 +363,13 @@ namespace EntityGraphQL.Compiler
                 if (type != null)
                 {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
-                    BaseGraphQLField newContext = context is GraphQLListSelectionField ?
-                        new GraphQLListSelectionField((GraphQLListSelectionField)context!, fragParameter) :
-                        new GraphQLObjectProjectionField((GraphQLObjectProjectionField)context!, fragParameter);
+                    IGraphQLNode newContext = context switch
+                    {
+                        GraphQLListSelectionField graphQLListSelectionField => new GraphQLListSelectionField(graphQLListSelectionField!, fragParameter),
+                        GraphQLObjectProjectionField graphQLObjectProjectionField => new GraphQLObjectProjectionField(graphQLObjectProjectionField!, fragParameter),
+                        GraphQLFragmentStatement graphQLFragmentStatement => new GraphQLFragmentStatement(graphQLFragmentStatement!, fragParameter),
+                        _ => throw new NotImplementedException(),
+                    };
                     base.VisitInlineFragment(node, newContext);
 
                     //copy the fragment fields over to the select context and cast the type so we can access the property
