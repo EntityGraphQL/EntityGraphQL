@@ -51,6 +51,32 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return Expression.MakeBinary(op, left, right);
         }
 
+        public override Expression VisitLogic(EntityQLParser.LogicContext context)
+        {
+            var left = Visit(context.left);
+            var right = Visit(context.right);
+            var op = MakeOperator(context.op.GetText());
+            // we may need to do some converting here
+            if (left.Type != right.Type)
+            {
+                if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
+                {
+                    var result = DoObjectComparisonOnDifferentTypes(op, left, right);
+
+                    if (result != null)
+                        return result;
+                }
+                return ConvertLeftOrRight(op, left, right);
+            }
+
+            if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
+            {
+                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+            }
+
+            return Expression.MakeBinary(op, left, right);
+        }
+
         private Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
         {
             var convertedToSameTypes = false;
@@ -206,6 +232,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 "/" => ExpressionType.Divide,
                 "%" => ExpressionType.Modulo,
                 "^" => ExpressionType.Power,
+                "!=" => ExpressionType.NotEqual,
                 "and" => ExpressionType.AndAlso,
                 "&&" => ExpressionType.AndAlso,
                 "*" => ExpressionType.Multiply,
