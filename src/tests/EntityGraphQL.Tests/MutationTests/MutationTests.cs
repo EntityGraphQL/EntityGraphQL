@@ -22,8 +22,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($name: String!) {
-  addPerson(name: $name) { id name }
-}",
+                  addPerson(name: $name) { id name }
+                }",
                 Variables = new QueryVariables { { "na", "Frank" } }
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -42,10 +42,10 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"
                 mutation AddPerson($name: String) {
-  addPerson(name: $name) {
-    id name
-  }
-}",
+                  addPerson(name: $name) {
+                    id name
+                  }
+                }",
                 Variables = new QueryVariables { }
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -719,7 +719,8 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
-        }
+        }      
+
 
         [Fact]
         public void TestNullableGuid()
@@ -750,6 +751,10 @@ namespace EntityGraphQL.Tests
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["nullableGuidArgs"]);
         }
+
+
+
+
         [Fact]
         public void TestNullableGuidEmptyString()
         {
@@ -829,9 +834,8 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.Mutation().AddFrom<IMutations>();
-
-
-            Assert.Equal(20, schemaProvider.Mutation().SchemaType.GetFields().Count());
+        
+            Assert.Equal(23, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
