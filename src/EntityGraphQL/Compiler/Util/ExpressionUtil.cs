@@ -78,6 +78,12 @@ namespace EntityGraphQL.Compiler.Util
             if (typeof(JsonElement).IsAssignableFrom(fromType))
             {
                 var jsonEle = (JsonElement)value;
+                
+                if (jsonEle.ValueKind == JsonValueKind.Null)
+                {
+                    return null;
+                }
+                
                 if (jsonEle.ValueKind == JsonValueKind.Object)
                 {
                     value = Activator.CreateInstance(toType);
