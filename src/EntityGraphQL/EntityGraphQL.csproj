@@ -29,13 +29,13 @@
     <PackageReference Include="HotChocolate.Language" Version="12.7.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath=""/>
+    <None Include="../../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
     <Antlr4 Update="Compiler/Grammer/EntityQL.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>EntityQL.Grammer</CustomToolNamespace>
-      <Listener>False</Listener>
+      <Listener>false</Listener>
       <Visitor>True</Visitor>
     </Antlr4>
   </ItemGroup>
