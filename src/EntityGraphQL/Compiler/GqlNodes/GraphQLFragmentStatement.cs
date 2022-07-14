@@ -26,6 +26,14 @@ namespace EntityGraphQL.Compiler
             Arguments = new Dictionary<string, object>();
         }
 
+        public GraphQLFragmentStatement(GraphQLFragmentStatement context, ParameterExpression? nextFieldContext)
+        {
+            Name = context.Name;
+            RootParameter = context.RootParameter;
+            NextFieldContext = nextFieldContext;
+            Arguments = new Dictionary<string, object>();
+        }
+
         public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);

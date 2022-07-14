@@ -132,5 +132,41 @@ query {
             // does not have the dog field
             Assert.Null(animal.GetType().GetField("hasBone"));
         }
+
+        [Fact]
+        public void TestInheritanceExtraFieldsOnObjectCatUsingFragments()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animal(id: 2) {
+       ...animalFragment
+    }    
+}
+
+fragment animalFragment on Animal {
+    __typename
+    name
+    ... on Cat {
+        lives 
+    }
+    ...on Dog {
+        hasBone 
+    }
+}
+");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animal = qr.Data["animal"];
+            Assert.Equal("Cat", animal.__typename);
+            Assert.Equal("george", animal.name);
+            Assert.Equal(9, animal.lives);
+            // does not have the dog field
+            Assert.Null(animal.GetType().GetField("hasBone"));
+        }
     }
 }
