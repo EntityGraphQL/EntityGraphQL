@@ -103,7 +103,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    public static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
+    internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
     {
         string argName = memberName;
         // check we have required arguments

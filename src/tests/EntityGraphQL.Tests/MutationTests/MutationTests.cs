@@ -384,8 +384,8 @@ namespace EntityGraphQL.Tests
         }
         ",
                 Variables = new QueryVariables {
-                            {"name", "Bill"}
-                        }
+                    {"name", "Bill"}
+                }
             };
             var serviceCollection = new ServiceCollection();
             var service = new AgeService();
@@ -719,7 +719,7 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
-        }      
+        }
 
 
         [Fact]
@@ -834,7 +834,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
             schemaProvider.Mutation().AddFrom<IMutations>();
-        
+
             Assert.Equal(23, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 

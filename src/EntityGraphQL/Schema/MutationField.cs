@@ -44,7 +44,8 @@ namespace EntityGraphQL.Schema
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null, fieldNamer));
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
                 }
-            } else
+            }
+            else
             {
                 foreach (var item in method.GetParameters())
                 {
@@ -91,7 +92,7 @@ namespace EntityGraphQL.Schema
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
                     allArgs.Add(argInstance!);
                 }
-                else if(docVariables!= null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
+                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
                 {
                     var validationErrors = new List<string>();
                     var argField = Arguments[p.Name];
@@ -102,7 +103,7 @@ namespace EntityGraphQL.Schema
                         value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
                     }
 
-                    if(value == null)
+                    if (value == null)
                     {
                         var field = docVariables.GetType().GetField(p.Name);
                         if (field != null)
