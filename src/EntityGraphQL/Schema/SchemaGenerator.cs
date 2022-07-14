@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using System.Text;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -31,6 +33,12 @@ namespace EntityGraphQL.Schema
             foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
             {
                 schemaBuilder.AppendLine($"scalar {item.Name}");
+            }
+            schemaBuilder.AppendLine();
+
+            foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
+            {
+                schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
             }
             schemaBuilder.AppendLine();
 
@@ -110,6 +118,16 @@ namespace EntityGraphQL.Schema
 
             var args = string.Join(", ", all);
             return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
+        }
+
+        private static object GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
+        {
+            var args = directive.GetArguments(schema);
+            if (args == null || !args.Any())
+                return string.Empty;
+
+            var allArgs = string.Join(", ", args.Select(f => f.Name + ": " + f.Type.GqlTypeForReturnOrArgument));
+            return string.IsNullOrEmpty(allArgs) ? string.Empty : $"({allArgs})";
         }
 
         private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType)

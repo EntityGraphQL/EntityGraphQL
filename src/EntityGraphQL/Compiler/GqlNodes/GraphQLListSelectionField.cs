@@ -97,7 +97,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
             // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(nextFieldContext!, listContext, selectionFields.ExpressionOnly());
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(Name, nextFieldContext!, listContext, selectionFields.ExpressionOnly());
 
             // if selecting final graph make sure lists are evaluated
             if (!isRoot && !withoutServiceFields && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
@@ -137,7 +137,7 @@ namespace EntityGraphQL.Compiler
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedListContext.Type, "nullwrap");
 
-            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(selectParam, nullWrapParam, selectExpressions);
+            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(Name, selectParam, nullWrapParam, selectExpressions);
 
             updatedListContext = ExpressionUtil.WrapListFieldForNullCheck(updatedListContext, callOnList, fieldParams, fieldParamValues, nullWrapParam, schemaContext);
             return updatedListContext;

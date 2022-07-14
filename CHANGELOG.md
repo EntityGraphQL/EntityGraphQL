@@ -1,3 +1,21 @@
+# 3.0.0
+
+Breaking changes:
+
+- `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
+- Removed obsolete `ISchemaType.BaseType`. Use `ISchemaType.BaseTypes`
+- Cleaned up `SchemaType` constructors - using `GqlTypeEnum` instead of many boolean flags
+- Removed obsolete `SchemaProvider.AddInheritedType<TBaseType>`
+- Removed the instance parameter from `AddMutationsFrom` and friends. Mutation "controllers" are now always created per request like an asp.net controller. Use DI for any constructor parameters
+- Renamed `ISchemaType.AddBaseType` to `ISchemaType.Implements` to align with GraphQL language
+  - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
+- Renamed `ISchemaType.AddAllBaseTypes` to `ISchemaType.ImplementAllBaseTypes` to align with GraphQL language
+
+Changes:
+
+- `ToGraphQLSchemaString` now outputs directives in the schema
+- #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
+
 # 2.3.1
 
 Fixes:

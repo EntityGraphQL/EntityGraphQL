@@ -16,16 +16,10 @@ namespace EntityGraphQL.Schema
 
         protected List<ISchemaType> baseTypes = new();
         public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
-        [Obsolete("Multiple base types are now supported. Use BaseTypes")]
-        public string? BaseType => BaseTypes?.FirstOrDefault()?.Name;
 
-        [Obsolete]
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
-        [Obsolete]
         public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
-        [Obsolete]
         public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
-        [Obsolete]
         public bool IsScalar { get { return GqlType == GqlTypeEnum.Scalar; } }
 
         public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;
@@ -116,8 +110,8 @@ namespace EntityGraphQL.Schema
             FieldsByName.Remove(name);
         }
 
-        public abstract ISchemaType AddAllBaseTypes();
-        public abstract ISchemaType AddBaseType<TClrType>();
-        public abstract ISchemaType AddBaseType(string name);
+        public abstract ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
+        public abstract ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
+        public abstract ISchemaType Implements(string typeName);
     }
 }

@@ -4,15 +4,13 @@ metaTitle: 'Adding mutations to your schema - EntityGraphQL'
 metaDescription: 'Add mutations to your GraphQL schema'
 ---
 
-Mutations are GraphQLs way of allowing you to make modifications to your data.
+[GraphQLs mutations](https://graphql.org/learn/queries/#mutations) allow you to make modifications to your data.
 
-Read more about GraphQL mutations [here](https://graphql.org/learn/queries/#mutations).
+In EntityGraphQL mutations are just .NET methods in a class called a mutation controller.
 
-In EntityGraphQL mutations are just .NET methods and there are a few ways to add or define them.
+# Adding a mutation controller
 
-# Adding Mutations from a class
-
-You can keep related mutations in a class and marked each mutation method with the `[GraphQLMutation]` attribute and use the `schema.AddMutationsFrom()`.
+Define related mutations as methods in a class, and apply the `[GraphQLMutation]` attribute to each method.
 
 ```
 public class PeopleMutations
@@ -40,37 +38,25 @@ public class AddPersonArgs
 }
 ```
 
-Now we can add it to the schema in the following ways:
+You can add the mutation controller to a schema in the following ways:
 
-**Register the mutation class**
+**Register a mutation controller**
 
 ```
 schema.AddMutationsFrom<PeopleMutations>();
 ```
 
-EntityGraphQL will find all methods marked as [GraphQLMutation] on the PeopleMuations type and add them as mutations.
+EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with `[GraphQLMutation]` applied) to the schema.
 
-When calling the mutuation it will ask the `ServiceProvider` for an instance of the class allowing for dependency injection at the constructor level, if that fails to return a result it will use `Activator.CreateInstance`.
+For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations`. The constructor and mutation methods accept services passed through [dependency injection](#dependenciesinjection&services).
 
-**As an interface/base class generic argument**
-
-```
-schema.AddMutationsFrom<IMutationClass>);
-```
-
-EntityGraphQL actually looks for all types (in the same assembly) that implement the interface or base class, meaning you could mark all your mutation classes with a marker interface like `IMutationClass` and they will all be registered with one line
-
-**Providing an Instance of the mutation class**
+**Register all mutation controllers implementing or derving from a type**
 
 ```
-schema.AddMutationsFrom(new PeopleMutations());
+schema.AddMutationsFrom<IPersonnelMutations>();
 ```
 
-EntityGraphQL will find all methods marked as [GraphQLMutation] on the PeopleMuations type and add them as mutations.
-
-When calling the mutation it will use the instance of the PeopleMuations you provided.
-
-This method is considered obsolete and will be removed in a future version. We suggest you use one of the above methods and utilse the ServiceProvider to register your mutation classes with your desired lifetime.
+If the type parameter to `AddMutationsFrom` is an interface or base class, EntityGraphQL also adds as mutation controllers all types (in the same assembly) that implement the interface or derive from the base class. In example above, all classes that implement `IPersonnelMutations` would be added to the schema.
 
 **Now we can add people!**
 
@@ -100,7 +86,7 @@ _Obsolete_
 If true, any class types seen in the mutation argument properties will be added to the schema
 
 **addNonAttributedMethods**
-If true, EntityGraphQL will add any method in the mutation class as a mutation without needing the [GraphQLMutation] attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
+If true, EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
 # Adding a Mutations as a Delegate
 
@@ -180,25 +166,25 @@ This means we have access to the full schema graph from the core context of the 
 
 You likely want to access some services in your mutations. EntityGraphQL supports dependency injection. When you execute a query make sure you pass in an `IServiceProvider`. Here is an example with ASP.NET.
 
-_Note if you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
+_Note: If you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
 
 ```
 var results = _schemaProvider.ExecuteRequest(query, demoContext, HttpContext.RequestServices, null);
 ```
 
-EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it in the method signature of the mutation. This includes both constructor arguments (when a mutation class instance is not provided) and method arguments for the specific mutation.
+EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it as a parameter of the mutation controller constructor or a mutation method.
 
 ```
 // in Startup.cs
 services.AddSingleton<IDemoService, DemoService>();
 
 // your mutation method
-[GraphQLMutation("Add a new person to the system)]
+[GraphQLMutation("Add a new person to the system.")]
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args, IDemoService demoService)
 {
     // do something cool with demoService
 
-    return (ctx) => ctx.People.First(p => p.Id == person.Id);
+    return (db) => db.People.First(p => p.Id == person.Id);
 }
 ```
 

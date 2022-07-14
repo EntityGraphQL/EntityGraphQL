@@ -23,11 +23,11 @@ namespace EntityGraphQL.Schema
 
         void AddDirective(IDirectiveProcessor directive);
         ISchemaType AddEnum(string name, Type type, string description);
-        ISchemaType AddInterface<TInterface>(string name, string description);
-        ISchemaType AddInterface(Type type, string name, string description);
+        ISchemaType AddInterface<TInterface>(string name, string? description);
+        ISchemaType AddInterface(Type type, string name, string? description);
         SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
         ISchemaType AddInputType(Type type, string name, string? description);
-        void AddMutationsFrom<TType>(TType? mutationClassInstance = null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class;
+        void AddMutationsFrom<TType>(bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class;
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);

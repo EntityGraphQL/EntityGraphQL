@@ -78,11 +78,11 @@ namespace EntityGraphQL.Schema
                 {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
-            var queryContext = new SchemaType<TContextType>(this, "Query", "The query type represents all of the entry points into the object graph", null, GqlTypeEnum.Object);
+            var queryContext = new SchemaType<TContextType>(this, "Query", null, null, GqlTypeEnum.Object);
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
-            var mutationType = new MutationType(this, "Mutation", "The mutation type schema represents all of the mutation functions in the schema", null);
+            var mutationType = new MutationType(this, "Mutation", null, null);
             this.mutationType = mutationType;
             schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
 
@@ -114,8 +114,8 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming varables from 
-        /// the rquest which may be strings or JSON into the dotnet tyopes on the argument classes.
+        /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from 
+        /// the request which may be strings or JSON into the dotnet types on the argument classes.
         /// For example a string to DateTime converter.
         /// 
         /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
@@ -286,22 +286,6 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Add a new type into the schema with TBaseType as its context
-        /// inheriting from another type
-        /// </summary>
-        /// <param name="name">Name of the type</param>
-        /// <param name="description">description of the type</param>
-        /// <typeparam name="TBaseType"></typeparam>
-        /// <returns>The added type for further changes via chaining</returns>
-        [Obsolete]
-        public SchemaType<TBaseType> AddInheritedType<TBaseType>(string name, string? description, string baseType)
-        {
-            var schemaType = new SchemaType<TBaseType>(this, name, description, null, GqlTypeEnum.Object, baseType: baseType);
-            FinishAddingType(typeof(TBaseType), name, schemaType);
-            return schemaType;
-        }
-
-        /// <summary>
-        /// Add a new type into the schema with TBaseType as its context
         /// </summary>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
@@ -443,12 +427,11 @@ namespace EntityGraphQL.Schema
         /// Add any methods marked with GraphQLMutationAttribute in the given object to the schema. Method names are added as using fieldNamer
         /// </summary>
         /// <typeparam name="TType"></typeparam>
-        /// <param name="mutationClassInstance">Instance of a class with mutation methods marked with [GraphQLMutation]</param>
         /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
         /// <param name="addNonAttributedMethods">If true, add any method in the mutation class even if it isn't marked with the mutation attribute</param>
-        public void AddMutationsFrom<TType>(TType? mutationClassInstance = null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
+        public void AddMutationsFrom<TType>(bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
         {
-            mutationType.AddFrom((TType?)null, autoAddInputTypes, addNonAttributedMethods);
+            mutationType.AddFrom<TType>(autoAddInputTypes, addNonAttributedMethods);
         }
 
         /// <summary>
@@ -646,7 +629,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddInterface(Type type, string name, string description)
+        public ISchemaType AddInterface(Type type, string name, string? description)
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Interface);
             FinishAddingType(type, name, schemaType);
