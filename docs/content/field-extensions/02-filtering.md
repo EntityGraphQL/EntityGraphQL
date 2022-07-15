@@ -89,6 +89,7 @@ The expression language supports the following operators:
 - `%` - Mod
 - `^` - Power
 - `==` - Equals
+- `!=` - Not Equals
 - `<=` - Less than or equal to
 - `>=` - Greater than or equal to
 - `<` - Less than

@@ -18,6 +18,38 @@ Changes:
 
 - `ToGraphQLSchemaString` now outputs directives in the schema
 - #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
+- #146 - Allow GraphQL mutation arguments as seperate arguments in the method signature. Avoiding the need to create the mutation argument classes. e.g.
+
+```
+[GraphQLMutation]
+public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
+{
+  // ...
+}
+
+[GraphQLMutation]
+public Person AddPersonSingleArgument(InputObject nameInput)
+{
+  // ...
+}
+```
+
+Turn into
+
+```
+type Mutation {
+  addPersonSeparateArguments(name: String, names: [String!], nameInput: InputObject, gender: Gender): Person
+  addPersonSingleArgument(nameInput: InputObject): Person
+}
+```
+
+# 2.3.1
+
+Fixes:
+
+- #163 - Fix to handle null property in a nested object when processing a System.Text.Json deserialised query document
+- #164 - Fix to support inline fragments in a fragment
+- #166 - Add missing `!=` operator in the fitler expression language and make sure precedence is correct for logic operators
 
 # 2.3.0
 

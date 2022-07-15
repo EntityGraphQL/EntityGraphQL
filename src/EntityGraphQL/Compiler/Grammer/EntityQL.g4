@@ -3,7 +3,7 @@ grammar EntityQL;
 // Core building blocks
 ID: [a-z_A-Z]+ [a-z_A-Z0-9-]*;
 DIGIT: [0-9];
-STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:\"'\u005B\u005D;<>?,./-];
+STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:"'\u005B\u005D;<>?,./-];
 
 // identity includes keywords too
 identity: ID
@@ -38,13 +38,16 @@ operator: '-'
 	| '^'
 	| '*'
 	| '=='
+	| '!='
 	| '<='
 	| '>='
 	| '<'
 	| '>'
-	| '/'
-	| 'or'
-	| '||'
+	| '/';
+
+logicOperator:
+	'or'
+	| '||' 
 	| 'and'
 	| '&&';
 
@@ -52,8 +55,9 @@ expression:
 	'if ' (' ' | '\t')* test = expression (' ' | '\t')* 'then ' (' ' | '\t')* ifTrue = expression (' ' | '\t')* 'else ' (' ' | '\t')* ifFalse = expression # ifThenElse
 	| test = expression ' '* '?' ' '* ifTrue = expression ' '* ':' ' '* ifFalse = expression #ifThenElseInline
 	| left = expression ' '* op = operator ' '* right = expression	# binary
+	| left = expression ' '* op = logicOperator ' '* right = expression	# logic
 	| '(' body = expression ')'										# expr
 	| callPath														# callOrId
-	| constant														# const;
-
+	| constant														# const; 
+	 
 eqlStart: expression;

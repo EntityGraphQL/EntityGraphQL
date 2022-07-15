@@ -45,6 +45,21 @@ namespace EntityGraphQL.Schema
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
                 }
             }
+            else
+            {
+                foreach (var item in method.GetParameters())
+                {
+                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                        continue;
+
+                    var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
+                    if (item.ParameterType.IsPrimitive || schema.HasType(inputType))
+                    {
+                        Arguments.Add(fieldNamer(item.Name), ArgType.FromParameter(schema, item, null, fieldNamer));
+                        AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);
+                    }
+                }
+            }
         }
 
         private static void AddInputTypesInArguments(ISchemaProvider schema, bool autoAddInputTypes, Type propType)
@@ -69,17 +84,37 @@ namespace EntityGraphQL.Schema
             var allArgs = new List<object>();
             object? argInstance = null;
 
-            if (Arguments.Count > 0)
-            {
-                argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
-            }
-
             // add parameters and any DI services
             foreach (var p in method.GetParameters())
             {
                 if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
                 {
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
                     allArgs.Add(argInstance!);
+                }
+                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
+                {
+                    var validationErrors = new List<string>();
+                    var argField = Arguments[p.Name];
+                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    // this could be int to RequiredField<int>
+                    if (value != null && value.GetType() != argField.RawType)
+                    {
+                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
+                    }
+
+                    if (value == null)
+                    {
+                        var field = docVariables.GetType().GetField(p.Name);
+                        if (field != null)
+                        {
+                            value = field.GetValue(docVariables);
+                        }
+                    }
+
+                    argField.Validate(value, p.Name, validationErrors);
+
+                    allArgs.Add(value!);
                 }
                 else if (p.ParameterType == context.GetType())
                 {
