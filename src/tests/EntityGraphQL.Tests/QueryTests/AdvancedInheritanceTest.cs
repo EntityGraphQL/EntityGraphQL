@@ -102,7 +102,7 @@ namespace EntityGraphQL.Tests
                                   Status = new Status() { Id = 4, Name = "Shipped "},
                                    Book = new Book()
                                    {
-                                        Author = "Steve Riley",
+                                        Author = "Ben Riley",
                                          Name = "My Life",
                                           Pages = 300
                                    }
@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Shipped", order.orderItems[1].status.name);
 
             Assert.Equal(2, order.orderItems[1].book.GetType().GetFields().Length);
-            Assert.Equal("Steve Riley", order.orderItems[1].book.author);
+            Assert.Equal("Ben Riley", order.orderItems[1].book.author);
             Assert.Equal("My Life", order.orderItems[1].book.name);
             Assert.NotEqual(300, order.orderItems[1].book.pages);
         }
