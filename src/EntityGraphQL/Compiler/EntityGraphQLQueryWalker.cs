@@ -376,12 +376,7 @@ namespace EntityGraphQL.Compiler
                     foreach (var queryField in newContext.QueryFields)
                     {
                         queryField.ParentNode = context;
-                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;
-                        //var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);
-                        //foreach (var field in queryField.QueryFields)
-                        //{
-                        //    fieldResult.AddField(field);
-                        //}
+                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;                     
                         context.AddField(queryField);
                     }
                 }
