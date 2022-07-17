@@ -31,7 +31,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportsManyArguments()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(null, new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
             var tree = new GraphQLCompiler(schema).Compile(@"query {
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ThrowsOnMissingRequiredArgument()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(null, new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var gql = new QueryRequest
@@ -64,7 +64,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void ThrowsOnMissingRequiredArguments()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(null, new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), h = ArgumentHelper.Required<string>() }, (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.id), "Return a user by ID");
             var gql = new QueryRequest
