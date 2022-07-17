@@ -375,8 +375,14 @@ namespace EntityGraphQL.Compiler
                     //copy the fragment fields over to the select context and cast the type so we can access the property
                     foreach (var queryField in newContext.QueryFields)
                     {
-                        var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);
-                        context.AddField(fieldResult);
+                        queryField.ParentNode = context;
+                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;
+                        //var fieldResult = new GraphQLScalarField(schemaProvider, queryField.Field, queryField.Name, queryField.NextFieldContext!, queryField.NextFieldContext as ParameterExpression ?? context.RootParameter, context, queryField.Arguments as Dictionary<string, object>);
+                        //foreach (var field in queryField.QueryFields)
+                        //{
+                        //    fieldResult.AddField(field);
+                        //}
+                        context.AddField(queryField);
                     }
                 }
                 else

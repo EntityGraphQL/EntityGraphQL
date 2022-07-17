@@ -34,7 +34,7 @@ namespace EntityGraphQL.Compiler
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
         public Expression? NextFieldContext { get; }
-        public IGraphQLNode? ParentNode { get; }
+        public IGraphQLNode? ParentNode { get; set; }
         public ParameterExpression? RootParameter { get; set; }
         /// <summary>
         /// Arguments from inline in the query - not $ variables

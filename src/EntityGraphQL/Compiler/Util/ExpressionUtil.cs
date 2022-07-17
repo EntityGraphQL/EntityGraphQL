@@ -409,6 +409,17 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
+        private static Type? RootType(Expression expression)
+        {
+            return expression switch
+            {
+                MemberExpression me => me.Expression.Type,
+                ConditionalExpression ce => RootType(ce.Test),
+                BinaryExpression be => RootType(be.Left),
+                _ => null
+            };
+        }
+
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
@@ -418,9 +429,9 @@ namespace EntityGraphQL.Compiler.Util
                 return baseExp;
 
             // get a list of distinct types asked for in the query (fragments for interfaces)
-            var validTypes = fieldExpressions.Values.OfType<MemberExpression>()
-                .Where(i => currentContextParam.Type.IsAssignableFrom(i.Expression.Type))
-                .Select(i => i.Expression.Type)
+            var validTypes = fieldExpressions.Values
+                .Select(i => RootType(i))
+                .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
                 .Distinct();
 
             // If 0 or 1 valid types then default to basic behaviour
@@ -451,22 +462,16 @@ namespace EntityGraphQL.Compiler.Util
                 Expression? previous = null;
                 foreach (var type in validTypes)
                 {
-                    
+
                     var fieldsOnType = fieldExpressions
-                       .Where(i => {
-                           return i.Value switch {
-                               MemberExpression me => me.Expression.Type.IsAssignableFrom(type) || me.Expression.Type == typeof(ISchemaType),
-                               ConditionalExpression _ => true,
-                                _ => false
-                           }; 
-                       })
+                       .Where(i => RootType(i.Value)!.IsAssignableFrom(type) || RootType(i.Value) == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value);
 
                     var memberInit = CreateNewExpression(fieldDescription, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
 
                     if (previous != null)
                     {
-                        var conversionVisitor = new ConversionVisitor(currentContextParam, type);
+                        var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
                         var replacer = new ParameterReplacer();
 
                         var convertedExpression = conversionVisitor.Visit(memberInit);
