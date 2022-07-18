@@ -38,7 +38,7 @@ namespace EntityGraphQL.Schema
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.PropertyType);
 
                 }
-                foreach (var item in ArgumentsType.GetFields())
+                foreach (var item in ArgumentsType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;

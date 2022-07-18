@@ -1,3 +1,9 @@
+# 2.3.2
+
+Fixes
+
+- Fix #159 - SchemaBuilder will no longer try to create schema fields for `const` fields on mutation args or input types
+
 # 2.3.1
 
 Fixes:
