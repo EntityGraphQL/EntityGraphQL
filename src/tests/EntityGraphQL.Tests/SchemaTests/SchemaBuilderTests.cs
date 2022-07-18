@@ -146,7 +146,7 @@ namespace EntityGraphQL.Tests
         public void InheritedClassesBecomeObjectsIntrospection()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
-            schemaProvider.AddType<InheritedClass>("").AddAllBaseTypes();
+            schemaProvider.AddType<InheritedClass>("").ImplementAllBaseTypes();
             Assert.Equal(GqlTypeEnum.Object, schemaProvider.Type<InheritedClass>().GqlType);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
 

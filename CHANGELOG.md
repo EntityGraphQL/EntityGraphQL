@@ -1,3 +1,45 @@
+# 3.0.0
+
+Breaking changes:
+
+- `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
+- Removed obsolete `ISchemaType.BaseType`. Use `ISchemaType.BaseTypes`
+- Cleaned up `SchemaType` constructors - using `GqlTypeEnum` instead of many boolean flags
+- Removed obsolete `SchemaProvider.AddInheritedType<TBaseType>`
+- Removed the instance parameter from `AddMutationsFrom` and friends. Mutation "controllers" are now always created per request like an asp.net controller. Use DI for any constructor parameters
+- Renamed `ISchemaType.AddBaseType` to `ISchemaType.Implements` to align with GraphQL language
+  - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
+- Renamed `ISchemaType.AddAllBaseTypes` to `ISchemaType.ImplementAllBaseTypes` to align with GraphQL language
+
+Changes:
+
+- `ToGraphQLSchemaString` now outputs directives in the schema
+- #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
+- #146 - Allow GraphQL mutation arguments as seperate arguments in the method signature. Avoiding the need to create the mutation argument classes. e.g.
+
+```
+[GraphQLMutation]
+public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
+{
+  // ...
+}
+
+[GraphQLMutation]
+public Person AddPersonSingleArgument(InputObject nameInput)
+{
+  // ...
+}
+```
+
+Turn into
+
+```
+type Mutation {
+  addPersonSeparateArguments(name: String, names: [String!], nameInput: InputObject, gender: Gender): Person
+  addPersonSingleArgument(nameInput: InputObject): Person
+}
+```
+
 # 2.3.2
 
 Fixes

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EntityGraphQL.Schema
+﻿namespace EntityGraphQL.Schema
 {
     public enum GqlTypeEnum
     {

@@ -7,21 +7,20 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema
 {
     public class MutationField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Mutation;
-        private readonly object? mutationClassInstance;
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, object? mutationClassInstance, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
-            this.mutationClassInstance = mutationClassInstance;
             this.method = method;
             RequiredAuthorization = requiredAuth;
             this.isAsync = isAsync;
@@ -44,6 +43,21 @@ namespace EntityGraphQL.Schema
                         continue;
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null, fieldNamer));
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
+                }
+            }
+            else
+            {
+                foreach (var item in method.GetParameters())
+                {
+                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                        continue;
+
+                    var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
+                    if (item.ParameterType.IsPrimitive || schema.HasType(inputType))
+                    {
+                        Arguments.Add(fieldNamer(item.Name), ArgType.FromParameter(schema, item, null, fieldNamer));
+                        AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);
+                    }
                 }
             }
         }
@@ -70,17 +84,37 @@ namespace EntityGraphQL.Schema
             var allArgs = new List<object>();
             object? argInstance = null;
 
-            if (Arguments.Count > 0)
-            {
-                argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
-            }
-
             // add parameters and any DI services
             foreach (var p in method.GetParameters())
             {
                 if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
                 {
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
                     allArgs.Add(argInstance!);
+                }
+                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
+                {
+                    var validationErrors = new List<string>();
+                    var argField = Arguments[p.Name];
+                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    // this could be int to RequiredField<int>
+                    if (value != null && value.GetType() != argField.RawType)
+                    {
+                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
+                    }
+
+                    if (value == null)
+                    {
+                        var field = docVariables.GetType().GetField(p.Name);
+                        if (field != null)
+                        {
+                            value = field.GetValue(docVariables);
+                        }
+                    }
+
+                    argField.Validate(value, p.Name, validationErrors);
+
+                    allArgs.Add(value!);
                 }
                 else if (p.ParameterType == context.GetType())
                 {
@@ -116,20 +150,16 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            object? instance = mutationClassInstance;
+            object? instance = null;
+            // we create an instance _per request_ injecting any parameters to the constructor
+            // We kind of treat a mutation class like an asp.net controller
+            // and we do not want to register them in the service provider to avoid the same issues controllers would have
+            // with different lifetime objects
             if (instance == null)
             {
-                //try instantiate the mutation class using the service provider
-                if (serviceProvider != null)
-                {
-                    instance = serviceProvider.GetService(method.DeclaringType);
-                }
-
-                //fallback to activator create instance
-                if (instance == null)
-                {
-                    instance = Activator.CreateInstance(method.DeclaringType);
-                }
+                instance = serviceProvider != null ?
+                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType) :
+                    Activator.CreateInstance(method.DeclaringType);
             }
 
             object? result;

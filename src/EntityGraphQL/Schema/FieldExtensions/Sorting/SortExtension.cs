@@ -64,7 +64,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     fields.Add(prop.Name, directionType);
                 }
                 // build SortInput - need a unique name if they use sort on another field with the same name
-                var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, $"{sortInputName}-{Guid.NewGuid()}");
+                var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, field.Name);
                 schemaSortType = schema.AddInputType(argSortType, sortInputName, $"Sort arguments for {field.Name}").AddAllFields();
             }
 

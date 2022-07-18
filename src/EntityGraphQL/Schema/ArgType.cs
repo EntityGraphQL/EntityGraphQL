@@ -45,6 +45,13 @@ namespace EntityGraphQL.Schema
             return arg;
         }
 
+        public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo prop, object? defaultValue, Func<string, string> fieldNamer)
+        {
+            var arg = MakeArgType(schema, prop.Member, prop.ParameterType, prop.Member, defaultValue, fieldNamer);
+
+            return arg;
+        }
+
         public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue, Func<string, string> fieldNamer)
         {
             var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue, fieldNamer);
