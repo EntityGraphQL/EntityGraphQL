@@ -824,6 +824,36 @@ namespace EntityGraphQL.Tests
             Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
         }
 
+        [Fact]
+        public void ConstOnMutationArgOrInpoutTypeNotAdded()
+        {
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.Mutation().Add(MuationWithInputTypeConst, true);
+
+            Assert.DoesNotContain(schema.Mutation().SchemaType.GetFields().First(f => f.Name == "muationWithInputTypeConst").Arguments, f => f.Key == "isConst");
+
+            Assert.Contains(schema.Type<InputWithConst>().GetFields(), f => f.Name == "name");
+            Assert.DoesNotContain(schema.Type<InputWithConst>().GetFields(), f => f.Name == "inputConst");
+        }
+
+        private bool MuationWithInputTypeConst([MutationArguments] ArgsWithConst input)
+        {
+            return true;
+        }
+
+        private class ArgsWithConst
+        {
+            public string Name { get; set; }
+            public const bool IsConst = true;
+            public InputWithConst Input { get; set; }
+        }
+
+        private class InputWithConst
+        {
+            public string Name { get; set; }
+            public const bool InputConst = true;
+        }
+
         private bool DoGreatThingsHere()
         {
             return true;

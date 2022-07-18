@@ -165,11 +165,6 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
-            };
-
             var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
 
@@ -194,12 +189,6 @@ namespace EntityGraphQL.Tests
             kind
           }
         }"
-            };
-
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
             };
 
             var res = schemaProvider.ExecuteRequest(gql, new TestSchema2(), null, null);

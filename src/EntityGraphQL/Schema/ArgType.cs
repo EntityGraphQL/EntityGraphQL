@@ -75,12 +75,11 @@ namespace EntityGraphQL.Schema
             var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, memberInfo), memberInfo, type)
             {
                 DefaultValue = defaultValue,
-                IsRequired = markedRequired
+                IsRequired = markedRequired,
+                rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute,
+                stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute,
+                requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute
             };
-
-            arg.rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute;
-            arg.stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute;
-            arg.requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute;
             if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
             {
                 arg.IsRequired = true;

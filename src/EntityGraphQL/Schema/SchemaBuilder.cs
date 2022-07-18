@@ -10,7 +10,6 @@ using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
-using System.Collections.ObjectModel;
 
 namespace EntityGraphQL.Schema
 {
@@ -161,6 +160,9 @@ namespace EntityGraphQL.Schema
         private static IEnumerable<Field>? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
         {
             if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
+                yield break;
+
+            if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                 yield break;
 
             // Get Description from ComponentModel.DescriptionAttribute
