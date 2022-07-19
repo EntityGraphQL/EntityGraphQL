@@ -73,8 +73,6 @@ namespace EntityGraphQL.Schema
             {
                 DefaultValue = defaultValue,
                 IsRequired = markedRequired,
-                rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute,
-                stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute,
                 requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute
             };
 

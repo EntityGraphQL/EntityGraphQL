@@ -505,7 +505,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestRegExValidationAttribute()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             var gql = new QueryRequest
             {
@@ -524,7 +524,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestRegExValidationAttribute2()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             var gql = new QueryRequest
             {
@@ -906,7 +906,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(23, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(24, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
