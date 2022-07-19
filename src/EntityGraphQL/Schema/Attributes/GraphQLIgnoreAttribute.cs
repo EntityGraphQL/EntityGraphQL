@@ -48,6 +48,23 @@ namespace EntityGraphQL.Schema
             }
             return false;
         }
+
+        /// <summary>
+        /// Parameter is marked as being ignored for inclusion in the Mutation Input types
+        /// </summary>
+        /// <param name="prop"></param>
+        /// <returns></returns>
+        public static bool ShouldIgnoreMemberFromInput(ParameterInfo prop)
+        {
+            if (prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) is GraphQLIgnoreAttribute attribute)
+            {
+                if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Input)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     public enum GraphQLIgnoreType

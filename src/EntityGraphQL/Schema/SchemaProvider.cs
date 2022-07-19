@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
         public SchemaProvider(IGqlAuthorizationService? authorizationService = null, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContextType>>? logger = null, bool introspectionEnabled = true)
         {
             AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
-            SchemaFieldNamer = fieldNamer ?? SchemaBuilder.DefaultNamer;
+            SchemaFieldNamer = fieldNamer ?? SchemaBuilderSchemaOptions.DefaultFieldNamer;
             this.logger = logger;
             this.graphQLCompiler = new GraphQLCompiler(this);
             this.introspectionEnabled = introspectionEnabled;
@@ -761,11 +761,12 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Build the Query schema by reflection on the context type. Same as SchemaBuilder.FromObject<T>()
         /// </summary>
-        /// <param name="autoCreateIdArguments"></param>
-        /// <param name="autoCreateEnumTypes"></param>
-        public void PopulateFromContext(bool autoCreateIdArguments, bool autoCreateEnumTypes)
+        /// <param name="options"></param>
+        public void PopulateFromContext(SchemaBuilderOptions? options = null)
         {
-            SchemaBuilder.FromObject(this, autoCreateIdArguments, autoCreateEnumTypes, SchemaFieldNamer);
+            if (options == null)
+                options = new SchemaBuilderOptions();
+            SchemaBuilder.FromObject(this, options);
         }
     }
 }

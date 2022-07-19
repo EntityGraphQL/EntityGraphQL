@@ -42,6 +42,13 @@ namespace EntityGraphQL.Schema
             return arg;
         }
 
+        public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo prop, object? defaultValue, Func<string, string> fieldNamer)
+        {
+            var arg = MakeArgType(schema, prop.Member, prop.ParameterType, prop.Member, defaultValue, fieldNamer);
+
+            return arg;
+        }
+
         public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue, Func<string, string> fieldNamer)
         {
             var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue, fieldNamer);
@@ -65,7 +72,10 @@ namespace EntityGraphQL.Schema
             var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, memberInfo), memberInfo, type)
             {
                 DefaultValue = defaultValue,
-                IsRequired = markedRequired
+                IsRequired = markedRequired,
+                rangeAttribute = field.GetCustomAttribute(typeof(RangeAttribute), false) as RangeAttribute,
+                stringLengthAttribute = field.GetCustomAttribute(typeof(StringLengthAttribute), false) as StringLengthAttribute,
+                requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute
             };
 
             arg.requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute;

@@ -1,7 +1,7 @@
 ---
-title: "Entity Framework"
-metaTitle: "Working with Entity Framework - EntityGraphQL"
-metaDescription: "Working with Entity Framework & GraphQL"
+title: 'Entity Framework'
+metaTitle: 'Working with Entity Framework - EntityGraphQL'
+metaDescription: 'Working with Entity Framework & GraphQL'
 ---
 
 EntityGraphQL is built to work extremely well with EntityFramework. To see how let's first look at what EntityGraphQL does with GraphQL queries.
@@ -81,15 +81,15 @@ You'll note that EntityGraphQL doesn't care what the context is. It could be a o
 
 Other ORMs built on top of `LinqProvider` and `IQueryable` should also work although have not been tested.
 
-# How EntityGraphQL handles WithService() with EF
+# How EntityGraphQL handles ResolveWithService() with EF
 
-Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `WithService()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allow EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate `WithService()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds the expressions in 2 parts.
+Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `ResolveWithService()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate the services used in `ResolveWithService()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
 
-_This can be disabled by setting the argument `executeServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
+_This can be disabled by setting the argument `ExecuteServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
 
-If you encounter any issues when using `WithService()` on fields and EF Core 3.1+ please raise an issue.
+If you encounter any issues when using `ResolveWithService()` on fields and EF Core 3.1+ please raise an issue.
 
-Example of how EntityGraphQL handles `WithService()`, which can help inform how you build/use other services.
+Example of how EntityGraphQL handles `ResolveWithService()`, which can help inform how you build/use other services.
 
 Given the following GQL
 
@@ -102,24 +102,23 @@ Given the following GQL
 Where `age` is defined with a service as
 
 ```
-schema.Type<Person>().AddField("age",
-    (person) => WithService((AgeService ager) => ager.GetAge(person.Birthday)),
-    "Persons age");
+schema.Type<Person>().AddField("age", "Persons age")
+    .ResolveWithService<AgeService>((ager) => ager.GetAge(person.Birthday));
 ```
 
-EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `WithService()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
+EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `ResolveWithService()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
 
 An example in C# of what this ends up looking like.
 
 ```
 var dbResultFunc = (DbContext context) => context.People.Select(p => new {
-    Birthday = p.Birthday, // extracted from the WithService call as it is needed in the in-memory resolution
+    Birthday = p.Birthday, // extracted from the ResolveWithService expression as it is needed in the in-memory resolution
     manager = new {
         name = p.Manager.Name
     }
 })
 .ToList(); // EF will fetch data
-var dbResult = dbResultFunc(dbContext);
+var dbResult = dbResultFunc(dbContext); // executes the expression
 
 // note dbResult is an anonymous type known at runtime
 var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
@@ -127,24 +126,23 @@ var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
     manager = p.manager // simple selection from the previous result
 })
 .ToList();
-var results = resultsFunc(dbResult, ager);
+var results = resultsFunc(dbResult, ager); // execute for the final result
 ```
 
 This allows EF Core to make it's optimizations and prevent over fetching of data when using EntityGraphQL against an EF DbContext.
 
-# Limitations with using `GetService()` & EF
+# Limitations with using `ResolveWithService()` & EF
 
 If you are using the above functionality where the query will be completed in 2 parts, below are the current limitations to think about when building fields using services.
 
-Do not traverse through a relation in your field expression that uses `WithService()`.
+Do not traverse through a relation in your field expression that uses `ResolveWithService()`.
 
 An example of what will not work.
 
 ```
 schema.UpdateType<Floor>(type => {
-  type.AddField("floorUrl",
-    f => WithService((IFloorUrlService s) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id)),
-    "Current floor url", "String");
+  type.AddField("floorUrl", "Current floor url")
+    .ResolveWithService<IFloorUrlService>((s) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));
 });
 ```
 
@@ -154,8 +152,7 @@ For now you can modify you field to only select fields on the context and update
 
 ```
 schema.UpdateType<Floor>(type => {
-  type.AddField("floorUrl",
-    f => WithService((IFloorPlanUrlService s) => s.BuildFloorUrlFromFloorId(f.Id)),
-    "Current floor url", "String");
+  type.AddField("floorUrl", "Current floor url")
+    .ResolveWithService<IFloorPlanUrlService>((s) => s.BuildFloorUrlFromFloorId(f.Id));
 });
 ```

@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema
 
             return false;
         }
-        public abstract ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true);
+        public abstract ISchemaType AddAllFields(SchemaBuilderOptions? options = null);
 
         public void AddFields(IEnumerable<IField> fields)
         {

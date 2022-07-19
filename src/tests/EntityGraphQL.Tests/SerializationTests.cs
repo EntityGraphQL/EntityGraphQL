@@ -19,7 +19,7 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void JsonNewtonsoft()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
@@ -30,11 +30,11 @@ namespace EntityGraphQL.AspNet.Tests
             {
                 ""query"": ""mutation AddPerson($names: InputObject) {
                     addPersonInput(nameInput: $names) {
-                        id name lastName
+                        id name lastName birthday
                     }
                 }"",
                 ""variables"": {
-                    ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"" }
+                    ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDate"": null  }
                 }
             }");
             var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -42,19 +42,20 @@ namespace EntityGraphQL.AspNet.Tests
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
             // we only have the fields requested
             var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
-            Assert.Equal(3, resultFields.Count());
+            Assert.Equal(4, resultFields.Count());
             Assert.Contains("id", resultFields);
             Assert.Equal(0, addPersonResult.id);
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
+            Assert.Equal(null, addPersonResult.birthday);
         }
 
         [Fact]
         public void JsonNewtonsoftArray()
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
@@ -79,7 +80,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftArray2()
         {
             // test that even though we don't know about JArray they are IEnumerable and can easily be handled
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
@@ -128,15 +129,15 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void TextJsonJsonElement()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             // Simulate a JSON request with System.Text.Json
             // variables will end up having JsonElements
             var q = @"{
-                ""query"": ""mutation AddPerson($names: InputObject) { addPersonInput(nameInput: $names) { id name lastName } }"",
+                ""query"": ""mutation AddPerson($names: InputObject) { addPersonInput(nameInput: $names) { id name lastName birthday } }"",
                 ""variables"": {
-                    ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"" }
+                    ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDay"": null }
                 }
             }";
             var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
@@ -145,12 +146,13 @@ namespace EntityGraphQL.AspNet.Tests
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
             // we only have the fields requested
             var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
-            Assert.Equal(3, resultFields.Count());
+            Assert.Equal(4, resultFields.Count());
             Assert.Contains("id", resultFields);
             Assert.Equal(0, addPersonResult.id);
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
+            Assert.Equal(null, addPersonResult.birthday);
         }
 
     }

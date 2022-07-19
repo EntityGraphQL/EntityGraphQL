@@ -10,11 +10,53 @@ Breaking changes:
 - Renamed `ISchemaType.AddBaseType` to `ISchemaType.Implements` to align with GraphQL language
   - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
 - Renamed `ISchemaType.AddAllBaseTypes` to `ISchemaType.ImplementAllBaseTypes` to align with GraphQL language
+- `Create` & `FromObject` on `SchemaBuilder` now take option classes to configure the create of the schema through reflection
+  - `ISchemaType.AddAllFields` also takes the option class to configure it's behaviour
+  - `ISchemaType.AddAllFields` default behaviour now auto adds any complex types found really reflection the properties & fields and will add those to the schema
+- Added new option when building a schema with `SchemaBuilder.FromObject` - `AutoCreateInterfaceTypes`. Defaults to `false`. If `true` any abstract classes or interfaces on types reflected with be added as Interfaces in the schema. This is useful if you expose lists of entities on a base/interface type.
 
 Changes:
 
 - `ToGraphQLSchemaString` now outputs directives in the schema
 - #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
+- #146 - Allow GraphQL mutation arguments as seperate arguments in the method signature. Avoiding the need to create the mutation argument classes. e.g.
+
+```
+[GraphQLMutation]
+public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
+{
+  // ...
+}
+
+[GraphQLMutation]
+public Person AddPersonSingleArgument(InputObject nameInput)
+{
+  // ...
+}
+```
+
+Turn into
+
+```
+type Mutation {
+  addPersonSeparateArguments(name: String, names: [String!], nameInput: InputObject, gender: Gender): Person
+  addPersonSingleArgument(nameInput: InputObject): Person
+}
+```
+
+# 2.3.2
+
+Fixes
+
+- Fix #159 - SchemaBuilder will no longer try to create schema fields for `const` fields on mutation args or input types
+
+# 2.3.1
+
+Fixes:
+
+- #163 - Fix to handle null property in a nested object when processing a System.Text.Json deserialised query document
+- #164 - Fix to support inline fragments in a fragment
+- #166 - Add missing `!=` operator in the fitler expression language and make sure precedence is correct for logic operators
 
 # 2.3.0
 

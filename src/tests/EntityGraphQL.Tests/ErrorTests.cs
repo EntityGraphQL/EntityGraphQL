@@ -11,7 +11,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void MutationReportsError()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void QueryReportsError()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestErrorFieldNotIncludedInResponseWhenNoErrors()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             var gql = new QueryRequest
             {
@@ -74,7 +74,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestExtensionException()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var gql = new QueryRequest
             {
                 Query = @"{

@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryEmptyString()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -53,7 +53,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryStringWhitespace()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryArgument()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -94,7 +94,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FilterExpressionWithNoValue()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FilterExpressionWithNoValueNoDocVar()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -144,7 +144,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilter()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
@@ -161,10 +161,74 @@ namespace EntityGraphQL.Tests
             var user = Enumerable.First(users);
             Assert.Equal("2", user.field2);
         }
+
+        [Fact]
+        public void SupportUseFilterWithOrStatement()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            schema.Type<TestDataContext>().GetField("users", null)
+                .UseFilter();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    users(filter: $filter) { field2 }
+                }",
+                Variables = new QueryVariables { { "filter", "field2 == \"2\" or field2 == \"3\"" } }
+            };
+            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(1, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.field2);
+        }
+
+        [Fact]
+        public void SupportUseFilterWithAndStatement()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            schema.Type<TestDataContext>().GetField("users", null)
+                .UseFilter();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    users(filter: $filter) { field2 }
+                }",
+                Variables = new QueryVariables { { "filter", "field2 == \"2\" and field2 == \"2\"" } }
+            };
+            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(1, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.field2);
+        }
+
+        [Fact]
+        public void SupportUseFilterWithnotEqualStatement()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            schema.Type<TestDataContext>().GetField("users", null)
+                .UseFilter();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    users(filter: $filter) { field2 }
+                }",
+                Variables = new QueryVariables { { "filter", "field2 != \"3\"" } }
+            };
+            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+            dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+            Assert.Equal(1, Enumerable.Count(users));
+            var user = Enumerable.First(users);
+            Assert.Equal("2", user.field2);
+        }
+
         [Fact]
         public void SupportUseFilterOnNonRoot()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Project>().GetField("tasks", null)
                 .UseFilter();
             var gql = new QueryRequest

@@ -11,7 +11,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSort()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort();
             var gql = new QueryRequest
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSortSelectSortFields()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => new
                 {
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSortDefaultWithSelectSortFields()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => new
                 {
@@ -145,7 +145,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSortDefault()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("people", null)
                 .UseSort((Person person) => person.Height, SortDirectionEnum.ASC);
             var gql = new QueryRequest
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSortOnNonRoot()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Project>().GetField("tasks", null)
                 .UseSort();
             var gql = new QueryRequest
@@ -202,7 +202,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseSortOnNonRootVariableWithClass()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Project>().GetField("tasks", null)
                 .UseSort();
             var gql = new QueryRequest

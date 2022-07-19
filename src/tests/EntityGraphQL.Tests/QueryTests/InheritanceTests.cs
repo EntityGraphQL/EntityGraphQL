@@ -1,6 +1,7 @@
 using Xunit;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Tests.ApiVersion1;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
@@ -31,6 +32,16 @@ query {
 
             Assert.Equal("Dog", animals[0].__typename);
             Assert.Equal("Cat", animals[1].__typename);
+        }
+
+        [Fact]
+        public void TestAutoInheritance()
+        {
+            var schema = SchemaBuilder.FromObject<TestAbstractDataContextNoAnimals>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
+            Assert.True(schema.HasType(typeof(Dog)));
+            Assert.True(schema.HasType(typeof(Cat)));
+            Assert.True(schema.HasType(typeof(Animal)));
+            Assert.True(schema.GetSchemaType(typeof(Animal), null).IsInterface);
         }
 
         [Fact]
@@ -116,6 +127,42 @@ query {
         ...on Dog {
             hasBone 
         }
+    }
+}
+");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animal = qr.Data["animal"];
+            Assert.Equal("Cat", animal.__typename);
+            Assert.Equal("george", animal.name);
+            Assert.Equal(9, animal.lives);
+            // does not have the dog field
+            Assert.Null(animal.GetType().GetField("hasBone"));
+        }
+
+        [Fact]
+        public void TestInheritanceExtraFieldsOnObjectCatUsingFragments()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+query {
+    animal(id: 2) {
+       ...animalFragment
+    }    
+}
+
+fragment animalFragment on Animal {
+    __typename
+    name
+    ... on Cat {
+        lives 
+    }
+    ...on Dog {
+        hasBone 
     }
 }
 ");

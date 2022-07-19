@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void Supports__typename()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider).Compile(@"query {
 	users { __typename id }
