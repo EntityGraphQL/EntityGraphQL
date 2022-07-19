@@ -124,13 +124,18 @@ Type Person {
 
 ```
 schema.AddType<Person>("Person", "All about the project")
-    .AddAllFields(
-        autoCreateNewComplexTypes: false,
-        autoCreateEnumTypes: true
-    );
+    .AddAllFields();
 ```
 
-- `autoCreateNewComplexTypes` - If there is a field that returns another custom .NET type this will create a whole new GraphQL type for it
+- `options` - you can configure how `AddAllFields` works with the properties of `SchemaBuilderOptions`
+
+```
+schema.AddType<Person>("Person", "All about the project")
+    .AddAllFields(new SchemaBuilderOptions
+    {
+        AutoCreateNewComplexTypes = false, // do not add custom dotnet types found as property/field types to the schema. Only add scalar type fields
+    });
+```
 
 ## Modifying the generated schema
 

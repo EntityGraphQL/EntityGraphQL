@@ -19,65 +19,68 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public static class SchemaBuilder
     {
-        private static readonly HashSet<string> ignoreProps = new()
+        /// <summary>
+        /// Create a new SchemaProvider<TContext> with the query context of type TContext and using the SchemaBuilderSchemaOptions supplied or the default if null.
+        /// Note the schema is empty, you need to add types and fields.
+        /// </summary>
+        /// <typeparam name="TContext">Query context type</typeparam>
+        /// <param name="options">SchemaBuilderSchemaOptions to configure the options of the schema provider created</param>
+        /// <param name="logger">A logger to use in the schema</param>
+        /// <returns></returns>
+        public static SchemaProvider<TContext> Create<TContext>(SchemaBuilderSchemaOptions? options = null, ILogger<SchemaProvider<TContext>>? logger = null)
         {
-            "Database",
-            "Model",
-            "ChangeTracker",
-            "ContextId"
-        };
-
-        private static readonly HashSet<string> ignoreTypes = new()
-        {
-            "String",
-            "Byte[]"
-        };
-        public static readonly Func<string, string> DefaultNamer = name =>
-        {
-            return name[..1].ToLowerInvariant() + name[1..];
-        };
-
-        public static SchemaProvider<TContext> Create<TContext>(Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContext>>? logger = null)
-        {
-            return Create(new RoleBasedAuthorization(), fieldNamer, logger);
-        }
-        public static SchemaProvider<TContext> Create<TContext>(IGqlAuthorizationService authorizationService, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContext>>? logger = null)
-        {
-            return new SchemaProvider<TContext>(authorizationService, fieldNamer, logger);
+            if (options == null)
+                options = new SchemaBuilderSchemaOptions();
+            return new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled);
         }
 
         /// <summary>
         /// Given the type TContextType recursively create a query schema based on the public properties of the object.
         /// </summary>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
-        /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
+        /// <param name="buildOptions">SchemaBuilderOptions to use to create the SchemaProvider and configure the rules for auto creating the schema types and fields</param>
+        /// <param name="logger">A logger to use in the schema</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null, bool introspectionEnabled = true)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaBuilderOptions? buildOptions = null, ILogger<SchemaProvider<TContextType>>? logger = null)
         {
-            return FromObject<TContextType>(new RoleBasedAuthorization(), autoCreateIdArguments, autoCreateEnumTypes, fieldNamer, introspectionEnabled);
+            if (buildOptions == null)
+                buildOptions = new SchemaBuilderOptions();
+            var schemaOptions = new SchemaBuilderSchemaOptions();
+
+            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled);
+            return FromObject(schema, buildOptions);
         }
 
-        public static SchemaProvider<TContextType> FromObject<TContextType>(IGqlAuthorizationService authorizationService, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null, bool introspectionEnabled = true)
+        /// <summary>
+        /// Given the type TContextType recursively create a query schema based on the public properties of the object.
+        /// </summary>
+        /// <param name="schemaOptions">Options to create the SchemaProvider.</param>
+        /// <param name="buildOptions">SchemaBuilderOptions to use to create the SchemaProvider and configure the rules for auto creating the schema types and fields</param>
+        /// <param name="logger">A logger to use in the schema</param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaBuilderSchemaOptions? schemaOptions, SchemaBuilderOptions? buildOptions = null, ILogger<SchemaProvider<TContextType>>? logger = null)
         {
-            var schema = new SchemaProvider<TContextType>(authorizationService, fieldNamer ?? DefaultNamer, introspectionEnabled: introspectionEnabled);
-            return FromObject(schema, autoCreateIdArguments, autoCreateEnumTypes, fieldNamer ?? DefaultNamer);
+            if (buildOptions == null)
+                buildOptions = new SchemaBuilderOptions();
+            if (schemaOptions == null)
+                schemaOptions = new SchemaBuilderSchemaOptions();
+
+            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled);
+            return FromObject(schema, buildOptions);
         }
 
         /// <summary>
         /// Given the type TContextType recursively create a query schema based on the public properties of the object. Schema is added into the provider schema
         /// </summary>
         /// <param name="schema">Schema to add types to.</param>
-        /// <param name="autoCreateIdArguments">If true (default), automatically create a field for any root array thats context object contains an Id property. I.e. If Actor has an Id property and the root TContextType contains IEnumerable<Actor> Actors. A root field Actor(id) will be created.</param>
-        /// <param name="fieldNamer">Optionally provider a function to generate the GraphQL field name. By default this will make fields names that follow GQL style in lowerCaseCamelStyle</param>
+        /// <param name="options">SchemaBuilderOptions to use to create the SchemaProvider and configure the rules for auto creating the schema types and fields</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, bool autoCreateIdArguments = true, bool autoCreateEnumTypes = true, Func<string, string>? fieldNamer = null)
+        internal static SchemaProvider<TContextType> FromObject<TContextType>(SchemaProvider<TContextType> schema, SchemaBuilderOptions options)
         {
-            if (fieldNamer == null)
-                fieldNamer = DefaultNamer;
             var contextType = typeof(TContextType);
-            var rootFields = GetFieldsFromObject(contextType, schema, autoCreateEnumTypes, autoCreateIdArguments, fieldNamer);
+            var rootFields = GetFieldsFromObject(contextType, schema, options, false);
             foreach (var f in rootFields)
             {
                 schema.Query().AddField(f);
@@ -85,10 +88,10 @@ namespace EntityGraphQL.Schema
             return schema;
         }
 
-        private static Field? AddFieldWithIdArgumentIfExists(ISchemaProvider schema, Type contextType, Field fieldProp, Func<string, string> fieldNamer)
+        private static Field? AddFieldWithIdArgumentIfExists(ISchemaProvider schema, Type contextType, Field fieldProp)
         {
             if (fieldProp.ResolveExpression == null)
-                throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
+                throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for AutoCreateIdArguments to work.");
             if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
                 return null;
             var schemaType = fieldProp.ReturnType.SchemaType;
@@ -97,7 +100,7 @@ namespace EntityGraphQL.Schema
                 return null;
 
             if (idFieldDef.ResolveExpression == null)
-                throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for autoCreateIdArguments to work.");
+                throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for AutoCreateIdArguments to work.");
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
             // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
@@ -130,11 +133,8 @@ namespace EntityGraphQL.Schema
             return new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
         }
 
-        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, Func<string, string> fieldNamer, bool createNewComplexTypes = true, bool isInputType = false)
+        public static List<Field> GetFieldsFromObject(Type type, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
-            if (fieldNamer == null)
-                fieldNamer = DefaultNamer;
-
             var fields = new List<Field>();
             // cache fields/properties
             var param = Expression.Parameter(type, $"p_{type.Name}");
@@ -143,13 +143,13 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, autoCreateIdArguments, createNewComplexTypes, fieldNamer, isInputType);
+                var f = ProcessFieldOrProperty(prop, param, schema, options, isInputType);
                 if (f != null)
                     fields.AddRange(f);
             }
             foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(prop, param, schema, createEnumTypes, autoCreateIdArguments, createNewComplexTypes, fieldNamer, isInputType);
+                var f = ProcessFieldOrProperty(prop, param, schema, options, isInputType);
                 if (f != null)
                     fields.AddRange(f);
             }
@@ -157,9 +157,9 @@ namespace EntityGraphQL.Schema
         }
 
 
-        private static IEnumerable<Field>? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
+        private static IEnumerable<Field>? ProcessFieldOrProperty(MemberInfo prop, ParameterExpression param, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
-            if (ignoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
+            if (options.IgnoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
                 yield break;
 
             if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
@@ -181,7 +181,7 @@ namespace EntityGraphQL.Schema
             if (le.ReturnType.IsDictionary())
             {
                 // check for dictionaries
-                if (!createNewComplexTypes)
+                if (!options.AutoCreateNewComplexTypes)
                     yield break;
                 Type[] genericTypeArguments = le.ReturnType.GenericTypeArguments;
                 returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
@@ -196,17 +196,17 @@ namespace EntityGraphQL.Schema
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
 
-            CacheType(baseReturnType, schema, createEnumTypes, autoCreateIdArguments, createNewComplexTypes, fieldNamer, isInputType);
+            CacheType(baseReturnType, schema, options, isInputType);
 
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
-            var field = new Field(schema, fieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
+            var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
-            if (autoCreateIdArguments)
+            if (options.AutoCreateFieldWithIdArguments)
             {
                 // add non-pural field with argument of ID
-                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType, field, fieldNamer);
+                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType, field);
                 if (idArgField != null)
                 {
                     yield return idArgField;
@@ -225,9 +225,9 @@ namespace EntityGraphQL.Schema
             yield return field;
         }
 
-        private static void CacheType(Type propType, ISchemaProvider schema, bool createEnumTypes, bool autoCreateIdArguments, bool createNewComplexTypes, Func<string, string> fieldNamer, bool isInputType)
+        private static void CacheType(Type propType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
-            if (!schema.HasType(propType) && !ignoreTypes.Contains(propType.Name))
+            if (!schema.HasType(propType) && !options.IgnoreTypes.Contains(propType.Name))
             {
                 var typeInfo = propType;
                 string description = string.Empty;
@@ -237,7 +237,7 @@ namespace EntityGraphQL.Schema
                     description = d.Description;
                 }
 
-                if (createNewComplexTypes && (typeInfo.IsClass || typeInfo.IsInterface))
+                if ((options.AutoCreateNewComplexTypes && typeInfo.IsClass) || ((typeInfo.IsInterface || typeInfo.IsAbstract) && options.AutoCreateInterfaceTypes))
                 {
                     // add type before we recurse more that may also add the type
                     // dynamcially call generic method
@@ -253,17 +253,30 @@ namespace EntityGraphQL.Schema
                     var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
-                    var fields = GetFieldsFromObject(propType, schema, createEnumTypes, autoCreateIdArguments, fieldNamer, createNewComplexTypes, isInputType);
+                    var fields = GetFieldsFromObject(propType, schema, options, isInputType);
                     typeAdded.AddFields(fields);
+
+                    if (options.AutoCreateInterfaceTypes)
+                    {
+                        typeAdded.ImplementAllBaseTypes(true, true);
+                    }
                 }
-                else if (createEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
+                else if (options.AutoCreateEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
                 {
                     schema.AddEnum(propType.Name, propType, description);
                 }
-                else if (createEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType)!.IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType)!.Name))
+                else if (options.AutoCreateEnumTypes && propType.IsNullableType() && Nullable.GetUnderlyingType(propType)!.IsEnum && !schema.HasType(Nullable.GetUnderlyingType(propType)!.Name))
                 {
                     Type type = Nullable.GetUnderlyingType(propType)!;
                     schema.AddEnum(type.Name, type, description);
+                }
+                else
+                {
+                    var type = schema.GetSchemaType(propType, null);
+                    if (options.AutoCreateInterfaceTypes)
+                    {
+                        type.ImplementAllBaseTypes(true, true);
+                    }
                 }
             }
         }

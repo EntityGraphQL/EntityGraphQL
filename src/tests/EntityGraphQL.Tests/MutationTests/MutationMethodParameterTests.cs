@@ -1,9 +1,5 @@
 ﻿using Xunit;
-using System.Linq;
 using EntityGraphQL.Schema;
-using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using System.Collections.Generic;
 using System;
 
 namespace EntityGraphQL.Tests
@@ -13,7 +9,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSeparateArguments_PrimitivesOnly()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
             schemaProvider.AddMutationsFrom<PeopleMutations>(false);
@@ -38,7 +34,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSeparateArguments_PrimitivesOnly_WithInlineDefaults()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
             schemaProvider.AddMutationsFrom<PeopleMutations>(false);
@@ -61,7 +57,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSeparateArguments()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
             schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
@@ -84,7 +80,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSingleArgument()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
             schemaProvider.AddMutationsFrom<PeopleMutations>(false);
             // Add a argument field with a require parameter
@@ -104,7 +100,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSingleArgument_AutoAddInputTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>(true);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -123,7 +119,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSeparateArguments_AutoAddInputTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>(true);
             // Add a argument field with a require parameter
             var gql = new QueryRequest

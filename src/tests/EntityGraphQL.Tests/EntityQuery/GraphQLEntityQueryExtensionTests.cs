@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryEmptyString()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -53,7 +53,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryStringWhitespace()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportEntityQueryArgument()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -94,7 +94,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FilterExpressionWithNoValue()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void FilterExpressionWithNoValueNoDocVar()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
             var gql = new QueryRequest
             {
@@ -144,7 +144,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilter()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
@@ -165,7 +165,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilterWithOrStatement()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
@@ -186,7 +186,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilterWithAndStatement()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
@@ -207,7 +207,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilterWithnotEqualStatement()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
             schema.Type<TestDataContext>().GetField("users", null)
                 .UseFilter();
             var gql = new QueryRequest
@@ -228,7 +228,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void SupportUseFilterOnNonRoot()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<Project>().GetField("tasks", null)
                 .UseFilter();
             var gql = new QueryRequest

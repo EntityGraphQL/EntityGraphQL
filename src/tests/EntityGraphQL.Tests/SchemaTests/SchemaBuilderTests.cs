@@ -95,7 +95,7 @@ namespace EntityGraphQL.Tests
         public void DoesNotSupportSameFieldDifferentArguments()
         {
             // Grpahql doesn't support "field overloading"
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema>(true);
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // user(id: ID) already created
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.Query().AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
             Assert.Equal("Field people already exists on type Query. Use ReplaceField() if this is intended.", ex.Message);

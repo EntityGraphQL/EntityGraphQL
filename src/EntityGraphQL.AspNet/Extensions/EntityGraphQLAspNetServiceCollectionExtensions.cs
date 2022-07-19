@@ -44,7 +44,7 @@ namespace EntityGraphQL.AspNet
             var schema = new SchemaProvider<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer);
             options.PreBuildSchemaFromContext?.Invoke(schema);
             if (options.AutoBuildSchemaFromContext)
-                schema.PopulateFromContext(options.AutoCreateIdArguments, options.AutoCreateEnumTypes);
+                schema.PopulateFromContext(options);
             options.ConfigureSchema?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
 

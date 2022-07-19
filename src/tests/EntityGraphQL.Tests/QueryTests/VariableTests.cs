@@ -94,7 +94,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void QueryVariableDefinitionRequiredBySchemaItIsNotRequired()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             var gql = new QueryRequest
             {
@@ -117,7 +117,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void QueryVariableArrayGetsAList()
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>(false);
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Query().AddField("test", new { ids = (Guid[])null }, (db, args) => db.People.Where(p => args.ids.Any(a => a == p.Guid)), "test field");
             var gql = new QueryRequest
             {

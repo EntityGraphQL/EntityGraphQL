@@ -10,6 +10,10 @@ Breaking changes:
 - Renamed `ISchemaType.AddBaseType` to `ISchemaType.Implements` to align with GraphQL language
   - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
 - Renamed `ISchemaType.AddAllBaseTypes` to `ISchemaType.ImplementAllBaseTypes` to align with GraphQL language
+- `Create` & `FromObject` on `SchemaBuilder` now take option classes to configure the create of the schema through reflection
+  - `ISchemaType.AddAllFields` also takes the option class to configure it's behaviour
+  - `ISchemaType.AddAllFields` default behaviour now auto adds any complex types found really reflection the properties & fields and will add those to the schema
+- Added new option when building a schema with `SchemaBuilder.FromObject` - `AutoCreateInterfaceTypes`. Defaults to `false`. If `true` any abstract classes or interfaces on types reflected with be added as Interfaces in the schema. This is useful if you expose lists of entities on a base/interface type.
 
 Changes:
 

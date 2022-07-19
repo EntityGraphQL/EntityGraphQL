@@ -43,7 +43,7 @@ namespace EntityGraphQL.Schema
         IField GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<IField> GetFields();
         bool HasField(string identifier, QueryRequestContext? requestContext);
-        ISchemaType AddAllFields(bool autoCreateNewComplexTypes = false, bool autoCreateEnumTypes = true);
+        ISchemaType AddAllFields(SchemaBuilderOptions? options = null);
         void AddFields(IEnumerable<IField> fields);
         IField AddField(IField field);
         void RemoveField(string name);

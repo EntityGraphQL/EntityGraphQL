@@ -16,7 +16,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreQueryFails()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -29,7 +29,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreQueryPasses()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreInputFails()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.
             AddMutationsFrom<IgnoreTestMutations>();
             // Add a argument field with a require parameter
@@ -66,7 +66,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreInputPasses()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreAllInInput()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreAllInQuery()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -133,7 +133,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestIgnoreWithSchema()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             schemaProvider.Type<Album>().RemoveField("old");
             var schema = schemaProvider.ToGraphQLSchemaString();
@@ -161,7 +161,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.Type<Album>().RemoveField("old");
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
@@ -177,7 +177,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNullableEnumInType()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains(@"type Artist {
@@ -189,7 +189,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullArgs()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -199,7 +199,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNotNullEnumerableElementByDefault()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -208,7 +208,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNullEnumerableElement()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -218,7 +218,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestDeprecatedField()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("old: Int! @deprecated(reason: \"because\")", schema);
@@ -226,7 +226,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestDeprecatedMutationField()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -235,7 +235,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestDeprecatedEnumField()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("Obsolete @deprecated(reason: \"This is an obsolete genre\")", schema);
@@ -244,7 +244,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNullableRefTypeMutationField()
         {
-            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             schemaProvider.AddMutationsFrom<NullableRefTypeMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
@@ -313,7 +313,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestAbstractClassToGraphQLSchemaString()
         {
-            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>();
 
             schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").ImplementAllBaseTypes().AddAllFields();
             schemaProvider.AddType<AbstractClassTestSchema.Cat>("Cats are animals").Implements<Animal>().AddAllFields();
@@ -333,7 +333,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestMultipleInheritanceToGraphQLSchemaString()
         {
-            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>();
 
             schemaProvider.AddType<AbstractClassTestSchema.ISwim>("").AddAllFields();
             schemaProvider.AddType<AbstractClassTestSchema.Dog>("Dogs are animals").ImplementAllBaseTypes().AddAllFields();
@@ -353,7 +353,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNoMutations()
         {
-            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>(false);
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>();
 
             var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("mutation:", schema);

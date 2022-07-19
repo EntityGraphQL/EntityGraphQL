@@ -1,6 +1,7 @@
 using Xunit;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Tests.ApiVersion1;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
@@ -31,6 +32,16 @@ query {
 
             Assert.Equal("Dog", animals[0].__typename);
             Assert.Equal("Cat", animals[1].__typename);
+        }
+
+        [Fact]
+        public void TestAutoInheritance()
+        {
+            var schema = SchemaBuilder.FromObject<TestAbstractDataContextNoAnimals>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
+            Assert.True(schema.HasType(typeof(Dog)));
+            Assert.True(schema.HasType(typeof(Cat)));
+            Assert.True(schema.HasType(typeof(Animal)));
+            Assert.True(schema.GetSchemaType(typeof(Animal), null).IsInterface);
         }
 
         [Fact]
