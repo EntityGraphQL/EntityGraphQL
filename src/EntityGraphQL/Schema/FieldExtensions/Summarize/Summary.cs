@@ -10,6 +10,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public T? Min { get; set; }
         public T? Max { get; set; }
         public T? Sum { get; set; }
-        public T? Avg { get; set; }
+        public T? Average { get; set; }
     }
 }

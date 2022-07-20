@@ -36,43 +36,64 @@ namespace EntityGraphQL.Schema.FieldExtensions
             var summaryTypeName = $"{listType.Name}Summary";
             ISchemaType summarySchemaType;
             var type = typeof(Summary<>).MakeGenericType(listType);
+            var isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
+            var queryableType = isQueryable ? typeof(Queryable) : typeof(Enumerable);
 
             if (!schema.HasType(summaryTypeName))
             {
-                var isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
-                var queryableType = isQueryable ? typeof(Queryable) : typeof(Enumerable);
-
                 summarySchemaType = schema.AddType(type, summaryTypeName, $"Aggregate data for {listType}").AddAllFields();
-                
+
                 summarySchemaType.GetField("count", null).UpdateExpression(
                     Expression.Call(queryableType, "Count", new Type[] { listType! }, field.ResolveExpression)
                 );
 
-                //summarySchemaType.GetField("max", null).UpdateExpression(
-                //    Expression.Lambda(
-                //        Expression.MemberInit(Expression.New(listType.GetConstructor(Type.EmptyTypes))),
-                //        Expression.Parameter(listType)
-                //    )
-                //    //Expression.Call(queryableType, "Count", new Type[] { listType! }, field.ResolveExpression)
-                //);
+                var parameter = Expression.Parameter(listType);
+
+                AddAggregregateField("Max", summarySchemaType, listType, field, queryableType, parameter);
+                AddAggregregateField("Min", summarySchemaType, listType, field, queryableType, parameter);
+                AddAggregregateField("Average", summarySchemaType, listType, field, queryableType, parameter);
+                AddAggregregateField("Max", summarySchemaType, listType, field, queryableType, parameter);
+                AddAggregregateField("Sum", summarySchemaType, listType, field, queryableType, parameter);
             }
             else
-            {
+            {                
                 summarySchemaType = schema.GetSchemaType(summaryTypeName, null);
             }
 
+            //Create empty summary type
+            var constructor = type.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException($"Could not create type {type.Name}");
+
+            var expression = Expression.Lambda(Expression.MemberInit(Expression.New(constructor)), Expression.Parameter(listType));
             var gqlTypeInfo = new GqlTypeInfo(() => summarySchemaType, type);
-
-
-            var contextParam = Expression.Parameter(listType);
-            var expression = Expression.Lambda(Expression.MemberInit(Expression.New(type.GetConstructor(Type.EmptyTypes))), contextParam);
-            
-            //todo argsType: new SummarizeInput()
             var schemaField = new Field(schema, "summarize", expression, "", null, gqlTypeInfo, null);
-
             var schemaType = schema.GetSchemaType(listType, null);
             schemaType.AddField(schemaField);
         }
+
+        private void AddAggregregateField(string name, ISchemaType summarySchemaType, Type listType,  IField field, Type queryableType, ParameterExpression parameter)
+        {
+            var propTypes = new[] { typeof(int), typeof(float), typeof(decimal), typeof(long), typeof(double) };
+            var props = listType.GetProperties().Where(x => propTypes.Contains(x.PropertyType));
+
+            summarySchemaType.GetField(name.ToLower(), null).UpdateExpression(
+                Expression.MemberInit(Expression.New(listType.GetConstructor(Type.EmptyTypes)),
+                    props.Select(x =>
+                        Expression.Bind(
+                            listType.GetProperty(x.Name),
+                            Expression.Convert(
+                                Expression.Call(queryableType, name, new Type[] { listType! },
+                                    new Expression[] { field.ResolveExpression!, Expression.Lambda(Expression.PropertyOrField(parameter, x.Name), parameter) }
+                                ),
+                                x.PropertyType
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
 
         public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {

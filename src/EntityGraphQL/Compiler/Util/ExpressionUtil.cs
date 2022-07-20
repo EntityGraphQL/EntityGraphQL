@@ -521,7 +521,7 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        private static Expression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
+        public static Expression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
             foreach (var item in fieldExpressions)
