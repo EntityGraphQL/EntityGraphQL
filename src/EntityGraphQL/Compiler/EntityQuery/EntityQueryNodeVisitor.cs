@@ -140,8 +140,19 @@ namespace EntityGraphQL.Compiler.EntityQuery
             if (!schemaType.HasField(field, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
+
                 if (enumOrConstantValue == null)
+                {
+                    var enumType = schemaProvider.GetEnumTypes().FirstOrDefault(x => x.Name == field);
+                    if(enumType != null)
+                    {
+                        return Expression.Default(enumType.TypeDotnet);
+                    }
+
+
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
+                }
+
                 return enumOrConstantValue;
             }
             var gqlField = schemaType.GetField(field, requestContext);
