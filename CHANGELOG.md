@@ -44,6 +44,8 @@ type Mutation {
 }
 ```
 
+- #160 - Nested data annotations for validation is now supported
+
 # 2.3.2
 
 Fixes
