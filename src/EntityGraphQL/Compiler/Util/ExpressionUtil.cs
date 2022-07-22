@@ -396,12 +396,28 @@ namespace EntityGraphQL.Compiler.Util
             }
             protected override Expression VisitMember(MemberExpression node)
             {
-                //don't convert param for __typename
-                if (node.Member.DeclaringType == typeof(ISchemaType))
+                if (!node.Expression.Type.IsAssignableFrom(convertTo))
+                {                
+                    if (node.Expression is MemberExpression)
+                    {
+                        return Expression.PropertyOrField(Visit(node.Expression), node.Member.Name);
+                    }
                     return node;
+                }
 
                 return Expression.PropertyOrField(Expression.Convert(parameter, convertTo), node.Member.Name);
             }
+        }
+
+        private static Type? RootType(Expression expression)
+        {
+            return expression switch
+            {
+                MemberExpression me => me.Expression.Type,
+                ConditionalExpression ce => RootType(ce.Test),
+                BinaryExpression be => RootType(be.Left),
+                _ => null
+            };
         }
 
         /// <summary>
@@ -413,9 +429,9 @@ namespace EntityGraphQL.Compiler.Util
                 return baseExp;
 
             // get a list of distinct types asked for in the query (fragments for interfaces)
-            var validTypes = fieldExpressions.Values.OfType<MemberExpression>()
-                .Where(i => currentContextParam.Type.IsAssignableFrom(i.Expression.Type))
-                .Select(i => i.Expression.Type)
+            var validTypes = fieldExpressions.Values
+                .Select(i => RootType(i))
+                .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
                 .Distinct();
 
             // If 0 or 1 valid types then default to basic behaviour
@@ -446,34 +462,23 @@ namespace EntityGraphQL.Compiler.Util
                 Expression? previous = null;
                 foreach (var type in validTypes)
                 {
+
                     var fieldsOnType = fieldExpressions
-                       .Where(i => i.Value is MemberExpression)
-                       .Where(i => ((MemberExpression)i.Value).Expression.Type.IsAssignableFrom(type) || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
+                       .Where(i => RootType(i.Value)!.IsAssignableFrom(type) || RootType(i.Value) == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value);
 
-                    var conversionVisitor = new ConversionVisitor(currentContextParam, type);
-
-                    var specificDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnType.ToDictionary(i => i.Key, i => i.Value.Type), fieldDescription, parentType: baseDynamicType);
-                    var constructor = specificDynamicType.GetConstructor(Type.EmptyTypes);
-                    if (constructor == null)
-                        throw new EntityGraphQLCompilerException("Could not create dynamic type");
-
-                    var bindings = specificDynamicType
-                        .GetFields()
-                        .Where(p => fieldsOnType.Keys.Contains(p.Name))
-                        .Select(p => Expression.Bind(p,
-                             conversionVisitor.Visit(fieldsOnType[p.Name])
-                        ))
-                        .OfType<MemberBinding>();
-
-                    var newExp = Expression.New(constructor);
-                    var memberInit = Expression.MemberInit(newExp, bindings);
+                    var memberInit = CreateNewExpression(fieldDescription, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
 
                     if (previous != null)
                     {
+                        var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
+                        var replacer = new ParameterReplacer();
+
+                        var convertedExpression = conversionVisitor.Visit(memberInit);
+
                         previous = Expression.Condition(
                               test: Expression.TypeIs(currentContextParam, type),
-                              ifTrue: memberInit,
+                              ifTrue: convertedExpression,
                               ifFalse: previous,
                               type: baseDynamicType
                         );
@@ -493,7 +498,7 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
-        public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, out Type dynamicType)
+        public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, out Type dynamicType, Type? parentType = null)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
 
@@ -508,7 +513,7 @@ namespace EntityGraphQL.Compiler.Util
             if (!fieldExpressionsByName.Any())
                 return null;
 
-            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
+            dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
             if (dynamicType == null)
                 throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
