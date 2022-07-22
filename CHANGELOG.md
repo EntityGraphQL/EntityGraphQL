@@ -46,6 +46,10 @@ type Mutation {
 
 - #160 - Nested data annotations for validation is now supported
 
+Fixes
+
+- #171 inheritance support for nested properties / conditional fields
+
 # 2.3.2
 
 Fixes
