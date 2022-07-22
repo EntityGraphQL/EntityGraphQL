@@ -49,6 +49,7 @@ type Mutation {
 Fixes
 
 - #171 inheritance support for nested properties / conditional fields
+- #176 - allow fully qualified enums in the filter query language
 
 # 2.3.2
 
