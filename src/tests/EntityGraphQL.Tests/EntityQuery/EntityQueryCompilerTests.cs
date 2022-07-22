@@ -282,10 +282,51 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             Assert.Single(res);
         }
 
+        [Fact]
+        public void CompilesEnum3()
+        {
+            
+
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema);
+            var res = (IEnumerable<Person>)exp.Execute(new TestSchema
+            {
+                People = new List<Person> {
+                    new Person {
+                        Gender = Gender.Female
+                    },
+                    new Person {
+                        Gender = Gender.Other
+                    }
+
+                }
+            });
+            Assert.Single(res);
+        }
+
+        [Fact]
+        public void CompilesEnum4()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            schema.AddEnum("Size", typeof(Size), "");
+            
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                var exp = EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema);
+            });
+        }
+
         public enum Gender
         {
             Female,
             Male,
+            Other
+        }
+
+        public enum Size
+        {
+            Small,
+            Large,
             Other
         }
 
