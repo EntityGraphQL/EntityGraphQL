@@ -10,7 +10,7 @@ public class EntityGraphQLValidationException : Exception
 
     public EntityGraphQLValidationException(IEnumerable<string> validationErrors)
     {
-        ValidationErrors = validationErrors.ToList();
+        ValidationErrors = validationErrors.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
 }

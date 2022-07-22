@@ -21,13 +21,27 @@ public class GraphQLDirective
 
     public Expression? Process(ISchemaProvider schema, Expression fieldExpression, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
-        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
+        var validationErrors = new List<string>();
+        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables, validationErrors);
+
+        if (validationErrors.Count > 0)
+        {
+            throw new EntityGraphQLValidationException(validationErrors);
+        }
+
         return processor.ProcessExpression(fieldExpression, arguments);
     }
 
     public BaseGraphQLField? ProcessField(ISchemaProvider schema, BaseGraphQLField field, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
-        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables);
+        var validationErrors = new List<string>();
+        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables, validationErrors);
+
+        if (validationErrors.Count > 0)
+        {
+            throw new EntityGraphQLValidationException(validationErrors);
+        }
+
         return processor.ProcessField(field, arguments);
     }
 }

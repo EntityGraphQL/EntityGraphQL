@@ -10,12 +10,12 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables)
+    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables, List<string> validationErrors)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
         var fieldVals = new Dictionary<FieldInfo, object?>();
-        var validationErrors = new List<string>();
+        
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
         {
@@ -55,8 +55,7 @@ public static class ArgumentUtil
                 validationErrors.Add($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'");
             }
         }
-        if (validationErrors.Any())
-            throw new EntityGraphQLValidationException(validationErrors);
+
         // create a copy of the anonymous object. It will have the default values set
         // there is only 1 constructor for the anonymous type that takes all the property values
         var con = argumentsType!.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
@@ -94,9 +93,9 @@ public static class ArgumentUtil
                 {
                     validator.Validator.ValidateAsync(context).GetAwaiter().GetResult();
                     argumentValues = context.Arguments;
+
+                    validationErrors.AddRange(context.Errors);
                 }
-                if (context.Errors.Any())
-                    throw new EntityGraphQLValidationException(context.Errors);
             }
         }
 

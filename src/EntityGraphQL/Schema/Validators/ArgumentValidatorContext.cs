@@ -1,19 +1,27 @@
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace EntityGraphQL.Schema;
 public class ArgumentValidatorContext
 {
     private readonly List<string> errors = new();
-    public ArgumentValidatorContext(IField field, object? argumentValues)
+    public ArgumentValidatorContext(IField field, object? argumentValues, MethodInfo? method = null)
     {
         Field = field;
         Arguments = argumentValues;
+        Method = method;
     }
 
     /// <summary>
     /// The value of the argments for the field.
     /// </summary>
     public object? Arguments { get; set; }
+
+    /// <summary>
+    /// The method (mutation) about to be called
+    /// </summary>
+    public MethodInfo? Method { get; }
+
     /// <summary>
     /// Information about the field as defined in the schema.
     /// </summary>

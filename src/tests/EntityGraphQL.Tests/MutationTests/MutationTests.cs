@@ -500,6 +500,47 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Field 'needsGuid' - missing required argument 'id'", results.Errors[0].Message);
         }
 
+
+
+        [Fact]
+        public void TestRegExValidationAttribute()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+                regexValidation(title: ""name"" author: ""steve"" ) 
+            }",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Single(results.Errors);
+            Assert.Equal("Field 'regexValidation' - Title does not match required format", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void TestRegExValidationAttribute2()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+                regexValidation(title: ""neme"" author: ""stave"" ) 
+            }",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Single(results.Errors);
+            Assert.Equal("Field 'regexValidation' - Author does not match required format", results.Errors[0].Message);
+        }
+
+
         [Fact]
         public void TestNonNullIsRequired()
         {
@@ -865,7 +906,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(23, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(24, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

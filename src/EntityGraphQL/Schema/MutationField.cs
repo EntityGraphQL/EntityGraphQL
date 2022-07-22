@@ -83,18 +83,18 @@ namespace EntityGraphQL.Schema
             // args in the mutation method
             var allArgs = new List<object>();
             object? argInstance = null;
+            var validationErrors = new List<string>();
 
             // add parameters and any DI services
             foreach (var p in method.GetParameters())
             {
                 if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
                 {
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables);
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
                     allArgs.Add(argInstance!);
                 }
                 else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
-                {
-                    var validationErrors = new List<string>();
+                {                    
                     var argField = Arguments[p.Name];
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
@@ -138,16 +138,21 @@ namespace EntityGraphQL.Schema
 
             if (argumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, argInstance);
+                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? allArgs, method);
                 foreach (var argValidator in argumentValidators)
                 {
                     argValidator(validatorContext);
                     argInstance = validatorContext.Arguments;
                 }
-                if (validatorContext.Errors.Count > 0)
+                if (validatorContext.Errors != null && validatorContext.Errors.Count > 0)
                 {
-                    throw new EntityGraphQLValidationException(validatorContext.Errors);
+                    validationErrors.AddRange(validatorContext.Errors);
                 }
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                throw new EntityGraphQLValidationException(validationErrors);
             }
 
             object? instance = null;
