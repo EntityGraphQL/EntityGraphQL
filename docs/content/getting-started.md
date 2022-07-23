@@ -314,3 +314,14 @@ Assert.True(gql.Variables["var"].GetType() == typeof(JsonElement));
 What we want is a nested `Dictionary<string, object>`. `EntityGraphQL` handles System.Text.Json's `JsonElement` itself. However if you are using `Newtonsoft.Json` or another library (that doesn't deserialize to nested dictionaries) you will have to provide a custom type converter.
 
 See the serialization tests for [an example with Newtonsoft.Json](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
+
+## A note on threading
+
+`EntityGraphQL` will execute each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. Each top level query or each mutation is executed in the order the appear in the document.
+
+For mutations this is a requirement of the [GraphQL spec](https://graphql.org/learn/queries/#multiple-fields-in-mutations) as an earlier mutation may have an effect required by a later one.
+
+However, for queries the spec allows them to be executed in parallel. `EntityGraphQL` does not do this for 2 reasons
+
+1. It is designed to integrate well with Entity Framework. This way database contexts can be scoped services (which is typical).
+2. Any queries (and mutations) that make calls to external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
