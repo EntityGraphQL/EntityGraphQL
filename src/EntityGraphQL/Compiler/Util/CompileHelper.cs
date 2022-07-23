@@ -18,6 +18,8 @@ namespace EntityGraphQL.Compiler
                     srvParam = Expression.Parameter(serviceType, $"srv_{serviceType.Name}");
                     parameters.Add(srvParam);
                     var service = serviceProvider!.GetService(serviceType);
+                    if (service == null)
+                        throw new EntityGraphQLExecutionException($"Service {serviceType.Name} not found in service provider");
                     allArgs.Add(service);
                 }
 

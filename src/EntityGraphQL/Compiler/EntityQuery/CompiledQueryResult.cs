@@ -26,7 +26,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             this.ExpressionResult = expressionResult;
             this.contextParams = contextParams;
         }
-        public object Execute(params object[] args)
+        public object? Execute(params object[] args)
         {
             var allArgs = new List<object>(args);
             allArgs.AddRange(ConstantParameters.Values);

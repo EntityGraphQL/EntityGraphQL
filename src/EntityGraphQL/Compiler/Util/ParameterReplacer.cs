@@ -161,7 +161,7 @@ namespace EntityGraphQL.Compiler.Util
                     }
                     if (oldTypeArgs.Length != newTypeArgs.Count)
                         throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");
-                    var newCall = Expression.Call(node.Method.DeclaringType, node.Method.Name, newTypeArgs.ToArray(), (new[] { callBase }).Concat(newArgs).ToArray());
+                    var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), (new[] { callBase }).Concat(newArgs).ToArray());
                     return newCall;
                 }
             }
@@ -183,7 +183,7 @@ namespace EntityGraphQL.Compiler.Util
                     callOn = base.Visit(callOn);
             }
 
-            return Expression.Call(callOn, node.Method, node.Arguments.Select(base.Visit).ToArray());
+            return Expression.Call(callOn, node.Method, node.Arguments.Select(base.Visit).ToArray()!);
         }
     }
 }

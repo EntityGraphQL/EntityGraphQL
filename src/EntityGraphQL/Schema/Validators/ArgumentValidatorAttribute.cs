@@ -10,6 +10,6 @@ public class ArgumentValidatorAttribute : Attribute
     {
         if (!typeof(IArgumentValidator).IsAssignableFrom(validatorType))
             throw new ArgumentException($"{validatorType.Name} must implement {typeof(IArgumentValidator).Name}");
-        Validator = (IArgumentValidator)Activator.CreateInstance(validatorType);
+        Validator = (IArgumentValidator)Activator.CreateInstance(validatorType)!;
     }
 }

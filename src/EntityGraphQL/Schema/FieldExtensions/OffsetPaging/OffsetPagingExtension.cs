@@ -90,7 +90,7 @@ public class OffsetPagingExtension : BaseFieldExtension
     {
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
         var expression = Expression.MemberInit(
-            Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) }), totalCountExp, Expression.PropertyOrField(field.ArgumentParam, "skip"), Expression.PropertyOrField(field.ArgumentParam, "take"))
+            Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(field.ArgumentParam!, "skip"), Expression.PropertyOrField(field.ArgumentParam!, "take"))
         );
         return expression;
     }

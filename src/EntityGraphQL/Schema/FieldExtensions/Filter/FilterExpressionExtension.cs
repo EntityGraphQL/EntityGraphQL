@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
 
             // Update field arguments
-            var args = Activator.CreateInstance(typeof(FilterArgs<>).MakeGenericType(listType));
+            var args = Activator.CreateInstance(typeof(FilterArgs<>).MakeGenericType(listType))!;
             field.AddArguments(args);
 
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);

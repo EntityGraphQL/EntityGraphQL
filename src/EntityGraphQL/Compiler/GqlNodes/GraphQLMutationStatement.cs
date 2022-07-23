@@ -160,15 +160,15 @@ namespace EntityGraphQL.Compiler
             if (mutationContextExpression.NodeType == ExpressionType.MemberAccess)
             {
                 var me = (MemberExpression)mutationContextExpression;
-                if (me.Expression.NodeType == ExpressionType.Constant)
+                if (me.Expression!.NodeType == ExpressionType.Constant)
                 {
-                    compileContext.AddConstant(Expression.Parameter(me.Type, $"const_{me.Type.Name}"), Expression.Lambda(me).Compile().DynamicInvoke());
+                    compileContext.AddConstant(Expression.Parameter(me.Type, $"const_{me.Type.Name}"), Expression.Lambda(me).Compile().DynamicInvoke()!);
                 }
             }
             else if (mutationContextExpression.NodeType == ExpressionType.Constant)
             {
                 var ce = (ConstantExpression)mutationContextExpression;
-                compileContext.AddConstant(Expression.Parameter(ce.Type, $"const_{ce.Type.Name}"), ce.Value);
+                compileContext.AddConstant(Expression.Parameter(ce.Type, $"const_{ce.Type.Name}"), ce.Value!);
             }
         }
     }

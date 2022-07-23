@@ -93,7 +93,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
             Expression.Lambda(Expression.MemberInit(Expression.New(field.ReturnType.SchemaType.TypeDotnet),
                 new List<MemberBinding>
                 {
-                    Expression.Bind(field.ReturnType.SchemaType.TypeDotnet.GetProperty("Node"), firstSelectParam)
+                    Expression.Bind(field.ReturnType.SchemaType.TypeDotnet.GetProperty("Node")!, firstSelectParam)
                 }
             ), firstSelectParam)
         );
@@ -138,7 +138,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
             Expression.Lambda(Expression.MemberInit(Expression.New(edgeType),
                 new List<MemberBinding>
                 {
-                    Expression.Bind(edgeType.GetProperty("Node"), newNodeExpression)
+                    Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression)
                 }
             ), firstSelectParam)
         );
@@ -151,8 +151,8 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
                 Expression.MemberInit(Expression.New(edgeType),
                     new List<MemberBinding>
                     {
-                        Expression.Bind(edgeType.GetProperty("Node"), Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor"), Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argsExpression, idxParam))
+                        Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argsExpression, idxParam))
                     }
                 ),
                 edgeParam,

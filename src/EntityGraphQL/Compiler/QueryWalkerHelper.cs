@@ -111,7 +111,7 @@ namespace EntityGraphQL.Compiler
         {
             IList list;
             if (fieldArgType.IsInterface && fieldArgType.IsGenericType && fieldArgType.IsGenericTypeEnumerable())
-                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(fieldArgType.GetEnumerableOrArrayType()))!;
+                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(fieldArgType.GetEnumerableOrArrayType()!))!;
             else
                 list = (IList)Activator.CreateInstance(fieldArgType, values.Count)!;
 

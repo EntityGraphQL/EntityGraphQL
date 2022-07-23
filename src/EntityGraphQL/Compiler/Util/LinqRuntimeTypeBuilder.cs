@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler.Util
                     typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
                 }
 
-                builtTypes[classId] = typeBuilder.CreateTypeInfo().AsType();
+                builtTypes[classId] = typeBuilder.CreateTypeInfo()!.AsType();
                 return builtTypes[classId];
             }
         }

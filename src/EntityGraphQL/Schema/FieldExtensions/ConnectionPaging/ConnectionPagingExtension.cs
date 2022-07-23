@@ -132,8 +132,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Conneciton fields asked for
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression);
-            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression!);
+            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type })!, totalCountExp, field.ArgumentParam));
             field.UpdateExpression(fieldExpression);
         }
 
@@ -154,8 +154,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     edgeExpression = extension.GetExpression(edgesField, edgeExpression, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
                 }
             }
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression);
-            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type }), totalCountExp, field.ArgumentParam));
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression!);
+            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type })!, totalCountExp, field.ArgumentParam));
 
             return expression;
         }

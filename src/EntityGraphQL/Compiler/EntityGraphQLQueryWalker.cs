@@ -312,7 +312,7 @@ namespace EntityGraphQL.Compiler
 
             if (argument.Value.Kind == SyntaxKind.Variable)
             {
-                return Expression.PropertyOrField(currentOperation.OpVariableParameter, ((VariableNode)argument.Value).Name.Value);
+                return Expression.PropertyOrField(currentOperation.OpVariableParameter!, ((VariableNode)argument.Value).Name.Value);
             }
             return QueryWalkerHelper.ProcessArgumentValue(schema, argument.Value, argName, argType);
         }
@@ -327,7 +327,7 @@ namespace EntityGraphQL.Compiler
                 var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
                 {
-                    var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argType.GetProperty(arg.Name.Value).PropertyType);
+                    var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argType.GetProperty(arg.Name.Value)!.PropertyType);
                     if (argVal != null)
                         args.Add(arg.Name.Value, argVal);
                 }
@@ -376,7 +376,7 @@ namespace EntityGraphQL.Compiler
                     foreach (var queryField in newContext.QueryFields)
                     {
                         queryField.ParentNode = context;
-                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;                     
+                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;
                         context.AddField(queryField);
                     }
                 }

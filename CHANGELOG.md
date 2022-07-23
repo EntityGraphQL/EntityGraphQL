@@ -45,6 +45,7 @@ type Mutation {
 ```
 
 - #160 - Nested data annotations for validation is now supported
+- Main `EntityGraphQL` package now targets `net6.0;net5.0;netstandard2.1`
 
 Fixes
 

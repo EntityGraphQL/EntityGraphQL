@@ -39,9 +39,9 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
             Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                 newItemsExp,
-                Expression.PropertyOrField(field.ArgumentParam, "skip")
+                Expression.PropertyOrField(field.ArgumentParam!, "skip")
             ),
-            Expression.PropertyOrField(field.ArgumentParam, "take")
+            Expression.PropertyOrField(field.ArgumentParam!, "take")
         );
 
         return newItemsExp;

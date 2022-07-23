@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
             if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
             {
-                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) })!, left, right);
             }
 
             return Expression.MakeBinary(op, left, right);
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
             if (op == ExpressionType.Add && left.Type == typeof(string) && right.Type == typeof(string))
             {
-                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) }), left, right);
+                return Expression.Call(null, typeof(string).GetMethod("Concat", new[] { typeof(string), typeof(string) })!, left, right);
             }
 
             return Expression.MakeBinary(op, left, right);
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         private static Expression ConvertToGuid(Expression expression)
         {
-            return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")));
+            return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")!));
         }
 
         public override Expression VisitExpr(EntityQLParser.ExprContext context)
@@ -144,7 +144,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 if (enumOrConstantValue == null)
                 {
                     var enumType = schemaProvider.GetEnumTypes().FirstOrDefault(x => x.Name == field);
-                    if(enumType != null)
+                    if (enumType != null)
                     {
                         return Expression.Default(enumType.TypeDotnet);
                     }

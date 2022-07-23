@@ -108,7 +108,7 @@ namespace EntityGraphQL.Schema
             // now we need to update the MemberInfo
             foreach (var item in Arguments)
             {
-                item.Value.MemberInfo = (MemberInfo)newArgType.GetProperty(item.Value.DotnetName) ??
+                item.Value.MemberInfo = (MemberInfo?)newArgType.GetProperty(item.Value.DotnetName) ??
                     newArgType.GetField(item.Value.DotnetName);
             }
             var parameterReplacer = new ParameterReplacer();

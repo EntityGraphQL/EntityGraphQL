@@ -15,7 +15,7 @@ public static class ArgumentUtil
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
         var fieldVals = new Dictionary<FieldInfo, object?>();
-        
+
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
         {
@@ -26,7 +26,7 @@ public static class ArgumentUtil
                 {
                     // this value comes from the variables from the query document
                     if (docVariables != null)
-                        val = Expression.Lambda(argExpression, docParam).Compile().DynamicInvoke(new[] { docVariables });
+                        val = Expression.Lambda(argExpression, docParam!).Compile().DynamicInvoke(new[] { docVariables });
                     else
                         val = argExpression;
                     if (argField.MemberInfo is PropertyInfo info)
@@ -71,8 +71,8 @@ public static class ArgumentUtil
         else
         {
             // expect an empty constructor
-            con = argumentsType.GetConstructor(new Type[0]);
-            argumentValues = con.Invoke(new object[0]);
+            con = argumentsType.GetConstructor(Array.Empty<Type>())!;
+            argumentValues = con.Invoke(Array.Empty<object>());
             foreach (var item in fieldVals)
             {
                 item.Key.SetValue(argumentValues, item.Value);
@@ -124,7 +124,7 @@ public static class ArgumentUtil
                     if (parameters.Count() == 1)
                     {
                         item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType, schema);
-                        constructor = memberType.GetConstructor(new[] { item?.GetType() });
+                        constructor = memberType.GetConstructor(new[] { item!.GetType() });
                         break;
                     }
                 }

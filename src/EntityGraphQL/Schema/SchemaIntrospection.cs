@@ -333,7 +333,7 @@
             var directives = schema.GetDirectives().Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,
-                Locations = directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)),
+                Locations = directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i))!,
                 Args = directive.GetArguments(schema).Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
                 {
                     Description = arg.Description,

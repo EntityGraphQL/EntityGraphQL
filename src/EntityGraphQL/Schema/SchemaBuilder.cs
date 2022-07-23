@@ -206,7 +206,7 @@ namespace EntityGraphQL.Schema
             if (options.AutoCreateFieldWithIdArguments)
             {
                 // add non-pural field with argument of ID
-                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType, field);
+                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
                 if (idArgField != null)
                 {
                     yield return idArgField;

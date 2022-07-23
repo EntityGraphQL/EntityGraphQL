@@ -55,7 +55,7 @@ namespace EntityGraphQL
 
         public string Message { get => (string)this[MessageKey]; }
 
-        public Dictionary<string, object>? Extensions { get => (Dictionary<string, object>)this.GetValueOrDefault(QueryResult.ExtensionsKey); }
+        public Dictionary<string, object>? Extensions { get => (Dictionary<string, object>?)this.GetValueOrDefault(QueryResult.ExtensionsKey); }
 
         public GraphQLError(string message, IDictionary<string, object>? extensions)
         {

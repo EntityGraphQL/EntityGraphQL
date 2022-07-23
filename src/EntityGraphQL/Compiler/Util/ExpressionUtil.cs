@@ -78,12 +78,12 @@ namespace EntityGraphQL.Compiler.Util
             if (typeof(JsonElement).IsAssignableFrom(fromType))
             {
                 var jsonEle = (JsonElement)value;
-                
+
                 if (jsonEle.ValueKind == JsonValueKind.Null)
                 {
                     return null;
                 }
-                
+
                 if (jsonEle.ValueKind == JsonValueKind.Object)
                 {
                     value = Activator.CreateInstance(toType);
@@ -191,9 +191,9 @@ namespace EntityGraphQL.Compiler.Util
             }
             if ((argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) ||
                 argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>)) &&
-                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value.ToString()))
+                fromType == typeof(string) && QueryWalkerHelper.GuidRegex.IsMatch(value.ToString()!))
             {
-                return Guid.Parse(value!.ToString());
+                return Guid.Parse(value!.ToString()!);
             }
             if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
             {
@@ -245,7 +245,7 @@ namespace EntityGraphQL.Compiler.Util
                 if (value != null && !string.IsNullOrWhiteSpace((string)value))
                 {
                     var expression = BuildEntityQueryExpression(schema, toType.GetGenericArguments()[0], (string)value);
-                    var genericProp = toType.GetProperty("Query");
+                    var genericProp = toType.GetProperty("Query")!;
                     genericProp.SetValue(newValue, expression);
                 }
             }
@@ -396,8 +396,8 @@ namespace EntityGraphQL.Compiler.Util
             }
             protected override Expression VisitMember(MemberExpression node)
             {
-                if (!node.Expression.Type.IsAssignableFrom(convertTo))
-                {                
+                if (!node.Expression?.Type.IsAssignableFrom(convertTo) == true)
+                {
                     if (node.Expression is MemberExpression)
                     {
                         return Expression.PropertyOrField(Visit(node.Expression), node.Member.Name);
@@ -413,7 +413,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             return expression switch
             {
-                MemberExpression me => me.Expression.Type,
+                MemberExpression me => me.Expression?.Type,
                 ConditionalExpression ce => RootType(ce.Test),
                 BinaryExpression be => RootType(be.Left),
                 _ => null
@@ -452,7 +452,7 @@ namespace EntityGraphQL.Compiler.Util
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
                     fieldExpressions
                        .Where(i => i.Value is MemberExpression)
-                       .Where(i => ((MemberExpression)i.Value).Expression.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression.Type == typeof(ISchemaType))
+                       .Where(i => ((MemberExpression)i.Value).Expression!.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression!.Type == typeof(ISchemaType))
                        .ToDictionary(i => i.Key, i => i.Value.Type),
                     fieldDescription
                 );
@@ -477,8 +477,8 @@ namespace EntityGraphQL.Compiler.Util
                         var convertedExpression = conversionVisitor.Visit(memberInit);
 
                         previous = Expression.Condition(
-                              test: Expression.TypeIs(currentContextParam, type),
-                              ifTrue: convertedExpression,
+                              test: Expression.TypeIs(currentContextParam, type!),
+                              ifTrue: convertedExpression!,
                               ifFalse: previous,
                               type: baseDynamicType
                         );
@@ -489,7 +489,7 @@ namespace EntityGraphQL.Compiler.Util
                     }
                 }
 
-                var selector = Expression.Lambda(previous, currentContextParam);
+                var selector = Expression.Lambda(previous!, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
 
                 var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :

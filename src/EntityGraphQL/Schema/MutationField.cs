@@ -55,7 +55,7 @@ namespace EntityGraphQL.Schema
                     var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
                     if (item.ParameterType.IsPrimitive || schema.HasType(inputType))
                     {
-                        Arguments.Add(fieldNamer(item.Name), ArgType.FromParameter(schema, item, null, fieldNamer));
+                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null, fieldNamer));
                         AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);
                     }
                 }
@@ -93,9 +93,9 @@ namespace EntityGraphQL.Schema
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
                     allArgs.Add(argInstance!);
                 }
-                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name))
-                {                    
-                    var argField = Arguments[p.Name];
+                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
+                {
+                    var argField = Arguments[p.Name!];
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (value != null && value.GetType() != argField.RawType)
@@ -105,14 +105,14 @@ namespace EntityGraphQL.Schema
 
                     if (value == null)
                     {
-                        var field = docVariables.GetType().GetField(p.Name);
+                        var field = docVariables.GetType().GetField(p.Name!);
                         if (field != null)
                         {
                             value = field.GetValue(docVariables);
                         }
                     }
 
-                    argField.Validate(value, p.Name, validationErrors);
+                    argField.Validate(value, p.Name!, validationErrors);
 
                     allArgs.Add(value!);
                 }
@@ -163,8 +163,8 @@ namespace EntityGraphQL.Schema
             if (instance == null)
             {
                 instance = serviceProvider != null ?
-                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType) :
-                    Activator.CreateInstance(method.DeclaringType);
+                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!) :
+                    Activator.CreateInstance(method.DeclaringType!);
             }
 
             object? result;
