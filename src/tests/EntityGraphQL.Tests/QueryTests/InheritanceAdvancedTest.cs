@@ -9,7 +9,7 @@ using Xunit;
 
 namespace EntityGraphQL.Tests
 {
-  
+
 
     public class InheritanceAdvancedTest
     {
@@ -118,8 +118,9 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestContext>();
             schemaProvider.AddType<BookOrderItem>("BookOrderItem").ImplementAllBaseTypes().AddAllFields();
             schemaProvider.AddType<TShirtOrderItem>("TShirtOrderItem").ImplementAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<Book>("Book").ImplementAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<TShirt>("TShirt").ImplementAllBaseTypes().AddAllFields();
+            // book and tshirt added with AddAllFields above
+            schemaProvider.UpdateType<Book>(type => type.ImplementAllBaseTypes());
+            schemaProvider.UpdateType<TShirt>(type => type.ImplementAllBaseTypes());
 
             // Simulate a JSON request with System.Text.Json
             var q = @"{
@@ -167,8 +168,8 @@ namespace EntityGraphQL.Tests
             Assert.Equal(nameof(TShirtOrderItem), order.orderItems[0].__typename);
             Assert.Equal(1, order.orderItems[0].colour);
             Assert.Equal(7, order.orderItems[0].size);
-            Assert.Equal("BackOrder", order.orderItems[0].status.name);            
-            
+            Assert.Equal("BackOrder", order.orderItems[0].status.name);
+
             Assert.Equal(1, order.orderItems[0].tShirt.GetType().GetFields().Length);
             Assert.Equal("SpiderMan", order.orderItems[0].tShirt.name);
             Assert.Null(order.orderItems[0].tShirt.GetType().GetField("Tenant"));
@@ -226,8 +227,9 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestContext>();
             schemaProvider.AddType<BookOrderItem>("BookOrderItem").ImplementAllBaseTypes().AddAllFields();
             schemaProvider.AddType<TShirtOrderItem>("TShirtOrderItem").ImplementAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<Book>("Book").ImplementAllBaseTypes().AddAllFields();
-            schemaProvider.AddType<TShirt>("TShirt").ImplementAllBaseTypes().AddAllFields();
+            // book and tshirt added with AddAllFields above
+            schemaProvider.UpdateType<Book>(type => type.ImplementAllBaseTypes());
+            schemaProvider.UpdateType<TShirt>(type => type.ImplementAllBaseTypes());
 
             // Simulate a JSON request with System.Text.Json
             var q = @"{
