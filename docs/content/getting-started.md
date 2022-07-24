@@ -315,13 +315,8 @@ What we want is a nested `Dictionary<string, object>`. `EntityGraphQL` handles S
 
 See the serialization tests for [an example with Newtonsoft.Json](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
 
-## A note on threading
+## Threading and async execution
 
-`EntityGraphQL` will execute each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. Each top level query or each mutation is executed in the order the appear in the document.
+`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` starts and awaits each top-level mutation individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). After awaiting the last mutation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
 
-For mutations this is a requirement of the [GraphQL spec](https://graphql.org/learn/queries/#multiple-fields-in-mutations) as an earlier mutation may have an effect required by a later one.
-
-However, for queries the spec allows them to be executed in parallel. `EntityGraphQL` does not do this for 2 reasons
-
-1. It is designed to integrate well with Entity Framework. This way database contexts can be scoped services (which is typical).
-2. Any queries (and mutations) that make calls to external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
+Since a GraphQL request is processed with a single thread, database contexts can be scoped services like they do for ordinary web services. Likewise, queries (and mutations) that call external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
