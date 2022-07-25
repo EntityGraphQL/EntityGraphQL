@@ -56,11 +56,7 @@ namespace EntityGraphQL.Compiler
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
             {
-                var possibleField = replacementNextFieldContext.Type.GetField(Name);
-                if (possibleField != null)
-                    listContext = Expression.Field(replacementNextFieldContext, possibleField);
-                else
-                    listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
+                listContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, listContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
             (listContext, var argumentValues) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
@@ -77,15 +73,15 @@ namespace EntityGraphQL.Compiler
 
             if (selectionFields == null || !selectionFields.Any())
             {
-                if (withoutServiceFields && Field?.Services.Any() == true)
+                if (withoutServiceFields && HasServices)
                     return null;
                 return listContext;
             }
 
             (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, contextChanged, replacer);
 
-            if (Field?.Services.Any() == true)
-                compileContext.AddServices(Field.Services);
+            if (HasServices)
+                compileContext.AddServices(Field!.Services);
 
             if (!withoutServiceFields)
             {
@@ -104,19 +100,6 @@ namespace EntityGraphQL.Compiler
                 resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
 
             return resultExpression;
-        }
-
-        protected override Dictionary<string, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
-        {
-            var fields = base.GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
-
-            // extract possible fields from listContext (might be .Where(), OrderBy() etc)
-            if (withoutServiceFields && Field?.Services?.Any() == true)
-            {
-                ExtractRequiredFieldsForPreServiceRun(ListExpression, Name, nextFieldContext, replacer, fields);
-            }
-
-            return fields;
         }
 
         private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, Expression> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)

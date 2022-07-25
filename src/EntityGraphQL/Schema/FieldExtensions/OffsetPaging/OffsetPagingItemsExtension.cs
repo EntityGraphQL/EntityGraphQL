@@ -25,7 +25,7 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
     public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // other extensions expect to run on the collection not our new shape
-        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, this.originalFieldParam, parentNode!.RootParameter!);
+        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, this.originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
         // apply other expressions 
         foreach (var extension in extensions)
         {

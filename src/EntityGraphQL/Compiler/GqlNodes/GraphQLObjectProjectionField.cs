@@ -48,15 +48,14 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
+            if (HasServices && withoutServiceFields)
+                return null;
+
             var nextFieldContext = NextFieldContext;
 
             if (contextChanged && replacementNextFieldContext != null)
             {
-                var possibleField = replacementNextFieldContext.Type.GetField(Name);
-                if (possibleField != null)
-                    nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
-                else
-                    nextFieldContext = isRoot ? replacementNextFieldContext : replacer.ReplaceByType(nextFieldContext!, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
+                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
             }
             (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer);
             if (argumentValues != null)
@@ -164,21 +163,6 @@ namespace EntityGraphQL.Compiler
             if (result == null)
                 return new List<BaseGraphQLField>();
 
-            // fieldExpression might be a service method call and the arguments might have fields we need to select out
-            if (withoutServiceFields && result.NextFieldContext?.NodeType == ExpressionType.Call)
-            {
-                var extractor = new ExpressionExtractor();
-                var fieldsRequiredForServices = extractor.Extract(result.NextFieldContext, fieldContext, true);
-                if (fieldsRequiredForServices != null)
-                {
-                    var fields = fieldsRequiredForServices
-                        .Select(i => new GraphQLExtractedField(schema, i.Key, i.Value, fieldContext))
-                        .ToList();
-
-                    if (fields.Any())
-                        return fields;
-                }
-            }
             return base.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
         }
     }

@@ -71,17 +71,17 @@ fragment info on Person {
             var gql = new QueryRequest
             {
                 Query = @"query {
-  activeProjects {
-    ...frag
-  }
-  oldProjects {
-    ...frag
-  }
-}
+                    activeProjects {
+                        ...frag
+                    }
+                    oldProjects {
+                        ...frag
+                    }
+                }
 
-fragment frag on Project {
-  id
-}"
+                fragment frag on Project {
+                    id
+                }"
             };
 
             var context = new TestDataContext().FillWithTestData();

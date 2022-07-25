@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Person>().ReplaceField("projects",
                 new { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((person, p, pager) => pager.PageProjects(person.Projects, p));
+                .ResolveWithService<EntityPager>((person, args, pager) => pager.PageProjects(person.Projects, args));
 
             var gql = new QueryRequest
             {
@@ -140,7 +140,7 @@ namespace EntityGraphQL.Tests
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("projects"));
-            dynamic project = Enumerable.ElementAt((dynamic)person.projects, 0);
+            dynamic project = Enumerable.ElementAt(person.projects, 0);
             Assert.NotNull(project.GetType().GetField("config"));
             Assert.Equal(1, srv.CallCount);
         }
@@ -1063,12 +1063,12 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"query {
-            task(id: 1) { # context collection to single
-                project {
-                    configType
-                }
-            }
-        }"
+                    task(id: 1) { # context collection to single
+                        project {
+                            configType
+                        }
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -1591,6 +1591,122 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, srv.CallCount);
         }
 
+        [Fact]
+        public void TestScalarServiceFieldWithSameTypeReferencedExpression()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Name, p.Children.FirstOrDefault().Name));
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                     projects {
+                         someService 
+                     }
+                 }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                 {
+                     new Project
+                     {
+                         Id = 0,
+                         Name = "Project",
+                         Children = new List<Project>
+                         {
+                             new Project
+                             {
+                                 Id = 1,
+                                 Name = "Child1"
+                             },
+                             new Project
+                             {
+                                 Id = 2,
+                                 Name = "Child2"
+                             }
+                         },
+                     }
+             },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var projects = (dynamic)res.Data["projects"];
+            Type projectType = Enumerable.First(projects).GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("someService", projectType.GetFields()[0].Name);
+            Assert.Equal(1, srv.CallCount);
+            Assert.Single(projects);
+            Assert.Equal("ProjectChild1", projects[0].someService);
+        }
+
+        [Fact]
+        public void TestServiceFieldWithExpressionReturnCollection()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                     projects {
+                         someService { id }
+                     }
+                 }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                 {
+                     new Project
+                     {
+                         Id = 0,
+                         Name = "Project",
+                         Children = new List<Project>
+                         {
+                             new Project
+                             {
+                                 Id = 1,
+                                 Name = "Child1"
+                             },
+                             new Project
+                             {
+                                 Id = 2,
+                                 Name = "Child2"
+                             }
+                         },
+                     }
+             },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var projects = (dynamic)res.Data["projects"];
+            Type projectType = Enumerable.First(projects).GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("someService", projectType.GetFields()[0].Name);
+            Assert.Equal(1, srv.CallCount);
+            Assert.Single(projects);
+            Assert.Equal(3, projects[0].someService.Count);
+        }
+
         public class ConfigService
         {
             public ConfigService()
@@ -1607,6 +1723,31 @@ namespace EntityGraphQL.Tests
                 {
                     Type = "Something"
                 };
+            }
+
+            public string Get(string str1, string str2)
+            {
+                CallCount += 1;
+                return str1 + str2;
+            }
+
+            public IEnumerable<Project> GetCollection(string str1, string str2)
+            {
+                CallCount += 1;
+                return new List<Project>{
+                     new Project {
+                         Id = 1,
+                         Name = str1
+                     },
+                     new Project {
+                         Id = 2,
+                         Name = str2
+                     },
+                     new Project {
+                         Id = 3,
+                         Name = str1 + str2
+                     }
+                 };
             }
 
             public ProjectConfig[] GetNullList(int id)

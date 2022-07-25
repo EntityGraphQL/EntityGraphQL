@@ -39,6 +39,15 @@ namespace EntityGraphQL.Compiler.Util
             return Visit(node);
         }
 
+        /// <summary>
+        /// Replace an expression of type with newParam.
+        /// Try to avoid using this if possible as there might be multiple of the type in the expression that you do not want to replace.
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="toReplaceType"></param>
+        /// <param name="newParam"></param>
+        /// <param name="newContextFieldName"></param>
+        /// <returns></returns>
         public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string? newContextFieldName = null)
         {
             this.newParam = newParam;
@@ -49,7 +58,6 @@ namespace EntityGraphQL.Compiler.Util
             replaceWholeExpression = false;
             return Visit(node);
         }
-
         protected override Expression VisitParameter(ParameterExpression node)
         {
             if (toReplace != null && toReplace == node)

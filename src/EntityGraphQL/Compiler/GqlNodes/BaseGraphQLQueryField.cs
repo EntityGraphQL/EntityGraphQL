@@ -28,28 +28,10 @@ namespace EntityGraphQL.Compiler
             if (result == null)
                 return new List<BaseGraphQLField>();
 
-            return new List<BaseGraphQLField> { this };
+            return base.ExpandFromServices(withoutServiceFields, result);
         }
 
         protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && Field?.Services.Any() == true;
-
-        protected void ExtractRequiredFieldsForPreServiceRun(Expression extractFrom, string fieldName, Expression nextFieldContext, ParameterReplacer replacer, Dictionary<string, CompiledField> fields)
-        {
-            var extractor = new ExpressionExtractor();
-            var extractedFields = extractor.Extract(extractFrom, nextFieldContext, true, fieldName);
-            if (extractedFields != null)
-                extractedFields.ToDictionary(i => i.Key, i =>
-                {
-                    var replaced = replacer.ReplaceByType(i.Value, nextFieldContext.Type, nextFieldContext);
-                    return new CompiledField(new GraphQLExtractedField(schema, i.Key, replaced, nextFieldContext), replaced);
-                })
-                .ToList()
-                .ForEach(i =>
-                {
-                    if (!fields.ContainsKey(i.Key))
-                        fields.Add(i.Key, i.Value);
-                });
-        }
 
         protected virtual Dictionary<string, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
@@ -65,19 +47,13 @@ namespace EntityGraphQL.Compiler
                     if (fieldExp == null)
                         continue;
 
-                    // do we have services at this level
-                    if (withoutServiceFields && (subField.HasServices || Field?.Services.Any() == true))
-                        ExtractRequiredFieldsForPreServiceRun(fieldExp, subField.Name, nextFieldContext!, replacer, selectionFields);
-                    else
+                    // if this came from a fragment we need to fix the expression context
+                    if (nextFieldContext != null && field is GraphQLFragmentField)
                     {
-                        // if this came from a fragment we need to fix the expression context
-                        if (nextFieldContext != null && field is GraphQLFragmentField)
-                        {
-                            fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
-                        }
-
-                        selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
+                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
                     }
+
+                    selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
                 }
             }
 
