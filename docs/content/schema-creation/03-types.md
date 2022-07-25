@@ -289,6 +289,34 @@ POST localhost:5000/graphql
 }
 ```
 
+# One Of Input Types
+
+EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-spec/pull/825).
+
+Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution.
+
+```
+[GraphQLOneOf]
+private class OneOfInputType
+{
+    public int? One { get; set; }
+    public int? Two { get; set; }
+}
+```
+
+This will generate the follow grpahql schema.
+
+```
+input MutationArgs @oneOf {
+    one: Int
+    two: Int
+}
+```
+
+Although each field on the input is nullable the `@oneOf` input type has one further validation step.
+
+- Exactly one key must be specified
+
 # Lists and Non-Null
 
 GraphQL defines [type modifiers](https://graphql.org/learn/schema/#lists-and-non-null) specifically for declaring that a field is a list or cannot be `null`. In a schema these are `[T]` and `!`. For example, a GraphQL schema might have the following.

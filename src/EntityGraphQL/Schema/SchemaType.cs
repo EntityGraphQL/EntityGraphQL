@@ -22,9 +22,13 @@ namespace EntityGraphQL.Schema
         public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
         {
+            GqlType = gqlType;
             TypeDotnet = dotnetType;
             IsOneOf = dotnetType.CustomAttributes.Any(i => i.AttributeType == typeof(GraphQLOneOfAttribute));
-            GqlType = gqlType;
+            if (IsOneOf && !IsInput)
+            {
+                throw new EntityQuerySchemaException($"{dotnetType.Name} is a OneOf type but is not an input type. Please add the type as an input type.");
+            }
 
             RequiredAuthorization = requiredAuthorization;
 

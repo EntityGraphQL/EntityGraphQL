@@ -301,7 +301,15 @@ namespace EntityGraphQL.Compiler
             if (Document == null)
                 throw new EntityGraphQLCompilerException("Document should not be null when visiting arguments");
 
-            return ProcessArgumentOrVariable(argName, schemaProvider, argument, fieldArgumentContext.GetArgumentType(argName).Type.TypeDotnet);
+            var argType = fieldArgumentContext.GetArgumentType(argName);
+            var argVal = ProcessArgumentOrVariable(argName, schemaProvider, argument, argType.Type.TypeDotnet);
+            if (argType.Type.SchemaType.IsOneOf && argVal != null)
+            {
+                var singleField = argType.Type.SchemaType.GetFields().Count(f => Expression.Lambda(f.ResolveExpression!, f.FieldParam!).Compile().DynamicInvoke(argVal) != null);
+                if (singleField != 1) // we got multiple set
+                    throw new EntityGraphQLCompilerException($"Exactly one field must be specified for argument {argName} of type {argType.Type.SchemaType.Name}.");
+            }
+            return argVal;
         }
 
         /// <summary>
