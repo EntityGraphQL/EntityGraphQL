@@ -65,15 +65,19 @@
 
             foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
             {
-                var kind = st switch
+                var kind = st.GqlType switch
                 {
-                    { IsInterface: true } => "INTERFACE",
+                    GqlTypeEnum.Interface => "INTERFACE",
+                    GqlTypeEnum.Union => "UNION",
                     _ => "OBJECT"
                 };
 
                 var typeElement = new TypeElement(kind, st.Name)
                 {
                     Description = st.Description,
+                    PossibleTypes = st.PossibleTypes
+                                    .Select(i => new TypeElement("OBJECT", i.Name))
+                                    ?.ToArray() ?? new TypeElement[0]
                 };
 
                 if (st.BaseTypes != null && st.BaseTypes.Count() > 0)

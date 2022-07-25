@@ -8,5 +8,6 @@
         Interface,
         Input,
         Mutation,
+        Union
     }
 }

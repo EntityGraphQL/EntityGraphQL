@@ -239,12 +239,21 @@ namespace EntityGraphQL.Schema
 
                 if ((options.AutoCreateNewComplexTypes && typeInfo.IsClass) || ((typeInfo.IsInterface || typeInfo.IsAbstract) && options.AutoCreateInterfaceTypes))
                 {
+
+                    var fieldCount = typeInfo.GetMembers().Count();
+
                     // add type before we recurse more that may also add the type
                     // dynamcially call generic method
                     // hate this, but want to build the types with the right Genenics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
-
-                    var addMethod = isInputType ? "AddInputType" : (typeInfo.IsInterface || typeInfo.IsAbstract) ? "AddInterface" : "AddType";
+                    var addMethod = (isInputType, typeInfo.IsInterface, typeInfo.IsAbstract, fieldCount) switch {
+                        (true, _, _, _) => "AddInputType",
+                        (_, true, _, > 0) => "AddInterface",
+                        (_, _, true, > 0) => "AddInterface",
+                        (_, true, _, _) => "AddUnion",
+                        (_, _, true, _) => "AddUnion",
+                        _ => "AddType"
+                    };
 
                     var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
                     if (method == null)
@@ -255,6 +264,8 @@ namespace EntityGraphQL.Schema
 
                     var fields = GetFieldsFromObject(propType, schema, options, isInputType);
                     typeAdded.AddFields(fields);
+
+                  
 
                     if (options.AutoCreateInterfaceTypes)
                     {

@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         /// Name of the field
         /// </summary>
         /// <value></value>
-        public string Name { get; }
+        public string Name { get; set; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
         public Expression? NextFieldContext { get; }
@@ -98,7 +98,7 @@ namespace EntityGraphQL.Compiler
 
         public abstract IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
 
-        public void AddField(BaseGraphQLField field)
+        public virtual void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
         }

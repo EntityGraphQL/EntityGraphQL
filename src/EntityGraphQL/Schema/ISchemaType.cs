@@ -39,6 +39,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         bool RequiresSelection { get; }
         IList<ISchemaType> BaseTypes { get; }
+        IList<ISchemaType> PossibleTypes { get; }
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<IField> GetFields();

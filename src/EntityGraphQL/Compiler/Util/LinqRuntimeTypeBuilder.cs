@@ -38,10 +38,8 @@ namespace EntityGraphQL.Compiler.Util
         {
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
-            if (0 == fields.Count && parentType == null)
-                throw new ArgumentOutOfRangeException(nameof(fields), "fields must have at least 1 field definition");
-
-            string classFullName = GetTypeKey(fields);
+          
+            string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
             lock (typesByFullName)
             {
                 if (!typesByFullName.ContainsKey(classFullName))

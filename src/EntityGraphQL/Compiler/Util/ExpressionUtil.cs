@@ -423,21 +423,22 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(string fieldDescription, ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, Expression> fieldExpressions)
+        public static Expression MakeSelectWithDynamicType(string fieldDescription, ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, CompiledField> fieldExpressions)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
 
             // get a list of distinct types asked for in the query (fragments for interfaces)
             var validTypes = fieldExpressions.Values
-                .Select(i => RootType(i))
+                .Select(i => RootType(i.Expression))
                 .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
                 .Distinct();
 
             // If 0 or 1 valid types then default to basic behaviour
             if (validTypes.Count() < 2)
             {
-                var memberInit = CreateNewExpression(fieldDescription, fieldExpressions, out Type dynamicType);
+                var memberExpressions = fieldExpressions.ToDictionary(i => i.Key, i => i.Value.Expression);
+                var memberInit = CreateNewExpression(fieldDescription, memberExpressions, out Type dynamicType);
                 if (memberInit == null || dynamicType == null) // nothing to select
                     return baseExp;
                 var selector = Expression.Lambda(memberInit, currentContextParam);
@@ -450,27 +451,24 @@ namespace EntityGraphQL.Compiler.Util
             else
             {
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
-                    fieldExpressions
-                       .Where(i => i.Value is MemberExpression)
-                       .Where(i => ((MemberExpression)i.Value).Expression!.Type == currentContextParam.Type || ((MemberExpression)i.Value).Expression!.Type == typeof(ISchemaType))
-                       .ToDictionary(i => i.Key, i => i.Value.Type),
-                    fieldDescription
+                    fieldExpressions.Values
+                       .Where(i => RootType(i.Expression)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
+                       .ToDictionary(i => i.Field.Name, i => i.Expression.Type),
+                    fieldDescription + "baseDynamicType"
                 );
                 if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
-                Expression? previous = null;
+                Expression? previous = Expression.Constant(null, baseDynamicType);
                 foreach (var type in validTypes)
                 {
 
-                    var fieldsOnType = fieldExpressions
-                       .Where(i => RootType(i.Value)!.IsAssignableFrom(type) || RootType(i.Value) == typeof(ISchemaType))
-                       .ToDictionary(i => i.Key, i => i.Value);
+                    var fieldsOnType = fieldExpressions.Values
+                       .Where(i => RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
+                       .ToDictionary(i => i.Field.Name.Replace($"{RootType(i.Expression)?.Name}.", ""), i => i.Expression);
 
                     var memberInit = CreateNewExpression(fieldDescription, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
-
-                    if (previous != null)
-                    {
+                  
                         var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
                         var replacer = new ParameterReplacer();
 
@@ -482,11 +480,7 @@ namespace EntityGraphQL.Compiler.Util
                               ifFalse: previous,
                               type: baseDynamicType
                         );
-                    }
-                    else
-                    {
-                        previous = memberInit;
-                    }
+                 
                 }
 
                 var selector = Expression.Lambda(previous!, currentContextParam);

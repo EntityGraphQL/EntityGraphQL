@@ -198,6 +198,110 @@ namespace EntityGraphQL.Tests
             Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
         }
 
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() {  AutoCreateInterfaceTypes = true });
+            Assert.Equal(GqlTypeEnum.Union, schemaProvider.Type<IUnion>().GqlType);
+            Assert.Single(schemaProvider.Type<IUnion>().GetFields()); //__typename only
+            Assert.Equal("__typename", schemaProvider.Type<IUnion>().GetFields().First().Name); //__typename only
+        }
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions_SDL()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains(@"union: [IUnion!]", schema);
+
+            //no subtypes so not added
+            Assert.DoesNotContain(@"union IUnion", schema);
+        }
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions_SDL_WithType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+            schemaProvider.Type<IUnion>().AddPossibleType<Person>();
+            schemaProvider.Type<IUnion>().AddPossibleType<Property>();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains(@"union: [IUnion!]", schema);
+
+            //no subtypes so not added
+            Assert.Contains(@"union IUnion = Person | Property", schema);
+        }
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions_SDL_WithMultipleType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+            schemaProvider.Type<IUnion>().AddPossibleType<Person>();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains(@"union: [IUnion!]", schema);
+
+            //no subtypes so not added
+            Assert.Contains(@"union IUnion = Person", schema);
+        }
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions_Introspection()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""IUnion"") {
+            name
+            kind
+          }
+        }"
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("UNION", ((dynamic)res.Data["__type"]).kind);
+        }
+
+        [Fact]
+        public void InterfacesWithNoFieldsBecomeUnions_Introspection_WithType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+            schemaProvider.Type<IUnion>().AddPossibleType<Person>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          __type(name: ""IUnion"") {
+            name
+            kind
+            possibleTypes { name }
+          }
+        }"
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
+            Assert.Equal("UNION", ((dynamic)res.Data["__type"]).kind);
+            Assert.Equal("Person", ((dynamic)res.Data["__type"]).possibleTypes[0].name);
+        }
+
+        [Fact]
+        public void UnionsCantHaveFields()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
+            Assert.Throws<InvalidOperationException>(() => schemaProvider.Type<IUnion>().AddField("test", "description"));
+        }
+
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {
@@ -209,6 +313,10 @@ namespace EntityGraphQL.Tests
         private class IdInherited : HasId, ISomething
         {
 
+        }
+
+        private interface IUnion
+        {
         }
 
         private interface ISomething
@@ -232,6 +340,11 @@ namespace EntityGraphQL.Tests
             public IEnumerable<AbstractClass> AbstractClasses { get; }
         }
 
+        private class TestSchema4
+        {
+            public IEnumerable<IUnion> Union { get; }
+        }
+
         private abstract class AbstractClass
         {
             public int Field1 { get; }
@@ -242,20 +355,20 @@ namespace EntityGraphQL.Tests
             public int Field2 { get; }
         }
 
-        private class TestEntity
+        private class TestEntity : IUnion
         {
             public int Id { get; }
             public int Field1 { get; }
             public Person Relation { get; }
         }
 
-        private class Person
+        private class Person : IUnion
         {
             public int Id = 0;
             public string Name = string.Empty;
         }
 
-        private class Property
+        private class Property : IUnion
         {
             public Guid Id { get; set; }
         }

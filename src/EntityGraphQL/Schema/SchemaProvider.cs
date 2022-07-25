@@ -651,6 +651,34 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
+        /// Add an union type to the schema
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public ISchemaType AddUnion(Type type, string name, string? description)
+        {
+            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Union);
+            FinishAddingType(type, name, schemaType);
+            return schemaType;
+        }
+
+        /// <summary>
+        /// Add an union type to the schema
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public ISchemaType AddUnion<TInterface>(string name, string? description)
+        {
+            var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypeEnum.Union);
+            FinishAddingType(typeof(TInterface), name, schemaType);
+            return schemaType;
+        }
+
+        /// <summary>
         /// Return a list of all Enum types in the schema
         /// </summary>
         /// <returns></returns>
