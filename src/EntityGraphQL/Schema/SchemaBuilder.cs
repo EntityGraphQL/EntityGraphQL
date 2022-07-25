@@ -122,7 +122,7 @@ namespace EntityGraphQL.Schema
             body = ExpressionUtil.MakeCallOnQueryable("FirstOrDefault", new Type[] { arrayContextType }, body);
             var contextParam = Expression.Parameter(contextType, $"cxt_{contextType.Name}");
             var lambdaParams = new[] { contextParam, argTypeParam };
-            body = new ParameterReplacer().ReplaceByType(body, contextType, contextParam);
+            body = new ParameterReplacer().Replace(body, fieldProp.FieldParam!, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
             var name = fieldProp.Name.Singularize();
             if (name == null)

@@ -48,6 +48,8 @@ namespace EntityGraphQL.Schema
         public ISchemaProvider Schema { get; set; }
         public Type? ArgumentsType { get; set; }
 
+        public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
+
         protected List<Action<ArgumentValidatorContext>> argumentValidators = new();
 
         protected BaseField(ISchemaProvider schema, string name, string? description, GqlTypeInfo returnType)

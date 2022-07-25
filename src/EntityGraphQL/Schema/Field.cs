@@ -13,7 +13,7 @@ namespace EntityGraphQL.Schema
     /// <summary>
     /// Describes an entity field. It's expression based on the base type (your data model) and it's mapped return type
     /// </summary>
-    public class Field : BaseField, IField
+    public class Field : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Query;
 
@@ -37,11 +37,11 @@ namespace EntityGraphQL.Schema
 
             if (resolve != null)
             {
-                ProcessResolveExpression(resolve);
+                ProcessResolveExpression(resolve, false);
             }
         }
 
-        protected void ProcessResolveExpression(LambdaExpression resolve)
+        protected void ProcessResolveExpression(LambdaExpression resolve, bool withServices)
         {
             ResolveExpression = resolve.Body;
             FieldParam = resolve.Parameters.First();
@@ -59,6 +59,12 @@ namespace EntityGraphQL.Schema
                     IsDeprecated = true;
                     DeprecationReason = obsoleteAttribute.Message;
                 }
+            }
+
+            if (withServices)
+            {
+                var extractor = new ExpressionExtractor();
+                ExtractedFieldsFromServices = extractor.Extract(ResolveExpression, FieldParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, FieldParam)).ToList();
             }
         }
 
@@ -170,7 +176,7 @@ namespace EntityGraphQL.Schema
                     argumentValues = invokeContext.Arguments;
                 }
 
-                validationErrors.AddRange(invokeContext.Errors);                
+                validationErrors.AddRange(invokeContext.Errors);
             }
 
 
@@ -182,9 +188,9 @@ namespace EntityGraphQL.Schema
             return (result, argumentValues);
         }
 
-        protected void SetUpField(LambdaExpression fieldExpression)
+        protected void SetUpField(LambdaExpression fieldExpression, bool withServices)
         {
-            ProcessResolveExpression(fieldExpression);
+            ProcessResolveExpression(fieldExpression, withServices);
             // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
             var returnType = fieldExpression.Body.Type;
             if (fieldExpression.Body.NodeType == ExpressionType.Convert)

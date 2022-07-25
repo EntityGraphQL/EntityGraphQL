@@ -198,7 +198,8 @@ namespace EntityGraphQL.Compiler
                 }
                 else
                 {
-                    fieldResult = new GraphQLScalarField(schemaProvider, actualField, resultName, actualField.ResolveExpression!, context.NextFieldContext as ParameterExpression ?? context.RootParameter, context, args);
+                    var rootParam = context.NextFieldContext?.NodeType == ExpressionType.Parameter ? actualField.FieldParam : context.RootParameter;
+                    fieldResult = new GraphQLScalarField(schemaProvider, actualField, resultName, actualField.ResolveExpression!, rootParam, context, args);
                 }
 
                 if (node.Directives?.Any() == true)
@@ -248,7 +249,7 @@ namespace EntityGraphQL.Compiler
             var elementType = returnType.TypeDotnet;
             var fieldParam = Expression.Parameter(elementType, $"p_{elementType.Name}");
 
-            var gqlNode = new GraphQLListSelectionField(schemaProvider, actualField, resultName, fieldParam, context.RootParameter, nodeExpression, context, arguments);
+            var gqlNode = new GraphQLListSelectionField(schemaProvider, actualField, resultName, fieldParam, actualField.FieldParam ?? context.RootParameter, nodeExpression, context, arguments);
 
             // visit child fields. Will be more fields
             base.VisitSelectionSet(selection, gqlNode);
@@ -269,7 +270,9 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
             if (context.NextFieldContext == null && context.RootParameter == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext and context.RootParameter should not be null visiting field");
-            var graphQLNode = new GraphQLObjectProjectionField(schemaProvider, actualField, name, nodeExpression, context.NextFieldContext as ParameterExpression ?? context.RootParameter!, context, arguments);
+
+            var rootParam = context.NextFieldContext?.NodeType == ExpressionType.Parameter ? actualField.FieldParam : context.RootParameter!;
+            var graphQLNode = new GraphQLObjectProjectionField(schemaProvider, actualField, name, nodeExpression, rootParam ?? context.RootParameter!, context, arguments);
 
             base.VisitSelectionSet(selection, graphQLNode);
 

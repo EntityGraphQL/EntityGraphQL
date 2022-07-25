@@ -20,6 +20,7 @@ namespace EntityGraphQL.Schema
         GraphQLQueryFieldType FieldType { get; }
         ISchemaProvider Schema { get; }
         ParameterExpression? FieldParam { get; set; }
+        List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; }
         string? Description { get; }
         IDictionary<string, ArgType> Arguments { get; }
         ParameterExpression? ArgumentParam { get; }
