@@ -13,8 +13,6 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     /// <summary>
     /// This is passed down from the original field
     /// </summary>
-    private readonly ParameterExpression argsExpression;
-
     private readonly ParameterExpression argumentParam;
     private readonly ParameterExpression originalFieldParam;
     private readonly int? defaultPageSize;
@@ -24,12 +22,11 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     private readonly bool isQueryable;
     private readonly List<IFieldExtension> extensions;
 
-    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argsExpression, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
+    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
     {
         this.listType = listType;
         this.isQueryable = isQueryable;
         this.extensions = extensions;
-        this.argsExpression = argsExpression;
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
         this.argumentParam = argumentParam;
         this.originalFieldParam = fieldParam;
@@ -152,7 +149,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argsExpression, idxParam))
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam))
                     }
                 ),
                 edgeParam,
