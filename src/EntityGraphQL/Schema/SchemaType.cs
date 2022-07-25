@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
@@ -10,6 +11,7 @@ namespace EntityGraphQL.Schema
     public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<Field>
     {
         public override Type TypeDotnet { get; }
+        public override bool IsOneOf { get; }
 
         public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, gqlType, baseType)
@@ -21,6 +23,7 @@ namespace EntityGraphQL.Schema
             : base(schema, name, description, requiredAuthorization)
         {
             TypeDotnet = dotnetType;
+            IsOneOf = dotnetType.CustomAttributes.Any(i => i.AttributeType == typeof(GraphQLOneOfAttribute));
             GqlType = gqlType;
 
             RequiredAuthorization = requiredAuthorization;

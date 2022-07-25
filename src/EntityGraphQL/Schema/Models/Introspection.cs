@@ -59,6 +59,7 @@ namespace EntityGraphQL.Schema.Models
 
         public TypeElement[] PossibleTypes { get; private set; } = new TypeElement[0];
         public TypeElement? OfType { get; set; }
+        public bool OneField { get; set; }
     }
 
     public partial class Field

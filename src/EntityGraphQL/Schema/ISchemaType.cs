@@ -23,6 +23,10 @@ namespace EntityGraphQL.Schema
         /// </summary>
         bool IsInput { get; }
         /// <summary>
+        /// True if type is a Input @oneOf union
+        /// </summary>
+        bool IsOneOf { get; }
+        /// <summary>
         /// True if GqlType is GqlTypeEnum.Interface
         /// </summary>
         bool IsInterface { get; }

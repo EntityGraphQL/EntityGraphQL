@@ -131,8 +131,9 @@
 
                 var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name)
                 {
+                    OneField = schemaType.IsOneOf,
                     Description = schemaType.Description,
-                    InputFields = inputValues.ToArray()
+                    InputFields = inputValues.ToArray()                    
                 };
 
                 types.Add(typeElement);

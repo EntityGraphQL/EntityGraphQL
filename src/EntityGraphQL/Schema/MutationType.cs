@@ -137,6 +137,7 @@ public class MutationType
 public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 {
     public override Type TypeDotnet => typeof(MutationType);
+    public override bool IsOneOf => false;
 
     public MutationSchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         : base(schema, name, description, requiredAuthorization)
