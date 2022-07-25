@@ -46,6 +46,7 @@ type Mutation {
 
 - #160 - Nested data annotations for validation is now supported
 - Main `EntityGraphQL` package now targets `net6.0;net5.0;netstandard2.1`
+- #170 - EntityGraphQL now replaces query context expressions in service fields by matching the expression instance it extracted. This allows for more complex expressions when passing data to a service field
 
 Fixes
 
