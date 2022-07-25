@@ -25,8 +25,8 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
 
             Assert.Contains("input InputObject {", schema);
-            Assert.Contains("one: Int!\r\n", schema);
-            Assert.Contains("two: Int!\r\n", schema);
+            Assert.Contains("one: Int!", schema);
+            Assert.Contains("two: Int!", schema);
 
             var gql = new QueryRequest
             {
@@ -38,11 +38,6 @@ namespace EntityGraphQL.Tests
                         oneField
                       }
                     }"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
             };
 
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
@@ -69,8 +64,8 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
 
             Assert.Contains("input InputObject @oneOf {", schema);
-            Assert.Contains("one: Int\r\n", schema);
-            Assert.Contains("two: Int\r\n", schema);
+            Assert.Contains("one: Int", schema);
+            Assert.Contains("two: Int", schema);
 
             var gql = new QueryRequest
             {
@@ -82,11 +77,6 @@ namespace EntityGraphQL.Tests
                         oneField
                       }
                     }"
-            };
-
-            var context = new TestDataContext
-            {
-                Projects = new List<Project>()
             };
 
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
