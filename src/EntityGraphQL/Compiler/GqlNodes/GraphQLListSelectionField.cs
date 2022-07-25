@@ -102,19 +102,6 @@ namespace EntityGraphQL.Compiler
             return resultExpression;
         }
 
-        protected override Dictionary<string, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
-        {
-            var fields = base.GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
-
-            // extract possible fields from listContext (might be .Where(), OrderBy() etc)
-            if (withoutServiceFields && Field?.Services?.Any() == true)
-            {
-                ExtractRequiredFieldsForPreServiceRun(ListExpression, Name, nextFieldContext, replacer, fields);
-            }
-
-            return fields;
-        }
-
         private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
         {
             // null check on listContext which may be a call to a service that we do not want to call twice
