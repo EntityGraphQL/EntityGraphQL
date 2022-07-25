@@ -19,6 +19,7 @@ namespace EntityGraphQL.Schema
         public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
         public IList<ISchemaType> PossibleTypes => possibleTypes.AsReadOnly();
 
+        public abstract bool IsOneOf { get; }
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
         public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
         public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
@@ -98,6 +99,10 @@ namespace EntityGraphQL.Schema
         {
             if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+
+            if (IsOneOf && field.ReturnType.TypeNotNullable)
+                throw new EntityQuerySchemaException($"{TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
+
 
             FieldsByName.Add(field.Name, (TFieldType)field);
             return field;

@@ -98,6 +98,7 @@ namespace EntityGraphQL.Tests
         public string Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime? Updated { get; set; }
+        public IEnumerable<Project> Children { get; set; }
     }
 
     public class Task

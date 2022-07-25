@@ -56,11 +56,7 @@ namespace EntityGraphQL.Compiler
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
             {
-                var possibleField = replacementNextFieldContext.Type.GetField(Name);
-                if (possibleField != null)
-                    listContext = Expression.Field(replacementNextFieldContext, possibleField);
-                else
-                    listContext = isRoot ? replacementNextFieldContext! : replacer.ReplaceByType(listContext, ParentNode!.NextFieldContext!.Type, replacementNextFieldContext!);
+                listContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, listContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
             (listContext, var argumentValues) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
@@ -77,15 +73,15 @@ namespace EntityGraphQL.Compiler
 
             if (selectionFields == null || !selectionFields.Any())
             {
-                if (withoutServiceFields && Field?.Services.Any() == true)
+                if (withoutServiceFields && HasServices)
                     return null;
                 return listContext;
             }
 
             (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, contextChanged, replacer);
 
-            if (Field?.Services.Any() == true)
-                compileContext.AddServices(Field.Services);
+            if (HasServices)
+                compileContext.AddServices(Field!.Services);
 
             if (!withoutServiceFields)
             {

@@ -112,7 +112,7 @@ An example in C# of what this ends up looking like.
 
 ```
 var dbResultFunc = (DbContext context) => context.People.Select(p => new {
-    Birthday = p.Birthday, // extracted from the ResolveWithService expression as it is needed in the in-memory resolution
+    p_Birthday = p.Birthday, // extracted from the ResolveWithService expression as it is needed in the in-memory resolution
     manager = new {
         name = p.Manager.Name
     }
@@ -122,7 +122,7 @@ var dbResult = dbResultFunc(dbContext); // executes the expression
 
 // note dbResult is an anonymous type known at runtime
 var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
-    age = ager.GetAge(p.Birthday)), // passing in data we selected just for this
+    age = ager.GetAge(p.p_Birthday)), // passing in data we selected just for this
     manager = p.manager // simple selection from the previous result
 })
 .ToList();
@@ -131,13 +131,9 @@ var results = resultsFunc(dbResult, ager); // execute for the final result
 
 This allows EF Core to make it's optimizations and prevent over fetching of data when using EntityGraphQL against an EF DbContext.
 
-# Limitations with using `ResolveWithService()` & EF
+As seen above EntityGraphQL will execute 2 expressions. The first with all data on the main query context (in this case the `DbContext`) without the service fields and the second against the result of that query including the service fields.
 
-If you are using the above functionality where the query will be completed in 2 parts, below are the current limitations to think about when building fields using services.
-
-Do not traverse through a relation in your field expression that uses `ResolveWithService()`.
-
-An example of what will not work.
+To do this EntityGraphQL needs to update the service field expressions. It does that by first extracting all the expressions form a service that relate to the main query context. For example
 
 ```
 schema.UpdateType<Floor>(type => {
@@ -146,13 +142,8 @@ schema.UpdateType<Floor>(type => {
 });
 ```
 
-This will trigger the expression we build for EF to select `floor.SomeRelation` which errors in EF because of [this issue](https://github.com/dotnet/efcore/issues/23205) (or related).
+Will extract the `f.SomeRelation.FirstOrDefault().Id` expression. That will be fetched in the first expression execution as `f.SomeRelation_FirstOrDefault___Id = f.SomeRelation.FirstOrDefault().Id`. So when we rebuild the final expression to also execute service fields it will update the expression to be `s.BuildFloorPlanUrl(f.SomeRelation_FirstOrDefault___Id)`.
 
-For now you can modify you field to only select fields on the context and update the service to load anything it needs to return the correct data. Remember you services can access the DB context or anything else it needs via DI as well.
+You may encounter some issues with EF depending on how complex you expressions are. For example pre-6.0 [this issue](https://github.com/dotnet/efcore/issues/23205) will be hit if you traverse through a relation.
 
-```
-schema.UpdateType<Floor>(type => {
-  type.AddField("floorUrl", "Current floor url")
-    .ResolveWithService<IFloorPlanUrlService>((s) => s.BuildFloorUrlFromFloorId(f.Id));
-});
-```
+It is best to keep the expressions used to pass query context data into a service as simple as you can. Remember you services can access the DB context or anything else it needs via DI as well.
