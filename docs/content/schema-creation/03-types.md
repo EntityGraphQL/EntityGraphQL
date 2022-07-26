@@ -86,7 +86,7 @@ type Person {
 
 GraphQL supports [Interfaces](https://graphql.org/learn/schema/#interfaces) allowing you to define a abstract base type that multiple other types might implement.
 
-EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces; however, you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
+EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces (or unions); however, you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
 
 ```
 public abstract class Character {
@@ -159,6 +159,34 @@ query {
         }
     }
 }
+```
+
+# Union Types
+[Union Types](https://graphql.org/learn/schema/#union-types) are very similar to interfaces, but they don't get to specify any common fields between the types.
+
+Any abstract class or interface automatically added by the SchemaBuilder that contains no properties is added as a union instead of an interface (interfaces require at least one field).
+
+You can register union types manually using the `AddUnion` method on SchemaProvider, then register potential types on the union type using the `SchemaField.AddPossibleType` method.  This differs from interfaces in that you register the child classes on the parent instead of the parent on the children.
+
+As C# does not support anything like union types they are implemented used blank 'marker interfaces'
+
+```
+public interface ICharacter { }
+
+public class Human : ICharacter {
+    ...
+}
+
+public class Droid : ICharacter {
+    ...
+}
+
+
+// creating our schema
+var union = schema.AddUnion<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
+        
+    schema.Type<Character>.AddPotentialType<Human>().AddAllFields();
+    schema.Type<Character>.AddPotentialType<Droid>().AddAllFields();
 ```
 
 # Input Types
