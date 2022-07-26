@@ -375,14 +375,38 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
+        public ISchemaType AddAllPossibleTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
+
+            var types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(s => s.GetTypes())
+                .Where(p => TypeDotnet.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
+
+            foreach(var type in types)
+            {
+                AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
+            }
+
+            return this;
+        }
+
         public ISchemaType AddPossibleType<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
             var type = typeof(TClrType);
             return AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
         }
 
         private ISchemaType AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
             var hasType = Schema.HasType(type);
             ISchemaType? schemaType = null;
 

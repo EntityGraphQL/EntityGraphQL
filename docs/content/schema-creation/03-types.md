@@ -102,18 +102,18 @@ public class Human : Character {
 }
 
 public class Droid : Character {
-    public stirng PrimaryFunction { get; set;}
+    public string PrimaryFunction { get; set;}
 }
 
 // creating our schema
-schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
+schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy")
     .AddAllFields();
 
 schema.AddType<Human>("")
     .AddAllFields()
     .Implements<Character>();
 
-schema.AddType<Droid>("");
+schema.AddType<Droid>("")
     .Implements<Character>();
 ```
 
@@ -185,8 +185,8 @@ public class Droid : ICharacter {
 // creating our schema
 var union = schema.AddUnion<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
         
-    schema.Type<Character>.AddPotentialType<Human>().AddAllFields();
-    schema.Type<Character>.AddPotentialType<Droid>().AddAllFields();
+    schema.Type<Character>.AddPotentialType<Human>();
+    schema.Type<Character>.AddPotentialType<Droid>();
 ```
 
 # Input Types
