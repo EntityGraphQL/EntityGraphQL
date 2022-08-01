@@ -230,5 +230,20 @@ fragment TypeRef on __Type {
             Assert.True(Enumerable.Any(fields));
             Assert.False(Enumerable.Any(fields, f => f.name == "projectsOld"));
         }
+
+
+        [Fact]
+        public void TestIntrospectionTypesRegistered()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            Assert.True(schema.HasType("__Type"));
+            Assert.True(schema.HasType("__EnumValue"));
+            Assert.True(schema.HasType("__InputValue"));
+
+            Assert.False(schema.HasType("Type"));
+            Assert.False(schema.HasType("EnumValue"));
+            Assert.False(schema.HasType("InputValue"));
+        }
     }
 }

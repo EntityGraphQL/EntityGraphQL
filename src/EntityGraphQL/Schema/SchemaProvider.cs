@@ -89,20 +89,20 @@ namespace EntityGraphQL.Schema
             if (introspectionEnabled)
             {
                 // add types first as fields from the other types may refer to these types
-                AddType<Models.TypeElement>("__Type", "Information about types", type =>
-                {
-                    type.AddAllFields();
-                    type.ReplaceField("enumValues",
-                        new { includeDeprecated = false },
-                        (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
-                        "Enum values available on type");
-                });
+                var typeElement = AddType<Models.TypeElement>("__Type", "Information about types");
                 AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
                 AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
                 AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
                 AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
                 AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
                 AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
+
+                typeElement.AddAllFields();
+                typeElement.ReplaceField("enumValues",
+                    new { includeDeprecated = false },
+                    (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
+                    "Enum values available on type"
+                );  
 
                 SetupIntrospectionTypesAndField();
             }
