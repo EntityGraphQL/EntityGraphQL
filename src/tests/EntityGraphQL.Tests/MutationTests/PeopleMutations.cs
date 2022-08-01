@@ -41,6 +41,13 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
+        public Person AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
+        {
+            return null;
+        }
+
+        [GraphQLMutation]
+
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
             var id = 11;
@@ -262,6 +269,12 @@ namespace EntityGraphQL.Tests
         public string LastName { get; set; }
         public DateTime? Birthday { get; set; }
     }
+
+    public class ListOfObjectsWithIds
+    {
+        public IList<InputObjectId> InputObjects { get; set; }
+    }
+
     public class InputObjectId
     {
         public int Id { get; set; }
