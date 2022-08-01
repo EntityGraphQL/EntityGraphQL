@@ -360,6 +360,23 @@ query {
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
+
+        [Fact]
+        public void TestNoArgumentsOnEnum()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<Gender>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
+            Assert.Equal("Field invalid on type Gender has arguments but is a GraphQL Enum type and can not have arguments.", ex.Message);
+        }
+        [Fact]
+        public void TestNoFieldsOnScalar()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<string>().AddField("invalid", (ctx) => 8, "Invalid field"));
+            Assert.Equal("Cannot add field invalid to type String, as String is a scalar type and can not have fields.", ex.Message);
+        }
     }
 
     public class DeepContext

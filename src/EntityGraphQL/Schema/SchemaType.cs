@@ -89,7 +89,13 @@ namespace EntityGraphQL.Schema
         public Field AddField(Field field)
         {
             if (FieldsByName.ContainsKey(field.Name))
-                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {Name}. Use ReplaceField() if this is intended.");
+
+            if (field.Arguments.Any() && (GqlType == GqlTypeEnum.Input || GqlType == GqlTypeEnum.Enum))
+                throw new EntityQuerySchemaException($"Field {field.Name} on type {Name} has arguments but is a GraphQL {GqlType} type and can not have arguments.");
+
+            if (GqlType == GqlTypeEnum.Scalar)
+                throw new EntityQuerySchemaException($"Cannot add field {field.Name} to type {Name}, as {Name} is a scalar type and can not have fields.");
 
             FieldsByName.Add(field.Name, field);
             return field;
@@ -193,9 +199,8 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
-            FieldsByName[field.Name] = field;
-            return field;
+            RemoveField(name);
+            return AddField(new Field(Schema, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
         }
 
         /// <summary>
@@ -212,9 +217,8 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
-            FieldsByName[field.Name] = field;
-            return field;
+            RemoveField(name);
+            return AddField(new Field(Schema, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
         }
 
         /// <summary>

@@ -1,3 +1,12 @@
+# 3.0.3
+
+Fixes:
+
+- Prevent creation of invalid GraphQL schemas
+  - Exception is thrown if you try to add a field with arrguments to types that do not support arguments - `Enum` & `Input` types
+  - Exception is thrown if you try to add fields to a `Scalar` type
+- Enum types are now added to the schema as a typed `SchemaType<T>` instance. Meaning you can fetch them using `schema.Type<MyEnum>()`
+
 # 3.0.2
 
 Fixes:

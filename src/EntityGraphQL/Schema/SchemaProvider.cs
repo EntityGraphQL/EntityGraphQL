@@ -618,7 +618,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddEnum(string name, Type type, string description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Enum);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypeEnum.Enum, null)!;
             FinishAddingType(type, name, schemaType);
             return schemaType.AddAllFields();
         }
@@ -632,7 +632,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddInterface(Type type, string name, string? description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Interface);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypeEnum.Interface, null)!;
             FinishAddingType(type, name, schemaType);
             return schemaType;
         }
