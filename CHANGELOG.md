@@ -1,3 +1,9 @@
+# 3.0.1
+
+Fixes:
+
+- Input Types were incorrectly getting field arguments added when using `AutoCreateFieldWithIdArguments`
+
 # 3.0.0
 
 Breaking changes:
