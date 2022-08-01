@@ -1,3 +1,9 @@
+# 3.0.2
+
+Fixes:
+
+- `InputValue` type was being registered under wrong name #184
+
 # 3.0.1
 
 Fixes:

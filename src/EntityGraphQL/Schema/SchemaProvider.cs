@@ -97,12 +97,13 @@ namespace EntityGraphQL.Schema
                 AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
                 AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
+                // add these fields after the other types as the fields reference those types and by default would auto register under the wrong name
                 typeElement.AddAllFields();
                 typeElement.ReplaceField("enumValues",
                     new { includeDeprecated = false },
                     (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
                     "Enum values available on type"
-                );  
+                );
 
                 SetupIntrospectionTypesAndField();
             }
