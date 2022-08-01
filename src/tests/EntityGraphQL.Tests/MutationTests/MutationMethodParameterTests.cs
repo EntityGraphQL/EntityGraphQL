@@ -1,6 +1,7 @@
 ﻿using Xunit;
 using EntityGraphQL.Schema;
 using System;
+using System.Linq;
 
 namespace EntityGraphQL.Tests
 {
@@ -136,6 +137,21 @@ namespace EntityGraphQL.Tests
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestChildArraysDontGetArguments()
+        {
+            var schemaProvider = new SchemaProvider<TestDataContext>();
+            schemaProvider.AddScalarType<DateTime>("DateTime", "");
+            schemaProvider.AddScalarType<decimal>("decimal", "");
+            schemaProvider.AddScalarType<char>("char", "");
+            schemaProvider.PopulateFromContext();
+            schemaProvider.AddInputType<ListOfObjectsWithIds>("ListOfObjectsWithIds", "").AddAllFields();
+            
+            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+
+            Assert.Empty(schemaProvider.GetSchemaType("ListOfObjectsWithIds", null).GetFields().Where(x => x.Arguments.Any()));
         }
     }
 }

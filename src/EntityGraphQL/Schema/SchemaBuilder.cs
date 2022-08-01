@@ -203,7 +203,7 @@ namespace EntityGraphQL.Schema
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
             var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
-            if (options.AutoCreateFieldWithIdArguments)
+            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
             {
                 // add non-pural field with argument of ID
                 var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
