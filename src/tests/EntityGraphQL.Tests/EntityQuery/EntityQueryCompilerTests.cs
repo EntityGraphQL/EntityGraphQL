@@ -280,6 +280,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
                 }
             });
             Assert.Single(res);
+            Assert.Equal(Gender.Other, res.First().Gender);
         }
 
         [Fact]
@@ -292,7 +293,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var res = (IEnumerable<Person>)exp.Execute(new TestSchema
             {
                 People = new List<Person> {
-                    new Person {
+                    new Person {                        
                         Gender = Gender.Female
                     },
                     new Person {
@@ -302,6 +303,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
                 }
             });
             Assert.Single(res);
+            Assert.Equal(Gender.Other, res.First().Gender);
         }
 
         [Fact]
