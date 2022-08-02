@@ -1,16 +1,29 @@
-## Documentation
+# Website
 
-_Started from [gatsby-gitbook-starter](https://www.gatsbyjs.com/starters/hasura/gatsby-gitbook-starter)_
+This website is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator.
 
-To run locally
+### Installation
 
-```shell
-$ npm install
+```
+$ npm i
+```
+
+### Local Development
+
+```
 $ npm start
 ```
 
-Visit `http://localhost:8000/` to view the docs.
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-Edit `./content` to update documentation.
+### Build
+
+```
+$ npm run build
+```
+
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
+
+### Deployment
 
 Run `sh publish.sh <version>` to publish docs. (requires write access to git@github.com:entitygraphql/entitygraphql.github.io.git)
