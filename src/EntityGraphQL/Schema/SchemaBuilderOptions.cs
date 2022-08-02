@@ -19,7 +19,7 @@ namespace EntityGraphQL.Schema
             "ContextId"
         };
         /// <summary>
-        /// List of dotnet type names to ignore when adding types to the schema
+        /// List of dotnet type names (.FullName - including namespace) to ignore when adding types to the schema
         /// </summary>
         public HashSet<string> IgnoreTypes { get; set; } = new()
         {
