@@ -150,6 +150,14 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestIgnoreWithSchemaBuilder()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(new SchemaBuilderOptions() { IgnoreTypes = new[] { typeof(Album).Name }.ToHashSet() });
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.DoesNotContain("album", schema);
+        }
+
+        [Fact]
         public void TestMutationWithListReturnType()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
