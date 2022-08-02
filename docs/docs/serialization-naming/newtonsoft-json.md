@@ -10,7 +10,7 @@ You can tell EntityGraphQL how to convert types when it is mapping incoming data
 
 Here is an example to use this to handle Newtonsoft.Json types:
 
-```
+```cs
 internal class JObjectTypeConverter : ICustomTypeConverter
 {
     public Type Type => typeof(JObject);

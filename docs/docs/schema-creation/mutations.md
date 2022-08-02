@@ -12,7 +12,7 @@ In EntityGraphQL mutations are just .NET methods in a class called a mutation co
 
 Define related mutations as methods in a class, and apply the `[GraphQLMutation]` attribute to each method.
 
-```
+```cs
 public class PeopleMutations
 {
     [GraphQLMutation("Add a new person to the system")]
@@ -35,7 +35,7 @@ You can add the mutation controller to a schema in the following ways:
 
 **Register a mutation controller**
 
-```
+```cs
 schema.AddMutationsFrom<PeopleMutations>();
 ```
 
@@ -45,7 +45,7 @@ For each mutation request, EntityGraphQL creates a new instance of `PeopleMuatio
 
 **Register all mutation controllers implementing or derving from a type**
 
-```
+```cs
 schema.AddMutationsFrom<IPersonnelMutations>();
 ```
 
@@ -53,12 +53,12 @@ If the type parameter to `AddMutationsFrom` is an interface or base class, Entit
 
 **Now we can add people!**
 
-```
+```graphql
 mutation {
-    addNewPerson(firstName: "Bill", lastName: "Murray") {
-        id
-        fullName
-    }
+  addNewPerson(firstName: "Bill", lastName: "Murray") {
+    id
+    fullName
+  }
 }
 ```
 
@@ -66,7 +66,7 @@ Above we use our mutation to add a person and select their `fullName` and `id` i
 
 ## AddMutationsFrom method arguments
 
-```
+```cs
   void AddMutationsFrom<TType>(TType? mutationClassInstance =  null, bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class;
 ```
 
@@ -85,7 +85,7 @@ If true, EntityGraphQL will add any method in the mutation class as a mutation w
 
 You can also add individual mutation methods to the mutation type as delegates or inline methods.
 
-```
+```cs
 public class PeopleMutations
 {
     public class void Configure(ISchemaProvider<DemoContext> schema)
@@ -120,9 +120,9 @@ The other 2 parameters EntityGraphQL does not know where they come from so will 
 
 For example the above mutation generates the follow in the GraphQL schema.
 
-```
+```graphql
 type Mutation {
-    addNewPerson(firstName: String, lastName: String) : Person!
+  addNewPerson(firstName: String, lastName: String): Person!
 }
 ```
 
@@ -134,13 +134,13 @@ You likely want to access some services in your mutations. EntityGraphQL support
 
 _Note: If you use [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) the registered `IServiceProvider` is provided._
 
-```
+```cs
 var results = _schemaProvider.ExecuteRequest(query, demoContext, HttpContext.RequestServices, null);
 ```
 
 EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it as a parameter of the mutation controller constructor or a mutation method.
 
-```
+```cs
 // in Startup.cs
 services.AddSingleton<IDemoService, DemoService>();
 
@@ -160,7 +160,7 @@ Later we'll learn how to access services within query fields of the schema.
 
 Depending on the complexity of your mutation you may end up with many method arguments to build the mutation field schema arguments. Consider a mutation that creates an object and lets you pass all the properties in.
 
-```
+```cs
 [GraphQLMutation("Add a new person to the system.")]
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db,
     string firstName,
@@ -178,7 +178,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db,
 
 You may also have mutations where you want to have the same or similar arguments. EntityGraphQL lets you use a MutationArguments class. If a parameter in the method has the `MutationArgumentsAttribute` that type will be expanded. The above could be changed to the following.
 
-```
+```cs
 [GraphQLMutation("Add a new person to the system.")]
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
 {
@@ -201,9 +201,17 @@ public class AddPersonArgs
 
 MutationArgument classes provide some flexibility in using inheritence etc for common mutation fields. Both still generate the same mutation field in the GraphQL schema.
 
-```
+```graphql
 type Mutation {
-    addNewPerson(firstName: String, lastName: String, middleName: String, dob: String, parent1Id: Int, parent2Id: Int, favFood: [String]) : Person!
+  addNewPerson(
+    firstName: String
+    lastName: String
+    middleName: String
+    dob: String
+    parent1Id: Int
+    parent2Id: Int
+    favFood: [String]
+  ): Person!
 }
 ```
 
@@ -215,21 +223,23 @@ Just like in queries, if the mutation field returns an object type, you can ask 
 
 One API user may ask for the `id`
 
-```
+```graphql
 mutation {
-    addNewPerson(firstName: "Bill", lastName: "Murray") {
-        id
-    }
+  addNewPerson(firstName: "Bill", lastName: "Murray") {
+    id
+  }
 }
 ```
 
 And another might want more
 
-```
+```graphql
 mutation {
-    addNewPerson(firstName: "Bill", lastName: "Murray") {
-        id firstName fullName
-    }
+  addNewPerson(firstName: "Bill", lastName: "Murray") {
+    id
+    firstName
+    fullName
+  }
 }
 ```
 
@@ -237,7 +247,7 @@ As you don't know which fields an API user will request, you therefore don't kno
 
 Using the `Expression<Func<>>` as a return type allows EntityGraphQL to build an expression across the whole schema graph. An example of the expression result built for the above mutation.
 
-```
+```cs
 (DemoContext ctx) => ctx.People
     .Where(p => p.Id == <id_from_variable>)
     .Select(p => new {

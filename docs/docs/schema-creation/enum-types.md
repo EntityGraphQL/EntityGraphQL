@@ -8,7 +8,7 @@ sidebar_position: 4
 
 With our `Person` example we could add a `Gender` enum.
 
-```
+```cs
 [JsonConverter(typeof(StringEnumConverter))]
 public enum Gender {
     Female,
@@ -22,16 +22,16 @@ schema.AddEnum("Gender", typeof(Gender), "A persons Gender");
 
 The GraphQL schema produced from this helps document and describe the data model to API users. Example GraphQL schema below
 
-```
+```graphql
 enum Gender {
-	Female
-	Male
-    NotSpecified
+  Female
+  Male
+  NotSpecified
 }
 
 type Person {
-    firstName: String
-    lastName: String
-    gender: Gender
+  firstName: String
+  lastName: String
+  gender: Gender
 }
 ```

@@ -12,7 +12,7 @@ To use other services in a field we use the `ResolveWithService<TService>()` met
 
 Let's use a service in our `Person` type example.
 
-```
+```cs
 schema.UpdateType<Person>(personType => {
     personType.AddField("age", "Person's age")
         .ResolveWithService<IAgeService>((person, srv) => srv.GetAge(person.Dob));
@@ -37,7 +37,7 @@ Now when someone requests the `age` field on a person the result will be resolve
 
 A service can return any type. If it is a complex type you will need to add it to the schema.
 
-```
+```cs
 schema.Query().AddField("users", "Get list of users")
     .ResolveWithService<IUserService>(
         // ctx is the core context we created the schema with. For this field we don't use it
@@ -65,7 +65,7 @@ With the User example above you might want to add fields to the `User` type that
 
 When joining non-core context types back to the core context you need to use `ResolveWithService()` again.
 
-```
+```cs
 schema.UpdateType<User>(userType => {
     userType.AddField("tasks", "List of projects assigned to the user")
         .ResolveWithService<DemoContext>(
@@ -76,15 +76,15 @@ schema.UpdateType<User>(userType => {
 
 Now we get query the user and their projects at the same time.
 
-```
+```graphql
 query {
-    users {
-        name
-        projects {
-            name
-            summary
-        }
+  users {
+    name
+    projects {
+      name
+      summary
     }
+  }
 }
 ```
 
@@ -96,7 +96,7 @@ Let's say we want a root-level `metrics` field where each sub-field uses a servi
 
 Define a `Metrics` class that uses a service to provide the functionality.
 
-```
+```cs
 public class Metrics
 {
     private IMetricService m;
@@ -112,7 +112,7 @@ public class Metrics
 
 No we can add the types & fields to GraphQL.
 
-```
+```cs
 // add the type
 var metricsType = adminSchema.AddType<Metrics>("Metrics", "Contains summary metrics")
     .AddAllFields();
@@ -127,15 +127,17 @@ adminSchema.Query().AddField("metrics", "Return summary metrics")
 
 Now we can query
 
-```
+```graphql
 {
-    metrics { totalWebhooks }
+  metrics {
+    totalWebhooks
+  }
 }
 ```
 
 To demonstrate that only the `m.TotalWebhooks()` method is called here is what is produced as the .NET expression.
 
-```
+```cs
 (MyDbContext db, IMetricService m) => {
     var context = new Metric(m);
     return new

@@ -8,7 +8,7 @@ GraphQL supports [Interfaces](https://graphql.org/learn/schema/#interfaces) allo
 
 EntityGraphQL automatically marks abstract classes and interfaces as GraphQL interfaces; however, you can also add them manually to a schema with the AddInterface method on the SchemaProvider class.
 
-```
+```cs
 public abstract class Character {
     public int Id { get; set; }
     public string Name { get; set; }
@@ -39,7 +39,7 @@ schema.AddType<Droid>("");
 
 produces the graphql schema:
 
-```
+```graphql
 interface Character {
   id: ID!
   name: String!
@@ -67,16 +67,16 @@ type Droid implements Character {
 
 You can query these types with inline fragments;
 
-```
+```graphql
 query {
-    characters {
-        name
-        ... on Human {
-            totalCredits
-        }
-        ... on Droid {
-            primaryFunction
-        }
+  characters {
+    name
+    ... on Human {
+      totalCredits
     }
+    ... on Droid {
+      primaryFunction
+    }
+  }
 }
 ```

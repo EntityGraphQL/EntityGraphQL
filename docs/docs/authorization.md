@@ -12,7 +12,7 @@ First pass in the `ClaimsPrincipal` to the query call
 
 _Note if you are using the `AddGraphQLSchema()` extension in `EntityGraphQL.AspNet` this is already handled for you._
 
-```
+```cs
 // Assuming you're in a ASP.NET controller
 // this.User is the current ClaimsPrincipal
 var results = schemaProvider.ExecuteRequest(query, dbContext, this.HttpContext.RequestServices, this.User);
@@ -30,7 +30,7 @@ Mark you mutation methods with the `[Authorize(Roles = "role-name")]` attribute.
 
 Policy authorization with `[Authorize(Policy = "policy-name")]` is also supported when using `EntityGraphQL.AspNet`.
 
-```
+```cs
 public class MovieMutations
 {
   [GraphQLMutation]
@@ -48,7 +48,7 @@ If a `ClaimsPrincipal` is provided with the query call it will be required to be
 
 If you are using the `SchemaBuilder.FromObject<TContext>()` you can use the `[Authorize(Roles = "role-name")]` attribute again throughout the objects.
 
-```
+```cs
 public class MyDbContext : DbContext {
   protected override void OnModelCreating(ModelBuilder builder) {
     // Set up your relations
@@ -76,7 +76,7 @@ public class Property {
 
 You can secure whole types with the attribute too.
 
-```
+```cs
 [Authorize(Roles = "property-user")]
 public class Property {
   public uint Id { get; set; }
@@ -90,7 +90,7 @@ If a `ClaimsPrincipal` is provided with the `ExecuteRequest` call it will be req
 
 Authorization can be provided in the API for add/replacing fields on the schema objact.
 
-```
+```cs
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAllRoles("admin");
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAnyRole("admin", "super-admin");
 

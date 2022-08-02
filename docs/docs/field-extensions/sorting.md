@@ -8,7 +8,7 @@ Being able to sort or order you collections as you query them can be very powerf
 
 Note: When using with one of the paging extensions ensure you call `UseSort` first. If you are using the attribute, then ensure the Sort attribute comes before the paging attribute. If using with the `UseFilter` extensions, call filter first. Filter -> Sort -> Paging.
 
-```
+```cs
 schema.ReplaceField("people",
     ctx => ctx.People,
     "Return a list of people. Optional sorted")
@@ -17,7 +17,7 @@ schema.ReplaceField("people",
 
 If you are using the `SchemaBuilder.FromObject` you can use the `UseSortAttribute` on your collection properties.
 
-```
+```cs
 public class DemoContext : DbContext
 {
     [UseSort]
@@ -31,7 +31,7 @@ public class DemoContext : DbContext
 
 This field extension can only be used on a field that has a `Resolve` expression that is assignable to `IEnumerable` - I.e. collections. The extension adds an argument called `sort: [<field_name>SortInput]`. For example `PeopleSortInput`. The `SortInput` type will have nullable fields for each scalar type in the collection element type. You set which fields you want to use for sorting. Following the above `people` field with the `Person` class defined as:
 
-```
+```cs
 public class Person
 {
     public uint Id { get; set; }
@@ -48,7 +48,7 @@ public class Person
 
 The GraphQL type will be define like:
 
-```
+```cs
 input PeopleSortInput
 {
 	id: SortDirectionEnum
@@ -67,21 +67,27 @@ enum SortDirectionEnum {
 
 To sort the collection you set the fields with a direction:
 
-```
+```graphql
 {
-    people(sort: [{lastName: DESC}]) { lastName }
+  people(sort: [{ lastName: DESC }]) {
+    lastName
+  }
 }
 
 {
-    people(sort: [{dob: ASC}]) { lastName }
+  people(sort: [{ dob: ASC }]) {
+    lastName
+  }
 }
 ```
 
 Multiple fields is supported and are taken as ordered
 
-```
+```graphql
 {
-    people(sort: [{dob: ASC}, {lastName: DESC}, {firstName: ASC}]) { lastName }
+  people(sort: [{ dob: ASC }, { lastName: DESC }, { firstName: ASC }]) {
+    lastName
+  }
 }
 ```
 
@@ -89,7 +95,7 @@ Multiple fields is supported and are taken as ordered
 
 You can set a default sort to be applied if there are no sort arguments passed in the query.
 
-```
+```cs
 schema.ReplaceField("people",
     ctx => ctx.People,
     "Return a list of people. Optional sorted")
@@ -100,7 +106,7 @@ schema.ReplaceField("people",
 
 If you use the `UseSort()` method (not the attribute) you can pass in an expression which tells the extension which fields to set in the input type. Make sure you use the correct type for the fields collection.
 
-```
+```cs
 schema.ReplaceField("people",
     ctx => ctx.People,
     "Return a list of people. Optional sorted")
@@ -113,10 +119,9 @@ schema.ReplaceField("people",
 
 This will result in only 2 options for sorting.
 
-```
-input PeopleSortInput
-{
-	dob: SortDirectionEnum
-	lastName: SortDirectionEnum
+```graphql
+input PeopleSortInput {
+  dob: SortDirectionEnum
+  lastName: SortDirectionEnum
 }
 ```

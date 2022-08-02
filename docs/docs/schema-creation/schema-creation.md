@@ -13,7 +13,7 @@ EntityGraphQL supports customizing your GraphQL schema in all the expected ways;
 
 To create a new schema we need to supply a base context type.
 
-```
+```cs
 // DemoContext is our base query context for the schema.
 // Schema has no types or fields yet
 var schema = new SchemaProvider<DemoContext>();
@@ -38,7 +38,7 @@ For more information of GraphQL types visit the [GraphQL docs](https://graphql.o
 
 To register a type in the schema:
 
-```
+```cs
 schema.AddType<Person>("Person", "Hold data about a person object");
 ```
 
@@ -48,7 +48,7 @@ This will add the `Person` type as a schema _object type_ named `Person`. It doe
 
 We now need to add some fields to both the root query object and our new `Person` Object Type.
 
-```
+```cs
 schema.UpdateType<Person>(personType => {
     personType.AddField(
         "firstName", // name in graphql schema
@@ -60,7 +60,7 @@ schema.UpdateType<Person>(personType => {
 
 The resolve expression can be any expression you can build.
 
-```
+```cs
 schema.UpdateType<Person>(personType => {
     personType.AddField(
         "fullName",
@@ -72,7 +72,7 @@ schema.UpdateType<Person>(personType => {
 
 Now let's add a root query field so we can query people.
 
-```
+```cs
 schema.Query() // returns the root graphql query type
 .AddField(
     "people",
@@ -89,7 +89,7 @@ EntityGraphQL comes with some methods to speed up the creation of your schema. T
 
 ### Building a full schema
 
-```
+```cs
 // Automatically add all types and fields from the base context
 var schema = SchemaBuilder.FromObject<DemoContext>();
 ```
@@ -104,7 +104,7 @@ Optional arguments for the schema builder:
 
    - `.AutoCreateFieldWithIdArguments` - for any fields that return a list of an Object Type that has a field called `Id`, it will create a singular field in the schema with an `id` argument. For example the `DemoContext` used in Getting Started the `DemoContext.People` will create the following GraphQL schema. Default is `true`
 
-     ```
+     ```graphql
      schema {
          query: Query
      }
@@ -125,7 +125,7 @@ Optional arguments for the schema builder:
    - `.AutoCreateInterfaceTypes` - If true (default = false), any object type that is encountered during reflection of the object graph that has abstract or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an Interface including it's fields
    - `.IgnoreProps` - List properties or field names to ignore. Default includes a list of EF properties. Default list includes
 
-   ```
+   ```json
     "Database",
     "Model",
     "ChangeTracker",
@@ -138,14 +138,14 @@ Optional arguments for the schema builder:
 
 `AddAllFields()` on the schema type will automatically add all the fields on that .NET type.
 
-```
+```cs
 schema.AddType<Person>("Person", "All about the project")
     .AddAllFields();
 ```
 
 - `options` - you can configure how `AddAllFields` works with the properties of `SchemaBuilderOptions`
 
-```
+```cs
 schema.AddType<Person>("Person", "All about the project")
     .AddAllFields(new SchemaBuilderOptions
     {
@@ -157,7 +157,7 @@ schema.AddType<Person>("Person", "All about the project")
 
 EntityGraphQL provides method to help you modify a schema as well.
 
-```
+```cs
 schema.UpdateType<Person>(personType => {
     personType.RemoveField("firstName");
     personType.ReplaceField(

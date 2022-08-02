@@ -10,7 +10,7 @@ GraphQL supports [arguments](https://graphql.org/learn/queries/#arguments) on qu
 
 Arguments are defined using an anonymous object type when defining the field. Let's build the `id` example ourselves.
 
-```
+```cs
 // empty schema
 var schema = new SchemaProvider<DemoContext>();
 schema.AddType<Person>("Person", "Information about a person);
@@ -45,7 +45,7 @@ See [Validation](../validation) for further information.
 
 If you want the argument to be optional just set the field to a typed `null` value.
 
-```
+```cs
 schema.Query().AddField(
     "people",
     new {
@@ -62,7 +62,7 @@ If the argument is not supplied with a value in the query `args.firstName` will 
 
 In GraphQL field arguments can have default values. In EntityGraphQL you just set the default value in the anonymous object create. If fact that is what we did above with `null`.
 
-```
+```cs
 schema.Query().AddField(
     "people",
     new {
@@ -79,7 +79,7 @@ schema.Query().AddField(
 
 The conditional statement we saw above - `!string.IsNullOrEmpty(args.firstName) ? ctx.People.Where(p => p.FirstName == args.firstName) : ctx.People` - can start to get messy when you have multiple optional arguments. It is common to have multiple arguments on fields that return a list of items to filter for different uses. To aid this EntityGraphQL has a helper method `WhereWhen()` that only applies a `Where()` method if a given statement returns `true`.
 
-```
+```cs
 schema.Query().AddField(
     "people",
     new {
@@ -98,6 +98,6 @@ schema.Query().AddField(
 
 Only apply the `Take()` method if the argument has a value.
 
-```
+```cs
 schema.Query().AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description");
 ```

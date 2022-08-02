@@ -8,7 +8,7 @@ Field extensions let you move common patterns or use cases into an extension met
 
 Here is an extension method to add a format argument to a field.
 
-```
+```cs
 public static class UseFormatExtension
 {
     public static Field UseFormat(this Field field)
@@ -33,7 +33,7 @@ public static class UseFormatExtension
 
 `FormatStringExtension` needs to implement `IFieldExtension` or extend `BaseFieldExtension`.
 
-```
+```cs
 public class FormatStringExtension : IFieldExtension
 {
     // Configure the field. Do as much as we can here as it is only called once on registered.

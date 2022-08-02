@@ -16,13 +16,13 @@ We of course can add our own. Scalar types help you describe the data in you sch
 
 Adding a scalar type tells EntityGraphQL that the object should just be returned. i.e. there is no selection available on it. A good example is `DateTime`. We just want to return the `DateTime` value. Not have it as an Object type where you could select certain properties from it (Although you could set that up).
 
-```
+```cs
 schema.AddScalarType<DateTime>("DateTime", "Represents a date and time.");
 ```
 
 EntityGraphQL by default will set up the follow scalar types on schema creation.
 
-```
+```cs
 new SchemaType<int>(this, "Int", "Int scalar", null, GqlTypeEnum.Scalar);
 new SchemaType<double>(this, "Float", "Float scalar", null, GqlTypeEnum.Scalar);
 new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar);
@@ -34,7 +34,7 @@ new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnu
 
 It is best to have scalar types added to the schema before adding other fields that reference them. Otherwise EntityGraphQL doesn't know about the scalar types. You can add you're own or make changes to the default when registering your schema.
 
-```
+```cs
 services.AddGraphQLSchema<TContext>(options => {
   options.PreBuildSchemaFromContext = schema =>
   {
@@ -47,13 +47,13 @@ services.AddGraphQLSchema<TContext>(options => {
 
 You can also tell EntityGraphQL to auto-map a dotnet type to a schema type with `AddTypeMapping<TFromType>(string gqlType)`. For example
 
-```
+```cs
 schema.AddTypeMapping<short>("Int");
 ```
 
 By default EntityGraphQL maps these types to GraphQL types (Note `int`, `bool`, etc are not here as they are added as scalar types in the schema above).
 
-```
+```cs
 sbyte   ->  Int
 short   ->  Int
 ushort  ->  Int

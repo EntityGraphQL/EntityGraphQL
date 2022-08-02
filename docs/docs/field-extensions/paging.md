@@ -14,7 +14,7 @@ Note: When using one of the below field extensions with any of the other field e
 
 Quickly you'll see the above lacks useful metadata - are there more items? What is the total items? etc. GraphQL doesn't have requirements on a particular way to do this, although the community (e.g. [Relay](https://relay.dev/graphql/connections.htm)) have landed on the [Connection Model](https://graphql.org/learn/pagination/). EntityGraphQL contains an easy field extension method to implement this in your schema - `UseConnectionPaging()`. This can only be applied to fields that return a collection type.
 
-```
+```cs
 schemaProvider.ReplaceField("movies",
   db => db.Movies.OrderBy(e => e.Id) // best to give the field an order so pages are the same
   "Get a page of movies"
@@ -24,7 +24,7 @@ schemaProvider.ReplaceField("movies",
 
 If you are using the `SchemaBuilder.FromObject` you can use the `UseConnectionPagingAttribute` on your collection properties. It takes the same arguments as `UseConnectionPaging()` outlined below.
 
-```
+```cs
 public class DemoContext : DbContext
 {
     [UseConnectionPaging]
@@ -38,7 +38,7 @@ public class DemoContext : DbContext
 
 This will make the field return a schema type of `MovieConnection`, which is built from the .NET type below where `TEntity` would be `Movie`.
 
-```
+```cs
 public class Connection<TEntity>
 {
   [GraphQLNotNull]
@@ -68,7 +68,7 @@ public class ConnectionEdge<TEntity>
 
 This follows the Relay Connection Model pattern and lets you page through data easily with code using the cursor metadata. As in the example above you should give your collection an order otherwise depending on the underlying data source the order could change over pages/queries. You can order base on other arguments you have on the field, `UseConnectionPaging()` will merge the arguments together.
 
-```
+```cs
 schemaProvider.ReplaceField("movies",
   new {
     year = (int?)null,
@@ -84,7 +84,7 @@ schemaProvider.ReplaceField("movies",
 
 Below shows the available fields on the new connection type (as always you can explore you schema in something like GraphiQL).
 
-```
+```graphql
 movies(first: 4, after: "MQ==") {
     edges {
       cursor
@@ -106,7 +106,7 @@ movies(first: 4, after: "MQ==") {
 
 You can set an optional default page size or max page size for the connection paging model.
 
-```
+```cs
 myField
 .UseConnectionPaging(
   defaultPageSize: 10,
@@ -128,7 +128,7 @@ The `Cursor` in the connection paging model is built on the row index of the ite
 
 EntityGraphQL also provides a offset based (`Skip`/`Take`) extension method to apply a offset based paging model to your fields.
 
-```
+```cs
 schemaProvider.ReplaceField("movies",
   db => db.Movies.OrderBy(e => e.Id) // best to give the field an order so pages are the same
   "Get a page of movies"
@@ -138,7 +138,7 @@ schemaProvider.ReplaceField("movies",
 
 If you are using the `SchemaBuilder.FromObject` you can use the `UseOffsetPagingAttribute` on your collection properties. It takes the same arguments as `UseOffsetPaging()` outlined below.
 
-```
+```cs
 public class DemoContext : DbContext
 {
     [UseOffsetPaging]
@@ -152,7 +152,7 @@ public class DemoContext : DbContext
 
 This will make the field return a schema type of `MovieOffsetPage`, which is built from the .NET type below where `TEntity` would be `Movie`.
 
-```
+```cs
 public class OffsetPage<TEntity>
 {
     [Description("Items in the page")]
@@ -173,7 +173,7 @@ public class OffsetPage<TEntity>
 
 You can set an optional default page size or max page size for the offset paging model.
 
-```
+```cs
 myField
 .UseOffsetPaging(
   defaultPageSize: 10,
@@ -189,7 +189,7 @@ If the `take` argument is greater then the `maxPageSize` value an error is raise
 
 A simple example is to use `skip` and `take` arguments in your collection fields. For example in the schema we have been working with we could modify the `movies` field (and other collections) like so.
 
-```
+```cs
 schemaProvider.ReplaceField(
   "movies",
   new { // add our field arguments

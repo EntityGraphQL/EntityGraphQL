@@ -6,7 +6,7 @@ sidebar_position: 1
 
 To quickly add filtering capabilities to your collection fields use the `UseFilter()` field extension.
 
-```
+```cs
 schema.ReplaceField("people",
     ctx => ctx.People,
     "Return a list of people. Optional filtered")
@@ -15,7 +15,7 @@ schema.ReplaceField("people",
 
 If you are using the `SchemaBuilder.FromObject` you can use the `UseFilterAttribute` on your collection properties.
 
-```
+```cs
 public class DemoContext : DbContext
 {
     [UseFilter]
@@ -35,7 +35,7 @@ The `filter` argument takes a string that will be compiled to an expression and 
 
 For example, given `ctx => ctx.People` returns a `IEnumerable<Person>` and `Person` is defined as:
 
-```
+```cs
 public class Person
 {
     public uint Id { get; set; }
@@ -52,23 +52,23 @@ public class Person
 
 We can write some filter expressions like so:
 
-```
+```graphql
 {
-    people(filter: "id == 12 || id == 10") {
-        firstName
-    }
+  people(filter: "id == 12 || id == 10") {
+    firstName
+  }
 }
 
 {
-    deletedPeople: people(filter: "isDeleted == true") {
-        firstName
-    }
+  deletedPeople: people(filter: "isDeleted == true") {
+    firstName
+  }
 }
 
 {
-    people(filter: "dob > \"2010-08-11T00:00:00\" && isDeleted == false") {
-        firstName
-    }
+  people(filter: "dob > \"2010-08-11T00:00:00\" && isDeleted == false") {
+    firstName
+  }
 }
 ```
 

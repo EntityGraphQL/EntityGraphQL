@@ -10,7 +10,7 @@ When you privide input - via arguments - to your queries, you may want to perfor
 
 You can use the `[Required]`, `[Range]` & `[StringLength]` attributes to add validaiton to your mutation arguments. Example
 
-```
+```cs
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
 {
     // Add person logic here
@@ -33,7 +33,7 @@ If any of those validations fail, the graph QL result will have errors for each 
 
 Throwing an exception in your mutation will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
-```
+```cs
 public class MovieMutations
 {
   [GraphQLMutation]
@@ -61,7 +61,7 @@ public class MovieMutations
 
 If a query field has arguments - like an Id to search for or a filter string etc. - you may also want to perform validation on the input. You can use the same `[Required]`, `[Range]` & `[StringLength]` attributes on your argument object if you are using typed field arguments.
 
-```
+```cs
 schema.Query().AddField(
     "people",
     new PeopleArgs(),
@@ -82,7 +82,7 @@ EntityGraphQL allows you to register argument validator which is a great place t
 
 You can register validators via a class that implements `IArgumentValidator`.
 
-```
+```cs
 schema.Query().AddField("movies",
     new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
     "Get a list of Movies")
@@ -107,7 +107,7 @@ public class MovieValidator : IArgumentValidator
 
 Or as a deletgate.
 
-```
+```cs
 schema.Query().AddField("movies",
     new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
     "Get a list of Movies")
@@ -125,7 +125,7 @@ schema.Query().AddField("movies",
 
 If you are using anonymous type for arguments you can use the arguments as a `dynamic` type.
 
-```
+```cs
 schema.Query().AddField("movies",
     new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
     "Get a list of Movies")
@@ -140,7 +140,7 @@ schema.Query().AddField("movies",
 
 You can add validators to mutation fields. Validators on a mutation field are called before the mutation is executed, if you add any errors to the `ArgumentValidatorContext` the mutation will not be executed and the errors will be in the result.
 
-```
+```cs
 [Fact]
 var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
 schema.Mutation().Add(AddPerson)
@@ -172,7 +172,7 @@ You can use the `ArgumentValidator` attribute to register validator on input arg
 - Mutation arguments class - the arguments passed to a mutation
 - Typed query arguments - if you have typed query arguments with this attribute they will be validated. If you use anonymous argument types you will need to use `AddValidator()`
 
-```
+```cs
 // On mutation arguments directly
 [MutationArguments]
 [ArgumentValidator(typeof(PersonValidator))]
@@ -209,7 +209,7 @@ public class MovieQueryArgs
 
 Errors often can be useful for end users. Other times they are for the developers. You can use the extensions field to add additional information to your errors to help you make a choice about the error. I.e. like showing it directly to the user. Extensions are defined as `Dictionary<string, object>`
 
-```
+```cs
 public class MovieMutations
 {
   [GraphQLMutation]
@@ -231,16 +231,16 @@ public class MovieMutations
 
 The result will look like this
 
-```
+```json
 {
-    "errors": [
-        {
-            "message": "Name argument is required",
-            "extensions": {
-                "type": 1
-            }
-        }
-    ]
+  "errors": [
+    {
+      "message": "Name argument is required",
+      "extensions": {
+        "type": 1
+      }
+    }
+  ]
 }
 ```
 

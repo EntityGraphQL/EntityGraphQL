@@ -6,7 +6,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Entity GraphQL Docs',
+  title: 'Entity GraphQL',
   tagline: 'A .NET Core GraphQL library',
   url: 'https://entitygraphql.github.io',
   baseUrl: '/',
@@ -101,6 +101,7 @@ const config = {
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
+        additionalLanguages: ['csharp', 'graphql'],
       },
     }),
 };

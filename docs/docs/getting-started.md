@@ -17,7 +17,7 @@ You can install the core [EntityGraphQL](https://www.nuget.org/packages/EntityGr
 
 _Note: There is no dependency on Entity Framework. Queries are compiled to `IQueryable` or `IEnumberable` LINQ expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object will work - this example uses EF._
 
-```
+```cs
 public class DemoContext : DbContext
 {
     public DbSet<Movie> Movies { get; set; }
@@ -82,7 +82,7 @@ Using what ever .NET API library you wish you can receive a query, execute it an
 
 You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) to use `MapGraphQL<>()` and `AddGraphQLSchema()`. You can also build your own endpoint, see below.
 
-```
+```cs
 using EntityGraphQL.AspNet;
 
 public class Startup {
@@ -118,7 +118,7 @@ You can now make a request to your API via any HTTP tool/library.
 
 For example
 
-```
+```json
 POST localhost:5000/graphql
 {
   "query": "{
@@ -130,7 +130,7 @@ POST localhost:5000/graphql
 
 Will return the following result (depending on the data in you DB).
 
-```
+```json
 {
   "data": {
     "movies": [
@@ -149,17 +149,18 @@ Will return the following result (depending on the data in you DB).
 
 Maybe you only want a specific property **(request body only from now on)**
 
-```
+```graphql
 {
   movie(id: 11) {
-    id name
+    id
+    name
   }
 }
 ```
 
 Will return the following result.
 
-```
+```json
 {
   "data": {
     "movie": {
@@ -172,7 +173,7 @@ Will return the following result.
 
 If you need other fields or relations, just ask
 
-```
+```graphql
 {
   movies {
     id
@@ -189,7 +190,7 @@ If you need other fields or relations, just ask
 
 Will return the following result.
 
-```
+```json
 {
   "data": {
     "movies": [
@@ -199,9 +200,11 @@ Will return the following result.
         "director": {
           "name": "Christopher Nolan"
         },
-        "writers": [{
-          "name": "Christopher Nolan"
-        }]
+        "writers": [
+          {
+            "name": "Christopher Nolan"
+          }
+        ]
       },
       {
         "id": 12,
@@ -209,9 +212,11 @@ Will return the following result.
         "director": {
           "name": "George Lucas"
         },
-        "writers": [{
-          "name": "George Lucas"
-        }]
+        "writers": [
+          {
+            "name": "George Lucas"
+          }
+        ]
       }
     ]
   }
@@ -226,7 +231,7 @@ You can execute GraphQL queries in your own controller or outside of ASP.NET. Be
 
 We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schema from the .NET object model we defined above.
 
-```
+```cs
 var schema = SchemaBuilder.FromObject<DemoContext>();
 ```
 
@@ -236,7 +241,7 @@ _See the [Schema Creation](./schema-creation) section to learn more about `Schem
 
 Here is an example of a controller that receives a `QueryRequest` and executes the query. This logic could easily be applied to other web frameworks.
 
-```
+```cs
 [Route("graphql")]
 public class QueryController : Controller
 {
@@ -270,7 +275,7 @@ public class QueryController : Controller
 
 If you use your own controller/method to execute GraphQL and use `System.Text.Json`, it is best to configure it like below for best compatiablity with other tools.
 
-```
+```cs
 services.AddControllers()
     .AddJsonOptions(opts =>
     {
@@ -290,7 +295,7 @@ If you are using you're own controller/method to execute GraphQL and deserializi
 
 _Sample incoming json request_
 
-```
+```json
 {
   "query": "mutation Mutate($var: ComplexInputType){ doUpdate($var) }",
   "variables": {
@@ -304,7 +309,7 @@ _Sample incoming json request_
 
 Many deserilaizers will deserialize this into the `QueryRequest.Variables` object with the value of `var` as a `JsonElement` (`System.Text.Json`) or a `JObject` (`Newtonsoft.Json`). e.g.
 
-```
+```cs
 var gql = JsonSerializer.Deserialize<QueryRequest>(query);
 Assert.True(gql.Variables["var"].GetType() == typeof(JsonElement));
 ```

@@ -10,17 +10,18 @@ EntityGraphQL is built to work extremely well with EntityFramework. To see how l
 
 Using the `DemoContext` and the schema we created from the Getting Started section, lets look at the sample queries.
 
-```
+```graphql
 query {
-    movie(id: 11) {
-        id name
-    }
+  movie(id: 11) {
+    id
+    name
+  }
 }
 ```
 
 EntityGraphQL parses the GQL document into an internal representation and uses the schema we built to construct a .NET expression. It will look like this.
 
-```
+```cs
 var expression = (DemoContext ctx, AnonymousType<> args) =>
     ctx.Movies
         .Where(movie => movie.Id == args.id)
@@ -33,7 +34,7 @@ var expression = (DemoContext ctx, AnonymousType<> args) =>
 
 You can see all we need to execute this expression is an instance of `DemoContext` and the `args` object which is built by EntityGraphQL on parsing of the GQL document. Given those things EntityGraphQL can do similar to this.
 
-```
+```cs
 var results = expression.Compile().DynamicInvoke(demoContextInstance, argInstance);
 ```
 
@@ -43,24 +44,24 @@ Namely note that EntityGraphQL only selects the fields asked for and therefore E
 
 Let's look at a more complicated example.
 
-```
+```graphql
 {
-    movies {
-        id
-        name
-        director {
-            name
-        }
-        writers {
-            name
-        }
+  movies {
+    id
+    name
+    director {
+      name
     }
+    writers {
+      name
+    }
+  }
 }
 ```
 
 Will result in the following expression.
 
-```
+```cs
 var expression = (DemoContext ctx) =>
     ctx.Movies
         .Select(movie => new {
@@ -93,15 +94,20 @@ Example of how EntityGraphQL handles `ResolveWithService()`, which can help info
 
 Given the following GQL
 
-```
+```graphql
 {
-  people { age manager { name } }
+  people {
+    age
+    manager {
+      name
+    }
+  }
 }
 ```
 
 Where `age` is defined with a service as
 
-```
+```cs
 schema.Type<Person>().AddField("age", "Persons age")
     .ResolveWithService<AgeService>((ager) => ager.GetAge(person.Birthday));
 ```
@@ -110,7 +116,7 @@ EntityGraphQL will build an expression query that first selects everything from 
 
 An example in C# of what this ends up looking like.
 
-```
+```cs
 var dbResultFunc = (DbContext context) => context.People.Select(p => new {
     p_Birthday = p.Birthday, // extracted from the ResolveWithService expression as it is needed in the in-memory resolution
     manager = new {
@@ -135,7 +141,7 @@ As seen above EntityGraphQL will execute 2 expressions. The first with all data 
 
 To do this EntityGraphQL needs to update the service field expressions. It does that by first extracting all the expressions form a service that relate to the main query context. For example
 
-```
+```cs
 schema.UpdateType<Floor>(type => {
   type.AddField("floorUrl", "Current floor url")
     .ResolveWithService<IFloorUrlService>((s) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));

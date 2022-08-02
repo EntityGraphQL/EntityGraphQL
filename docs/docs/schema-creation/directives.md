@@ -6,7 +6,7 @@ sidebar_position: 8
 
 [Directives](https://graphql.org/learn/queries/#directives) provide a way to dynamically change the structure and shape of our queries using variables. An example from the GraphQL website:
 
-```
+```graphql
 query Hero($episode: Episode, $withFriends: Boolean!) {
   hero(episode: $episode) {
     name
@@ -30,7 +30,7 @@ The GraphQL spec defines 2 directives that are supported out of the box in Entit
 
 See the [IncludeDirective](https://github.com/lukemurray/EntityGraphQL/blob/master/src/EntityGraphQL/Directives/IncludeDirectiveProcessor.cs) implementation to see how you could implement a custom directive. You can add your directive to the schema with the following
 
-```
+```cs
 // Example only, you don't need to actually add Include or Skip directives
 schema.AddDirective(new IncludeDirective());
 ```

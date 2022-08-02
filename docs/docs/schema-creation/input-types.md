@@ -10,7 +10,7 @@ Input types differ to regular Object types largely because they can't have argum
 
 > The fields on an input object type can themselves refer to input object types, but you can't mix input and output types in your schema. Input object types also can't have arguments on their fields.
 
-```
+```cs
 public class PeopleMutations
 {
     [GraphQLMutation("Add a new person to the system")]
@@ -48,7 +48,7 @@ schema.AddInputType<PersonInput>("PersonInput", "New person data")
 
 You could of course use the `Person` class from your data model directly and be selective about the fields you add to the GraphQL schema.
 
-```
+```cs
 public class PeopleMutations
 {
     [GraphQLMutation("Add a new person to the system")]
@@ -74,7 +74,7 @@ type.AddField("lastName", p => p.LastName, "Last name);
 
 You can also use complex types in field arguments.
 
-```
+```cs
 public class FilterInput
 {
     public string FirstName { get; set; }
@@ -100,7 +100,7 @@ The larger impact of these choices can be seen in the resulting schema and use o
 
 With scalar arguments.
 
-```
+```json
 POST localhost:5000/graphql
     {
     "query": "mutation AddPerson($firstName: String!, $lastName: String!) {
@@ -115,7 +115,7 @@ POST localhost:5000/graphql
 
 With an input type argument
 
-```
+```json
 POST localhost:5000/graphql
 {
     "query": "mutation AddPerson($person: PersonInput!) {
@@ -136,7 +136,7 @@ EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-s
 
 Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution.
 
-```
+```cs
 [GraphQLOneOf]
 private class OneOfInputType
 {
@@ -147,10 +147,10 @@ private class OneOfInputType
 
 This will generate the follow grpahql schema.
 
-```
+```graphql
 input MutationArgs @oneOf {
-    one: Int
-    two: Int
+  one: Int
+  two: Int
 }
 ```
 

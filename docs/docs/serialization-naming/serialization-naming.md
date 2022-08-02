@@ -13,7 +13,7 @@ Examples:
 
 To override the default behaviour you can pass in your own `fieldNamer` function when creating the `SchemaProvider` or configuring it.
 
-```
+```cs
 services.AddGraphQLSchema<DemoContext>(options => {
     options.FieldNamer = name => name; // use the dotnet name as is
 });
@@ -21,7 +21,7 @@ services.AddGraphQLSchema<DemoContext>(options => {
 
 Then make sure you follow your naming policy when adding fields to the schema.
 
-```
+```cs
 services.AddGraphQLSchema<DemoContext>(options => {
     options.FieldNamer = name => name; // use the dotnet name as is
     options.ConfigureSchema = schema => {
@@ -34,7 +34,7 @@ services.AddGraphQLSchema<DemoContext>(options => {
 
 An example - our `DemoContext` with the default `fieldNamer` will create this GraphQL schema (trimmed down for the example). Note the `camelCase` naming.
 
-```
+```graphql
 schema {
     query: Query
 }
@@ -53,7 +53,7 @@ Type Person {
 
 This means queries need to match the casing as GraphQL is case-sensitive.
 
-```
+```graphql
 {
   # will work
   people {
@@ -71,7 +71,7 @@ This means queries need to match the casing as GraphQL is case-sensitive.
 
 The above query will generate typed objects _before serialization_ with the matching names from the schema. _Note the types are generated internally as part of compiling, users do not need to use/know them but it demostrates serialization impact_.
 
-```
+```cs
 public class TempPersonResult
 {
     // names taken from schema naming - e.g. camelCase
@@ -82,7 +82,7 @@ public class TempPersonResult
 
 The `QueryResult` object is a dictionary of root level queries `{ fieldName: object }` and in the above case it would be
 
-```
+```cs
 IEnumerable<TempPersonResult> people = ... // implementation is more complex and not shown here - see Entity Framework section for more info
 QueryResult result = ctx => {
     {"people", people} // key taken from schema fiel name - camelCase
@@ -100,7 +100,7 @@ You can customise how EntityGraphQL handles de/serialization by registering your
 
 The default implementations try to deserialize JSON into the `QueryRequest` object and serialize the `QueryResult` object to JSON using the following JSON options.
 
-```
+```cs
 var jsonOptions = new JsonSerializerOptions
 {
     // the internal generated types use fields so include this
@@ -113,7 +113,7 @@ var jsonOptions.Converters.Add(new JsonStringEnumConverter());
 
 You can quickly overwrite the default JSON options without implementing your own `IGraphQLResponseSerializer` and/or `IGraphQLRequestDeserializer`.
 
-```
+```cs
 var jsonOptions = new JsonSerializerOptions
 {
     // the internal generated types use fields so include this
@@ -127,7 +127,7 @@ services.AddGraphQLSchema<DemoContext>();
 
 ## Full PascalCase example
 
-```
+```cs
 var jsonOptions = new JsonSerializerOptions
 {
     // the internal generated types use fields so include this
@@ -145,15 +145,15 @@ services.AddGraphQLSchema<DemoContext>(options =>
 
 The above expects a JSON request like
 
-```
+```json
 {
-    "Query": "query { People { Id FirstName } }"
+  "Query": "query { People { Id FirstName } }"
 }
 ```
 
 And a JSON result like
 
-```
+```json
 {
     "People": [
         {
