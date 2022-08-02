@@ -24,13 +24,38 @@ Adding a scalar type tells EntityGraphQL that the object should just be returned
 schema.AddScalarType<DateTime>("DateTime", "Represents a date and time.");
 ```
 
-It also adds the type as a scalar type in the schema. You can also tell EntityGraphQL to auto-map a type to a schema type with `AddTypeMapping<TFromType>(string gqlType)`. For example
+EntityGraphQL by default will set up the follow scalar types on schema creation.
+
+```
+new SchemaType<int>(this, "Int", "Int scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<double>(this, "Float", "Float scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<char>(this, "Char", "Char scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar);
+```
+
+It is best to have scalar types added to the schema before adding other fields that reference them. Otherwise EntityGraphQL doesn't know about the scalar types. You can add you're own or make changes to the default when registering your schema.
+
+```
+services.AddGraphQLSchema<TContext>(options => {
+  options.PreBuildSchemaFromContext = schema =>
+  {
+      // remove and/or add scalar types or mappings here. e.g.
+      schema.RemoveType<DateTime>();
+      schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
+  };
+})
+```
+
+You can also tell EntityGraphQL to auto-map a dotnet type to a schema type with `AddTypeMapping<TFromType>(string gqlType)`. For example
 
 ```
 schema.AddTypeMapping<short>("Int");
 ```
 
-By default EntityGraphQL maps these types to GraphQL types.
+By default EntityGraphQL maps these types to GraphQL types (Note `int`, `bool`, etc are not here as they are added as scalar types in the schema above).
 
 ```
 sbyte   ->  Int
@@ -39,13 +64,10 @@ ushort  ->  Int
 long    ->  Int
 ulong   ->  Int
 byte    ->  Int
-int     ->  Int
 uint    ->  Int
 float   ->  Float
-double  ->  Float
 decimal ->  Float
 byte[]  ->  String
-bool    ->  Boolean
 ```
 
 # Enum Types

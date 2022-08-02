@@ -6,6 +6,20 @@ Fixes:
   - Exception is thrown if you try to add a field with arrguments to types that do not support arguments - `Enum` & `Input` types
   - Exception is thrown if you try to add fields to a `Scalar` type
 - Enum types are now added to the schema as a typed `SchemaType<T>` instance. Meaning you can fetch them using `schema.Type<MyEnum>()`
+- Fix #181 - Schema builder now correctly respects `SchemaBuilderOptions.IgnoreTypes` when creating Enums
+- Fix #182 - Add missing dotnet scalar type for `char`. By default this is added as a schema scalar type named `Char` so the client can decide how to handle it. Over the wire it will serialize as a string (default for `System.Text.Json`). You can change default scalars and mappings by using the `PreBuildSchemaFromContext` action when adding your schema
+
+```
+services.AddGraphQLSchema<TContext>(options => {
+  options.PreBuildSchemaFromContext = schema =>
+  {
+      // remove and/or add scalar types or mappings here. e.g.
+      schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
+  };
+})
+```
+
+- When generating a field name for the field that takes an ID argument if the name generated matches the current field EntityGraphQL will add `ById` to the field name. E.g. a property `List<LinePath> Line { get; set; }` previously would try to add the `line: [LinePath]` field with no arguments and another field named `line(id: ID!): LinePath`. This causes an error. EntityGraphQL will name add `lineById(id: ID!): LinePath`. This is because the singularized version of "line" is "line".
 
 # 3.0.2
 

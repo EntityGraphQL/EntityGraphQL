@@ -125,9 +125,9 @@ namespace EntityGraphQL.Schema
             body = new ParameterReplacer().Replace(body, fieldProp.FieldParam!, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
             var name = fieldProp.Name.Singularize();
-            if (name == null)
+            if (name == null || name == fieldProp.Name)
             {
-                // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
+                // If we can't singularize it (or it returns the same name) just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
             return new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);

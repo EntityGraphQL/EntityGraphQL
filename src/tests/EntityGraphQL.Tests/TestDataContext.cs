@@ -90,6 +90,7 @@ namespace EntityGraphQL.Tests
     public class Project
     {
         public int Id { get; set; }
+        public char Code { get; set; }
         public string Name { get; set; }
         public int Type { get; set; }
         public Location Location { get; set; }

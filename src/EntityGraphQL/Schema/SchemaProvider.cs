@@ -60,6 +60,7 @@ namespace EntityGraphQL.Schema
             schemaTypes.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar));
             schemaTypes.Add("String", new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar));
             schemaTypes.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("Char", new SchemaType<char>(this, "Char", "Char scalar", null, GqlTypeEnum.Scalar));
 
             // default custom scalar for DateTime
             schemaTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar));
@@ -75,7 +76,6 @@ namespace EntityGraphQL.Schema
                 {typeof(float), new GqlTypeInfo(() => Type("Float"), typeof(float))},
                 {typeof(decimal), new GqlTypeInfo(() => Type("Float"), typeof(decimal))},
                 {typeof(byte[]), new GqlTypeInfo(() => Type("String"), typeof(byte[]))},
-                {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
             var queryContext = new SchemaType<TContextType>(this, "Query", null, null, GqlTypeEnum.Object);
