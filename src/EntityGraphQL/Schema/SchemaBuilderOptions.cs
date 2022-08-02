@@ -23,8 +23,6 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public HashSet<string> IgnoreTypes { get; set; } = new()
         {
-            "String",
-            "Byte[]"
         };
         /// <summary>
         /// If true when SchemaBuilder encounters a field that returns a list of entities and the entity has a property 
