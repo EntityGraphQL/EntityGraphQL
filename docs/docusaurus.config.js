@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Entity GraphQL',
-  tagline: 'A .NET Core GraphQL library',
+  tagline: 'A morden .NET Core GraphQL library',
   url: 'https://entitygraphql.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -92,6 +92,10 @@ const config = {
               {
                 label: 'GitHub',
                 href: 'https://github.com/EntityGraphQL/EntityGraphQL',
+              },
+              {
+                label: 'Changelog',
+                href: 'https://github.com/EntityGraphQL/EntityGraphQL/releases',
               },
             ],
           },
