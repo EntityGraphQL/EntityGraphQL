@@ -11,10 +11,10 @@ else
 
   echo Generating documentation for Version $1
 
-  npx gatsby build
+  npm run build
 
   echo Publishing
 
-  npx gh-pages -d public -b main -r git@github.com:entitygraphql/entitygraphql.github.io.git -m "Documentation update for $1"
+  npx gh-pages -d build -b main -r git@github.com:entitygraphql/entitygraphql.github.io.git -m "Documentation update for $1"
 
 fi
