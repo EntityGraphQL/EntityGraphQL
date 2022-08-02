@@ -196,38 +196,41 @@ namespace EntityGraphQL.Schema
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
 
-            CacheType(baseReturnType, schema, options, isInputType);
-
-            // see if there is a direct type mapping from the expression return to to something.
-            // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
-            var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
-
-            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
+            if (!options.IgnoreTypes.Contains(baseReturnType.FullName!))
             {
-                // add non-pural field with argument of ID
-                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
-                if (idArgField != null)
-                {
-                    yield return idArgField;
-                }
-            }
+                CacheType(baseReturnType, schema, options, isInputType);
 
-            var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
-            if (extensions?.Count > 0)
-            {
-                foreach (var extension in extensions)
-                {
-                    extension.ApplyExtension(field);
-                }
-            }
+                // see if there is a direct type mapping from the expression return to to something.
+                // otherwise build the type info
+                var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
+                var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
-            yield return field;
+                if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
+                {
+                    // add non-pural field with argument of ID
+                    var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
+                    if (idArgField != null)
+                    {
+                        yield return idArgField;
+                    }
+                }
+
+                var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
+                if (extensions?.Count > 0)
+                {
+                    foreach (var extension in extensions)
+                    {
+                        extension.ApplyExtension(field);
+                    }
+                }
+
+                yield return field;
+            }
         }
 
         private static void CacheType(Type propType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
-            if (!schema.HasType(propType) && !options.IgnoreTypes.Contains(propType.Name))
+            if (!schema.HasType(propType))
             {
                 var typeInfo = propType;
                 string description = string.Empty;
