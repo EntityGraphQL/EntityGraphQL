@@ -41,7 +41,7 @@ public class Person
     public uint Id { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public DateTime Dob { get; set; }v
+    public DateTime Dob { get; set; }
     public List<Actor> ActorIn { get; set; }
     public List<Writer> WriterOf { get; set; }
     public List<Movie> DirectorOf { get; set; }
@@ -78,7 +78,7 @@ The expression language supports the following constants:
 - Integers - e.g. `2`, `-8`
 - Floats - e.g. `0.2`, `-8.3`
 - `null`
-- Strings - `"within double quotes"`
+- Strings - `"within double quotes"`; when representing a date, use an ISO 8601 format such as `"2022-07-31T20:00:00"`
 
 The expression language supports the following operators:
 
