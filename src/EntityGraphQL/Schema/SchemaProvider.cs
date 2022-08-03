@@ -335,7 +335,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string description)
         {
-            var name = typeof(TBaseType).Name;
+            var name = SchemaBuilder.BuildTypeName(typeof(TBaseType));
             return AddType<TBaseType>(name, description);
         }
 

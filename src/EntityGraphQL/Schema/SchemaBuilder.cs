@@ -286,7 +286,7 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        private static string BuildTypeName(Type propType)
+        internal static string BuildTypeName(Type propType)
         {
             return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
         }
