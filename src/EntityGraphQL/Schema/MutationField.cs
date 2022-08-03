@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema
                         continue;
 
                     var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
-                    if (item.ParameterType.IsPrimitive || schema.HasType(inputType))
+                    if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && schema.Type(inputType).IsInput))
                     {
                         Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null, fieldNamer));
                         AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);

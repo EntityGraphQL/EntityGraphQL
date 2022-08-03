@@ -34,7 +34,7 @@ namespace EntityGraphQL.AspNet
                 if (authService != null)
                 {
                     var allPoliciesValid = true;
-                    foreach (var policy in requiredAuth.Policies)
+                    foreach (var policy in requiredAuth?.Policies)
                     {
                         // each policy now is an OR
                         var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);

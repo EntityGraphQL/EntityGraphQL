@@ -54,6 +54,8 @@ namespace EntityGraphQL.Schema
         SchemaType<TType> Type<TType>();
         SchemaType<TType> Type<TType>(string typeName);
         ISchemaType Type(string typeName);
+        ISchemaType Type(Type type);
+        SchemaType<TType> Type<TType>(Type type);
         void UpdateType<TType>(Action<SchemaType<TType>> configure);
         MutationType Mutation();
     }

@@ -448,7 +448,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext)
         {
             if (schemaTypes.ContainsKey(typeName))
-                return CheckTypeAccess(schemaTypes[typeName], requestContext);
+                return SchemaProvider<TContextType>.CheckTypeAccess(schemaTypes[typeName], requestContext);
 
             throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
@@ -474,10 +474,10 @@ namespace EntityGraphQL.Schema
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
-            return CheckTypeAccess(schemaType, requestContext);
+            return SchemaProvider<TContextType>.CheckTypeAccess(schemaType, requestContext);
         }
 
-        private ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
+        private static ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
         {
             if (requestContext == null)
                 return schemaType;
@@ -521,6 +521,15 @@ namespace EntityGraphQL.Schema
         public ISchemaType Type(string typeName)
         {
             return GetSchemaType(typeName, null);
+        }
+
+        public ISchemaType Type(Type type)
+        {
+            return GetSchemaType(type, null);
+        }
+        public SchemaType<TType> Type<TType>(Type type)
+        {
+            return (SchemaType<TType>)GetSchemaType(type, null);
         }
 
         /// <summary>
