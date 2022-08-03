@@ -51,7 +51,7 @@ We now need to add some fields to both the root query object and our new `Person
 ```cs
 schema.UpdateType<Person>(personType => {
     personType.AddField(
-        "firstName", // name in graphql schema
+        "firstName", // name in GraphQL schema
         person => person.FirstName, // expression to resolve the field on the .NET type
         "A person's first name" // description of the field
     );
@@ -73,7 +73,7 @@ schema.UpdateType<Person>(personType => {
 Now let's add a root query field so we can query people.
 
 ```cs
-schema.Query() // returns the root graphql query type
+schema.Query() // returns the root GraphQL query type
 .AddField(
     "people",
     ctx => ctx.People, // ctx is the core context used when creating the schema above
@@ -98,7 +98,7 @@ Optional arguments for the schema builder:
 
 1. `SchemaBuilderSchemaOptions` - options that get passed to the created schema
    - `.FieldNamer` - A `Func<string, string>` lambda used to generate field names. The default `fieldNamer` adopts the GraphQL standard of naming fields `lowerCamelCase`
-   - `.IntrospectionEnabled` - Weather or not graphql query introspection is enabled or not for the schema. Default is `true`
+   - `.IntrospectionEnabled` - Weather or not GraphQL query introspection is enabled or not for the schema. Default is `true`
    - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization`
 2. `SchemaBuilderOptions` - options used to control how the schema builder builds the schema
 

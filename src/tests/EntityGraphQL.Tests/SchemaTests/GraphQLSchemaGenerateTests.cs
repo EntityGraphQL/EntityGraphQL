@@ -8,9 +8,6 @@ using System.Collections;
 
 namespace EntityGraphQL.Tests
 {
-    /// <summary>
-    /// Tests graphql metadata
-    /// </summary>
     public class GraphQLSchemaGenerateTests
     {
         [Fact]

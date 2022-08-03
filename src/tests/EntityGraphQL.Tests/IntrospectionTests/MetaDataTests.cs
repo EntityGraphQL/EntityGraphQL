@@ -9,7 +9,7 @@ using EntityGraphQL.Schema.FieldExtensions;
 namespace EntityGraphQL.Tests
 {
     /// <summary>
-    /// Tests graphql metadata
+    /// Tests GraphQL metadata
     /// </summary>
     public class MetadataTests
     {

@@ -37,7 +37,7 @@ schema.AddType<Droid>("");
     .Implements<Character>();
 ```
 
-produces the graphql schema:
+produces the GraphQL schema:
 
 ```graphql
 interface Character {

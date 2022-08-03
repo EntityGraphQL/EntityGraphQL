@@ -5,6 +5,8 @@ Fixes:
 - Prevent creation of invalid GraphQL schemas
   - Exception is thrown if you try to add a field with arrguments to types that do not support arguments - `Enum` & `Input` types
   - Exception is thrown if you try to add fields to a `Scalar` type
+  - Exception is thrown on invalid type name
+- Schema builder now creates a valid GraphQL type name for generic types
 - Enum types are now added to the schema as a typed `SchemaType<T>` instance. Meaning you can fetch them using `schema.Type<MyEnum>()`
 - Fix #181 - Schema builder now correctly respects `SchemaBuilderOptions.IgnoreTypes`. Note it compares names against the `Type.FullName`
 - Fix #182 - Add missing dotnet scalar type for `char`. By default this is added as a schema scalar type named `Char` so the client can decide how to handle it. Over the wire it will serialize as a string (default for `System.Text.Json`). You can change default scalars and mappings by using the `PreBuildSchemaFromContext` action when adding your schema

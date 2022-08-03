@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         private readonly Func<string, string> fieldNamer;
 
         /// <summary>
-        /// A list of graphql operations. These could be mutations or queries
+        /// A list of GraphQL operations. These could be mutations or queries
         /// </summary>
         /// <value></value>
         public List<ExecutableGraphQLStatement> Operations { get; }

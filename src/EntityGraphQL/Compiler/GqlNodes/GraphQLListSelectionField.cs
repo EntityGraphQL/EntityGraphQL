@@ -24,7 +24,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
         /// </summary>
-        /// <param name="schema">The Schema Provider that defines the graphql schema</param>
+        /// <param name="schema">The Schema Provider that defines the GraphQL schema</param>
         /// <param name="field">Field from the schema that this GraphQLListSelectionField is built from</param>
         /// <param name="name">Name of the field. Could be the alias that the user provided</param>
         /// <param name="nextFieldContext">A context for a field building on this. This will be the list element parameter</param>

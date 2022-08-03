@@ -98,7 +98,7 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Expression<Func<TestDataContext, Person>> AddPersonAdv(PeopleMutationsArgs args)
         {
-            // test returning a constant in the expression which allows graphql selection over the schema (assuming the constant is a type in the schema)
+            // test returning a constant in the expression which allows GraphQL selection over the schema (assuming the constant is a type in the schema)
             // Ie. in the mutation query you can select any valid fields in the schema from Person
             var person = new Person
             {

@@ -3,9 +3,6 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
-    /// <summary>
-    /// Tests graphql metadata
-    /// </summary>
     public class ErrorTests
     {
         [Fact]

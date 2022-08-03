@@ -240,6 +240,8 @@ namespace EntityGraphQL.Schema
                     description = d.Description;
                 }
 
+                var typeName = BuildTypeName(propType);
+
                 if ((options.AutoCreateNewComplexTypes && typeInfo.IsClass) || ((typeInfo.IsInterface || typeInfo.IsAbstract) && options.AutoCreateInterfaceTypes))
                 {
                     // add type before we recurse more that may also add the type
@@ -253,7 +255,7 @@ namespace EntityGraphQL.Schema
                     if (method == null)
                         throw new Exception($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { typeName, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, options, isInputType);
@@ -264,7 +266,7 @@ namespace EntityGraphQL.Schema
                         typeAdded.ImplementAllBaseTypes(true, true);
                     }
                 }
-                else if (options.AutoCreateEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
+                else if (options.AutoCreateEnumTypes && typeInfo.IsEnum && !schema.HasType(typeName))
                 {
                     schema.AddEnum(propType.Name, propType, description);
                 }
@@ -282,6 +284,11 @@ namespace EntityGraphQL.Schema
                     }
                 }
             }
+        }
+
+        private static string BuildTypeName(Type propType)
+        {
+            return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
         }
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)

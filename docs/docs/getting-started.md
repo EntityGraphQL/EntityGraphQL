@@ -291,7 +291,7 @@ services.AddControllers()
 
 ## Deserialization of QueryRequest & QueryVariables
 
-If you are using you're own controller/method to execute GraphQL and deserializing a graphql request like below into the `GraphQLRequest` object. You need to be aware of how your serializer handles nested `Dictionary<string, object>`.
+If you are using you're own controller/method to execute GraphQL and deserializing a GraphQL request like below into the `GraphQLRequest` object. You need to be aware of how your serializer handles nested `Dictionary<string, object>`.
 
 _Sample incoming json request_
 
