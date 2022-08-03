@@ -50,25 +50,24 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
             // Make sure required types are in the schema
-            if (!schema.HasType("PageInfo"))
+            if (!schema.HasType(typeof(ConnectionPageInfo)))
                 schema.AddType(typeof(ConnectionPageInfo), "PageInfo", "Metadata about a page of data").AddAllFields();
-            var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
             listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet);
 
-            if (!schema.HasType(edgeName))
+            var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
+            if (!schema.HasType(edgeType))
             {
-                var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
+                var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
                 schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
             }
 
             ISchemaType returnSchemaType;
+            var connectionType = typeof(Connection<>).MakeGenericType(listType);
             var connectionName = $"{field.ReturnType.SchemaType.Name}Connection";
-            if (!schema.HasType(connectionName))
+            if (!schema.HasType(connectionType))
             {
-                var type = typeof(Connection<>)
-                    .MakeGenericType(listType);
-                returnSchemaType = schema.AddType(type, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
+                returnSchemaType = schema.AddType(connectionType, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
             }
             else
             {

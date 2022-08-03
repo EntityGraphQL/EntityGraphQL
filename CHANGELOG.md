@@ -22,6 +22,7 @@ services.AddGraphQLSchema<TContext>(options => {
 ```
 
 - When generating a field name for the field that takes an ID argument if the name generated matches the current field EntityGraphQL will add `ById` to the field name. E.g. a property `List<LinePath> Line { get; set; }` previously would try to add the `line: [LinePath]` field with no arguments and another field named `line(id: ID!): LinePath`. This causes an error. EntityGraphQL will name add `lineById(id: ID!): LinePath`. This is because the singularized version of "line" is "line".
+- In built field extensions now check if their extra types have already been added by using `Type` instead of name allowing you to add them with your own descriptions etc.
 
 # 3.0.2
 

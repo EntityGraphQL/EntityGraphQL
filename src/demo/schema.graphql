@@ -61,16 +61,6 @@ type Actor {
 	personId: Int!
 }
 
-"""Sort arguments for actors"""
-input ActorsSortInput {
-	died: SortDirectionEnum
-	dob: SortDirectionEnum
-	firstName: SortDirectionEnum
-	id: SortDirectionEnum
-	isDeleted: SortDirectionEnum
-	lastName: SortDirectionEnum
-}
-
 type ConnectionEdgePerson {
 	"""The cursor for this items position within the collection"""
 	cursor: String!
@@ -119,18 +109,6 @@ type Movie {
 	writers: [Person!]
 }
 
-"""Metadata about a page of data"""
-type PageInfo {
-	"""Last cursor in the page. Use this as the next from argument"""
-	endCursor: String!
-	"""If there is more data after this page"""
-	hasNextPage: Boolean!
-	"""If there is data previous to this page"""
-	hasPreviousPage: Boolean!
-	"""Start cursor in the page. Use this to go backwards with the before argument"""
-	startCursor: String!
-}
-
 type Person {
 	"""Movies they acted in"""
 	actorIn: [Movie!]
@@ -159,14 +137,6 @@ type PersonConnection {
 	pageInfo: ConnectionPageInfo!
 	"""Total count of items in the collection"""
 	totalCount: Int!
-}
-
-"""Metadata about an edge of page result"""
-type PersonEdge {
-	"""The cursor for this items position within the collection"""
-	cursor: String!
-	"""The item of the collection"""
-	node: Person!
 }
 
 """Metadata about a Person page (paging over people)"""
