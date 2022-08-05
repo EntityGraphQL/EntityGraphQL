@@ -1,6 +1,12 @@
+# 3.0.4
+
+## Fixes
+
+- Fix #194 - `HasType()` was not checking type mappings
+
 # 3.0.3
 
-Fixes:
+## Fixes
 
 - Prevent creation of invalid GraphQL schemas
   - Exception is thrown if you try to add a field with arrguments to types that do not support arguments - `Enum` & `Input` types
@@ -27,19 +33,19 @@ services.AddGraphQLSchema<TContext>(options => {
 
 # 3.0.2
 
-Fixes:
+## Fixes
 
 - `InputValue` type was being registered under wrong name #184
 
 # 3.0.1
 
-Fixes:
+## Fixes
 
 - Input Types were incorrectly getting field arguments added when using `AutoCreateFieldWithIdArguments`
 
 # 3.0.0
 
-Breaking changes:
+## Breaking changes
 
 - `IDirectiveProcessor` now requires a `List<ExecutableDirectiveLocation> On { get; }` to define where the directive is allowed to be used
 - Removed obsolete `ISchemaType.BaseType`. Use `ISchemaType.BaseTypes`
@@ -54,7 +60,7 @@ Breaking changes:
   - `ISchemaType.AddAllFields` default behaviour now auto adds any complex types found really reflection the properties & fields and will add those to the schema
 - Added new option when building a schema with `SchemaBuilder.FromObject` - `AutoCreateInterfaceTypes`. Defaults to `false`. If `true` any abstract classes or interfaces on types reflected with be added as Interfaces in the schema. This is useful if you expose lists of entities on a base/interface type.
 
-Changes:
+## Changes
 
 - `ToGraphQLSchemaString` now outputs directives in the schema
 - #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
@@ -88,20 +94,20 @@ type Mutation {
 - #170 - EntityGraphQL now replaces query context expressions in service fields by matching the expression instance it extracted. This allows for more complex expressions when passing data to a service field
 - Added support for [@oneOf Input Types](https://github.com/graphql/graphql-spec/pull/825). Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution
 
-Fixes
+## Fixes
 
 - #171 inheritance support for nested properties / conditional fields
 - #176 - allow fully qualified enums in the filter query language
 
 # 2.3.2
 
-Fixes
+## Fixes
 
 - Fix #159 - SchemaBuilder will no longer try to create schema fields for `const` fields on mutation args or input types
 
 # 2.3.1
 
-Fixes:
+## Fixes
 
 - #163 - Fix to handle null property in a nested object when processing a System.Text.Json deserialised query document
 - #164 - Fix to support inline fragments in a fragment
@@ -109,7 +115,7 @@ Fixes:
 
 # 2.3.0
 
-Changes:
+## Changes
 
 - `AddMutationsFrom` now can use the `ServiceProvider` instance to create the mutation class allowing dependency injection at the constructor level like Controllers.
 - You can still provide an instance of the mutation class that will be used instead which is the same behaviour as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
@@ -119,19 +125,19 @@ Changes:
 - Added support for Inline Fragments for types that have interfaces
 - `ToGraphQLSchemaString` now orders types and fields by name for consistency regardless of order of fields added and to reduce differences when diffing the schema
 
-Fixes:
+## Fixes
 
 - Fix #120 - Error when using `schema.RemoveTypeAndAllFields` and a field of the removing type had a type that has not been added to the schema
 - Fix #143 - Error building a null check expression in certain cases.
 
 # 2.2.0
 
-Changes:
+## Changes
 
 - `FromObject` / default schema generator now adds single fields within non root-level fields. E.g. if a root-level field is a list of `people` and each person has a list of `projects` (and projects has an id) is will create a field on `project(id)` field on person
 - Add support for nullable reference types - meaning the correct GraphQL schema nullable definitions are generated. @bzbetty
 
-Fixes:
+## Fixes
 
 - Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
@@ -188,7 +194,7 @@ Fixes:
 
 # 2.0.0
 
-Breaking changes
+## Breaking changes
 
 - Interface for Field Extensions now are passed a flag telling the extension if this is pre or post the call with service fields
 - `GetExpression` in Field Extensions is passed the parent IGraphQLNode - useful when your extension changed the original shape of the object graph, like the paging extensions
@@ -235,7 +241,7 @@ schema.Type<Person>().AddField("age", "A persons age")
     - `ExecuteQuery` replaced by `ExecuteRequest`
     - `ExecuteQueryAsync` replaced by `ExecuteRequestAsync`
 
-Addition changes
+## Changes
 
 - Support for persisted queries (enabled by default) - https://www.apollographql.com/docs/react/api/link/persisted-queries/
 - Support for a query cache of recent queries. Enabled by default. Caches the result of compiling the query document string to an AST. Execution is then applying the document level variables, building the expressions then execution
@@ -249,7 +255,7 @@ Addition changes
 - Using `AddAllFields(true)` on an `InputType` will add the sub-complex class types as `InputType`s as well
 - New option to auto add other classes found on mutation arguments as `InputType`s when adding a mutation
 
-Fixes
+## Fixes
 
 - Fix - Paging field extensions are now thread safe to support multiple different queries being run on the same field at the same time
 - Fix #101 - allow custom de/serialization of incoming requests and outgoing responses, via. services `IGraphQLRequestDeserializer` & `IGraphQLResponseSerializer`.

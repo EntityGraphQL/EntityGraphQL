@@ -69,6 +69,7 @@ namespace EntityGraphQL.Tests
         public DateTime? Birthday { get; set; }
         public User User { get; set; }
         public double Height { get; set; }
+        public byte[] Image { get; set; }
         // fake an error
         public string Error
         {

@@ -546,7 +546,20 @@ namespace EntityGraphQL.Schema
         /// <returns>True if found. False if not</returns>
         public bool HasType(string typeName)
         {
-            return schemaTypes.ContainsKey(typeName);
+            if (typeName == QueryContextName)
+                return true;
+
+            foreach (var schemaType in schemaTypes.Values)
+            {
+                if (schemaType.Name == typeName)
+                    return true;
+            }
+            foreach (var mappingType in customTypeMappings.Keys)
+            {
+                if (mappingType.Name == typeName)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -564,7 +577,7 @@ namespace EntityGraphQL.Schema
                 if (schemaType.TypeDotnet == type)
                     return true;
             }
-            return false;
+            return customTypeMappings.ContainsKey(type);
         }
 
         /// <summary>
