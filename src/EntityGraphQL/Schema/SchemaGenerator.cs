@@ -145,7 +145,7 @@ namespace EntityGraphQL.Schema
             };
 
             var implements = "";
-            if (schemaType.BaseTypes != null && schemaType.BaseTypes.Count() > 0)
+            if (schemaType.BaseTypes != null && schemaType.BaseTypes.Count > 0)
             {
                 implements += $"implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))} ";
             }
