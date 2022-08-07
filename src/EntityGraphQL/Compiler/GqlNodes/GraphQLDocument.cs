@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
         private readonly Func<string, string> fieldNamer;
 
         /// <summary>
-        /// A list of graphql operations. These could be mutations or queries
+        /// A list of GraphQL operations. These could be mutations or queries
         /// </summary>
         /// <value></value>
         public List<ExecutableGraphQLStatement> Operations { get; }
@@ -73,7 +73,7 @@ namespace EntityGraphQL.Compiler
         public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider? serviceProvider, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
         {
             // check operation names
-            if (Operations.Count > 1 && Operations.Count(o => string.IsNullOrEmpty(o.Name)) > 0)
+            if (Operations.Count > 1 && Operations.Any(o => string.IsNullOrEmpty(o.Name)))
             {
                 throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
             }

@@ -1,66 +1,47 @@
 {
-  "name": "entitygraphql-docs",
+  "name": "entity-graphql-docs",
+  "version": "0.0.0",
   "private": true,
-  "description": "EntityGraphQL Documentation",
-  "version": "2.3.0",
-  "dependencies": {
-    "@babel/plugin-proposal-export-default-from": "^7.18.6",
-    "@emotion/react": "^11.9.3",
-    "@emotion/styled": "^11.9.3",
-    "@emotion/styled-base": "^11.0.0",
-    "@mdx-js/loader": "^1.6.22",
-    "@mdx-js/mdx": "^1.6.22",
-    "@mdx-js/react": "^1.6.22",
-    "@philpl/buble": "^0.19.7",
-    "@styled-icons/fa-brands": "^10.38.0",
-    "@styled-icons/fa-solid": "^10.34.0",
-    "algoliasearch": "^4.13.1",
-    "dotenv": "^8.5.1",
-    "emotion": "^11.0.0",
-    "emotion-server": "^11.0.0",
-    "gatsby": "^4.17.2",
-    "gatsby-plugin-algolia": "^0.26.0",
-    "gatsby-plugin-emotion": "^7.17.0",
-    "gatsby-plugin-layout": "^3.17.0",
-    "gatsby-plugin-mdx": "^3.17.0",
-    "gatsby-plugin-react-helmet": "^5.17.0",
-    "gatsby-plugin-remove-serviceworker": "^1.0.0",
-    "gatsby-plugin-sharp": "^4.17.0",
-    "gatsby-plugin-sitemap": "^5.17.0",
-    "gatsby-remark-copy-linked-files": "^5.17.0",
-    "gatsby-remark-images": "^6.17.0",
-    "gatsby-source-filesystem": "^4.17.0",
-    "graphql": "^15.5.0",
-    "is-absolute-url": "^4.0.1",
-    "lodash.startcase": "^4.4.0",
-    "prismjs": "^1.28.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-feather": "^2.0.10",
-    "react-github-btn": "^1.3.0",
-    "react-helmet": "^6.1.0",
-    "react-instantsearch-dom": "^6.29.0",
-    "react-loadable": "^5.5.0"
-  },
-  "license": "MIT",
-  "main": "n/a",
   "scripts": {
-    "start": "gatsby develop",
-    "build": "gatsby build --prefix-paths",
-    "format": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
-    "lint": "eslint --fix \"src/**/*.{js,jsx}\""
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@docusaurus/core": "2.0.1",
+    "@docusaurus/preset-classic": "2.0.1",
+    "@mdx-js/react": "^1.6.22",
+    "clsx": "^1.2.1",
+    "prism-react-renderer": "^1.3.5",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "babel-eslint": "^10.1.0",
-    "eslint": "^8.19.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-jsx-a11y": "^6.6.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-react": "^7.30.1",
-    "gatsby-plugin-remove-trailing-slashes": "^4.17.0",
-    "gh-pages": "^3.2.3",
-    "prettier": "^2.7.1",
-    "prism-react-renderer": "^1.3.5"
+    "@docusaurus/module-type-aliases": "2.0.1",
+    "@tsconfig/docusaurus": "^1.0.5",
+    "gh-pages": "^4.0.0",
+    "typescript": "^4.7.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=16.14"
   }
 }

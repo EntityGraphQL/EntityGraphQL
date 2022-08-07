@@ -8,9 +8,6 @@ using System.Collections;
 
 namespace EntityGraphQL.Tests
 {
-    /// <summary>
-    /// Tests graphql metadata
-    /// </summary>
     public class GraphQLSchemaGenerateTests
     {
         [Fact]
@@ -147,6 +144,21 @@ namespace EntityGraphQL.Tests
 }", schema);
             // doesn't include the hidden input fields
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
+        }
+
+        [Fact]
+        public void TestIgnoreWithSchemaBuilder()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(new SchemaBuilderOptions() { IgnoreTypes = new[] { typeof(Album).FullName }.ToHashSet() });
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.DoesNotContain("album", schema);
+        }
+        [Fact]
+        public void TestIgnoreEnumWithSchemaBuilder()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(new SchemaBuilderOptions() { IgnoreTypes = new[] { typeof(Genre).FullName }.ToHashSet() });
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.DoesNotContain("genre", schema);
         }
 
         [Fact]

@@ -69,6 +69,7 @@ namespace EntityGraphQL.Tests
         public DateTime? Birthday { get; set; }
         public User User { get; set; }
         public double Height { get; set; }
+        public byte[] Image { get; set; }
         // fake an error
         public string Error
         {
@@ -90,6 +91,7 @@ namespace EntityGraphQL.Tests
     public class Project
     {
         public int Id { get; set; }
+        public char Code { get; set; }
         public string Name { get; set; }
         public int Type { get; set; }
         public Location Location { get; set; }

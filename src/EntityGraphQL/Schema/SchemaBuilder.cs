@@ -125,9 +125,9 @@ namespace EntityGraphQL.Schema
             body = new ParameterReplacer().Replace(body, fieldProp.FieldParam!, contextParam);
             var selectionExpression = Expression.Lambda(body, lambdaParams);
             var name = fieldProp.Name.Singularize();
-            if (name == null)
+            if (name == null || name == fieldProp.Name)
             {
-                // If we can't singularize it just use the name plus something as GraphQL doesn't support field overloads
+                // If we can't singularize it (or it returns the same name) just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
             return new Field(schema, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
@@ -196,38 +196,41 @@ namespace EntityGraphQL.Schema
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
 
-            CacheType(baseReturnType, schema, options, isInputType);
-
-            // see if there is a direct type mapping from the expression return to to something.
-            // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
-            var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
-
-            if (options.AutoCreateFieldWithIdArguments)
+            if (!options.IgnoreTypes.Contains(baseReturnType.FullName!))
             {
-                // add non-pural field with argument of ID
-                var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
-                if (idArgField != null)
-                {
-                    yield return idArgField;
-                }
-            }
+                CacheType(baseReturnType, schema, options, isInputType);
 
-            var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
-            if (extensions?.Count > 0)
-            {
-                foreach (var extension in extensions)
-                {
-                    extension.ApplyExtension(field);
-                }
-            }
+                // see if there is a direct type mapping from the expression return to to something.
+                // otherwise build the type info
+                var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop);
+                var field = new Field(schema, schema.SchemaFieldNamer(prop.Name), le, description, returnTypeInfo, requiredClaims);
 
-            yield return field;
+                if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
+                {
+                    // add non-pural field with argument of ID
+                    var idArgField = AddFieldWithIdArgumentIfExists(schema, prop.ReflectedType!, field);
+                    if (idArgField != null)
+                    {
+                        yield return idArgField;
+                    }
+                }
+
+                var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
+                if (extensions?.Count > 0)
+                {
+                    foreach (var extension in extensions)
+                    {
+                        extension.ApplyExtension(field);
+                    }
+                }
+
+                yield return field;
+            }
         }
 
         private static void CacheType(Type propType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
-            if (!schema.HasType(propType) && !options.IgnoreTypes.Contains(propType.Name))
+            if (!schema.HasType(propType))
             {
                 var typeInfo = propType;
                 string description = string.Empty;
@@ -236,6 +239,8 @@ namespace EntityGraphQL.Schema
                 {
                     description = d.Description;
                 }
+
+                var typeName = BuildTypeName(propType);
 
                 if ((options.AutoCreateNewComplexTypes && typeInfo.IsClass) || ((typeInfo.IsInterface || typeInfo.IsAbstract) && options.AutoCreateInterfaceTypes))
                 {
@@ -258,7 +263,7 @@ namespace EntityGraphQL.Schema
                     if (method == null)
                         throw new Exception($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
-                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { propType.Name, description })!;
+                    var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { typeName, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
 
                     var fields = GetFieldsFromObject(propType, schema, options, isInputType);
@@ -270,7 +275,7 @@ namespace EntityGraphQL.Schema
                         typeAdded.ImplementAllBaseTypes(true, true);
                     }
                 }
-                else if (options.AutoCreateEnumTypes && typeInfo.IsEnum && !schema.HasType(propType.Name))
+                else if (options.AutoCreateEnumTypes && typeInfo.IsEnum && !schema.HasType(typeName))
                 {
                     schema.AddEnum(propType.Name, propType, description);
                 }
@@ -288,6 +293,11 @@ namespace EntityGraphQL.Schema
                     }
                 }
             }
+        }
+
+        internal static string BuildTypeName(Type propType)
+        {
+            return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
         }
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)

@@ -140,7 +140,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
             if (!schemaType.HasField(field, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);
-
                 if (enumOrConstantValue == null)
                 {
                     var enumType = schemaProvider.GetEnumTypes().FirstOrDefault(x => x.Name == field);
@@ -149,12 +148,17 @@ namespace EntityGraphQL.Compiler.EntityQuery
                         return Expression.Default(enumType.TypeDotnet);
                     }
 
-
                     throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
                 }
 
                 return enumOrConstantValue;
             }
+
+            if(schemaType.IsEnum)
+            {
+                return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, context.GetText()));                
+            }
+
             var gqlField = schemaType.GetField(field, requestContext);
             (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
             return exp!;

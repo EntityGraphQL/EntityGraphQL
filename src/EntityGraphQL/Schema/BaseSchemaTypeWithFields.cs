@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
@@ -27,9 +28,12 @@ namespace EntityGraphQL.Schema
 
         public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;
         public RequiredAuthorization? RequiredAuthorization { get; set; }
+        private readonly Regex nameRegex = new("^[_a-zA-Z0-9]+$");
 
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         {
+            if (!nameRegex.IsMatch(name))
+                throw new EntityGraphQLCompilerException($"Names must only contain [_a-zA-Z0-9] but '{name}' does not.");
             this.Schema = schema;
             Name = name;
             Description = description;

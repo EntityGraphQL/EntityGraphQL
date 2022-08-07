@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EntityGraphQL.AspNet
 {
     /// <summary>
-    /// Checks if the executing user has the required policies to access the requested part of the graphql schema
+    /// Checks if the executing user has the required policies to access the requested part of the GraphQL schema
     /// </summary>
     public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
     {

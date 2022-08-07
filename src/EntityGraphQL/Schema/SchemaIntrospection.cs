@@ -80,7 +80,7 @@
                                     ?.ToArray() ?? new TypeElement[0]
                 };
 
-                if (st.BaseTypes != null && st.BaseTypes.Count() > 0)
+                if (st.BaseTypes != null && st.BaseTypes.Count > 0)
                 {
                     typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
                 }
@@ -137,7 +137,7 @@
                 {
                     OneField = schemaType.IsOneOf,
                     Description = schemaType.Description,
-                    InputFields = inputValues.ToArray()                    
+                    InputFields = inputValues.ToArray()
                 };
 
                 types.Add(typeElement);
@@ -177,7 +177,7 @@
                 }
 
                 typeElement.EnumValues = enumTypes.ToArray();
-                if (typeElement.EnumValues.Count() > 0)
+                if (typeElement.EnumValues.Length > 0)
                     types.Add(typeElement);
             }
 

@@ -5,9 +5,6 @@ using Xunit;
 
 namespace EntityGraphQL.Tests
 {
-    /// <summary>
-    /// Tests graphql metadata
-    /// </summary>
     public class TestExtensions
     {
         [Fact]

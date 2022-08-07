@@ -43,28 +43,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             fieldNamer = schema.SchemaFieldNamer;
             var sortInputName = $"{field.Name}SortInput".FirstCharToUpper();
             ISchemaType schemaSortType;
-            if (schema.HasType(sortInputName))
-                schemaSortType = schema.Type(sortInputName);
+            var argSortType = MakeSortType(field);
+            if (schema.HasType(argSortType))
+                schemaSortType = schema.GetSchemaType(argSortType, null);
             else
             {
-                var typeWithSortFields = fieldSelectionType ?? listType;
-                // Build the field args
-                Dictionary<string, Type> fields = new();
-                var directionType = typeof(SortDirectionEnum?);
-                foreach (var prop in typeWithSortFields.GetProperties())
-                {
-                    if (IsNotInputType(prop.PropertyType))
-                        continue;
-                    fields.Add(prop.Name, directionType);
-                }
-                foreach (var prop in typeWithSortFields.GetFields())
-                {
-                    if (IsNotInputType(prop.FieldType))
-                        continue;
-                    fields.Add(prop.Name, directionType);
-                }
-                // build SortInput - need a unique name if they use sort on another field with the same name
-                var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, field.Name);
                 schemaSortType = schema.AddInputType(argSortType, sortInputName, $"Sort arguments for {field.Name}").AddAllFields();
             }
 
@@ -72,7 +55,30 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.AddArguments(Activator.CreateInstance(argType)!);
         }
 
-        private bool IsNotInputType(Type type)
+        private Type MakeSortType(IField field)
+        {
+            var typeWithSortFields = fieldSelectionType ?? listType!;
+            // Build the field args
+            Dictionary<string, Type> fields = new();
+            var directionType = typeof(SortDirectionEnum?);
+            foreach (var prop in typeWithSortFields.GetProperties())
+            {
+                if (IsNotInputType(prop.PropertyType))
+                    continue;
+                fields.Add(prop.Name, directionType);
+            }
+            foreach (var prop in typeWithSortFields.GetFields())
+            {
+                if (IsNotInputType(prop.FieldType))
+                    continue;
+                fields.Add(prop.Name, directionType);
+            }
+            // build SortInput - need a unique name if they use sort on another field with the same name
+            var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, field.Name);
+            return argSortType;
+        }
+
+        private static bool IsNotInputType(Type type)
         {
             return type.IsEnumerableOrArray() || (type.IsClass && type != typeof(string));
         }

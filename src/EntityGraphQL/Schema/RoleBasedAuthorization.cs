@@ -8,7 +8,7 @@ using EntityGraphQL.Authorization;
 namespace EntityGraphQL.Schema
 {
     /// <summary>
-    /// Checks if the executing user has the required roles to access the requested part of the graphql schema
+    /// Checks if the executing user has the required roles to access the requested part of the GraphQL schema
     /// </summary>
     public class RoleBasedAuthorization : IGqlAuthorizationService
     {

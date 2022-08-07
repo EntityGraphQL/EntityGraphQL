@@ -60,6 +60,7 @@ namespace EntityGraphQL.Schema
             schemaTypes.Add("Boolean", new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar));
             schemaTypes.Add("String", new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar));
             schemaTypes.Add("ID", new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("Char", new SchemaType<char>(this, "Char", "Char scalar", null, GqlTypeEnum.Scalar));
 
             // default custom scalar for DateTime
             schemaTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar));
@@ -75,7 +76,6 @@ namespace EntityGraphQL.Schema
                 {typeof(float), new GqlTypeInfo(() => Type("Float"), typeof(float))},
                 {typeof(decimal), new GqlTypeInfo(() => Type("Float"), typeof(decimal))},
                 {typeof(byte[]), new GqlTypeInfo(() => Type("String"), typeof(byte[]))},
-                {typeof(bool), new GqlTypeInfo(() => Type("Boolean"), typeof(bool))},
             };
 
             var queryContext = new SchemaType<TContextType>(this, "Query", null, null, GqlTypeEnum.Object);
@@ -89,20 +89,21 @@ namespace EntityGraphQL.Schema
             if (introspectionEnabled)
             {
                 // add types first as fields from the other types may refer to these types
-                AddType<Models.TypeElement>("__Type", "Information about types", type =>
-                {
-                    type.AddAllFields();
-                    type.ReplaceField("enumValues",
-                        new { includeDeprecated = false },
-                        (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
-                        "Enum values available on type");
-                });
+                var typeElement = AddType<Models.TypeElement>("__Type", "Information about types");
                 AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
                 AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
                 AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
                 AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
                 AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
                 AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
+
+                // add these fields after the other types as the fields reference those types and by default would auto register under the wrong name
+                typeElement.AddAllFields();
+                typeElement.ReplaceField("enumValues",
+                    new { includeDeprecated = false },
+                    (t, p) => t.EnumValues.Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
+                    "Enum values available on type"
+                );
 
                 SetupIntrospectionTypesAndField();
             }
@@ -334,7 +335,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string description)
         {
-            var name = typeof(TBaseType).Name;
+            var name = SchemaBuilder.BuildTypeName(typeof(TBaseType));
             return AddType<TBaseType>(name, description);
         }
 
@@ -447,7 +448,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext)
         {
             if (schemaTypes.ContainsKey(typeName))
-                return CheckTypeAccess(schemaTypes[typeName], requestContext);
+                return SchemaProvider<TContextType>.CheckTypeAccess(schemaTypes[typeName], requestContext);
 
             throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
@@ -473,10 +474,10 @@ namespace EntityGraphQL.Schema
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
-            return CheckTypeAccess(schemaType, requestContext);
+            return SchemaProvider<TContextType>.CheckTypeAccess(schemaType, requestContext);
         }
 
-        private ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
+        private static ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
         {
             if (requestContext == null)
                 return schemaType;
@@ -522,6 +523,15 @@ namespace EntityGraphQL.Schema
             return GetSchemaType(typeName, null);
         }
 
+        public ISchemaType Type(Type type)
+        {
+            return GetSchemaType(type, null);
+        }
+        public SchemaType<TType> Type<TType>(Type type)
+        {
+            return (SchemaType<TType>)GetSchemaType(type, null);
+        }
+
         /// <summary>
         /// Find a schema type for TType and update the type with the configure callback
         /// </summary>
@@ -536,7 +546,20 @@ namespace EntityGraphQL.Schema
         /// <returns>True if found. False if not</returns>
         public bool HasType(string typeName)
         {
-            return schemaTypes.ContainsKey(typeName);
+            if (typeName == QueryContextName)
+                return true;
+
+            foreach (var schemaType in schemaTypes.Values)
+            {
+                if (schemaType.Name == typeName)
+                    return true;
+            }
+            foreach (var mappingType in customTypeMappings.Keys)
+            {
+                if (mappingType.Name == typeName)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -554,7 +577,7 @@ namespace EntityGraphQL.Schema
                 if (schemaType.TypeDotnet == type)
                     return true;
             }
-            return false;
+            return customTypeMappings.ContainsKey(type);
         }
 
         /// <summary>
@@ -617,7 +640,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddEnum(string name, Type type, string description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Enum);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypeEnum.Enum, null)!;
             FinishAddingType(type, name, schemaType);
             return schemaType.AddAllFields();
         }
@@ -631,7 +654,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public ISchemaType AddInterface(Type type, string name, string? description)
         {
-            var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypeEnum.Interface);
+            var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypeEnum.Interface, null)!;
             FinishAddingType(type, name, schemaType);
             return schemaType;
         }

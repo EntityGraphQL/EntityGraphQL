@@ -8,9 +8,6 @@ using System;
 
 namespace EntityGraphQL.Tests
 {
-    /// <summary>
-    /// Tests graphql metadata
-    /// </summary>
     public class MutationTests
     {
         [Fact]
@@ -906,7 +903,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(24, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(25, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
@@ -970,6 +967,16 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(0, results.Data["getValue"]);
+        }
+
+        [Fact]
+        public void TestNoArgsOnInputType()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
+
+            var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<InputObject>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
+            Assert.Equal("Field invalid on type InputObject has arguments but is a GraphQL Input type and can not have arguments.", ex.Message);
         }
     }
 }

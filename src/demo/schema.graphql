@@ -4,6 +4,7 @@ schema {
 }
 
 scalar Boolean
+scalar Char
 scalar Date
 scalar Float
 scalar ID
@@ -33,10 +34,9 @@ enum SortDirectionEnum {
 	DESC
 }
 
-"""The query type represents all of the entry points into the object graph"""
 type Query {
 	"""actors paged by connection & edges and orderable"""
-	actors(filter: String!, sort: [ActorsSortInput!]!, first: Int, after: String, last: Int, before: String): PersonConnection
+	actors(filter: String!, sort: [DirectorsSortInput!]!, first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
 	attributes: [StringKeyValuePair!]
@@ -61,14 +61,22 @@ type Actor {
 	personId: Int!
 }
 
-"""Sort arguments for actors"""
-input ActorsSortInput {
-	died: SortDirectionEnum
-	dob: SortDirectionEnum
-	firstName: SortDirectionEnum
-	id: SortDirectionEnum
-	isDeleted: SortDirectionEnum
-	lastName: SortDirectionEnum
+type ConnectionEdgePerson {
+	"""The cursor for this items position within the collection"""
+	cursor: String!
+	"""The item of the collection"""
+	node: Person!
+}
+
+type ConnectionPageInfo {
+	"""Last cursor in the page. Use this as the next from argument"""
+	endCursor: String!
+	"""If there is more data after this page"""
+	hasNextPage: Boolean!
+	"""If there is data previous to this page"""
+	hasPreviousPage: Boolean!
+	"""Start cursor in the page. Use this to go backwards with the before argument"""
+	startCursor: String!
 }
 
 """Detail item"""
@@ -101,18 +109,6 @@ type Movie {
 	writers: [Person!]
 }
 
-"""Metadata about a page of data"""
-type PageInfo {
-	"""Last cursor in the page. Use this as the next from argument"""
-	endCursor: String!
-	"""If there is more data after this page"""
-	hasNextPage: Boolean!
-	"""If there is data previous to this page"""
-	hasPreviousPage: Boolean!
-	"""Start cursor in the page. Use this to go backwards with the before argument"""
-	startCursor: String!
-}
-
 type Person {
 	"""Movies they acted in"""
 	actorIn: [Movie!]
@@ -136,19 +132,11 @@ type Person {
 """Metadata about a person connection (paging over people)"""
 type PersonConnection {
 	"""Edge information about each node in the collection"""
-	edges: [PersonEdge!]!
+	edges: [ConnectionEdgePerson!]!
 	"""Information about this page of data"""
-	pageInfo: PageInfo!
+	pageInfo: ConnectionPageInfo!
 	"""Total count of items in the collection"""
 	totalCount: Int!
-}
-
-"""Metadata about an edge of page result"""
-type PersonEdge {
-	"""The cursor for this items position within the collection"""
-	cursor: String!
-	"""The item of the collection"""
-	node: Person!
 }
 
 """Metadata about a Person page (paging over people)"""
@@ -157,6 +145,8 @@ type PersonPage {
 	hasNextPage: Boolean!
 	"""True if there is more data before this page"""
 	hasPreviousPage: Boolean!
+	"""Return a Person by its Id"""
+	item(id: Int!): Person
 	"""Items in the page"""
 	items: [Person!]!
 	"""Count of the total items in the collection"""
@@ -175,7 +165,6 @@ type Writer {
 	personId: Int!
 }
 
-"""The mutation type schema represents all of the mutation functions in the schema"""
 type Mutation {
 	addActor(firstName: String, lastName: String, movieId: Int!): Person
 	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]

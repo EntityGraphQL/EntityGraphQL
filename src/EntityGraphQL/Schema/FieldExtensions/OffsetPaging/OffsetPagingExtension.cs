@@ -49,11 +49,10 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
-        if (!schema.HasType(page))
+        var pageType = typeof(OffsetPage<>).MakeGenericType(listType);
+        if (!schema.HasType(pageType))
         {
-            var type = typeof(OffsetPage<>)
-                .MakeGenericType(listType);
-            returnSchemaType = schema.AddType(type, page, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)").AddAllFields();
+            returnSchemaType = schema.AddType(pageType, page, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)").AddAllFields();
         }
         else
         {
