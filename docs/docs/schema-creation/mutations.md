@@ -157,8 +157,15 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPer
 Dependencies can also be defined at the class level, which is convenient when used by multiple mutations or in a helper method:
 
 ```cs
-record PeopleMutations(IDemoService demoService)
+class PeopleMutations(IDemoService demoService)
 {
+    readonly IDemoService demoService;
+    
+    public PeopleMutations(IDemoService demoService)
+    {
+        this.demoService = demoService;
+    }
+
     public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, string firstName, string lastName)
     {
         // Use ServiceHelper
