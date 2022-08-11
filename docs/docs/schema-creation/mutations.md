@@ -159,8 +159,8 @@ Dependencies can also be defined at the class level, which is convenient when us
 ```cs
 class PeopleMutations(IDemoService demoService)
 {
-    readonly IDemoService demoService;
-    
+    private readonly IDemoService demoService;
+
     public PeopleMutations(IDemoService demoService)
     {
         this.demoService = demoService;
