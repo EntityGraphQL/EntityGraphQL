@@ -104,7 +104,7 @@ namespace EntityGraphQL.Tests
                         people { id height }
                     }").ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
-            Assert.Equal(1, Enumerable.Count(result.Data));
+            Assert.Single(result.Data);
             var person = Enumerable.First((dynamic)result.Data["people"]);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);

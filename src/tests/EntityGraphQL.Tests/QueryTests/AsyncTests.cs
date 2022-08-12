@@ -51,4 +51,18 @@ public class AsyncTests
         Assert.Throws<EntityGraphQLCompilerException>(() => schema.Type<Person>().AddField("age", "Returns persons age")
             .ResolveWithService<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday)));
     }
+
+    [Fact]
+    public void TestReturnsTaskButNotAsync()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Mutation().Add(TestAddPersonAsync);
+        Assert.Equal("Person", schema.Mutation().SchemaType.GetField("testAddPersonAsync", null).ReturnType.SchemaType.Name);
+        Assert.Equal(typeof(Person), schema.Mutation().SchemaType.GetField("testAddPersonAsync", null).ReturnType.TypeDotnet);
+    }
+
+    private System.Threading.Tasks.Task<Person> TestAddPersonAsync()
+    {
+        return System.Threading.Tasks.Task.FromResult(new Person());
+    }
 }

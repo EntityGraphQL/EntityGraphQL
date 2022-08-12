@@ -1,3 +1,9 @@
+# 3.0.5
+
+## Fixes
+
+- Fix #197 - If a mutation returns `Task<T>` use `T` as the return type
+
 # 3.0.4
 
 ## Fixes

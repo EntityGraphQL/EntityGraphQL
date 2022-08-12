@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema;
@@ -85,11 +86,12 @@ public class MutationType
     private MutationField AddMutationMethod(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, bool autoAddInputTypes)
     {
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
+        var takeGenericArgument = isAsync || method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)
             requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
-        var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
+        var actualReturnType = GetTypeFromMutationReturn(takeGenericArgument ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
         var typeName = SchemaType.Schema.GetSchemaType(actualReturnType.GetNonNullableOrEnumerableType(), null).Name;
         var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method);
         var mutationField = new MutationField(SchemaType.Schema, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, autoAddInputTypes);
