@@ -120,8 +120,9 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestSeparateArguments_AutoAddInputTypes()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            var schemaProvider = new SchemaProvider<TestDataContext>();
+            schemaProvider.AddType<Person>(nameof(Person), null);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(autoAddInputTypes: true);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
