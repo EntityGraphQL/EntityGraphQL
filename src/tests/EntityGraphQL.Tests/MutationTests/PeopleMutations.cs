@@ -41,6 +41,18 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
+        public Person AddPersonSingleArgumentNestedType(NestedInputObject nameInput) {
+            return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
+        }
+
+        public class NestedInputObject {
+            public string Name { get; set; }
+            public string LastName { get; set; }
+            public DateTime? Birthday { get; set; }
+        }
+
+        [GraphQLMutation]
+
         public Person AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
         {
             return null;

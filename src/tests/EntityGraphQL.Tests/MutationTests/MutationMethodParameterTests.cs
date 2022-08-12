@@ -118,7 +118,44 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestSeparateArguments_AutoAddInputTypes()
+        public void TestSingleArgument_AutoAddInputTypes_NestedType() {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(true, true);
+            // Add a argument field with a required parameter that is defined in a nested class
+            var gql = new QueryRequest {
+                Query = @"mutation AddPersonSingleArgumentNestedType($nameInput: InputObject) {
+                  addPersonSingleArgumentNestedType(nameInput: $nameInput) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "nameInput", new InputObject() { Name = "Frank" } },
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSeparateArguments_AutoAddInputTypes() {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest {
+                Query = @"mutation AddPersonSeparateArguments($name: String!, $names: [String!], $nameInput: InputObject, $gender: Gender) {
+                  addPersonSeparateArguments(name: $name, names: $names, nameInput: $nameInput, gender: $gender) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "name", "Frank" },
+                    { "names", new [] { "Frank" } },
+                    { "nameInput", null },
+                    { "gender", Gender.Female }
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSeparateArguments_DefaultSchemaBuilder_AutoAddInputTypes()
         {
             var schemaProvider = new SchemaProvider<TestDataContext>();
             schemaProvider.AddType<Person>(nameof(Person), null);
