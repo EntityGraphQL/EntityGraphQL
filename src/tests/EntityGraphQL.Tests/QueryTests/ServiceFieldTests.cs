@@ -472,6 +472,19 @@ namespace EntityGraphQL.Tests
             schema.Type<User>().AddField("currentTask", "Peoples current task")
                 .ResolveWithService<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
 
+            schema.Type<User>().AddField("indirectTasks", "Tasks assigned to people managed by user")
+                .ResolveWithService<TestDataContext2>((user, db) =>
+                    from task in db.Tasks
+                    where task.Assignee.Manager == user.Relation
+                    select task);
+
+            schema.Type<User>().AddField("indirectTasksWithExplicitJoin", "Tasks assigned to people managed by user")
+                .ResolveWithService<TestDataContext2>((user, db) =>
+                    from task in db.Tasks
+                    join person in db.People on task.Assignee equals person
+                    where person.Manager == user.Relation
+                    select task);
+
             var gql = new QueryRequest
             {
                 Query = @"{ 
@@ -480,6 +493,8 @@ namespace EntityGraphQL.Tests
                         field1 # from user
                         projects { name } 
                         currentTask { name }
+                        indirectTasks { name }
+                        indirectTasksWithExplicitJoin { name }
                     } 
                 }"
             };
@@ -513,12 +528,13 @@ namespace EntityGraphQL.Tests
             UserService userService = new();
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
+            serviceCollection.AddSingleton(new TestDataContext2());
 
             var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic users = res.Data["users"];
-            Assert.Equal(3, users[0].GetType().GetFields().Length);
+            Assert.Equal(5, users[0].GetType().GetFields().Length);
             Assert.Equal("field1", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
             Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
             Assert.Equal("currentTask", Enumerable.ElementAt(users[0].GetType().GetFields(), 2).Name);
