@@ -324,6 +324,28 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
+        
+        [Fact]
+        public void DateScalarsTest()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+  projects {
+      created
+      updated
+  }
+}
+",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var result = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(result.Errors);
+            Assert.NotNull(((dynamic)result.Data["projects"])[0].created);
+            Assert.NotNull(((dynamic)result.Data["projects"])[0].updated);
+        }
 
         [Fact]
         public void TestTopLevelScalar()

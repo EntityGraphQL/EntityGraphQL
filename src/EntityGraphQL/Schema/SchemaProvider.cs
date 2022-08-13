@@ -64,6 +64,7 @@ namespace EntityGraphQL.Schema
 
             // default custom scalar for DateTime
             schemaTypes.Add("Date", new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar));
+            schemaTypes.Add("DateTimeOffset", new SchemaType<DateTimeOffset>(this, "DateTimeOffset", "DateTimeOffset scalar", null, GqlTypeEnum.Scalar));
 
             customTypeMappings = new Dictionary<Type, GqlTypeInfo> {
                 {typeof(sbyte), new GqlTypeInfo(() => Type("Int"), typeof(sbyte))},
