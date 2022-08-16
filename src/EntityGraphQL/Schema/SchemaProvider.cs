@@ -428,11 +428,10 @@ namespace EntityGraphQL.Schema
         /// Add any methods marked with GraphQLMutationAttribute in the given object to the schema. Method names are added as using fieldNamer
         /// </summary>
         /// <typeparam name="TType"></typeparam>
-        /// <param name="autoAddInputTypes">If true, any class types seen in the mutation argument properties will be added to the schema</param>
-        /// <param name="addNonAttributedMethods">If true, add any method in the mutation class even if it isn't marked with the mutation attribute</param>
-        public void AddMutationsFrom<TType>(bool autoAddInputTypes = false, bool addNonAttributedMethods = false) where TType : class
+        /// <param name="options">Options for the schema builder</param>
+        public void AddMutationsFrom<TType>(SchemaBuilderMutationOptions? options = null) where TType : class
         {
-            mutationType.AddFrom<TType>(autoAddInputTypes, addNonAttributedMethods);
+            mutationType.AddFrom<TType>(options);
         }
 
         /// <summary>

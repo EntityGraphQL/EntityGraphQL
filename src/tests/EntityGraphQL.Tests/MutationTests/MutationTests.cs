@@ -561,7 +561,6 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
-            schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -582,7 +581,6 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
-            schemaProvider.AddInputType<InputObject>("InputObject", "Input data").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -606,7 +604,6 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
-            schemaProvider.AddInputType<InputObjectId>("InputObjectId", "InputObjectId").AddAllFields();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -790,9 +787,6 @@ namespace EntityGraphQL.Tests
             Assert.Equal(true, results.Data["nullableGuidArgs"]);
         }
 
-
-
-
         [Fact]
         public void TestNullableGuidEmptyString()
         {
@@ -866,7 +860,7 @@ namespace EntityGraphQL.Tests
         public void ConstOnMutationArgOrInpoutTypeNotAdded()
         {
             var schema = SchemaBuilder.Create<TestDataContext>();
-            schema.Mutation().Add(MuationWithInputTypeConst, true);
+            schema.Mutation().Add(MuationWithInputTypeConst, new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
 
             Assert.DoesNotContain(schema.Mutation().SchemaType.GetFields().First(f => f.Name == "muationWithInputTypeConst").Arguments, f => f.Key == "isConst");
 
@@ -903,7 +897,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(26, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(27, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
@@ -928,7 +922,7 @@ namespace EntityGraphQL.Tests
         public void TestAddFromMultipleClassesImplementingInterfaceWhenEnabled()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>(addNonAttributedMethods: true);
+            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>(new SchemaBuilderMutationOptions { AddNonAttributedMethods = true });
 
             Assert.NotEmpty(schemaProvider.Mutation().SchemaType.GetFields());
         }
@@ -954,7 +948,7 @@ namespace EntityGraphQL.Tests
         public void TestRightValueReturnedFromActivatorCreateMutationClass()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(addNonAttributedMethods: true);
+            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(new SchemaBuilderMutationOptions { AddNonAttributedMethods = true });
 
             var gql = new QueryRequest
             {

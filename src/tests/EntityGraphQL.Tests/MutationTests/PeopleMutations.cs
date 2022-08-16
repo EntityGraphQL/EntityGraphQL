@@ -57,6 +57,13 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
+        public Person AddPersonSingleArgumentNestedType(NestedInputObject nameInput)
+        {
+            return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
+        }
+
+        [GraphQLMutation]
+
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
             var id = 11;
