@@ -86,7 +86,7 @@ If true, EntityGraphQL will add any method in the mutation class as a mutation w
 You can also add individual mutation methods to the mutation type as delegates or inline methods.
 
 ```cs
-public class PeopleMutations
+class PeopleMutations
 {
     public class void Configure(ISchemaProvider<DemoContext> schema)
     {
@@ -151,6 +151,35 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPer
     // do something cool with demoService
 
     return (db) => db.People.First(p => p.Id == person.Id);
+}
+```
+
+Dependencies can also be defined at the class level, which is convenient when used by multiple mutations or in a helper method:
+
+```cs
+class PeopleMutations(IDemoService demoService)
+{
+    private readonly IDemoService demoService;
+
+    public PeopleMutations(IDemoService demoService)
+    {
+        this.demoService = demoService;
+    }
+
+    public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, string firstName, string lastName)
+    {
+        // Use ServiceHelper
+    }
+
+    public Expression<Func<DemoContext, Person>> SetPersonJob(DemoContext db, string job)
+    {
+        // Use ServiceHelper
+    }
+
+    void ServiceHelper(Person person)
+    {
+        // Use demoService
+    }
 }
 ```
 

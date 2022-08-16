@@ -197,7 +197,7 @@ fragment TypeRef on __Type {
             Assert.Null(res.Errors);
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
-            Assert.False(Enumerable.Any(fields, f => f.name == "owner"));
+            Assert.DoesNotContain(fields, f => f.name == "owner");
         }
 
         [Fact]
@@ -228,7 +228,7 @@ fragment TypeRef on __Type {
             Assert.Null(res.Errors);
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
-            Assert.False(Enumerable.Any(fields, f => f.name == "projectsOld"));
+            Assert.DoesNotContain(fields, f => f.name == "projectsOld");
         }
 
 

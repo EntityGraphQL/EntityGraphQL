@@ -73,7 +73,7 @@ namespace EntityGraphQL.Schema
         {
             if (argTypes != null)
             {
-                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes, schema.SchemaFieldNamer);
+                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes);
                 ArgumentsType = argTypes.GetType();
             }
         }

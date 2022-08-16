@@ -252,10 +252,10 @@ namespace EntityGraphQL.Compiler.Util
             return newValue;
         }
 
-        public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes, Func<string, string> fieldNamer)
+        public static Dictionary<string, ArgType> ObjectToDictionaryArgs(ISchemaProvider schema, object argTypes)
         {
-            var args = argTypes.GetType().GetProperties().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToDictionary(k => fieldNamer(k.Name), p => ArgType.FromProperty(schema, p, p.GetValue(argTypes), fieldNamer));
-            argTypes.GetType().GetFields().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToList().ForEach(p => args.Add(fieldNamer(p.Name), ArgType.FromField(schema, p, p.GetValue(argTypes), fieldNamer)));
+            var args = argTypes.GetType().GetProperties().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToDictionary(k => schema.SchemaFieldNamer(k.Name), p => ArgType.FromProperty(schema, p, p.GetValue(argTypes)));
+            argTypes.GetType().GetFields().Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p)).ToList().ForEach(p => args.Add(schema.SchemaFieldNamer(p.Name), ArgType.FromField(schema, p, p.GetValue(argTypes))));
             return args;
         }
 
@@ -265,7 +265,7 @@ namespace EntityGraphQL.Compiler.Util
                 return type2;
 
             if (type2 == null)
-                throw new ArgumentNullException("type2");
+                throw new ArgumentNullException(nameof(type2));
 
             var fields = type1.GetFields().ToDictionary(f => f.Name, f => f.FieldType);
             type1.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));

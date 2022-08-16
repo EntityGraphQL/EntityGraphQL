@@ -198,7 +198,6 @@ namespace EntityGraphQL.Tests
             Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
         }
 
-
         [Fact]
         public void InterfacesWithNoFieldsBecomeUnions()
         {
@@ -300,6 +299,38 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
             Assert.Throws<InvalidOperationException>(() => schemaProvider.Type<IUnion>().AddField("test", "description"));
+
+        [Fact]
+        public void TestIgnoreReferencedTypes() {
+            var schemaBuilderOptions = new SchemaBuilderOptions {
+                IgnoreTypes = new HashSet<string> { typeof(C).FullName }
+            };
+
+            var schemaProvider = new SchemaProvider<TestIgnoreTypesSchema>();
+            schemaProvider.AddType<B>(typeof(B).Name, null).AddAllFields(schemaBuilderOptions);
+            schemaProvider.Query().AddAllFields(schemaBuilderOptions);
+            schemaProvider.UpdateType<A>(type => type.AddField("b", null).Resolve(a => new B()));
+
+            Assert.True(schemaProvider.HasType(typeof(A)));
+            Assert.True(schemaProvider.HasType(typeof(B)));
+            Assert.False(schemaProvider.HasType(typeof(C)));
+            Assert.False(schemaProvider.HasType(typeof(D)));
+        }
+        private class TestIgnoreTypesSchema {
+            public IEnumerable<A> As { get; }
+        }
+        private class A {
+            public int I = 0;
+        }
+        private class B {
+            public int I = 0;
+            public C C = new();
+        }
+        private class C {
+            public D D = new();
+        }
+        private class D {
+            public int I = 0;
         }
 
         // This would be your Entity/Object graph you use with EntityFramework

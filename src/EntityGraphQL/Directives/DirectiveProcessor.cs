@@ -45,7 +45,7 @@ namespace EntityGraphQL.Directives
 
         public IEnumerable<ArgType> GetArguments(ISchemaProvider schema)
         {
-            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null, schema.SchemaFieldNamer)).ToList();
+            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null)).ToList();
         }
     }
 }

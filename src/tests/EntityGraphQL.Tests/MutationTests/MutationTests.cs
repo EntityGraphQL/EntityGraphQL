@@ -903,7 +903,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(25, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(26, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

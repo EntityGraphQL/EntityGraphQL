@@ -121,7 +121,7 @@ public static class ArgumentUtil
                 foreach (var c in memberType.GetConstructors())
                 {
                     var parameters = c.GetParameters();
-                    if (parameters.Count() == 1)
+                    if (parameters.Length == 1)
                     {
                         item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType, schema);
                         constructor = memberType.GetConstructor(new[] { item!.GetType() });

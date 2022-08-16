@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Reflection;
 
 namespace EntityGraphQL.Schema
@@ -18,10 +20,14 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="prop"></param>
         /// <returns></returns>
-        public static bool IsMemberMarkedNotNull(MemberInfo prop)
+        public static bool IsMemberMarkedNotNull(ICustomAttributeProvider prop)
         {
-            if (prop.GetCustomAttribute(typeof(GraphQLNotNullAttribute)) is GraphQLNotNullAttribute ||
-                prop.GetCustomAttribute(typeof(RequiredAttribute)) is RequiredAttribute)
+            return IsMemberMarkedNotNull(prop.GetCustomAttributes(false).Cast<Attribute>());
+        }
+        public static bool IsMemberMarkedNotNull(IEnumerable<Attribute> attributes)
+        {
+            if (attributes.Any(a => a is GraphQLNotNullAttribute) ||
+                attributes.Any(a => a is RequiredAttribute))
             {
                 return true;
             }
@@ -44,9 +50,9 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="prop"></param>
         /// <returns></returns>
-        public static bool IsMemberElementMarkedNullable(MemberInfo prop)
+        public static bool IsMemberElementMarkedNullable(ICustomAttributeProvider prop)
         {
-            if (prop.GetCustomAttribute(typeof(GraphQLElementTypeNullable)) is GraphQLElementTypeNullable)
+            if (prop.GetCustomAttributes(false).Any(a => a is GraphQLElementTypeNullable))
             {
                 return true;
             }
