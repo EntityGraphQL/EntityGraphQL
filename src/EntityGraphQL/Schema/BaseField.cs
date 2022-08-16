@@ -102,7 +102,7 @@ namespace EntityGraphQL.Schema
         public void AddArguments(object args)
         {
             // get new argument values
-            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args, Schema.SchemaFieldNamer);
+            var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);
             // build new argument Type
             var newArgType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments

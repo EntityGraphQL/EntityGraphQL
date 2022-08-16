@@ -33,7 +33,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null, fieldNamer));
+                    Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.PropertyType);
 
                 }
@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null, fieldNamer));
+                    Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null));
                     AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
                 }
             }
@@ -53,9 +53,13 @@ namespace EntityGraphQL.Schema
                         continue;
 
                     var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
+                    if (!schema.HasType(inputType) && autoAddInputTypes)
+                    {
+                        AddInputTypesInArguments(schema, autoAddInputTypes, inputType);
+                    }
                     if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
                     {
-                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null, fieldNamer));
+                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null));
                         AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);
                     }
                 }
@@ -97,19 +101,18 @@ namespace EntityGraphQL.Schema
                 {
                     var argField = Arguments[p.Name!];
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
-                    // this could be int to RequiredField<int>
-                    if (value != null && value.GetType() != argField.RawType)
-                    {
-                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
-                    }
-
-                    if (value == null)
+                    if (value == null || value is Expression)
                     {
                         var field = docVariables.GetType().GetField(p.Name!);
                         if (field != null)
                         {
                             value = field.GetValue(docVariables);
                         }
+                    }
+                    // this could be int to RequiredField<int>
+                    if (value != null && value.GetType() != argField.RawType)
+                    {
+                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
                     }
 
                     argField.Validate(value, p.Name!, validationErrors);

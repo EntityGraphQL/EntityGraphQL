@@ -95,7 +95,7 @@ namespace EntityGraphQL.Extensions
             }
             if (type.IsArray)
                 return type.GetElementType();
-            if (type.GenericTypeArguments.Count() == 1)
+            if (type.GenericTypeArguments.Length == 1)
                 return type.GetGenericArguments()[0];
             return null;
         }
@@ -128,6 +128,11 @@ namespace EntityGraphQL.Extensions
             }
 
             return true;
+        }
+
+        public static bool IsNullable(this ParameterInfo parameterInfo)
+        {
+            return IsNullableHelper(parameterInfo.ParameterType, parameterInfo.Member, parameterInfo.CustomAttributes);
         }
 
         private static Type GetActualReturnType(this MethodInfo methodInfo)

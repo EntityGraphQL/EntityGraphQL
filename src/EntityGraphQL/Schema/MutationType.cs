@@ -93,7 +93,7 @@ public class MutationType
             requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
         var actualReturnType = GetTypeFromMutationReturn(takeGenericArgument ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
         var typeName = SchemaType.Schema.GetSchemaType(actualReturnType.GetNonNullableOrEnumerableType(), null).Name;
-        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method);
+        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method.IsNullable());
         var mutationField = new MutationField(SchemaType.Schema, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, autoAddInputTypes);
 
         var validators = method.GetCustomAttributes<ArgumentValidatorAttribute>();

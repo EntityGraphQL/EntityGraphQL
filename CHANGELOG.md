@@ -3,6 +3,8 @@
 ## Fixes
 
 - Fix #197 - If a mutation returns `Task<T>` use `T` as the return type
+- Fix #204 - Nullable reference types correctly produce a nullable argument in the schema
+- If not using `MutationArgumentsAttribute` in mutation methods `autoAddInputTypes` was being ignored
 
 # 3.0.4
 

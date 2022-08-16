@@ -46,6 +46,15 @@ namespace EntityGraphQL.Tests
             return null;
         }
 
+#nullable enable
+        [GraphQLMutation]
+
+        public Person AddPersonNullableNestedType(NestedInputObject required, NestedInputObject? optional)
+        {
+            return new Person { Name = string.IsNullOrEmpty(required.Name) ? "Default" : required.Name, Id = 555, Projects = new List<Project>() };
+        }
+#nullable restore
+
         [GraphQLMutation]
 
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
@@ -209,6 +218,13 @@ namespace EntityGraphQL.Tests
                 throw new ArgumentException("Ids can not be empty GUID values");
             return args.Ids.Select(g => g.ToString()).ToArray();
         }
+    }
+
+    public class NestedInputObject
+    {
+        public string Name { get; set; }
+        public string LastName { get; set; }
+        public DateTime? Birthday { get; set; }
     }
 
     [MutationArguments]

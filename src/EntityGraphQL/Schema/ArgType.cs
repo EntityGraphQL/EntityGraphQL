@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Reflection;
 using EntityGraphQL.Extensions;
 
@@ -35,28 +36,27 @@ namespace EntityGraphQL.Schema
             IsRequired = false;
         }
 
-        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue, Func<string, string> fieldNamer)
+        public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue)
         {
-            var arg = MakeArgType(schema, prop, prop.PropertyType, prop, defaultValue, fieldNamer);
+            var arg = MakeArgType(schema, prop.Name, prop, prop.GetCustomAttributes(), prop.PropertyType, defaultValue, prop.IsNullable());
 
             return arg;
         }
 
-        public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo prop, object? defaultValue, Func<string, string> fieldNamer)
+        public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo parameter, object? defaultValue)
         {
-            var arg = MakeArgType(schema, prop.Member, prop.ParameterType, prop.Member, defaultValue, fieldNamer);
+            var arg = MakeArgType(schema, parameter.Name!, parameter.Member, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, parameter.IsNullable());
+            return arg;
+        }
+
+        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue)
+        {
+            var arg = MakeArgType(schema, field.Name, field, field.GetCustomAttributes(), field.FieldType, defaultValue, field.IsNullable());
 
             return arg;
         }
 
-        public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue, Func<string, string> fieldNamer)
-        {
-            var arg = MakeArgType(schema, field, field.FieldType, field, defaultValue, fieldNamer);
-
-            return arg;
-        }
-
-        private static ArgType MakeArgType(ISchemaProvider schema, MemberInfo memberInfo, Type type, MemberInfo field, object? defaultValue, Func<string, string> fieldNamer)
+        private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, bool isNullable)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -69,25 +69,24 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
-            var arg = new ArgType(fieldNamer(field.Name), field.Name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, memberInfo), memberInfo, type)
+            var arg = new ArgType(schema.SchemaFieldNamer(name), name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, isNullable), memberInfo, type)
             {
                 DefaultValue = defaultValue,
                 IsRequired = markedRequired,
-                requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute
+                requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute
             };
 
-            arg.requiredAttribute = field.GetCustomAttribute(typeof(RequiredAttribute), false) as RequiredAttribute;
-            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(field))
+            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || !isNullable)
             {
                 arg.IsRequired = true;
             }
 
             if (arg.IsRequired)
                 arg.Type.TypeNotNullable = true;
-            if (arg.Type.TypeNotNullable)
+            else if (arg.Type.TypeNotNullable)
                 arg.IsRequired = true;
 
-            if (field.GetCustomAttribute(typeof(DescriptionAttribute), false) is DescriptionAttribute d)
+            if (attributes.FirstOrDefault(a => a is DescriptionAttribute) is DescriptionAttribute d)
             {
                 arg.Description = d.Description;
             }
