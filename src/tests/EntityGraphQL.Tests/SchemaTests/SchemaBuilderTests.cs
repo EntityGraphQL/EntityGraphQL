@@ -201,7 +201,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void InterfacesWithNoFieldsBecomeUnions()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() {  AutoCreateInterfaceTypes = true });
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
             Assert.Equal(GqlTypeEnum.Union, schemaProvider.Type<IUnion>().GqlType);
             Assert.Single(schemaProvider.Type<IUnion>().GetFields()); //__typename only
             Assert.Equal("__typename", schemaProvider.Type<IUnion>().GetFields().First().Name); //__typename only
@@ -299,10 +299,12 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
             Assert.Throws<InvalidOperationException>(() => schemaProvider.Type<IUnion>().AddField("test", "description"));
-
+        }
         [Fact]
-        public void TestIgnoreReferencedTypes() {
-            var schemaBuilderOptions = new SchemaBuilderOptions {
+        public void TestIgnoreReferencedTypes()
+        {
+            var schemaBuilderOptions = new SchemaBuilderOptions
+            {
                 IgnoreTypes = new HashSet<string> { typeof(C).FullName }
             };
 
@@ -316,20 +318,25 @@ namespace EntityGraphQL.Tests
             Assert.False(schemaProvider.HasType(typeof(C)));
             Assert.False(schemaProvider.HasType(typeof(D)));
         }
-        private class TestIgnoreTypesSchema {
+        private class TestIgnoreTypesSchema
+        {
             public IEnumerable<A> As { get; }
         }
-        private class A {
+        private class A
+        {
             public int I = 0;
         }
-        private class B {
+        private class B
+        {
             public int I = 0;
             public C C = new();
         }
-        private class C {
+        private class C
+        {
             public D D = new();
         }
-        private class D {
+        private class D
+        {
             public int I = 0;
         }
 

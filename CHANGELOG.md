@@ -1,3 +1,9 @@
+# 3.1.0
+
+## Changes
+
+- Added support for definng Union types in the schema (#107)
+
 # 3.0.5
 
 ## Fixes
