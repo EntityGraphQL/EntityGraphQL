@@ -35,7 +35,7 @@ namespace EntityGraphQL.Schema
 
             if (gqlType != GqlTypeEnum.Scalar)
             {
-                if (gqlType == GqlTypeEnum.Interface)
+                if (gqlType == GqlTypeEnum.Interface || gqlType == GqlTypeEnum.Union)
                     // Because the type might actually be the type extending from the interface we need to look it up
                     AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
                 else
@@ -89,6 +89,9 @@ namespace EntityGraphQL.Schema
 
         public Field AddField(Field field)
         {
+            if (GqlType == GqlTypeEnum.Union && field.Name != "__typename")
+                throw new InvalidOperationException("Unions cannot contain fields");
+
             if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {Name}. Use ReplaceField() if this is intended.");
 
@@ -187,6 +190,7 @@ namespace EntityGraphQL.Schema
             AddField(field);
             return field;
         }
+
 
         /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.
@@ -365,6 +369,7 @@ namespace EntityGraphQL.Schema
             baseTypes.Add(interfaceType);
             return this;
         }
+
         public override ISchemaType Implements(string typeName)
         {
             var interfaceType = Schema.GetSchemaType(typeName, null);
@@ -372,6 +377,59 @@ namespace EntityGraphQL.Schema
                 throw new EntityGraphQLCompilerException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
 
             baseTypes.Add(interfaceType);
+            return this;
+        }
+
+        public ISchemaType AddAllPossibleTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
+
+            var types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(s => s.GetTypes())
+                .Where(p => TypeDotnet.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
+
+            foreach(var type in types)
+            {
+                AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
+            }
+
+            return this;
+        }
+
+        public ISchemaType AddPossibleType<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
+            var type = typeof(TClrType);
+            return AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
+        }
+
+        private ISchemaType AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        {
+            if (GqlType != GqlTypeEnum.Union)
+                throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+
+            var hasType = Schema.HasType(type);
+            ISchemaType? schemaType = null;
+
+            if (!hasType && addTypeIfNotInSchema)
+            {
+                schemaType = Schema.AddType(type, type.Name, null);
+
+                if (addAllFieldsOnAddedType)
+                    schemaType.AddAllFields();
+            }
+            if (schemaType == null)
+                throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {type.Name}. Make sure you add the type to the schema. Or use parameter addTypeIfNotInSchema = true");
+
+            if(schemaType.GqlType != GqlTypeEnum.Object)
+                throw new EntityGraphQLCompilerException($"The member types of a Union type must all be Object base types");
+
+            possibleTypes.Add(schemaType);
+
             return this;
         }
     }

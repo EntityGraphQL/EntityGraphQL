@@ -57,7 +57,7 @@ namespace EntityGraphQL.Schema.Models
 
         public EnumValue[] EnumValues { get; set; } = new EnumValue[0];
 
-        public TypeElement[] PossibleTypes { get; private set; } = new TypeElement[0];
+        public TypeElement[] PossibleTypes { get; set; } = new TypeElement[0];
         public TypeElement? OfType { get; set; }
         public bool OneField { get; set; }
     }

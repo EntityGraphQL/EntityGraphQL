@@ -44,6 +44,7 @@ query {
             Assert.True(schema.GetSchemaType(typeof(Animal), null).IsInterface);
         }
 
+
         [Fact]
         public void TestInheritanceExtraFields()
         {

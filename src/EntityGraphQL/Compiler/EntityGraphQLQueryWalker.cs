@@ -374,22 +374,11 @@ namespace EntityGraphQL.Compiler
                 if (type != null)
                 {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
-                    IGraphQLNode newContext = context switch
-                    {
-                        GraphQLListSelectionField graphQLListSelectionField => new GraphQLListSelectionField(graphQLListSelectionField!, fragParameter),
-                        GraphQLObjectProjectionField graphQLObjectProjectionField => new GraphQLObjectProjectionField(graphQLObjectProjectionField!, fragParameter),
-                        GraphQLFragmentStatement graphQLFragmentStatement => new GraphQLFragmentStatement(graphQLFragmentStatement!, fragParameter),
-                        _ => throw new NotImplementedException(),
-                    };
+                    var newContext = new GraphQLInlineFragmentField(schemaProvider, type.Name, fragParameter, fragParameter, context);
+                    
                     base.VisitInlineFragment(node, newContext);
 
-                    //copy the fragment fields over to the select context and cast the type so we can access the property
-                    foreach (var queryField in newContext.QueryFields)
-                    {
-                        queryField.ParentNode = context;
-                        queryField.RootParameter = queryField.NextFieldContext as ParameterExpression ?? context.RootParameter;
-                        context.AddField(queryField);
-                    }
+                    context.AddField(newContext);
                 }
                 else
                 {

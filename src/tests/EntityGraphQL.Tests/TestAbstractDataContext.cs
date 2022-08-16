@@ -20,7 +20,17 @@ namespace EntityGraphQL.Tests
         public List<Dog> Dogs { get; set; } = new List<Dog>();
     }
 
-    public abstract class Animal
+    public class TestUnionDataContext
+    {
+        public List<IAnimal> Animals { get; set; } = new List<IAnimal>();
+    }
+
+    public interface IAnimal
+    {
+
+    }
+
+    public abstract class Animal : IAnimal
     {
         public int Id { get; set; }
         public string Name { get; set; }

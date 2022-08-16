@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         /// Name of the field
         /// </summary>
         /// <value></value>
-        public string Name { get; }
+        public string Name { get; set; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
         public Expression? NextFieldContext { get; }
@@ -111,8 +111,8 @@ namespace EntityGraphQL.Compiler
 
             return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : new List<BaseGraphQLField> { field ?? this };
         }
-
-        public void AddField(BaseGraphQLField field)
+        
+        public virtual void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
         }

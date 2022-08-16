@@ -359,7 +359,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Contains(@"type Cat implements Animal", schema);
             Assert.Contains(@"type Dog implements Animal", schema);
-            Assert.Contains(@"type Fish implements Animal & ISwim", schema);
+            Assert.Contains(@"type Fish implements Animal & IAnimal & ISwim", schema);
         }
 
         [Fact]

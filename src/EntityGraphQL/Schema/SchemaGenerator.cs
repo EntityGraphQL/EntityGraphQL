@@ -92,10 +92,10 @@ namespace EntityGraphQL.Schema
                 if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name)
                     continue;
 
-                if (!typeItem.GetFields().Any())
-                    continue;
-
-                types.AppendLine(OutputSchemaType(schema, typeItem));
+                if (typeItem.GetFields().Any() || (typeItem.GqlType == GqlTypeEnum.Union && typeItem.PossibleTypes.Count() > 0))
+                {
+                    types.AppendLine(OutputSchemaType(schema, typeItem));
+                }
             }
 
             return types.ToString();
@@ -137,10 +137,23 @@ namespace EntityGraphQL.Schema
             if (!string.IsNullOrEmpty(schemaType.Description))
                 sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
 
-            var type = schemaType switch
+
+            if (schemaType.GqlType == GqlTypeEnum.Union)
             {
-                { IsInput: true } => "input",
-                { IsInterface: true } => "interface",
+                if(schemaType.PossibleTypes.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                sb.AppendLine($"union {schemaType.Name} = {string.Join(" | ", schemaType.PossibleTypes.Select(i => i.Name))}");
+                return sb.ToString();
+            }
+
+            var type = schemaType.GqlType switch
+            {
+                GqlTypeEnum.Input=> "input",
+                GqlTypeEnum.Interface => "interface",
+                GqlTypeEnum.Union => "union",
                 _ => "type"
             };
 

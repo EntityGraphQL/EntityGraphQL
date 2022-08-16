@@ -88,12 +88,12 @@ namespace EntityGraphQL.Compiler
                 bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
                 if (needsServiceWrap)
                 {
-                    var wrappedExpression = WrapWithNullCheck(compileContext, nextFieldContext!, listContext, selectionFields.ExpressionOnly(), serviceProvider, schemaContext, replacer);
+                    var wrappedExpression = WrapWithNullCheck(compileContext, nextFieldContext!, listContext, selectionFields, serviceProvider, schemaContext, replacer);
                     return wrappedExpression;
                 }
             }
             // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(Name, nextFieldContext!, listContext, selectionFields.ExpressionOnly());
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(Name, nextFieldContext!, listContext, selectionFields);
 
             // if selecting final graph make sure lists are evaluated
             if (!isRoot && !withoutServiceFields && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
@@ -102,7 +102,7 @@ namespace EntityGraphQL.Compiler
             return resultExpression;
         }
 
-        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, Expression> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
+        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
         {
             // null check on listContext which may be a call to a service that we do not want to call twice
             var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
@@ -113,7 +113,11 @@ namespace EntityGraphQL.Compiler
             if (compileContext.Services.Any() == true)
             {
                 updatedListContext = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, listContext, fieldParams, replacer);
-                selectExpressions = selectExpressions.ToDictionary(i => i.Key, i => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, i.Value, fieldParams, replacer));
+
+                foreach(var selectExpression in selectExpressions)
+                {
+                    selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
+                }
             }
 
             // replace with null_wrap
