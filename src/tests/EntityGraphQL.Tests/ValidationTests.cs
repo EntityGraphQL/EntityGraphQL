@@ -15,7 +15,7 @@ public class ValidationTests
     public void TestValidationAttributesOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(true);
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -42,7 +42,7 @@ public class ValidationTests
     public void TestValidationAttributesOnNestedMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(true);
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -170,7 +170,7 @@ public class ValidationTests
         Assert.Equal(3, results.Errors.Count);
         Assert.Equal("Field 'movies' - Genre is required", results.Errors[0].Message);
         Assert.Equal("Field 'movies' - Title must be less than 5 characters", results.Errors[1].Message);
-        Assert.Equal("Field 'movies' - Price must be between $1 and $100", results.Errors[2].Message);        
+        Assert.Equal("Field 'movies' - Price must be between $1 and $100", results.Errors[2].Message);
     }
 
     [Fact]
