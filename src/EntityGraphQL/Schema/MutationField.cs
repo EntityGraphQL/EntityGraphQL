@@ -17,7 +17,7 @@ namespace EntityGraphQL.Schema
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, bool autoAddInputTypes)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMutationOptions options)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
-                    AddInputTypesInArguments(schema, autoAddInputTypes, item.PropertyType);
+                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
 
                 }
                 foreach (var item in ArgumentsType.GetFields(BindingFlags.Instance | BindingFlags.Public))
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Schema
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
                     Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null));
-                    AddInputTypesInArguments(schema, autoAddInputTypes, item.FieldType);
+                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
                 }
             }
             else
@@ -53,14 +53,14 @@ namespace EntityGraphQL.Schema
                         continue;
 
                     var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
-                    if (!schema.HasType(inputType) && autoAddInputTypes)
+                    if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
-                        AddInputTypesInArguments(schema, autoAddInputTypes, inputType);
+                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, inputType);
                     }
                     if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
                     {
                         Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null));
-                        AddInputTypesInArguments(schema, autoAddInputTypes, item.ParameterType);
+                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.ParameterType);
                     }
                 }
             }

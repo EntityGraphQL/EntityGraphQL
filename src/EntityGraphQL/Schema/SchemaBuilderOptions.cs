@@ -46,6 +46,13 @@ namespace EntityGraphQL.Schema
         /// If true (default = false), any object type that is encountered during reflection of the object graph that has abstract or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an Interface including it's fields
         /// </summary>
         public bool AutoCreateInterfaceTypes { get; set; } = false;
+
+    }
+
+    public class SchemaBuilderMutationOptions : SchemaBuilderOptions
+    {
+        public bool AutoCreateInputTypes { get; set; } = true;
+        public bool AddNonAttributedMethods { get; set; } = false;
     }
 
     /// <summary>

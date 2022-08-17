@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(false);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -102,7 +102,7 @@ namespace EntityGraphQL.Tests
         public void TestSingleArgument_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests
         public void TestSingleArgument_AutoAddInputTypes_NullableNestedType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
             var schema = schemaProvider.ToGraphQLSchemaString();
 
             Assert.Contains("addPersonNullableNestedType(required: NestedInputObject!, optional: NestedInputObject): Person!", schema);
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Tests
         public void TestSeparateArguments_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -159,9 +159,75 @@ namespace EntityGraphQL.Tests
             schemaProvider.PopulateFromContext();
             schemaProvider.AddInputType<ListOfObjectsWithIds>("ListOfObjectsWithIds", "").AddAllFields();
 
-            schemaProvider.AddMutationsFrom<PeopleMutations>(true);
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
 
             Assert.Empty(schemaProvider.GetSchemaType("ListOfObjectsWithIds", null).GetFields().Where(x => x.Arguments.Any()));
+        }
+
+        [Fact]
+        public void TestSingleArgument_AutoAddInputTypes_NestedType()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true, AddNonAttributedMethods = true });
+            // Add a argument field with a required parameter that is defined in a nested class
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSingleArgumentNestedType($nameInput: NestedInputObject) {
+                   addPersonSingleArgumentNestedType(nameInput: $nameInput) { id name }
+                 }",
+                Variables = new QueryVariables {
+                     { "nameInput", new NestedInputObject() { Name = "Frank" } },
+                 }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSeparateArguments_DefaultSchemaBuilder_AutoAddInputTypes()
+        {
+            var schemaProvider = new SchemaProvider<TestDataContext>();
+            schemaProvider.AddType<Person>(nameof(Person), null).AddAllFields();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSeparateArguments($name: String!, $names: [String!], $nameInput: InputObject, $gender: Gender) {
+                  addPersonSeparateArguments(name: $name, names: $names, nameInput: $nameInput, gender: $gender) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "name", "Frank" },
+                    { "names", new [] { "Frank" } },
+                    { "nameInput", null },
+                    { "gender", Gender.Female }
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestAutoAddReturnTypeOption()
+        {
+            // blank schema
+            var schemaProvider = new SchemaProvider<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSeparateArguments($name: String!, $names: [String!], $nameInput: InputObject, $gender: Gender) {
+                  addPersonSeparateArguments(name: $name, names: $names, nameInput: $nameInput, gender: $gender) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "name", "Frank" },
+                    { "names", new [] { "Frank" } },
+                    { "nameInput", null },
+                    { "gender", Gender.Female }
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+            Assert.True(schemaProvider.HasType(typeof(Person)));
         }
     }
 }
