@@ -15,6 +15,14 @@ services.AddGraphQLSchema<DemoContext>(options =>
 });
 ```
 
+- `AddMutationsFrom` and friends now take an optional `SchemaBuilderMutationOptions` options object to configure how mutations are built, following the `SchemaBuilderOptions` used elsewhere. See updated docs. Important defaults:
+
+```c#
+bool AutoCreateInputTypes = true; // Any input types seen will be added to the schema
+bool AddNonAttributedMethods = false; // GraphQLMutationAttributes are still required by default
+bool AutoCreateNewComplexTypes = true; // Return types of mutations will be added to the schema
+```
+
 ## Changes
 
 - Added support for definng Union types in the schema (#107)

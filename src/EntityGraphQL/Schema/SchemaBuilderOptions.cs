@@ -35,23 +35,33 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateFieldWithIdArguments { get; set; } = true;
         /// <summary>
-        /// If true (default) and an enum type is encountered during reflection of the object graph it will be added to the schema as an Enum
+        /// If true (default) and an enum type is encountered during reflection of the object graph it will be added to the schema 
+        /// as an Enum
         /// </summary>
         public bool AutoCreateEnumTypes { get; set; } = true;
         /// <summary>
-        /// If true (default) and an object type is encountered during reflection of the object graph it will be added to the schema as a Type including it's fields. If that type is an interface it will be added as an interface
+        /// If true (default) and an object type is encountered during reflection of the object graph it will be added to the schema 
+        /// as a Type including it's fields. If that type is an interface it will be added as an interface. This includes return 
+        /// types form mutations
         /// </summary>
         public bool AutoCreateNewComplexTypes { get; set; } = true;
         /// <summary>
-        /// If true (default = false), any object type that is encountered during reflection of the object graph that has abstract or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an Interface including it's fields
+        /// If true (default = false), any object type that is encountered during reflection of the object graph that has abstract
+        /// or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an 
+        /// Interface including it's fields
         /// </summary>
         public bool AutoCreateInterfaceTypes { get; set; } = false;
-
     }
 
     public class SchemaBuilderMutationOptions : SchemaBuilderOptions
     {
+        /// <summary>
+        /// If true (default = true) and an object type is encountered during reflection of the mutation parameters itt will be added to the schema as an InputObject type
+        /// </summary>
         public bool AutoCreateInputTypes { get; set; } = true;
+        /// <summary>
+        /// If true (default = false) Any public method in the mutation class will be added to the schema as a mutation
+        /// </summary>
         public bool AddNonAttributedMethods { get; set; } = false;
     }
 
