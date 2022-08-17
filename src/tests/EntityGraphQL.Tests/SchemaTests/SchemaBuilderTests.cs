@@ -305,7 +305,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaBuilderOptions = new SchemaBuilderOptions
             {
-                IgnoreTypes = new HashSet<string> { typeof(C).FullName }
+                IgnoreTypes = new HashSet<Type> { typeof(C) }
             };
 
             var schemaProvider = new SchemaProvider<TestIgnoreTypesSchema>();

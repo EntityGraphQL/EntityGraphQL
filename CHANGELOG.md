@@ -23,6 +23,8 @@ bool AddNonAttributedMethods = false; // GraphQLMutationAttributes are still req
 bool AutoCreateNewComplexTypes = true; // Return types of mutations will be added to the schema
 ```
 
+- `SchemaBuilderOptions.IgnoreTypes` Now uses `Type` instead of `string`. It is a `HashSet<Type>` now to avoid confusion ofwhich name to use (full name space or not)
+
 ## Changes
 
 - Added support for definng Union types in the schema (#107)

@@ -196,7 +196,7 @@ namespace EntityGraphQL.Schema
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
 
 
-            if (!options.IgnoreTypes.Contains(baseReturnType.FullName!))
+            if (!options.IgnoreTypes.Contains(baseReturnType!))
             {
                 CacheType(baseReturnType, schema, options, isInputType);
 
