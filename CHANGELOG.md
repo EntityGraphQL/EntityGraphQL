@@ -1,4 +1,19 @@
-# 3.1.0
+# 4.0.0
+
+## Breaking changes
+
+- `DateTimeOffset` is now added as a default scalar type in schema creation. It is a very common used type in EF contexts and trips up new users. If you previously were adding it as a scalar type you no longer need to. Or if you'd like to add it differently (like map it to Date) you can
+
+```c#
+services.AddGraphQLSchema<DemoContext>(options =>
+{
+    options.PreBuildSchemaFromContext = (schema) =>
+    {
+        schema.RemoveType<DateTimeOffset>();
+        // add it how you want
+    };
+});
+```
 
 ## Changes
 

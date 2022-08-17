@@ -30,6 +30,7 @@ new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar
 new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar);
 new SchemaType<char>(this, "Char", "Char scalar", null, GqlTypeEnum.Scalar);
 new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar);
+new SchemaType<DateTimeOffset>(this, "DateTimeOffset", "DateTimeOffset scalar", null, GqlTypeEnum.Scalar)
 ```
 
 It is best to have scalar types added to the schema before adding other fields that reference them. Otherwise EntityGraphQL doesn't know about the scalar types. You can add you're own or make changes to the default when registering your schema.
