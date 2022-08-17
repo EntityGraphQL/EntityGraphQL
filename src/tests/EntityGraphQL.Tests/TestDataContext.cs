@@ -99,6 +99,7 @@ namespace EntityGraphQL.Tests
         public Person Owner { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
+        public DateTimeOffset? Created { get; set; }
         public DateTime? Updated { get; set; }
         public IEnumerable<Project> Children { get; set; }
     }
@@ -166,6 +167,8 @@ namespace EntityGraphQL.Tests
                         Name = "task 4"
                     }
                 },
+                Created = DateTimeOffset.Now.AddMonths(-3),
+                Updated = DateTime.Now.AddMonths(-2),
             };
             context.People = new List<Person>
             {
