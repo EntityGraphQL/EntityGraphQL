@@ -30,6 +30,10 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Added support for definng Union types in the schema (#107)
 - Core library `EntityGraphQL` only targets `netstandard2.1` as we do not need to multi-target and this still supports a large dotnet base (3.1+)
 
+## Fixes
+
+- Fix #206 - If a service field included a binary expression EntityGraphQL would sometimes build an incorrect selection expression
+
 # 3.0.5
 
 ## Fixes

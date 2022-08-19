@@ -28,6 +28,13 @@ namespace EntityGraphQL.Tests
         public List<User> Users { get; set; } = new List<User>();
     }
 
+    public class TestDataContext2
+    {
+        public List<Task> Tasks { get; set; } = new();
+        public List<Person> People { get; set; } = new();
+        public List<User> Users { get; set; } = new();
+    }
+
     public class ProjectOld
     {
     }

@@ -71,6 +71,24 @@ namespace EntityGraphQL.Compiler.Util
             return base.VisitMember(node);
         }
 
+        protected override Expression VisitBinary(BinaryExpression node)
+        {
+            ProcessPotentialLeaf(node.Left);
+            ProcessPotentialLeaf(node.Right);
+
+            return node;
+        }
+
+        private void ProcessPotentialLeaf(Expression node)
+        {
+            var shouldAdd = node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == false;
+            if (shouldAdd)
+                currentExpression.Push(node);
+            Visit(node);
+            if (shouldAdd)
+                currentExpression.Pop();
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             if (node.Object != null)
@@ -102,13 +120,7 @@ namespace EntityGraphQL.Compiler.Util
             for (int i = startAt; i < node.Arguments.Count; i++)
             {
                 // each arg might be extractable but we should end up back in a acll or member access again
-                Expression arg = node.Arguments[i];
-                var shouldAdd = arg.NodeType == ExpressionType.MemberAccess && ((MemberExpression)arg).Expression?.Type.IsNullableType() == false;
-                if (shouldAdd)
-                    currentExpression.Push(arg);
-                Visit(arg);
-                if (shouldAdd)
-                    currentExpression.Pop();
+                ProcessPotentialLeaf(node.Arguments[i]);
             }
             return node;
         }
