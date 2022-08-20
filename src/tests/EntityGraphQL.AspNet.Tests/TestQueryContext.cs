@@ -5,6 +5,7 @@ namespace EntityGraphQL.AspNet.Tests
 {
     internal class TestQueryContext
     {
+        public List<Message> Messages { get; set; } = new List<Message>();
     }
 
     internal class TestSubscription

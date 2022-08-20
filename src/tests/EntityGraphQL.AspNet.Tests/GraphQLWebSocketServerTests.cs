@@ -207,12 +207,76 @@ namespace EntityGraphQL.AspNet.Tests
             await server.HandleAsync();
         }
 
+        [Fact]
+        public async void TestQueryOverWebsocket()
+        {
+            var (server, socket, httpContext) = Setup();
+            httpContext.Object.RequestServices.GetRequiredService<TestQueryContext>().Messages.Add(new Message { Text = "Hello" });
+            var id = Guid.NewGuid();
+
+            var recvSeq = new MockSequence();
+            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(recvSeq).SetupReceiveAsync(new GraphQLWSRequest
+            {
+                Id = id,
+                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Payload = new QueryRequest
+                {
+                    Query = "query GetIt { messages { text } }"
+                }
+            });
+            socket.InSequence(recvSeq).SetupReceiveCloseAsync();
+
+            var sendSeq = new MockSequence();
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"messages\":[{{\"text\":\"Hello\"}}]}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.NEXT}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.COMPLETE}\"}}");
+
+            socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
+
+            await server.HandleAsync();
+        }
+
+        [Fact]
+        public async void TestMutationOverWebsocket()
+        {
+            var (server, socket, httpContext) = Setup();
+            httpContext.Object.RequestServices.GetRequiredService<SchemaProvider<TestQueryContext>>().Mutation().Add("postMessage", (string text, TestChatService chat) =>
+            {
+                chat.PostMessage(text);
+                return new Message { Text = text };
+            });
+            var id = Guid.NewGuid();
+
+            var recvSeq = new MockSequence();
+            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(recvSeq).SetupReceiveAsync(new GraphQLWSRequest
+            {
+                Id = id,
+                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Payload = new QueryRequest
+                {
+                    Query = "mutation MutateIt { postMessage(text: \"hey\") { text } }"
+                }
+            });
+
+            socket.InSequence(recvSeq).SetupReceiveCloseAsync();
+
+            var sendSeq = new MockSequence();
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"postMessage\":{{\"text\":\"hey\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.NEXT}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.COMPLETE}\"}}");
+
+            socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
+
+            await server.HandleAsync();
+        }
+
         private static Mock<HttpContext> SetupMockHttpContext()
         {
             var chatService = new TestChatService();
             var schemaContext = new TestQueryContext();
             var schema = SchemaBuilder.FromObject<TestQueryContext>();
-            schema.AddType<Message>("Message data").AddAllFields();
             schema.Subscription().AddFrom<TestSubscription>();
             var httpContext = new Mock<HttpContext>();
             var servicesMock = new Mock<IServiceProvider>();

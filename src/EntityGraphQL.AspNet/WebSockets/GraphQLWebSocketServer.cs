@@ -20,6 +20,9 @@ namespace EntityGraphQL.AspNet.WebSockets
     /// <typeparam name="TQueryType"></typeparam>
     public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
     {
+        /// <summary>
+        /// These are the subscriptions/clients that are currently active with this server.
+        /// </summary>
         private readonly Dictionary<Guid, IWebSocketSubscription> subscriptions = new Dictionary<Guid, IWebSocketSubscription>();
         private readonly WebSocket webSocket;
         private readonly HttpContext context;
@@ -133,9 +136,21 @@ namespace EntityGraphQL.AspNet.WebSockets
 
                     // Wonder if there is a better way to figure this out? Spec says subscription can only have a single root field
                     // so if there are no errors we must have a successful subscription method result
-                    var subscriptionData = result.Data!.Values.First() as SubscriptionResult;
-                    var wsSubscription = (IWebSocketSubscription)Activator.CreateInstance(typeof(WebSocketSubscription<>).MakeGenericType(subscriptionData!.EventType), graphQLWSMessage.Id!.Value, subscriptionData!.SubscriptionObservable, (IGraphQLWebSocketServer)this, subscriptionData!.SubscriptionStatement, subscriptionData!.Field)!;
-                    subscriptions.Add(graphQLWSMessage.Id!.Value, wsSubscription!);
+                    if (result.Data!.Values.First() is GraphQLSubscribeResult subscribeResult)
+                    {
+                        var websocketSubscription = (IWebSocketSubscription)Activator.CreateInstance(typeof(WebSocketSubscription<>).MakeGenericType(subscribeResult!.EventType), graphQLWSMessage.Id!.Value, subscribeResult!.SubscriptionObservable, this, subscribeResult!.SubscriptionStatement, subscribeResult!.Field)!;
+                        subscriptions.Add(graphQLWSMessage.Id!.Value, websocketSubscription);
+                    }
+                    else
+                    {
+                        // no errors so assume it is a query or mutation over websockets
+                        await SendNextAsync(graphQLWSMessage.Id!.Value, result);
+                        await SendAsync(new WithIdGraphQLWSResponse
+                        {
+                            Type = GraphQLWSMessageType.COMPLETE,
+                            Id = graphQLWSMessage.Id!.Value,
+                        });
+                    }
                 }
             }
         }

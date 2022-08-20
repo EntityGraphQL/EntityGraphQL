@@ -86,7 +86,7 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");
 
             // result == IObservable<T> 
-            return new SubscriptionResult(result.GetType().GetGenericArguments()[0], result, this, node);
+            return new GraphQLSubscribeResult(result.GetType().GetGenericArguments()[0], result, this, node);
         }
 
         public object? ExecuteSubscriptionEvent<TType>(GraphQLSubscriptionField node, TType eventValue)

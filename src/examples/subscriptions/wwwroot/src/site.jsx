@@ -8,24 +8,9 @@ import { createClient } from "graphql-ws";
 const wsLink = new GraphQLWsLink(createClient({
     url: 'wss://localhost:7161/subscriptions',
 }));
-const httpLink = new HttpLink({
-    uri: 'https://localhost:7161/graphql'
-});
-
-const splitLink = split(
-    ({ query }) => {
-        const definition = getMainDefinition(query);
-        return (
-            definition.kind === 'OperationDefinition' &&
-            definition.operation === 'subscription'
-        );
-    },
-    wsLink,
-    httpLink,
-);
 
 const client = new ApolloClient({
-    link: splitLink,
+    link: wsLink,
     cache: new InMemoryCache(),
 });
 

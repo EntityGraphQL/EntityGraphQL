@@ -4,7 +4,7 @@ using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Subscriptions
 {
-    public class SubscriptionResult
+    public class GraphQLSubscribeResult
     {
         public Type EventType { get; }
         /// <summary>
@@ -14,7 +14,7 @@ namespace EntityGraphQL.Subscriptions
         public GraphQLSubscriptionStatement SubscriptionStatement { get; }
         public GraphQLSubscriptionField Field { get; }
 
-        public SubscriptionResult(Type eventType, object result, GraphQLSubscriptionStatement graphQLSubscriptionStatement, GraphQLSubscriptionField node)
+        public GraphQLSubscribeResult(Type eventType, object result, GraphQLSubscriptionStatement graphQLSubscriptionStatement, GraphQLSubscriptionField node)
         {
             EventType = eventType;
             SubscriptionObservable = result;

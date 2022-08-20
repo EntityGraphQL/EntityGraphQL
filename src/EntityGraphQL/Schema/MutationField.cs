@@ -97,16 +97,19 @@ namespace EntityGraphQL.Schema
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
                     allArgs.Add(argInstance!);
                 }
-                else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
+                else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
                 {
                     var argField = Arguments[p.Name!];
-                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
-                    if (value == null || value is Expression)
+                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    if (docVariables != null)
                     {
-                        var field = docVariables.GetType().GetField(p.Name!);
-                        if (field != null)
+                        if (value == null || value is Expression)
                         {
-                            value = field.GetValue(docVariables);
+                            var field = docVariables?.GetType().GetField(p.Name!);
+                            if (field != null)
+                            {
+                                value = field.GetValue(docVariables);
+                            }
                         }
                     }
                     // this could be int to RequiredField<int>

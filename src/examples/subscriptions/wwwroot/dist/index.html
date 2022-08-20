@@ -15,9 +15,10 @@
         <main role="main" class="pb-3">
             <div class="text-center">
                 <h1 class="display-4">Welcome to the EntityGraphQL subscription example.</h1>
-                <p>Below we listen to all message events via a GraphQL subscription. Each side lets you send a message from a
-                    different user. You can explore the code to see that the events are coming from the server, meaning you can send
-                    messages from anywhere. Hopefully gives you an example of setting up subscriptions with EntityGraphQL.</p>
+                <p>Here we use a GraphQL subscription to subscribe to new messages. Each side lets you send a message from a different 
+                    user (via a mutation over the same websocket protocol). Explore the code to see what is happening. Open this page in 
+                    another browser and send messages. Hopefully gives you an example of setting up subscriptions with EntityGraphQL.</p>
+                <p>Please note this example does not cover handling events happening across multiple servers or services.</p>
             </div>
             
             <div id="app-root" class="d-flex flex-row flex-fill">

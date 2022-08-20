@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EntityGraphQL.Subscriptions
 {
     /// <summary>
-    /// Simple class to broadcast messages to all subscribers.
+    /// A simple class to broadcast messages to all subscribers.
     /// 
     /// Usage:
     /// public class ChatService
@@ -23,25 +23,38 @@ namespace EntityGraphQL.Subscriptions
     ///         return broadcaster;
     ///     }
     /// }
+    /// 
+    /// Note if your events are triggered from multiple services/servers you may want to implement different a broadcaster to handle those
+    /// events (likely from some queue or service bus) to then pass them to the websocket subscriptions. Or you could use this class and 
+    /// have a service wrap it that is listening to the queue or service bus.
     /// </summary>
     /// <typeparam name="TType"></typeparam>
     public class Broadcaster<TType> : IObservable<TType>
     {
-        private readonly List<IObserver<TType>> observers = new();
-        public IDisposable Subscribe(IObserver<TType> observer)
+        private readonly List<IObserver<TType>> subscribers = new();
+
+        /// <summary>
+        /// Register an observer to the broadcaster.
+        /// </summary>
+        /// <param name="subscriber"></param>
+        /// <returns></returns>
+        public IDisposable Subscribe(IObserver<TType> subscriber)
         {
-            observers.Add(observer);
-            return new GraphQLSubscription<TType>(this, observer);
+            subscribers.Add(subscriber);
+            return new GraphQLSubscription<TType>(this, subscriber);
         }
 
         public void Unsubscribe(IObserver<TType> observer)
         {
-            observers.Remove(observer);
+            subscribers.Remove(observer);
         }
-
+        /// <summary>
+        /// Broadcast the message to all subscribers.
+        /// </summary>
+        /// <param name="value"></param>
         public void OnNext(TType value)
         {
-            foreach (var observer in observers)
+            foreach (var observer in subscribers)
             {
                 observer.OnNext(value);
             }
