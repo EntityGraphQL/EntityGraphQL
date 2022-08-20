@@ -4,7 +4,7 @@ namespace EntityGraphQL.Schema
 {
     /// <summary>
     /// Marks the method in the class as a Mutation for EntityGraphQL to include in the Mutation Type.
-    /// You need to add the mutation to the schema using <code>schema.AddMutationFrom(new MyClass());</code>
+    /// You need to add the mutation to the schema using <code>schema.AddMutationFrom<MyClass>();</code>
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class GraphQLMutationAttribute : Attribute

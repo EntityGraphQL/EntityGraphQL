@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
@@ -10,13 +10,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5F132C01
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.Tests", "src\tests\EntityGraphQL.Tests\EntityGraphQL.Tests.csproj", "{C55A2E96-5040-4234-80B6-A0A7B4EFAF3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "demo", "src\demo\demo.csproj", "{881BC76F-90C8-4D25-8E6C-A616E592FA96}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "demo", "src\examples\demo\demo.csproj", "{881BC76F-90C8-4D25-8E6C-A616E592FA96}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{7248D14E-5306-41A0-A028-19F8C181DA50}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.AspNet", "src\EntityGraphQL.AspNet\EntityGraphQL.AspNet.csproj", "{7F1262FF-53C0-4086-8C72-00630A85DFD2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.AspNet.Tests", "src\tests\EntityGraphQL.AspNet.Tests\EntityGraphQL.AspNet.Tests.csproj", "{8C352BF2-E6AA-4466-A086-BF05A667465A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{D8AA6BD5-5945-4997-887E-491A25378303}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subscriptions", "src\examples\subscriptions\subscriptions.csproj", "{55645B0C-88D1-4060-AB5A-C444B36E815A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -103,6 +107,18 @@ Global
 		{8C352BF2-E6AA-4466-A086-BF05A667465A}.Release|x64.Build.0 = Release|Any CPU
 		{8C352BF2-E6AA-4466-A086-BF05A667465A}.Release|x86.ActiveCfg = Release|Any CPU
 		{8C352BF2-E6AA-4466-A086-BF05A667465A}.Release|x86.Build.0 = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|x64.Build.0 = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Debug|x86.Build.0 = Debug|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x64.ActiveCfg = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x64.Build.0 = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x86.ActiveCfg = Release|Any CPU
+		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5D8B02DC-20EF-456F-A1DB-840FF1455156} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
@@ -112,5 +128,7 @@ Global
 		{7248D14E-5306-41A0-A028-19F8C181DA50} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{7F1262FF-53C0-4086-8C72-00630A85DFD2} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{8C352BF2-E6AA-4466-A086-BF05A667465A} = {5F132C01-AA1F-4241-B90F-BE4B2275B34E}
+		{D8AA6BD5-5945-4997-887E-491A25378303} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
+		{55645B0C-88D1-4060-AB5A-C444B36E815A} = {D8AA6BD5-5945-4997-887E-491A25378303}
 	EndGlobalSection
 EndGlobal

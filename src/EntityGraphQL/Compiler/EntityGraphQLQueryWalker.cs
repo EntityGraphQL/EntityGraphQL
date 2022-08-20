@@ -58,7 +58,7 @@ namespace EntityGraphQL.Compiler
 
             if (node.Operation == OperationType.Query)
             {
-                var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"op_ctx");
+                var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"query_ctx");
                 context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
                 currentOperation = (GraphQLQueryStatement)context;
             }
@@ -71,7 +71,10 @@ namespace EntityGraphQL.Compiler
             }
             else if (node.Operation == OperationType.Subscription)
             {
-                context = null; // we don't support subscription yet
+                // we never build expression from this parameter but the type is used to look up the ISchemaType
+                var rootParameterContext = Expression.Parameter(schemaProvider.Subscription().SchemaType.TypeDotnet, $"sub_ctx");
+                context = new GraphQLSubscriptionStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, operationVariables);
+                currentOperation = (GraphQLSubscriptionStatement)context;
             }
 
             if (context != null)
@@ -182,6 +185,35 @@ namespace EntityGraphQL.Compiler
                 }
 
                 context.AddField(graphqlMutationField);
+            }
+            else if (actualField.FieldType == GraphQLQueryFieldType.Subscription)
+            {
+                var subscriptionField = (SubscriptionField)actualField;
+
+                var nextContextParam = Expression.Parameter(subscriptionField.ReturnType.TypeDotnet, $"sub_{actualField.Name}");
+                var graphqlSubscriptionField = new GraphQLSubscriptionField(schemaProvider, resultName, subscriptionField, args, nextContextParam, nextContextParam, context);
+
+                if (node.SelectionSet != null)
+                {
+                    var select = ParseFieldSelect(nextContextParam, actualField, resultName, graphqlSubscriptionField, node.SelectionSet, args);
+                    if (subscriptionField.ReturnType.IsList)
+                    {
+                        // nulls are not known until subscription is executed. Will be handled in GraphQLSubscriptionStatement
+                        var newSelect = new GraphQLListSelectionField(schemaProvider, actualField, resultName, (ParameterExpression)select.NextFieldContext!, select.RootParameter, select.RootParameter!, context, args);
+                        foreach (var queryField in select.QueryFields)
+                        {
+                            newSelect.AddField(queryField);
+                        }
+                        select = newSelect;
+                    }
+                    graphqlSubscriptionField.ResultSelection = select;
+                }
+                if (node.Directives?.Any() == true)
+                {
+                    graphqlSubscriptionField.AddDirectives(ProcessFieldDirectives(node.Directives));
+                }
+
+                context.AddField(graphqlSubscriptionField);
             }
             else
             {

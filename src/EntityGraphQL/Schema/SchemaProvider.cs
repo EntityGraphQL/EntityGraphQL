@@ -36,6 +36,8 @@ namespace EntityGraphQL.Schema
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly bool introspectionEnabled;
         private readonly MutationType mutationType;
+        private readonly SubscriptionType subscriptionType;
+
         public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
         // map some types to scalar types
@@ -83,9 +85,10 @@ namespace EntityGraphQL.Schema
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
-            var mutationType = new MutationType(this, "Mutation", null, null);
-            this.mutationType = mutationType;
+            this.mutationType = new MutationType(this, "Mutation", null, null);
             schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
+
+            this.subscriptionType = new SubscriptionType(this, "Subscription");
 
             if (introspectionEnabled)
             {
@@ -94,7 +97,6 @@ namespace EntityGraphQL.Schema
                 AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
                 AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
                 AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
-                AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
                 AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
                 AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
@@ -338,6 +340,12 @@ namespace EntityGraphQL.Schema
         {
             var name = SchemaBuilder.BuildTypeName(typeof(TBaseType));
             return AddType<TBaseType>(name, description);
+        }
+
+        public ISchemaType AddType(ISchemaType schemaType)
+        {
+            schemaTypes.Add(schemaType.Name, schemaType);
+            return schemaType;
         }
 
         private void FinishAddingType(Type contextType, string name, ISchemaType tt)
@@ -819,5 +827,11 @@ namespace EntityGraphQL.Schema
                 options = new SchemaBuilderOptions();
             SchemaBuilder.FromObject(this, options);
         }
+
+        /// <summary>
+        /// Return the Root Subscription schema type. Use this to add/remove/modify subscription fields
+        /// </summary>
+        /// <returns>Root subscription schema type</returns>
+        public SubscriptionType Subscription() => subscriptionType;
     }
 }

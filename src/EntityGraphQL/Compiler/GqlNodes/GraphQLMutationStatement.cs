@@ -11,6 +11,9 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
+    /// <summary>
+    /// Represents a GraphQL mutation statement and knows how to execute the mutation fields.
+    /// </summary>
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
         public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)

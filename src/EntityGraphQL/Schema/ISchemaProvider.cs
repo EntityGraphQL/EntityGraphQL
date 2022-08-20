@@ -35,6 +35,7 @@ namespace EntityGraphQL.Schema
         ISchemaType AddType(Type contextType, string name, string? description);
         void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
         SchemaType<TBaseType> AddType<TBaseType>(string description);
+        ISchemaType AddType(ISchemaType schemaType);
         void AddTypeMapping<TFromType>(string gqlType);
         GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
         IDirectiveProcessor GetDirective(string name);
@@ -59,5 +60,6 @@ namespace EntityGraphQL.Schema
         SchemaType<TType> Type<TType>(Type type);
         void UpdateType<TType>(Action<SchemaType<TType>> configure);
         MutationType Mutation();
+        SubscriptionType Subscription();
     }
 }

@@ -17,15 +17,18 @@ namespace EntityGraphQL.Schema
         internal static string Make(ISchemaProvider schema)
         {
             var rootQueryType = schema.GetSchemaType(schema.QueryContextType, null);
-            var mutationType = schema.GetSchemaType(schema.MutationType, null);
+            var mutationType = schema.Mutation().SchemaType;
+            var subscriptionType = schema.Subscription().SchemaType;
 
             var types = BuildSchemaTypes(schema);
 
             var schemaBuilder = new StringBuilder("schema {");
             schemaBuilder.AppendLine();
             schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
-            if (mutationType.GetFields().Any())
+            if (mutationType.GetFields().Any(f => !f.Name.StartsWith("__")))
                 schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
+            if (subscriptionType.GetFields().Any(f => !f.Name.StartsWith("__")))
+                schemaBuilder.AppendLine($"\tsubscription: {subscriptionType.Name}");
             schemaBuilder.AppendLine("}");
 
             schemaBuilder.AppendLine();
@@ -92,10 +95,10 @@ namespace EntityGraphQL.Schema
                 if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name)
                     continue;
 
-                if (typeItem.GetFields().Any() || (typeItem.GqlType == GqlTypeEnum.Union && typeItem.PossibleTypes.Count() > 0))
-                {
-                    types.AppendLine(OutputSchemaType(schema, typeItem));
-                }
+                if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__")) && typeItem.GqlType != GqlTypeEnum.Union && typeItem.BaseTypes.Count == 0)
+                    continue;
+
+                types.AppendLine(OutputSchemaType(schema, typeItem));
             }
 
             return types.ToString();
@@ -140,7 +143,7 @@ namespace EntityGraphQL.Schema
 
             if (schemaType.GqlType == GqlTypeEnum.Union)
             {
-                if(schemaType.PossibleTypes.Count == 0)
+                if (schemaType.PossibleTypes.Count == 0)
                 {
                     return string.Empty;
                 }
@@ -151,7 +154,7 @@ namespace EntityGraphQL.Schema
 
             var type = schemaType.GqlType switch
             {
-                GqlTypeEnum.Input=> "input",
+                GqlTypeEnum.Input => "input",
                 GqlTypeEnum.Interface => "interface",
                 GqlTypeEnum.Union => "union",
                 _ => "type"

@@ -11,6 +11,7 @@ namespace EntityGraphQL.Schema
     {
         Query,
         Mutation,
+        Subscription,
     }
     /// <summary>
     /// Represents a field in a GraphQL type. This can be a mutation field in the Mutation type or a field on a query type
