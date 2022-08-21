@@ -135,7 +135,7 @@ var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
 var results = resultsFunc(dbResult, ager); // execute for the final result
 ```
 
-This allows EF Core to make it's optimizations and prevent over fetching of data when using EntityGraphQL against an EF DbContext.
+This allows EF Core to make its optimizations and prevent over-fetching of data when using EntityGraphQL against an EF DbContext.
 
 As seen above EntityGraphQL will execute 2 expressions. The first with all data on the main query context (in this case the `DbContext`) without the service fields and the second against the result of that query including the service fields.
 
@@ -152,4 +152,4 @@ Will extract the `f.SomeRelation.FirstOrDefault().Id` expression. That will be f
 
 You may encounter some issues with EF depending on how complex you expressions are. For example pre-6.0 [this issue](https://github.com/dotnet/efcore/issues/23205) will be hit if you traverse through a relation.
 
-It is best to keep the expressions used to pass query context data into a service as simple as you can. Remember you services can access the DB context or anything else it needs via DI as well.
+It is best to keep the expressions used to pass query context data into a service as simple as you can. Remember, your services can also access the DB context or anything else they need via DI.
