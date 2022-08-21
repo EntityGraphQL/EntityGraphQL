@@ -148,8 +148,6 @@ If you are hosting a ASP.NET application behind a load balancer you could have `
 
 If you are using lambdas/functions you will have to do a similar thing with a stream or queue with the added complexity of handling web sockets through an API Gateway or similar.
 
-There is also the [Azure SignalR Service](https://docs.microsoft.com/en-us/aspnet/core/signalr/scale?view=aspnetcore-6.0#azure-signalr-service) and [Redis backplane](https://docs.microsoft.com/en-us/aspnet/core/signalr/scale?view=aspnetcore-6.0#redis-backplane) that can help scale out web sockets, where the Redis backplane acks like a queue doing pub/sub between servers.
-
 :::tip
 Got ideas that would help users implement these patterns? Please reach out or open a PR!
 :::
@@ -157,3 +155,7 @@ Got ideas that would help users implement these patterns? Please reach out or op
 ## Query or Mutation over Web Sockets
 
 The [`graphql-ws`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md#single-result-operation) protocol also supports executing GraphQL `query` and `mutation` operations over the connection. This is supported by EntityGraphQL and follows the speficiation. However typically clients will use HTTPS for `query` and `mutation` operations and web sockets for `subscription` operations to aid with scale.
+
+## Other Implementations
+
+The above GraphQL subscription implemenation is based on [`graphql-ws`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md) protocol which uses web sockets. It is provided by the [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) package. The base [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package does not know about web sockets, there is potential to implement other transpost layers or protocols on top of that.
