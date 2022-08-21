@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 # Union Types
@@ -12,7 +12,7 @@ You can register union types manually using the `AddUnion` method on SchemaProvi
 
 As C# does not support anything like union types they are implemented used blank 'marker interfaces'
 
-```
+```cs
 public interface ICharacter { }
 public class Human : ICharacter {
     ...
@@ -23,6 +23,6 @@ public class Droid : ICharacter {
 // creating our schema
 var union = schema.AddUnion<ICharacter>(name: "Character", description: "represents any character in the Star Wars trilogy");
 
-    schema.Type<ICharacter>.AddPotentialType<Human>();
-    schema.Type<ICharacter>.AddPotentialType<Droid>();
+schema.Type<ICharacter>.AddPotentialType<Human>();
+schema.Type<ICharacter>.AddPotentialType<Droid>();
 ```
