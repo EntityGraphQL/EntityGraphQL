@@ -148,6 +148,8 @@ If you are hosting a ASP.NET application behind a load balancer you could have `
 
 If you are using lambdas/functions you will have to do a similar thing with a stream or queue with the added complexity of handling web sockets through an API Gateway or similar.
 
+There is also the [Azure SignalR Service](https://docs.microsoft.com/en-us/aspnet/core/signalr/scale?view=aspnetcore-6.0#azure-signalr-service) and [Redis backplane](https://docs.microsoft.com/en-us/aspnet/core/signalr/scale?view=aspnetcore-6.0#redis-backplane) that can help scale out web sockets, where the Redis backplane acks like a queue doing pub/sub between servers.
+
 :::tip
 Got ideas that would help users implement these patterns? Please reach out or open a PR!
 :::
