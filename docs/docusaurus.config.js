@@ -107,6 +107,20 @@ const config = {
         darkTheme: darkCodeTheme,
         additionalLanguages: ['csharp', 'graphql'],
       },
+      algolia: {
+        appId: 'NZVRVDGLPG',
+        // Public API key: it is safe to commit it
+        apiKey: 'd8a2751be94ca48accffcec38f26d4a0',
+        indexName: 'entitygraphql',
+        contextualSearch: true,
+  
+        // Optional: Algolia search parameters
+        searchParameters: {},
+  
+        // Optional: path for search page that enabled by default (`false` to disable it)
+        searchPagePath: 'search',
+        //... other Algolia params
+      },
     }),
 };
 
