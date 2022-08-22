@@ -110,7 +110,7 @@ const config = {
       algolia: {
         appId: 'NZVRVDGLPG',
         // Public API key: it is safe to commit it
-        apiKey: 'd8a2751be94ca48accffcec38f26d4a0',
+        apiKey: '1382a55cce60fc56fb5c6f05fb12443e',
         indexName: 'entitygraphql',
         contextualSearch: true,
   
