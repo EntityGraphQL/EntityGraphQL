@@ -100,18 +100,18 @@ namespace EntityGraphQL.Compiler
                     var errors = aex.InnerExceptions.SelectMany<Exception, string>(ex => ex is EntityGraphQLValidationException vex ? vex.ValidationErrors : new[] { $"Field '{fieldNode.Name}' - {ex.Message}" });
                     throw new EntityGraphQLValidationException(errors);
                 }
-                catch (TargetInvocationException ex)
-                {
-                    if (ex.InnerException is EntityGraphQLException vex)
-                        throw new EntityGraphQLException(fieldNode.Name, vex);
-                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex.InnerException!);
-                }
                 catch (EntityGraphQLValidationException)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
+                    while (ex is TargetInvocationException)
+                    {
+                        ex = ex.InnerException!;
+                        if (ex is EntityGraphQLException vex)
+                            throw new EntityGraphQLException(fieldNode.Name, vex);
+                    }
                     throw new EntityGraphQLExecutionException(fieldNode.Name, ex);
                 }
             }
