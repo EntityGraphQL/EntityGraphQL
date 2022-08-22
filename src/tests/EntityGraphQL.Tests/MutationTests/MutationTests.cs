@@ -860,7 +860,7 @@ namespace EntityGraphQL.Tests
         public void ConstOnMutationArgOrInpoutTypeNotAdded()
         {
             var schema = SchemaBuilder.Create<TestDataContext>();
-            schema.Mutation().Add(MuationWithInputTypeConst, new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schema.Mutation().Add(MuationWithInputTypeConst, new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
             Assert.DoesNotContain(schema.Mutation().SchemaType.GetFields().First(f => f.Name == "muationWithInputTypeConst").Arguments, f => f.Key == "isConst");
 
@@ -868,7 +868,7 @@ namespace EntityGraphQL.Tests
             Assert.DoesNotContain(schema.Type<InputWithConst>().GetFields(), f => f.Name == "inputConst");
         }
 
-        private bool MuationWithInputTypeConst([MutationArguments] ArgsWithConst input)
+        private bool MuationWithInputTypeConst([GraphQLArguments] ArgsWithConst input)
         {
             return true;
         }
@@ -922,7 +922,7 @@ namespace EntityGraphQL.Tests
         public void TestAddFromMultipleClassesImplementingInterfaceWhenEnabled()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>(new SchemaBuilderMutationOptions { AddNonAttributedMethods = true });
+            schemaProvider.Mutation().AddFrom<NonAttributeMarkedMethod>(new SchemaBuilderMethodOptions { AddNonAttributedMethods = true });
 
             Assert.NotEmpty(schemaProvider.Mutation().SchemaType.GetFields());
         }
@@ -948,7 +948,7 @@ namespace EntityGraphQL.Tests
         public void TestRightValueReturnedFromActivatorCreateMutationClass()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(new SchemaBuilderMutationOptions { AddNonAttributedMethods = true });
+            schemaProvider.Mutation().AddFrom<MutationClassInstantiationTest>(new SchemaBuilderMethodOptions { AddNonAttributedMethods = true });
 
             var gql = new QueryRequest
             {

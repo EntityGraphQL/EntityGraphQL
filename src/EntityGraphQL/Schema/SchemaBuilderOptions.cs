@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema
         public bool AutoCreateInterfaceTypes { get; set; } = false;
     }
 
-    public class SchemaBuilderMutationOptions : SchemaBuilderOptions
+    public class SchemaBuilderMethodOptions : SchemaBuilderOptions
     {
         /// <summary>
         /// If true (default = true) and an object type is encountered during reflection of the mutation parameters itt will be added to the schema as an InputObject type

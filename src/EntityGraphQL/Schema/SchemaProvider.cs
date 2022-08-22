@@ -23,6 +23,7 @@ namespace EntityGraphQL.Schema
     {
         public Type QueryContextType { get { return queryType.TypeDotnet; } }
         public Type MutationType { get { return mutationType.SchemaType.TypeDotnet; } }
+        public Type SubscriptionType { get { return subscriptionType.SchemaType.TypeDotnet; } }
         public Func<string, string> SchemaFieldNamer { get; }
         public IGqlAuthorizationService AuthorizationService { get; set; }
         protected Dictionary<string, ISchemaType> schemaTypes = new();
@@ -438,7 +439,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <typeparam name="TType"></typeparam>
         /// <param name="options">Options for the schema builder</param>
-        public void AddMutationsFrom<TType>(SchemaBuilderMutationOptions? options = null) where TType : class
+        public void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options = null) where TType : class
         {
             mutationType.AddFrom<TType>(options);
         }

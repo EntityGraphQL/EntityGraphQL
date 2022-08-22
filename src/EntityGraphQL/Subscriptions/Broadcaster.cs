@@ -29,7 +29,7 @@ namespace EntityGraphQL.Subscriptions
     /// have a service wrap it that is listening to the queue or service bus.
     /// </summary>
     /// <typeparam name="TType"></typeparam>
-    public class Broadcaster<TType> : IObservable<TType>
+    public class Broadcaster<TType> : IObservable<TType>, IDisposable
     {
         private readonly List<IObserver<TType>> subscribers = new();
 
@@ -57,6 +57,14 @@ namespace EntityGraphQL.Subscriptions
             foreach (var observer in subscribers)
             {
                 observer.OnNext(value);
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach (var observer in subscribers)
+            {
+                observer.OnCompleted();
             }
         }
     }

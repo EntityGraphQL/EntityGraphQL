@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -38,7 +38,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddScalarType<DateTime>("DateTime", "");
             schemaProvider.AddScalarType<decimal>("decimal", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddInputType<InputObject>("InputObject", "");
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = false });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -102,7 +102,7 @@ namespace EntityGraphQL.Tests
         public void TestSingleArgument_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -121,7 +121,7 @@ namespace EntityGraphQL.Tests
         public void TestSingleArgument_AutoAddInputTypes_NullableNestedType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             var schema = schemaProvider.ToGraphQLSchemaString();
 
             Assert.Contains("addPersonNullableNestedType(required: NestedInputObject!, optional: NestedInputObject): Person!", schema);
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Tests
         public void TestSeparateArguments_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -159,7 +159,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.PopulateFromContext();
             schemaProvider.AddInputType<ListOfObjectsWithIds>("ListOfObjectsWithIds", "").AddAllFields();
 
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
             Assert.Empty(schemaProvider.GetSchemaType("ListOfObjectsWithIds", null).GetFields().Where(x => x.Arguments.Any()));
         }
@@ -168,7 +168,7 @@ namespace EntityGraphQL.Tests
         public void TestSingleArgument_AutoAddInputTypes_NestedType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true, AddNonAttributedMethods = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true, AddNonAttributedMethods = true });
             // Add a argument field with a required parameter that is defined in a nested class
             var gql = new QueryRequest
             {
@@ -188,7 +188,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = new SchemaProvider<TestDataContext>();
             schemaProvider.AddType<Person>(nameof(Person), null).AddAllFields();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {

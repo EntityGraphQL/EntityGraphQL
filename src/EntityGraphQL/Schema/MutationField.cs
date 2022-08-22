@@ -17,7 +17,7 @@ namespace EntityGraphQL.Schema
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMutationOptions options)
+        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
             : base(schema, methodName, description, returnType)
         {
             Services = new List<Type>();
@@ -26,7 +26,7 @@ namespace EntityGraphQL.Schema
             this.isAsync = isAsync;
 
             ArgumentsType = method.GetParameters()
-                .SingleOrDefault(p => p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)?.ParameterType;
+                .SingleOrDefault(p => p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)?.ParameterType;
             if (ArgumentsType != null)
             {
                 foreach (var item in ArgumentsType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -92,7 +92,7 @@ namespace EntityGraphQL.Schema
             // add parameters and any DI services
             foreach (var p in method.GetParameters())
             {
-                if (p.GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(MutationArgumentsAttribute)) != null)
+                if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
                 {
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
                     allArgs.Add(argInstance!);

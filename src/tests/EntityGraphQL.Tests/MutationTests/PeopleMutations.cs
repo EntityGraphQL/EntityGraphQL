@@ -234,19 +234,19 @@ namespace EntityGraphQL.Tests
         public DateTime? Birthday { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class ListArgs
     {
         public List<InputObject> Inputs { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class ListIntArgs
     {
         public List<InputObjectId> Inputs { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class PeopleMutationsArgs
     {
         public string Name { get; set; }
@@ -255,7 +255,7 @@ namespace EntityGraphQL.Tests
         public InputObject NameInput { get; set; }
         public Gender? Gender { get; set; }
     }
-    [MutationArguments]
+    [GraphQLArguments]
     public class NullableGuidArgs
     {
         public Guid? Id { get; set; }
@@ -266,19 +266,19 @@ namespace EntityGraphQL.Tests
         public Gender? Enum { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class GuidArgs
     {
         [Required]
         public Guid Id { get; set; }
     }
-    [MutationArguments]
+    [GraphQLArguments]
     public class GuidNonNullArgs
     {
         public Guid Id { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class RegexArgs
     {
         [RegularExpression("[^a]+", ErrorMessage = "Title does not match required format")]
@@ -303,26 +303,26 @@ namespace EntityGraphQL.Tests
         public int Id { get; set; }
         public long IdLong { get; set; }
     }
-    [MutationArguments]
+    [GraphQLArguments]
     public class FloatInput
     {
         public float Float { get; set; }
         public float? Float2 { get; set; }
     }
-    [MutationArguments]
+    [GraphQLArguments]
     public class DoubleInput
     {
         public double Double { get; set; }
         public double? Double2 { get; set; }
     }
-    [MutationArguments]
+    [GraphQLArguments]
     public class DecimalInput
     {
         public decimal Decimal { get; set; }
         public decimal? Decimal2 { get; set; }
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class ListOfGuidArgs
     {
         public List<Guid> Ids { get; set; }

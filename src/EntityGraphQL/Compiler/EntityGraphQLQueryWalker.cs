@@ -72,7 +72,7 @@ namespace EntityGraphQL.Compiler
             else if (node.Operation == OperationType.Subscription)
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
-                var rootParameterContext = Expression.Parameter(schemaProvider.Subscription().SchemaType.TypeDotnet, $"sub_ctx");
+                var rootParameterContext = Expression.Parameter(schemaProvider.SubscriptionType, $"sub_ctx");
                 context = new GraphQLSubscriptionStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, operationVariables);
                 currentOperation = (GraphQLSubscriptionStatement)context;
             }
@@ -407,7 +407,7 @@ namespace EntityGraphQL.Compiler
                 {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
                     var newContext = new GraphQLInlineFragmentField(schemaProvider, type.Name, fragParameter, fragParameter, context);
-                    
+
                     base.VisitInlineFragment(node, newContext);
 
                     context.AddField(newContext);

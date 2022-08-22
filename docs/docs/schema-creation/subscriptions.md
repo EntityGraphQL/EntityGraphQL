@@ -159,3 +159,21 @@ The [`graphql-ws`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.
 ## Other Implementations
 
 The above GraphQL subscription implemenation is based on [`graphql-ws`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md) protocol which uses web sockets. It is provided by the [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) package. The base [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package does not know about web sockets, there is potential to implement other transpost layers or protocols on top of that.
+
+The result you will get from executing a subscription statement as above is the `GraphQLSubscribeResult` object that looks like this:
+
+```cs
+public class GraphQLSubscribeResult
+{
+    // The T in IObservable<T> - the data we are returning
+    Type EventType { get; }
+    // Used to call .ExecuteSubscriptionEvent() when you have new data
+    GraphQLSubscriptionStatement SubscriptionStatement { get; }
+    // Passed to the ExecuteSubscriptionEvent() call
+    GraphQLSubscriptionField Field { get; }
+    // Returns the IObservable<T> object. This is an object because at compile time we can't just cast the IObservable<T> as T is not known to us. See GraphQLSubscriptionStatement.ExecuteAsync() to see where thisi s created
+    object GetObservable();
+}
+```
+
+You will be able to subscribe to the `IObservable<T>` and execute the selection when you have new data available with `SubscriptionStatement` and `Field`.

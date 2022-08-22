@@ -23,7 +23,7 @@ namespace EntityGraphQL.AspNet.WebSockets
         /// <summary>
         /// These are the subscriptions/clients that are currently active with this server.
         /// </summary>
-        private readonly Dictionary<Guid, IWebSocketSubscription> subscriptions = new Dictionary<Guid, IWebSocketSubscription>();
+        private readonly Dictionary<Guid, IDisposable> subscriptions = new Dictionary<Guid, IDisposable>();
         private readonly WebSocket webSocket;
         private readonly HttpContext context;
         private bool initialised = false;
@@ -138,7 +138,7 @@ namespace EntityGraphQL.AspNet.WebSockets
                     // so if there are no errors we must have a successful subscription method result
                     if (result.Data!.Values.First() is GraphQLSubscribeResult subscribeResult)
                     {
-                        var websocketSubscription = (IWebSocketSubscription)Activator.CreateInstance(typeof(WebSocketSubscription<>).MakeGenericType(subscribeResult!.EventType), graphQLWSMessage.Id!.Value, subscribeResult!.SubscriptionObservable, this, subscribeResult!.SubscriptionStatement, subscribeResult!.Field)!;
+                        var websocketSubscription = (IDisposable)Activator.CreateInstance(typeof(WebSocketSubscription<>).MakeGenericType(subscribeResult!.EventType), graphQLWSMessage.Id!.Value, subscribeResult!.GetObservable(), this, subscribeResult!.SubscriptionStatement, subscribeResult!.Field)!;
                         subscriptions.Add(graphQLWSMessage.Id!.Value, websocketSubscription);
                     }
                     else
