@@ -7,13 +7,11 @@ namespace EntityGraphQL.Schema
     /// You need to add the subscription class (containing the method) to the schema using <code>schema.AddSubscriptionFrom<MyClass>();</code>
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    public class GraphQLSubscriptionAttribute : Attribute
+    public class GraphQLSubscriptionAttribute : GraphQLMethodAttribute
     {
         public GraphQLSubscriptionAttribute(string description = "")
         {
             this.Description = description;
         }
-
-        public string Description { get; set; }
     }
 }

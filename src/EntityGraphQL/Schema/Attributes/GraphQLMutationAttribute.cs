@@ -7,9 +7,18 @@ namespace EntityGraphQL.Schema
     /// You need to add the mutation to the schema using <code>schema.AddMutationFrom<MyClass>();</code>
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    public class GraphQLMutationAttribute : Attribute
+    public class GraphQLMutationAttribute : GraphQLMethodAttribute
     {
         public GraphQLMutationAttribute(string description = "")
+        {
+            this.Description = description;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class GraphQLMethodAttribute : Attribute
+    {
+        public GraphQLMethodAttribute(string description = "")
         {
             this.Description = description;
         }

@@ -86,9 +86,8 @@ namespace EntityGraphQL.Schema
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
+            // these types are added to the schema if a field is added to the type in ControllerType
             this.mutationType = new MutationType(this, "Mutation", null, null);
-            schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
-
             this.subscriptionType = new SubscriptionType(this, "Subscription");
 
             if (introspectionEnabled)
