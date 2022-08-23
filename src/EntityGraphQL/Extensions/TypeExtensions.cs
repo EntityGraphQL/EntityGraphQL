@@ -189,5 +189,40 @@ namespace EntityGraphQL.Extensions
             // Couldn't find a suitable attribute
             return true;
         }
+        public static bool ImplementsGenericInterface(this Type type, Type genericInterfaceType)
+        {
+            // Deal with the edge case
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericInterfaceType)
+                return true;
+
+            foreach (var inter in type.GetInterfaces())
+            {
+                var implements = ImplementsGenericInterface(inter, genericInterfaceType);
+                if (implements)
+                    return implements;
+            }
+            return false;
+        }
+
+        public static Type? GetGenericArgument(this Type type, Type genericType)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericType)
+                return type.GetGenericArguments()[0];
+
+            if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() == genericType)
+                return type.GetGenericArguments()[0];
+
+            foreach (var inter in type.GetInterfaces())
+            {
+                if (inter.IsGenericType && inter.GetGenericTypeDefinition() == genericType)
+                    return inter.GetGenericArguments()[0];
+
+                var genericArg = GetGenericArgument(inter, genericType);
+                if (genericArg != null)
+                    return genericArg;
+            }
+            return null;
+
+        }
     }
 }

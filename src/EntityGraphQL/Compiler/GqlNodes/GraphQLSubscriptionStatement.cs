@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
 
@@ -86,13 +87,23 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");
 
             // result == IObservable<T> 
-            return new GraphQLSubscribeResult(result.GetType().GetGenericArguments()[0], result, this, node);
+            var returnType = result.GetType().GetGenericArgument(typeof(IObservable<>));
+            if (returnType == null)
+                throw new EntityGraphQLExecutionException($"Subscription {node.Name} return type does not implement IObservable<T>");
+            return new GraphQLSubscribeResult(returnType, result, this, node);
         }
 
         public object? ExecuteSubscriptionEvent<TType>(GraphQLSubscriptionField node, TType eventValue)
         {
             var (result, _) = CompileAndExecuteNode(new CompileContext(), eventValue!, serviceProvider, fragments!, node.ResultSelection!, options!, docVariables);
             return result;
+        }
+
+        public override void AddField(BaseGraphQLField field)
+        {
+            if (QueryFields.Any())
+                throw new EntityGraphQLCompilerException($"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation.");
+            QueryFields.Add(field);
         }
     }
 }

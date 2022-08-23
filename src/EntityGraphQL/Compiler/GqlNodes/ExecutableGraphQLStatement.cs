@@ -243,7 +243,7 @@ namespace EntityGraphQL.Compiler
             return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);
         }
 
-        public void AddField(BaseGraphQLField field)
+        public virtual void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
         }

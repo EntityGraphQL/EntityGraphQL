@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema;
 
@@ -13,9 +14,13 @@ public class SubscriptionType : ControllerType
 
     protected override Type GetTypeFromMethodReturn(Type type, bool isAsync)
     {
-        if (isAsync || (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Task<>) || type.GetGenericTypeDefinition() == typeof(IObservable<>))))
+        if (isAsync || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>)))
         {
             type = type.GetGenericArguments()[0];
+        }
+        if (type.ImplementsGenericInterface(typeof(IObservable<>)))
+        {
+            type = type.GetGenericArgument(typeof(IObservable<>))!;
         }
         return type;
     }
