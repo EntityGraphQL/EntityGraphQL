@@ -154,6 +154,8 @@ namespace EntityGraphQL.Tests
             });
         }
         [GraphQLMutation]
+        public Task<bool> DoGreatThingWithoutAsyncKeyword() => DoGreatThing();
+        [GraphQLMutation]
         public static async Task<bool> DoGreatThingStaticly()
         {
             return await Task<bool>.Run(() =>

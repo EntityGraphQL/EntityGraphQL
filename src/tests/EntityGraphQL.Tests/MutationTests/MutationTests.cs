@@ -456,6 +456,24 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestAsyncMutationWithoutAsyncKeyword() {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            var gql = new QueryRequest {
+                Query = @"mutation AddPerson {
+          doGreatThingWithoutAsyncKeyword
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["doGreatThingWithoutAsyncKeyword"];
+            Assert.True((bool)result);
+        }
+
+        [Fact]
         public void TestUnnamedMutationOp()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
