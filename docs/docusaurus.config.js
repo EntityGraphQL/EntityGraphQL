@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Entity GraphQL',
-  tagline: 'A morden .NET Core GraphQL library',
+  tagline: 'A modern .NET Core GraphQL library',
   url: 'https://entitygraphql.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -106,6 +106,20 @@ const config = {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
         additionalLanguages: ['csharp', 'graphql'],
+      },
+      algolia: {
+        appId: 'NZVRVDGLPG',
+        // Public API key: it is safe to commit it
+        apiKey: '1382a55cce60fc56fb5c6f05fb12443e',
+        indexName: 'entitygraphql',
+        contextualSearch: true,
+  
+        // Optional: Algolia search parameters
+        searchParameters: {},
+  
+        // Optional: path for search page that enabled by default (`false` to disable it)
+        searchPagePath: 'search',
+        //... other Algolia params
       },
     }),
 };

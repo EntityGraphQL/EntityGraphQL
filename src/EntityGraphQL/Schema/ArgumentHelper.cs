@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
@@ -52,8 +53,10 @@ namespace EntityGraphQL.Schema
             Value = value;
         }
 
-        public static implicit operator TType?(RequiredField<TType> field)
+        public static implicit operator TType(RequiredField<TType> field)
         {
+            if (field.Value == null)
+                throw new EntityGraphQLExecutionException($"Required field argument being used without a value being set. Are you trying to use RequiredField outside a of field expression?");
             return field.Value;
         }
 
