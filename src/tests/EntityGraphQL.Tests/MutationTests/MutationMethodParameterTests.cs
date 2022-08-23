@@ -211,7 +211,7 @@ namespace EntityGraphQL.Tests
         {
             // blank schema
             var schemaProvider = new SchemaProvider<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {

@@ -560,7 +560,7 @@ namespace EntityGraphQL.Tests
         public void TestListArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -580,7 +580,7 @@ namespace EntityGraphQL.Tests
         public void TestListArgInputTypeUsingVariables()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -603,7 +603,7 @@ namespace EntityGraphQL.Tests
         TestListIntArgInputType()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -737,7 +737,10 @@ namespace EntityGraphQL.Tests
         public void TestNoArgMutationWithService()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.Mutation().Add("noArgsWithService", (AgeService ageService) =>
+            {
+                return ageService != null;
+            });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -754,6 +757,7 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
+            Assert.Empty(schemaProvider.Mutation().SchemaType.GetField("noArgsWithService", null).Arguments);
         }
 
 
@@ -895,9 +899,9 @@ namespace EntityGraphQL.Tests
         public void TestAddFromMultipleClassesImplementingInterface()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().AddFrom<IMutations>();
+            schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(27, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(26, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

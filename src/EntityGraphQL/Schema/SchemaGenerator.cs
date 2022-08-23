@@ -25,9 +25,11 @@ namespace EntityGraphQL.Schema
             var schemaBuilder = new StringBuilder("schema {");
             schemaBuilder.AppendLine();
             schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
-            if (mutationType.GetFields().Any(f => !f.Name.StartsWith("__")))
+            bool outputMutation = mutationType.GetFields().Any(f => !f.Name.StartsWith("__"));
+            bool outputSubscription = subscriptionType.GetFields().Any(f => !f.Name.StartsWith("__"));
+            if (outputMutation)
                 schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
-            if (subscriptionType.GetFields().Any(f => !f.Name.StartsWith("__")))
+            if (outputSubscription)
                 schemaBuilder.AppendLine($"\tsubscription: {subscriptionType.Name}");
             schemaBuilder.AppendLine("}");
 
@@ -51,8 +53,10 @@ namespace EntityGraphQL.Schema
 
             schemaBuilder.Append(types);
 
-            if (schema.Mutation().SchemaType.GetFields().Any())
+            if (outputMutation)
                 schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType));
+            if (outputSubscription)
+                schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Subscription().SchemaType));
 
             return schemaBuilder.ToString();
         }
@@ -92,7 +96,7 @@ namespace EntityGraphQL.Schema
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
-                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name)
+                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name || typeItem.Name == schema.Subscription().SchemaType.Name)
                     continue;
 
                 if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__")) && typeItem.GqlType != GqlTypeEnum.Union && typeItem.BaseTypes.Count == 0)
