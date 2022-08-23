@@ -33,6 +33,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 ## Fixes
 
 - Fix #206 - If a service field included a binary expression EntityGraphQL would sometimes build an incorrect selection expression
+- Fix #214 - The implicit conversion return type of a `ArgumentHelper.Required<>()` field argument is non-null
 
 # 3.0.5
 
