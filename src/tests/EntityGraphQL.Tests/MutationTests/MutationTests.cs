@@ -456,14 +456,15 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestAsyncMutationWithoutAsyncKeyword() {
+        public void TestAsyncMutationWithoutAsyncKeyword()
+        {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.AddMutationsFrom<PeopleMutations>();
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"mutation AddPerson {
-          doGreatThingWithoutAsyncKeyword
-        }
-        ",
+                    doGreatThingWithoutAsyncKeyword
+                }",
             };
 
             var testSchema = new TestDataContext();
@@ -915,7 +916,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>();
 
-            Assert.Equal(27, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(28, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

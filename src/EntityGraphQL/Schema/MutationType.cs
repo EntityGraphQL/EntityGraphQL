@@ -88,13 +88,12 @@ public class MutationType
     private MutationField AddMutationMethod(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderMutationOptions? options)
     {
         options ??= new SchemaBuilderMutationOptions();
-        var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
-        var takeGenericArgument = isAsync || method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
+        var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)
             requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
-        var actualReturnType = GetTypeFromMutationReturn(takeGenericArgument ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
+        var actualReturnType = GetTypeFromMutationReturn(isAsync ? method.ReturnType.GetGenericArguments()[0] : method.ReturnType);
         var nonListReturnType = actualReturnType.GetNonNullableOrEnumerableType();
         if (!SchemaType.Schema.HasType(nonListReturnType) && options.AutoCreateNewComplexTypes)
         {
