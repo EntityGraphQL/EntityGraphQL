@@ -85,7 +85,7 @@ The `QueryResult` object is a dictionary of root level queries `{ fieldName: obj
 ```cs
 IEnumerable<TempPersonResult> people = ... // implementation is more complex and not shown here - see Entity Framework section for more info
 QueryResult result = ctx => {
-    {"people", people} // key taken from schema fiel name - camelCase
+    {"people", people} // key taken from schema file name - camelCase
 }
 ```
 
