@@ -56,7 +56,7 @@ namespace EntityGraphQL.Schema
         public static implicit operator TType(RequiredField<TType> field)
         {
             if (field.Value == null)
-                throw new EntityGraphQLExecutionException($"Required field argument being used without a value being set. Are you trying to use RequiredField outside of field expression?");
+                throw new EntityGraphQLExecutionException($"Required field argument being used without a value being set. Are you trying to use RequiredField outside a of field expression?");
             return field.Value;
         }
 
