@@ -26,7 +26,7 @@ public class MutationType : ControllerType
             // This should be Expression<Func<Context, ReturnType>>
             type = type.GetGenericArguments()[0].GetGenericArguments()[1];
         }
-        if (isAsync || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        if (isAsync)
         {
             type = type.GetGenericArguments()[0];
         }

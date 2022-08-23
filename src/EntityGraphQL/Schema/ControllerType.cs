@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema;
@@ -86,7 +87,7 @@ public abstract class ControllerType
     private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderMethodOptions? options)
     {
         options ??= new SchemaBuilderMethodOptions();
-        var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
+        var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)
