@@ -1608,19 +1608,21 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void TestServiceFieldWithStaticMethod() {
+        public void TestServiceFieldWithStaticMethod()
+        {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => GetProjectConfig(p, srv)) // srv.Get(p.Id)) works here
+                .ResolveWithService<ConfigService>((p, srv) => GetProjectConfig(p, srv))
                 .IsNullable(false);
 
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
-            var gql = new QueryRequest {
+            var gql = new QueryRequest
+            {
                 Query = @"{
                     projects {
                         config { type __typename }
@@ -1628,7 +1630,8 @@ namespace EntityGraphQL.Tests
                 }"
             };
 
-            var context = new TestDataContext {
+            var context = new TestDataContext
+            {
                 Projects = new List<Project>
                 {
                     new Project
@@ -1653,7 +1656,57 @@ namespace EntityGraphQL.Tests
             Assert.Equal("config", projectType.GetFields()[0].Name);
         }
 
-        static ProjectConfig GetProjectConfig(Project project, ConfigService configService) => configService.Get(project.Id);
+        [Fact]
+        public void TestServiceFieldWithInstanceMethod()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("config", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((p, srv) => GetProjectConfigInstance(p, srv))
+                .IsNullable(false);
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        config { type __typename }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 0,
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                            }
+                        }
+                    }
+                },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var projects = (dynamic)res.Data["projects"];
+            Type projectType = Enumerable.First(projects).GetType();
+            Assert.Single(projectType.GetFields());
+            Assert.Equal("config", projectType.GetFields()[0].Name);
+        }
+
+        private static ProjectConfig GetProjectConfig(Project project, ConfigService configService) => configService.Get(project.Id);
+        private ProjectConfig GetProjectConfigInstance(Project project, ConfigService configService) => configService.Get(project.Id);
 
         [Fact]
         public void TestScalarServiceFieldWithSameTypeReferencedExpression()

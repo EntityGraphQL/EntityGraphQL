@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using EntityGraphQL.Extensions;
 
@@ -105,7 +106,9 @@ namespace EntityGraphQL.Compiler.Util
             }
             var startAt = 0;
             // only need to extract if this is not part of a larger expression
-            if (node.Object is null) // static/extension method
+            // and only visit args[0] with the whole node if it is an extension method
+            bool isExtension = node.Method.IsDefined(typeof(ExtensionAttribute), true);
+            if (node.Object is null && isExtension)
             {
                 startAt = 1;
                 if (currentExpression.Count == 0)
