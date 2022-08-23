@@ -34,7 +34,7 @@ namespace EntityGraphQL.Compiler
 
             var result = new ConcurrentDictionary<string, object?>();
             CompileContext compileContext = new();
-            foreach (var field in QueryFields.Cast<GraphQLSubscriptionField>())
+            foreach (var field in QueryFields)
             {
                 try
                 {
