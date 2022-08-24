@@ -195,9 +195,12 @@ namespace EntityGraphQL.Compiler.Util
             {
                 return Guid.Parse(value!.ToString()!);
             }
-            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>) && fromType == toType.GetGenericArguments()[0])
+            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
             {
-                return Activator.CreateInstance(toType, value);
+                if (fromType == toType.GetGenericArguments()[0])
+                    return Activator.CreateInstance(toType, value);
+                else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                    return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
             }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
             {
@@ -468,19 +471,19 @@ namespace EntityGraphQL.Compiler.Util
                        .ToDictionary(i => i.Field.Name.Replace($"{RootType(i.Expression)?.Name}.", ""), i => i.Expression);
 
                     var memberInit = CreateNewExpression(fieldDescription, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
-                  
-                        var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
-                        var replacer = new ParameterReplacer();
 
-                        var convertedExpression = conversionVisitor.Visit(memberInit);
+                    var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
+                    var replacer = new ParameterReplacer();
 
-                        previous = Expression.Condition(
-                              test: Expression.TypeIs(currentContextParam, type!),
-                              ifTrue: convertedExpression!,
-                              ifFalse: previous,
-                              type: baseDynamicType
-                        );
-                 
+                    var convertedExpression = conversionVisitor.Visit(memberInit);
+
+                    previous = Expression.Condition(
+                          test: Expression.TypeIs(currentContextParam, type!),
+                          ifTrue: convertedExpression!,
+                          ifFalse: previous,
+                          type: baseDynamicType
+                    );
+
                 }
 
                 var selector = Expression.Lambda(previous!, currentContextParam);
