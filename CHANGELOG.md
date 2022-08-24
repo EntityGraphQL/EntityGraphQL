@@ -43,6 +43,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #197 - If a mutation returns `Task<T>` use `T` as the return type
 - Fix #204 - Nullable reference types correctly produce a nullable argument in the schema
 - If not using `MutationArgumentsAttribute` in mutation methods `autoAddInputTypes` was being ignored
+- #219 - Handle conversion of variables as lists to a `RequiredField<>` arg of the list type
 
 # 3.0.4
 
