@@ -118,7 +118,7 @@ namespace EntityGraphQL.Tests
         public void QueryVariableArrayGetsAList()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Query().AddField("test", new { ids = (Guid[])null }, (db, args) => db.People.Where(p => args.ids.Any(a => a == p.Guid)), "test field");
+            schema.Query().AddField("test", new { ids = ArgumentHelper.Required<Guid[]>() }, (db, args) => db.People.Where(p => ((Guid[])args.ids).Any(a => a == p.Guid)), "test field");
             var gql = new QueryRequest
             {
                 Query = @"query ($ids: [ID]) {
