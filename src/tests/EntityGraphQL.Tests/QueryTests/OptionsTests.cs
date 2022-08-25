@@ -38,6 +38,7 @@ namespace EntityGraphQL.Tests
         public void Test_ExecuteServiceFieldsSeparately_False_WithListNavigation()
         {
             var schema = SchemaBuilder.FromObject<OptionsContext>();
+            schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).ResolveWithService<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
             var gql = new QueryRequest
             {
                 Query = @"{
@@ -50,7 +51,11 @@ namespace EntityGraphQL.Tests
                 }"
             };
             var contextData = new OptionsContext().AddCustomerWithOrder("Lisa", 4);
-            var res = schema.ExecuteRequest(gql, contextData, null, null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
+
+            var serviceCollection = new ServiceCollection();
+            var ager = new AgeService();
+            serviceCollection.AddSingleton(ager);
+            var res = schema.ExecuteRequest(gql, contextData, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
             Assert.Null(res.Errors);
             dynamic customers = res.Data["customers"];
             Assert.Single(customers);
