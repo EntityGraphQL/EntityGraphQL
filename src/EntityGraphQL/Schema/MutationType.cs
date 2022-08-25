@@ -101,7 +101,7 @@ public class MutationType
         }
         var typeName = SchemaType.Schema.GetSchemaType(nonListReturnType, null).Name;
         var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method.IsNullable());
-        var mutationField = new MutationField(SchemaType.Schema, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, options);
+        var mutationField = new MutationField(SchemaType.Schema, this.SchemaType, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, options);
 
         var validators = method.GetCustomAttributes<ArgumentValidatorAttribute>();
         if (validators != null)

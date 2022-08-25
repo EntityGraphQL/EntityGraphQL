@@ -1,6 +1,5 @@
 ﻿using Xunit;
 using EntityGraphQL.Compiler;
-using EntityGraphQL.Tests.ApiVersion1;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
@@ -41,7 +40,7 @@ query {
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
             var qr = gql.ExecuteQuery(context, null, null);
-            dynamic animals = (dynamic)qr.Data["animals"];
+            dynamic animals = qr.Data["animals"];
             // we only have the fields requested
             Assert.Equal(2, animals.Count);
 

@@ -17,8 +17,8 @@ namespace EntityGraphQL.Schema
         private readonly MethodInfo method;
         private readonly bool isAsync;
 
-        public MutationField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMutationOptions options)
-            : base(schema, methodName, description, returnType)
+        public MutationField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMutationOptions options)
+            : base(schema, fromType, methodName, description, returnType)
         {
             Services = new List<Type>();
             this.method = method;
