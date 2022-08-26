@@ -29,8 +29,8 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        internal Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
-        : base(schema, name, description, returnType)
+        internal Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
+        : base(schema, fromType, name, description, returnType)
         {
             RequiredAuthorization = requiredAuth;
             Extensions = new List<IFieldExtension>();
@@ -68,8 +68,8 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field(ISchemaProvider schema, string name, LambdaExpression? resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims)
-            : this(schema, name, resolve, description, returnType, claims)
+        public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? claims)
+            : this(schema, fromType, name, resolve, description, returnType, claims)
         {
             if (argTypes != null)
             {

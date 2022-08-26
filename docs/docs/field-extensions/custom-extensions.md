@@ -63,7 +63,7 @@ public class FormatStringExtension : IFieldExtension
         return expression;
     }
 
-    public (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
+    public (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression selectContextParam) ProcessExpressionSelection(GraphQLFieldType fieldType, Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // Called for object projection and collection fields. Giving you an opportunity to modify
         // the selection expression or the selection base expression.

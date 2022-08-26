@@ -102,7 +102,7 @@ namespace EntityGraphQL.Compiler
             return resultExpression;
         }
 
-        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<string, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
+        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<IFieldKey, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
         {
             // null check on listContext which may be a call to a service that we do not want to call twice
             var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler
             {
                 updatedListContext = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, listContext, fieldParams, replacer);
 
-                foreach(var selectExpression in selectExpressions)
+                foreach (var selectExpression in selectExpressions)
                 {
                     selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
                 }

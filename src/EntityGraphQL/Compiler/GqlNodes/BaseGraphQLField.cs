@@ -21,7 +21,7 @@ namespace EntityGraphQL.Compiler
     ///     }
     /// }
     /// </summary>
-    public abstract class BaseGraphQLField : IGraphQLNode
+    public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     {
         protected readonly ISchemaProvider schema;
         protected readonly List<GraphQLDirective> directives = new();
@@ -29,8 +29,25 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Name of the field
         /// </summary>
-        /// <value></value>
         public string Name { get; set; }
+        /// <summary>
+        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
+        /// across types. E.g name field below
+        /// {
+        ///     animals {
+        ///         __typename
+        ///         ... on Dog {
+        ///             name
+        ///             hasBone
+        ///         }
+        ///         ... on Cat {
+        ///             name
+        ///             lives
+        ///         }
+        ///     }
+        /// }
+        /// </summary>
+        public ISchemaType? FromType { get => Field?.FromType; }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new();
         public Expression? NextFieldContext { get; }
@@ -111,8 +128,8 @@ namespace EntityGraphQL.Compiler
 
             return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : new List<BaseGraphQLField> { field ?? this };
         }
-        
-        public virtual void AddField(BaseGraphQLField field)
+
+        public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
         }
@@ -128,7 +145,7 @@ namespace EntityGraphQL.Compiler
             return (baseExpression, listTypeParam);
         }
 
-        protected (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             if (Field == null)
                 return (baseExpression, selectionExpressions, selectContextParam);
@@ -209,5 +226,45 @@ namespace EntityGraphQL.Compiler
 
             return nextFieldContext;
         }
+
+        public override int GetHashCode()
+        {
+            return Name.GetHashCode() + FromType?.GetHashCode() ?? 0;
+        }
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as BaseGraphQLField);
+        }
+
+        public bool Equals(BaseGraphQLField? obj)
+        {
+            return obj != null && obj.Name == this.Name && obj.FromType?.Name == this.FromType?.Name;
+        }
+    }
+
+    public interface IFieldKey
+    {
+        /// <summary>
+        /// Name of the field
+        /// </summary>
+        string Name { get; }
+        /// <summary>
+        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
+        /// across types. E.g name field below
+        /// {
+        ///     animals {
+        ///         __typename
+        ///         ... on Dog {
+        ///             name
+        ///             hasBone
+        ///         }
+        ///         ... on Cat {
+        ///             name
+        ///             lives
+        ///         }
+        ///     }
+        /// }
+        /// </summary>
+        ISchemaType? FromType { get; }
     }
 }

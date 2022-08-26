@@ -27,6 +27,10 @@ namespace EntityGraphQL.Schema
         ParameterExpression? ArgumentParam { get; }
         Type? ArgumentsType { get; set; }
         string Name { get; }
+        /// <summary>
+        /// GraphQL type this fiel belongs to
+        /// </summary>
+        ISchemaType FromType { get; }
         GqlTypeInfo ReturnType { get; }
         List<IFieldExtension> Extensions { get; set; }
         RequiredAuthorization? RequiredAuthorization { get; }

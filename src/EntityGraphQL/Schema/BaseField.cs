@@ -22,6 +22,7 @@ namespace EntityGraphQL.Schema
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
         public ParameterExpression? ArgumentParam { get; set; }
         public string Name { get; internal set; }
+        public ISchemaType FromType { get; }
         public GqlTypeInfo ReturnType { get; protected set; }
         public List<IFieldExtension> Extensions { get; set; }
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
@@ -52,9 +53,10 @@ namespace EntityGraphQL.Schema
 
         protected List<Action<ArgumentValidatorContext>> argumentValidators = new();
 
-        protected BaseField(ISchemaProvider schema, string name, string? description, GqlTypeInfo returnType)
+        protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
             this.Schema = schema;
+            FromType = fromType;
             Description = description ?? string.Empty;
             Name = name;
             ReturnType = returnType;

@@ -182,6 +182,9 @@ namespace EntityGraphQL.Tests
             return true;
         }
         [GraphQLMutation]
+        public bool TaskWithListSeparateArg(List<InputObject> inputs) => true;
+
+        [GraphQLMutation]
         public bool TaskWithListInt(ListIntArgs args)
         {
             return true;

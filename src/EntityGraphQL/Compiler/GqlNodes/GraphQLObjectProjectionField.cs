@@ -118,7 +118,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">Has the context changes (second pass with services)</param>
         /// <param name="replacer"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(CompileContext compileContext, Dictionary<string, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        private Expression WrapWithNullCheck(CompileContext compileContext, Dictionary<IFieldKey, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc
@@ -135,10 +135,10 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in selectionFields)
                 {
-                    if (item.Value.Field.Field?.Services.Any() == true || item.Key == "__typename")
+                    if (item.Value.Field.Field?.Services.Any() == true || item.Key.Name == "__typename")
                         item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                     else
-                        item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key);
+                        item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);
                 }
             }
             else
@@ -151,7 +151,7 @@ namespace EntityGraphQL.Compiler
 
             (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
-            var selectionExpressions = selectionFields.ToDictionary(f => f.Key, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+            var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
             updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;

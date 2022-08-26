@@ -426,7 +426,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(string fieldDescription, ParameterExpression currentContextParam, Expression baseExp, IDictionary<string, CompiledField> fieldExpressions)
+        public static Expression MakeSelectWithDynamicType(string fieldDescription, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
@@ -440,7 +440,7 @@ namespace EntityGraphQL.Compiler.Util
             // If 0 or 1 valid types then default to basic behaviour
             if (validTypes.Count() < 2)
             {
-                var memberExpressions = fieldExpressions.ToDictionary(i => i.Key, i => i.Value.Expression);
+                var memberExpressions = fieldExpressions.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
                 var memberInit = CreateNewExpression(fieldDescription, memberExpressions, out Type dynamicType);
                 if (memberInit == null || dynamicType == null) // nothing to select
                     return baseExp;
@@ -468,7 +468,7 @@ namespace EntityGraphQL.Compiler.Util
 
                     var fieldsOnType = fieldExpressions.Values
                        .Where(i => RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
-                       .ToDictionary(i => i.Field.Name.Replace($"{RootType(i.Expression)?.Name}.", ""), i => i.Expression);
+                       .ToDictionary(i => i.Field.Name, i => i.Expression);
 
                     var memberInit = CreateNewExpression(fieldDescription, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
 

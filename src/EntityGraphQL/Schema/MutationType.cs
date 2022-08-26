@@ -32,10 +32,11 @@ public class MutationType : ControllerType
         }
         return type;
     }
+}
 
-    protected override BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderMethodOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType)
-    {
-        options ??= new SchemaBuilderMethodOptions();
-        return new MutationField(SchemaType.Schema, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, options);
-    }
+protected override BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderMethodOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType)
+{
+    options ??= new SchemaBuilderMethodOptions();
+    return new MutationField(SchemaType.Schema, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, SchemaType.Schema.SchemaFieldNamer, options);
+}
 }
