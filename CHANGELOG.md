@@ -24,6 +24,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 ```
 
 - `SchemaBuilderOptions.IgnoreTypes` Now uses `Type` instead of `string`. It is a `HashSet<Type>` now to avoid confusion ofwhich name to use (full name space or not)
+- `ProcessExpressionSelection` used in Field Extentions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.
 
 ## Changes
 
