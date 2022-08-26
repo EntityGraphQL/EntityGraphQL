@@ -48,6 +48,8 @@
             {
                 var typeElement = new TypeElement("SCALAR", customScalar.Name);
 
+                customScalar.Directives.ProcessType(typeElement);
+
                 types.Add(typeElement);
             }
 
@@ -130,10 +132,11 @@
 
                 var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name)
                 {
-                    OneField = schemaType.IsOneOf,
                     Description = schemaType.Description,
                     InputFields = inputValues.ToArray()
                 };
+
+                schemaType.Directives.ProcessType(typeElement);
 
                 types.Add(typeElement);
             }
@@ -163,12 +166,14 @@
                     if (field.Name.StartsWith("__"))
                         continue;
 
-                    enumTypes.Add(new EnumValue(field.Name)
+                    var e = new EnumValue(field.Name)
                     {
                         Description = field.Description,
-                        IsDeprecated = field.IsDeprecated,
-                        DeprecationReason = field.DeprecationReason
-                    });
+                    };
+
+                    field.Directives.ProcessEnumValue(e);
+
+                    enumTypes.Add(e);
                 }
 
                 typeElement.EnumValues = enumTypes.ToArray();
@@ -251,13 +256,15 @@
                 if (field.Name.StartsWith("__"))
                     continue;
 
-                fieldDescs.Add(new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
+                var f = new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
                     Args = BuildArgs(schema, field).ToArray(),
-                    DeprecationReason = field.DeprecationReason,
                     Description = field.Description,
-                    IsDeprecated = field.IsDeprecated,
-                });
+                };
+
+                field.Directives.ProcessField(f);
+
+                fieldDescs.Add(f);
             }
             return fieldDescs.ToArray();
         }
@@ -276,13 +283,15 @@
                     continue;
 
                 //== Fields ==//
-                rootFields.Add(new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
+                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
                     Args = BuildArgs(schema, field).ToArray(),
-                    IsDeprecated = field.IsDeprecated,
-                    DeprecationReason = field.DeprecationReason,
                     Description = field.Description
-                });
+                };
+
+                field.Directives.ProcessField(f);
+
+                rootFields.Add(f);
             }
             return rootFields.ToArray();
         }
@@ -297,13 +306,15 @@
                     continue;
 
                 var args = BuildArgs(schema, field).ToArray();
-                rootFields.Add(new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
+                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
                 {
                     Args = args,
-                    IsDeprecated = field.IsDeprecated,
-                    DeprecationReason = field.DeprecationReason,
                     Description = field.Description
-                });
+                };
+
+                field.Directives.ProcessField(f);
+
+                rootFields.Add(f);
             }
             return rootFields.ToArray();
         }

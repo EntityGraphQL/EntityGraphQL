@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -52,13 +53,6 @@ namespace EntityGraphQL.Schema
                 var memberExp = (MemberExpression)resolve.Body;
                 ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(memberExp.Member) || ReturnType.TypeNotNullable;
                 ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
-
-                var obsoleteAttribute = memberExp.Member.GetCustomAttribute<ObsoleteAttribute>();
-                if (obsoleteAttribute != null)
-                {
-                    IsDeprecated = true;
-                    DeprecationReason = obsoleteAttribute.Message;
-                }
             }
 
             if (withServices)
@@ -76,16 +70,6 @@ namespace EntityGraphQL.Schema
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes);
                 ArgumentsType = argTypes.GetType();
             }
-        }
-
-        /// <summary>
-        /// Marks this field as deprecated
-        /// </summary>
-        /// <param name="reason"></param>
-        public void Deprecate(string reason)
-        {
-            IsDeprecated = true;
-            DeprecationReason = reason;
         }
 
         /// <summary>

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using EntityGraphQL.Directives;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -37,7 +39,7 @@ namespace EntityGraphQL.Schema
 
             foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
             {
-                schemaBuilder.AppendLine($"scalar {item.Name}");
+                schemaBuilder.AppendLine($"scalar {item.Name}{GetDirectives(item.Directives)}");
             }
             schemaBuilder.AppendLine();
 
@@ -81,7 +83,7 @@ namespace EntityGraphQL.Schema
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
-                    types.AppendLine($"\t{field.Name}{GetDeprecation(field)}");
+                    types.AppendLine($"\t{field.Name}{GetDirectives(field.Directives)}");
 
                 }
                 types.AppendLine("}");
@@ -108,12 +110,9 @@ namespace EntityGraphQL.Schema
             return types.ToString();
         }
 
-        private static object GetDeprecation(IField field)
+        private static object GetDirectives(IEnumerable<ISchemaDirective> directives)
         {
-            if (!field.IsDeprecated)
-                return string.Empty;
-
-            return $" @deprecated(reason: \"{EscapeString(field.DeprecationReason)}\")";
+            return string.Join("", directives.Select(d => " " + d.ToGraphQLSchemaString()).Distinct());
         }
 
         private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
@@ -167,12 +166,10 @@ namespace EntityGraphQL.Schema
             var implements = "";
             if (schemaType.BaseTypes != null && schemaType.BaseTypes.Count > 0)
             {
-                implements += $"implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))} ";
+                implements += $" implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))}";
             }
 
-            var oneOf = schemaType.IsOneOf ? "@oneOf " : "";
-
-            sb.AppendLine($"{type} {schemaType.Name} {implements}{oneOf}{{");
+            sb.AppendLine($"{type} {schemaType.Name}{implements}{GetDirectives(schemaType.Directives)} {{");
 
             foreach (var field in schemaType.GetFields().OrderBy(s => s.Name))
             {
@@ -180,7 +177,7 @@ namespace EntityGraphQL.Schema
                     continue;
                 if (!string.IsNullOrEmpty(field.Description))
                     sb.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
-                sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDeprecation(field)}");
+                sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDirectives(field.Directives)}");
             }
             sb.AppendLine("}");
 

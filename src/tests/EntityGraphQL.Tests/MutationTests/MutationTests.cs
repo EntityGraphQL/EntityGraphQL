@@ -33,7 +33,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationOptional()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Tests
         public void SupportsMutationArrayArg()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -95,7 +95,7 @@ namespace EntityGraphQL.Tests
             // ctx => ctx.People.First(p => p.Id == myNewPerson.Id)
             // that myNewPerson.Id does not get replace by something dumb like p.Id == p.Id
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var query = @"mutation AddPerson($names: [String]) {
   addPersonNamesExpression(names: $names) {
@@ -293,7 +293,7 @@ namespace EntityGraphQL.Tests
         public void SupportsSelectionFromConstant()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -328,7 +328,7 @@ namespace EntityGraphQL.Tests
                 type.AddField("age", "Person's age")
                     .ResolveWithService<AgeService>((p, service) => service.GetAge(p.Birthday));
             });
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -370,7 +370,7 @@ namespace EntityGraphQL.Tests
                 type.AddField("age", "Person's age")
                     .ResolveWithService<AgeService>((p, service) => service.GetAge(p.Birthday));
             });
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -406,7 +406,7 @@ namespace EntityGraphQL.Tests
         public void MutationReturnsCollectionConst()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -700,7 +700,7 @@ namespace EntityGraphQL.Tests
         public void TestComplexReturn()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
             schemaProvider.AddInputType<DecimalInput>("DecimalInput", "DecimalInput").AddAllFields();
             var gql = new QueryRequest
             {

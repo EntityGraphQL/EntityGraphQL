@@ -9,16 +9,16 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// </summary>
         /// <param name="field"></param>
         /// <returns></returns>
-        public static Field UseFilter(this Field field)
+        public static IField UseFilter(this IField field)
         {
             field.AddExtension(new FilterExpressionExtension());
             return field;
         }
     }
 
-    public class UseFilterAttribute : FieldExtensionAttribute
+    public class UseFilterAttribute : ExtensionAttribute
     {
-        public override void ApplyExtension(Field field)
+        public override void ApplyExtension(IField field)
         {
             field.UseFilter();
         }

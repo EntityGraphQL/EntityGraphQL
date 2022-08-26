@@ -50,6 +50,8 @@ namespace EntityGraphQL.Schema.Models
         public TypeElement[] PossibleTypes { get; set; } = new TypeElement[0];
         public TypeElement? OfType { get; set; }
         public bool OneField { get; set; }
+        // may be non-null for custom SCALAR, otherwise null.
+        public string? SpecifiedByURL { get; set; }
     }
 
     public partial class Field

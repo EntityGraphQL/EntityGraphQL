@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -35,8 +36,8 @@ namespace EntityGraphQL.Schema
         List<IFieldExtension> Extensions { get; set; }
         RequiredAuthorization? RequiredAuthorization { get; }
 
-        bool IsDeprecated { get; set; }
-        string? DeprecationReason { get; set; }
+        IList<ISchemaDirective> Directives { get; }
+        IField AddDirective(ISchemaDirective directive);
 
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);

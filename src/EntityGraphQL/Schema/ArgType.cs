@@ -107,6 +107,8 @@ namespace EntityGraphQL.Schema
                 validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
             else if (IsRequired && val == null && DefaultValue == null)
                 validationErrors.Add($"Field '{fieldName}' - missing required argument '{Name}'");
+
+            Type.SchemaType.Validate(val);
         }
     }
 }

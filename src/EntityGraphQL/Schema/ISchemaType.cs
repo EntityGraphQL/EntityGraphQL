@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -21,11 +22,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Input
         /// </summary>
-        bool IsInput { get; }
-        /// <summary>
-        /// True if type is a Input @oneOf union
-        /// </summary>
-        bool IsOneOf { get; }
+        bool IsInput { get; }        
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Interface
         /// </summary>
@@ -46,6 +43,10 @@ namespace EntityGraphQL.Schema
         bool RequiresSelection { get; }
         IList<ISchemaType> BaseTypes { get; }
         IList<ISchemaType> PossibleTypes { get; }
+
+        IList<ISchemaDirective> Directives { get; }
+        ISchemaType AddDirective(ISchemaDirective directive);
+        void ApplyAttributes(IEnumerable<Attribute> attributes);
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);
         IEnumerable<IField> GetFields();
@@ -77,5 +78,10 @@ namespace EntityGraphQL.Schema
         /// <param name="typeName"></param>
         /// <returns></returns>
         ISchemaType Implements(string typeName);
+
+        void Validate(object? value);
+
+        public event Action<IField> OnAddField;
+        public event Action<object?> OnValidate;
     }
 }

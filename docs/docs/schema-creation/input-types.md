@@ -130,30 +130,4 @@ POST localhost:5000/graphql
 }
 ```
 
-## One Of Input Types
-
-EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-spec/pull/825) (A proposal for the next specification).
-
-Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution.
-
-```cs
-[GraphQLOneOf]
-private class OneOfInputType
-{
-    public int? One { get; set; }
-    public int? Two { get; set; }
-}
-```
-
-This will generate the follow grpahql schema.
-
-```graphql
-input MutationArgs @oneOf {
-  one: Int
-  two: Int
-}
-```
-
-Although each field on the input is nullable the `@oneOf` input type has one further validation step.
-
-- Exactly one key must be specified
+Input types can be modified using the [OneOf](../directives/schema-directives) Schema Directive to tell clients that only one field should contain a value.
