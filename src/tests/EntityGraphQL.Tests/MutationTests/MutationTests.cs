@@ -585,6 +585,7 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"mutation {
           taskWithList(inputs: [{name: ""Bill""}, {name: ""Bob""}])
+          taskWithListSeparateArg(inputs: [{name: ""Bill""}, {name: ""Bob""}])
         }
         ",
             };
@@ -593,6 +594,7 @@ namespace EntityGraphQL.Tests
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithList"]);
+            Assert.Equal(true, results.Data["taskWithListSeparateArg"]);
         }
 
         [Fact]
