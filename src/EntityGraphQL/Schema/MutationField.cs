@@ -98,9 +98,20 @@ namespace EntityGraphQL.Schema
                     allArgs.Add(argInstance!);
                 }
                 else if (docVariables != null && gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
-                {
+                { 
+                    object? value = null;
+
+                    if (gqlRequestArgs[p.Name!] is Expression argExpression)
+                    {
+                        value = Expression.Lambda(argExpression as Expression, variableParameter).Compile().DynamicInvoke(new[] { docVariables });
+                    }
+
                     var argField = Arguments[p.Name!];
-                    var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    if (value == null)
+                    {
+                        value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs ?? new Dictionary<string, object>(), argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    }
+
                     if (value == null || value is Expression)
                     {
                         var field = docVariables.GetType().GetField(p.Name!);

@@ -99,6 +99,27 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestSingleArgument_DifferentVariableName()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddInputType<InputObject>("InputObject", "");
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSingleArgument($differentName: InputObject) {
+                  addPersonSingleArgument(nameInput: $differentName) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "differentName", new InputObject() { Name = "Frank" } },
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+            Assert.Equal("Frank", ((dynamic)res.Data["addPersonSingleArgument"]).name);
+        }
+
+        [Fact]
         public void TestSingleArgument_AutoAddInputTypes()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
