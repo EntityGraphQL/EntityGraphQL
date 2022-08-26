@@ -29,6 +29,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 
 ## Changes
 
+- Add support for GraphQL subscriptions - see updated documentation
 - Added support for definng Union types in the schema (#107)
 - Core library `EntityGraphQL` only targets `netstandard2.1` as we do not need to multi-target and this still supports a large dotnet base (3.1+)
 
@@ -37,6 +38,8 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #206 - If a service field included a binary expression EntityGraphQL would sometimes build an incorrect selection expression
 - Fix #214 - The implicit conversion return type of a `ArgumentHelper.Required<>()` field argument is non-null
 - Fix #212 - Regression using a static or instance method in a service field
+- Fix #223 - Mutations with inline args don't support variables with different name to argument name
+- Fix #225 - Mutations with separate (not using `MutationArgumentsAttribute`) parameters fail if called without variables
 
 # 3.0.5
 

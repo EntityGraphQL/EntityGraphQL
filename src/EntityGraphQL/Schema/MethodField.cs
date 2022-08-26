@@ -17,8 +17,8 @@ namespace EntityGraphQL.Schema
         protected readonly MethodInfo method;
         protected readonly bool isAsync;
 
-        public MethodField(ISchemaProvider schema, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
-            : base(schema, methodName, description, returnType)
+        public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
+            : base(schema, fromType, methodName, description, returnType)
         {
             Services = new List<Type>();
             this.method = method;
@@ -103,13 +103,9 @@ namespace EntityGraphQL.Schema
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     if (docVariables != null)
                     {
-                        if (value == null || value is Expression)
+                        if (value is Expression)
                         {
-                            var field = docVariables?.GetType().GetField(p.Name!);
-                            if (field != null)
-                            {
-                                value = field.GetValue(docVariables);
-                            }
+                            value = Expression.Lambda(value as Expression, variableParameter).Compile().DynamicInvoke(new[] { docVariables });
                         }
                     }
                     // this could be int to RequiredField<int>
