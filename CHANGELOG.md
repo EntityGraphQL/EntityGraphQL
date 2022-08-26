@@ -15,7 +15,7 @@ services.AddGraphQLSchema<DemoContext>(options =>
 });
 ```
 
-- `AddMutationsFrom` and friends now take an optional `SchemaBuilderMutationOptions` options object to configure how mutations are built, following the `SchemaBuilderOptions` used elsewhere. See updated docs. Important defaults:
+- `AddMutationsFrom` and friends now take an optional `SchemaBuilderMethodOptions` options object to configure how mutations are built, following the `SchemaBuilderOptions` used elsewhere. See updated docs. Important defaults:
 
 ```c#
 bool AutoCreateInputTypes = true; // Any input types seen will be added to the schema
@@ -25,6 +25,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 
 - `SchemaBuilderOptions.IgnoreTypes` Now uses `Type` instead of `string`. It is a `HashSet<Type>` now to avoid confusion ofwhich name to use (full name space or not)
 - `ProcessExpressionSelection` used in Field Extentions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.
+- `MutationArgumentsAttribute` renamed to `GraphQLArgumentsAttribute` and is used with subscriptions or mutaiton method arguments
 
 ## Changes
 

@@ -16,6 +16,7 @@ namespace EntityGraphQL.Schema
     {
         Type QueryContextType { get; }
         Type MutationType { get; }
+        Type SubscriptionType { get; }
         Func<string, string> SchemaFieldNamer { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
         string QueryContextName { get; }
@@ -28,13 +29,14 @@ namespace EntityGraphQL.Schema
         ISchemaType AddUnion(Type type, string name, string? description);
         SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
         ISchemaType AddInputType(Type type, string name, string? description);
-        void AddMutationsFrom<TType>(SchemaBuilderMutationOptions? options = null) where TType : class;
+        void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options = null) where TType : class;
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
         ISchemaType AddType(Type contextType, string name, string? description);
         void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
         SchemaType<TBaseType> AddType<TBaseType>(string description);
+        ISchemaType AddType(ISchemaType schemaType);
         void AddTypeMapping<TFromType>(string gqlType);
         GqlTypeInfo? GetCustomTypeMapping(Type dotnetType);
         IDirectiveProcessor GetDirective(string name);
@@ -59,5 +61,6 @@ namespace EntityGraphQL.Schema
         SchemaType<TType> Type<TType>(Type type);
         void UpdateType<TType>(Action<SchemaType<TType>> configure);
         MutationType Mutation();
+        SubscriptionType Subscription();
     }
 }

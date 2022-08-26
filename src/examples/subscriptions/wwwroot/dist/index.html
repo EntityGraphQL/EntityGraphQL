@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entity GraphQL subscriptions example</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="text-center">
+                <h1 class="display-4">Welcome to the EntityGraphQL subscription example.</h1>
+                <p>Here we use a GraphQL subscription to subscribe to new messages. Each side lets you send a message from a different 
+                    user (via a mutation over the same websocket protocol). Explore the code to see what is happening. Open this page in 
+                    another browser and send messages. Hopefully gives you an example of setting up subscriptions with EntityGraphQL.</p>
+                <p>Please note this example does not cover handling events happening across multiple servers or services.</p>
+            </div>
+            
+            <div id="app-root" class="d-flex flex-row flex-fill">
+                
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
+        crossorigin="anonymous"></script>
+    <script src="/site.js"></script>
+</body>
+
+</html>

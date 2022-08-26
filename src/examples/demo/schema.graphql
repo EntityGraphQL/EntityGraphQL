@@ -153,11 +153,6 @@ type PersonPage {
 	totalItems: Int!
 }
 
-"""Information about subscriptions"""
-type SubscriptionType {
-	name: String!
-}
-
 type Writer {
 	movie: Movie
 	movieId: Int!

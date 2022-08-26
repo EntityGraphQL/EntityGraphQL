@@ -38,6 +38,8 @@ namespace EntityGraphQL.Schema
         /// True if GqlType is GqlTypeEnum.Scalar
         /// </summary>
         bool IsScalar { get; }
+
+        ISchemaProvider Schema { get; }
         /// <summary>
         /// If the type in a query requires a selection {  }
         /// </summary>

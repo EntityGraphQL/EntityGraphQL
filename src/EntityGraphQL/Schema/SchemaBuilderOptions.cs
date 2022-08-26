@@ -53,12 +53,14 @@ namespace EntityGraphQL.Schema
         public bool AutoCreateInterfaceTypes { get; set; } = false;
     }
 
-    public class SchemaBuilderMutationOptions : SchemaBuilderOptions
+    public class SchemaBuilderMethodOptions : SchemaBuilderOptions
     {
         /// <summary>
-        /// If true (default = true) and an object type is encountered during reflection of the mutation parameters itt will be added to the schema as an InputObject type
+        /// If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
+        /// 
+        /// If you set it true, EntityGraphQL doesn't know which objects should be InputTypes or a services to be injected at execution.
         /// </summary>
-        public bool AutoCreateInputTypes { get; set; } = true;
+        public bool AutoCreateInputTypes { get; set; } = false;
         /// <summary>
         /// If true (default = false) Any public method in the mutation class will be added to the schema as a mutation
         /// </summary>

@@ -5,13 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch demo web",
+            "name": "Launch demo example",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/demo/bin/Debug/net6.0/demo.dll",
+            "program": "${workspaceFolder}/src/examples/demo/bin/Debug/net6.0/demo.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/demo",
+            "cwd": "${workspaceFolder}/src/examples/demo",
             "stopAtEntry": false,
             "launchBrowser": {
                 "enabled": true
@@ -21,6 +21,22 @@
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": "Launch subscription example",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/examples/subscriptions/bin/Debug/net6.0/subscriptions.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/examples/subscriptions",
+            "stopAtEntry": false,
+            "launchBrowser": {
+                "enabled": true
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
             }
         },
         {

@@ -8,7 +8,7 @@ namespace EntityGraphQL.Schema
 {
     public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType where TFieldType : IField
     {
-        internal ISchemaProvider Schema { get; }
+        public ISchemaProvider Schema { get; }
         internal Dictionary<string, TFieldType> FieldsByName { get; } = new();
         public abstract Type TypeDotnet { get; }
         public string Name { get; }

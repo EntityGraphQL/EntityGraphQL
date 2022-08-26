@@ -23,6 +23,7 @@ namespace EntityGraphQL.Schema
     {
         public Type QueryContextType { get { return queryType.TypeDotnet; } }
         public Type MutationType { get { return mutationType.SchemaType.TypeDotnet; } }
+        public Type SubscriptionType { get { return subscriptionType.SchemaType.TypeDotnet; } }
         public Func<string, string> SchemaFieldNamer { get; }
         public IGqlAuthorizationService AuthorizationService { get; set; }
         protected Dictionary<string, ISchemaType> schemaTypes = new();
@@ -36,6 +37,8 @@ namespace EntityGraphQL.Schema
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly bool introspectionEnabled;
         private readonly MutationType mutationType;
+        private readonly SubscriptionType subscriptionType;
+
         public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
         // map some types to scalar types
@@ -83,9 +86,9 @@ namespace EntityGraphQL.Schema
             this.queryType = queryContext;
             schemaTypes.Add(queryContext.Name, queryContext);
 
-            var mutationType = new MutationType(this, "Mutation", null, null);
-            this.mutationType = mutationType;
-            schemaTypes.Add(mutationType.SchemaType.Name, mutationType.SchemaType);
+            // these types are added to the schema if a field is added to the type in ControllerType
+            this.mutationType = new MutationType(this, "Mutation", null, null);
+            this.subscriptionType = new SubscriptionType(this, "Subscription");
 
             if (introspectionEnabled)
             {
@@ -94,7 +97,6 @@ namespace EntityGraphQL.Schema
                 AddType<Models.EnumValue>("__EnumValue", "Information about enums").AddAllFields();
                 AddType<Models.InputValue>("__InputValue", "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.").AddAllFields();
                 AddType<Models.Directive>("__Directive", "Information about directives").AddAllFields();
-                AddType<Models.SubscriptionType>("Information about subscriptions").AddAllFields();
                 AddType<Models.Field>("__Field", "Information about fields").AddAllFields();
                 AddType<Models.Schema>("__Schema", "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.").AddAllFields();
 
@@ -340,6 +342,12 @@ namespace EntityGraphQL.Schema
             return AddType<TBaseType>(name, description);
         }
 
+        public ISchemaType AddType(ISchemaType schemaType)
+        {
+            schemaTypes.Add(schemaType.Name, schemaType);
+            return schemaType;
+        }
+
         private void FinishAddingType(Type contextType, string name, ISchemaType tt)
         {
             tt.RequiredAuthorization = AuthorizationService.GetRequiredAuthFromType(contextType);
@@ -430,7 +438,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <typeparam name="TType"></typeparam>
         /// <param name="options">Options for the schema builder</param>
-        public void AddMutationsFrom<TType>(SchemaBuilderMutationOptions? options = null) where TType : class
+        public void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options = null) where TType : class
         {
             mutationType.AddFrom<TType>(options);
         }
@@ -819,5 +827,11 @@ namespace EntityGraphQL.Schema
                 options = new SchemaBuilderOptions();
             SchemaBuilder.FromObject(this, options);
         }
+
+        /// <summary>
+        /// Return the Root Subscription schema type. Use this to add/remove/modify subscription fields
+        /// </summary>
+        /// <returns>Root subscription schema type</returns>
+        public SubscriptionType Subscription() => subscriptionType;
     }
 }

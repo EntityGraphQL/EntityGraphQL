@@ -99,7 +99,7 @@ public class Startup {
       app.UseRouting();
       app.UseEndpoints(endpoints =>
       {
-          // default to /graphql endpoint
+          // defaults to /graphql endpoint
           endpoints.MapGraphQL<DemoContext>();
       });
   }

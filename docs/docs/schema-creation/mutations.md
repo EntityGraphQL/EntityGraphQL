@@ -67,16 +67,18 @@ Above we use our mutation to add a person and select their `fullName` and `id` i
 ## AddMutationsFrom method arguments
 
 ```cs
-  void AddMutationsFrom<TType>(SchemaBuilderMutationOptions? options =  null) where TType : class;
+  void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options =  null) where TType : class;
 ```
 
-**SchemaBuilderMutationOptions.AutoCreateInputTypes**
-If true (deafult = true), any class types seen in the mutation parameters will be added to the schema as an Input type
+**SchemaBuilderMethodOptions.AutoCreateInputTypes**
+If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
 
-**SchemaBuilderMutationOptions.AddNonAttributedMethods**
+If you set this to true, EntityGraphQL doesn't know which objects should be InputTypes or are services to be injected at execution as the `ServiceProvider` is not supplied at schema screation.
+
+**SchemaBuilderMethodOptions.AddNonAttributedMethods**
 If true (deafult = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
-`SchemaBuilderMutationOptions` in herits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
+`SchemaBuilderMethodOptions` in herits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
 
 **SchemaBuilderOptions.AutoCreateNewComplexTypes**
 If true (default = true) any complex class types that a mutation returns is added to the schema as a query type if it is not already there.

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 5
 ---
 
 # Input Types
@@ -132,7 +132,7 @@ POST localhost:5000/graphql
 
 ## One Of Input Types
 
-EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-spec/pull/825).
+EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-spec/pull/825) (A proposal for the next specification).
 
 Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution.
 

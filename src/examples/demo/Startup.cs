@@ -35,10 +35,10 @@ namespace demo
             services.AddSingleton<AgeService>();
 
             services.AddLogging(logging =>
-                {
-                    logging.AddConsole(configure => Configuration.GetSection("Logging"));
-                    logging.AddDebug();
-                });
+            {
+                logging.AddConsole(configure => Configuration.GetSection("Logging"));
+                logging.AddDebug();
+            });
             // add schema provider so we don't need to create it everytime
             // if you want to override json serialization - say PascalCase response
             // You will also need to override the default fieldNamer in SchemaProvider
@@ -59,7 +59,7 @@ namespace demo
                     schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
                 };
                 options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
-                // this will generate the field names as they are from the reflected dotnet types
+                // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
                 // builder.FieldNamer = name => name;
             });
 
@@ -112,9 +112,8 @@ namespace demo
                     FirstName = "Frank",
                     LastName = "Darabont",
                     Dob = new DateTime(1959, 1, 28),
-                }
-            };
-            shawshank.Actors = new List<Actor> {
+                },
+                Actors = new List<Actor> {
                 new Actor {
                     Person = new Person {
                         Dob = new DateTime(1958, 10, 16),
@@ -122,6 +121,7 @@ namespace demo
                         LastName = "Robbins",
                     },
                 },
+            }
             };
             db.Movies.Add(shawshank);
             var francis = new Person

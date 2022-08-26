@@ -521,7 +521,7 @@ namespace EntityGraphQL.Tests
         Obsolete
     }
 
-    [MutationArguments]
+    [GraphQLArguments]
     public class Album
     {
         [GraphQLIgnore(GraphQLIgnoreType.Input)]

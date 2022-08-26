@@ -15,7 +15,7 @@ public class ValidationTests
     public void TestValidationAttributesOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -42,7 +42,7 @@ public class ValidationTests
     public void TestValidationAttributesOnNestedMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = true });
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -428,7 +428,7 @@ internal class ValidationTestsMutations
     }
 }
 
-[MutationArguments]
+[GraphQLArguments]
 internal class MovieArg
 {
     [Required(ErrorMessage = "Title is required")]
@@ -458,13 +458,13 @@ internal class CastMemberArg
     public string Character { get; set; }
 }
 
-[MutationArguments]
+[GraphQLArguments]
 internal class PersonArgs
 {
     public string Name { get; set; }
 }
 
-[MutationArguments]
+[GraphQLArguments]
 [ArgumentValidator(typeof(PersonValidator))]
 internal class PersonArgsWithValidator
 {

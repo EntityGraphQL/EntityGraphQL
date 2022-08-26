@@ -56,7 +56,7 @@ namespace demo.Mutations
         }
 
         [GraphQLMutation]
-        public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, [MutationArguments] AddActorArgs args, GraphQLValidator validator)
+        public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, GraphQLValidator validator)
         {
             if (string.IsNullOrEmpty(args.FirstName))
                 validator.AddError("Name argument is required");
@@ -93,7 +93,7 @@ namespace demo.Mutations
         /// <param name="args"></param>
         /// <returns></returns>
         [GraphQLMutation]
-        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor2(DemoContext db, [MutationArguments] AddActorArgs args)
+        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor2(DemoContext db, [GraphQLArguments] AddActorArgs args)
         {
             var person = new Person
             {
@@ -113,7 +113,7 @@ namespace demo.Mutations
             return (ctx) => ctx.People.Where(p => p.FirstName == person.FirstName);
         }
         [GraphQLMutation]
-        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor3(DemoContext db, [MutationArguments] AddActor3Args args)
+        public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor3(DemoContext db, [GraphQLArguments] AddActor3Args args)
         {
             var person = new Person
             {
@@ -137,7 +137,7 @@ namespace demo.Mutations
     /// <summary>
     /// Must be a public class. Public fields and Properties are the mutation's arguments
     /// </summary>
-    [MutationArguments]
+    [GraphQLArguments]
     public class AddMovieArgs
     {
         public Genre Genre;

@@ -11,6 +11,9 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
+    /// <summary>
+    /// Represents a GraphQL mutation statement and knows how to execute the mutation fields.
+    /// </summary>
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
         public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
@@ -24,7 +27,7 @@ namespace EntityGraphQL.Compiler
             // Mutation fields don't directly have services to collect. This is handled after the mutaiton is executed.
             // When we are building/executing the selection on the mutation result services are handled
             CompileContext compileContext = new();
-            foreach (GraphQLMutationField field in QueryFields)
+            foreach (var field in QueryFields)
             {
                 try
                 {

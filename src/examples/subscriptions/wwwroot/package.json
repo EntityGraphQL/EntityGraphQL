@@ -1,0 +1,24 @@
+{
+  "name": "www-src",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx webpack"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/preset-react": "^7.18.6",
+    "babel-loader": "^8.2.5",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "@apollo/client": "^3.6.9",
+    "graphql-ws": "^5.9.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

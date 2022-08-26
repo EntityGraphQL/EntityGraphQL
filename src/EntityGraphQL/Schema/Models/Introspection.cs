@@ -4,7 +4,7 @@ namespace EntityGraphQL.Schema.Models
 {
     public partial class Schema
     {
-        public Schema(TypeElement queryType, TypeElement mutationType, SubscriptionType? subscriptionType, List<TypeElement> types, List<Directive> directives)
+        public Schema(TypeElement queryType, TypeElement? mutationType, TypeElement? subscriptionType, List<TypeElement> types, List<Directive> directives)
         {
             QueryType = queryType;
             MutationType = mutationType;
@@ -15,23 +15,13 @@ namespace EntityGraphQL.Schema.Models
 
         public TypeElement QueryType { get; private set; }
 
-        public TypeElement MutationType { get; private set; }
+        public TypeElement? MutationType { get; private set; }
 
-        public SubscriptionType? SubscriptionType { get; private set; }
+        public TypeElement? SubscriptionType { get; private set; }
 
         public List<TypeElement> Types { get; private set; }
 
         public List<Directive> Directives { get; private set; }
-    }
-
-    public partial class SubscriptionType
-    {
-        public SubscriptionType(string name)
-        {
-            Name = name;
-        }
-
-        public string Name { get; private set; }
     }
 
     public partial class TypeElement

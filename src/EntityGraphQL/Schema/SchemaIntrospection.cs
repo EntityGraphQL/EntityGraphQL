@@ -24,11 +24,6 @@
                     Description = "The query type, represents all of the entry points into our object graph",
                     OfType = null,
                 },
-                new TypeElement( "OBJECT", "Mutation")
-                {
-                    Description = "The mutation type, represents all updates we can make to our data",
-                    OfType = null,
-                },
             };
             types.AddRange(BuildQueryTypes(schema));
             types.AddRange(BuildInputTypes(schema));
@@ -36,8 +31,8 @@
             types.AddRange(BuildScalarTypes(schema));
 
             var schemaDescription = new Schema(new TypeElement(null, schema.QueryContextName),
-                new TypeElement(null, "Mutation"),
-                null,
+                schema.HasType(schema.Mutation().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Mutation().SchemaType.Name) : null,
+                schema.HasType(schema.Subscription().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Subscription().SchemaType.Name) : null,
                 types.OrderBy(x => x.Name).ToList(),
                 BuildDirectives(schema)
             );
@@ -236,11 +231,11 @@
         /// <returns></returns>
         public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, string typeName)
         {
-            if (typeName == "Query")
+            if (typeName == schema.QueryContextName)
             {
                 return BuildRootQueryFields(schema);
             }
-            if (typeName == "Mutation")
+            if (typeName == schema.Mutation().SchemaType.Name)
             {
                 return BuildMutationFields(schema);
             }
