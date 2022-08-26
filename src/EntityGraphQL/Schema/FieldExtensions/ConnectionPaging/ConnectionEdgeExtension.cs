@@ -107,7 +107,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
         return (baseExpression, listTypeParam);
     }
-    public override (Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<string, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         foreach (var extension in extensions)
         {
@@ -121,8 +121,9 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         // remove the above Select(new ConnectionEdge<T>(), ...)
         baseExpression = ((MethodCallExpression)baseExpression).Arguments[0];
         // remove null check as it is not required
-        var anonNewExpression = selectionExpressions["node"].Expression;
-        if (selectionExpressions["node"].Expression.NodeType == ExpressionType.Conditional)
+        var nodeField = selectionExpressions.First(f => f.Key.Name == "node").Value;
+        var anonNewExpression = nodeField.Expression;
+        if (nodeField.Expression.NodeType == ExpressionType.Conditional)
             anonNewExpression = ((ConditionalExpression)anonNewExpression).IfFalse;
         var anonType = anonNewExpression.Type;
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(anonType);
@@ -157,9 +158,9 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
             )
         );
 
-        selectionExpressions["node"].Expression = Expression.PropertyOrField(edgeParam, "Node");
-        if (selectionExpressions.ContainsKey("cursor"))
-            selectionExpressions["cursor"].Expression = Expression.PropertyOrField(edgeParam, "Cursor");
+        nodeField.Expression = Expression.PropertyOrField(edgeParam, "Node");
+        if (selectionExpressions.Any(f => f.Key.Name == "cursor"))
+            selectionExpressions.First(f => f.Key.Name == "cursor").Value.Expression = Expression.PropertyOrField(edgeParam, "Cursor");
 
         return (baseExpression, selectionExpressions, edgeParam);
     }

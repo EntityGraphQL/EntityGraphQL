@@ -29,9 +29,9 @@ namespace EntityGraphQL.Compiler
             return expression;
         }
 
-        public static Dictionary<string, Expression> ExpressionOnly(this Dictionary<string, CompiledField> source)
+        public static Dictionary<string, Expression> ExpressionOnly(this Dictionary<IFieldKey, CompiledField> source)
         {
-            return source.ToDictionary(i => i.Key, i => i.Value.Expression);
+            return source.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
         }
     }
 }

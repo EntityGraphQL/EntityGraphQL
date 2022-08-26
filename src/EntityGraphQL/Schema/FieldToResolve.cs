@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 namespace EntityGraphQL.Schema;
 public class FieldToResolveWithArgs<TContext, TParams> : Field
 {
-    public FieldToResolveWithArgs(ISchemaProvider schema, string name, string? description, TParams argTypes) : base(schema, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
+    public FieldToResolveWithArgs(ISchemaProvider schema, ISchemaType fromType, string name, string? description, TParams argTypes) : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
     {
     }
 
@@ -47,7 +47,7 @@ public class FieldToResolveWithArgs<TContext, TParams> : Field
 
 public class FieldToResolve<TContext> : Field
 {
-    public FieldToResolve(ISchemaProvider schema, string name, string? description, object? argTypes) : base(schema, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
+    public FieldToResolve(ISchemaProvider schema, ISchemaType fromType, string name, string? description, object? argTypes) : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
     {
     }
 

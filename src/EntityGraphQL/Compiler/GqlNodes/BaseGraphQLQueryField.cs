@@ -33,9 +33,9 @@ namespace EntityGraphQL.Compiler
 
         protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && Field?.Services.Any() == true;
 
-        protected virtual Dictionary<string, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        protected virtual Dictionary<IFieldKey, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
-            var selectionFields = new Dictionary<string, CompiledField>(StringComparer.OrdinalIgnoreCase);
+            var selectionFields = new Dictionary<IFieldKey, CompiledField>();
 
             foreach (var field in QueryFields)
             {
@@ -53,11 +53,11 @@ namespace EntityGraphQL.Compiler
                         fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
                     }
 
-                    selectionFields[subField.Name] = new CompiledField(subField, fieldExp);
+                    selectionFields[subField] = new CompiledField(subField, fieldExp);
                 }
             }
 
-            return selectionFields.Count == 0 ? new Dictionary<string, CompiledField>() : selectionFields;
+            return selectionFields.Count == 0 ? new Dictionary<IFieldKey, CompiledField>() : selectionFields;
         }
     }
 }

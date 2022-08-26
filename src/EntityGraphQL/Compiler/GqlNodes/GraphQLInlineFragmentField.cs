@@ -14,12 +14,6 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override void AddField(BaseGraphQLField field)
-        {
-            field.Name = $"{Name}.{field.Name}";
-            base.AddField(field);
-        }
-
         public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
             return this.QueryFields;
