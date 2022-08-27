@@ -704,7 +704,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p));
             // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
             // the type of t will not match, need to be replaced
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
@@ -1841,6 +1841,8 @@ namespace EntityGraphQL.Tests
                     Type = "Something"
                 };
             }
+
+            public ProjectConfig Get(Project p) => Get(p.Id);
 
             public string Get(string str1, string str2)
             {
