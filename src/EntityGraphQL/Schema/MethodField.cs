@@ -84,8 +84,9 @@ namespace EntityGraphQL.Schema
             if (context == null)
                 return null;
 
-            // args in the mutation method
+            // args in the mutation method - may be arguments in the graphql schema, services injected
             var allArgs = new List<object>();
+            var argsToValidate = new List<object>();
             object? argInstance = null;
             var validationErrors = new List<string>();
 
@@ -94,8 +95,8 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
                 {
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors);
-                    allArgs.Add(argInstance!);
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors)!;
+                    allArgs.Add(argInstance);
                 }
                 else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
                 {
@@ -117,6 +118,7 @@ namespace EntityGraphQL.Schema
                     argField.Validate(value, p.Name!, validationErrors);
 
                     allArgs.Add(value!);
+                    argsToValidate.Add(value!);
                 }
                 else if (p.ParameterType == context.GetType())
                 {
@@ -140,11 +142,10 @@ namespace EntityGraphQL.Schema
 
             if (argumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? allArgs, method);
+                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, method);
                 foreach (var argValidator in argumentValidators)
                 {
                     argValidator(validatorContext);
-                    argInstance = validatorContext.Arguments;
                 }
                 if (validatorContext.Errors != null && validatorContext.Errors.Count > 0)
                 {
