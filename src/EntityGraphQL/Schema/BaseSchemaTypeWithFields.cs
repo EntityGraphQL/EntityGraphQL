@@ -160,8 +160,8 @@ namespace EntityGraphQL.Schema
                 (GqlType == GqlTypeEnum.Object && !directive.On.Contains(TypeSystemDirectiveLocation.OBJECT)) ||
                 (GqlType == GqlTypeEnum.Interface && !directive.On.Contains(TypeSystemDirectiveLocation.INTERFACE)) ||
                 (GqlType == GqlTypeEnum.Enum && !directive.On.Contains(TypeSystemDirectiveLocation.ENUM)) ||
-                (GqlType == GqlTypeEnum.Input && !directive.On.Contains(TypeSystemDirectiveLocation.INPUT_OBJECT))
-            //todo (GqlType == GqlTypeEnum.Union && !directive.On.Contains(TypeSystemDirectiveLocation.UNION) ||
+                (GqlType == GqlTypeEnum.Input && !directive.On.Contains(TypeSystemDirectiveLocation.INPUT_OBJECT)) ||
+                (GqlType == GqlTypeEnum.Union && !directive.On.Contains(TypeSystemDirectiveLocation.UNION))
             )
             {
                 throw new EntityQuerySchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");
