@@ -11,8 +11,8 @@ Schema Directives are used to decorate the schema to provide more information to
 The GraphQL spec defines directives that are supported out of the box in EntityGraphQL.
 
 - `@deprecated(reason: String)` - Tells the client that this type, field or enum value should no longer be used along with the reason why or a suggested alternative
-- `@oneOf` - Skip this field if the argument is true.
-- `@specifiedBy(url: String)` - Skip this field if the argument is true.
+- `@oneOf` - Mark the input type as a type where only one of it's fields should ever be non-null
+- `@specifiedBy(url: String)` - Used to provide a scalar specification URL for specifying the behavior of custom scalar types.
 
 ## Deprecated
 
@@ -50,7 +50,7 @@ Although each field on the input is nullable the `@oneOf` input type has one fur
 
 ## Specified By
 
-The [@specifiedBy](https://spec.graphql.org/draft/#sec--specifiedBy) directive is used to provide extra information about a custom scalar type.
+The [@specifiedBy](https://spec.graphql.org/draft/#sec--specifiedBy) directive is used to provide extra information about a custom scalar type. The URL should point to a human-readable specification of the data format, serialization, and coercion rules. It must not appear on built-in scalar types.
 
 ## Custom Directives
 
