@@ -198,6 +198,9 @@ fragment TypeRef on __Type {
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
             Assert.DoesNotContain(fields, f => f.name == "owner");
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("owner: Person @deprecated(reason: \"This is deprecated\")", sdl);
         }
 
         [Fact]
@@ -229,6 +232,9 @@ fragment TypeRef on __Type {
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
             Assert.DoesNotContain(fields, f => f.name == "projectsOld");
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("projectsOld: [ProjectOld!] @deprecated(reason: \"This is obsolete, use Projects instead\")", sdl);
         }
 
 

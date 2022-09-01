@@ -12,7 +12,6 @@ namespace EntityGraphQL.Schema
     public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     {
         public override Type TypeDotnet { get; }
-        public override bool IsOneOf { get; }
 
         public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, gqlType, baseType)
@@ -25,11 +24,6 @@ namespace EntityGraphQL.Schema
         {
             GqlType = gqlType;
             TypeDotnet = dotnetType;
-            IsOneOf = dotnetType.CustomAttributes.Any(i => i.AttributeType == typeof(GraphQLOneOfAttribute));
-            if (IsOneOf && !IsInput)
-            {
-                throw new EntityQuerySchemaException($"{dotnetType.Name} is a OneOf type but is not an input type. Please add the type as an input type.");
-            }
 
             RequiredAuthorization = requiredAuthorization;
 
@@ -47,6 +41,8 @@ namespace EntityGraphQL.Schema
             {
                 baseTypes.Add(schema.GetSchemaType(baseType, null));
             }
+
+            ApplyAttributes(dotnetType.GetCustomAttributes());
         }
 
         /// <summary>
@@ -68,11 +64,7 @@ namespace EntityGraphQL.Schema
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
                     var schemaField = new Field(Schema, this, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field.IsNullable()), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
-                    if (obsoleteAttribute != null)
-                    {
-                        schemaField.IsDeprecated = true;
-                        schemaField.DeprecationReason = obsoleteAttribute.Message;
-                    }
+                    schemaField.ApplyAttributes(field.GetCustomAttributes());
 
                     AddField(schemaField);
                 }

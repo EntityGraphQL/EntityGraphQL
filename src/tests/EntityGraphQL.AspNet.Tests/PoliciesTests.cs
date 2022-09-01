@@ -17,6 +17,10 @@ namespace EntityGraphQL.AspNet.Tests
             var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
             Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
             Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("type Project @authorize(roles: \"\", policies: \"admin\") {", sdl);
+            Assert.Contains("type: Int! @authorize(roles: \"\", policies: \"can-type\")", sdl);
         }
 
         [Fact]
@@ -30,7 +34,7 @@ namespace EntityGraphQL.AspNet.Tests
             schema.AddType<Project>("Project");
 
             Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
-            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));            
         }
 
         [Fact]

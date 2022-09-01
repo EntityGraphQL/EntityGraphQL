@@ -105,7 +105,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftJValue()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() {  AutoCreateInputTypes = true });
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());

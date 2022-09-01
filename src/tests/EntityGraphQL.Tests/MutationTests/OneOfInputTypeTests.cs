@@ -1,4 +1,5 @@
 ﻿using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.Directives;
 using Xunit;
 
 namespace EntityGraphQL.Tests
@@ -86,7 +87,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.Create<TestDataContext>();
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddType<OneOfInputType>("InputObject", "Using an object in the arguments"));
-            Assert.Equal("OneOfInputType is a OneOf type but is not an input type. Please add the type as an input type.", ex.Message);
+            Assert.Equal("OneOfInputType marked with OneOfDirective directive which is not valid on a Object", ex.Message);
         }
 
         [GraphQLOneOf]
@@ -103,6 +104,7 @@ namespace EntityGraphQL.Tests
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddInputType<InvalidOneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields());
             Assert.Equal("InvalidOneOfInputType is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.", ex.Message);
         }
+
         [Fact]
         public void TestOneOfErrorsIfMoreThanOneOfSupplied()
         {
@@ -120,7 +122,28 @@ namespace EntityGraphQL.Tests
 
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.NotNull(res.Errors);
-            Assert.Equal("Exactly one field must be specified for argument input of type InputObject.", res.Errors[0].Message);
+            Assert.Equal("Exactly one field must be specified for argument of type InputObject.", res.Errors[0].Message);
+        }
+
+
+        [Fact]
+        public void TestOneOfWorksWithInlineParameters()
+        {
+            var schemaProvider = SchemaBuilder.Create<TestDataContext>();
+            schemaProvider.AddInputType<OneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields();
+            schemaProvider.Mutation().Add("createOneOfInputType", (OneOfInputType input) => input.One == 1 && input.Two == null);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    mutation Test {
+                        createOneOfInputType(input: { one: 1 })
+                    }"
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+            Assert.True((bool)res.Data["createOneOfInputType"]);
 
         }
     }

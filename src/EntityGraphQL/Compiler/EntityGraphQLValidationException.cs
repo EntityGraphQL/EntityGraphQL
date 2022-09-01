@@ -12,5 +12,10 @@ public class EntityGraphQLValidationException : Exception
     {
         ValidationErrors = validationErrors.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
+    
+    public EntityGraphQLValidationException(string validationError)
+    {
+        ValidationErrors = new List<string> { validationError };
+    }
 
 }

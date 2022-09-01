@@ -10,14 +10,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="defaultPageSize">If argument take is null this value will be used</param>
         /// <param name="maxPageSize">If argument take is greater than this value an error will be raised</param>
         /// <returns></returns>
-        public static Field UseOffsetPaging(this Field field, int? defaultPageSize = null, int? maxPageSize = null)
+        public static IField UseOffsetPaging(this IField field, int? defaultPageSize = null, int? maxPageSize = null)
         {
             field.AddExtension(new OffsetPagingExtension(defaultPageSize, maxPageSize));
             return field;
         }
     }
 
-    public class UseOffsetPagingAttribute : FieldExtensionAttribute
+    public class UseOffsetPagingAttribute : ExtensionAttribute
     {
         public int? DefaultPageSize { get; set; }
         public int? MaxPageSize { get; set; }
@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             MaxPageSize = maxPageSize;
         }
 
-        public override void ApplyExtension(Field field)
+        public override void ApplyExtension(IField field)
         {
             field.UseOffsetPaging(DefaultPageSize, MaxPageSize);
         }

@@ -102,21 +102,7 @@ public abstract class ControllerType
         var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method.IsNullable());
         var field = MakeField(name, method, description, options, isAsync, requiredClaims, returnType);
 
-        var validators = method.GetCustomAttributes<ArgumentValidatorAttribute>();
-        if (validators != null)
-        {
-            foreach (var validator in validators)
-            {
-                field.AddValidator(validator.Validator.ValidateAsync);
-            }
-        }
-
-        var obsoleteAttribute = method.GetCustomAttribute<ObsoleteAttribute>();
-        if (obsoleteAttribute != null)
-        {
-            field.IsDeprecated = true;
-            field.DeprecationReason = obsoleteAttribute.Message;
-        }
+        field.ApplyAttributes(method.GetCustomAttributes());
 
         // add the subscription/mutation type if it doesn't already exist
         if (!SchemaType.Schema.HasType(SchemaType.TypeDotnet))

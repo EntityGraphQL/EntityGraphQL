@@ -73,12 +73,6 @@ namespace EntityGraphQL.Schema
                 schema.AddInputType(inputType, inputType.Name, null).AddAllFields();
         }
 
-        public void Deprecate(string reason)
-        {
-            IsDeprecated = true;
-            DeprecationReason = reason;
-        }
-
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
         {
             if (context == null)

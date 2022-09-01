@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 using EntityGraphQL.Schema.Validators;
 
@@ -26,8 +27,8 @@ namespace EntityGraphQL.Schema
         public GqlTypeInfo ReturnType { get; protected set; }
         public List<IFieldExtension> Extensions { get; set; }
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
-        public bool IsDeprecated { get; set; }
-        public string? DeprecationReason { get; set; }
+        protected List<ISchemaDirective> directives = new();
+        public IList<ISchemaDirective> Directives => directives.AsReadOnly();
 
         /// <summary>
         /// If true the arguments on the field are used internally for processing (usually in extensions that change the 
@@ -62,6 +63,39 @@ namespace EntityGraphQL.Schema
             ReturnType = returnType;
             Extensions = new List<IFieldExtension>();
             AddValidator<DataAnnotationsValidator>();
+        }
+
+        public void ApplyAttributes(IEnumerable<Attribute> attributes)
+        {
+            if (attributes.Any())
+            {
+                foreach (var attribute in attributes)
+                {
+                    if (attribute is ArgumentValidatorAttribute validator)
+                    {
+                        AddValidator(validator.Validator.ValidateAsync);
+                    }
+                    else if (attribute is ExtensionAttribute extension)
+                    {
+                        extension.ApplyExtension(this);
+                    }
+                    else
+                    {
+                        //todo is this slow? can we get access to service provider?
+                        var extensionAttribute = typeof(IExtensionAttribute<>).MakeGenericType(attribute.GetType());
+                        var extensions = AppDomain.CurrentDomain.GetAssemblies()
+                                .SelectMany(s => s.GetTypes())
+                                .Where(p => extensionAttribute.IsAssignableFrom(p));
+
+                        foreach (var extensionType in extensions)
+                        {
+                            var ext = Activator.CreateInstance(extensionType);
+                            extensionAttribute.GetMethod("ApplyExtension", new[] { typeof(IField), attribute.GetType() })!.Invoke(ext, new object[] { this, attribute });
+                        }
+
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -215,5 +249,15 @@ namespace EntityGraphQL.Schema
             argumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
             return this;
         }
+
+        public IField AddDirective(ISchemaDirective directive)
+        {
+            if (!directive.On.Any(x => x == TypeSystemDirectiveLocation.FIELD_DEFINITION))
+                throw new InvalidOperationException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
+
+            directives.Add(directive);
+            return this;
+        }
+
     }
 }

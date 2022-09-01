@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -20,7 +21,8 @@ namespace EntityGraphQL.Schema
         public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
         public IList<ISchemaType> PossibleTypes => possibleTypes.AsReadOnly();
 
-        public abstract bool IsOneOf { get; }
+        protected List<ISchemaDirective> directives = new();
+        public IList<ISchemaDirective> Directives => directives.AsReadOnly();
         public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
         public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
         public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
@@ -30,6 +32,9 @@ namespace EntityGraphQL.Schema
         public RequiredAuthorization? RequiredAuthorization { get; set; }
         private readonly Regex nameRegex = new("^[_a-zA-Z0-9]+$");
 
+        public event Action<IField> OnAddField = delegate { };
+        public event Action<object?> OnValidate = delegate { };
+
         protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         {
             if (!nameRegex.IsMatch(name))
@@ -38,6 +43,35 @@ namespace EntityGraphQL.Schema
             Name = name;
             Description = description;
             RequiredAuthorization = requiredAuthorization;
+        }
+
+        public void ApplyAttributes(IEnumerable<Attribute> attributes)
+        {
+            if (attributes.Any())
+            {
+                foreach (var attribute in attributes)
+                {
+                    if (attribute is ExtensionAttribute extension)
+                    {
+                        extension.ApplyExtension(this);
+                    }
+                    else
+                    {
+                        //todo is this slow? can we get access to service provider?
+                        var extensionAttribute = typeof(IExtensionAttribute<>).MakeGenericType(attribute.GetType());
+                        var extensions = AppDomain.CurrentDomain.GetAssemblies()
+                                .SelectMany(s => s.GetTypes())
+                                .Where(p => extensionAttribute.IsAssignableFrom(p));
+
+                        foreach (var extensionType in extensions)
+                        {
+                            var ext = Activator.CreateInstance(extensionType);
+                            extensionAttribute.GetMethod("ApplyExtension", new[] { typeof(ISchemaType), attribute.GetType() })!.Invoke(ext, new object[] { this, attribute });
+                        }
+
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -104,9 +138,7 @@ namespace EntityGraphQL.Schema
             if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
 
-            if (IsOneOf && field.ReturnType.TypeNotNullable)
-                throw new EntityQuerySchemaException($"{TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
-
+            OnAddField(field);
 
             FieldsByName.Add(field.Name, (TFieldType)field);
             return field;
@@ -119,6 +151,30 @@ namespace EntityGraphQL.Schema
         public void RemoveField(string name)
         {
             FieldsByName.Remove(name);
+        }
+
+        public ISchemaType AddDirective(ISchemaDirective directive)
+        {
+            if (
+                (GqlType == GqlTypeEnum.Scalar && !directive.On.Contains(TypeSystemDirectiveLocation.SCALAR)) ||
+                (GqlType == GqlTypeEnum.Object && !directive.On.Contains(TypeSystemDirectiveLocation.OBJECT)) ||
+                (GqlType == GqlTypeEnum.Interface && !directive.On.Contains(TypeSystemDirectiveLocation.INTERFACE)) ||
+                (GqlType == GqlTypeEnum.Enum && !directive.On.Contains(TypeSystemDirectiveLocation.ENUM)) ||
+                (GqlType == GqlTypeEnum.Input && !directive.On.Contains(TypeSystemDirectiveLocation.INPUT_OBJECT)) ||
+                (GqlType == GqlTypeEnum.Union && !directive.On.Contains(TypeSystemDirectiveLocation.UNION))
+            )
+            {
+                throw new EntityQuerySchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");
+            }
+
+            directives.Add(directive);
+
+            return this;
+        }
+
+        public void Validate(object? value)
+        {
+            OnValidate(value);
         }
 
         public abstract ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);

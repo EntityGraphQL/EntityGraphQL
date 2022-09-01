@@ -174,7 +174,7 @@ namespace EntityGraphQL.Schema
             }
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
-            var attributes = prop.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
+            
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
             Type returnType;
@@ -215,14 +215,7 @@ namespace EntityGraphQL.Schema
                     }
                 }
 
-                var extensions = prop.GetCustomAttributes(typeof(FieldExtensionAttribute), false)?.Cast<FieldExtensionAttribute>().ToList();
-                if (extensions?.Count > 0)
-                {
-                    foreach (var extension in extensions)
-                    {
-                        extension.ApplyExtension(field);
-                    }
-                }
+                field.ApplyAttributes(prop.GetCustomAttributes());
 
                 yield return field;
             }
@@ -293,6 +286,10 @@ namespace EntityGraphQL.Schema
                     {
                         type.ImplementAllBaseTypes(true, true);
                     }
+
+                    var schemaType = schema.GetSchemaType(propType, null);
+                    schemaType.ApplyAttributes(propType.GetCustomAttributes());
+
                     return type;
                 }
             }
