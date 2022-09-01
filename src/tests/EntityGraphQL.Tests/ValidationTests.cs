@@ -82,6 +82,14 @@ public class ValidationTests
     }
 
     [Fact]
+    public void TestGraphQLValidatorWithInlineArgs()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+    }
+
+    [Fact]
     public void TestCustomValidationDelegateOnMutation()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
@@ -424,6 +432,14 @@ internal class ValidationTestsMutations
     [ArgumentValidator(typeof(PersonValidator))]
     public static bool AddPersonValidatorAttribute(PersonArgs _)
     {
+        return true;
+    }
+
+
+    [GraphQLMutation]
+    public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg _, GraphQLValidator validator)
+    {
+        validator.AddError("Test Error");
         return true;
     }
 }
