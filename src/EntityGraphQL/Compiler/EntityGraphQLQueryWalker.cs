@@ -166,7 +166,7 @@ namespace EntityGraphQL.Compiler
 
                 if (node.SelectionSet != null)
                 {
-                    BaseGraphQLQueryField select = ParseFieldSelect(nextContextParam, actualField, resultName, graphqlMutationField, node.SelectionSet, args);
+                    var select = ParseFieldSelect(nextContextParam, actualField, resultName, graphqlMutationField, node.SelectionSet, args);
                     if (mutationField.ReturnType.IsList)
                     {
                         // nulls are not known until mutation is executed. Will be handled in GraphQLMutationStatement

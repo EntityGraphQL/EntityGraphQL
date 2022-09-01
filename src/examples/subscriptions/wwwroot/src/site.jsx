@@ -1,7 +1,6 @@
 ﻿import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ApolloClient, InMemoryCache, ApolloProvider, gql, useMutation, split, HttpLink, useSubscription } from '@apollo/client';
-import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { createClient } from "graphql-ws";
 
@@ -18,7 +17,7 @@ const ChatBox = (props) => {
     const [user, setUser] = React.useState(props.user)
     const [message, setMessage] = React.useState('')
     const [postMessage] = useMutation(gql`mutation PostMessage($user: String!, $message: String!) {
-        postMessage(user: $user, message: $message) { id }
+        postMessage: postMessageEvent(user: $user, message: $message) { id }
     }`)
 
     return <div className="d-flex flex-column flex-fill p-2">
@@ -39,7 +38,13 @@ const ChatBox = (props) => {
 
 const ChatRoom = () => {
     const { data, loading } = useSubscription(gql`subscription ChatRoom {
-        onMessage { id user text timestamp }
+        onMessage: onMessageEvent { 
+            eventType
+            message {
+                id text timestamp 
+                user { id name }
+            }
+        }
     }`, {
         shouldResubscribe: true,
     });
@@ -47,7 +52,7 @@ const ChatRoom = () => {
 
     useEffect(() => {
         if (data && !loading)
-            setChat(chat => [...chat, data.onMessage])
+            setChat(chat => [...chat, data.onMessage.message])
     }, [data, loading])
 
     return <div className="d-flex flex-column flex-fill p-2">
@@ -56,7 +61,7 @@ const ChatRoom = () => {
             <div className='d-flex flex-column flex-fill p-2'>
                 {chat.map(message => <div key={message.id} className="d-flex flex-column">
                     <div className="d-flex flex-row">
-                        <strong>{message.user}</strong>&nbsp;- {new Date(message.timestamp).toLocaleString()}
+                        <strong>{message.user.name}</strong>&nbsp;- {new Date(message.timestamp).toLocaleString()}
                     </div>
                     <div key={message.id} className="d-flex flex-row">
                         {message.text}

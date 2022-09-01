@@ -133,18 +133,20 @@ namespace EntityGraphQL.AspNet.WebSockets
                     {
                         await SendErrorAsync(graphQLWSMessage.Id!.Value, result.Errors);
                     }
-
-                    // Wonder if there is a better way to figure this out? Spec says subscription can only have a single root field
-                    // so if there are no errors we must have a successful subscription method result
-                    if (result.Data!.Values.First() is GraphQLSubscribeResult subscribeResult)
+                    // No error and a successful subscribe operation
+                    if (result.Data?.Values.First() is GraphQLSubscribeResult subscribeResult)
                     {
-                        var websocketSubscription = (IDisposable)Activator.CreateInstance(typeof(WebSocketSubscription<>).MakeGenericType(subscribeResult!.EventType), graphQLWSMessage.Id!.Value, subscribeResult!.GetObservable(), this, subscribeResult!.SubscriptionStatement, subscribeResult!.Field)!;
+                        var websocketSubscription = (IDisposable)Activator.CreateInstance(typeof(WebSocketSubscription<,>).MakeGenericType(typeof(TQueryType), subscribeResult!.EventType), graphQLWSMessage.Id!.Value, subscribeResult!.GetObservable(), this, subscribeResult!.SubscriptionStatement, subscribeResult!.Field)!;
                         subscriptions.Add(graphQLWSMessage.Id!.Value, websocketSubscription);
                     }
                     else
                     {
-                        // no errors so assume it is a query or mutation over websockets
-                        await SendNextAsync(graphQLWSMessage.Id!.Value, result);
+                        // Assume it is a query or mutation over websockets
+                        if (result.Errors == null)
+                        {
+                            await SendNextAsync(graphQLWSMessage.Id!.Value, result);
+                        }
+                        // send complete after next or error above
                         await SendAsync(new WithIdGraphQLWSResponse
                         {
                             Type = GraphQLWSMessageType.COMPLETE,

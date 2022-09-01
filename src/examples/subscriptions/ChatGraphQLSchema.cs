@@ -7,7 +7,7 @@ internal class ChatGraphQLSchema
 {
     internal static void ConfigureSchema(SchemaProvider<ChatContext> schema)
     {
-        schema.AddType<Message>("Message info").AddAllFields();
+        schema.AddType<MessageEvent>("Message event info").AddAllFields();
         schema.Mutation().AddFrom<ChatMutations>();
         schema.Subscription().AddFrom<ChatSubscriptions>();
     }

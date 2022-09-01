@@ -59,6 +59,13 @@ namespace EntityGraphQL.Subscriptions
                 observer.OnNext(value);
             }
         }
+        public void OnError(Exception ex)
+        {
+            foreach (var observer in subscribers)
+            {
+                observer.OnError(ex);
+            }
+        }
 
         public void Dispose()
         {

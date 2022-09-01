@@ -1,4 +1,5 @@
 using EntityGraphQL.AspNet;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using subscriptions.Services;
 
@@ -8,8 +9,13 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions()
     Args = args
 });
 
-builder.Services.AddDbContext<ChatContext>(opt => opt.UseSqlite("Filename=chat.db"));
+var connectionString = "DataSource=chat;mode=memory;cache=shared";
+var keepAliveConnection = new SqliteConnection(connectionString);
+keepAliveConnection.Open();
+
+builder.Services.AddDbContext<ChatContext>(opt => opt.UseSqlite(connectionString));
 builder.Services.AddSingleton<ChatService>();
+builder.Services.AddSingleton<ChatEventService>();
 
 builder.Services.AddGraphQLSchema<ChatContext>(options =>
 {
@@ -40,5 +46,12 @@ app.UseEndpoints(endpoints =>
 });
 
 app.UseGraphQLWebSockets<ChatContext>();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ChatContext>();
+    db.Database.EnsureCreated();
+    db.Database.Migrate();
+}
 
 app.Run();

@@ -30,12 +30,12 @@ namespace EntityGraphQL.Compiler
         /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
-        public GraphQLObjectProjectionField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+        public GraphQLObjectProjectionField(ISchemaProvider schema, IField? field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, IReadOnlyDictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
         }
 
-        public GraphQLObjectProjectionField(GraphQLObjectProjectionField context, ParameterExpression? nextFieldContext)
+        public GraphQLObjectProjectionField(GraphQLObjectProjectionField context, Expression? nextFieldContext)
             : base(context, nextFieldContext)
         {
         }
@@ -57,9 +57,9 @@ namespace EntityGraphQL.Compiler
             {
                 nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
             }
-            (nextFieldContext, var argumentValues) = Field!.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer);
+            (nextFieldContext, var argumentValues) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (nextFieldContext, null);
             if (argumentValues != null)
-                compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
+                compileContext.AddConstant(Field?.ArgumentParam!, argumentValues);
             if (nextFieldContext == null)
                 return null;
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);

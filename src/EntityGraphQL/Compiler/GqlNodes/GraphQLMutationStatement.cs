@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
                 try
                 {
                     object? docVariables = BuildDocumentVariables(ref variables);
-                    foreach (GraphQLMutationField node in field.Expand(compileContext, fragments, true, NextFieldContext!, OpVariableParameter, docVariables))
+                    foreach (var node in field.Expand(compileContext, fragments, true, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
                     {
 #if DEBUG
                         Stopwatch? timer = null;
@@ -91,8 +91,12 @@ namespace EntityGraphQL.Compiler
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
                 return result;
+            return MakeSelectionFromResult(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, options, docVariables, result);
+        }
 
-            var resultExp = node.ResultSelection;
+        protected object? MakeSelectionFromResult<TContext>(CompileContext compileContext, BaseGraphQLQueryField node, BaseGraphQLQueryField selection, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables, object? result)
+        {
+            var resultExp = selection;
 
             if (result is LambdaExpression mutationLambda)
             {
@@ -106,7 +110,6 @@ namespace EntityGraphQL.Compiler
                 // We want to take the field selection from the GraphQL query and add a LINQ Select() onto the expression
 
                 var mutationContextParam = mutationLambda.Parameters.First();
-
                 var mutationContextExpression = mutationLambda.Body;
 
                 if (!mutationContextExpression.Type.IsEnumerableOrArray())
@@ -117,8 +120,8 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(schema, null, Name, node.ResultSelection.RootParameter, node.ResultSelection.RootParameter, item1, node, null);
-                        foreach (var queryField in node.ResultSelection.QueryFields)
+                        var collectionNode = new GraphQLListSelectionField(schema, null, Name, resultExp!.RootParameter, resultExp.RootParameter, item1, node, null);
+                        foreach (var queryField in resultExp.QueryFields)
                         {
                             collectionNode.AddField(queryField);
                         }
@@ -127,6 +130,12 @@ namespace EntityGraphQL.Compiler
                     }
                     else
                     {
+                        var newNode = new GraphQLObjectProjectionField((GraphQLObjectProjectionField)resultExp, ((LambdaExpression)result).Body);
+                        foreach (var queryField in resultExp.QueryFields)
+                        {
+                            newNode.AddField(queryField);
+                        }
+                        resultExp = newNode;
                         SetupConstants(mutationContextExpression, compileContext, resultExp.RootParameter!);
                     }
                 }
@@ -141,19 +150,19 @@ namespace EntityGraphQL.Compiler
                 }
                 resultExp.RootParameter = mutationContextParam;
 
-                (result, _) = CompileAndExecuteNode(compileContext, context, serviceProvider, fragments, resultExp, options, docVariables);
+                (result, _) = CompileAndExecuteNode(compileContext, context!, serviceProvider, fragments, resultExp, options, docVariables);
                 return result;
             }
             // we now know the context as it is dynamically returned in a mutation
             if (resultExp is GraphQLListSelectionField field)
             {
-                var contextParam = Expression.Parameter(result.GetType());
+                var contextParam = Expression.Parameter(result!.GetType());
                 resultExp.RootParameter = contextParam;
                 field.ListExpression = contextParam;
             }
 
             // run the query select against the object they have returned directly from the mutation
-            (result, _) = CompileAndExecuteNode(compileContext, result!, serviceProvider, fragments, node.ResultSelection, options, docVariables);
+            (result, _) = CompileAndExecuteNode(compileContext, result!, serviceProvider, fragments, resultExp, options, docVariables);
             return result;
         }
 
