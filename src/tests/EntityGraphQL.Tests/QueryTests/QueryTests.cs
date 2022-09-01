@@ -399,6 +399,68 @@ query {
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<string>().AddField("invalid", (ctx) => 8, "Invalid field"));
             Assert.Equal("Cannot add field invalid to type String, as String is a scalar type and can not have fields.", ex.Message);
         }
+
+
+        /// <summary>
+        /// from issue https://github.com/EntityGraphQL/EntityGraphQL/issues/229
+        /// </summary>
+        [Fact]
+        public void TestResolveWithServiceAndNavigationProp()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.UpdateType<Project>(x =>
+            {
+                x.AddField("sum", "").Resolve(y => y.Tasks.Count());
+                x.AddField("test", "").ResolveWithService<TestDataContext>((y, db) => y.Updated.Value.AddDays(3));
+            });
+
+            var testSchema = new TestDataContext()
+            {
+                Projects = new List<Project>()
+                {
+                    new Project()
+                    {
+                        Updated = new System.DateTime(2001, 1, 1),
+                        Tasks = new  List<Task>()
+                        {
+                            new Task(),new Task(),new Task(),
+                        }
+                    }
+                }
+            };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { projects { sum }}",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
+
+            gql = new QueryRequest
+            {
+                Query = @"query deep { projects { test }}",
+            };
+
+
+            results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
+
+            gql = new QueryRequest
+            {
+                Query = @"query deep { projects {
+                    test 
+                    sum
+                }}",
+            };
+
+
+            results = schema.ExecuteRequest(gql, testSchema, null, null);
+
+            Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
+            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
+        }
     }
 
     public class DeepContext
