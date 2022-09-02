@@ -57,18 +57,11 @@ namespace EntityGraphQL.Schema
                     }
                     else
                     {
-                        //todo is this slow? can we get access to service provider?
-                        var extensionAttribute = typeof(IExtensionAttribute<>).MakeGenericType(attribute.GetType());
-                        var extensions = AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(s => s.GetTypes())
-                                .Where(p => extensionAttribute.IsAssignableFrom(p));
-
-                        foreach (var extensionType in extensions)
+                        var handler = Schema.GetAttributeHandlerFor(attribute.GetType());
+                        if (handler != null)
                         {
-                            var ext = Activator.CreateInstance(extensionType);
-                            extensionAttribute.GetMethod("ApplyExtension", new[] { typeof(ISchemaType), attribute.GetType() })!.Invoke(ext, new object[] { this, attribute });
+                            handler.ApplyExtension(this, attribute);
                         }
-
                     }
                 }
             }

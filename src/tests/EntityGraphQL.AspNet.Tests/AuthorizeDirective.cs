@@ -1,35 +1,35 @@
-﻿using EntityGraphQL.AspNet;
+﻿using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.Directives;
-using EntityGraphQL.Schema.Models;
 using Microsoft.AspNetCore.Authorization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace EntityGraphQL.Schema.Directives
+namespace EntityGraphQL.AspNet.Tests
 {
-    public class AuthorizeAttributeRegistration :
-        IExtensionAttribute<AuthorizeAttribute>,
-        IExtensionAttribute<GraphQLAuthorizePolicyAttribute>
+    public class AuthorizeAttributeHandler : IExtensionAttributeHandler
     {
-        public void ApplyExtension(IField field, AuthorizeAttribute attribute)
+        public IEnumerable<Type> AttributeTypes => new Type[] { typeof(AuthorizeAttribute), typeof(GraphQLAuthorizePolicyAttribute) };
+
+        public void ApplyExtension(IField field, Attribute attribute)
         {
-            field.AddDirective(new AuthorizeDirective(attribute));
+            if (attribute is AuthorizeAttribute authAttribute)
+            {
+                field.AddDirective(new AuthorizeDirective(authAttribute));
+            }
+            else if (attribute is GraphQLAuthorizePolicyAttribute policyAttribute)
+            {
+                field.AddDirective(new AuthorizeDirective(policyAttribute));
+            }
         }
 
-        public void ApplyExtension(IField field, GraphQLAuthorizePolicyAttribute attribute)
+        public void ApplyExtension(ISchemaType type, Attribute attribute)
         {
-            field.AddDirective(new AuthorizeDirective(attribute));
-        }
-
-        public void ApplyExtension(ISchemaType type, AuthorizeAttribute attribute)
-        {
-            type.AddDirective(new AuthorizeDirective(attribute));
-        }
-
-        public void ApplyExtension(ISchemaType type, GraphQLAuthorizePolicyAttribute attribute)
-        {
-            type.AddDirective(new AuthorizeDirective(attribute));
+            if (attribute is AuthorizeAttribute authAttribute)
+            {
+                type.AddDirective(new AuthorizeDirective(authAttribute));
+            }
+            else if (attribute is GraphQLAuthorizePolicyAttribute policyAttribute)
+            {
+                type.AddDirective(new AuthorizeDirective(policyAttribute));
+            }
         }
     }
 

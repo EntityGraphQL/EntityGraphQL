@@ -2,7 +2,6 @@
 using EntityGraphQL.Schema.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace EntityGraphQL.Schema
 {
@@ -21,9 +20,9 @@ namespace EntityGraphQL.Schema
 
 namespace EntityGraphQL.Schema.Directives
 {
-    public class ObsoleteAttributeRegistration : IExtensionAttribute<ObsoleteAttribute>
+    public class ObsoleteAttributeHandler : AbstractExtensionAttributeHandler<ObsoleteAttribute>
     {
-        public void ApplyExtension(IField field, ObsoleteAttribute attribute)
+        public override void ApplyExtension(IField field, ObsoleteAttribute attribute)
         {
             field.Deprecate(attribute.Message);
         }

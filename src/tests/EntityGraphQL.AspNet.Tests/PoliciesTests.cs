@@ -14,7 +14,14 @@ namespace EntityGraphQL.AspNet.Tests
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
             var services = serviceCollection.BuildServiceProvider();
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions
+            {
+                AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!),
+                PreBuildSchemaFromContext = (context) =>
+                {
+                    context.AddAttributeHandler(new AuthorizeAttributeHandler());
+                }
+            });
             Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
             Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
 
@@ -34,7 +41,7 @@ namespace EntityGraphQL.AspNet.Tests
             schema.AddType<Project>("Project");
 
             Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
-            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));            
+            Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
         }
 
         [Fact]

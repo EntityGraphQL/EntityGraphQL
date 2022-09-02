@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
+using EntityGraphQL.Schema.Directives;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema
@@ -38,6 +39,7 @@ namespace EntityGraphQL.Schema
         private readonly bool introspectionEnabled;
         private readonly MutationType mutationType;
         private readonly SubscriptionType subscriptionType;
+        private readonly IDictionary<Type, IExtensionAttributeHandler> attributeHandlers = new Dictionary<Type, IExtensionAttributeHandler>();
 
         public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
@@ -115,6 +117,8 @@ namespace EntityGraphQL.Schema
             var skip = new SkipDirectiveProcessor();
             directives.Add(include.Name, include);
             directives.Add(skip.Name, skip);
+
+            AddAttributeHandler(new ObsoleteAttributeHandler());
         }
 
         /// <summary>
@@ -833,5 +837,20 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <returns>Root subscription schema type</returns>
         public SubscriptionType Subscription() => subscriptionType;
+
+        public IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType)
+        {
+            if (attributeHandlers.ContainsKey(attributeType))
+                return attributeHandlers[attributeType];
+            return null;
+        }
+        public ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler)
+        {
+            foreach (var type in handler.AttributeTypes)
+            {
+                attributeHandlers.Add(type, handler);
+            }
+            return this;
+        }
     }
 }
