@@ -67,6 +67,7 @@ namespace EntityGraphQL.Schema
                 schemaOptions = new SchemaBuilderSchemaOptions();
 
             var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled);
+            schemaOptions.PreBuildSchemaFromContext?.Invoke(schema);
             return FromObject(schema, buildOptions);
         }
 
@@ -174,7 +175,7 @@ namespace EntityGraphQL.Schema
             }
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
-            
+
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
             Type returnType;

@@ -1,8 +1,6 @@
-﻿using EntityGraphQL.Compiler;
-using EntityGraphQL.Schema.Directives;
+﻿using EntityGraphQL.Schema.Directives;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace EntityGraphQL.Schema
 {

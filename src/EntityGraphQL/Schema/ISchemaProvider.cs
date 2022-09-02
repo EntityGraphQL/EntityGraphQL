@@ -44,6 +44,8 @@ namespace EntityGraphQL.Schema
         List<ISchemaType> GetEnumTypes();
         IEnumerable<ISchemaType> GetNonContextTypes();
         IEnumerable<ISchemaType> GetScalarTypes();
+        IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType);
+        ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler);
         ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         bool HasType(string typeName);

@@ -88,5 +88,10 @@ namespace EntityGraphQL.Schema
         /// 
         /// </summary>
         public IGqlAuthorizationService AuthorizationService { get; set; } = new RoleBasedAuthorization();
+        /// <summary>
+        /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or 
+        /// anything that may be needed for the schema to be built correctly.
+        /// </summary>
+        public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; } = null;
     }
 }
