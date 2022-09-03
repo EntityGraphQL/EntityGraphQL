@@ -87,6 +87,23 @@ public class ValidationTests
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
 
         schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+
+        var gql = new QueryRequest
+        {
+            Query = @"mutation Mutate($arg: CastMemberArg) {
+                updateCastMemberWithGraphQLValidator(arg: $arg)
+            }",
+            Variables = new QueryVariables()
+            {
+                { "arg", new { Actor = "Neil", Character = "Barn" } }
+            }
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        Assert.NotNull(results.Errors);
+        Assert.Single(results.Errors);
+        Assert.Equal("Test Error", results.Errors[0].Message);
     }
 
     [Fact]
@@ -437,7 +454,7 @@ internal class ValidationTestsMutations
 
 
     [GraphQLMutation]
-    public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg _, GraphQLValidator validator)
+    public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg arg, GraphQLValidator validator)
     {
         validator.AddError("Test Error");
         return true;
