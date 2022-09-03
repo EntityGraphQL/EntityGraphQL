@@ -40,6 +40,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #212 - Regression using a static or instance method in a service field
 - Fix #223 - Mutations with inline args don't support variables with different name to argument name
 - Fix #225 - Mutations with separate (not using `MutationArgumentsAttribute`) parameters fail if called without variables
+- FIx #229 - Using `Field.Resolve()` would incorrectly assume the field had a service
 
 # 3.0.5
 
