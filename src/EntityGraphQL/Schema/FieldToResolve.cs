@@ -53,7 +53,7 @@ public class FieldToResolve<TContext> : Field
 
     public Field Resolve(Expression<Func<TContext, object>> fieldExpression)
     {
-        SetUpField(fieldExpression, true);
+        SetUpField(fieldExpression, false);
         return this;
     }
 
