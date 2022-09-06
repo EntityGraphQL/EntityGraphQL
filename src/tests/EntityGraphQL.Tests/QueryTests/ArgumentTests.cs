@@ -441,12 +441,65 @@ namespace EntityGraphQL.Tests
                 }
             });
             var qr = gql.ExecuteQuery(context, null, null);
+            Assert.Null(qr.Errors);
             dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
             // make sure we get task 1 and project 2 - i.e. the args were passed to the correct field
             Assert.Equal("Task 1", person.task.name);
             Assert.Equal(1, person.task.id);
             Assert.Equal("Project 2", person.project.name);
             Assert.Equal(2, person.project.id);
+        }
+
+        [Fact]
+        public void TestSameNameArgsOnDifferentFieldsRoot()
+        {
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Task>("Task info").AddAllFields();
+            schema.Query().AddField("task", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Tasks.FirstOrDefault(t => t.Id == args.id), "Get task");
+            schema.Query().AddField("project", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Projects.FirstOrDefault(t => t.Id == args.id), "Get project");
+            var gql = new GraphQLCompiler(schema).Compile(@"
+                query {
+                    task(id: 1) { id name }
+                    project(id: 2) { id name }
+                }");
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 1,
+                        Name = "Project 1"
+                    },
+                    new Project
+                    {
+                        Id = 2,
+                        Name = "Project 2"
+                    }
+                },
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Name = "Task 1"
+                    },
+                    new Task
+                    {
+                        Id = 2,
+                        Name = "Task 2"
+                    }
+                }
+            };
+            var qr = gql.ExecuteQuery(context, null, null);
+            Assert.Null(qr.Errors);
+            dynamic task = qr.Data["task"];
+            dynamic project = qr.Data["project"];
+            // make sure we get task 1 and project 2 - i.e. the args were passed to the correct field
+            Assert.Equal("Task 1", task.name);
+            Assert.Equal(1, task.id);
+            Assert.Equal("Project 2", project.name);
+            Assert.Equal(2, project.id);
         }
 
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
