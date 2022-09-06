@@ -4,21 +4,20 @@ namespace subscriptions.Services;
 
 public class ChatService
 {
-    private readonly List<Message> messages = new();
     private readonly Broadcaster<Message> broadcaster = new();
 
-    public Message PostMessage(string message, string user)
+    public Message PostMessage(ChatContext db, string message, string user)
     {
         var msg = new Message
         {
             Id = Guid.NewGuid(),
             Text = message,
             Timestamp = DateTime.Now,
-            User = user,
+            UserId = user,
         };
 
-        lock (messages)
-            messages.Add(msg);
+        db.Messages.Add(msg);
+        db.SaveChanges();
 
         broadcaster.OnNext(msg);
 
@@ -29,12 +28,4 @@ public class ChatService
     {
         return broadcaster;
     }
-}
-
-public class Message
-{
-    public Guid Id { get; set; }
-    public string Text { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string User { get; set; }
 }

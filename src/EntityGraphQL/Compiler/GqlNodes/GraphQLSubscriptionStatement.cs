@@ -8,13 +8,14 @@ using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
     /// Represents a GraphQL subscription statement and knows how to execue 
     /// </summary>
-    public class GraphQLSubscriptionStatement : ExecutableGraphQLStatement
+    public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     {
         private IServiceProvider? serviceProvider;
         private List<GraphQLFragmentStatement>? fragments;
@@ -93,9 +94,14 @@ namespace EntityGraphQL.Compiler
             return new GraphQLSubscribeResult(returnType, result, this, node);
         }
 
-        public object? ExecuteSubscriptionEvent<TType>(GraphQLSubscriptionField node, TType eventValue)
+        public object? ExecuteSubscriptionEvent<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue)
         {
-            var (result, _) = CompileAndExecuteNode(new CompileContext(), eventValue!, serviceProvider, fragments!, node.ResultSelection!, options!, docVariables);
+            if (serviceProvider == null)
+                throw new EntityGraphQLExecutionException($"serviceProvider cannot be null. Please provide a valid ServiceProvider when executing a subscription operation with the schema query context registered.");
+
+            var context = (TQueryContext)serviceProvider!.GetRequiredService(typeof(TQueryContext));
+
+            var result = MakeSelectionFromResult(new CompileContext(), node, node.ResultSelection!, context, serviceProvider, fragments!, options!, docVariables, eventValue);
             return result;
         }
 

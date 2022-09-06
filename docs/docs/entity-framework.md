@@ -109,7 +109,7 @@ Where `age` is defined with a service as
 
 ```cs
 schema.Type<Person>().AddField("age", "Persons age")
-    .ResolveWithService<AgeService>((ager) => ager.GetAge(person.Birthday));
+    .ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
 ```
 
 EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `ResolveWithService()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
@@ -144,7 +144,7 @@ To do this EntityGraphQL needs to update the service field expressions. It does 
 ```cs
 schema.UpdateType<Floor>(type => {
   type.AddField("floorUrl", "Current floor url")
-    .ResolveWithService<IFloorUrlService>((s) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));
+    .ResolveWithService<IFloorUrlService>((floor, srv) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));
 });
 ```
 

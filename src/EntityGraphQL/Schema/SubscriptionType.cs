@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
@@ -21,6 +23,11 @@ public class SubscriptionType : ControllerType
         if (type.ImplementsGenericInterface(typeof(IObservable<>)))
         {
             type = type.GetGenericArgument(typeof(IObservable<>))!;
+        }
+        // IObservable<Expression<Func<QueryContext, ReturnType>>>
+        if (type.ImplementsGenericInterface(typeof(Expression<>)))
+        {
+            type = type.GetGenericArgument(typeof(Expression<>))!.GetGenericArguments().Last();
         }
         return type;
     }

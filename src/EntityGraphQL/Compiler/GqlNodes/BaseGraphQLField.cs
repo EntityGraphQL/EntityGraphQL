@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public bool HasServices { get => Field?.Services.Any() == true; }
 
-        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, Dictionary<string, object>? arguments)
+        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
