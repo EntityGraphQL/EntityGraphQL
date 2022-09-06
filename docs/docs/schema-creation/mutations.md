@@ -73,7 +73,7 @@ Above we use our mutation to add a person and select their `fullName` and `id` i
 **SchemaBuilderMethodOptions.AutoCreateInputTypes**
 If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
 
-If you set this to true, EntityGraphQL doesn't know which objects should be InputTypes or are services to be injected at execution as the `ServiceProvider` is not supplied at schema screation.
+When `AutoCreateInputTypes` is true, to inject a service, pass it to the constructor of the mutation controller and store it in a field. EntityGraphQL can't detect services passed as method parameters because `ServiceProvider` is not supplied at schema screation.
 
 **SchemaBuilderMethodOptions.AddNonAttributedMethods**
 If true (deafult = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
