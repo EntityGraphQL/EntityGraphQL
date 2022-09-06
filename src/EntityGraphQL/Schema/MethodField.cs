@@ -53,6 +53,12 @@ namespace EntityGraphQL.Schema
                         continue;
 
                     var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
+
+                    if (inputType == typeof(GraphQLValidator))
+                    {
+                        continue;
+                    }
+                    
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
                         AddInputTypesInArguments(schema, options.AutoCreateInputTypes, inputType);
