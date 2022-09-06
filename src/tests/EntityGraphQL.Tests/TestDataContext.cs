@@ -18,13 +18,13 @@ namespace EntityGraphQL.Tests
         private IEnumerable<Project> projects = new List<Project>();
 
         public int TotalPeople => People.Count;
+        public virtual List<Person> People { get; set; } = new List<Person>();
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
         public IEnumerable<Project> Projects { get => projects; set => projects = value; }
         public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
         public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
-        public virtual List<Person> People { get; set; } = new List<Person>();
         public List<User> Users { get; set; } = new List<User>();
     }
 
@@ -203,7 +203,7 @@ namespace EntityGraphQL.Tests
                     User = user,
                     Height = 183,
                     Gender = Gender.Male,
-                    Projects = new List<Project> { project },
+                    Projects = new List<Project> { project, project2 },
                 }
             };
             context.Projects = new List<Project>
