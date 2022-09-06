@@ -73,6 +73,16 @@ namespace EntityGraphQL.Tests
         }
         [GraphQLMutation]
 
+        public async Task<Expression<Func<TestDataContext, Person>>> AddPersonNamesAsync(TestDataContext db, PeopleMutationsArgs args)
+        {
+            var id = 11;
+            var newPerson = new Person { Id = id, Name = args.Names[0], LastName = args.Names[1] };
+            db.People.Add(newPerson);
+            await System.Threading.Tasks.Task.Delay(1);
+            return ctx => ctx.People.First(p => p.Id == id);
+        }
+        [GraphQLMutation]
+
         public Expression<Func<TestDataContext, Person>> AddPersonNamesExpression(TestDataContext db, PeopleMutationsArgs args)
         {
             var newPerson = new Person { Id = idCount++, Name = args.Names[0], LastName = args.Names[1] };

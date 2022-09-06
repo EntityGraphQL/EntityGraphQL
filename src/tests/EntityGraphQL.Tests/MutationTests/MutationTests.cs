@@ -89,6 +89,37 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportsMutationExpressionWithTask()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($names: [String]) {
+  addPersonNamesAsync(names: $names) {
+    id name lastName
+  }
+}",
+                Variables = new QueryVariables {
+                    {"names", new [] {"Bill", "Frank"}}
+                }
+            };
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data["addPersonNamesAsync"];
+            // we only have the fields requested
+            var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
+            Assert.Equal(3, resultFields.Count());
+            Assert.Contains("id", resultFields);
+            Assert.Equal(11, addPersonResult.id);
+            Assert.Contains("name", resultFields);
+            Assert.Equal("Bill", addPersonResult.name);
+            Assert.Equal("Frank", addPersonResult.lastName);
+        }
+
+        [Fact]
         public void TestMutationConstantParametersDoNotChange()
         {
             // This tests that whena mutation returns an Expression
@@ -950,7 +981,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(29, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(30, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
