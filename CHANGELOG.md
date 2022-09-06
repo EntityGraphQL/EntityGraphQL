@@ -50,6 +50,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #204 - Nullable reference types correctly produce a nullable argument in the schema
 - If not using `MutationArgumentsAttribute` in mutation methods `autoAddInputTypes` was being ignored
 - #219 - Handle conversion of variables as lists to a `RequiredField<>` arg of the list type
+- #215 - Fix issue using GraphQLValidator if using inline mutation arguments  
 
 # 3.0.4
 
