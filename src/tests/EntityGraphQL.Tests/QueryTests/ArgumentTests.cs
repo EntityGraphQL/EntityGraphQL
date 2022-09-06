@@ -29,6 +29,24 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void MultipleArgumentsSameName()
+        {
+            var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(@"
+            {
+        	    project(id: 55) {
+        		    name
+        	    }
+                project2: project(id: 58) {
+        		    name
+        	    }
+            }");
+
+            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+            Assert.Equal("Project 3", ((dynamic)result.Data["project"]).name);
+            Assert.Equal("Project 4", ((dynamic)result.Data["project2"]).name);
+        }
+
+        [Fact]
         public void SupportsManyArguments()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });

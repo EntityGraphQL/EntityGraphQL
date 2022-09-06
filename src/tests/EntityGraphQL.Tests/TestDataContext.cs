@@ -177,6 +177,20 @@ namespace EntityGraphQL.Tests
                 Created = DateTimeOffset.Now.AddMonths(-3),
                 Updated = DateTime.Now.AddMonths(-2),
             };
+            var project2 = new Project
+            {
+                Id = 58,
+                Name = "Project 4",
+                Tasks = new List<Task> {
+                    new Task
+                    {
+                        Id = 5,
+                        Name = "task 5"
+                    },
+                },
+                Created = DateTimeOffset.Now.AddMonths(-3),
+                Updated = DateTime.Now.AddMonths(-2),
+            };
             context.People = new List<Person>
             {
                 new Person
@@ -194,7 +208,7 @@ namespace EntityGraphQL.Tests
             };
             context.Projects = new List<Project>
             {
-                project
+                project, project2
             };
             return context;
         }
