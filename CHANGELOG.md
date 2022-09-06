@@ -40,7 +40,10 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #212 - Regression using a static or instance method in a service field
 - Fix #223 - Mutations with inline args don't support variables with different name to argument name
 - Fix #225 - Mutations with separate (not using `MutationArgumentsAttribute`) parameters fail if called without variables
-- FIx #229 - Using `Field.Resolve()` would incorrectly assume the field had a service
+- Fix #229 - Using `Field.Resolve()` would incorrectly assume the field had a service
+- #219 - Handle conversion of variables as lists to a `RequiredField<>` arg of the list type
+- #215 - Fix issue using GraphQLValidator if using inline mutation arguments  
+- #235 - Fix issue where arguments with the same name at the same level in a query would receive the same value
 
 # 3.0.5
 
@@ -49,8 +52,6 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #197 - If a mutation returns `Task<T>` use `T` as the return type
 - Fix #204 - Nullable reference types correctly produce a nullable argument in the schema
 - If not using `MutationArgumentsAttribute` in mutation methods `autoAddInputTypes` was being ignored
-- #219 - Handle conversion of variables as lists to a `RequiredField<>` arg of the list type
-- #215 - Fix issue using GraphQLValidator if using inline mutation arguments  
 
 # 3.0.4
 

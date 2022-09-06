@@ -119,6 +119,19 @@ namespace EntityGraphQL.Tests
             };
             return ctx => person;
         }
+        [GraphQLMutation]
+        public Expression<Func<TestDataContext, IEnumerable<Person>>> AddPersonAdvList(PeopleMutationsArgs args)
+        {
+            // test returning a constant in the expression which allows GraphQL selection over the schema (assuming the constant is a type in the schema)
+            // Ie. in the mutation query you can select any valid fields in the schema from Person
+            var person = new Person
+            {
+                Name = args.Name,
+                Tasks = new List<Task> { new Task { Name = "A" } },
+                Projects = new List<Project> { new Project { Id = 123 } }
+            };
+            return ctx => new List<Person> { person };
+        }
 
         [GraphQLMutation]
         public Expression<Func<TestDataContext, IEnumerable<Person>>> AddPersonReturnAll(TestDataContext db, PeopleMutationsArgs args)

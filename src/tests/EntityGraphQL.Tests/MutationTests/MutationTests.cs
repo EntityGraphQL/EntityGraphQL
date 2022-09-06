@@ -308,9 +308,37 @@ namespace EntityGraphQL.Tests
             };
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
-            dynamic addPersonResult = results.Data;
-            addPersonResult = Enumerable.First(addPersonResult);
-            addPersonResult = addPersonResult.Value;
+            Assert.Null(results.Errors);
+            dynamic addPersonResult = results.Data["addPersonAdv"];
+            // we only have the fields requested
+            Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
+            Assert.NotNull(addPersonResult.GetType().GetField("id"));
+            Assert.NotNull(addPersonResult.GetType().GetField("projects"));
+            Assert.Equal(1, Enumerable.Count(addPersonResult.projects));
+            Assert.Equal("Bill", addPersonResult.name);
+        }
+        [Fact]
+        public void SupportsSelectionFromConstantList()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+          addPersonAdvList(name: $name) {
+            id name projects { id }
+          }
+        }",
+                Variables = new QueryVariables {
+                            {"name", "Bill"}
+                        }
+            };
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic addPersonResults = results.Data["addPersonAdvList"];
+            var addPersonResult = Enumerable.First(addPersonResults);
             // we only have the fields requested
             Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
             Assert.NotNull(addPersonResult.GetType().GetField("id"));
@@ -922,7 +950,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(28, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(29, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

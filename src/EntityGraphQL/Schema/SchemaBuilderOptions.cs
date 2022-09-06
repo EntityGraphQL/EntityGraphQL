@@ -26,7 +26,7 @@ namespace EntityGraphQL.Schema
         };
         /// <summary>
         /// If true when SchemaBuilder encounters a field that returns a list of entities and the entity has a property 
-        /// or field name Id t will also create a schema field with a singular name and an argument of id for that entity.
+        /// or field named Id SchemaBuilder will also create a schema field with a singular name and an argument of id for that entity.
         /// e.g. if it sees IEnumerable<Person> People; It will create the schema fields
         /// {
         ///   people: [Person]

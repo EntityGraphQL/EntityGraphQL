@@ -395,6 +395,60 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, context.People.Count);
             Assert.Equal(1, Enumerable.Count(people));
         }
+        [Fact]
+        public void TestSameNameArgsOnDifferentFields()
+        {
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Person>("Person info").AddAllFields();
+            schema.Query().AddField("people", db => db.People, "List of people");
+            var gql = new GraphQLCompiler(schema).Compile(@"
+                query {
+                    people {
+                        task(id: 1) { id name }
+                        project(id: 2) { id name }
+                    }
+                }");
+            var context = new TestDataContext();
+            context.People.Add(new Person
+            {
+                Id = 99,
+                Name = "jill",
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 1,
+                        Name = "Project 1"
+                    },
+                    new Project
+                    {
+                        Id = 2,
+                        Name = "Project 2"
+                    }
+                },
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Name = "Task 1"
+                    },
+                    new Task
+                    {
+                        Id = 2,
+                        Name = "Task 2"
+                    }
+                }
+            });
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+            // make sure we get task 1 and project 2 - i.e. the args were passed to the correct field
+            Assert.Equal("Task 1", person.task.name);
+            Assert.Equal(1, person.task.id);
+            Assert.Equal("Project 2", person.project.name);
+            Assert.Equal(2, person.project.id);
+        }
+
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
             schema.Query().ReplaceField("person",

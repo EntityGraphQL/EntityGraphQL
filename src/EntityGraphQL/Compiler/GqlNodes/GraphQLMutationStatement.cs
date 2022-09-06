@@ -127,7 +127,7 @@ namespace EntityGraphQL.Compiler
                     }
                     else
                     {
-                        SetupConstants(mutationContextExpression, compileContext);
+                        SetupConstants(mutationContextExpression, compileContext, resultExp.RootParameter!);
                     }
                 }
                 else
@@ -137,7 +137,7 @@ namespace EntityGraphQL.Compiler
                     {
                         listField.ListExpression = mutationContextExpression;
                     }
-                    SetupConstants(mutationContextExpression, compileContext);
+                    SetupConstants(mutationContextExpression, compileContext, resultExp.RootParameter!);
                 }
                 resultExp.RootParameter = mutationContextParam;
 
@@ -157,7 +157,7 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        private static void SetupConstants(Expression mutationContextExpression, CompileContext compileContext)
+        private static void SetupConstants(Expression mutationContextExpression, CompileContext compileContext, ParameterExpression rootParameter)
         {
             // if they just return a constant I.e the entity they just updated. It comes as a member access constant
             if (mutationContextExpression.NodeType == ExpressionType.MemberAccess)
@@ -165,13 +165,13 @@ namespace EntityGraphQL.Compiler
                 var me = (MemberExpression)mutationContextExpression;
                 if (me.Expression!.NodeType == ExpressionType.Constant)
                 {
-                    compileContext.AddConstant(Expression.Parameter(me.Type, $"const_{me.Type.Name}"), Expression.Lambda(me).Compile().DynamicInvoke()!);
+                    compileContext.AddConstant(rootParameter, Expression.Lambda(me).Compile().DynamicInvoke());
                 }
             }
             else if (mutationContextExpression.NodeType == ExpressionType.Constant)
             {
                 var ce = (ConstantExpression)mutationContextExpression;
-                compileContext.AddConstant(Expression.Parameter(ce.Type, $"const_{ce.Type.Name}"), ce.Value!);
+                compileContext.AddConstant(rootParameter, ce.Value);
             }
         }
     }

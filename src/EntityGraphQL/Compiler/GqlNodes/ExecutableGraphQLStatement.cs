@@ -221,10 +221,6 @@ namespace EntityGraphQL.Compiler
 
             if (compileContext.ConstantParameters.Any())
             {
-                foreach (var item in compileContext.ConstantParameters)
-                {
-                    expression = replacer.ReplaceByType(expression, item.Key.Type, item.Key);
-                }
                 parameters.AddRange(compileContext.ConstantParameters.Keys);
                 allArgs.AddRange(compileContext.ConstantParameters.Values);
             }

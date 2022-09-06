@@ -144,13 +144,13 @@ namespace EntityGraphQL.Schema
 
             foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(fromType, prop, param, schema, options, isInputType);
+                var f = ProcessFieldOrProperty(fromType, prop, param, schema, options, isInputType)?.ToList();
                 if (f != null)
                     fields.AddRange(f);
             }
             foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
-                var f = ProcessFieldOrProperty(fromType, prop, param, schema, options, isInputType);
+                var f = ProcessFieldOrProperty(fromType, prop, param, schema, options, isInputType)?.ToList();
                 if (f != null)
                     fields.AddRange(f);
             }
