@@ -555,7 +555,7 @@ namespace EntityGraphQL.Compiler.Util
         /// </summary>
         internal static Expression WrapObjectProjectionFieldForNullCheck(string fieldDescription, Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
-            var arguments = new List<Expression> {
+            var arguments = new Expression[] {
                 Expression.Constant(fieldDescription),
                 nullCheckExpression,
                 Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
@@ -565,7 +565,7 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
                 schemaContext ?? Expression.Constant(null),
             };
-            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapObjectProjectionFieldForNullCheckExec), null, arguments.ToArray());
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapObjectProjectionFieldForNullCheckExec), null, arguments);
             return call;
         }
 
@@ -607,7 +607,7 @@ namespace EntityGraphQL.Compiler.Util
 
         internal static Expression WrapListFieldForNullCheck(Expression nullCheckExpression, Expression callOnList, IEnumerable<ParameterExpression> paramsForFieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
-            var arguments = new List<Expression> {
+            var arguments = new Expression[] {
                 nullCheckExpression,
                 Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
                 Expression.Constant(callOnList),
@@ -616,7 +616,7 @@ namespace EntityGraphQL.Compiler.Util
                 schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
                 schemaContext ?? Expression.Constant(null),
             };
-            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapListFieldForNullCheckExec), null, arguments.ToArray());
+            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapListFieldForNullCheckExec), null, arguments);
             return call;
         }
 
