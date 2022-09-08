@@ -176,6 +176,11 @@ namespace EntityGraphQL.Schema
 
             LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
 
+            if (le.ReturnType.IsExpression())
+            {
+                le = param.Type.GetExpression(le)!;
+            }
+
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
             Type returnType;
@@ -195,7 +200,6 @@ namespace EntityGraphQL.Schema
             var baseReturnType = returnType;
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
-
 
             if (!options.IgnoreTypes.Contains(baseReturnType!))
             {

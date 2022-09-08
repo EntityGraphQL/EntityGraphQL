@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Extensions
 {
@@ -66,6 +67,18 @@ namespace EntityGraphQL.Extensions
             return isEnumerable;
         }
 
+        /// <summary>
+        /// Returns true if this type is an Expression<>
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        public static bool IsExpression(this Type source)
+        {
+            if (!source.IsGenericType)
+                return false;
+            return source.GetGenericTypeDefinition() == typeof(Expression<>);            
+        }
+
         public static bool IsGenericTypeEnumerable(this Type source)
         {
             bool isEnumerable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
@@ -98,6 +111,18 @@ namespace EntityGraphQL.Extensions
             if (type.GenericTypeArguments.Length == 1)
                 return type.GetGenericArguments()[0];
             return null;
+        }
+
+        /// <summary>
+        /// Return the array element type or the generic type for a IEnumerable<T>
+        /// Specifically does not treat string as IEnumerable<char> and will not return byte for byte[]
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static LambdaExpression? GetExpression(this Type type, LambdaExpression le)
+        {
+            var instance = Activator.CreateInstance(type);
+            return le.Compile().DynamicInvoke(instance) as LambdaExpression;
         }
 
         public static bool IsNullableType(this Type t)

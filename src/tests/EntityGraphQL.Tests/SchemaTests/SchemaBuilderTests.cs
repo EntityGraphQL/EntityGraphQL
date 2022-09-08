@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using EntityGraphQL.Schema;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Tests
 {
@@ -300,6 +301,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
             Assert.Throws<InvalidOperationException>(() => schemaProvider.Type<IUnion>().AddField("test", "description"));
         }
+
         [Fact]
         public void TestIgnoreReferencedTypes()
         {
@@ -318,6 +320,50 @@ namespace EntityGraphQL.Tests
             Assert.False(schemaProvider.HasType(typeof(C)));
             Assert.False(schemaProvider.HasType(typeof(D)));
         }
+
+        public class ExpressionFieldContext
+        {
+            public ICollection<ExpressionFieldClass> Fields { get; set; } = new List<ExpressionFieldClass>() { new ExpressionFieldClass() { FirstValue = 1, OtherValue = 3 } };
+        }
+
+        public class ExpressionFieldClass
+        {
+            public int FirstValue { get; set; }
+            public int OtherValue { get; set; }
+            public Expression<Func<ExpressionFieldClass, int>> Test => (t) => t.FirstValue + t.OtherValue;
+        }
+
+
+        [Fact]
+        public void SupportExpressionFields()
+        {
+            var schemaBuilderOptions = new SchemaBuilderOptions
+            {
+            };
+
+            var schemaProvider = SchemaBuilder.FromObject<ExpressionFieldContext>();
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains(@"test: Int", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+        query IntrospectionQuery {
+          fields {
+            test
+          }
+        }"
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, new ExpressionFieldContext(), null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(4, ((dynamic)res.Data["fields"])[0].test);
+        }
+
+
         private class TestIgnoreTypesSchema
         {
             public IEnumerable<A> As { get; }
