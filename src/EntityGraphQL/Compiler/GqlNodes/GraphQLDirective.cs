@@ -19,7 +19,7 @@ public class GraphQLDirective
         this.name = name;
     }
 
-    public Expression? Process(ISchemaProvider schema, Expression fieldExpression, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
+    public Expression? Process(ISchemaProvider schema, Expression fieldExpression, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
         var validationErrors = new List<string>();
         var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema), processor.GetArgumentsType(), docParam, docVariables, validationErrors);

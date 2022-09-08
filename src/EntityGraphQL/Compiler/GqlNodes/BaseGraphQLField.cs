@@ -145,13 +145,13 @@ namespace EntityGraphQL.Compiler
             return (baseExpression, listTypeParam);
         }
 
-        protected (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentParam, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             if (Field == null)
                 return (baseExpression, selectionExpressions, selectContextParam);
             foreach (var extension in Field.Extensions)
             {
-                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
+                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentParam, servicesPass, parameterReplacer);
             }
             return (baseExpression, selectionExpressions, selectContextParam);
         }
@@ -179,27 +179,7 @@ namespace EntityGraphQL.Compiler
             }
             return result;
         }
-        protected Dictionary<string, object> ResolveArguments(IReadOnlyDictionary<string, object> arguments)
-        {
-            var result = new Dictionary<string, object>(arguments);
-            if (Field == null)
-                return result;
 
-            if (Field.UseArgumentsFromField == null)
-                return result;
-
-            var node = ParentNode;
-            while (node != null)
-            {
-                if (node.Field != null && node.Field == Field.UseArgumentsFromField)
-                {
-                    result = result.MergeNew(node.Arguments);
-                    break;
-                }
-                node = node.ParentNode;
-            }
-            return result;
-        }
         protected Expression ReplaceContext(Expression replacementNextFieldContext, bool isRoot, ParameterReplacer replacer, Expression nextFieldContext)
         {
             var possibleField = replacementNextFieldContext.Type.GetField(Name);

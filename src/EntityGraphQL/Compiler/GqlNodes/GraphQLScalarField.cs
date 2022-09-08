@@ -33,10 +33,8 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Field?.Services.Any() == true)
                 return null;
 
-            (var result, var argumentValues) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer);
+            (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer);
 
-            if (argumentValues != null)
-                compileContext.AddConstant(Field!.ArgumentParam!, argumentValues);
             if (result == null)
                 return null;
 

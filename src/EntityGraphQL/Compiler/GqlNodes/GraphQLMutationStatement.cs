@@ -174,13 +174,13 @@ namespace EntityGraphQL.Compiler
                 var me = (MemberExpression)mutationContextExpression;
                 if (me.Expression!.NodeType == ExpressionType.Constant)
                 {
-                    compileContext.AddConstant(rootParameter, Expression.Lambda(me).Compile().DynamicInvoke());
+                    compileContext.AddConstant(null, rootParameter, Expression.Lambda(me).Compile().DynamicInvoke());
                 }
             }
             else if (mutationContextExpression.NodeType == ExpressionType.Constant)
             {
                 var ce = (ConstantExpression)mutationContextExpression;
-                compileContext.AddConstant(rootParameter, ce.Value);
+                compileContext.AddConstant(null, rootParameter, ce.Value);
             }
         }
     }

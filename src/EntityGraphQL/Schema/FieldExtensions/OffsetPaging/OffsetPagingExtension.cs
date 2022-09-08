@@ -81,20 +81,20 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         // set up the field's expresison so the types are all good 
         // rebuilt below if needed
-        var fieldExpression = BuildTotalCountExpression(field, returnType, field.ResolveExpression);
+        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentParam!);
         field.UpdateExpression(fieldExpression);
     }
 
-    private Expression BuildTotalCountExpression(IField field, Type returnType, Expression resolve)
+    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression? argumentParam)
     {
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
         var expression = Expression.MemberInit(
-            Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(field.ArgumentParam!, "skip"), Expression.PropertyOrField(field.ArgumentParam!, "take"))
+            Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
         );
         return expression;
     }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now
@@ -103,15 +103,15 @@ public class OffsetPagingExtension : BaseFieldExtension
             throw new ArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
         // other extensions expect to run on the collection not our new shape
-        Expression newItemsExp = itemsField!.ResolveExpression!;
+        var newItemsExp = itemsField!.ResolveExpression!;
         // update the context
         foreach (var extension in extensions)
         {
-            newItemsExp = extension.GetExpression(field, newItemsExp, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
+            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
 
         // Build our field expression and hold it for use in the next step
-        var fieldExpression = BuildTotalCountExpression(field, returnType!, newItemsExp);
+        var fieldExpression = BuildTotalCountExpression(returnType!, newItemsExp, argumentParam);
         return fieldExpression;
     }
 }

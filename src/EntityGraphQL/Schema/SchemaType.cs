@@ -62,7 +62,7 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString()!;
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(Schema, this, enumName, null, description, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field.IsNullable()), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var schemaField = new Field(Schema, this, enumName, null, description, null, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field.IsNullable()), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     schemaField.ApplyAttributes(field.GetCustomAttributes());
 
@@ -125,7 +125,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, this, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -197,7 +197,7 @@ namespace EntityGraphQL.Schema
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             RemoveField(name);
-            return AddField(new Field(Schema, this, name, fieldSelection, description, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
+            return AddField(new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
         }
 
         /// <summary>

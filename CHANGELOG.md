@@ -1,3 +1,13 @@
+# 4.0.0-beta2
+
+## Fixes
+
+- Fix issue related to #235 where the multiple fields are the same field with different alias and arguments
+
+## Breaking Changes
+
+- `IFieldExtension.ProcessExpressionSelection` now takes a `ParameterExpression? argumentParam` argument which is the argument parameter used at execution time (if there is one). Relating to #235
+
 # 4.0.0-beta1
 
 ## Breaking changes

@@ -22,14 +22,14 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         this.originalFieldParam = fieldParam;
     }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // other extensions expect to run on the collection not our new shape
         Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, this.originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
         // apply other expressions 
         foreach (var extension in extensions)
         {
-            newItemsExp = extension.GetExpression(field, newItemsExp, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
+            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
 
         if (servicesPass)
@@ -39,9 +39,9 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
             Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                 newItemsExp,
-                Expression.PropertyOrField(field.ArgumentParam!, "skip")
+                Expression.PropertyOrField(argumentParam!, "skip")
             ),
-            Expression.PropertyOrField(field.ArgumentParam!, "take")
+            Expression.PropertyOrField(argumentParam!, "take")
         );
 
         return newItemsExp;

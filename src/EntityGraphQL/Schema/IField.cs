@@ -25,6 +25,10 @@ namespace EntityGraphQL.Schema
         List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; }
         string? Description { get; }
         IDictionary<string, ArgType> Arguments { get; }
+        /// <summary>
+        /// The parameter expression for the field arguments (if any). Note that this instance is replaced within the
+        /// expression at execution time. You should not store this at configuration time in field extensions
+        /// </summary>
         ParameterExpression? ArgumentParam { get; }
         Type? ArgumentsType { get; set; }
         string Name { get; }
@@ -53,7 +57,7 @@ namespace EntityGraphQL.Schema
         /// <param name="previousContext"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        (Expression? expression, object? argumentValues) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, Dictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
+        (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
         Expression? ResolveExpression { get; }
 
         IField UpdateExpression(Expression expression);

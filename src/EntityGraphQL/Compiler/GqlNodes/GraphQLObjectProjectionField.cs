@@ -57,9 +57,7 @@ namespace EntityGraphQL.Compiler
             {
                 nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
             }
-            (nextFieldContext, var argumentValues) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, ResolveArguments(Arguments), docParam, docVariables, directives, contextChanged, replacer) ?? (nextFieldContext, null);
-            if (argumentValues != null)
-                compileContext.AddConstant(Field?.ArgumentParam!, argumentValues);
+            (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer) ?? (nextFieldContext, null);
             if (nextFieldContext == null)
                 return null;
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
@@ -80,11 +78,11 @@ namespace EntityGraphQL.Compiler
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
             {
-                nextFieldContext = WrapWithNullCheck(compileContext, selectionFields, serviceProvider, nextFieldContext, schemaContext, contextChanged, replacer);
+                nextFieldContext = WrapWithNullCheck(compileContext, selectionFields, serviceProvider, nextFieldContext, schemaContext, argumentParam, contextChanged, replacer);
             }
             else
             {
-                (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, contextChanged, replacer);
+                (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
                 // build a new {...} - returning a single object {}
                 var newExp = ExpressionUtil.CreateNewExpression(Name, selectionFields.ExpressionOnly(), out Type anonType);
                 if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
@@ -118,7 +116,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">Has the context changes (second pass with services)</param>
         /// <param name="replacer"></param>
         /// <returns></returns>
-        private Expression WrapWithNullCheck(CompileContext compileContext, Dictionary<IFieldKey, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
+        private Expression WrapWithNullCheck(CompileContext compileContext, Dictionary<IFieldKey, CompiledField> selectionFields, IServiceProvider? serviceProvider, Expression nextFieldContext, ParameterExpression schemaContext, ParameterExpression? argumentParam, bool contextChanged, ParameterReplacer replacer)
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc
@@ -149,7 +147,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, contextChanged, replacer);
+            (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, argumentParam, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
             var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 

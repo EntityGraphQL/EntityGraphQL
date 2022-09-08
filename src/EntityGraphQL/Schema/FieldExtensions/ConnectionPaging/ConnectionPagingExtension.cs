@@ -92,8 +92,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.Extensions = field.Extensions.Skip(extensionsBeforePaging.Count).ToList();
 
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, field.ArgumentParam!, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize);
+            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize);
             edgesField.AddExtension(edgesExtension);
+            // args on field get used in edges field we inject
             edgesField.UseArgumentsFrom(field);
 
             // Rebuild expression so all the fields and types are known
@@ -136,7 +137,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.UpdateExpression(fieldExpression);
         }
 
-        public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+        public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
         {
             // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
             if (servicesPass)
@@ -150,11 +151,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 // if we have other extensions (filter etc) we need to apply them to the totalCount
                 foreach (var extension in extensionsBeforePaging)
                 {
-                    edgeExpression = extension.GetExpression(edgesField, edgeExpression, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
+                    edgeExpression = extension.GetExpression(edgesField, edgeExpression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
                 }
             }
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression!);
-            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type })!, totalCountExp, field.ArgumentParam));
+            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, argumentParam!.Type })!, totalCountExp, argumentParam));
 
             return expression;
         }

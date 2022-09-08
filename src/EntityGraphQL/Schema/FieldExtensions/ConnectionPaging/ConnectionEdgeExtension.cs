@@ -10,10 +10,6 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 
 internal class ConnectionEdgeExtension : BaseFieldExtension
 {
-    /// <summary>
-    /// This is passed down from the original field
-    /// </summary>
-    private readonly ParameterExpression argumentParam;
     private readonly ParameterExpression originalFieldParam;
     private readonly int? defaultPageSize;
     private readonly int? maxPageSize;
@@ -22,26 +18,25 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     private readonly bool isQueryable;
     private readonly List<IFieldExtension> extensions;
 
-    public ConnectionEdgeExtension(Type listType, bool isQueryable, ParameterExpression argumentParam, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
+    public ConnectionEdgeExtension(Type listType, bool isQueryable, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
     {
         this.listType = listType;
         this.isQueryable = isQueryable;
         this.extensions = extensions;
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
-        this.argumentParam = argumentParam;
         this.originalFieldParam = fieldParam;
         this.defaultPageSize = defaultPageSize;
         this.maxPageSize = maxPageSize;
     }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argExpression, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         // field.Resolve will be built with the original field context and needs to be updated
         expression = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in extensions)
         {
-            expression = extension.GetExpression(field, expression, argExpression, arguments, context, parentNode, servicesPass, parameterReplacer);
+            expression = extension.GetExpression(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
 
         if (servicesPass)
@@ -107,11 +102,11 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
         return (baseExpression, listTypeParam);
     }
-    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentsParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
         foreach (var extension in extensions)
         {
-            (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, servicesPass, parameterReplacer);
+            (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentsParam, servicesPass, parameterReplacer);
         }
 
         if (servicesPass)
@@ -150,7 +145,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam))
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentsParam, idxParam))
                     }
                 ),
                 edgeParam,

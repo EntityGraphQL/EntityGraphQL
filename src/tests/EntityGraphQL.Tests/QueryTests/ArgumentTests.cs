@@ -502,6 +502,85 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, project.id);
         }
 
+        [Fact]
+        public void TestSameNameArgsOnSameFieldWithAlias()
+        {
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Person>("Person info").AddAllFields();
+            schema.Query().AddField("people", db => db.People, "List of people");
+            var gql = new GraphQLCompiler(schema).Compile(@"
+                query {
+                    people {
+                        task(id: 1) { id name }
+                        task2: task(id: 2) { id name }
+                    }
+                }");
+            var context = new TestDataContext();
+            context.People.Add(new Person
+            {
+                Id = 99,
+                Name = "jill",
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Name = "Task 1"
+                    },
+                    new Task
+                    {
+                        Id = 2,
+                        Name = "Task 2"
+                    }
+                }
+            });
+            var qr = gql.ExecuteQuery(context, null, null);
+            Assert.Null(qr.Errors);
+            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+            Assert.Equal("Task 1", person.task.name);
+            Assert.Equal(1, person.task.id);
+            Assert.Equal("Task 2", person.task2.name);
+            Assert.Equal(2, person.task2.id);
+        }
+
+        [Fact]
+        public void TestSameNameArgsOnSameFieldWithAliasRoot()
+        {
+            var schema = SchemaBuilder.Create<TestDataContext>();
+            schema.AddType<Task>("Task info").AddAllFields();
+            schema.Query().AddField("task", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Tasks.FirstOrDefault(t => t.Id == args.id), "Get task");
+            schema.Query().AddField("project", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Projects.FirstOrDefault(t => t.Id == args.id), "Get project");
+            var gql = new GraphQLCompiler(schema).Compile(@"
+                query {
+                    task(id: 1) { id name }
+                    task2: task(id: 2) { id name }
+                }");
+            var context = new TestDataContext
+            {
+                Tasks = new List<Task>
+                {
+                    new Task
+                    {
+                        Id = 1,
+                        Name = "Task 1"
+                    },
+                    new Task
+                    {
+                        Id = 2,
+                        Name = "Task 2"
+                    }
+                }
+            };
+            var qr = gql.ExecuteQuery(context, null, null);
+            Assert.Null(qr.Errors);
+            dynamic task = qr.Data["task"];
+            dynamic task2 = qr.Data["task2"];
+            Assert.Equal("Task 1", task.name);
+            Assert.Equal(1, task.id);
+            Assert.Equal("Task 2", task2.name);
+            Assert.Equal(2, task2.id);
+        }
+
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
             schema.Query().ReplaceField("person",

@@ -392,14 +392,13 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($name: String) {
-          addPersonAdv(name: $name) {
-            ...frag
-          }
-        }
-        fragment frag on Person {
-            id age
-        }
-        ",
+                    addPersonAdv(name: $name) {
+                        ...frag
+                    }
+                }
+                fragment frag on Person {
+                    id age
+                }",
                 Variables = new QueryVariables {
                     {"name", "Bill"}
                 }
@@ -434,11 +433,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($name: String) {
-          addPersonReturnAll(name: $name) {
-            id age
-          }
-        }
-        ",
+                    addPersonReturnAll(name: $name) {
+                        id age
+                    }
+                }",
                 Variables = new QueryVariables {
                     {"name", "Bill"}
                 }
