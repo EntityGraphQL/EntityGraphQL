@@ -1,3 +1,9 @@
+# 4.0.0
+
+# Fixes
+
+- #243 - support `application/json; charset=utf-8` content type
+
 # 4.0.0-beta2
 
 ## Fixes

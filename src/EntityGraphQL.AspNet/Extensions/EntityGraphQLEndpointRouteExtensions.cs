@@ -15,7 +15,7 @@ namespace EntityGraphQL.AspNet
             var requestPipeline = builder.CreateApplicationBuilder();
             builder.MapPost(path, async context =>
             {
-                if (context.Request.ContentType != "application/json")
+                if (context.Request.ContentType.StartsWith("application/json"))
                 {
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
