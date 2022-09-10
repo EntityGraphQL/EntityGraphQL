@@ -4,10 +4,6 @@ sidebar_position: 2
 
 # Getting Started
 
-:::caution
-EntityGraphQL 4.0.0 is currently in beta. Although it is very stable and being used in production there may be further changes. See the upgrade guide [here](./upgrade-4-0).
-:::
-
 ## Installation
 
 If you are working with ASP.NET then install [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet) via Nuget. It will allow you to:
