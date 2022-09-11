@@ -24,7 +24,7 @@ namespace demo.Mutations
         {
             // we returning a scalar, you do not require the Expression<>
             // AgeService registered in DI. Use it here
-            return ageService.Calc(new Person());
+            return 1;// AgeService.Calc(new Person());
         }
 
         /// <summary>

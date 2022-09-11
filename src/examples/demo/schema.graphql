@@ -6,6 +6,7 @@ schema {
 scalar Boolean
 scalar Char
 scalar Date
+scalar DateTimeOffset
 scalar Float
 scalar ID
 scalar Int

@@ -10,6 +10,7 @@ using EntityGraphQL.AspNet;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using EntityGraphQL.Schema;
+using NeinLinq;
 
 namespace demo
 {
@@ -30,7 +31,7 @@ namespace demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DemoContext>(opt => opt.UseSqlite("Filename=demo.db"));
+            services.AddDbContext<DemoContext>(opt => opt.UseSqlite("Filename=demo.db").WithLambdaInjection());
 
             services.AddSingleton<AgeService>();
 

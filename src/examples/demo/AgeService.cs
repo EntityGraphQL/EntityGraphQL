@@ -1,4 +1,6 @@
+using NeinLinq;
 using System;
+using System.Linq.Expressions;
 
 namespace demo
 {
@@ -7,9 +9,7 @@ namespace demo
     /// </summary>
     public class AgeService
     {
-        public int Calc(Person person)
-        {
-            return (int)((DateTime.Now - person.Dob).TotalDays / 365);
-        }
+       
+
     }
 }

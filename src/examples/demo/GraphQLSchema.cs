@@ -41,7 +41,7 @@ namespace demo
                 // type.AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
                 // AgeService needs to be added to the ServiceProvider
                 type.AddField("age", "Show the person's age")
-                    .ResolveWithService<AgeService>((person, ageService) => ageService.Calc(person));
+                    .Resolve((person) => Person.Age(person));
                 type.AddField("filteredDirectorOf", new
                 {
                     filter = ArgumentHelper.EntityQuery<Movie>()

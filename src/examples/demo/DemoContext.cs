@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
+using NeinLinq;
 
 namespace demo
 {
@@ -97,5 +99,13 @@ namespace demo
         public List<Movie> DirectorOf { get; set; }
         public DateTime? Died { get; set; }
         public bool IsDeleted { get; set; }
+
+        [InjectLambda]
+        public static int Age(Person p)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static Expression<Func<Person, int>> AgeExpr => (p) => (int)((DateTime.Now - p.Dob).TotalDays / 365);
     }
 }
