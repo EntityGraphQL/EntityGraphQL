@@ -48,3 +48,21 @@ As EntityGraphQL does not support auto registering methods as fields you will ne
   );
 ```
 
+This field is now available to queries and can be used in mutations too in a similar way
+
+```
+public class PeopleMutations
+{
+    [GraphQLMutation("Add a new person to the system")]
+    public Expression<Func<DemoContext, Person>> UpdatePerson(DemoContext db, int id, string firstName, string lastName)
+    {
+        var person = db.People.Select(p => {
+            p.FirstName,
+            p.LastName,
+            p.Age()
+        });
+
+        ...
+    }
+}
+```
