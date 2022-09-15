@@ -187,7 +187,7 @@ class PeopleMutations(IDemoService demoService)
 
 Later we'll learn how to access services within query fields of the schema.
 
-### `MutationArguments` classes
+### `GraphQLArguments` classes
 
 Depending on the complexity of your mutation you may end up with many method arguments to build the mutation field schema arguments. Consider a mutation that creates an object and lets you pass all the properties in.
 
@@ -207,7 +207,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db,
 }
 ```
 
-You may also have mutations where you want to have the same or similar arguments. EntityGraphQL lets you use a MutationArguments class. If a parameter in the method has the `MutationArgumentsAttribute` that type will be expanded. The above could be changed to the following.
+You may also have mutations where you want to have the same or similar arguments. EntityGraphQL lets you use a MutationArguments class. If a parameter in the method has the `GraphQLArgumentsAttribute` that type will be expanded. The above could be changed to the following.
 
 ```cs
 [GraphQLMutation("Add a new person to the system.")]
@@ -216,7 +216,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPer
     // use args.*
 }
 
-[MutationArguments]
+[GraphQLArguments]
 public class AddPersonArgs
 {
     public String FirstName { get; set; }
@@ -230,7 +230,7 @@ public class AddPersonArgs
 }
 ```
 
-MutationArgument classes provide some flexibility in using inheritence etc for common mutation fields. Both still generate the same mutation field in the GraphQL schema.
+GraphQLArgument classes provide some flexibility in using inheritence etc for common mutation fields. Both still generate the same mutation field in the GraphQL schema.
 
 ```graphql
 type Mutation {
