@@ -30,7 +30,7 @@ namespace EntityGraphQL.Tests
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
-        }
+        }     
 
         [Fact]
         public void TestSeparateArguments_PrimitivesOnly_WithInlineDefaults()
@@ -96,6 +96,27 @@ namespace EntityGraphQL.Tests
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSingleArgument_InvalidArguments()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddInputType<InputObject>("InputObject", "");
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = false });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPersonSingleArgument($nameInput: InputObject) {
+                  addPersonSingleArgument(nameInput: $nameInput) { id name }
+                }",
+                Variables = new QueryVariables {
+                    { "nameInput", new { Name = 3, Birthday = "yesterday" } },
+                }
+            };
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.NotNull(res.Errors);
+            Assert.Equal("Field 'addPersonSingleArgument' - Supplied variable 'nameInput' can not be applied to defined variable type 'InputObject' The string 'yesterday' was not recognized as a valid DateTime. There is an unknown word starting at index '0'.", res.Errors[0].Message);
         }
 
         [Fact]

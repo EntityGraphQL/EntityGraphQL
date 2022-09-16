@@ -194,7 +194,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
             Assert.Single(result.Errors);
-            Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
+            Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]' Unable to cast object of type '<>f__AnonymousType3`2[System.String,System.String]' to type 'System.Collections.IEnumerable'.", result.Errors.First().Message);
         }
 
         [Fact]
@@ -889,7 +889,7 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.NotNull(results.Errors);
-            Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' can not be applied to defined variable type 'ID'", results.Errors[0].Message);
+            Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' can not be applied to defined variable type 'ID' Invalid cast from 'System.String' to 'System.Guid'.", results.Errors[0].Message);
         }
 
         [Fact]

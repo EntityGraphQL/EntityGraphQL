@@ -5,7 +5,7 @@ namespace EntityGraphQL.Compiler;
 
 public class EntityGraphQLCompilerException : Exception
 {
-    public EntityGraphQLCompilerException(string message, Exception? innerException = null) : base(message, innerException)
+    public EntityGraphQLCompilerException(string message, Exception? innerException = null) : base($"{message} {innerException?.Message}".Trim(), innerException)
     {
     }
 }

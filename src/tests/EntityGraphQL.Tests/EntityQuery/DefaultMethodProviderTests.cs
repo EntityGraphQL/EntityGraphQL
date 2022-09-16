@@ -39,7 +39,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         public void FailsWhereWrongParameterType()
         {
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider()));
-            Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String'", ex.Message);
+            Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String' No coercion operator is defined between types 'System.String' and 'System.Boolean'.", ex.Message);
         }
 
         [Fact]
