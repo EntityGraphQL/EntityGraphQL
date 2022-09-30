@@ -10,6 +10,7 @@ using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
+using Nullability;
 
 namespace EntityGraphQL.Schema
 {
@@ -201,9 +202,12 @@ namespace EntityGraphQL.Schema
             {
                 CacheType(baseReturnType, schema, options, isInputType);
 
+                var nullabilityInfo = prop.GetNullabilityInfo();
+
                 // see if there is a direct type mapping from the expression return to to something.
                 // otherwise build the type info
-                var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, prop.IsNullable());
+                var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+
                 var field = new Field(schema, fromType, schema.SchemaFieldNamer(prop.Name), le, description, null, returnTypeInfo, requiredClaims);
 
                 if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))

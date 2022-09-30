@@ -261,8 +261,10 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
+            Assert.DoesNotContain("addAlbum(name: String!, genre: Genre!): Album!", schema);
             Assert.Contains("addAlbum2(name: String!, genre: Genre!): Album!", schema);
             Assert.Contains("addAlbum3(name: String!, genre: Genre!): Album", schema);
+            Assert.DoesNotContain("addAlbum3(name: String!, genre: Genre!): Album!", schema);
 
             var gql = new QueryRequest
             {
