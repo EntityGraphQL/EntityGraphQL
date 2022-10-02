@@ -1,26 +1,29 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7214E34E-E71C-4604-9FD4-7ADDDFA09F26}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL", "src\EntityGraphQL\EntityGraphQL.csproj", "{5D8B02DC-20EF-456F-A1DB-840FF1455156}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityGraphQL", "src\EntityGraphQL\EntityGraphQL.csproj", "{5D8B02DC-20EF-456F-A1DB-840FF1455156}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5F132C01-AA1F-4241-B90F-BE4B2275B34E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.Tests", "src\tests\EntityGraphQL.Tests\EntityGraphQL.Tests.csproj", "{C55A2E96-5040-4234-80B6-A0A7B4EFAF3E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityGraphQL.Tests", "src\tests\EntityGraphQL.Tests\EntityGraphQL.Tests.csproj", "{C55A2E96-5040-4234-80B6-A0A7B4EFAF3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "demo", "src\examples\demo\demo.csproj", "{881BC76F-90C8-4D25-8E6C-A616E592FA96}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "demo", "src\examples\demo\demo.csproj", "{881BC76F-90C8-4D25-8E6C-A616E592FA96}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{7248D14E-5306-41A0-A028-19F8C181DA50}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{7248D14E-5306-41A0-A028-19F8C181DA50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.AspNet", "src\EntityGraphQL.AspNet\EntityGraphQL.AspNet.csproj", "{7F1262FF-53C0-4086-8C72-00630A85DFD2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityGraphQL.AspNet", "src\EntityGraphQL.AspNet\EntityGraphQL.AspNet.csproj", "{7F1262FF-53C0-4086-8C72-00630A85DFD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityGraphQL.AspNet.Tests", "src\tests\EntityGraphQL.AspNet.Tests\EntityGraphQL.AspNet.Tests.csproj", "{8C352BF2-E6AA-4466-A086-BF05A667465A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityGraphQL.AspNet.Tests", "src\tests\EntityGraphQL.AspNet.Tests\EntityGraphQL.AspNet.Tests.csproj", "{8C352BF2-E6AA-4466-A086-BF05A667465A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{D8AA6BD5-5945-4997-887E-491A25378303}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subscriptions", "src\examples\subscriptions\subscriptions.csproj", "{55645B0C-88D1-4060-AB5A-C444B36E815A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subscriptions", "src\examples\subscriptions\subscriptions.csproj", "{55645B0C-88D1-4060-AB5A-C444B36E815A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionApp", "src\examples\AzureFunctionApp\AzureFunctionApp.csproj", "{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,9 +33,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5D8B02DC-20EF-456F-A1DB-840FF1455156}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -119,16 +119,35 @@ Global
 		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x64.Build.0 = Release|Any CPU
 		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x86.ActiveCfg = Release|Any CPU
 		{55645B0C-88D1-4060-AB5A-C444B36E815A}.Release|x86.Build.0 = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|x64.Build.0 = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Debug|x86.Build.0 = Debug|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|x64.ActiveCfg = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|x64.Build.0 = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|x86.ActiveCfg = Release|Any CPU
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5D8B02DC-20EF-456F-A1DB-840FF1455156} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{5F132C01-AA1F-4241-B90F-BE4B2275B34E} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{C55A2E96-5040-4234-80B6-A0A7B4EFAF3E} = {5F132C01-AA1F-4241-B90F-BE4B2275B34E}
-		{881BC76F-90C8-4D25-8E6C-A616E592FA96} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
+		{881BC76F-90C8-4D25-8E6C-A616E592FA96} = {D8AA6BD5-5945-4997-887E-491A25378303}
 		{7248D14E-5306-41A0-A028-19F8C181DA50} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{7F1262FF-53C0-4086-8C72-00630A85DFD2} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{8C352BF2-E6AA-4466-A086-BF05A667465A} = {5F132C01-AA1F-4241-B90F-BE4B2275B34E}
 		{D8AA6BD5-5945-4997-887E-491A25378303} = {7214E34E-E71C-4604-9FD4-7ADDDFA09F26}
 		{55645B0C-88D1-4060-AB5A-C444B36E815A} = {D8AA6BD5-5945-4997-887E-491A25378303}
+		{37B1BF94-489C-4C7E-9A1C-C1A9FC9CC9A4} = {D8AA6BD5-5945-4997-887E-491A25378303}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {74156BCF-DABB-4919-A8AC-90629FB4565E}
 	EndGlobalSection
 EndGlobal
