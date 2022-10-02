@@ -26,6 +26,7 @@ namespace EntityGraphQL.Tests
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
         public List<User> Users { get; set; } = new List<User>();
+        public System.Threading.Tasks.Task<int?> FirstUserId => System.Threading.Tasks.Task.FromResult(Users.FirstOrDefault()?.Id);
     }
 
     public class TestDataContext2
