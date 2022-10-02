@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -71,6 +72,12 @@ namespace EntityGraphQL.Compiler
                 }
                 catch (Exception ex)
                 {
+                    while (ex is TargetInvocationException)
+                    {
+                        ex = ex.InnerException!;
+                        if (ex is EntityGraphQLException vex)
+                            throw new EntityGraphQLException(field.Name, vex);
+                    }
                     throw new EntityGraphQLExecutionException(field.Name, ex);
                 }
             }

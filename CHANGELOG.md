@@ -1,3 +1,10 @@
+# 4.0.1
+
+# Fixes
+
+- #248 - Make sure delegates run on fields that map a list of items to a single item
+- #213 - Multiple levels of `TargetInvocationException` will now be unwrapped
+
 # 4.0.0
 
 # Fixes
