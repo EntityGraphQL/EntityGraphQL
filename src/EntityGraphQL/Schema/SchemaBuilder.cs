@@ -6,10 +6,10 @@ using System.Reflection;
 using Humanizer;
 using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
-using EntityGraphQL.Authorization;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Schema
 {
@@ -178,19 +178,24 @@ namespace EntityGraphQL.Schema
 
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
-            Type returnType;
-            if (le.ReturnType.IsDictionary())
+            var returnsTask = le.ReturnType.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (le.ReturnType.IsGenericType && le.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+            Type returnType = le.ReturnType;
+            if (returnsTask || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)))
+            {
+                returnType = returnType.GetGenericArguments()[0];
+            }
+            if (returnType.IsDictionary())
             {
                 // check for dictionaries
                 if (!options.AutoCreateNewComplexTypes)
                     yield break;
-                Type[] genericTypeArguments = le.ReturnType.GenericTypeArguments;
+                Type[] genericTypeArguments = returnType.GenericTypeArguments;
                 returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
                 if (!schema.HasType(returnType))
                     schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
             }
             else
-                returnType = le.ReturnType.IsEnumerableOrArray() ? le.ReturnType.GetEnumerableOrArrayType()! : le.ReturnType.GetNonNullableType();
+                returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType();
 
             var baseReturnType = returnType;
             if (baseReturnType.IsEnumerableOrArray())

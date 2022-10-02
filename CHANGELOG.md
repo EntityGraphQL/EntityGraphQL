@@ -4,6 +4,7 @@
 
 - #248 - Make sure delegates run on fields that map a list of items to a single item
 - #213 - Multiple levels of `TargetInvocationException` will now be unwrapped
+- #82 - SchemaBuilder can now handle fields that return `Task<>`. Note that the way that queries expressions are built you may still encounter issues with `async` fields not at the root query level. Please open an issue if you do
 
 # 4.0.0
 

@@ -31,14 +31,16 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
-        public void CanQueryAsyncField() {
-            var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            var tree = new GraphQLCompiler(objectSchemaProvider).Compile(@"
-{
-	firstUserId
-}");
-            var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal(100, (int)result.Data["firstUserId"]);
+        public void CanQueryAsyncField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var result = schemaProvider.ExecuteRequest(new QueryRequest
+            {
+                Query = @"{
+                    firstUserId
+                }"
+            }, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Equal(100, (int?)result.Data["firstUserId"]);
         }
 
         [Fact]
