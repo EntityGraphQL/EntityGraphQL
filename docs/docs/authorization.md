@@ -15,7 +15,7 @@ _Note if you are using the `AddGraphQLSchema()` extension in `EntityGraphQL.AspN
 ```cs
 // Assuming you're in a ASP.NET controller
 // this.User is the current ClaimsPrincipal
-var results = schemaProvider.ExecuteRequest(query, dbContext, this.HttpContext.RequestServices, this.User);
+var results = await schemaProvider.ExecuteRequestAsync(query, dbContext, this.HttpContext.RequestServices, this.User);
 ```
 
 ## Adding Authorization on Roles or Policies

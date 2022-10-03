@@ -47,6 +47,45 @@ namespace EntityGraphQL.Tests
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("id"));
         }
+
+        [Fact]
+        public void TestIncludeIfFalseConstantOnIdField()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var query = new QueryRequest
+            {
+                Query = @"query {
+    person(id:99) @include(if: false) {
+        id
+        name 
+    }
+}"
+            };
+            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            Assert.Null(result.Errors);
+            Assert.False(result.Data.ContainsKey("person"));
+        }
+
+        [Fact]
+        public void TestIncludeIfFalseConstantOnList()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var query = new QueryRequest
+            {
+                Query = @"query {
+    people @include(if: false) {
+        id
+        name 
+    }
+}"
+            };
+            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            Assert.Null(result.Errors);
+
+            Assert.False(result.Data.ContainsKey("people"));
+        }
+
+
         [Fact]
         public void TestIncludeIfTrueVariable()
         {
