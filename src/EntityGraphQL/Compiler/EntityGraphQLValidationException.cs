@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace EntityGraphQL.Compiler;
 
-public class EntityGraphQLValidationException : Exception
+public class EntityGraphQLValidationException : Exception, IExposableException
 {
     public List<string> ValidationErrors { get; }
 

@@ -47,11 +47,11 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
         // check and set up arguments
         if (arguments.Before != null && arguments.After != null)
-            throw new ArgumentException($"Field only supports either before or after being supplied, not both.");
+            throw new EntityGraphQLArgumentException($"Field only supports either before or after being supplied, not both.");
         if (arguments.First != null && arguments.First < 0)
-            throw new ArgumentException($"first argument can not be less than 0.");
+            throw new EntityGraphQLArgumentException($"first argument can not be less than 0.");
         if (arguments.Last != null && arguments.Last < 0)
-            throw new ArgumentException($"last argument can not be less than 0.");
+            throw new EntityGraphQLArgumentException($"last argument can not be less than 0.");
 
         // deserialize cursors here once (not many times in the fields)
         arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
@@ -60,9 +60,9 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         if (maxPageSize.HasValue)
         {
             if (arguments.First != null && arguments.First > maxPageSize.Value)
-                throw new ArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
+                throw new EntityGraphQLArgumentException($"first argument can not be greater than {maxPageSize.Value}.");
             if (arguments.Last != null && arguments.Last > maxPageSize.Value)
-                throw new ArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
+                throw new EntityGraphQLArgumentException($"last argument can not be greater than {maxPageSize.Value}.");
         }
 
         if (arguments.First == null && arguments.Last == null && defaultPageSize != null)

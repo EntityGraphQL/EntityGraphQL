@@ -31,7 +31,7 @@ namespace EntityGraphQL.Schema
         {
             if (options == null)
                 options = new SchemaBuilderSchemaOptions();
-            return new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled);
+            return new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled, options.IsDevelopment);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Schema
                 buildOptions = new SchemaBuilderOptions();
             var schemaOptions = new SchemaBuilderSchemaOptions();
 
-            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled);
+            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
             return FromObject(schema, buildOptions);
         }
 
@@ -66,7 +66,7 @@ namespace EntityGraphQL.Schema
             if (schemaOptions == null)
                 schemaOptions = new SchemaBuilderSchemaOptions();
 
-            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled);
+            var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
             schemaOptions.PreBuildSchemaFromContext?.Invoke(schema);
             return FromObject(schema, buildOptions);
         }

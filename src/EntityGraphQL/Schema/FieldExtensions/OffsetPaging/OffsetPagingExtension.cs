@@ -100,7 +100,7 @@ public class OffsetPagingExtension : BaseFieldExtension
             return expression; // we don't need to do anything. items field is there to handle it now
 
         if (maxPageSize != null && arguments?.Take > maxPageSize.Value)
-            throw new ArgumentException($"Argument take can not be greater than {maxPageSize}.");
+            throw new EntityGraphQLArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
         // other extensions expect to run on the collection not our new shape
         var newItemsExp = itemsField!.ResolveExpression!;

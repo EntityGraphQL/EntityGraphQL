@@ -160,7 +160,13 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public int AddPersonError(PeopleMutationsArgs args)
         {
-            throw new ArgumentNullException("name", "Name can not be null");
+            throw new EntityGraphQLArgumentException("name", "Name can not be null");
+        }
+
+        [GraphQLMutation]
+        public int AddPersonErrorUnexposedException(PeopleMutationsArgs args)
+        {
+            throw new Exception("You should not see this message outside of Development");
         }
 
         [GraphQLMutation]
