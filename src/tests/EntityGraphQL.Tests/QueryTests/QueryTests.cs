@@ -31,6 +31,19 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void CanQueryAsyncField()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            var result = schemaProvider.ExecuteRequest(new QueryRequest
+            {
+                Query = @"{
+                    firstUserId
+                }"
+            }, new TestDataContext().FillWithTestData(), null, null);
+            Assert.Equal(100, (int?)result.Data["firstUserId"]);
+        }
+
+        [Fact]
         public void CanQueryExtendedFields()
         {
             var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();

@@ -52,7 +52,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public virtual Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler
             // people & movies will be the 2 fields that will be 2 separate expressions
             var result = new ConcurrentDictionary<string, object?>();
             if (context == null)
-                return Task.FromResult(result);
+                return result;
 
             object? docVariables = BuildDocumentVariables(ref variables);
 
@@ -79,7 +79,7 @@ namespace EntityGraphQL.Compiler
                     }
 #endif
 
-                    (var data, var didExecute) = CompileAndExecuteNode(new CompileContext(), context, serviceProvider, fragments, fieldNode, options, docVariables);
+                    (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(), context, serviceProvider, fragments, fieldNode, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Compiler
                     throw new EntityGraphQLFieldException(fieldNode.Name, ex);
                 }
             }
-            return Task.FromResult(result);
+            return result;
         }
 
         protected object? BuildDocumentVariables(ref QueryVariables? variables)
@@ -140,7 +140,7 @@ namespace EntityGraphQL.Compiler
             return variablesToUse;
         }
 
-        protected (object? result, bool didExecute) CompileAndExecuteNode(CompileContext compileContext, object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
+        protected async Task<(object? result, bool didExecute)> CompileAndExecuteNodeAsync(CompileContext compileContext, object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
         {
             object? runningContext = context;
 
@@ -164,7 +164,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = ExecuteExpression(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext);
+                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext);
                     if (runningContext == null)
                         return (null, true);
 
@@ -187,11 +187,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = ExecuteExpression(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext);
+            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext);
             return data;
         }
 
-        private (object? result, bool didExecute) ExecuteExpression(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext)
+        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
@@ -225,7 +225,13 @@ namespace EntityGraphQL.Compiler
             if (options.NoExecution)
                 return (null, false);
 #endif
-            return (lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray()), true);
+            object? res = null;
+            if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+                res = await (dynamic?)lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+            else
+                res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+
+            return (res, true);
         }
 
         public virtual void AddField(BaseGraphQLField field)

@@ -175,7 +175,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
             QueryResult result;
             try
@@ -234,14 +234,14 @@ namespace EntityGraphQL.Schema
                     compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                 }
 
-                result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.Variables, gql.OperationName, options);
+                result = await compiledQuery.ExecuteQueryAsync(context, serviceProvider, gql.Variables, gql.OperationName, options);
             }
             catch (Exception ex)
             {
                 result = HandleException(ex);
             }
 
-            return Task.FromResult(result);
+            return result;
         }
 
         private QueryResult HandleException(Exception exception)

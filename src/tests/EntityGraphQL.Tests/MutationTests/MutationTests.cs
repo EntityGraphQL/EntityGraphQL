@@ -263,10 +263,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($names: InputObject) {
-          addPersonInput(nameInput: $names) {
-            id name lastName
-          }
-        }",
+                    addPersonInput(nameInput: $names) {
+                        id name lastName
+                    }
+                }",
                 // object will come through as json in the request
                 Variables = new QueryVariables {
                         { "names", new InputObject{ Name = "Lisa", LastName = "Simpson" } }

@@ -27,9 +27,9 @@ namespace EntityGraphQL.AspNet
             }
         }
 
-        public async Task SerializeAsync<T>(Stream body, T data)
+        public Task SerializeAsync<T>(Stream body, T data)
         {
-            await JsonSerializer.SerializeAsync(body, data, jsonOptions);
+            return JsonSerializer.SerializeAsync(body, data, jsonOptions);
         }
     }
 }

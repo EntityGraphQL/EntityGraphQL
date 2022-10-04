@@ -23,6 +23,6 @@ public class Droid : ICharacter {
 // creating our schema
 var union = schema.AddUnion<ICharacter>(name: "Character", description: "represents any character in the Star Wars trilogy");
 
-schema.Type<ICharacter>.AddPotentialType<Human>();
-schema.Type<ICharacter>.AddPotentialType<Droid>();
+schema.Type<ICharacter>().AddPossibleType<Human>();
+schema.Type<ICharacter>().AddPossibleType<Droid>();
 ```

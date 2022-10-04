@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -91,10 +92,10 @@ namespace EntityGraphQL.Compiler
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
                 return result;
-            return MakeSelectionFromResult(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, options, docVariables, result);
+            return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, options, docVariables, result);
         }
 
-        protected object? MakeSelectionFromResult<TContext>(CompileContext compileContext, BaseGraphQLQueryField node, BaseGraphQLQueryField selection, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables, object? result)
+        protected async Task<object?> MakeSelectionFromResultAsync<TContext>(CompileContext compileContext, BaseGraphQLQueryField node, BaseGraphQLQueryField selection, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables, object? result)
         {
             var resultExp = selection;
 
@@ -150,7 +151,7 @@ namespace EntityGraphQL.Compiler
                 }
                 resultExp.RootParameter = mutationContextParam;
 
-                (result, _) = CompileAndExecuteNode(compileContext, context!, serviceProvider, fragments, resultExp, options, docVariables);
+                (result, _) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, resultExp, options, docVariables);
                 return result;
             }
             // we now know the context as it is dynamically returned in a mutation
@@ -162,7 +163,7 @@ namespace EntityGraphQL.Compiler
             }
 
             // run the query select against the object they have returned directly from the mutation
-            (result, _) = CompileAndExecuteNode(compileContext, result!, serviceProvider, fragments, resultExp, options, docVariables);
+            (result, _) = await CompileAndExecuteNodeAsync(compileContext, result!, serviceProvider, fragments, resultExp, options, docVariables);
             return result;
         }
 

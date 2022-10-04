@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
+using Nullability;
 
 namespace EntityGraphQL.Schema;
 
@@ -99,7 +100,9 @@ public abstract class ControllerType
             SchemaBuilder.CacheType(nonListReturnType, SchemaType.Schema, options, false);
         }
         var typeName = SchemaType.Schema.GetSchemaType(nonListReturnType, null).Name;
-        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, method.IsNullable());
+
+        var nullability = method.GetNullabilityInfo().Unwrap();
+        var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, nullability);
         var field = MakeField(name, method, description, options, isAsync, requiredClaims, returnType);
 
         field.ApplyAttributes(method.GetCustomAttributes());

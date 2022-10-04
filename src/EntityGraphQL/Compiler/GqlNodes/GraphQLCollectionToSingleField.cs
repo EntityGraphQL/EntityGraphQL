@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
             this.objectProjectionNode = objectProjectionNode;
             this.combineExpression = combineExpression;
         }
-
+     
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
@@ -63,8 +63,14 @@ namespace EntityGraphQL.Compiler
                 // second / last pass
                 exp = objectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
             }
+
             if (exp == null)
                 return null;
+
+            foreach (var directive in directives)
+            {
+                exp = directive.Process(schema, exp!, Arguments, docParam, docVariables);
+            }
 
             return exp;
         }

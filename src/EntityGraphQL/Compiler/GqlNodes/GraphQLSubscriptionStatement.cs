@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -96,12 +97,17 @@ namespace EntityGraphQL.Compiler
 
         public object? ExecuteSubscriptionEvent<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue)
         {
+            return ExecuteSubscriptionEventAsync<TQueryContext, TType>(node, eventValue).GetAwaiter().GetResult();
+        }
+
+        public Task<object?> ExecuteSubscriptionEventAsync<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue)
+        {
             if (serviceProvider == null)
                 throw new EntityGraphQLExecutionException($"serviceProvider cannot be null. Please provide a valid ServiceProvider when executing a subscription operation with the schema query context registered.");
 
             var context = (TQueryContext)serviceProvider!.GetRequiredService(typeof(TQueryContext));
 
-            var result = MakeSelectionFromResult(new CompileContext(), node, node.ResultSelection!, context, serviceProvider, fragments!, options!, docVariables, eventValue);
+            var result = MakeSelectionFromResultAsync(new CompileContext(), node, node.ResultSelection!, context, serviceProvider, fragments!, options!, docVariables, eventValue);
             return result;
         }
 
