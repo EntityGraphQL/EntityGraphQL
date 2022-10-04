@@ -6,6 +6,7 @@ schema {
 scalar Boolean
 scalar Char
 scalar Date
+scalar DateTimeOffset
 scalar Float
 scalar ID
 scalar Int
@@ -50,6 +51,8 @@ type Query {
 	people: [Person!]
 	"""Return a Person by its Id"""
 	person(id: Int!): Person
+	"""List of users"""
+	users: [User!]
 	"""List of writers"""
 	writers: [Person!]
 }
@@ -97,6 +100,9 @@ input DirectorsSortInput {
 type Movie {
 	"""Actors in the movie"""
 	actors: [Person!]
+	"""User who added this movie"""
+	contributedBy: User
+	createdBy: Int!
 	director: Person
 	directorId: Int
 	"""Enum of Genre"""
@@ -148,9 +154,18 @@ type PersonPage {
 	"""Return a Person by its Id"""
 	item(id: Int!): Person
 	"""Items in the page"""
-	items: [Person!]!
+	items: [Person]!
 	"""Count of the total items in the collection"""
 	totalItems: Int!
+}
+
+"""A user of the system"""
+type User {
+	email: String
+	id: Int!
+	"""Movies this user added"""
+	moviesContributed: [Movie!]
+	name: String
 }
 
 type Writer {

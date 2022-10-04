@@ -52,6 +52,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
+            if (withoutServiceFields && isRoot && HasServices)
+                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
+
             var listContext = ListExpression;
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
@@ -72,7 +75,7 @@ namespace EntityGraphQL.Compiler
             if (selectionFields == null || !selectionFields.Any())
             {
                 if (withoutServiceFields && HasServices)
-                    return null;
+                    return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
                 return listContext;
             }
 

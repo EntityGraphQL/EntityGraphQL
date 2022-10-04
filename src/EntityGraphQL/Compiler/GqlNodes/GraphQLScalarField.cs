@@ -30,8 +30,8 @@ namespace EntityGraphQL.Compiler
 
         public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
-            if (withoutServiceFields && Field?.Services.Any() == true)
-                return null;
+            if (HasServices && withoutServiceFields)
+                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
 
             (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer);
 
