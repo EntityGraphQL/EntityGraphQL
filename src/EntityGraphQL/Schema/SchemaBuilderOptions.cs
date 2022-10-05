@@ -93,5 +93,11 @@ namespace EntityGraphQL.Schema
         /// anything that may be needed for the schema to be built correctly.
         /// </summary>
         public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; } = null;
+
+        /// <summary>
+        /// If true (default), exceptions not implementing IExposableException will have their messages rendered in the 'errors' object
+        /// If false, exceptions not implementing IExposableException will have their message replaced with 'Error occurred'
+        /// </summary>
+        public bool IsDevelopment { get; set; } = true;
     }
 }
