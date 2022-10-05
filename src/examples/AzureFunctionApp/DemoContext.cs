@@ -4,6 +4,8 @@ using System.ComponentModel;
 using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
 
+#nullable disable
+
 namespace demo
 {
     public class DemoContext : DbContext
@@ -99,3 +101,5 @@ namespace demo
         public bool IsDeleted { get; set; }
     }
 }
+
+#nullable restore

@@ -31,7 +31,7 @@ namespace AzureFunctionApp.Functions
         }
 
         [FunctionName("GraphQL")]
-        public async Task<object> GraphQlEndpoint(
+        public async Task<object?> GraphQlEndpoint(
             [HttpTrigger(AuthorizationLevel.Anonymous, new[] { "post" }, Route = "graphql")]
             HttpRequestMessage req)
         {

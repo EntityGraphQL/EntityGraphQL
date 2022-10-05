@@ -56,7 +56,7 @@ namespace demo.Mutations
         }
 
         [GraphQLMutation]
-        public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, GraphQLValidator validator)
+        public Expression<Func<DemoContext, Person>>? AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, GraphQLValidator validator)
         {
             if (string.IsNullOrEmpty(args.FirstName))
                 validator.AddError("Name argument is required");
@@ -134,6 +134,8 @@ namespace demo.Mutations
         }
     }
 
+#nullable disable
+
     /// <summary>
     /// Must be a public class. Public fields and Properties are the mutation's arguments
     /// </summary>
@@ -165,4 +167,6 @@ namespace demo.Mutations
         public List<string> Names { get; set; }
         public uint MovieId { get; set; }
     }
+
+#nullable restore
 }
