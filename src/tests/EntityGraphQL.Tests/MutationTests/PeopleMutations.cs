@@ -18,6 +18,14 @@ namespace EntityGraphQL.Tests
             return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
         }
 
+
+        [GraphQLMutation]
+
+        public int DefaultValueTest(int valueWithDefault = 8)
+        {
+            return valueWithDefault;
+        }
+
         [GraphQLMutation]
 
         public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)

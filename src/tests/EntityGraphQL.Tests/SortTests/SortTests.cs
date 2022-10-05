@@ -169,6 +169,8 @@ namespace EntityGraphQL.Tests
             var schemaType = schema.Type("PeopleSortInput");
             var fields = schemaType.GetFields().ToList();
             Assert.Equal(9, fields.Count);
+
+            Assert.Contains("people(sort: [PeopleSortInput!]! = []): [Person!]", schema.ToGraphQLSchemaString());
         }
         [Fact]
         public void SupportUseSortOnNonRoot()

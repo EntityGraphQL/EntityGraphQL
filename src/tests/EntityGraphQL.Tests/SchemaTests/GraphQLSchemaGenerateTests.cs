@@ -373,6 +373,64 @@ namespace EntityGraphQL.Tests
             Assert.DoesNotContain("mutation:", schema);
             Assert.DoesNotContain($"type {schemaProvider.Mutation().SchemaType.Name}", schema);
         }
+
+        [Fact]
+        public void TestGetArgDefaultValue_Null()
+        {
+            Assert.Equal("", SchemaGenerator.GetArgDefaultValue(null, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_DbNull()
+        {
+            Assert.Equal("", SchemaGenerator.GetArgDefaultValue(DBNull.Value, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_Int()
+        {
+            Assert.Equal("3", SchemaGenerator.GetArgDefaultValue(3, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_Decimal()
+        {
+            Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(3.14, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_String()
+        {
+            Assert.Equal("\"stringValue\"", SchemaGenerator.GetArgDefaultValue("stringValue", (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_IntArray()
+        {
+            Assert.Equal("[1, 2, 3, ]", SchemaGenerator.GetArgDefaultValue(new[] { 1,2,3 }, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_StringArray()
+        {
+            Assert.Equal("[\"one\", \"two\", \"three\", ]", SchemaGenerator.GetArgDefaultValue(new[] { "one", "two", "three" }, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_Enum()
+        {
+            Assert.Equal("Alternitive", SchemaGenerator.GetArgDefaultValue(Genre.Alternitive, (e) => e));
+        }
+
+        [Fact]
+        public void TestGetArgDefaultValue_Object()
+        {
+            Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0, }", SchemaGenerator.GetArgDefaultValue(new Album
+            {
+                Id = 5,
+                Name = "Test",
+            }, (e) => e));
+        }
     }
 
     public class IgnoreTestMutations
