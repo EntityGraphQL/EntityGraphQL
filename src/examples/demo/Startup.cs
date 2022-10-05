@@ -33,6 +33,7 @@ namespace demo
             services.AddDbContext<DemoContext>(opt => opt.UseSqlite("Filename=demo.db"));
 
             services.AddSingleton<AgeService>();
+            services.AddSingleton<UserService>();
 
             services.AddLogging(logging =>
             {
@@ -107,6 +108,7 @@ namespace demo
                 Genre = Genre.Drama,
                 Released = new DateTime(1994, 10, 14),
                 Rating = 9.2,
+                CreatedBy = 1,
                 Director = new Person
                 {
                     FirstName = "Frank",

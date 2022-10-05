@@ -84,6 +84,11 @@ namespace EntityGraphQL.Tests
             get => throw new EntityGraphQLException("Field failed to execute", new Dictionary<string, object> { { "code", 1 } }); set => throw new Exception("Field failed to execute");
         }
 
+        public string Error_UnexposedException
+        {
+            get => throw new Exception("You should not see this message outside of Development"); set => throw new Exception("You should not see this message outside of Development");
+        }
+
         public double GetHeight(HeightUnit unit)
         {
             return unit switch
@@ -105,6 +110,7 @@ namespace EntityGraphQL.Tests
         public Location Location { get; set; }
         public IEnumerable<Task> Tasks { get; set; }
         public Person Owner { get; set; }
+        public int CreatedBy { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
         public DateTimeOffset? Created { get; set; }

@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 
 namespace EntityGraphQL.Compiler;
 
@@ -15,12 +14,8 @@ public class EntityGraphQLExecutionException : Exception
     public EntityGraphQLExecutionException(string message) : base(message)
     {
     }
-    public EntityGraphQLExecutionException(string field, Exception innerException)
-        : base($"Field '{field}' - {innerException.Message}", innerException)
-    {
-    }
 }
-public class EntityGraphQLAccessException : Exception
+public class EntityGraphQLAccessException : Exception, IExposableException
 {
     public EntityGraphQLAccessException(string message) : base(message)
     {

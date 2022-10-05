@@ -506,6 +506,64 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestDbContextToServiceBackToDbContext()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            // Linking a type from a service back to the schema context
+            schema.Type<User>().ReplaceField("projects", "Users projects")
+                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.CreatedBy == user.Id));
+
+            schema.Type<Project>().ReplaceField("createdBy", "Get user that created the project")
+                .ResolveWithService<UserService>((p, users) => users.GetUserById(p.CreatedBy));
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ 
+                    project(id: 1) {
+                        name
+                        createdBy { 
+                            id 
+                            projects { id name }
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 1,
+                        Name = "Project 1",
+                        CreatedBy = 1
+                    }
+                },
+                People = new List<Person>
+                {
+                    new Person
+                    {
+                        Projects = new List<Project>()
+                    }
+                },
+            };
+            var serviceCollection = new ServiceCollection();
+            UserService userService = new();
+            serviceCollection.AddSingleton(userService);
+            serviceCollection.AddSingleton(context);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, userService.CallCount);
+            dynamic project = res.Data["project"];
+            Assert.Equal(2, project.GetType().GetFields().Length);
+            Assert.Equal("name", Enumerable.ElementAt(project.GetType().GetFields(), 0).Name);
+            Assert.Equal("createdBy", Enumerable.ElementAt(project.GetType().GetFields(), 1).Name);
+        }
+
+        [Fact]
         public void TestServicesMultipleReconnectToSchemaContextListOf_WithoutSelectionOfNeededDbField()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -655,13 +713,13 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"query {
-          projects {
-            totalTasks
-            settings {
-              allowComments
-            }
-          }
-        }"
+                    projects {
+                        totalTasks
+                        settings {
+                            allowComments
+                        }
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -1391,18 +1449,19 @@ namespace EntityGraphQL.Tests
             Assert.Single(doc.Operations[0].QueryFields);
         }
         [Fact]
-        public void TestNullCheckInNullCheckOnService()
+        public void TestRootServiceFieldBackToContext()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            // don't need the service but want it to trigger the service logic
-            schema.Query().AddField("currentPerson", "Returns current person")
-                .ResolveWithService<AgeService>((ctx, srv) => ctx.People.FirstOrDefault());
+            schema.Query().AddField("currentUser", "Returns current user")
+                .ResolveWithService<UserService>((ctx, srv) => srv.GetUserById(ctx.People.FirstOrDefault().Id));
 
-            schema.UpdateType<Person>(personSchema => personSchema.AddField("projectNames", person => person.Projects.Select(u => u.Name), "Get project names"));
+            schema.UpdateType<User>(type =>
+                type.AddField("projectNames", "Get project names")
+                .ResolveWithService<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id)));
             var gql = new QueryRequest
             {
                 Query = @"query {
-                    currentPerson {
+                    currentUser {
                         projectNames
                     }
                 }"
@@ -1419,21 +1478,17 @@ namespace EntityGraphQL.Tests
             AgeService service = new();
             serviceCollection.AddSingleton(service);
 
-            // what we want to test here is that person.Projects.Select(u => u.Name) is pulled up into the pre-services expression
-            // As it will allow EF to include that data otherwise person.Projects will be null
-
+            // what we want to test here is that ctx.People.FirstOrDefault().Id is pulled up into the pre-services expression
             var graphQLCompiler = new GraphQLCompiler(schema);
             var compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
             var query = compiledQuery.Operations[0];
             var node = query.QueryFields[0];
 
             // first stage without services
-            // person.Projects.Select(u => u.Name) is pulled up
             var expression = node.GetNodeExpression(new CompileContext(), serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
 
             Assert.NotNull(expression);
-            var fieldAssignment = (MemberAssignment)((MemberInitExpression)((LambdaExpression)((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression).Arguments[0]).Arguments[0]).Arguments[1]).Body).Bindings[0];
-            Assert.Equal("projectNames", fieldAssignment.Member.Name);
+            Assert.Equal("ctx.People.FirstOrDefault().Id", expression.ToString());
         }
 
         [Fact]
@@ -2031,6 +2086,15 @@ namespace EntityGraphQL.Tests
                 {
                     Id = id ?? 0,
                 }
+            };
+        }
+
+        internal User GetUserById(int id)
+        {
+            CallCount += 1;
+            return new User
+            {
+                Id = id,
             };
         }
     }

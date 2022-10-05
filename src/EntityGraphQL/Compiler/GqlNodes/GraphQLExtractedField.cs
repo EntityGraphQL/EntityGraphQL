@@ -29,7 +29,9 @@ public class GraphQLExtractedField : BaseGraphQLField
         if (withoutServiceFields)
         {
             // we don't need any other expression as they are the same. We just need to make sure we select the data
-            var fieldExp = replacer.Replace(FieldExpressions!.First(), originalParam, replacementNextFieldContext!);
+            var fieldExp = FieldExpressions!.First();
+            if (replacementNextFieldContext != null)
+                fieldExp = replacer.Replace(fieldExp, originalParam, replacementNextFieldContext!);
             return fieldExp;
         }
         return GetNodeExpression(replacementNextFieldContext!);
@@ -37,7 +39,7 @@ public class GraphQLExtractedField : BaseGraphQLField
 
     public Expression GetNodeExpression(Expression replacementNextFieldContext)
     {
-        // extracted fields get flatten as they are selected in the first pass. The new expression  can be built
+        // extracted fields get flatten as they are selected in the first pass. The new expression can be built
         return Expression.PropertyOrField(replacementNextFieldContext!, Name);
     }
 }
