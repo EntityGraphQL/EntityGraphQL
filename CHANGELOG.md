@@ -2,7 +2,7 @@
 
 # Fixes
 
-- #248 - Make sure delegates run on fields that map a list of items to a single item (e.g. `myItem(id: Int!) @include(...) { ... }`)
+- #248 - Make sure directives run on fields that map a list of items to a single item (e.g. `myItem(id: Int!) @include(...) { ... }`)
 - #213 - Multiple levels of `TargetInvocationException` will now be unwrapped
 - #82 - SchemaBuilder can now handle fields that return `Task<>`. Note that the way that queries expressions are built you may still encounter issues with `async` fields not at the root query level. Please open an issue if you do
 - #259 - Fix introspection of nullable/non-nullable lists with nullable/non-nullable items
