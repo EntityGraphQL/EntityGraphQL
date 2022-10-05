@@ -1,6 +1,14 @@
+# 4.1.0
+
+## Changes
+
+- #262/#205 - Stop leaking internal exceptions into the 'errors' field on a result.
+
+When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
+
 # 4.0.1
 
-# Fixes
+## Fixes
 
 - #248 - Make sure directives run on fields that map a list of items to a single item (e.g. `myItem(id: Int!) @include(...) { ... }`)
 - #213 - Multiple levels of `TargetInvocationException` will now be unwrapped
@@ -10,7 +18,7 @@
 
 # 4.0.0
 
-# Fixes
+## Fixes
 
 - #243 - support `application/json; charset=utf-8` content type
 
