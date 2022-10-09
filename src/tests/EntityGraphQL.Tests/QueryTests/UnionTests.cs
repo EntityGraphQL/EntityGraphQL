@@ -131,9 +131,9 @@ query {
             // we only have the fields requested
             Assert.Equal(2, animals.Count);
 
-            Assert.Equal("Dog", animals[0].__typename);
             Assert.Equal("steve", animals[0].name);
             Assert.True(animals[0].hasBone);
+            Assert.Null(animals[1]);
         }
 
         [Fact]
@@ -164,11 +164,11 @@ query {
             var qr = gql.ExecuteQuery(context, null, null);
             dynamic animals = qr.Data["animals"];
             // we only have the fields requested
-            Assert.Equal(1, animals.Count);
-            
-            Assert.Equal("Cat", animals[0].__typename);
-            Assert.Equal("george", animals[0].name);
-            Assert.Equal(9, animals[0].lives);
+            Assert.Equal(2, animals.Count);
+
+            Assert.Null(animals[0]);
+            Assert.Equal("george", animals[1].name);
+            Assert.Equal(9, animals[1].lives);
         }
 
         [Fact]
