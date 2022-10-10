@@ -54,23 +54,17 @@ namespace EntityGraphQL.Compiler
                         result[node.Name] = data;
                     }
                 }
-                catch (EntityGraphQLException ex)
-                {
-                    throw new EntityGraphQLException(field.Name, ex);
-                }
                 catch (EntityGraphQLValidationException)
+                {
+                    throw;
+                }
+                catch (EntityGraphQLFieldException)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    while (ex is TargetInvocationException)
-                    {
-                        ex = ex.InnerException!;
-                        if (ex is EntityGraphQLException vex)
-                            throw new EntityGraphQLException(field.Name, vex);
-                    }
-                    throw new EntityGraphQLExecutionException(field.Name, ex);
+                    throw new EntityGraphQLFieldException(field.Name, ex);
                 }
             }
             return result;

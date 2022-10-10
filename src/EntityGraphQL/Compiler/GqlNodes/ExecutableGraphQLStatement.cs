@@ -30,6 +30,7 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? OpVariableParameter { get; }
 
         public IField? Field { get; }
+        public bool HasServices { get => Field?.Services.Any() == true; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 
@@ -91,28 +92,17 @@ namespace EntityGraphQL.Compiler
                     if (didExecute)
                         result[fieldNode.Name] = data;
                 }
-                catch (EntityGraphQLException ex)
-                {
-                    throw new EntityGraphQLException(fieldNode.Name, ex);
-                }
-                catch (AggregateException aex)
-                {
-                    var errors = aex.InnerExceptions.SelectMany<Exception, string>(ex => ex is EntityGraphQLValidationException vex ? vex.ValidationErrors : new[] { $"Field '{fieldNode.Name}' - {ex.Message}" });
-                    throw new EntityGraphQLValidationException(errors);
-                }
                 catch (EntityGraphQLValidationException)
+                {
+                    throw;
+                }
+                catch (EntityGraphQLFieldException)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    while (ex is TargetInvocationException)
-                    {
-                        ex = ex.InnerException!;
-                        if (ex is EntityGraphQLException vex)
-                            throw new EntityGraphQLException(fieldNode.Name, vex);
-                    }
-                    throw new EntityGraphQLExecutionException(fieldNode.Name, ex);
+                    throw new EntityGraphQLFieldException(fieldNode.Name, ex);
                 }
             }
             return result;

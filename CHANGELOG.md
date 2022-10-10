@@ -1,14 +1,24 @@
+# 4.1.0
+
+## Changes
+
+- #262/#205 - Stop leaking internal exceptions into the 'errors' field on a result.
+
+When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
+
 # 4.0.1
 
-# Fixes
+## Fixes
 
-- #248 - Make sure delegates run on fields that map a list of items to a single item
+- #248 - Make sure directives run on fields that map a list of items to a single item (e.g. `myItem(id: Int!) @include(...) { ... }`)
 - #213 - Multiple levels of `TargetInvocationException` will now be unwrapped
 - #82 - SchemaBuilder can now handle fields that return `Task<>`. Note that the way that queries expressions are built you may still encounter issues with `async` fields not at the root query level. Please open an issue if you do
+- #259 - Fix introspection of nullable/non-nullable lists with nullable/non-nullable items
+- #239 - Fix issues rejoining main context from a service field
 
 # 4.0.0
 
-# Fixes
+## Fixes
 
 - #243 - support `application/json; charset=utf-8` content type
 

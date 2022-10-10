@@ -49,7 +49,7 @@ namespace EntityGraphQL.Compiler
         public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (HasServices && withoutServiceFields)
-                return null;
+                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
 
             var nextFieldContext = NextFieldContext;
 
@@ -153,15 +153,6 @@ namespace EntityGraphQL.Compiler
 
             updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
-        }
-
-        public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
-        {
-            var result = (GraphQLObjectProjectionField?)ProcessFieldDirectives(this, docParam, docVariables);
-            if (result == null)
-                return new List<BaseGraphQLField>();
-
-            return base.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
         }
     }
 }

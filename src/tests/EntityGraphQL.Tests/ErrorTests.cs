@@ -90,5 +90,91 @@ namespace EntityGraphQL.Tests
             Assert.Contains("errors", result);
             Assert.DoesNotContain("data", result);
         }
+
+        [Fact]
+        public void MutationReportsError_UnexposedException()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonErrorUnexposedException(name: $name)
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            // error from execution that prevented a valid response, the data entry in the response should be null
+            Assert.Null(results.Data);
+            Assert.Equal("Field 'addPersonErrorUnexposedException' - Error occurred", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void MutationReportsError_UnexposedException_Development()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson($name: String) {
+  addPersonErrorUnexposedException(name: $name)
+}
+",
+                Variables = new QueryVariables {
+                    {"name", "Bill"}
+                }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            // error from execution that prevented a valid response, the data entry in the response should be null
+            Assert.Null(results.Data);
+            Assert.Equal("Field 'addPersonErrorUnexposedException' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_Development()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
     }
 }
