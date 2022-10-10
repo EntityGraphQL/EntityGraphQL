@@ -43,7 +43,26 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, result.GetType().GetFields().Length);
             Assert.NotNull(result.GetType().GetField("id"));
             Assert.Equal(100, result.id);
+
+            Assert.Contains("user(id: Int!, something: Boolean! = true): User", schema.ToGraphQLSchemaString());
         }
+
+        private class UserInputObject
+        {
+            public string Name { get; set; }
+        }
+
+        [Fact]
+        public void SupportsComplexArgumentWithDefault()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false, AutoCreateNewComplexTypes = true });
+            schema.AddInputType<UserInputObject>("UserInput", "");
+            // Add a argument field with a require parameter
+            schema.Query().AddField("user", new { user = new UserInputObject() { Name = "Steve" } }, (ctx, param) => ctx.Users.FirstOrDefault(), "Return a user by ID");
+            
+            Assert.Contains("user(user: UserInput = { name: \"Steve\", }): User", schema.ToGraphQLSchemaString());
+        }
+
         [Fact]
         public void ThrowsOnMissingRequiredArgument()
         {
@@ -92,6 +111,8 @@ namespace EntityGraphQL.Tests
             Assert.Equal(1, result.GetType().GetFields().Length);
             Assert.NotNull(result.GetType().GetField("id"));
             Assert.Equal(100, result.id);
+
+            Assert.Contains("me(id: Int! = 100): User", schema.ToGraphQLSchemaString());
         }
 
         [Fact]
@@ -111,6 +132,8 @@ namespace EntityGraphQL.Tests
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("height"));
             Assert.Equal(183.0, person.height);
+
+            Assert.Contains("height(unit: HeightUnit! = Cm): Float!", schema.ToGraphQLSchemaString());
         }
 
         [Fact]

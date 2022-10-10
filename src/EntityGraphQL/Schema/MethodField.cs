@@ -65,7 +65,7 @@ namespace EntityGraphQL.Schema
                     }
                     if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
                     {
-                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, null));
+                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
                         AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.ParameterType);
                     }
                 }
@@ -137,6 +137,13 @@ namespace EntityGraphQL.Schema
                         throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
                     }
                     allArgs.Add(service);
+                } else
+                {
+                    var argField = Arguments[p.Name!];
+                    if(argField.DefaultValue != null)
+                    {
+                        allArgs.Add(argField.DefaultValue);
+                    }
                 }
             }
 

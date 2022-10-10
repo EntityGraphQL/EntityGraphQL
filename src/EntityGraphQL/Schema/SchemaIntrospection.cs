@@ -329,9 +329,15 @@
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
 
+                string? defaultValue = null;
+                if(arg.Value.DefaultValue != null && arg.Value.DefaultValue != DBNull.Value)
+                {
+                    defaultValue = arg.Value.DefaultValue.ToString();
+                }
+
                 args.Add(new InputValue(arg.Key, type)
                 {
-                    DefaultValue = null,
+                    DefaultValue = defaultValue,
                     Description = arg.Value.Description,
                 });
             }
