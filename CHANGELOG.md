@@ -6,6 +6,10 @@
 
 When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
 
+## Fixes
+
+- #264 - Interface/union queries used to require you to query for at least 2 of the subtypes at once.
+
 # 4.0.1
 
 ## Fixes
