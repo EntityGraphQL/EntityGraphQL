@@ -1,3 +1,6 @@
+using System;
+using System.Linq.Expressions;
+
 namespace EntityGraphQL.Schema
 {
     public class ExecutionOptions
@@ -23,6 +26,11 @@ namespace EntityGraphQL.Schema
         /// Cache is used for persisted queries as well.
         /// </summary>
         public bool EnableQueryCache { get; set; } = true;
+
+        /// <summary>
+        /// Allows you to hook into just before an expression is executed and modify it to suit
+        /// </summary>
+        public Func<Expression, Expression>? BeforeExecuting { get; set; } = null;
 
 #if DEBUG
         /// <summary>

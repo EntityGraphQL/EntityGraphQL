@@ -231,7 +231,13 @@ namespace EntityGraphQL.Compiler
                 expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
             }
 
+            if (options.BeforeExecuting != null)
+            {
+                expression = options.BeforeExecuting.Invoke(expression);
+            }
+
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+
 #if DEBUG
             if (options.NoExecution)
                 return (null, false);
