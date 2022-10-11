@@ -7,11 +7,12 @@
 When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
 
 - #260 - Support default values in C# methods for mutations
-- Fix issue with service fields that take nullable type fields as arguments
+- #264 -  Versions prior to .NET 7, `System.Text.Json` doesn't support the serialization of polymorphic type hierarchies. EntityGraphQL now registers a `RuntimeTypeJsonConverter` class as part of the `DefaultGraphQLResponseSerializer`
 
 ## Fixes
 
 - #264 - Interface/union queries used to require you to query for at least 2 of the subtypes at once.
+- Fix issue with service fields that take nullable type fields as arguments
 
 # 4.0.1
 
