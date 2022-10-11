@@ -6,6 +6,7 @@ using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using Nullability;
 
 namespace EntityGraphQL.Schema
 {
@@ -62,7 +63,9 @@ namespace EntityGraphQL.Schema
 
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString()!;
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
-                    var schemaField = new Field(Schema, this, enumName, null, description, null, new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, field.IsNullable()), Schema.AuthorizationService.GetRequiredAuthFromMember(field));
+                    var nullability = field.GetNullabilityInfo();
+                    var gqlTypeInfo = new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, nullability);
+                    var schemaField = new Field(Schema, this, enumName, null, description, null, gqlTypeInfo, Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     schemaField.ApplyAttributes(field.GetCustomAttributes());
 

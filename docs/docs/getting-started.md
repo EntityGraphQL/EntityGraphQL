@@ -255,18 +255,11 @@ public class QueryController : Controller
     }
 
     [HttpPost]
-    public object Post([FromBody]QueryRequest query)
+    public async Task<object> Post([FromBody]QueryRequest query)
     {
-        try
-        {
-            var results = _schemaProvider.ExecuteRequest(query, _dbContext, HttpContext.RequestServices, null);
-            // gql compile errors show up in results.Errors
-            return results;
-        }
-        catch (Exception)
-        {
-            return HttpStatusCode.InternalServerError;
-        }
+        var results = await _schemaProvider.ExecuteRequestAsync(query, _dbContext, HttpContext.RequestServices, null);
+        // gql compile errors show up in results.Errors
+        return results;
     }
 }
 ```

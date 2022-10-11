@@ -1,8 +1,10 @@
 using System;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace EntityGraphQL.AspNet
 {
@@ -36,12 +38,18 @@ namespace EntityGraphQL.AspNet
         {
             serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
             serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
-            var authService = serviceCollection.BuildServiceProvider().GetService<IAuthorizationService>();
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
+            var authService = serviceProvider.GetService<IAuthorizationService>();
+            var webHostEnvironment = serviceProvider.GetService<IWebHostEnvironment>();
 
             var options = new AddGraphQLOptions<TSchemaContext>();
             configure(options);
 
-            var schema = new SchemaProvider<TSchemaContext>(new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer);
+            var schema = new SchemaProvider<TSchemaContext>(
+                new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer, 
+                isDevelopment: webHostEnvironment?.IsEnvironment("Development") ?? true
+                );
             options.PreBuildSchemaFromContext?.Invoke(schema);
             if (options.AutoBuildSchemaFromContext)
                 schema.PopulateFromContext(options);

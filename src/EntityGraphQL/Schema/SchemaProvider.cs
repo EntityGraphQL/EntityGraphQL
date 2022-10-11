@@ -9,6 +9,7 @@ using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.Directives;
+using HotChocolate.Language;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema
@@ -37,6 +38,7 @@ namespace EntityGraphQL.Schema
         private readonly ILogger<SchemaProvider<TContextType>>? logger;
         private readonly GraphQLCompiler graphQLCompiler;
         private readonly bool introspectionEnabled;
+        private readonly bool isDevelopment;
         private readonly MutationType mutationType;
         private readonly SubscriptionType subscriptionType;
         private readonly IDictionary<Type, IExtensionAttributeHandler> attributeHandlers = new Dictionary<Type, IExtensionAttributeHandler>();
@@ -50,13 +52,14 @@ namespace EntityGraphQL.Schema
         /// Create a new GraphQL Schema provider that defines all the types and fields etc.
         /// </summary>
         /// <param name="fieldNamer">A naming function for fields that will be used when using methods that automatically create field names e.g. SchemaType.AddAllFields()</param>
-        public SchemaProvider(IGqlAuthorizationService? authorizationService = null, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContextType>>? logger = null, bool introspectionEnabled = true)
+        public SchemaProvider(IGqlAuthorizationService? authorizationService = null, Func<string, string>? fieldNamer = null, ILogger<SchemaProvider<TContextType>>? logger = null, bool introspectionEnabled = true, bool isDevelopment = true)
         {
             AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
             SchemaFieldNamer = fieldNamer ?? SchemaBuilderSchemaOptions.DefaultFieldNamer;
             this.logger = logger;
             this.graphQLCompiler = new GraphQLCompiler(this);
             this.introspectionEnabled = introspectionEnabled;
+            this.isDevelopment = isDevelopment;
             queryCache = new QueryCache();
 
             // default GQL scalar types
@@ -172,7 +175,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
             QueryResult result;
             try
@@ -231,42 +234,45 @@ namespace EntityGraphQL.Schema
                     compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                 }
 
-                result = compiledQuery.ExecuteQuery(context, serviceProvider, gql.Variables, gql.OperationName, options);
-            }
-            catch (EntityGraphQLValidationException ex)
-            {
-                logger?.LogError(ex, "Error executing QueryRequest");
-                result = new QueryResult();
-                ex.ValidationErrors.ForEach(e => result.AddError(e));
-            }
-            catch (AggregateException aex)
-            {
-                logger?.LogError(aex, "Error executing QueryRequest");
-                result = new QueryResult();
-
-                foreach (var ex in aex.InnerExceptions)
-                {
-                    if (ex is EntityGraphQLValidationException exception)
-                        exception.ValidationErrors.ForEach(e => result.AddError(e));
-                    else if (ex is EntityGraphQLException gqlException)
-                        result.AddError(ex.Message, gqlException.Extensions);
-                    else
-                        result.AddError(ex.Message);
-                }
-            }
-            catch (EntityGraphQLException ex)
-            {
-                result = new QueryResult();
-                result.AddError(ex.Message, ex.Extensions);
+                result = await compiledQuery.ExecuteQueryAsync(context, serviceProvider, gql.Variables, gql.OperationName, options);
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "Error executing QueryRequest");
-                // error with the whole query
-                result = new QueryResult(new GraphQLError(ex.Message, null));
+                result = HandleException(ex);
             }
 
-            return Task.FromResult(result);
+            return result;
+        }
+
+        private QueryResult HandleException(Exception exception)
+        {
+            logger?.LogError(exception, "Error executing QueryRequest");
+            
+            var result = new QueryResult();
+            foreach (var (errorMessage, extensions) in GenerateMessage(exception))
+                result.AddError(errorMessage, extensions);
+            return result;
+        }
+        
+        private IEnumerable<(string errorMessage, IDictionary<string, object>? extensions)> GenerateMessage(Exception exception)
+        {
+            switch (exception)
+            {
+                case EntityGraphQLValidationException validationException:
+                    return validationException.ValidationErrors.Select(v => (v, (IDictionary<string, object>?)null));
+                case AggregateException aggregateException:
+                    return aggregateException.InnerExceptions.SelectMany(GenerateMessage);
+                case EntityGraphQLException graphqlException:
+                    return new[] { (graphqlException.Message, (IDictionary<string, object>?)graphqlException.Extensions) };
+                case TargetInvocationException targetInvocationException:
+                    return GenerateMessage(targetInvocationException.InnerException!);
+                case EntityGraphQLFieldException fieldException:
+                    return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.Item2));
+                default:
+                    if (isDevelopment || exception is IExposableException)
+                        return new[] { (exception.Message, (IDictionary<string, object>?)null) };
+                    return new[] { ("Error occurred", (IDictionary<string, object>?)null) };
+            }
         }
 
         private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ClaimsPrincipal? user)

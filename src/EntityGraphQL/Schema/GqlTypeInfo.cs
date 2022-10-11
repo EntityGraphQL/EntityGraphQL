@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using EntityGraphQL.Extensions;
+using Nullability;
 
 namespace EntityGraphQL.Schema
 {
@@ -24,22 +25,22 @@ namespace EntityGraphQL.Schema
             IsList = TypeDotnet.IsEnumerableOrArray();
             TypeNotNullable = TypeDotnet.IsValueType && !TypeDotnet.IsNullableType();
             ElementTypeNullable = false;
-        }
+        }      
 
         /// <summary>
         /// New GqlTypeInfo object that represents information about the return/argument type
         /// </summary>
         /// <param name="schemaTypeGetter">Func to get the ISchemaType. Lookup is func as the type might be added later. It is cached after first look up</param>
         /// <param name="typeDotnet">The dotnet type as it is. E.g. the List<T> etc. </param>
-        /// <param name="typeNullable">True if the type is nullable</param>
-        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, bool typeNullable)
+        /// <param name="nullability">Nullability infomation about the property</param>
+        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, NullabilityInfoEx nullability)
         {
             SchemaTypeGetter = schemaTypeGetter;
 
             TypeDotnet = typeDotnet;
             IsList = TypeDotnet.IsEnumerableOrArray();
-            TypeNotNullable = !typeNullable;
-            ElementTypeNullable = false;
+            TypeNotNullable = nullability.ReadState == NullabilityStateEx.NotNull;
+            ElementTypeNullable = nullability.GenericTypeArguments.Length > 0 && nullability.GenericTypeArguments[0].ReadState == NullabilityStateEx.Nullable;
         }
 
         /// <summary>

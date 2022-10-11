@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using EntityGraphQL.Extensions;
+using Nullability;
 
 namespace EntityGraphQL.Schema
 {
@@ -38,25 +39,27 @@ namespace EntityGraphQL.Schema
 
         public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue)
         {
-            var arg = MakeArgType(schema, prop.Name, prop, prop.GetCustomAttributes(), prop.PropertyType, defaultValue, prop.IsNullable());
+            var nullability = prop.GetNullabilityInfo();
+            var arg = MakeArgType(schema, prop.Name, prop, prop.GetCustomAttributes(), prop.PropertyType, defaultValue, nullability);
 
             return arg;
         }
 
         public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo parameter, object? defaultValue)
         {
-            var arg = MakeArgType(schema, parameter.Name!, parameter.Member, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, parameter.IsNullable());
+            var nullability = parameter.GetNullabilityInfo();
+            var arg = MakeArgType(schema, parameter.Name!, parameter.Member, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, nullability);
             return arg;
         }
 
         public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue)
         {
-            var arg = MakeArgType(schema, field.Name, field, field.GetCustomAttributes(), field.FieldType, defaultValue, field.IsNullable());
-
+            var nullability = field.GetNullabilityInfo();
+            var arg = MakeArgType(schema, field.Name, field, field.GetCustomAttributes(), field.FieldType, defaultValue, nullability);
             return arg;
         }
 
-        private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, bool isNullable)
+        private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, NullabilityInfoEx nullability)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -69,14 +72,15 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
-            var arg = new ArgType(schema.SchemaFieldNamer(name), name, new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, isNullable), memberInfo, type)
+            var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, nullability);
+            var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, memberInfo, type)
             {
                 DefaultValue = defaultValue,
                 IsRequired = markedRequired,
                 requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute
             };
 
-            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || !isNullable)
+            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || nullability.WriteState == NullabilityStateEx.NotNull)
             {
                 arg.IsRequired = true;
             }

@@ -263,10 +263,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($names: InputObject) {
-          addPersonInput(nameInput: $names) {
-            id name lastName
-          }
-        }",
+                    addPersonInput(nameInput: $names) {
+                        id name lastName
+                    }
+                }",
                 // object will come through as json in the request
                 Variables = new QueryVariables {
                         { "names", new InputObject{ Name = "Lisa", LastName = "Simpson" } }
@@ -979,7 +979,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(30, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(31, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
