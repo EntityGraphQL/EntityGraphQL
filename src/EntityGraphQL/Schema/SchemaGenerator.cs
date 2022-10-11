@@ -141,25 +141,25 @@ namespace EntityGraphQL.Schema
         }
 
         public static string GetArgDefaultValue(object? value, Func<string, string> fieldNamer)
-        {            
+        {
             if (value == null || value == DBNull.Value)
             {
                 return string.Empty;
             }
 
-            var ret = "";
+            var ret = string.Empty;
 
-            var valueType = value.GetType();                        
+            var valueType = value.GetType();
 
             if (valueType == typeof(string))
             {
-                return $"\"{value}\"";
+                return ((string)value) == string.Empty ? string.Empty : $"\"{value}\"";
             }
             if (valueType == typeof(bool))
             {
                 return value.ToString().ToLower();
             }
-            else if(valueType.IsValueType)
+            else if (valueType.IsValueType)
             {
                 return value.ToString();
             }
@@ -176,6 +176,14 @@ namespace EntityGraphQL.Schema
                 }
                 ret += $"]";
             }
+            else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                if (((BaseEntityQueryType)value).HasValue)
+                {
+                    var property = valueType.GetProperty("Query");
+                    return $"\"{property.GetValue(value)}\"";
+                }
+            }
             else if (value is Object o)
             {
                 ret += "{ ";
@@ -188,8 +196,7 @@ namespace EntityGraphQL.Schema
                     ret += $"{fieldNamer(property.Name)}: {propertyValue}, ";
                 }
                 ret += "}";
-            } 
-            
+            }
 
             return ret;
         }

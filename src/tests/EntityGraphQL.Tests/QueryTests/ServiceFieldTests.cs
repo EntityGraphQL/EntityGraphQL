@@ -7,6 +7,7 @@ using System;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Compiler;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Tests
 {
@@ -1313,6 +1314,51 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestCollectionToSingle_ToObjectRelation_WithAsyncServiceArrayField_UsingContextFieldWithMemberCall()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("arrayField", "Get project config")
+                // p.Updated.HasValue is the important bit here
+                .ResolveWithService<ConfigService>((p, x) => x.GetArrayFieldAsync(p.Id, p.Updated.HasValue).GetAwaiter().GetResult())
+                .IsNullable(false);
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddScoped<ConfigService, ConfigService>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    task(id: 1) {
+                        project {
+                            arrayField
+                        }
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                                Project = new Project
+                                {
+                                    Id = 0,
+                                    Description = "Hello",
+                                }
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["task"];
+        }
+
+        [Fact]
         public void TestServiceAfterMultipleCollectionToSingle()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -1982,6 +2028,12 @@ namespace EntityGraphQL.Tests
             {
                 CallCount += 1;
                 return Array.Empty<ProjectConfig>();
+            }
+
+            internal Task<int[]> GetArrayFieldAsync(int id, bool code)
+            {
+                CallCount += 1;
+                return System.Threading.Tasks.Task.FromResult(new int[] { id });
             }
         }
 

@@ -7,6 +7,7 @@
 When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
 
 - #260 - Support default values in C# methods for mutations
+- Fix issue with service fields that take nullable type fields as arguments
 
 ## Fixes
 

@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler.Util
             // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
             // node.Expression can be null if it is a static member - e.g. DateTime.MaxValue
             // if it is empty this is the end of an expression too
-            if (currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false)
+            if ((currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false) || node.Type.IsNullableType() == true)
             {
                 currentExpression.Push(node);
                 var result = base.VisitMember(node);
