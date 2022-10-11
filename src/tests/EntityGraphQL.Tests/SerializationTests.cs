@@ -153,7 +153,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
             Assert.Equal(null, addPersonResult.birthday);
-        }
+        }     
 
     }
 

@@ -9,6 +9,21 @@ Examples:
 - A mutation arguments class (`ActorArgs`) with fields `FirstName` & `Id` will be arguments in the schema as `firstName` & `id`
 - If you're using the schema builder manually, the names you give will be the names used. E.g. `schemaProvider.AddField("someField", ...)` is different to `schemaProvider.AddField("SomeField", ...)`
 
+## Serializing Inherited Types
+
+In versions prior to .NET 7, System.Text.Json doesn't support the serialization of polymorphic type hierarchies. For example, if a property's type is an interface or an abstract class, only the properties defined on the interface or abstract/union class are serialized, even if the runtime type has additional properties. 
+
+For this reason EntityGraphQL registers a RuntimeTypeJsonConverter class as part of the DefaultGraphQLResponseSerializer (credit to litleAndroidMan from https://stackoverflow.com/a/71074354/629083).
+
+If you're overriding the DefaultGraphQLResponseSerializer or using System.Text.Json directly you can still use this class by registering it yourself.
+
+```cs
+this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter<object>());
+```
+
+You can also disable it by passing in your own jsonOptions when you register/create DefaultGraphQLResponseSerializer.
+
+
 ## Override default naming
 
 To override the default behaviour you can pass in your own `fieldNamer` function when creating the `SchemaProvider` or configuring it.
