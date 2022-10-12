@@ -2,7 +2,7 @@
 
 ## Changes
 
-- #262/#205 - Stop leaking internal exceptions into the 'errors' field on a result.
+- #262/#205 - Option to prevent leaking internal exceptions into the 'errors' field on a result.
 
 When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
 
