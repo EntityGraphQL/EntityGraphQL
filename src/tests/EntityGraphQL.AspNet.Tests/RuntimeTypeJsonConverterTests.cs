@@ -19,7 +19,7 @@ namespace EntityGraphQL.AspNet.Tests
         public class SubClass : BaseClass
         {
             public string Name { get; set; } = "";
-            public string NameField = "";
+            public string? NameField;
         }
 
         [Fact]
@@ -45,6 +45,28 @@ namespace EntityGraphQL.AspNet.Tests
             graphqlResponseSerializer.SerializeAsync(memoryStream, item);
             result = Encoding.ASCII.GetString(memoryStream.ToArray());
             Assert.Equal("{\"Name\":\"Fred\",\"Id\":1,\"NameField\":\"Included\"}", result);
+        }
+
+        [Fact]
+        public void SerializeQueryResult()
+        {
+            var item = new QueryResult();
+            item.SetData(new Dictionary<string, object?>()
+            {
+                { 
+                    "users",
+                    new List<SubClass>() {
+                          new SubClass() { Id = 1, Name = "Fred", NameField = "Included" },
+                          new SubClass() { Id = 2, Name = "Wilma", NameField = null }
+                    }
+                }
+            });
+            
+            var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
+            var memoryStream = new MemoryStream();
+            graphqlResponseSerializer.SerializeAsync(memoryStream, item);
+            var result = Encoding.ASCII.GetString(memoryStream.ToArray());
+            Assert.Equal("{\"data\":{\"users\":[{\"Name\":\"Fred\",\"Id\":1,\"NameField\":\"Included\"},{\"Name\":\"Wilma\",\"Id\":2}]}}", result);
         }
 
     }
