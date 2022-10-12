@@ -89,6 +89,12 @@ namespace EntityGraphQL.Tests
             get => throw new Exception("You should not see this message outside of Development"); set => throw new Exception("You should not see this message outside of Development");
         }
 
+        public string Error_AggregateException
+        {
+            get => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
+            set => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
+        }
+
         public double GetHeight(HeightUnit unit)
         {
             return unit switch

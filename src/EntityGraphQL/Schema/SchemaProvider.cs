@@ -249,7 +249,7 @@ namespace EntityGraphQL.Schema
             logger?.LogError(exception, "Error executing QueryRequest");
             
             var result = new QueryResult();
-            foreach (var (errorMessage, extensions) in GenerateMessage(exception))
+            foreach (var (errorMessage, extensions) in GenerateMessage(exception).Distinct())
                 result.AddError(errorMessage, extensions);
             return result;
         }

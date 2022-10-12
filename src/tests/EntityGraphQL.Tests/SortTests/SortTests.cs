@@ -168,7 +168,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Zoo", person.lastName);
             var schemaType = schema.Type("PeopleSortInput");
             var fields = schemaType.GetFields().ToList();
-            Assert.Equal(10, fields.Count);
+            Assert.Equal(11, fields.Count);
         }
         [Fact]
         public void SupportUseSortOnNonRoot()
