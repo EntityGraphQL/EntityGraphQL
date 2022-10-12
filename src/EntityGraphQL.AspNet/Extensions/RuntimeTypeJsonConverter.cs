@@ -15,9 +15,9 @@ namespace EntityGraphQL.AspNet.Extensions
     /// </summary>
     public class RuntimeTypeJsonConverter<T> : JsonConverter<T> where T : class
     {
-        private static readonly Dictionary<Type, List<MemberInfo>> _knownProps = new Dictionary<Type, List<MemberInfo>>(); //cache mapping a Type to its array of public properties to serialize
-        private static readonly Dictionary<Type, JsonConverter> _knownConverters = new Dictionary<Type, JsonConverter>(); //cache mapping a Type to its respective RuntimeTypeJsonConverter instance that was created to serialize that type. 
-        private static readonly Dictionary<Type, Type> _knownGenerics = new Dictionary<Type, Type>(); //cache mapping a Type to the type of RuntimeTypeJsonConverter generic type definition that was created to serialize that type
+        private readonly Dictionary<Type, List<MemberInfo>> _knownProps = new Dictionary<Type, List<MemberInfo>>(); //cache mapping a Type to its array of public properties to serialize
+        private readonly Dictionary<Type, JsonConverter> _knownConverters = new Dictionary<Type, JsonConverter>(); //cache mapping a Type to its respective RuntimeTypeJsonConverter instance that was created to serialize that type. 
+        private readonly Dictionary<Type, Type> _knownGenerics = new Dictionary<Type, Type>(); //cache mapping a Type to the type of RuntimeTypeJsonConverter generic type definition that was created to serialize that type
 
         public override bool CanConvert(Type typeToConvert)
         {
