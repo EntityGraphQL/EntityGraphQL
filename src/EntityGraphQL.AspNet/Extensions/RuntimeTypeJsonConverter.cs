@@ -115,7 +115,7 @@ namespace EntityGraphQL.AspNet.Extensions
             var type = value.GetType();
 
             //get all the public properties that we will be writing out into the object
-            var members = GetPropertyAndFieldInfos(type);
+            var members = GetPropertyAndFieldInfos(type, options);
 
             writer.WriteStartObject();
 
@@ -220,13 +220,17 @@ namespace EntityGraphQL.AspNet.Extensions
         /// </summary>
         /// <param name="t"></param>
         /// <returns></returns>
-        private IEnumerable<MemberInfo> GetPropertyAndFieldInfos(Type t)
+        private IEnumerable<MemberInfo> GetPropertyAndFieldInfos(Type t, JsonSerializerOptions options)
         {            
             if (!_knownProps.ContainsKey(t))
             {
                 var props = new List<MemberInfo>();
                 props.AddRange(t.GetProperties());
-                props.AddRange(t.GetFields());
+
+                if (options.IncludeFields)
+                {
+                    props.AddRange(t.GetFields());
+                }
                 _knownProps.Add(t, props);
                 return props;
             }
