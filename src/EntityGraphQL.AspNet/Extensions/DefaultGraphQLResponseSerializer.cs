@@ -25,7 +25,7 @@ namespace EntityGraphQL.AspNet
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 };
                 this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
-                this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter<object>());
+                this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter());
             }
         }
 

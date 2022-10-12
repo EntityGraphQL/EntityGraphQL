@@ -30,12 +30,12 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Equal("{\"Id\":1}", result);
 
             var options = new JsonSerializerOptions();
-            options.Converters.Add(new RuntimeTypeJsonConverter<object>());
+            options.Converters.Add(new RuntimeTypeJsonConverter());
             result = System.Text.Json.JsonSerializer.Serialize(item, options);
             Assert.Equal("{\"Name\":\"Fred\",\"Id\":1}", result);
 
             options = new JsonSerializerOptions();
-            options.Converters.Add(new RuntimeTypeJsonConverter<object>());
+            options.Converters.Add(new RuntimeTypeJsonConverter());
             options.IncludeFields = true;
             result = System.Text.Json.JsonSerializer.Serialize(item, options);
             Assert.Equal("{\"Name\":\"Fred\",\"Id\":1,\"NameField\":\"Included\"}", result);
