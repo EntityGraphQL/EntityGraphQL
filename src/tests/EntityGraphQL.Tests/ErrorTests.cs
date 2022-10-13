@@ -176,5 +176,23 @@ namespace EntityGraphQL.Tests
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
+
+        [Fact]
+        public void QueryReportsError_DistinctErrors()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_AggregateException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Single(results.Errors);
+            Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
+        }
     }
 }
