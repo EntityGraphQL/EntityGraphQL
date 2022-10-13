@@ -57,7 +57,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            return selectionFields.Count == 0 ? new Dictionary<IFieldKey, CompiledField>() : selectionFields;
+            return selectionFields;
         }
     }
 }

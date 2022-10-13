@@ -23,6 +23,7 @@ namespace EntityGraphQL.Compiler
         List<BaseGraphQLField> QueryFields { get; }
         void AddField(BaseGraphQLField field);
         IField? Field { get; }
+        bool HasServices { get; }
         IReadOnlyDictionary<string, object> Arguments { get; }
     }
 }

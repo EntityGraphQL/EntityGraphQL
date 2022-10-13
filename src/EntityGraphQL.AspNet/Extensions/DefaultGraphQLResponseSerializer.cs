@@ -1,3 +1,4 @@
+using EntityGraphQL.AspNet.Extensions;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -24,6 +25,7 @@ namespace EntityGraphQL.AspNet
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 };
                 this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
+                this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter());
             }
         }
 

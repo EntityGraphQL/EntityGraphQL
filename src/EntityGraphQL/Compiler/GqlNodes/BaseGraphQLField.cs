@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -120,7 +119,6 @@ namespace EntityGraphQL.Compiler
         /// Bring up any context based expression from services
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         internal virtual IEnumerable<BaseGraphQLField> ExpandFromServices(bool withoutServiceFields, BaseGraphQLField? field)
         {
             if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
@@ -194,7 +192,12 @@ namespace EntityGraphQL.Compiler
                 {
                     // if we have services we need to replace any context expressions in the service expression with the new context
                     var expressionsToReplace = ExpandFromServices(true, null).Cast<GraphQLExtractedField>();
-                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext);
+                    // e.g. given a field like this
+                    // (ctx, service) => service.DoSomething(ctx.SomeField)
+                    // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
+                    // if ParentNode?.HasServices == true the above has been done and we just need to replace the 
+                    // expression, not rebuild it with a different name
+                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true);
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
                 // may need to replace the field's original parameter

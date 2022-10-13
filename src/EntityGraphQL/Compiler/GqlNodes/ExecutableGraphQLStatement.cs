@@ -30,6 +30,7 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? OpVariableParameter { get; }
 
         public IField? Field { get; }
+        public bool HasServices { get => Field?.Services.Any() == true; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 

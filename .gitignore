@@ -19,5 +19,7 @@ node_modules/
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 
 BenchmarkDotNet.Artifacts/

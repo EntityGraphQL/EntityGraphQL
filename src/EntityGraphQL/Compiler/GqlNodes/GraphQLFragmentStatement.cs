@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 
@@ -11,6 +12,7 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? RootParameter { get; }
 
         public IField? Field { get; }
+        public bool HasServices { get => Field?.Services.Any() == true; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 

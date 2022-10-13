@@ -52,6 +52,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
+            if (withoutServiceFields && isRoot && HasServices)
+                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
+
             var listContext = ListExpression;
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
@@ -72,7 +75,7 @@ namespace EntityGraphQL.Compiler
             if (selectionFields == null || !selectionFields.Any())
             {
                 if (withoutServiceFields && HasServices)
-                    return null;
+                    return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
                 return listContext;
             }
 
@@ -91,7 +94,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
             // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(Name, nextFieldContext!, listContext, selectionFields);
+            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields);
 
             // if selecting final graph make sure lists are evaluated
             if (!isRoot && !withoutServiceFields && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
@@ -122,7 +125,7 @@ namespace EntityGraphQL.Compiler
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedListContext.Type, "nullwrap");
 
-            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(Name, selectParam, nullWrapParam, selectExpressions);
+            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(this, selectParam, nullWrapParam, selectExpressions);
 
             updatedListContext = ExpressionUtil.WrapListFieldForNullCheck(updatedListContext, callOnList, fieldParams, fieldParamValues, nullWrapParam, schemaContext);
             return updatedListContext;

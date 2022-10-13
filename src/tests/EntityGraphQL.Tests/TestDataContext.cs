@@ -116,6 +116,7 @@ namespace EntityGraphQL.Tests
         public Location Location { get; set; }
         public IEnumerable<Task> Tasks { get; set; }
         public Person Owner { get; set; }
+        public int CreatedBy { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
         public DateTimeOffset? Created { get; set; }

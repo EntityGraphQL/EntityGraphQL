@@ -52,7 +52,8 @@ namespace demo
         public List<Writer> Writers { get; set; }
         public Person Director { get; set; }
         public uint? DirectorId { get; set; }
-        public double Rating { get; internal set; }
+        public double Rating { get; set; }
+        public uint CreatedBy { get; set; }
     }
 
     public class Actor

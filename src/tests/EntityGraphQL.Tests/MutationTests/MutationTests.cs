@@ -553,6 +553,58 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestMethodDefaultValue()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() {  AutoCreateInputTypes = true });
+        
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation {
+          defaultValueTest
+        }
+        ",
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            dynamic result = results.Data["defaultValueTest"];
+            Assert.Equal(8, result);
+
+            //check default value in SDL
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains("defaultValueTest(valueWithDefault: Int! = 8): Int!", sdl);
+
+            //check default value in introspection
+            gql = new QueryRequest
+            {
+                Query = @"
+                {
+	                __schema {
+                        mutationType {
+                            fields {
+                                name
+                                args {
+                                    name
+                                    defaultValue
+                                }
+                            }
+                        }
+                    }
+                }"
+            };
+
+            results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+
+            result = results.Data["__schema"];
+
+            var field = ((IEnumerable<dynamic>)result.mutationType.fields).Where(x => x.name == "defaultValueTest");
+            Assert.Contains("8", field.First().args[0].defaultValue as string);
+        }
+
+        [Fact]
         public void TestRequiredGuid()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
@@ -979,7 +1031,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(31, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(32, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

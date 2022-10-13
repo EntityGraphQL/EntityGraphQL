@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.Directives;
 
@@ -120,10 +123,82 @@ namespace EntityGraphQL.Schema
             if (field.Arguments == null || !field.Arguments.Any() || field.ArgumentsAreInternal)
                 return noArgs;
 
-            var all = field.Arguments.Select(f => schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument);
+            var all = field.Arguments.Select(f =>
+            {
+                var arg = schema.SchemaFieldNamer(f.Key) + ": " + f.Value.Type.GqlTypeForReturnOrArgument;
+
+                var defaultValue = GetArgDefaultValue(f.Value.DefaultValue, schema.SchemaFieldNamer);
+                if (!string.IsNullOrEmpty(defaultValue))
+                {
+                    arg += " = " + defaultValue;
+                }
+
+                return arg;
+            });
 
             var args = string.Join(", ", all);
             return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
+        }
+
+        public static string GetArgDefaultValue(object? value, Func<string, string> fieldNamer)
+        {
+            if (value == null || value == DBNull.Value)
+            {
+                return string.Empty;
+            }
+
+            var ret = string.Empty;
+
+            var valueType = value.GetType();
+
+            if (valueType == typeof(string))
+            {
+                return ((string)value) == string.Empty ? string.Empty : $"\"{value}\"";
+            }
+            if (valueType == typeof(bool))
+            {
+                return value.ToString().ToLower();
+            }
+            else if (valueType.IsValueType)
+            {
+                return value.ToString();
+            }
+            else if (value is IEnumerable e)
+            {
+                ret += $"[";
+                foreach (var item in e)
+                {
+                    var arrayValue = GetArgDefaultValue(item, fieldNamer);
+                    if (string.IsNullOrEmpty(arrayValue))
+                        continue;
+
+                    ret += arrayValue + ", ";
+                }
+                ret += $"]";
+            }
+            else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                if (((BaseEntityQueryType)value).HasValue)
+                {
+                    var property = valueType.GetProperty("Query");
+                    return $"\"{property.GetValue(value)}\"";
+                }
+            }
+            else if (value is Object o)
+            {
+                ret += "{ ";
+                foreach (var property in valueType.GetProperties())
+                {
+                    var propertyValue = GetArgDefaultValue(property.GetValue(o), fieldNamer);
+                    if (string.IsNullOrEmpty(propertyValue))
+                        continue;
+
+                    ret += $"{fieldNamer(property.Name)}: {propertyValue}, ";
+                }
+                ret += "}";
+            }
+
+            return ret;
         }
 
         private static object GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
