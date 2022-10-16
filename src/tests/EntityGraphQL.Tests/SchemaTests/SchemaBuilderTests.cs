@@ -479,6 +479,45 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestGraphQLFieldAttributeRename()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+
+            Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodFieldWithDefaultArgs", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("fields: [TypeWithMethod!]", sdl);
+            Assert.Contains("renamedMethod: Int!", sdl);
+            Assert.DoesNotContain("unknownName", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod {
+                      fields {
+                        renamedMethod
+                      }
+                    }"
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(33, ((dynamic)res.Data["fields"])[0].renamedMethod);
+        }
+
+        [Fact]
         public void TestGraphQLFieldAttributeOnContext()
         {
             var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
@@ -544,6 +583,12 @@ namespace EntityGraphQL.Tests
             public int MethodFieldWithDefaultArgs(int value = 27)
             {
                 return value;
+            }
+
+            [GraphQLField("renamedMethod")]
+            public int UnknownName()
+            {
+                return 33;
             }
         }
 

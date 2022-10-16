@@ -165,6 +165,7 @@ namespace EntityGraphQL.Schema
                     continue;
 
                 var f = ProcessFieldOrProperty(fromType, method, param, schema, options, isInputType)?.ToList();
+
                 if (f != null)
                     fields.AddRange(f);
             }
@@ -182,11 +183,22 @@ namespace EntityGraphQL.Schema
                 yield break;
 
             // Get Description from ComponentModel.DescriptionAttribute
+            string name = schema.SchemaFieldNamer(prop.Name);
             string description = string.Empty;
             var d = (DescriptionAttribute?)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
             if (d != null)
             {
                 description = d.Description;
+            }
+
+            var attribute = prop.GetCustomAttribute<GraphQLFieldAttribute>();
+            if (attribute != null)
+            {
+                if (!string.IsNullOrEmpty(attribute.Name))
+                    name = attribute.Name;
+
+                if (!string.IsNullOrEmpty(attribute.Description))
+                    description = attribute.Description; 
             }
 
             LambdaExpression? le = null;
@@ -255,7 +267,7 @@ namespace EntityGraphQL.Schema
                 // otherwise build the type info
                 var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
                
-                var field = new Field(schema, fromType, schema.SchemaFieldNamer(prop.Name), le, description, arguments, returnTypeInfo, requiredClaims);
+                var field = new Field(schema, fromType, name, le, description, arguments, returnTypeInfo, requiredClaims);
 
                 if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
                 {
