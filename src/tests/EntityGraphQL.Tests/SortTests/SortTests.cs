@@ -46,7 +46,7 @@ namespace EntityGraphQL.Tests
                     people(sort: $sort) { lastName }
                 }",
                 Variables = new QueryVariables{
-                    {"sort", new [] { new {lastName = "DESC" } } }
+                    {"sort", new [] { new { lastName = "DESC" } } }
                 }
             };
             TestDataContext2 context = new();

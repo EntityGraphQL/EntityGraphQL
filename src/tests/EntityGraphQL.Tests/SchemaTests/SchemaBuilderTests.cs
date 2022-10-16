@@ -318,6 +318,235 @@ namespace EntityGraphQL.Tests
             Assert.False(schemaProvider.HasType(typeof(C)));
             Assert.False(schemaProvider.HasType(typeof(D)));
         }
+
+        [Fact]
+        public void TestGraphQLFieldAttribute()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+
+            Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodField", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("fields: [TypeWithMethod!]", sdl);
+            Assert.Contains("methodField: Int!", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod {
+                      fields {
+                        methodField
+                      }
+                    }"
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(1, ((dynamic)res.Data["fields"])[0].methodField);
+        }
+
+        [Fact]
+        public void TestGraphQLFieldAttributeWithArgs()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+
+            Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodFieldWithArgs", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("fields: [TypeWithMethod!]", sdl);
+            Assert.Contains("methodFieldWithArgs(value: Int!): Int!", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod($value: Int) {
+                      fields {
+                        methodFieldWithArgs(value: $value)
+                      }
+                    }",
+                Variables = new QueryVariables {
+                    { "value", 13 }
+                }
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithArgs);
+        }
+
+        [Fact]
+        public void TestGraphQLFieldAttributeWithTwoArgs()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+
+            Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodFieldWithTwoArgs", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("fields: [TypeWithMethod!]", sdl);
+            Assert.Contains("methodFieldWithTwoArgs(value: Int!, value2: Int!): Int!", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod($value: Int, $value2: Int) {
+                      fields {
+                        methodFieldWithTwoArgs(value: $value, value2: $value2)
+                      }
+                    }",
+                Variables = new QueryVariables {
+                    { "value", 6 },
+                    { "value2", 7 },
+                }
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithTwoArgs);
+        }
+
+        [Fact]
+        public void TestGraphQLFieldAttributeWithDefaultArgs()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+
+            Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodFieldWithDefaultArgs", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("fields: [TypeWithMethod!]", sdl);
+            Assert.Contains("methodFieldWithDefaultArgs(value: Int! = 27): Int!", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod {
+                      fields {
+                        methodFieldWithDefaultArgs
+                      }
+                    }"
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(27, ((dynamic)res.Data["fields"])[0].methodFieldWithDefaultArgs);
+        }
+
+        [Fact]
+        public void TestGraphQLFieldAttributeOnContext()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+            Assert.True(schemaProvider.Query().HasField("testMethod", null));
+
+            var sdl = schemaProvider.ToGraphQLSchemaString();
+
+            Assert.Contains("testMethod: Int!", sdl);
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query TypeWithMethod {
+                      testMethod
+                    }"
+            };
+
+            var context = new ContextFieldWithMethod
+            {
+                Fields = new List<TypeWithMethod>()
+                {
+                    new TypeWithMethod()
+                }
+            };
+
+            var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+            Assert.Null(res.Errors);
+
+            Assert.Equal(23, ((dynamic)res.Data["testMethod"]));
+        }
+
+        public class ContextFieldWithMethod {
+            public IEnumerable<TypeWithMethod> Fields { get; set; }
+
+            [GraphQLField]
+            public int TestMethod()
+            {
+                return 23;
+            }
+        }
+        public class TypeWithMethod
+        {
+            [GraphQLField]
+            public int MethodField()
+            {
+                return 1;
+            }
+
+            [GraphQLField]
+            public int MethodFieldWithArgs(int value)
+            {
+                return value;
+            }
+
+            [GraphQLField]
+            public int MethodFieldWithTwoArgs(int value, int value2)
+            {
+                return value + value2;
+            }
+
+            [GraphQLField]
+            public int MethodFieldWithDefaultArgs(int value = 27)
+            {
+                return value;
+            }
+        }
+
         private class TestIgnoreTypesSchema
         {
             public IEnumerable<A> As { get; }

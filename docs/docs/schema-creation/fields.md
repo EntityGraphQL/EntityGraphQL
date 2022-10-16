@@ -73,6 +73,63 @@ schema.Query().AddField(
 );
 ```
 
+## [GraphQLField] attribute
+SchemaBuilder.FromObject will automatically add another methods on the context or types marked with [GraphQLField] as fields.
+
+Example:
+```cs
+ public class ContextFieldWithMethod {
+    public IEnumerable<TypeWithMethod> Fields { get; set; }
+
+    [GraphQLField]
+    public int TestMethod()
+    {
+        return 23;
+    }
+}
+public class TypeWithMethod
+{
+    [GraphQLField]
+    public int MethodField()
+    {
+        return 1;
+    }
+
+    [GraphQLField]
+    public int MethodFieldWithArgs(int value)
+    {
+        return value;
+    }
+
+    [GraphQLField]
+    public int MethodFieldWithTwoArgs(int value, int value2)
+    {
+        return value + value2;
+    }
+
+    [GraphQLField]
+    public int MethodFieldWithDefaultArgs(int value = 27)
+    {
+        return value;
+    }
+}
+```
+
+Can then be queried as following:
+
+```
+ query TypeWithMethod {
+    testMethod
+    fields {
+        methodField
+        methodFieldWithArgs(value: $value)
+        methodFieldWithTwoArgs(value: $value, value2: $value2)
+        methodFieldWithDefaultArgs
+    }
+}
+```
+
+
 ## Helper methods
 
 ### WhereWhen()

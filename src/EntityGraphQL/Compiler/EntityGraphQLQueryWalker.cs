@@ -115,7 +115,7 @@ namespace EntityGraphQL.Compiler
                 {
                     TypeNotNullable = isRequired,
                     ElementTypeNullable = !isRequired
-                }, null, varTypeInSchema)
+                }, varTypeInSchema)
                 {
                     DefaultValue = defaultValue,
                     IsRequired = isRequired

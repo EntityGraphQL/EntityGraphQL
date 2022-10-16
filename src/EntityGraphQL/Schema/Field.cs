@@ -65,6 +65,23 @@ namespace EntityGraphQL.Schema
             }
         }
 
+        public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, Dictionary<string, ArgType>? arguments, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
+      : base(schema, fromType, name, description, returnType)
+        {
+            RequiredAuthorization = requiredAuth;
+            Extensions = new List<IFieldExtension>();
+
+            if (resolve != null)
+            {
+                ProcessResolveExpression(resolve, false, arguments != null);
+            }
+            if (arguments != null)
+            {
+                Arguments = arguments;
+                ArgumentsType = LinqRuntimeTypeBuilder.GetDynamicType(arguments.ToDictionary(x => x.Key, x=> x.Value.RawType), name);
+            }
+        }
+
         /// <summary>
         /// Defines if the return type of this field is nullable or not.
         /// </summary>
