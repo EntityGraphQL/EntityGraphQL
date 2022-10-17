@@ -218,7 +218,11 @@ namespace EntityGraphQL.Compiler
             // evaluate everything
             if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
             {
-                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { expression.Type.GetEnumerableOrArrayType()! }, expression);
+                expression = Expression.Condition(
+                    test: Expression.NotEqual(expression, Expression.Constant(null)),
+                    ifTrue: ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { expression.Type.GetEnumerableOrArrayType()! }, expression),
+                    ifFalse: Expression.Constant(null, typeof(System.Collections.Generic.List<>).MakeGenericType(expression.Type.GetEnumerableOrArrayType()!))
+              );
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
