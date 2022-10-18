@@ -185,8 +185,8 @@ namespace EntityGraphQL.Compiler
                 nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
             else // need to replace context expressions in the service expression with the new context
             {
-                // If this is a root field, we replace teh whole expresison
-                if (isRoot)
+                // If this is a root field, we replace teh whole expresison unless there is services at the root level
+                if (isRoot && !HasServices)
                     nextFieldContext = replacementNextFieldContext;
                 else if (HasServices)
                 {
@@ -197,7 +197,7 @@ namespace EntityGraphQL.Compiler
                     // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
                     // if ParentNode?.HasServices == true the above has been done and we just need to replace the 
                     // expression, not rebuild it with a different name
-                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true);
+                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, isRoot && HasServices);
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
                 // may need to replace the field's original parameter

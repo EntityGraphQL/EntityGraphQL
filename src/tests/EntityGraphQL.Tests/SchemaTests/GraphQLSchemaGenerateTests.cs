@@ -405,15 +405,21 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestGetArgDefaultValue_String_Empty()
+        {
+            Assert.Equal("\"\"", SchemaGenerator.GetArgDefaultValue("", (e) => e));
+        }
+
+        [Fact]
         public void TestGetArgDefaultValue_IntArray()
         {
-            Assert.Equal("[1, 2, 3, ]", SchemaGenerator.GetArgDefaultValue(new[] { 1,2,3 }, (e) => e));
+            Assert.Equal("[1, 2, 3]", SchemaGenerator.GetArgDefaultValue(new[] { 1, 2, 3 }, (e) => e));
         }
 
         [Fact]
         public void TestGetArgDefaultValue_StringArray()
         {
-            Assert.Equal("[\"one\", \"two\", \"three\", ]", SchemaGenerator.GetArgDefaultValue(new[] { "one", "two", "three" }, (e) => e));
+            Assert.Equal("[\"one\", \"two\", \"three\"]", SchemaGenerator.GetArgDefaultValue(new[] { "one", "two", "three" }, (e) => e));
         }
 
         [Fact]
@@ -423,9 +429,15 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestGetArgDefaultValue_Filter()
+        {
+            Assert.Equal("", SchemaGenerator.GetArgDefaultValue(new EntityQueryType<Task>(), (e) => e));
+        }
+
+        [Fact]
         public void TestGetArgDefaultValue_Object()
         {
-            Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0, }", SchemaGenerator.GetArgDefaultValue(new Album
+            Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new Album
             {
                 Id = 5,
                 Name = "Test",

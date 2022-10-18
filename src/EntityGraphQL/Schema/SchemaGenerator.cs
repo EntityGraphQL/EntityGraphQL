@@ -148,12 +148,11 @@ namespace EntityGraphQL.Schema
             }
 
             var ret = string.Empty;
-
             var valueType = value.GetType();
 
             if (valueType == typeof(string))
             {
-                return ((string)value) == string.Empty ? string.Empty : $"\"{value}\"";
+                return $"\"{(((string)value == string.Empty) ? string.Empty : value)}\"";
             }
             if (valueType == typeof(bool))
             {
@@ -165,16 +164,7 @@ namespace EntityGraphQL.Schema
             }
             else if (value is IEnumerable e)
             {
-                ret += $"[";
-                foreach (var item in e)
-                {
-                    var arrayValue = GetArgDefaultValue(item, fieldNamer);
-                    if (string.IsNullOrEmpty(arrayValue))
-                        continue;
-
-                    ret += arrayValue + ", ";
-                }
-                ret += $"]";
+                return $"[{string.Join(", ", e.Cast<object>().Select(item => GetArgDefaultValue(item, fieldNamer)).Where(item => item != null))}]";
             }
             else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
             {
@@ -183,19 +173,30 @@ namespace EntityGraphQL.Schema
                     var property = valueType.GetProperty("Query");
                     return $"\"{property.GetValue(value)}\"";
                 }
+                return string.Empty;
             }
-            else if (value is Object o)
+            else if (value is object o)
             {
                 ret += "{ ";
-                foreach (var property in valueType.GetProperties())
+                ret += string.Join(", ", valueType.GetProperties().Select(property =>
                 {
-                    var propertyValue = GetArgDefaultValue(property.GetValue(o), fieldNamer);
+                    var propValue = property.GetValue(o);
+                    var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
                     if (string.IsNullOrEmpty(propertyValue))
-                        continue;
+                        return null;
 
-                    ret += $"{fieldNamer(property.Name)}: {propertyValue}, ";
-                }
-                ret += "}";
+                    return $"{fieldNamer(property.Name)}: {propertyValue}";
+                }).Where(i => i != null));
+                ret += string.Join(", ", valueType.GetFields().Select(property =>
+                {
+                    var propValue = property.GetValue(o);
+                    var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
+                    if (string.IsNullOrEmpty(propertyValue))
+                        return null;
+
+                    return $"{fieldNamer(property.Name)}: {propertyValue}";
+                }).Where(i => i != null));
+                ret += " }";
             }
 
             return ret;

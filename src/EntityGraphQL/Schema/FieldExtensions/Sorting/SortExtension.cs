@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -16,13 +17,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Func<string, string>? fieldNamer;
         private readonly Type? fieldSelectionType;
         private readonly LambdaExpression? defaultSort;
-        private readonly SortDirectionEnum? direction;
+        private readonly SortDirectionEnum? defaultSortDirection;
 
         public SortExtension(Type? fieldSelectionType, LambdaExpression? defaultSort, SortDirectionEnum? direction)
         {
             this.fieldSelectionType = fieldSelectionType;
             this.defaultSort = defaultSort;
-            this.direction = direction;
+            this.defaultSortDirection = direction;
         }
 
         public override void Configure(ISchemaProvider schema, IField field)
@@ -52,7 +53,21 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
 
             var argType = typeof(SortInput<>).MakeGenericType(schemaSortType.TypeDotnet);
-            field.AddArguments(Activator.CreateInstance(argType)!);
+            var argInstance = Activator.CreateInstance(argType)!;
+            if (defaultSort != null)
+            {
+                var defaultSortValue = Activator.CreateInstance(schemaSortType.TypeDotnet)!;
+                // if the field is not there the default sort is not exposed in the API we the schema does not need to know about the default
+                var sortValueField = schemaSortType.TypeDotnet.GetField(((MemberExpression)defaultSort.Body).Member.Name);
+                if (sortValueField != null)
+                {
+                    sortValueField.SetValue(defaultSortValue, defaultSortDirection ?? SortDirectionEnum.ASC);
+                    var defaultSortValues = Activator.CreateInstance(typeof(List<>).MakeGenericType(schemaSortType.TypeDotnet))!;
+                    ((IList)defaultSortValues).Add(defaultSortValue);
+                    argType.GetProperty("Sort")!.SetValue(argInstance, defaultSortValues);
+                }
+            }
+            field.AddArguments(argInstance);
         }
 
         private Type MakeSortType(IField field)
@@ -89,6 +104,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (servicesPass)
                 return expression;
 
+            // default sort gets put in arguments
             if (arguments != null && arguments!.Sort != null && arguments!.Sort.Count > 0)
             {
                 var sortMethod = "OrderBy";
@@ -127,7 +143,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 var listParam = Expression.Parameter(listType!);
                 expression = Expression.Call(
                         methodType!,
-                        direction == SortDirectionEnum.ASC ? "OrderBy" : "OrderByDescending",
+                        defaultSortDirection == SortDirectionEnum.ASC ? "OrderBy" : "OrderByDescending",
                         new Type[] { listType!, defaultSort.Body.Type },
                         expression,
                         parameterReplacer.Replace(defaultSort, defaultSort.Parameters.First(), listParam)

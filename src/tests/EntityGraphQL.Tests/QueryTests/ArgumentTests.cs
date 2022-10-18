@@ -59,8 +59,8 @@ namespace EntityGraphQL.Tests
             schema.AddInputType<UserInputObject>("UserInput", "");
             // Add a argument field with a require parameter
             schema.Query().AddField("user", new { user = new UserInputObject() { Name = "Steve" } }, (ctx, param) => ctx.Users.FirstOrDefault(), "Return a user by ID");
-            
-            Assert.Contains("user(user: UserInput = { name: \"Steve\", }): User", schema.ToGraphQLSchemaString());
+
+            Assert.Contains("user(user: UserInput = { name: \"Steve\" }): User", schema.ToGraphQLSchemaString());
         }
 
         [Fact]

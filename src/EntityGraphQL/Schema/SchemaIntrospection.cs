@@ -329,11 +329,8 @@
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
 
-                string? defaultValue = null;
-                if(arg.Value.DefaultValue != null && arg.Value.DefaultValue != DBNull.Value)
-                {
-                    defaultValue = arg.Value.DefaultValue.ToString();
-                }
+                var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer).Trim('"');
+                var defaultValue = string.IsNullOrEmpty(stringValue) ? null : stringValue;
 
                 args.Add(new InputValue(arg.Key, type)
                 {

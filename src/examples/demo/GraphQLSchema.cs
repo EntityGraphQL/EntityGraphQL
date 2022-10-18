@@ -17,7 +17,7 @@ namespace demo
                 demoSchema.AddType<Connection<Person>>("PersonConnection", "Metadata about a person connection (paging over people)").AddAllFields();
                 queryType.AddField("writers", db => db.People.Where(p => p.WriterOf.Any()), "List of writers");
                 queryType.AddField("directors", db => db.People.Where(p => p.DirectorOf.Any()), "List of directors")
-                    .UseSort();
+                    .UseSort((Person et) => et.LastName, SortDirectionEnum.ASC);
 
                 queryType.ReplaceField("actors",
                     (db) => db.Actors.Select(a => a.Person),

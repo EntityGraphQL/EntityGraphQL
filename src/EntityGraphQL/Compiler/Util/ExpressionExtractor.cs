@@ -43,8 +43,6 @@ namespace EntityGraphQL.Compiler.Util
             if (rootContext == null)
                 throw new EntityGraphQLCompilerException("Root context not set for ExpressionExtractor");
 
-            if (currentExpression.Count > 0 && rootContext == currentExpression.Peek())
-                throw new EntityGraphQLCompilerException($"The context parameter {node.Name} used in a ResolveWithService() field is not allowed. Please select the specific fields required from the context parameter.");
             if ((rootContext == node || (matchByType && rootContext.Type == node.Type)) && currentExpression.Count > 0)
             {
                 var expressionItem = currentExpression.Peek();
@@ -82,12 +80,15 @@ namespace EntityGraphQL.Compiler.Util
 
         private void ProcessPotentialLeaf(Expression node)
         {
-            var shouldAdd = node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == false;
-            if (shouldAdd)
+            var shouldAddNotAdd = node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == true;
+            if (shouldAddNotAdd)
+                Visit(node);
+            else
+            {
                 currentExpression.Push(node);
-            Visit(node);
-            if (shouldAdd)
+                Visit(node);
                 currentExpression.Pop();
+            }
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

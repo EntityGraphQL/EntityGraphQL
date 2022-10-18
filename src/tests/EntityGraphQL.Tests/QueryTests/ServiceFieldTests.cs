@@ -42,6 +42,35 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
         }
+        [Fact]
+        public void TestServicesAtRoot2()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
+
+            schema.Query().ReplaceField("projects",
+                new PagerArgs { page = 1, pagesize = 10 },
+                "Pagination. [defaults: page = 1, pagesize = 10]")
+                .ResolveWithService<EntityPager>((db, p, pager) => pager.PageProjects(db.Projects, p));
+
+            var gql = new QueryRequest
+            {
+                Query = @"{ projects { total items { id } } }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>()
+            };
+            var serviceCollection = new ServiceCollection();
+            var pager = new EntityPager();
+            serviceCollection.AddSingleton(pager);
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, pager.CallCount);
+        }
 
         [Fact]
         public void TestServicesNonRoot()
@@ -1359,6 +1388,49 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestCollectionToSingle_WithAsyncService_UsingContextFieldEnumerable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Type<Project>().AddField("serviceField", "Get project config")
+                // p.Updated.HasValue is the important bit here
+                .ResolveWithService<ConfigService>((p, x) => x.GetFieldAsync(p.Id, p.Tasks.Where(t => t.Name != "Task").Select(t => t.Id)).GetAwaiter().GetResult());
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddScoped<ConfigService, ConfigService>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    project(id: 1) {
+                        serviceField
+                    }
+                }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                        {
+                            new Project
+                            {
+                                Id = 1,
+                                Tasks = new List<Task>
+                                {
+                                    new Task {
+                                        Id = 0,
+                                    }
+                                }
+                            }
+                        },
+            };
+
+            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var project = (dynamic)res.Data["project"];
+        }
+
+        [Fact]
         public void TestServiceAfterMultipleCollectionToSingle()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -2034,6 +2106,12 @@ namespace EntityGraphQL.Tests
             {
                 CallCount += 1;
                 return System.Threading.Tasks.Task.FromResult(new int[] { id });
+            }
+
+            internal Task<int> GetFieldAsync(int id, IEnumerable<int> enumerable)
+            {
+                CallCount += 1;
+                return System.Threading.Tasks.Task.FromResult(id);
             }
         }
 

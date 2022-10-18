@@ -247,13 +247,13 @@ namespace EntityGraphQL.Schema
         private QueryResult HandleException(Exception exception)
         {
             logger?.LogError(exception, "Error executing QueryRequest");
-            
+
             var result = new QueryResult();
             foreach (var (errorMessage, extensions) in GenerateMessage(exception).Distinct())
                 result.AddError(errorMessage, extensions);
             return result;
         }
-        
+
         private IEnumerable<(string errorMessage, IDictionary<string, object>? extensions)> GenerateMessage(Exception exception)
         {
             switch (exception)
@@ -299,7 +299,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a new type into the schema with TBaseType as its context
+        /// Add a new type into the schema with TBaseType as its context.
         /// </summary>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
@@ -307,7 +307,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The added type for further changes via chaining</returns>
         public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
         {
-            var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypeEnum.Interface : GqlTypeEnum.Object;
+            var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypeEnum.Interface : typeof(TBaseType).IsEnum ? GqlTypeEnum.Enum : GqlTypeEnum.Object;
             var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
             FinishAddingType(typeof(TBaseType), name, schemaType);
             return schemaType;

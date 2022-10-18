@@ -1,3 +1,14 @@
+# 4.1.1
+
+## Fixes
+
+- #221 - Apply null check on the `ToList` expression built to resolve list expressions
+- Better support for service fields at the root query level
+- Fix support for service fields that take a complex type (object or enumerable) as arguments
+- Fix `UseFilter()` `filter` and `UseSort()` `sort` field arguments were incorrectly being marked as required in schema introspection
+- Fix issues with default sort values for `UseSort()` not appearing in the schema as default values
+- Fix output of default values in schema for lists and objects
+
 # 4.1.0
 
 ## Changes
