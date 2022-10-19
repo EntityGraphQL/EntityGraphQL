@@ -133,7 +133,11 @@ query {
 
             Assert.Equal("steve", animals[0].name);
             Assert.True(animals[0].hasBone);
-            Assert.Null(animals[1]);
+
+
+            //Cats are not null but have 0 fields
+            Assert.NotNull(animals[1]);
+            Assert.Empty(animals[1].GetType().GetFields());
         }
 
         [Fact]
@@ -166,7 +170,10 @@ query {
             // we only have the fields requested
             Assert.Equal(2, animals.Count);
 
-            Assert.Null(animals[0]);
+            //Dogs are not null but have 0 fields
+            Assert.NotNull(animals[0]);
+            Assert.Empty(animals[0].GetType().GetFields());
+
             Assert.Equal("george", animals[1].name);
             Assert.Equal(9, animals[1].lives);
         }

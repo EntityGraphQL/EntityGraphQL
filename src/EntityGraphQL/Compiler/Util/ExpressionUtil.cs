@@ -452,9 +452,13 @@ namespace EntityGraphQL.Compiler.Util
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
                 //create a cascading TypeIs X query for each type in query
-                Expression? previous = CreateNewExpression(field.Name, fieldsOnBaseType, out Type _, parentType: baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
+                Expression? previous = CreateNewExpression(field.Name, fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
+
                 foreach (var type in validTypes)
                 {
+                    if (type == currentContextParam.Type)
+                        continue;
+
                     var fieldsOnType = fieldExpressions.Values
                        .Where(i => RootType(i.Expression) == null || RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
                        .ToDictionary(i => i.Field.Name, i => i.Expression);
@@ -464,8 +468,6 @@ namespace EntityGraphQL.Compiler.Util
                         continue;
 
                     var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
-                    var replacer = new ParameterReplacer();
-
                     var convertedExpression = conversionVisitor.Visit(memberInit);
 
                     previous = Expression.Condition(
@@ -495,6 +497,35 @@ namespace EntityGraphQL.Compiler.Util
                     MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
                 return call;
             }
+        }
+
+
+        public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, Type type)
+        {
+            var fieldExpressionsByName = new Dictionary<string, Expression>();
+
+            foreach (var item in fieldExpressions)
+            {
+                // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
+                if (item.Value != null)
+                    fieldExpressionsByName[item.Key] = item.Value;
+            }
+
+            //dynamicType = typeof(object);
+            //if (!fieldExpressionsByName.Any())
+            //    return null;
+
+            //dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
+            //if (dynamicType == null)
+            //    throw new EntityGraphQLCompilerException("Could not create dynamic type");
+
+            var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
+            var constructor = type.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var newExp = Expression.New(constructor);
+            var mi = Expression.MemberInit(newExp, bindings);
+            return mi;
         }
 
         public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, out Type dynamicType, Type? parentType = null)
