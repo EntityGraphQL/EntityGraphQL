@@ -511,14 +511,6 @@ namespace EntityGraphQL.Compiler.Util
                     fieldExpressionsByName[item.Key] = item.Value;
             }
 
-            //dynamicType = typeof(object);
-            //if (!fieldExpressionsByName.Any())
-            //    return null;
-
-            //dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
-            //if (dynamicType == null)
-            //    throw new EntityGraphQLCompilerException("Could not create dynamic type");
-
             var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
             var constructor = type.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
