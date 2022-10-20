@@ -592,6 +592,44 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
         }
 
+        [Fact]
+        public void TestPagingOnObjectProjectThatHasServiceField_WithAliases()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
+                .UseConnectionPaging(defaultPageSize: 2);
+            schema.UpdateType<Project>(type =>
+            {
+                type.AddField("lastUpdated", "Return last updated timestamp")
+                    // just need any service here to build the relation testing the use case
+                    .ResolveWithService<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+            });
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    A: tasks {
+                        B: edges {
+                            C: node {
+                                D: project {
+                                    E: lastUpdated
+                                }
+                            }
+                        }
+                    }
+                }",
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var ager = new AgeService();
+            serviceCollection.AddSingleton(ager);
+            var data = new TestDataContext();
+            FillProjectData(data);
+
+            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(result.Errors);
+        }
+
         private static void FillProjectData(TestDataContext data)
         {
             data.Projects = new List<Project>

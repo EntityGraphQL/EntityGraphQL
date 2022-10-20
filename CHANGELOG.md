@@ -1,3 +1,9 @@
+# 4.1.2
+
+## Fixes
+
+- Fix issue when using paging extension and aliases in the query e.g. `{ myList { myEdges: edges { .. } } }` previously would fail
+
 # 4.1.1
 
 ## Fixes

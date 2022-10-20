@@ -45,6 +45,39 @@ namespace EntityGraphQL.Tests.OffsetPaging
         }
 
         [Fact]
+        public void TestAliases()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseOffsetPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    A: people {
+                        B: items {
+                            C: name D: id
+                        }
+                        E: hasNextPage
+                        F: hasPreviousPage
+                        H: totalItems
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteRequest(gql, data, null, null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["A"];
+            Assert.Equal(data.People.Count, Enumerable.Count(people.B));
+            Assert.Equal(data.People.Count, people.H);
+            Assert.False(people.E);
+            Assert.False(people.F);
+        }
+
+        [Fact]
         public void TestTake()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();

@@ -29,6 +29,7 @@ namespace EntityGraphQL.Compiler
         /// Name of the field
         /// </summary>
         public string Name { get; set; }
+        public string SchemaName { get => Field?.Name ?? Name; }
         /// <summary>
         /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
         /// across types. E.g name field below
@@ -228,9 +229,13 @@ namespace EntityGraphQL.Compiler
     public interface IFieldKey
     {
         /// <summary>
-        /// Name of the field
+        /// Name of the field. May be an alias
         /// </summary>
         string Name { get; }
+        /// <summary>
+        /// Name of the field as it appears in the schema
+        /// </summary>
+        string SchemaName { get; }
         /// <summary>
         /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
         /// across types. E.g name field below
