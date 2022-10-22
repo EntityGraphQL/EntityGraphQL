@@ -143,13 +143,24 @@ namespace EntityGraphQL.Compiler.Util
             return node;
         }
 
+        Dictionary<object, Expression> cache = new Dictionary<object, Expression>();
+
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
-                var callBase = base.Visit(node.Arguments[0]);
+                Expression callBase;
+                var key = node.Arguments[0];
+                if (cache.ContainsKey(key))
+                {
+                    callBase = cache[key];
+                }
+                else
+                {
+                    callBase = cache[key] = base.Visit(node.Arguments[0]);
+                }
                 var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
                 var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
