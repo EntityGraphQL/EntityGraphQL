@@ -120,8 +120,18 @@ namespace Benchmarks
                     .WhereWhen(i => i.Rating < args.RatingMax, args.RatingMax.HasValue)
                     .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
                     .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
-                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0),
-              "List of movies");
+                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0)
+                    .WhereWhen(i => i.Name == args.Name, !string.IsNullOrWhiteSpace(args.Name))
+                    .WhereWhen(i => i.Director.FirstName == args.DirectorName, !string.IsNullOrWhiteSpace(args.DirectorName))
+                    .WhereWhen(i => i.Director.Id == args.DirectorId, args.DirectorId.HasValue)
+                    .WhereWhen(i => i.Actors.Any(x => x.Id == args.ActorId), !string.IsNullOrWhiteSpace(args.ActorName))
+                    .WhereWhen(i => i.Actors.Any(x => x.FirstName == args.ActorName), args.ActorId.HasValue)
+                    .WhereWhen(i => i.Rating > args.RatingMin, args.RatingMin.HasValue)
+                    .WhereWhen(i => i.Rating < args.RatingMax, args.RatingMax.HasValue)
+                    .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
+                    .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
+                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0)
+              ,"List of movies");
         }
 
         [Benchmark]
