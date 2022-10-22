@@ -89,14 +89,8 @@ namespace Benchmarks
                     ;
         }
 
-        [GlobalSetup(Target = nameof(CompileNoWhere))]
-        public void SetupCompileNoWhere()
-        {
-            
-        }
-
         [Benchmark]
-        public void CompileNoWhere()
+        public void PlainDbSet()
         {
             var replacer = new ParameterReplacer();
 
@@ -106,14 +100,8 @@ namespace Benchmarks
         }
 
 
-        [GlobalSetup(Target = nameof(CompileLotsOfWhere))]
-        public void SetupCompileLotsOfWhere()
-        {
-           
-        }
-
         [Benchmark]
-        public void CompileLotsOfWhere()
+        public void SetOfBasicWhereStatements()
         {
             var replacer = new ParameterReplacer();
 
@@ -123,7 +111,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void CompileComplicated()
+        public void SetOfRealisticWhereWhens()
         {
             var replacer = new ParameterReplacer();
 
@@ -133,7 +121,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void CompileComplicatedSetAsSplit()
+        public void LargerSetOfWhereWhens()
         {
             var replacer = new ParameterReplacer();
 

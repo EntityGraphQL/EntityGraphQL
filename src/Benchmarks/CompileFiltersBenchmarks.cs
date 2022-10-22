@@ -35,8 +35,8 @@ namespace Benchmarks
             context = GetContext();
         }
 
-        [GlobalSetup(Target = nameof(CompileNoWhere))]
-        public void SetupCompileNoWhere()
+        [GlobalSetup(Target = nameof(PlainDbSet))]
+        public void SetupPlainDbSet()
         {
             Schema.Query().ReplaceField(
               "movies",
@@ -45,7 +45,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void CompileNoWhere()
+        public void PlainDbSet()
         {
             Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
             {
@@ -57,8 +57,8 @@ namespace Benchmarks
         }
 
 
-        [GlobalSetup(Target = nameof(CompileLotsOfWhere))]
-        public void SetupCompileLotsOfWhere()
+        [GlobalSetup(Target = nameof(SetOfBasicWhereStatements))]
+        public void SetupSetOfBasicWhereStatements()
         {
             Schema.Query().ReplaceField(
               "movies",
@@ -77,7 +77,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void CompileLotsOfWhere()
+        public void SetOfBasicWhereStatements()
         {
             Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
             {
@@ -89,8 +89,8 @@ namespace Benchmarks
         }
 
 
-        [GlobalSetup(Target = nameof(CompileLotCompileComplicatedSetAsSplitsOfWhere))]
-        public void Setup()
+        [GlobalSetup(Target = nameof(LargerSetOfWhereWhens))]
+        public void SetupLargerSetOfWhereWhens()
         {
             Schema.Query().ReplaceField(
               "movies",
@@ -135,7 +135,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void CompileLotCompileComplicatedSetAsSplitsOfWhere()
+        public void LargerSetOfWhereWhens()
         {
             Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
             {
