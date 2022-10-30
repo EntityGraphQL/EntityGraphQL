@@ -139,6 +139,34 @@ public static class ArgumentUtil
             var typedVal = constructor.Invoke(new[] { item });
             return typedVal;
         }
+        else if (memberType.GetGenericArguments().Any() &&  memberType.GetGenericTypeDefinition() == typeof(OptionalField<>))
+        {
+            if (args != null && args.ContainsKey(argName)) {
+                var item = args[argName];
+                var constructor = memberType.GetConstructor(new[] { item.GetType() });
+
+                if (constructor == null)
+                {
+                    validationErrors.Add($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
+                    return null;
+                }
+
+                var typedVal = constructor.Invoke(new[] { item });
+                return typedVal;
+            } else
+            {
+                var constructor = memberType.GetConstructor(Array.Empty<Type>());
+
+                if (constructor == null)
+                {
+                    validationErrors.Add($"Could not find a constructor for type {memberType.Name}");
+                    return null;
+                }
+
+                var typedVal = constructor.Invoke(Array.Empty<object>());
+                return typedVal;
+            }
+        }
         else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
             return args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType);

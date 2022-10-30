@@ -604,6 +604,69 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, task2.id);
         }
 
+        [Fact]
+        public void SupportsOptionalArguments_Undefined()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() }, 
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
+        	    optionalField
+            }");
+            
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, null);
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(false, (dynamic)result.Data["optionalField"]);
+        }
+
+        [Fact]
+        public void SupportsOptionalArguments_Null()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() },
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
+        	    optionalField(id: null)
+            }");
+
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, null);
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(true, (dynamic)result.Data["optionalField"]);
+        }
+
+        [Fact]
+        public void SupportsOptionalArguments_Defined()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() },
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query {
+        	    optionalField(id: 1)
+            }");
+
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, null);
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(true, (dynamic)result.Data["optionalField"]);
+        }
+
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {
             schema.Query().ReplaceField("person",

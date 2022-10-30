@@ -72,6 +72,14 @@ namespace EntityGraphQL.Schema
                 defaultValue = null;
             }
 
+            if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(OptionalField<>))
+            {
+                typeToUse = type.GetGenericArguments()[0];
+                // default value will often be the default value of the non-null type (e.g. 0 for int). 
+                // We are saying here it must be provided by the query
+                defaultValue = null;
+            }
+
             var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, nullability);
             var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, memberInfo, type)
             {

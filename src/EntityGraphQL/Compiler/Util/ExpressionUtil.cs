@@ -195,11 +195,13 @@ namespace EntityGraphQL.Compiler.Util
             {
                 return Guid.Parse(value!.ToString()!);
             }
-            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+            if (toType.IsGenericType && (toType.GetGenericTypeDefinition() == typeof(RequiredField<>) || toType.GetGenericTypeDefinition() == typeof(OptionalField<>)))
             {
                 if (fromType == toType.GetGenericArguments()[0])
                     return Activator.CreateInstance(toType, value);
                 else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                    return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
+                else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(OptionalField<>))
                     return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
             }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())

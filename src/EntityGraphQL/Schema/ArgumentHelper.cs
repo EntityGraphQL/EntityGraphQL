@@ -21,6 +21,16 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
+        /// Creates an optional argument with the specified type.
+        /// </summary>
+        /// <typeparam name="TType"></typeparam>
+        /// <returns></returns>
+        public static OptionalField<TType> Optional<TType>()
+        {
+            return new OptionalField<TType>();
+        }
+
+        /// <summary>
         /// Creates a field argument that takes a String value which will be compiled into an expression and used to filter the collection
         /// The argument will not be null if not supplied. Has .HasValue on this argument to test if it have a filter expression.
         /// </summary>
@@ -69,6 +79,47 @@ namespace EntityGraphQL.Schema
         {
             return Value?.ToString() ?? "null";
         }
+    }
+
+    /// <summary>
+    /// Wraps a field/argument, marking it as optional (null/undefined/TType) when building schemas
+    /// </summary>
+    /// <typeparam name="TType"></typeparam>
+    public class OptionalField<TType>
+    {
+        public Type Type { get; }
+
+        public OptionalField()
+        {
+            Type = typeof(TType);
+        }
+
+        public OptionalField(TType value)
+        {
+            Type = typeof(TType);
+            Value = value;
+        }
+
+        private TType? value;
+        public TType? Value
+        {
+            get => value;
+
+            set
+            {
+                HasValue = true;
+                this.value = value;
+            }
+        }
+
+        public bool HasValue { get; set; }
+
+        public static implicit operator TType?(OptionalField<TType> field) {
+            if (!field.HasValue)
+                throw new EntityGraphQLExecutionException($"Optional field argument cannot be read if it is not set");
+            return field.Value;
+        }
+        public static implicit operator OptionalField<TType>(TType value) => new OptionalField<TType>(value);
     }
 
     public class EntityQueryType<TType> : BaseEntityQueryType
