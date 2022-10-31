@@ -626,6 +626,27 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void SupportsOptionalArguments_UndefinedVariable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() },
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query q($id: Int) {
+        	    optionalField(id: $Id)
+            }");
+
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, null);
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(false, (dynamic)result.Data["optionalField"]);
+        }
+
+        [Fact]
         public void SupportsOptionalArguments_Null()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
@@ -639,6 +660,30 @@ namespace EntityGraphQL.Tests
             }");
 
             dynamic result = tree.ExecuteQuery(new TestDataContext(), null, null);
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(true, (dynamic)result.Data["optionalField"]);
+        }
+
+        [Fact]
+        public void SupportsOptionalArguments_NullVariable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() },
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query q($id: Int) {
+        	    optionalField(id: $id)
+            }");
+
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, new QueryVariables()
+            {
+                { "id", null }
+            });
 
             Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
 
@@ -666,6 +711,31 @@ namespace EntityGraphQL.Tests
             // we only have the fields requested
             Assert.Equal(true, (dynamic)result.Data["optionalField"]);
         }
+
+        [Fact]
+        public void SupportsOptionalArguments_DefinedVariable()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+            // Add a argument field with a require parameter
+            schema.Query().AddField("optionalField", new { id = ArgumentHelper.Optional<int>() },
+                (ctx, param) => param.id.HasValue,
+                "Return a user by ID"
+            );
+            var tree = new GraphQLCompiler(schema).Compile(@"query q($id: Int) {
+        	    optionalField(id: $id)
+            }");
+
+            dynamic result = tree.ExecuteQuery(new TestDataContext(), null, new QueryVariables()
+            {
+                { "id", 1 }
+            });
+
+            Assert.Contains("optionalField(id: Int): Boolean!", schema.ToGraphQLSchemaString());
+
+            // we only have the fields requested
+            Assert.Equal(true, (dynamic)result.Data["optionalField"]);
+        }
+
 
         private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
         {

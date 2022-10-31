@@ -199,9 +199,9 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (fromType == toType.GetGenericArguments()[0])
                     return Activator.CreateInstance(toType, value);
-                else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                else if (toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
                     return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
-                else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(OptionalField<>))
+                else if (toType.GetGenericTypeDefinition() == typeof(OptionalField<>))
                     return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
             }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
