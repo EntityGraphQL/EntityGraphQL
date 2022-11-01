@@ -9,7 +9,7 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLScalarField : BaseGraphQLField
     {
-        public GraphQLScalarField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object>? arguments)
+        public GraphQLScalarField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, Dictionary<string, object?>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
         }

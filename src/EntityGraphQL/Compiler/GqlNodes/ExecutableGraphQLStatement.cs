@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
         public IField? Field { get; }
         public bool HasServices { get => Field?.Services.Any() == true; }
 
-        public IReadOnlyDictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object?> Arguments { get; }
 
         public string Name { get; }
 
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Compiler
             RootParameter = rootParameter;
             opDefinedVariables = opVariables;
             this.schema = schema;
-            Arguments = new Dictionary<string, object>();
+            Arguments = new Dictionary<string, object?>();
             if (opDefinedVariables.Any())
             {
                 var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");

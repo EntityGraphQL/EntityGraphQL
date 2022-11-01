@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
             Operations = new List<ExecutableGraphQLStatement>();
             Fragments = new List<GraphQLFragmentStatement>();
             this.fieldNamer = fieldNamer;
-            Arguments = new Dictionary<string, object>();
+            Arguments = new Dictionary<string, object?>();
         }
 
         public string Name
@@ -54,7 +54,7 @@ namespace EntityGraphQL.Compiler
         public IField? Field { get; }
         public bool HasServices { get => Field?.Services.Any() == true; }
 
-        public IReadOnlyDictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object?> Arguments { get; }
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {

@@ -32,7 +32,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="nodeExpression">Expression for the list</param>
         /// <param name="context">Partent node</param>
         /// <param name="arguments"></param>
-        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
+        public GraphQLListSelectionField(ISchemaProvider schema, IField? field, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object?>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
         {
             this.ListExpression = nodeExpression;

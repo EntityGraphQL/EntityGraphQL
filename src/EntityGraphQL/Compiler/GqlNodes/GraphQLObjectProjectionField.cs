@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="nextFieldContext">The next context expression for ObjectProjection is also our field expression e..g person.manager</param>
         /// <param name="rootParameter">The root parameter</param>
         /// <param name="parentNode"></param>
-        public GraphQLObjectProjectionField(ISchemaProvider schema, IField? field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, IReadOnlyDictionary<string, object>? arguments)
+        public GraphQLObjectProjectionField(ISchemaProvider schema, IField? field, string name, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode, IReadOnlyDictionary<string, object?>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
         }

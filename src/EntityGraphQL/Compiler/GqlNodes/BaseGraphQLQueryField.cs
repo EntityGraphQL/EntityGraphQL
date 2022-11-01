@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
-        protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
+        protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object?>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
         }

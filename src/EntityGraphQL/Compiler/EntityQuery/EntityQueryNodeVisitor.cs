@@ -160,7 +160,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             }
 
             var gqlField = schemaType.GetField(field, requestContext);
-            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
+            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, null, new Dictionary<string, object?>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
             return exp!;
         }
 

@@ -97,7 +97,7 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
+        public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object?> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? expression = fieldExpression;
             foreach (var directive in directives)
@@ -126,7 +126,7 @@ namespace EntityGraphQL.Schema
             return (result, argumentParam);
         }
 
-        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Field field, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
+        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object?> args, Field field, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
         {
             object? argumentValues = null;
             Expression? result = fieldExpression;

@@ -6,6 +6,7 @@ using EntityGraphQL.Compiler.Util;
 using System;
 using EntityGraphQL.Extensions;
 using HotChocolate.Language;
+using Nullability;
 
 namespace EntityGraphQL.Compiler
 {
@@ -111,15 +112,11 @@ namespace EntityGraphQL.Compiler
                 if (item.DefaultValue != null)
                     defaultValue = Expression.Lambda(Expression.Constant(QueryWalkerHelper.ProcessArgumentValue(schemaProvider, item.DefaultValue, argName, varTypeInSchema))).Compile().DynamicInvoke();
 
-                documentVariables.Add(argName, new ArgType(gqlTypeName, schemaType.TypeDotnet.Name, new GqlTypeInfo(() => schemaType, varTypeInSchema)
-                {
-                    TypeNotNullable = isRequired,
-                    ElementTypeNullable = !isRequired
-                }, null, varTypeInSchema)
-                {
-                    DefaultValue = defaultValue,
-                    IsRequired = isRequired
-                });
+                var state = isRequired ? NullabilityStateEx.NotNull : NullabilityStateEx.Nullable;
+                var nullability = new NullabilityInfoEx(schemaType.TypeDotnet, state, state, null, Array.Empty<NullabilityInfoEx>());
+                var argType = ArgType.MakeArgType(schemaProvider, schemaType.TypeDotnet.Name, null, Array.Empty<Attribute>(), varTypeInSchema, defaultValue, nullability);
+
+                documentVariables.Add(argName, argType);
 
                 if (item.Type.Kind == SyntaxKind.NonNullType && variables.ContainsKey(argName) == false)
                 {
@@ -245,7 +242,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object>? arguments)
+        public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object?>? arguments)
         {
             if (fieldContext.ReturnType.IsList)
             {
@@ -273,7 +270,7 @@ namespace EntityGraphQL.Compiler
         /// Given a syntax of someCollection { fields, to, selection, from, object }
         /// it will build a select assuming 'someCollection' is an IEnumerable
         /// </summary>
-        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object>? arguments)
+        private GraphQLListSelectionField BuildDynamicSelectOnCollection(IField actualField, Expression nodeExpression, ISchemaType returnType, string resultName, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object?>? arguments)
         {
             if (context == null)
                 throw new EntityGraphQLCompilerException("context should not be null building select on collection");
@@ -296,7 +293,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="context"></param>
         /// <param name="selectContext"></param>
         /// <returns></returns>
-        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection, Dictionary<string, object>? arguments)
+        private GraphQLObjectProjectionField BuildDynamicSelectForObjectGraph(IField actualField, Expression nodeExpression, IGraphQLNode context, string name, SelectionSetNode selection, Dictionary<string, object?>? arguments)
         {
             if (context == null)
                 throw new EntityGraphQLCompilerException("context should not be null visiting field");
@@ -311,9 +308,9 @@ namespace EntityGraphQL.Compiler
             return graphQLNode;
         }
 
-        private Dictionary<string, object> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
+        private Dictionary<string, object?> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
         {
-            var args = new Dictionary<string, object>();
+            var args = new Dictionary<string, object?>();
             foreach (var arg in queryArguments)
             {
                 var argName = arg.Name.Value;
@@ -322,8 +319,7 @@ namespace EntityGraphQL.Compiler
                     throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
                 }
                 var r = ParseArgument(argName, field, arg);
-                if (r != null)
-                    args.Add(argName, r);
+                args.Add(argName, r);
             }
             return args;
         }
@@ -362,11 +358,11 @@ namespace EntityGraphQL.Compiler
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
                 var argType = processor.GetArgumentsType();
-                var args = new Dictionary<string, object>();
+                var args = new Dictionary<string, object?>();
                 foreach (var arg in directive.Arguments)
                 {
                     var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argType.GetProperty(arg.Name.Value)!.PropertyType);
-                    if (argVal != null)
+                    if (argVal != null) //todo
                         args.Add(arg.Name.Value, argVal);
                 }
                 result.Add(new GraphQLDirective(directive.Name.Value, processor, args));

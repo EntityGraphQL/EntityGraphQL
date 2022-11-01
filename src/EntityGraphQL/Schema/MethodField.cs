@@ -79,7 +79,7 @@ namespace EntityGraphQL.Schema
                 schema.AddInputType(inputType, inputType.Name, null).AddAllFields();
         }
 
-        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
+        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object?>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
         {
             if (context == null)
                 return null;
@@ -95,7 +95,7 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
                 {
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors)!;
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object?>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }
                 else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
@@ -198,7 +198,7 @@ namespace EntityGraphQL.Schema
             return result;
         }
 
-        public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
+        public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object?> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             var result = fieldExpression;
 

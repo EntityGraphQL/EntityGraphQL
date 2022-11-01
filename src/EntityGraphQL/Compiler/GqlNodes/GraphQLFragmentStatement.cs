@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler
         public IField? Field { get; }
         public bool HasServices { get => Field?.Services.Any() == true; }
 
-        public IReadOnlyDictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object?> Arguments { get; }
 
         public string Name { get; }
 
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
             Name = name;
             NextFieldContext = selectContext;
             RootParameter = rootParameter;
-            Arguments = new Dictionary<string, object>();
+            Arguments = new Dictionary<string, object?>();
         }
 
         public GraphQLFragmentStatement(GraphQLFragmentStatement context, ParameterExpression? nextFieldContext)
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
             Name = context.Name;
             RootParameter = context.RootParameter;
             NextFieldContext = nextFieldContext;
-            Arguments = new Dictionary<string, object>();
+            Arguments = new Dictionary<string, object?>();
         }
 
         public void AddField(BaseGraphQLField field)

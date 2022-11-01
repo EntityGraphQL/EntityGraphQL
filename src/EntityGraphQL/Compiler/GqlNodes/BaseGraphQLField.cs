@@ -57,19 +57,19 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Arguments from inline in the query - not $ variables
         /// </summary>
-        public IReadOnlyDictionary<string, object> Arguments { get; }
+        public IReadOnlyDictionary<string, object?> Arguments { get; }
         /// <summary>
         /// True if this field has services
         /// </summary>
         public bool HasServices { get => Field?.Services.Any() == true; }
 
-        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
+        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object?>? arguments)
         {
             Name = name;
             NextFieldContext = nextFieldContext;
             RootParameter = rootParameter;
             ParentNode = parentNode;
-            this.Arguments = arguments ?? new Dictionary<string, object>();
+            this.Arguments = arguments ?? new Dictionary<string, object?>();
             this.schema = schema;
             Field = field;
         }
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Compiler
             NextFieldContext = nextFieldContext;
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
-            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
+            this.Arguments = context.Arguments ?? new Dictionary<string, object?>();
             this.schema = context.schema;
             Field = context.Field;
         }

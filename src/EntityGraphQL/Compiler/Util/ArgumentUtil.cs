@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables, List<string> validationErrors)
+    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object?> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables, List<string> validationErrors)
     {
         // get the values for the argument anonymous type object constructor
         var propVals = new Dictionary<PropertyInfo, object?>();
@@ -102,7 +102,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
+    internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object?>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
     {
         string argName = memberName;
         // check we have required arguments
@@ -114,7 +114,8 @@ public static class ArgumentUtil
                 return null;
             }
             var item = args[argName];
-            var constructor = memberType.GetConstructor(new[] { item.GetType() });
+
+            var constructor = memberType.GetConstructor(new[] { memberType.GetGenericArguments()[0] });
             if (constructor == null)
             {
                 // we might need to change the type
@@ -141,9 +142,10 @@ public static class ArgumentUtil
         }
         else if (memberType.GetGenericArguments().Any() &&  memberType.GetGenericTypeDefinition() == typeof(OptionalField<>))
         {
-            if (args != null && args.ContainsKey(argName)) {
+            if (args != null && args.ContainsKey(argName))
+            {
                 var item = args[argName];
-                var constructor = memberType.GetConstructor(new[] { item.GetType() });
+                var constructor = memberType.GetConstructor(new[] { memberType.GetGenericArguments()[0] });
 
                 if (constructor == null)
                 {
@@ -153,7 +155,8 @@ public static class ArgumentUtil
 
                 var typedVal = constructor.Invoke(new[] { item });
                 return typedVal;
-            } else
+            }
+            else
             {
                 var constructor = memberType.GetConstructor(Array.Empty<Type>());
 
@@ -166,6 +169,7 @@ public static class ArgumentUtil
                 var typedVal = constructor.Invoke(Array.Empty<object>());
                 return typedVal;
             }
+
         }
         else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {

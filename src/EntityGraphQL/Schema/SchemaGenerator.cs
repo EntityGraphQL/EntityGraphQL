@@ -175,6 +175,10 @@ namespace EntityGraphQL.Schema
                 }
                 return string.Empty;
             }
+            else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(OptionalField<>))
+            {
+                return string.Empty;
+            }
             else if (value is object o)
             {
                 ret += "{ ";

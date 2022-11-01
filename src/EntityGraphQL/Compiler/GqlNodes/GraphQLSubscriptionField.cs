@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler
 
         public BaseGraphQLQueryField? ResultSelection { get; set; }
 
-        public GraphQLSubscriptionField(ISchemaProvider schema, string name, SubscriptionField subscriptionField, Dictionary<string, object>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public GraphQLSubscriptionField(ISchemaProvider schema, string name, SubscriptionField subscriptionField, Dictionary<string, object?>? args, Expression nextFieldContext, ParameterExpression rootParameter, IGraphQLNode parentNode)
             : base(schema, subscriptionField, name, nextFieldContext, rootParameter, parentNode, args)
         {
             this.SubscriptionField = subscriptionField;

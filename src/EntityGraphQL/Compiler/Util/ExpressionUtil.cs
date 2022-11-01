@@ -55,8 +55,15 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                 {
-                    // we don't want a null value. We want an empty EntityQueryType
+                    // we don't want a null value. We want an empty EntityQueryType/OptionalField
                     var entityQuery = Activator.CreateInstance(toType);
+                    return entityQuery;
+                }
+
+                if (toType.IsConstructedGenericType && toType.GetGenericTypeDefinition() == typeof(OptionalField<>))
+                {
+                    // we don't want a null value. We want an empty EntityQueryType/OptionalField
+                    var entityQuery = Activator.CreateInstance(toType, value);
                     return entityQuery;
                 }
 

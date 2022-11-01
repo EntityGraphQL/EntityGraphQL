@@ -24,6 +24,6 @@ namespace EntityGraphQL.Compiler
         void AddField(BaseGraphQLField field);
         IField? Field { get; }
         bool HasServices { get; }
-        IReadOnlyDictionary<string, object> Arguments { get; }
+        IReadOnlyDictionary<string, object?> Arguments { get; }
     }
 }
