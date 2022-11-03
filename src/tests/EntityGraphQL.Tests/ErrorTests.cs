@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 using EntityGraphQL.Schema;
 
@@ -168,6 +169,120 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"{
     people { error_UnexposedException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_WithWhitelist()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception)));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_WithWhitelist_Development()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception)));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_Exact_WithWhitelist()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(ArgumentException), true));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_WithWhitelist_Exact_Development()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(ArgumentException), true));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_Exact_Mismatch_WithWhitelist()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception), true));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
+}",
+            };
+
+            var testSchema = new TestDataContext().FillWithTestData();
+            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(results.Errors);
+            Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
+        }
+
+        [Fact]
+        public void QueryReportsError_UnexposedException_WithWhitelist_Exact_Mismatch_Development()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception), true));
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"{
+    people { error_UnexposedArgumentException }
 }",
             };
 
