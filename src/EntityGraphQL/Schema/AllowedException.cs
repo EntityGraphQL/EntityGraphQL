@@ -2,12 +2,12 @@
 
 namespace EntityGraphQL.Schema
 {
-    public class WhitelistedException
+    public class AllowedException
     {
         private readonly Type exceptionType;
         private readonly bool exactMatch;
 
-        public WhitelistedException(Type exceptionType, bool exactMatch = false)
+        public AllowedException(Type exceptionType, bool exactMatch = false)
         {
             this.exceptionType = exceptionType;
             this.exactMatch = exactMatch;

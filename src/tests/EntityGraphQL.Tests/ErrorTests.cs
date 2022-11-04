@@ -182,7 +182,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_WithWhitelist()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception)));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception)));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -201,7 +201,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_WithWhitelist_Development()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception)));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception)));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -220,7 +220,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_Exact_WithWhitelist()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(ArgumentException), true));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(ArgumentException), true));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -239,7 +239,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_WithWhitelist_Exact_Development()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(ArgumentException), true));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(ArgumentException), true));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -258,7 +258,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_Exact_Mismatch_WithWhitelist()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception), true));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception), true));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -277,7 +277,7 @@ namespace EntityGraphQL.Tests
         public void QueryReportsError_UnexposedException_WithWhitelist_Exact_Mismatch_Development()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.WhitelistedException.Add(new WhitelistedException(typeof(Exception), true));
+            schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception), true));
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
