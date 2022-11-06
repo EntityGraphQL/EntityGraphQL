@@ -195,31 +195,23 @@ fragment animalFragment on Animal {
 mutation {
     testMutation(id: 1) {
         id
-        ... on Cat {
-            id
-        }
         ... on Dog {
-            id
+            hasBone
         }
     }
 }
 ");
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
+            context.Animals.Add(new Dog() { Id = 1, Name = "steve", HasBone = true });
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
             var qr = gql.ExecuteQuery(context, null, null);
-            dynamic animals = qr.Data["testMutation"];
+            dynamic animal = qr.Data["testMutation"];
             // we only have the fields requested
-            Assert.Equal(2, animals.Count);
 
-            Assert.Equal(0, animals[0].id);
-            Assert.Equal("steve", animals[0].name);
-            Assert.True(animals[0].hasBone);
-            Assert.Equal("Cat", animals[1].__typename);
-            Assert.Equal("george", animals[1].name);
-            Assert.Equal(9, animals[1].lives);
+            Assert.Equal(1, animal.id);
+            Assert.True(animal.hasBone);
         }
     }
 }
