@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.Json;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
@@ -208,9 +209,16 @@ namespace EntityGraphQL.Compiler.Util
             }
             if (argumentNonNullType != valueNonNullType)
             {
+                var implicitCastOperator = argumentNonNullType.GetMethod("op_Implicit", new[] { valueNonNullType });
+                if (implicitCastOperator !=  null)
+                {
+                    return implicitCastOperator.Invoke(null, new[] { value });
+                }
+          
                 var newVal = Convert.ChangeType(value, argumentNonNullType);
                 return newVal;
-            }
+            }            
+
             return value;
         }
 

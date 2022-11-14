@@ -77,4 +77,30 @@ public class ChangeTypeTests
         var res = ExpressionUtil.ChangeType(null, typeof(decimal?), null);
         Assert.Equal((decimal?)null, res);
     }
+
+    [Fact]
+    public void TestImplicitOperator()
+    {
+        var res = ExpressionUtil.ChangeType(3, typeof(ImplicitOperatorConversionTest), null);
+        Assert.NotNull(res);
+    }
+
+    public struct ImplicitOperatorConversionTest
+    {
+        public ImplicitOperatorConversionTest(int value)
+        {
+            Value = value;
+        }
+
+        public int Value { get; }
+
+        /// <summary>
+        /// Converts the given TValue into an Optional(TValue)
+        /// </summary>
+        /// <param name="value"></param>
+        public static implicit operator ImplicitOperatorConversionTest(int value)
+        {
+            return new ImplicitOperatorConversionTest(value);
+        }
+    }
 }
