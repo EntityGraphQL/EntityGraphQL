@@ -441,7 +441,8 @@ namespace EntityGraphQL.Compiler.Util
 
                 var fieldsOnBaseType = fieldExpressions.Values
                        .Where(i => RootType(i.Expression) == null || RootType(i.Expression)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
-                       .ToDictionary(i => i.Field.Name, i => i.Expression);
+                       .ToLookup(i => i.Field.Name, i => i.Expression)
+                       .ToDictionary(i => i.Key, i => i.Last());
 
                 // make a query that checks type of object and returns the valid properties for that specific type
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
@@ -461,7 +462,8 @@ namespace EntityGraphQL.Compiler.Util
 
                     var fieldsOnType = fieldExpressions.Values
                        .Where(i => RootType(i.Expression) == null || RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
-                       .ToDictionary(i => i.Field.Name, i => i.Expression);
+                       .ToLookup(i => i.Field.Name, i => i.Expression)
+                       .ToDictionary(i => i.Key, i => i.Last());
 
                     var memberInit = CreateNewExpression(field.Name, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
                     if (memberInit == null)
