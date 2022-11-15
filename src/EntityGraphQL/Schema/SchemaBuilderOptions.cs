@@ -99,5 +99,10 @@ namespace EntityGraphQL.Schema
         /// If false, exceptions not implementing IExposableException will have their message replaced with 'Error occurred'
         /// </summary>
         public bool IsDevelopment { get; set; } = true;
+
+        /// <summary>
+        /// List of allowed exceptions that will be rendered in the 'errors' object when IsDevelopment is false
+        /// </summary>
+        public List<AllowedException> AllowedExceptions { get; set; } = new();
     }
 }

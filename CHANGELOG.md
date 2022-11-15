@@ -1,3 +1,15 @@
+# 4.2.0
+
+## Changes
+
+- #281 - Implement allowed exceptions to allow exceptions to come into the error result when running with `IsDevelopment == false` as users not be able to modify the exceptions being thrown in order to have them implement `IExposableException`. Exceptions may be allowed with an exact type match, or allowed including all types that inherit it
+
+## Fixes
+
+- Prevent double SQL (when using against EF) query on base type (4.1 regression)
+- #279 - Remove duplicate fields when creating expressions
+- #280 - Fix for mutations that return interfaces/unions 
+
 # 4.1.2
 
 ## Fixes

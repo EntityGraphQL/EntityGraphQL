@@ -22,6 +22,15 @@ namespace EntityGraphQL.Schema
     public static class SchemaBuilder
     {
         /// <summary>
+        /// Apply any options not passed via the constructor
+        /// </summary>
+        private static SchemaProvider<TContext> ApplyOptions<TContext>(SchemaProvider<TContext> schema, SchemaBuilderSchemaOptions options)
+        {
+            schema.AllowedExceptions.AddRange(options.AllowedExceptions);
+            return schema;
+        }
+
+        /// <summary>
         /// Create a new SchemaProvider<TContext> with the query context of type TContext and using the SchemaBuilderSchemaOptions supplied or the default if null.
         /// Note the schema is empty, you need to add types and fields.
         /// </summary>
@@ -33,7 +42,8 @@ namespace EntityGraphQL.Schema
         {
             if (options == null)
                 options = new SchemaBuilderSchemaOptions();
-            return new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled, options.IsDevelopment);
+            var schema = new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled, options.IsDevelopment);
+            return ApplyOptions(schema, options);
         }
 
         /// <summary>
@@ -50,7 +60,8 @@ namespace EntityGraphQL.Schema
             var schemaOptions = new SchemaBuilderSchemaOptions();
 
             var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
-            return FromObject(schema, buildOptions);
+            schema = ApplyOptions(schema, schemaOptions);
+            return FromObject(schema, schemaOptions);
         }
 
         /// <summary>
@@ -70,7 +81,7 @@ namespace EntityGraphQL.Schema
 
             var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
             schemaOptions.PreBuildSchemaFromContext?.Invoke(schema);
-            return FromObject(schema, buildOptions);
+            return FromObject(schema, schemaOptions);
         }
 
         /// <summary>
