@@ -45,6 +45,8 @@ namespace EntityGraphQL.Schema
 
         public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
+        public List<AllowedException> AllowedExceptions { get; } = new();
+
         // map some types to scalar types
         protected Dictionary<Type, GqlTypeInfo> customTypeMappings;
         public SchemaProvider() : this(null, null) { }
@@ -269,7 +271,7 @@ namespace EntityGraphQL.Schema
                 case EntityGraphQLFieldException fieldException:
                     return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.Item2));
                 default:
-                    if (isDevelopment || exception is IExposableException)
+                    if (isDevelopment || exception is IExposableException || AllowedExceptions.Any(e => e.IsAllowed(exception)))
                         return new[] { (exception.Message, (IDictionary<string, object>?)null) };
                     return new[] { ("Error occurred", (IDictionary<string, object>?)null) };
             }
