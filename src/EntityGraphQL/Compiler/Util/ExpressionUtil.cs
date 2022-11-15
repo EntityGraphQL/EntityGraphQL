@@ -430,8 +430,10 @@ namespace EntityGraphQL.Compiler.Util
         {
             if (!fieldExpressions.Any())
                 return baseExp;
-           
-            if (field.Field?.ReturnType.SchemaType.GqlType == GqlTypeEnum.Union || field.Field?.ReturnType.SchemaType.GqlType == GqlTypeEnum.Interface)
+
+            //fallback to parent return type for mutations
+            var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
+            if (gqlType == GqlTypeEnum.Union || gqlType == GqlTypeEnum.Interface)
             {
                 // get a list of distinct types asked for in the query (fragments for interfaces)
                 var validTypes = fieldExpressions.Values

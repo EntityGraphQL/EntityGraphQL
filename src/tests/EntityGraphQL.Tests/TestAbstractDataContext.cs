@@ -1,4 +1,8 @@
+using EntityGraphQL.Schema;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Tests
 {
@@ -12,6 +16,12 @@ namespace EntityGraphQL.Tests
         public List<Animal> Animals { get; set; } = new List<Animal>();
         public List<Cat> Cats { get; set; } = new List<Cat>();
         public List<Dog> Dogs { get; set; } = new List<Dog>();
+
+        [GraphQLMutation]
+        public Expression<Func<TestAbstractDataContext, Animal>> TestMutation(int id)
+        {
+            return (db) => db.Animals.First();
+        }
     }
 
     public class TestAbstractDataContextNoAnimals

@@ -2,6 +2,8 @@ using Xunit;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Tests.ApiVersion1;
 using EntityGraphQL.Schema;
+using System.Linq.Expressions;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests
 {
@@ -214,6 +216,37 @@ fragment animalFragment on Animal {
             Assert.Equal(9, animal.lives);
             // does not have the dog field
             Assert.Null(animal.GetType().GetField("hasBone"));
+        }
+
+
+        [Fact]
+        public void TestInheritanceReturnFromMutation()
+        {
+            var schemaProvider = new TestAbstractDataGraphSchema();
+
+            schemaProvider.Mutation().AddFrom<TestAbstractDataContext>();
+
+            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+mutation {
+    testMutation(id: 1) {
+        id
+        ... on Dog {
+            hasBone
+        }
+    }
+}
+");
+
+            var context = new TestAbstractDataContext();
+            context.Animals.Add(new Dog() { Id = 1, Name = "steve", HasBone = true });
+            context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
+
+            var qr = gql.ExecuteQuery(context, null, null);
+            dynamic animal = qr.Data["testMutation"];
+            // we only have the fields requested
+
+            Assert.Equal(1, animal.id);
+            Assert.True(animal.hasBone);
         }
     }
 }
