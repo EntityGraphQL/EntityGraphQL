@@ -18,6 +18,7 @@ namespace EntityGraphQL.Compiler.Util
         private bool finished;
         private bool replaceWholeExpression;
         private string? newFieldNameForType;
+        Dictionary<object, Expression> cache = new Dictionary<object, Expression>();        
 
         /// <summary>
         /// Rebuilds the expression by replacing toReplace with newParam. Optionally looks for newFieldName as it is rebuilding.
@@ -58,6 +59,7 @@ namespace EntityGraphQL.Compiler.Util
             replaceWholeExpression = false;
             return Visit(node);
         }
+
         protected override Expression VisitParameter(ParameterExpression node)
         {
             if (toReplace != null && toReplace == node)
@@ -141,7 +143,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             // we do not want to replace constant ParameterExpressions in a nullwrap            
             return node;
-        }
+        }        
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
@@ -149,7 +151,17 @@ namespace EntityGraphQL.Compiler.Util
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
-                var callBase = base.Visit(node.Arguments[0]);
+                Expression callBase;
+                var key = node.Arguments[0];
+                if (cache.ContainsKey(key))
+                {
+                    callBase = cache[key];
+                } 
+                else
+                {
+                    callBase = cache[key] = base.Visit(key);
+                }
+                
                 var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
                 var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
