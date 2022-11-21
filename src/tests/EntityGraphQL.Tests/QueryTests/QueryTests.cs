@@ -385,6 +385,66 @@ query {
             Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
             Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
         }
+
+
+        [Fact]
+        public void TestResolveWithServiceEvaluatesOnce()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            int v = 0;
+            var func = () => { return v++; };
+            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+
+            var testSchema = new TestDataContext()
+            {
+                Projects = new List<Project>()
+                {
+                    new Project()
+                    {
+
+                    }
+                }
+            };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { test }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(1, v);
+
+        }
+
+        [Fact]
+        public void TestResolveWithServiceEvaluatesOnceForEnumerables()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            int v = 0;
+            var func = () => { v++; return new List<int>(); };
+            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+
+            var testSchema = new TestDataContext()
+            {
+                Projects = new List<Project>()
+                {
+                    new Project()
+                    {
+
+                    }
+                }
+            };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { test }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(1, v);
+        }
     }
 
     public class DeepContext
