@@ -3,6 +3,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace EntityGraphQL.Tests
 {
@@ -416,7 +417,7 @@ query {
             Assert.Equal(1, v);
 
         }
-
+     
         [Fact]
         public void TestResolveWithServiceEvaluatesOnceForEnumerables()
         {
@@ -444,6 +445,34 @@ query {
 
             var results = schema.ExecuteRequest(gql, testSchema, null, null);
             Assert.Equal(1, v);
+        }
+
+
+        public class UserDbContext
+        {
+            public List<string> UserIds { get; set; }
+        }
+
+
+
+        /// <summary>
+        /// from issue https://github.com/EntityGraphQL/EntityGraphQL/issues/221
+        /// </summary>
+        [Fact]
+        public void TestForExtractingDataFromICollectionListEtcThrowsExceptionWhenNull_221()
+        {
+            var schema = SchemaBuilder.FromObject<UserDbContext>();
+
+            var testSchema = new UserDbContext() {  };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { userIds }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(((dynamic)results.Data)["userIds"]);
+            Assert.Empty(((dynamic)results.Data)["userIds"]);
         }
     }
 
