@@ -8,20 +8,19 @@ namespace EntityGraphQL.Tests
 {
     public class FragmentTests
     {
-
         [Fact]
         public void SupportsFragmentSelectionSyntax()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
             var tree = new GraphQLCompiler(schemaProvider).Compile(@"
-query {
-    people { ...info projects { id name } }
-}
-fragment info on Person {
-    id name
-}
-");
+                query {
+                    people { ...info projects { id name } }
+                }
+                fragment info on Person {
+                    id name
+                }
+            ");
 
             Assert.Single(tree.Operations.First().QueryFields);
             var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -32,6 +31,7 @@ fragment info on Person {
             Assert.NotNull(person.GetType().GetField("name"));
             Assert.NotNull(person.GetType().GetField("projects"));
         }
+
         [Fact]
         public void SupportsFragmentWithDirective()
         {
@@ -102,16 +102,16 @@ fragment info on Person {
             var gql = new QueryRequest
             {
                 Query = @"query {
-  projects {
-      ...frag
-  }
-}
+                    projects {
+                        ...frag
+                    }
+                }
 
-fragment frag on Project {
-  manager {
-      name
-  }
-}"
+                fragment frag on Project {
+                    manager {
+                        name
+                    }
+                }"
             };
 
             var context = new TestDataContext

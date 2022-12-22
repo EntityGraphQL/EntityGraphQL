@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Benchmarks
 {
@@ -8,5 +9,6 @@ namespace Benchmarks
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public DateTime Dob { get; set; }
+        public IEnumerable<Movie> DirectorOf { get; set; }
     }
 }

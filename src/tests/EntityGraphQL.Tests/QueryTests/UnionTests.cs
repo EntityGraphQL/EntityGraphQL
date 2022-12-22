@@ -2,7 +2,6 @@
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Microsoft.CSharp.RuntimeBinder;
-using System.Collections.Generic;
 
 namespace EntityGraphQL.Tests
 {
@@ -24,19 +23,19 @@ namespace EntityGraphQL.Tests
 
 
             var gql = new GraphQLCompiler(schema).Compile(@"
-query {
-    animals {
-        __typename
-        ... on Dog {
-            name
-            hasBone
-        }
-        ... on Cat {
-            name
-            lives
-        }
-    }
-}");
+                query {
+                    animals {
+                        __typename
+                        ... on Dog {
+                            name
+                            hasBone
+                        }
+                        ... on Cat {
+                            name
+                            lives
+                        }
+                    }
+                }");
             var context = new TestUnionDataContext();
             context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
@@ -114,14 +113,14 @@ query {
 
 
             var gql = new GraphQLCompiler(schema).Compile(@"
-query {
-    animals {
-        ... on Dog {
-            name
-            hasBone
-        }
-    }
-}");
+                query {
+                    animals {
+                        ... on Dog {
+                            name
+                            hasBone
+                        }
+                    }
+                }");
             var context = new TestUnionDataContext();
             context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });

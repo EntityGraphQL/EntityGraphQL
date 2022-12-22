@@ -335,7 +335,7 @@ namespace EntityGraphQL.Compiler
 
             var argType = fieldArgumentContext.GetArgumentType(argName);
             var argVal = ProcessArgumentOrVariable(argName, schemaProvider, argument, argType.Type.TypeDotnet);
-           
+
             return argVal;
         }
 

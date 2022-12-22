@@ -65,12 +65,6 @@ namespace EntityGraphQL.Compiler.Util
 
             var fromType = value.GetType();
 
-            if (schema?.TypeConverters.ContainsKey(fromType) == true)
-            {
-                value = schema.TypeConverters[fromType].ChangeType(value, toType, schema);
-                fromType = value?.GetType()!;
-            }
-
             if (value == null || fromType == toType)
                 return value;
 
@@ -116,6 +110,16 @@ namespace EntityGraphQL.Compiler.Util
 
                 if (value == null)
                     return null;
+            }
+
+            // custom type converters after we unwind JSON elements
+            if (schema?.TypeConverters.ContainsKey(fromType) == true)
+            {
+                value = schema.TypeConverters[fromType].ChangeType(value, toType, schema);
+                fromType = value?.GetType()!;
+
+                if (value == null || fromType == toType)
+                    return value;
             }
 
             if (toType != typeof(string) && fromType == typeof(string))
@@ -449,7 +453,7 @@ namespace EntityGraphQL.Compiler.Util
                 // make a query that checks type of object and returns the valid properties for that specific type
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
                     fieldsOnBaseType.ToDictionary(x => x.Key, x => x.Value.Type),
-                    field.Name+ "baseDynamicType"
+                    field.Name + "baseDynamicType"
                 );
                 if (baseDynamicType == null)
                     throw new EntityGraphQLCompilerException("Could not create dynamic type");

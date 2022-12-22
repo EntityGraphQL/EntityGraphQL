@@ -21,6 +21,7 @@ namespace Benchmarks
             builder.Entity<MovieGenre>().HasKey(d => d.Name);
             builder.Entity<Movie>().HasKey(d => d.Id);
             builder.Entity<Movie>().HasOne(d => d.Director);
+            builder.Entity<Person>().HasMany(d => d.DirectorOf);
         }
     }
 }

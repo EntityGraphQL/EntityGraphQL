@@ -9,7 +9,6 @@ using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.Directives;
-using HotChocolate.Language;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema

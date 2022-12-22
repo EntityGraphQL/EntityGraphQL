@@ -1,3 +1,10 @@
+# 4.2.1
+
+## Fixes
+
+- Fix issue selecting repeated fields from an interface and a fragment selection
+- Fix issue selecting interface fields from the concrete type in a fragment
+
 # 4.2.0
 
 ## Changes

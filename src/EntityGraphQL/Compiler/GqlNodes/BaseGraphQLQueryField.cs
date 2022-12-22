@@ -43,16 +43,34 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
                 {
-                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, nextFieldContext, false, contextChanged, replacer);
+                    // fragments might be fragments on the actualy type whereas the context is a interface
+                    // we do not need to change the context in this case
+                    var actualNextFieldContext = nextFieldContext;
+                    if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentField) && (subField.FromType?.BaseTypes.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypeEnum.Union))
+                    {
+                        actualNextFieldContext = subField.RootParameter;
+                    }
+                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, false, contextChanged, replacer);
                     if (fieldExp == null)
                         continue;
 
-                    // if this came from a fragment we need to fix the expression context
-                    if (nextFieldContext != null && field is GraphQLFragmentField)
+                    var potentialMatch = selectionFields.Keys.FirstOrDefault(f => f.Name == subField.Name);
+                    if (potentialMatch != null && subField.FromType != null)
                     {
-                        fieldExp = replacer.Replace(fieldExp, subField.RootParameter!, nextFieldContext);
+                        // if we have a match, we need to check if the types are the same
+                        // if they are, we can just use the existing field
+                        if (potentialMatch.FromType?.BaseTypes.Contains(subField.FromType) == true)
+                        {
+                            continue;
+                        }
+                        if (potentialMatch.FromType != null && subField.FromType.BaseTypes.Contains(potentialMatch.FromType) == true)
+                        {
+                            // replace - use the non-base type field
+                            selectionFields.Remove(potentialMatch);
+                            selectionFields[subField] = new CompiledField(subField, fieldExp);
+                            continue;
+                        }
                     }
-
                     selectionFields[subField] = new CompiledField(subField, fieldExp);
                 }
             }

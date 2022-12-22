@@ -22,11 +22,21 @@ namespace EntityGraphQL.Tests
 
                 AddType<Dog>("Dog type").ImplementAllBaseTypes().AddAllFields();
                 AddType<Cat>("Cat type").ImplementAllBaseTypes().AddAllFields();
+                AddType<PersonType>("Person type").ImplementAllBaseTypes().AddAllFields();
 
                 UpdateQuery(query =>
                 {
                     query.AddField(ctx => ctx.Animals, "All animals in the world");
+                    query.AddField(ctx => ctx.Dogs, "All dogs in the world");
+                    query.AddField(ctx => ctx.People, "All people in the world");
                     query.AddField("animal", new { id = ArgumentHelper.Required<int>() }, (ctx, args) => ctx.Animals.FirstOrDefault(a => a.Id == args.id), "Animal by id");
+                    query.AddField("dog", new { id = ArgumentHelper.Required<int>() }, (ctx, args) => ctx.Dogs.FirstOrDefault(a => a.Id == args.id), "Dog by id");
+                });
+
+                UpdateType<PersonType>(type =>
+                {
+                    type.AddField("age", "The name of the person")
+                        .ResolveWithService<AgeService>((p, ager) => ager.GetAge(p.Birthday));
                 });
             }
         }

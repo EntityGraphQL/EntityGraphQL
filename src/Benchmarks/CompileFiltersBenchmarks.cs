@@ -14,6 +14,13 @@ using EntityGraphQL;
 
 namespace Benchmarks
 {
+    /// <summary>
+    /// 4.2.0
+    /// |-------------------------- |------------:|----------:|----------:|---------:|----------:|
+    /// |                PlainDbSet |    41.61 us |  0.326 us |  0.305 us |   9.5825 |     20 KB |
+    /// | SetOfBasicWhereStatements |   434.38 us |  3.326 us |  2.777 us |  77.6367 |    159 KB |
+    /// |     LargerSetOfWhereWhens | 4,982.14 us | 17.287 us | 14.435 us | 664.0625 |  1,377 KB |
+    /// </summary>
     [MemoryDiagnoser]
     public class CompileFiltersBenchmarks : BaseBenchmark
     {

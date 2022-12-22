@@ -17,6 +17,8 @@ namespace EntityGraphQL.Tests
         public List<Cat> Cats { get; set; } = new List<Cat>();
         public List<Dog> Dogs { get; set; } = new List<Dog>();
 
+        public List<PersonType> People { get; set; } = new List<PersonType>();
+
         [GraphQLMutation]
         public Expression<Func<TestAbstractDataContext, Animal>> TestMutation(int id)
         {
@@ -53,5 +55,13 @@ namespace EntityGraphQL.Tests
     public class Dog : Animal
     {
         public bool HasBone { get; set; }
+    }
+
+    public class PersonType
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public DateTime? Birthday { get; set; }
+        public IEnumerable<Dog> Dogs { get; set; }
     }
 }

@@ -2237,7 +2237,7 @@ namespace EntityGraphQL.Tests
 
         public int CallCount { get; private set; }
 
-        public async System.Threading.Tasks.Task<int> GetAgeAsync(DateTime? birthday)
+        public async Task<int> GetAgeAsync(DateTime? birthday)
         {
             return await System.Threading.Tasks.Task.Run(() => birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0);
         }

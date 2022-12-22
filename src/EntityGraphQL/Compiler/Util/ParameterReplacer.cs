@@ -18,7 +18,8 @@ namespace EntityGraphQL.Compiler.Util
         private bool finished;
         private bool replaceWholeExpression;
         private string? newFieldNameForType;
-        Dictionary<object, Expression> cache = new Dictionary<object, Expression>();        
+        Dictionary<object, Expression> cache = new();
+        private bool hasNewFieldNameForType;
 
         /// <summary>
         /// Rebuilds the expression by replacing toReplace with newParam. Optionally looks for newFieldName as it is rebuilding.
@@ -37,6 +38,7 @@ namespace EntityGraphQL.Compiler.Util
             this.newFieldNameForType = null;
             finished = false;
             this.replaceWholeExpression = replaceWholeExpression;
+            cache = new Dictionary<object, Expression>();
             return Visit(node);
         }
 
@@ -56,7 +58,9 @@ namespace EntityGraphQL.Compiler.Util
             this.toReplace = null;
             finished = false;
             this.newFieldNameForType = newContextFieldName;
+            hasNewFieldNameForType = newFieldNameForType != null;
             replaceWholeExpression = false;
+            cache = new Dictionary<object, Expression>();
             return Visit(node);
         }
 
@@ -64,11 +68,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             if (toReplace != null && toReplace == node)
             {
-                // leave param type so we can do conversions later,
-                // but if namespace is null then do conversion as it's not an entity type it's a generated type
-                // (need better way to detect this)
-                if (newParam!.Type.Namespace == null || newParam!.Type == node.Type)
-                    return newParam!;
+                return newParam!;
             }
             if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
                 return newParam!;
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler.Util
                 if (node.Expression.Type == toReplaceType)
                 {
                     nodeExp = newParam!;
-                    if (!string.IsNullOrEmpty(newFieldNameForType))
+                    if (hasNewFieldNameForType)
                         fieldName = newFieldNameForType;
                 }
                 else
@@ -143,7 +143,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             // we do not want to replace constant ParameterExpressions in a nullwrap            
             return node;
-        }        
+        }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
@@ -151,17 +151,11 @@ namespace EntityGraphQL.Compiler.Util
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
-                Expression callBase;
                 var key = node.Arguments[0];
-                if (cache.ContainsKey(key))
-                {
-                    callBase = cache[key];
-                } 
-                else
-                {
-                    callBase = cache[key] = base.Visit(key);
-                }
-                
+                // if we have already replaced this expression then use the cached version. 
+                // e.g. Extension method where the same expression is passed to each method
+                Expression callBase = cache.ContainsKey(key) ? callBase = cache[key] : callBase = cache[key] = base.Visit(key);
+
                 var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
                 var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
@@ -185,7 +179,7 @@ namespace EntityGraphQL.Compiler.Util
                     return newCall;
                 }
             }
-            else if (baseCallIsEnumerable && !node.Type.IsEnumerableOrArray() && node.Arguments.Count == 1 && !string.IsNullOrEmpty(newFieldNameForType))
+            else if (baseCallIsEnumerable && !node.Type.IsEnumerableOrArray() && node.Arguments.Count == 1 && hasNewFieldNameForType)
             {
                 // field is going from collection to a single - if execution is split over non service fields and then with
                 // the next context doesn't have the collection to single. It only has the single

@@ -213,7 +213,7 @@ namespace EntityGraphQL.Compiler
 
         public override int GetHashCode()
         {
-            return Name.GetHashCode() + FromType?.GetHashCode() ?? 0;
+            return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;
         }
         public override bool Equals(object obj)
         {
@@ -222,7 +222,7 @@ namespace EntityGraphQL.Compiler
 
         public bool Equals(BaseGraphQLField? obj)
         {
-            return obj != null && obj.Name == this.Name && obj.FromType?.Name == this.FromType?.Name;
+            return obj != null && obj.Name == this.Name && SchemaName == obj.SchemaName && obj.FromType?.Name == this.FromType?.Name;
         }
     }
 
