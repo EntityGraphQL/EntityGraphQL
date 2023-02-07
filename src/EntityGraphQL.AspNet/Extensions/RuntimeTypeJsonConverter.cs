@@ -46,7 +46,7 @@ namespace EntityGraphQL.AspNet.Extensions
             }
             else //otherwise just call the default serializer implementation of this Converter is asked to serialize anything not handled in the other two cases
             {
-                JsonSerializer.Serialize(writer, value, options);
+                JsonSerializer.Serialize(writer, value, value!.GetType(), options);
             }
         }
 
