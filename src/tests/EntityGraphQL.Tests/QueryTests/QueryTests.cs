@@ -3,6 +3,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace EntityGraphQL.Tests
 {
@@ -384,6 +385,94 @@ query {
 
             Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
             Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
+        }
+
+
+        [Fact]
+        public void TestResolveWithServiceEvaluatesOnce()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            int v = 0;
+            var func = () => { return v++; };
+            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+
+            var testSchema = new TestDataContext()
+            {
+                Projects = new List<Project>()
+                {
+                    new Project()
+                    {
+
+                    }
+                }
+            };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { test }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(1, v);
+
+        }
+     
+        [Fact]
+        public void TestResolveWithServiceEvaluatesOnceForEnumerables()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            int v = 0;
+            var func = () => { v++; return new List<int>(); };
+            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+
+            var testSchema = new TestDataContext()
+            {
+                Projects = new List<Project>()
+                {
+                    new Project()
+                    {
+
+                    }
+                }
+            };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { test }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Equal(1, v);
+        }
+
+
+        public class UserDbContext
+        {
+            public List<string> UserIds { get; set; }
+        }
+
+
+
+        /// <summary>
+        /// from issue https://github.com/EntityGraphQL/EntityGraphQL/issues/221
+        /// </summary>
+        [Fact]
+        public void TestForExtractingDataFromICollectionListEtcThrowsExceptionWhenNull_221()
+        {
+            var schema = SchemaBuilder.FromObject<UserDbContext>();
+
+            var testSchema = new UserDbContext() {  };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { userIds }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.NotNull(((dynamic)results.Data)["userIds"]);
+            Assert.Empty(((dynamic)results.Data)["userIds"]);
         }
     }
 
