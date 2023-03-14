@@ -31,9 +31,7 @@ namespace EntityGraphQL.AspNet
         public async Task<QueryRequest> DeserializeAsync(Stream body)
         {
             var query = await JsonSerializer.DeserializeAsync<QueryRequest>(body, jsonOptions);
-            if (query == null)
-                throw new ArgumentNullException($"Request body could not be deserialized as JSON into QueryRequest");
-            return query;
+            return query ?? throw new ArgumentNullException(nameof(body), $"Request body could not be deserialized as JSON into QueryRequest");
         }
     }
 }

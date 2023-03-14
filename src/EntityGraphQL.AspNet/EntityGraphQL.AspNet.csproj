@@ -14,6 +14,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Nullable>enable</Nullable>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,10 +29,10 @@
     <DefineConstants>$(DefineConstants);NET5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <DefineConstants>$(DefineConstants);NET6</DefineConstants>
+    <DefineConstants>$(DefineConstants);NET6;NET6_0_OR_GREATER</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net7.0'">
-    <DefineConstants>$(DefineConstants);NET7</DefineConstants>
+    <DefineConstants>$(DefineConstants);NET6_0_OR_GREATER;NET7</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

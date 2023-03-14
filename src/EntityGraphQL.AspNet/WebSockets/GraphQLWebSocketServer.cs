@@ -26,7 +26,7 @@ namespace EntityGraphQL.AspNet.WebSockets
         private readonly Dictionary<Guid, IDisposable> subscriptions = new Dictionary<Guid, IDisposable>();
         private readonly WebSocket webSocket;
         private readonly HttpContext context;
-        private bool initialised = false;
+        private bool initialised;
         private readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
         {
             IncludeFields = true,
@@ -60,7 +60,11 @@ namespace EntityGraphQL.AspNet.WebSockets
                     if (receiveResult.Count == 0)
                         continue;
 
-                    await memoryStream.WriteAsync(segment.Array!, segment.Offset, receiveResult.Count);
+#if NET5 || NET6_0_OR_GREATER
+                    await memoryStream.WriteAsync(segment.AsMemory(), CancellationToken.None);
+#else
+                    await memoryStream.WriteAsync(segment.Array!, segment.Offset, receiveResult.Count, CancellationToken.None);
+#endif
                 } while (!receiveResult.EndOfMessage);
 
                 if (!webSocket.CloseStatus.HasValue)
@@ -77,21 +81,21 @@ namespace EntityGraphQL.AspNet.WebSockets
         {
             switch (graphQLWSMessage.Type)
             {
-                case GraphQLWSMessageType.CONNECTION_INIT:
+                case GraphQLWSMessageType.ConnectionInit:
                     {
                         if (initialised)
                             await CloseConnectionAsync((WebSocketCloseStatus)4429, "Too many initialisation requests");
                         else
                         {
                             initialised = true;
-                            await SendSimpleResponseAsync(GraphQLWSMessageType.CONNECTION_ACK);
+                            await SendSimpleResponseAsync(GraphQLWSMessageType.ConnectionAck);
                         }
                         break;
                     }
-                case GraphQLWSMessageType.PING: await SendSimpleResponseAsync(GraphQLWSMessageType.PONG); break;
-                case GraphQLWSMessageType.SUBSCRIBE: await HandleSubscribeAsync(graphQLWSMessage); break;
-                case GraphQLWSMessageType.COMPLETE: CompleteSubscription(graphQLWSMessage.Id!.Value); break;
-                case GraphQLWSMessageType.PONG: break; // can come to us but we don't care
+                case GraphQLWSMessageType.Ping: await SendSimpleResponseAsync(GraphQLWSMessageType.Pong); break;
+                case GraphQLWSMessageType.Subscribe: await HandleSubscribeAsync(graphQLWSMessage); break;
+                case GraphQLWSMessageType.Complete: CompleteSubscription(graphQLWSMessage.Id!.Value); break;
+                case GraphQLWSMessageType.Pong: break; // can come to us but we don't care
                 default:
                     await CloseConnectionAsync(WebSocketCloseStatus.InvalidMessageType, $"Unknown message type: {graphQLWSMessage.Type}");
                     break;
@@ -149,7 +153,7 @@ namespace EntityGraphQL.AspNet.WebSockets
                         // send complete after next or error above
                         await SendAsync(new WithIdGraphQLWSResponse
                         {
-                            Type = GraphQLWSMessageType.COMPLETE,
+                            Type = GraphQLWSMessageType.Complete,
                             Id = graphQLWSMessage.Id!.Value,
                         });
                     }
@@ -157,16 +161,16 @@ namespace EntityGraphQL.AspNet.WebSockets
             }
         }
 
-        public async Task SendErrorAsync(Guid id, Exception error)
+        public async Task SendErrorAsync(Guid id, Exception exception)
         {
-            await SendErrorAsync(id, new List<GraphQLError> { new GraphQLError(error.Message, null) });
+            await SendErrorAsync(id, new List<GraphQLError> { new GraphQLError(exception.Message, null) });
         }
         public Task SendErrorAsync(Guid id, IEnumerable<GraphQLError> errors)
         {
             return SendAsync(new GraphQLWSError
             {
                 Id = id,
-                Type = GraphQLWSMessageType.ERROR,
+                Type = GraphQLWSMessageType.Error,
                 Payload = errors.ToList(),
             });
         }
@@ -180,13 +184,13 @@ namespace EntityGraphQL.AspNet.WebSockets
             }
         }
 
-        public async Task SendNextAsync(Guid id, QueryResult obj)
+        public async Task SendNextAsync(Guid id, QueryResult result)
         {
             await SendAsync(new GraphQLWSResponse
             {
                 Id = id,
-                Type = GraphQLWSMessageType.NEXT,
-                Payload = obj,
+                Type = GraphQLWSMessageType.Next,
+                Payload = result,
             });
         }
 
@@ -223,7 +227,7 @@ namespace EntityGraphQL.AspNet.WebSockets
     public interface IGraphQLWebSocketServer
     {
         void CompleteSubscription(Guid id);
-        Task SendErrorAsync(Guid id, Exception error);
+        Task SendErrorAsync(Guid id, Exception exception);
         Task SendNextAsync(Guid id, QueryResult result);
     }
 }

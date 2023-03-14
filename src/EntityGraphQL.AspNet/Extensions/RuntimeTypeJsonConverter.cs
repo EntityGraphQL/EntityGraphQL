@@ -13,7 +13,7 @@ namespace EntityGraphQL.AspNet.Extensions
     /// Instructs the JsonSerializer to serialize an object as its runtime type and not the type parameter passed into the Write function.
     /// https://stackoverflow.com/a/71074354/629083
     /// </summary>
-    public class RuntimeTypeJsonConverter : JsonConverter<object> 
+    public class RuntimeTypeJsonConverter : JsonConverter<object>
     {
         public override bool CanConvert(Type typeToConvert)
         {
@@ -41,7 +41,7 @@ namespace EntityGraphQL.AspNet.Extensions
                 WriteIEnumerable(writer, value, options);
             }
             else if (value != null && value.GetType().IsClass == true) //if the value is a reference type and not null, serialize it as a JSON object.
-            {                
+            {
                 WriteObject(writer, value, ref options);
             }
             else //otherwise just call the default serializer implementation of this Converter is asked to serialize anything not handled in the other two cases
@@ -93,7 +93,7 @@ namespace EntityGraphQL.AspNet.Extensions
             {
                 object? propVal = null;
 
-                if(member is PropertyInfo p)
+                if (member is PropertyInfo p)
                 {
                     propVal = p.GetValue(value);
                 }
@@ -106,7 +106,7 @@ namespace EntityGraphQL.AspNet.Extensions
                 if (propVal == null) continue; //don't include null values in the final graph
 
                 writer.WritePropertyName(member.Name);
-                Write(writer, propVal, options);               
+                Write(writer, propVal, options);
             }
 
             writer.WriteEndObject();
@@ -117,8 +117,8 @@ namespace EntityGraphQL.AspNet.Extensions
         /// </summary>
         /// <param name="t"></param>
         /// <returns></returns>
-        private IEnumerable<MemberInfo> GetPropertyAndFieldInfos(Type t, JsonSerializerOptions options)
-        {            
+        private static IEnumerable<MemberInfo> GetPropertyAndFieldInfos(Type t, JsonSerializerOptions options)
+        {
             var props = new List<MemberInfo>();
             props.AddRange(t.GetProperties());
 
@@ -135,7 +135,7 @@ namespace EntityGraphQL.AspNet.Extensions
         /// <param name="writer">The writer to write to.</param>
         /// <param name="value">The value to convert to Json.</param>
         /// <param name="options">An object that specifies the serialization options to use.</param>
-        private void WriteIEnumerable(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        private static void WriteIEnumerable(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
             writer.WriteStartArray();
 
