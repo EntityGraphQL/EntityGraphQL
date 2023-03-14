@@ -165,7 +165,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext);
+                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext, node);
                     if (runningContext == null)
                         return (null, true);
 
@@ -188,11 +188,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext);
+            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node);
             return data;
         }
 
-        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext)
+        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
@@ -215,19 +215,11 @@ namespace EntityGraphQL.Compiler
                 allArgs.AddRange(compileContext.ConstantParameters.Values);
             }
 
-            // evaluate everything
+            // evaluate everything using ToList(). But handle null result
             if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
             {
                 var returnType = typeof(List<>).MakeGenericType(expression.Type.GetEnumerableOrArrayType()!);
-                var emptyList = Activator.CreateInstance(returnType);
-
-
-                expression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { expression.Type.GetEnumerableOrArrayType()! },
-                    Expression.Coalesce(
-                         left: expression,                         
-                         right: Expression.Constant(emptyList, typeof(System.Collections.Generic.IEnumerable<>).MakeGenericType(expression.Type.GetEnumerableOrArrayType()!))
-                    )
-               );
+                expression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { expression.Type.GetEnumerableOrArrayType()! }, expression, Expression.Constant(node.Field!.ReturnType.TypeNotNullable));
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());

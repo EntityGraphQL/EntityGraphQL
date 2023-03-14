@@ -39,5 +39,20 @@ namespace EntityGraphQL.Extensions
                 return Queryable.Where(source.AsQueryable(), filter.Query!);
             return source;
         }
+
+        /// <summary>
+        /// Does a null check on source. Returns null if source is null, otherwise returns source.ToList()
+        /// If returnEmptyList is true, returns an empty list if source is null
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="returnEmptyList"></param>
+        /// <returns></returns>
+        public static IEnumerable<TSource>? ToListWithNullCheck<TSource>(this IEnumerable<TSource> source, bool returnEmptyList)
+        {
+            if (source == null)
+                return returnEmptyList ? new List<TSource>() : null;
+            return source.ToList();
+        }
     }
 }

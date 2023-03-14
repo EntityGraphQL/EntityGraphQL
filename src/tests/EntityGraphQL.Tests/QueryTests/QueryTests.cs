@@ -417,7 +417,7 @@ query {
             Assert.Equal(1, v);
 
         }
-     
+
         [Fact]
         public void TestResolveWithServiceEvaluatesOnceForEnumerables()
         {
@@ -448,22 +448,45 @@ query {
         }
 
 
-        public class UserDbContext
+        public class UserDbContextNullable
         {
             public List<string> UserIds { get; set; }
         }
-
-
 
         /// <summary>
         /// from issue https://github.com/EntityGraphQL/EntityGraphQL/issues/221
         /// </summary>
         [Fact]
-        public void TestForExtractingDataFromICollectionListEtcThrowsExceptionWhenNull_221()
+        public void TestForExtractingDataFromICollectionListEtcReturnsNull_221()
         {
-            var schema = SchemaBuilder.FromObject<UserDbContext>();
+            var schema = SchemaBuilder.FromObject<UserDbContextNullable>();
 
-            var testSchema = new UserDbContext() {  };
+            var testSchema = new UserDbContextNullable() { };
+
+            var gql = new QueryRequest
+            {
+                Query = @"query deep { userIds }",
+            };
+
+            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            Assert.Null(((dynamic)results.Data)["userIds"]);
+        }
+
+        public class UserDbContextNonNullable
+        {
+            [GraphQLNotNull]
+            public List<string> UserIds { get; set; }
+        }
+
+        /// <summary>
+        /// from issue https://github.com/EntityGraphQL/EntityGraphQL/issues/221
+        /// </summary>
+        [Fact]
+        public void TestForExtractingDataFromICollectionListEtcReturnsEmptyList_221()
+        {
+            var schema = SchemaBuilder.FromObject<UserDbContextNonNullable>();
+
+            var testSchema = new UserDbContextNonNullable() { };
 
             var gql = new QueryRequest
             {

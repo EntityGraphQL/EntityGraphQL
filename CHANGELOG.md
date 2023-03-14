@@ -1,3 +1,24 @@
+# 4.3.0
+
+## Changes
+
+- #285 - Add support for implicit operators when converting types
+- Fix how EntityGraphQL evaluates the root level fields that return lists. If the return type of the field is nullable a `null` will be returned if the result is `null`. If the return type is non-nullable an empty `List<T>` will be returned.
+
+```cs
+public class UserDbContextNonNullable
+{
+    // empty list will be returned if UserIds resolves to null. If you use nullable types you can control with the ? operator (to return null)
+    [GraphQLNotNull] 
+    public List<string> UserIds { get; set; }
+}
+```
+
+## Fixes
+
+- #288 - fix stack overflow in `RuntimeTypeJsonConverter`
+- #291 - Fix `ResolveWithService` being called twice due to `Expression.Condition` if the field is a list and at the root level of the Query type
+
 # 4.2.1
 
 ## Fixes

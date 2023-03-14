@@ -83,8 +83,7 @@ namespace EntityGraphQL.Compiler
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
             // execute the selected operation
-            if (options == null)
-                options = new ExecutionOptions(); // defaults
+            options ??= new ExecutionOptions(); // defaults
 
             result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables));
 
