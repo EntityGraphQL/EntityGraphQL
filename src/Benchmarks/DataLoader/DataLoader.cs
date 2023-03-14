@@ -37,21 +37,21 @@ namespace Benchmarks
             var g = db.Genres.FirstOrDefault(i => i.Name == name);
             if (g == null)
             {
-                g = new MovieGenre { Name = name };
+                g = new MovieGenre(name);
                 db.Genres.Add(g);
             }
             return g;
         }
 
-        private static List<Person> MakePersons(BenchmarkContext db, List<string> actors)
+        private static List<Person>? MakePersons(BenchmarkContext db, List<string> actors)
         {
             if (actors == null)
                 return null;
-            var actorData = actors.Select(p => MakePerson(db, p)).ToList();
-            return actorData;
+            var actorData = actors.Select(p => MakePerson(db, p));
+            return actorData.Where(p => p != null).ToList()!;
         }
 
-        private static Person MakePerson(BenchmarkContext db, string fullName)
+        private static Person? MakePerson(BenchmarkContext db, string fullName)
         {
             if (fullName == null)
                 return null;
@@ -62,13 +62,7 @@ namespace Benchmarks
             var person = db.People.FirstOrDefault(p => p.FirstName == fName && p.LastName == lName);
             if (person == null)
             {
-                person = new Person
-                {
-                    Id = Guid.NewGuid(),
-                    FirstName = fName,
-                    LastName = lName,
-                    Dob = new DateTime(1957, 2, 2),
-                };
+                person = new Person(Guid.NewGuid(), fName, lName, new DateTime(1957, 2, 2), new List<Movie>());
                 db.People.Add(person);
             }
             return person;
