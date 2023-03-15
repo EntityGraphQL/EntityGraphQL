@@ -19,16 +19,16 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Check if this user has the right security claims, roles or policies to access the request type/field
         /// </summary>
-        /// <param name="requiredAuth">The required auth for the field or type you want to check against the user</param>
+        /// <param name="requiredAuthorization">The required auth for the field or type you want to check against the user</param>
         /// <returns></returns>
-        public virtual bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuth)
+        public virtual bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuth != null && requiredAuth.Any() && user != null)
+            if (requiredAuthorization != null && requiredAuthorization.Any() && user != null)
             {
                 // check roles
                 var allRolesValid = true;
-                foreach (var role in requiredAuth.Roles)
+                foreach (var role in requiredAuthorization.Roles)
                 {
                     // each role now is an OR
                     var hasValidRole = role.Any(r => user.IsInRole(r));

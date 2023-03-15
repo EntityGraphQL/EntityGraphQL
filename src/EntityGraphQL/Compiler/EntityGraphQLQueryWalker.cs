@@ -30,8 +30,7 @@ namespace EntityGraphQL.Compiler
         {
             this.requestContext = context;
             this.schemaProvider = schemaProvider;
-            if (variables == null)
-                variables = new QueryVariables();
+            variables ??= new QueryVariables();
             this.variables = variables;
         }
 
@@ -98,10 +97,7 @@ namespace EntityGraphQL.Compiler
                 (var gqlTypeName, var isList, var isRequired) = GetGqlType(item.Type);
 
                 var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
-                var varTypeInSchema = schemaType.TypeDotnet;
-                if (varTypeInSchema == null)
-                    throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
-
+                var varTypeInSchema = schemaType.TypeDotnet ?? throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
                 if (!isRequired && (varTypeInSchema.IsValueType || varTypeInSchema.IsEnum))
                     varTypeInSchema = typeof(Nullable<>).MakeGenericType(varTypeInSchema);
 

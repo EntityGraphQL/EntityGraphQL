@@ -38,7 +38,7 @@ namespace EntityGraphQL.Schema
             {
                 var memberExp = (MemberExpression)resolve.Body;
                 ReturnType.TypeNotNullable = GraphQLNotNullAttribute.IsMemberMarkedNotNull(memberExp.Member) || ReturnType.TypeNotNullable;
-                ReturnType.ElementTypeNullable = GraphQLElementTypeNullable.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
+                ReturnType.ElementTypeNullable = GraphQLElementTypeNullableAttribute.IsMemberElementMarkedNullable(memberExp.Member) || ReturnType.ElementTypeNullable;
             }
 
             if (withServices)
@@ -171,10 +171,10 @@ namespace EntityGraphQL.Schema
                 result = replacer.Replace(result, ArgumentParam, newArgParam!);
             }
 
-            if (argumentValidators.Count > 0)
+            if (ArgumentValidators.Count > 0)
             {
                 var invokeContext = new ArgumentValidatorContext(field, argumentValues);
-                foreach (var m in argumentValidators)
+                foreach (var m in ArgumentValidators)
                 {
                     m(invokeContext);
                     argumentValues = invokeContext.Arguments;

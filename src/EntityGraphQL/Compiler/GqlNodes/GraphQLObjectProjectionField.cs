@@ -57,7 +57,7 @@ namespace EntityGraphQL.Compiler
             {
                 nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
             }
-            (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer) ?? (nextFieldContext, null);
+            (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (nextFieldContext, null);
             if (nextFieldContext == null)
                 return null;
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Compiler
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc
-            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
+            var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
             // TODO services injected here - is this needed?

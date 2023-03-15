@@ -16,13 +16,13 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// The GraphQL type - Scalar, InputObject, Interface, Enum, Object, etc
         /// </summary>
-        GqlTypeEnum GqlType { get; }
+        GqlTypes GqlType { get; }
         string Name { get; }
         string? Description { get; set; }
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Input
         /// </summary>
-        bool IsInput { get; }        
+        bool IsInput { get; }
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Interface
         /// </summary>
@@ -41,8 +41,8 @@ namespace EntityGraphQL.Schema
         /// If the type in a query requires a selection {  }
         /// </summary>
         bool RequiresSelection { get; }
-        IList<ISchemaType> BaseTypes { get; }
-        IList<ISchemaType> PossibleTypes { get; }
+        IList<ISchemaType> BaseTypesReadOnly { get; }
+        IList<ISchemaType> PossibleTypesReadOnly { get; }
 
         IList<ISchemaDirective> Directives { get; }
         ISchemaType AddDirective(ISchemaDirective directive);
@@ -71,6 +71,7 @@ namespace EntityGraphQL.Schema
         /// in the schema before), all the fields on the implemented type will be added to the schema. e.g. .AddAllFields() is called on 
         /// the added type</param>
         /// <returns></returns>
+#pragma warning disable CA1716
         ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
         /// <summary>
         /// Tells the schema that this type implements another type of typeName. typeName needs to be an interface type existing in the schema
@@ -78,7 +79,7 @@ namespace EntityGraphQL.Schema
         /// <param name="typeName"></param>
         /// <returns></returns>
         ISchemaType Implements(string typeName);
-
+#pragma warning restore CA1716
         void Validate(object? value);
 
         public event Action<IField> OnAddField;

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 
 namespace EntityGraphQL.Extensions
@@ -11,7 +12,7 @@ namespace EntityGraphQL.Extensions
             {
                 null => throw new ArgumentNullException(nameof(input)),
                 "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
-                _ => input.First().ToString().ToUpper() + input[1..]
+                _ => input.First().ToString().ToUpper(CultureInfo.InvariantCulture) + input[1..]
             };
         }
     }

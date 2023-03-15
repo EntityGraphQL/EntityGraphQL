@@ -228,7 +228,7 @@ namespace EntityGraphQL.Schema
 
                 var field = new Field(schema, fromType, schema.SchemaFieldNamer(prop.Name), le, description, null, returnTypeInfo, requiredClaims);
 
-                if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypeEnum.Input))
+                if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
                 {
                     // add non-pural field with argument of ID
                     var idArgField = AddFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field);
@@ -278,7 +278,7 @@ namespace EntityGraphQL.Schema
 
                     var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
                     if (method == null)
-                        throw new Exception($"Could not find {addMethod} method on schema");
+                        throw new EntityQuerySchemaException($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
                     var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { typeName, description })!;
                     typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);

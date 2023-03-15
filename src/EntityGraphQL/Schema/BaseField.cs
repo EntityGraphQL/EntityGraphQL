@@ -27,8 +27,8 @@ namespace EntityGraphQL.Schema
         public GqlTypeInfo ReturnType { get; protected set; }
         public List<IFieldExtension> Extensions { get; set; }
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
-        protected List<ISchemaDirective> directives = new();
-        public IList<ISchemaDirective> Directives => directives.AsReadOnly();
+        protected List<ISchemaDirective> Directives { get; set; } = new();
+        public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
 
         /// <summary>
         /// If true the arguments on the field are used internally for processing (usually in extensions that change the 
@@ -43,7 +43,7 @@ namespace EntityGraphQL.Schema
         /// <value></value>
         public IEnumerable<Type> Services { get; set; } = new List<Type>();
 
-        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => argumentValidators; }
+        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
 
         public Expression? ResolveExpression { get; protected set; }
 
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema
 
         public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
 
-        protected List<Action<ArgumentValidatorContext>> argumentValidators = new();
+        protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
@@ -228,27 +228,27 @@ namespace EntityGraphQL.Schema
         public IField AddValidator<TValidator>() where TValidator : IArgumentValidator
         {
             var validator = (IArgumentValidator)Activator.CreateInstance<TValidator>();
-            argumentValidators.Add((context) => validator.ValidateAsync(context));
+            ArgumentValidators.Add((context) => validator.ValidateAsync(context));
             return this;
         }
 
         public IField AddValidator(Action<ArgumentValidatorContext> callback)
         {
-            argumentValidators.Add(callback);
+            ArgumentValidators.Add(callback);
             return this;
         }
         public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
         {
-            argumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
+            ArgumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
             return this;
         }
 
         public IField AddDirective(ISchemaDirective directive)
         {
-            if (!directive.On.Any(x => x == TypeSystemDirectiveLocation.FIELD_DEFINITION))
+            if (!directive.On.Any(x => x == TypeSystemDirectiveLocation.FieldDefinition))
                 throw new InvalidOperationException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
 
-            directives.Add(directive);
+            Directives.Add(directive);
             return this;
         }
 

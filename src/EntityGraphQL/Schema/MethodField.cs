@@ -14,16 +14,16 @@ namespace EntityGraphQL.Schema
     public class MethodField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; }
-        protected readonly MethodInfo method;
-        protected readonly bool isAsync;
+        protected MethodInfo Method { get; set; }
+        protected bool IsAsync { get; set; }
 
         public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
             : base(schema, fromType, methodName, description, returnType)
         {
             Services = new List<Type>();
-            this.method = method;
+            this.Method = method;
             RequiredAuthorization = requiredAuth;
-            this.isAsync = isAsync;
+            this.IsAsync = isAsync;
 
             ArgumentsType = method.GetParameters()
                 .SingleOrDefault(p => p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)?.ParameterType;
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Schema
             var validationErrors = new List<string>();
 
             // add parameters and any DI services
-            foreach (var p in method.GetParameters())
+            foreach (var p in Method.GetParameters())
             {
                 if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
                 {
@@ -104,9 +104,9 @@ namespace EntityGraphQL.Schema
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     if (docVariables != null)
                     {
-                        if (value is Expression)
+                        if (value is Expression and not null)
                         {
-                            value = Expression.Lambda(value as Expression, variableParameter).Compile().DynamicInvoke(new[] { docVariables });
+                            value = Expression.Lambda((Expression)value, variableParameter!).Compile().DynamicInvoke(new[] { docVariables });
                         }
                     }
                     // this could be int to RequiredField<int>
@@ -134,23 +134,24 @@ namespace EntityGraphQL.Schema
                     var service = serviceProvider.GetService(p.ParameterType);
                     if (service == null)
                     {
-                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
+                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                     }
                     allArgs.Add(service);
-                } else
+                }
+                else
                 {
                     var argField = Arguments[p.Name!];
-                    if(argField.DefaultValue != null)
+                    if (argField.DefaultValue != null)
                     {
                         allArgs.Add(argField.DefaultValue);
                     }
                 }
             }
 
-            if (argumentValidators.Count > 0)
+            if (ArgumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, method);
-                foreach (var argValidator in argumentValidators)
+                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, Method);
+                foreach (var argValidator in ArgumentValidators)
                 {
                     argValidator(validatorContext);
                 }
@@ -173,20 +174,20 @@ namespace EntityGraphQL.Schema
             if (instance == null)
             {
                 instance = serviceProvider != null ?
-                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!) :
-                    Activator.CreateInstance(method.DeclaringType!);
+                    ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) :
+                    Activator.CreateInstance(Method.DeclaringType!);
             }
 
             object? result;
-            if (isAsync)
+            if (IsAsync)
             {
-                result = await (dynamic?)method.Invoke(instance, allArgs.Any() ? allArgs.ToArray() : null);
+                result = await (dynamic?)Method.Invoke(instance, allArgs.Any() ? allArgs.ToArray() : null);
             }
             else
             {
                 try
                 {
-                    result = method.Invoke(instance, allArgs.ToArray());
+                    result = Method.Invoke(instance, allArgs.ToArray());
                 }
                 catch (TargetInvocationException ex)
                 {

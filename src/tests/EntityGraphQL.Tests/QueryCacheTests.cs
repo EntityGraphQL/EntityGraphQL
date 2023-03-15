@@ -40,7 +40,7 @@ public class QueryCacheTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
         var gql = new QueryRequest
         {
             Query = query,

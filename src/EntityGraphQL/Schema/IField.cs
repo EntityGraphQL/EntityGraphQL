@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema
         List<IFieldExtension> Extensions { get; set; }
         RequiredAuthorization? RequiredAuthorization { get; }
 
-        IList<ISchemaDirective> Directives { get; }
+        IList<ISchemaDirective> DirectivesReadOnly { get; }
         IField AddDirective(ISchemaDirective directive);
 
         ArgType GetArgumentType(string argName);
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Schema
         void AddExtension(IFieldExtension extension);
         void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
-        void UseArgumentsFrom(IField edgesField);
+        void UseArgumentsFrom(IField field);
         IField AddValidator<TValidator>() where TValidator : IArgumentValidator;
         IField AddValidator(Action<ArgumentValidatorContext> callback);
 

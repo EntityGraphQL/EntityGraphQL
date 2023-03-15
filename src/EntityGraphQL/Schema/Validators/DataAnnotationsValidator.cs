@@ -21,7 +21,7 @@ namespace EntityGraphQL.Schema.Validators
         /// Validate the arguments against the validation attributes in the specified method
         /// </summary>
         /// <param name="context"></param>
-        private void ValidateMethodArguments(ArgumentValidatorContext context)
+        private static void ValidateMethodArguments(ArgumentValidatorContext context)
         {
             if (context.Method != null)
             {

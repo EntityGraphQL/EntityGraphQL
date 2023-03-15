@@ -9,6 +9,7 @@ namespace EntityGraphQL.Schema
     /// <summary>
     /// Tell the Schema Builder that when building this field, it is not nullable in the schema
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class GraphQLNotNullAttribute : Attribute
     {
         public GraphQLNotNullAttribute()
@@ -39,9 +40,10 @@ namespace EntityGraphQL.Schema
     /// Tells the schema builder that this the element type in the List/array of this field is nullable in the schema.
     /// By default a IEnumerable<T> will have the T as non-nullable in the GraphQL schema
     /// </summary>
-    public class GraphQLElementTypeNullable : Attribute
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
+    public class GraphQLElementTypeNullableAttribute : Attribute
     {
-        public GraphQLElementTypeNullable()
+        public GraphQLElementTypeNullableAttribute()
         {
         }
 
@@ -52,7 +54,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static bool IsMemberElementMarkedNullable(ICustomAttributeProvider prop)
         {
-            if (prop.GetCustomAttributes(false).Any(a => a is GraphQLElementTypeNullable))
+            if (prop.GetCustomAttributes(false).Any(a => a is GraphQLElementTypeNullableAttribute))
             {
                 return true;
             }

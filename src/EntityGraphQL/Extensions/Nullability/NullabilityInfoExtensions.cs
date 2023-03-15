@@ -1,14 +1,8 @@
-﻿#nullable enable
-
-using System.Collections.Concurrent;
-
-
-using NullabilityInfoContext = Nullability.NullabilityInfoContextEx;
-using NullabilityInfo = Nullability.NullabilityInfoEx;
-using NullabilityState = Nullability.NullabilityStateEx;
+﻿using System.Collections.Concurrent;
 using System;
 using System.Reflection;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 
 namespace Nullability
 {
@@ -17,10 +11,10 @@ namespace Nullability
     /// </summary>
     public static class NullabilityInfoExtensions
     {
-        static ConcurrentDictionary<ParameterInfo, NullabilityInfo> parameterCache = new();
-        static ConcurrentDictionary<PropertyInfo, NullabilityInfo> propertyCache = new();
-        static ConcurrentDictionary<EventInfo, NullabilityInfo> eventCache = new();
-        static ConcurrentDictionary<FieldInfo, NullabilityInfo> fieldCache = new();
+        private static readonly ConcurrentDictionary<ParameterInfo, NullabilityInfo> parameterCache = new();
+        private static readonly ConcurrentDictionary<PropertyInfo, NullabilityInfo> propertyCache = new();
+        private static readonly ConcurrentDictionary<EventInfo, NullabilityInfo> eventCache = new();
+        private static readonly ConcurrentDictionary<FieldInfo, NullabilityInfo> fieldCache = new();
 
         public static NullabilityInfo GetNullabilityInfo(this MemberInfo info)
         {
@@ -49,19 +43,19 @@ namespace Nullability
 
         public static NullabilityInfo Unwrap(this NullabilityInfo info)
         {
-            if(info.GenericTypeArguments.Length == 0)
+            if (info.GenericTypeArguments.Length == 0)
             {
                 return info;
             }
 
-            if(info.Type.GetGenericTypeDefinition() == typeof(Expression<>))
+            if (info.Type.GetGenericTypeDefinition() == typeof(Expression<>))
             {
                 return info.GenericTypeArguments[0].Unwrap();
             }
 
-            if (info.Type.Name.StartsWith("Func`"))
+            if (info.Type.Name.StartsWith("Func`", StringComparison.InvariantCulture))
             {
-                return info.GenericTypeArguments[info.GenericTypeArguments.Length -1].Unwrap();
+                return info.GenericTypeArguments[^1].Unwrap();
             }
 
             return info;
@@ -71,7 +65,7 @@ namespace Nullability
         {
             return info.ReturnParameter.GetNullabilityInfo();
         }
-       
+
         public static NullabilityState GetNullability(this MemberInfo info)
         {
             return GetReadOrWriteState(info.Name, info.GetNullabilityInfo());
@@ -187,7 +181,7 @@ namespace Nullability
                 return writeState;
             }
 
-            throw new($"The nullability of '{nullability.Type.FullName}.{name}' is unknown. Assembly: {nullability.Type.Assembly.FullName}.");
+            throw new EntityGraphQLCompilerException($"The nullability of '{nullability.Type.FullName}.{name}' is unknown. Assembly: {nullability.Type.Assembly.FullName}.");
         }
 
         static bool IsNullable(string name, NullabilityInfo nullability)

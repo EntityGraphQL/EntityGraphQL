@@ -126,7 +126,7 @@ namespace EntityGraphQL.Extensions
             if (type.IsGenericType && type.GetGenericTypeDefinition() == genericType)
                 return type.GetGenericArguments()[0];
 
-            if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() == genericType)
+            if (type.BaseType?.IsGenericType == true && type.BaseType.GetGenericTypeDefinition() == genericType)
                 return type.GetGenericArguments()[0];
 
             foreach (var inter in type.GetInterfaces())

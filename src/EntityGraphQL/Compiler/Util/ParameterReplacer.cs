@@ -115,7 +115,7 @@ namespace EntityGraphQL.Compiler.Util
                 {
                     nodeExp = newParam!;
                     if (hasNewFieldNameForType)
-                        fieldName = newFieldNameForType;
+                        fieldName = newFieldNameForType!;
                 }
                 else
                     nodeExp = base.Visit(node.Expression);

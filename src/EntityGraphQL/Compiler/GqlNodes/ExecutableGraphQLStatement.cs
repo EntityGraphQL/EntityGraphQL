@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -24,8 +23,8 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
-        protected readonly Dictionary<string, ArgType> opDefinedVariables = new();
-        protected readonly ISchemaProvider schema;
+        protected Dictionary<string, ArgType> OpDefinedVariables { get; set; } = new();
+        protected ISchemaProvider Schema { get; set; }
 
         public ParameterExpression? OpVariableParameter { get; }
 
@@ -43,12 +42,12 @@ namespace EntityGraphQL.Compiler
             Name = name;
             NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
-            opDefinedVariables = opVariables;
-            this.schema = schema;
+            OpDefinedVariables = opVariables;
+            this.Schema = schema;
             Arguments = new Dictionary<string, object>();
-            if (opDefinedVariables.Any())
+            if (OpDefinedVariables.Any())
             {
-                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
+                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
                 OpVariableParameter = Expression.Parameter(variableType, "docVars");
             }
         }
@@ -113,16 +112,15 @@ namespace EntityGraphQL.Compiler
             // inject document level variables - letting the query be cached and passing in different variables
             object? variablesToUse = null;
 
-            if (opDefinedVariables.Any() && OpVariableParameter != null)
+            if (OpDefinedVariables.Any() && OpVariableParameter != null)
             {
-                if (variables == null)
-                    variables = new QueryVariables();
+                variables ??= new QueryVariables();
                 variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
-                foreach (var (name, argType) in opDefinedVariables)
+                foreach (var (name, argType) in OpDefinedVariables)
                 {
                     try
                     {
-                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, schema);
+                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema);
                         if (argValue == null && argType.IsRequired)
                             throw new EntityGraphQLCompilerException($"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value.");
                         OpVariableParameter.Type.GetField(name)!.SetValue(variablesToUse, argValue);
@@ -198,7 +196,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
                 return (null, false);
 
-            var allArgs = new List<object> { context };
+            var allArgs = new List<object?> { context };
 
             var parameters = new List<ParameterExpression> { contextParam };
 

@@ -43,7 +43,7 @@ namespace EntityGraphQL.Compiler
             this.objectProjectionNode = objectProjectionNode;
             this.combineExpression = combineExpression;
         }
-     
+
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
@@ -67,9 +67,9 @@ namespace EntityGraphQL.Compiler
             if (exp == null)
                 return null;
 
-            foreach (var directive in directives)
+            foreach (var directive in Directives)
             {
-                exp = directive.Process(schema, exp!, Arguments, docParam, docVariables);
+                exp = directive.Process(Schema, exp!, Arguments, docParam, docVariables);
             }
 
             return exp;

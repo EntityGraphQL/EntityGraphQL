@@ -46,7 +46,7 @@ namespace EntityGraphQL.Compiler
                     // fragments might be fragments on the actualy type whereas the context is a interface
                     // we do not need to change the context in this case
                     var actualNextFieldContext = nextFieldContext;
-                    if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentField) && (subField.FromType?.BaseTypes.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypeEnum.Union))
+                    if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentField) && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union))
                     {
                         actualNextFieldContext = subField.RootParameter;
                     }
@@ -59,11 +59,11 @@ namespace EntityGraphQL.Compiler
                     {
                         // if we have a match, we need to check if the types are the same
                         // if they are, we can just use the existing field
-                        if (potentialMatch.FromType?.BaseTypes.Contains(subField.FromType) == true)
+                        if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
                         {
                             continue;
                         }
-                        if (potentialMatch.FromType != null && subField.FromType.BaseTypes.Contains(potentialMatch.FromType) == true)
+                        if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType) == true)
                         {
                             // replace - use the non-base type field
                             selectionFields.Remove(potentialMatch);

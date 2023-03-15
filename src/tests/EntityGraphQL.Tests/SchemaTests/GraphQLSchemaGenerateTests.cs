@@ -577,7 +577,7 @@ namespace EntityGraphQL.Tests
         [GraphQLIgnore(GraphQLIgnoreType.Query)]
         public List<Movie> Movies { get; set; }
         public List<Album> Albums { get; set; }
-        [GraphQLElementTypeNullable]
+        [GraphQLElementTypeNullableAttribute]
         public List<Album> NullAlbums { get; set; }
         public List<Artist> Artists { get; set; }
     }

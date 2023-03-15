@@ -11,11 +11,11 @@ namespace EntityGraphQL.Compiler
     public class CompileContext
     {
         private readonly HashSet<Type> servicesCollected = new();
-        private readonly Dictionary<ParameterExpression, object> constantParameters = new();
+        private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
         private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
         public HashSet<Type> Services { get => servicesCollected; }
-        public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get => constantParameters; }
+        public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
 
         public void AddServices(IEnumerable<Type> services)
         {
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public void AddConstant(IField? fromField, ParameterExpression parameterExpression, object value)
+        public void AddConstant(IField? fromField, ParameterExpression parameterExpression, object? value)
         {
             constantParameters[parameterExpression] = value;
             if (fromField != null)

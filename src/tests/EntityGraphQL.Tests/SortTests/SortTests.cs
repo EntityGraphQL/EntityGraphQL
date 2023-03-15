@@ -20,7 +20,7 @@ namespace EntityGraphQL.Tests
                     people(sort: $sort) { lastName }
                 }",
                 Variables = new QueryVariables {
-                    {"sort", new [] { new {lastName = SortDirectionEnum.DESC } } }
+                    {"sort", new [] { new {lastName = SortDirection.DESC } } }
                 }
             };
             var context = new TestDataContext().FillWithTestData();
@@ -116,7 +116,7 @@ namespace EntityGraphQL.Tests
                     person.Height,
                     person.Name
                 },
-                (Person person) => person.LastName, SortDirectionEnum.DESC);
+                (Person person) => person.LastName, SortDirection.DESC);
             var gql = new QueryRequest
             {
                 Query = @"query {
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Type<TestDataContext>().GetField("people", null)
-                .UseSort((Person person) => person.Height, SortDirectionEnum.ASC);
+                .UseSort((Person person) => person.Height, SortDirection.ASC);
             var gql = new QueryRequest
             {
                 Query = @"query {
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables
                 {
-                    { "sort", new List<IdSort>{new IdSort { Id = SortDirectionEnum.DESC } }}
+                    { "sort", new List<IdSort>{new IdSort { Id = SortDirection.DESC } }}
                 }
             };
             var context = new TestDataContext().FillWithTestData();
@@ -261,11 +261,11 @@ namespace EntityGraphQL.Tests
 
     internal class IdSort
     {
-        public SortDirectionEnum Id { get; set; }
+        public SortDirection Id { get; set; }
     }
 
     internal class TestArgs
     {
-        public SortDirectionEnum? lastName { get; set; }
+        public SortDirection? lastName { get; set; }
     }
 }

@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return Expression.MakeBinary(op, left, right);
         }
 
-        private Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
+        private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
         {
             var convertedToSameTypes = false;
 
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+        private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
                 right = Expression.Convert(right, left.Type);
@@ -230,14 +230,14 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return Expression.MakeBinary(op, left, right);
         }
 
-        private Expression CheckConditionalTest(Expression test)
+        private static Expression CheckConditionalTest(Expression test)
         {
             if (test.Type != typeof(bool))
                 throw new EntityGraphQLCompilerException($"Expected boolean value in conditional test but found '{test}'");
             return test;
         }
 
-        private ExpressionType MakeOperator(string op)
+        private static ExpressionType MakeOperator(string op)
         {
             return op switch
             {

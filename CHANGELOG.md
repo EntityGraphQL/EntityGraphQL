@@ -1,3 +1,13 @@
+# 5.0.0
+
+## Breaking Changes
+
+- `EntityGraphQL.AspNet` now targets `net6.0` and `net7.0`, dropping tagets `netcoreapp3.1` or `net5.0`. You can still use `EntityGraphQL` with older targets.
+
+## Changes
+
+- `EntityGraphQL` (the core implementation) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
+
 # 4.3.0
 
 ## Changes

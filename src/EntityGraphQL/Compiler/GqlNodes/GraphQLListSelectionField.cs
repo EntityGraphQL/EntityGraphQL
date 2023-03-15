@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler
                 listContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, listContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
-            (listContext, var argumentParam) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
+            (listContext, var argumentParam) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (ListExpression, null);
             if (listContext == null)
                 return null;
 
@@ -106,7 +106,7 @@ namespace EntityGraphQL.Compiler
         private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<IFieldKey, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
         {
             // null check on listContext which may be a call to a service that we do not want to call twice
-            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
+            var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
             // TODO services injected here - is this needed?

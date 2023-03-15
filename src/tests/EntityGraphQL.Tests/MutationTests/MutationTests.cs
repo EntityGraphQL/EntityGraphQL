@@ -556,8 +556,8 @@ namespace EntityGraphQL.Tests
         public void TestMethodDefaultValue()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() {  AutoCreateInputTypes = true });
-        
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -1104,7 +1104,7 @@ namespace EntityGraphQL.Tests
             schema.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
 
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<InputObject>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
-            Assert.Equal("Field invalid on type InputObject has arguments but is a GraphQL Input type and can not have arguments.", ex.Message);
+            Assert.Equal($"Field invalid on type InputObject has arguments but is a GraphQL {nameof(GqlTypes.InputObject)} type and can not have arguments.", ex.Message);
         }
     }
 }

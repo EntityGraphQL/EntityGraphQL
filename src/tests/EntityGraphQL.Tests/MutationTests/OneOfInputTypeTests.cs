@@ -87,7 +87,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.Create<TestDataContext>();
             var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddType<OneOfInputType>("InputObject", "Using an object in the arguments"));
-            Assert.Equal("OneOfInputType marked with OneOfDirective directive which is not valid on a Object", ex.Message);
+            Assert.Equal($"OneOfInputType marked with OneOfDirective directive which is not valid on a {nameof(GqlTypes.QueryObject)}", ex.Message);
         }
 
         [GraphQLOneOf]

@@ -1,7 +1,9 @@
 using System;
 using System.Reflection;
 using EntityGraphQL.Extensions;
+#if NETSTANDARD2_1
 using Nullability;
+#endif
 
 namespace EntityGraphQL.Schema
 {
@@ -10,7 +12,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class GqlTypeInfo
     {
-        private ISchemaType? schemaType = null;
+        private ISchemaType? schemaType;
 
         /// <summary>
         /// New GqlTypeInfo object that represents information about the return/argument type
@@ -25,7 +27,7 @@ namespace EntityGraphQL.Schema
             IsList = TypeDotnet.IsEnumerableOrArray();
             TypeNotNullable = TypeDotnet.IsValueType && !TypeDotnet.IsNullableType();
             ElementTypeNullable = false;
-        }      
+        }
 
         /// <summary>
         /// New GqlTypeInfo object that represents information about the return/argument type
@@ -33,14 +35,14 @@ namespace EntityGraphQL.Schema
         /// <param name="schemaTypeGetter">Func to get the ISchemaType. Lookup is func as the type might be added later. It is cached after first look up</param>
         /// <param name="typeDotnet">The dotnet type as it is. E.g. the List<T> etc. </param>
         /// <param name="nullability">Nullability infomation about the property</param>
-        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, NullabilityInfoEx nullability)
+        public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, NullabilityInfo nullability)
         {
             SchemaTypeGetter = schemaTypeGetter;
 
             TypeDotnet = typeDotnet;
             IsList = TypeDotnet.IsEnumerableOrArray();
-            TypeNotNullable = nullability.ReadState == NullabilityStateEx.NotNull;
-            ElementTypeNullable = nullability.GenericTypeArguments.Length > 0 && nullability.GenericTypeArguments[0].ReadState == NullabilityStateEx.Nullable;
+            TypeNotNullable = nullability.ReadState == NullabilityState.NotNull;
+            ElementTypeNullable = nullability.GenericTypeArguments.Length > 0 && nullability.GenericTypeArguments[0].ReadState == NullabilityState.Nullable;
         }
 
         /// <summary>
@@ -95,10 +97,10 @@ namespace EntityGraphQL.Schema
             var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
             var typeInfo = new GqlTypeInfo(() => schema.Type(strippedType), dotnetType)
             {
-                TypeNotNullable = gqlType.EndsWith("!"),
-                IsList = gqlType.Contains("["),
+                TypeNotNullable = gqlType.EndsWith("!", StringComparison.InvariantCulture),
+                IsList = gqlType.Contains('[', StringComparison.InvariantCulture),
             };
-            typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith("!"));
+            typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith("!", StringComparison.InvariantCulture));
 
             return typeInfo;
         }

@@ -22,7 +22,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -65,7 +65,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -97,7 +97,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -128,7 +128,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {

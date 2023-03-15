@@ -1,15 +1,9 @@
-﻿#nullable enable
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-
+#if NETSTANDARD2_1
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-
-
-using NullabilityInfoContext = Nullability.NullabilityInfoContextEx;
-using NullabilityInfo = Nullability.NullabilityInfoEx;
-using NullabilityState = Nullability.NullabilityStateEx;
 using System;
 using System.Reflection;
 using System.Linq;
@@ -20,7 +14,7 @@ namespace Nullability
     /// Provides APIs for populating nullability information/context from reflection members:
     /// <see cref="ParameterInfo"/>, <see cref="FieldInfo"/>, <see cref="PropertyInfo"/> and <see cref="EventInfo"/>.
     /// </summary>
-    public sealed class NullabilityInfoContextEx
+    public sealed class NullabilityInfoContext
     {
         private const string CompilerServicesNameSpace = "System.Runtime.CompilerServices";
         private readonly Dictionary<Module, NotAnnotatedStatus> _publicOnlyModules = new();
@@ -664,3 +658,4 @@ namespace Nullability
         }
     }
 }
+#endif

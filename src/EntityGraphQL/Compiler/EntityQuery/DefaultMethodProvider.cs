@@ -66,7 +66,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             if (supportedMethods.ContainsKey(methodName))
             {
-                return supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : new Expression[] { });
+                return supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : Array.Empty<Expression>());
             }
             throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
         }
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             ExpectArgsCountBetween(0, 1, args, methodName);
 
             var allArgs = new List<Expression> { context };
-            if (args.Count() == 1)
+            if (args.Length == 1)
             {
                 var predicate = args.First();
                 predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(bool));
@@ -170,14 +170,14 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         private static void ExpectArgsCount(int count, Expression[] args, string method)
         {
-            if (args.Count() != count)
-                throw new EntityGraphQLCompilerException($"Method '{method}' expects {count} argument(s) but {args.Count()} were supplied");
+            if (args.Length != count)
+                throw new EntityGraphQLCompilerException($"Method '{method}' expects {count} argument(s) but {args.Length} were supplied");
         }
 
         private static void ExpectArgsCountBetween(int low, int high, Expression[] args, string method)
         {
-            if (args.Count() < low || args.Count() > high)
-                throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Count()} were supplied");
+            if (args.Length < low || args.Length > high)
+                throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Length} were supplied");
         }
 
         private static Expression ConvertTypeIfWeCan(string methodName, Expression argExp, Type expected)

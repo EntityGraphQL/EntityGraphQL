@@ -13,7 +13,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="fieldSelection">Select the fields you want available for sorting.
         /// T must be the context of the collection you are applying the sort to</param>
         /// <returns></returns>
-        public static IField UseSort<ElementType, ReturnType>(this IField field, Expression<Func<ElementType, ReturnType>> fieldSelection)
+        public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection)
         {
             field.AddExtension(new SortExtension(fieldSelection.ReturnType, null, null));
             return field;
@@ -28,7 +28,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="defaultSort">Sort to use if no sort argument supplied in query</param>
         /// <param name="direction">Direction of the default sort</param>
         /// <returns></returns>
-        public static IField UseSort<ElementType, ReturnType, TSort>(this IField field, Expression<Func<ElementType, ReturnType>> fieldSelection, Expression<Func<ElementType, TSort>> defaultSort, SortDirectionEnum direction)
+        public static IField UseSort<TElementType, TReturnType, TSort>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, Expression<Func<TElementType, TSort>> defaultSort, SortDirection direction)
         {
             field.AddExtension(new SortExtension(fieldSelection.ReturnType, defaultSort, direction));
             return field;
@@ -42,7 +42,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="defaultSort">Sort to use if no sort argument supplied in query</param>
         /// <param name="direction">Direction of the default sort</param>
         /// <returns></returns>
-        public static IField UseSort<ElementType, TSort>(this IField field, Expression<Func<ElementType, TSort>> defaultSort, SortDirectionEnum direction)
+        public static IField UseSort<TElementType, TSort>(this IField field, Expression<Func<TElementType, TSort>> defaultSort, SortDirection direction)
         {
             field.AddExtension(new SortExtension(null, defaultSort, direction));
             return field;

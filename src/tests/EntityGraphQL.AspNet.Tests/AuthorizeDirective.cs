@@ -47,8 +47,8 @@ namespace EntityGraphQL.AspNet.Tests
         }
 
         public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
-            TypeSystemDirectiveLocation.OBJECT,
-            TypeSystemDirectiveLocation.FIELD_DEFINITION
+            TypeSystemDirectiveLocation.QueryObject,
+            TypeSystemDirectiveLocation.FieldDefinition
         };
 
         public string? Roles { get; }

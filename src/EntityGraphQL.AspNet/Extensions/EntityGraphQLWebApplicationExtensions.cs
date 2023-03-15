@@ -40,11 +40,7 @@ namespace EntityGraphQL.AspNet
                 }
                 else
                 {
-#if NET3_1 || NET5
-                    await next();
-#elif NET6_0_OR_GREATER
                     await next(context);
-#endif
                 }
             });
 

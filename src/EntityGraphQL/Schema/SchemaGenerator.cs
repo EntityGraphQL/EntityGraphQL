@@ -1,13 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.Directives;
 
+// can remove this when we drop netstandard2.1
+#pragma warning disable CA1305
 namespace EntityGraphQL.Schema
 {
     public class SchemaGenerator
@@ -30,8 +31,8 @@ namespace EntityGraphQL.Schema
             var schemaBuilder = new StringBuilder("schema {");
             schemaBuilder.AppendLine();
             schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
-            bool outputMutation = mutationType.GetFields().Any(f => !f.Name.StartsWith("__"));
-            bool outputSubscription = subscriptionType.GetFields().Any(f => !f.Name.StartsWith("__"));
+            bool outputMutation = mutationType.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture));
+            bool outputSubscription = subscriptionType.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture));
             if (outputMutation)
                 schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
             if (outputSubscription)
@@ -71,7 +72,7 @@ namespace EntityGraphQL.Schema
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
-                if (typeItem.Name.StartsWith("__") || !typeItem.IsEnum)
+                if (typeItem.Name.StartsWith("__", StringComparison.InvariantCulture) || !typeItem.IsEnum)
                     continue;
 
                 if (!string.IsNullOrEmpty(typeItem.Description))
@@ -80,13 +81,13 @@ namespace EntityGraphQL.Schema
                 types.AppendLine($"enum {typeItem.Name} {{");
                 foreach (var field in typeItem.GetFields().OrderBy(t => t.Name))
                 {
-                    if (field.Name.StartsWith("__"))
+                    if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                         continue;
 
                     if (!string.IsNullOrEmpty(field.Description))
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
-                    types.AppendLine($"\t{field.Name}{GetDirectives(field.Directives)}");
+                    types.AppendLine($"\t{field.Name}{GetDirectives(field.DirectivesReadOnly)}");
 
                 }
                 types.AppendLine("}");
@@ -101,10 +102,10 @@ namespace EntityGraphQL.Schema
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
-                if (typeItem.Name.StartsWith("__") || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name || typeItem.Name == schema.Subscription().SchemaType.Name)
+                if (typeItem.Name.StartsWith("__", StringComparison.InvariantCulture) || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name || typeItem.Name == schema.Subscription().SchemaType.Name)
                     continue;
 
-                if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__")) && typeItem.GqlType != GqlTypeEnum.Union && typeItem.BaseTypes.Count == 0)
+                if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture)) && typeItem.GqlType != GqlTypes.Union && typeItem.BaseTypesReadOnly.Count == 0)
                     continue;
 
                 types.AppendLine(OutputSchemaType(schema, typeItem));
@@ -140,7 +141,7 @@ namespace EntityGraphQL.Schema
             return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
         }
 
-        public static string GetArgDefaultValue(object? value, Func<string, string> fieldNamer)
+        public static string? GetArgDefaultValue(object? value, Func<string, string> fieldNamer)
         {
             if (value == null || value == DBNull.Value)
             {
@@ -156,11 +157,11 @@ namespace EntityGraphQL.Schema
             }
             if (valueType == typeof(bool))
             {
-                return value.ToString().ToLower();
+                return value?.ToString()?.ToLower(CultureInfo.InvariantCulture);
             }
             else if (valueType.IsValueType)
             {
-                return value.ToString();
+                return value?.ToString();
             }
             else if (value is IEnumerable e)
             {
@@ -171,7 +172,7 @@ namespace EntityGraphQL.Schema
                 if (((BaseEntityQueryType)value).HasValue)
                 {
                     var property = valueType.GetProperty("Query");
-                    return $"\"{property.GetValue(value)}\"";
+                    return $"\"{property!.GetValue(value)}\"";
                 }
                 return string.Empty;
             }
@@ -220,40 +221,40 @@ namespace EntityGraphQL.Schema
                 sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
 
 
-            if (schemaType.GqlType == GqlTypeEnum.Union)
+            if (schemaType.GqlType == GqlTypes.Union)
             {
-                if (schemaType.PossibleTypes.Count == 0)
+                if (schemaType.PossibleTypesReadOnly.Count == 0)
                 {
                     return string.Empty;
                 }
 
-                sb.AppendLine($"union {schemaType.Name} = {string.Join(" | ", schemaType.PossibleTypes.Select(i => i.Name))}");
+                sb.AppendLine($"union {schemaType.Name} = {string.Join(" | ", schemaType.PossibleTypesReadOnly.Select(i => i.Name))}");
                 return sb.ToString();
             }
 
             var type = schemaType.GqlType switch
             {
-                GqlTypeEnum.Input => "input",
-                GqlTypeEnum.Interface => "interface",
-                GqlTypeEnum.Union => "union",
+                GqlTypes.InputObject => "input",
+                GqlTypes.Interface => "interface",
+                GqlTypes.Union => "union",
                 _ => "type"
             };
 
             var implements = "";
-            if (schemaType.BaseTypes != null && schemaType.BaseTypes.Count > 0)
+            if (schemaType.BaseTypesReadOnly != null && schemaType.BaseTypesReadOnly.Count > 0)
             {
-                implements += $" implements {string.Join(" & ", schemaType.BaseTypes.Select(i => i.Name))}";
+                implements += $" implements {string.Join(" & ", schemaType.BaseTypesReadOnly.Select(i => i.Name))}";
             }
 
             sb.AppendLine($"{type} {schemaType.Name}{implements}{GetDirectives(schemaType.Directives)} {{");
 
             foreach (var field in schemaType.GetFields().OrderBy(s => s.Name))
             {
-                if (field.Name.StartsWith("__"))
+                if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
                 if (!string.IsNullOrEmpty(field.Description))
                     sb.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
-                sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDirectives(field.Directives)}");
+                sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDirectives(field.DirectivesReadOnly)}");
             }
             sb.AppendLine("}");
 
@@ -261,3 +262,4 @@ namespace EntityGraphQL.Schema
         }
     }
 }
+#pragma warning restore CA1305

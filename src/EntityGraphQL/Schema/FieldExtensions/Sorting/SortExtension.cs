@@ -17,9 +17,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Func<string, string>? fieldNamer;
         private readonly Type? fieldSelectionType;
         private readonly LambdaExpression? defaultSort;
-        private readonly SortDirectionEnum? defaultSortDirection;
+        private readonly SortDirection? defaultSortDirection;
 
-        public SortExtension(Type? fieldSelectionType, LambdaExpression? defaultSort, SortDirectionEnum? direction)
+        public SortExtension(Type? fieldSelectionType, LambdaExpression? defaultSort, SortDirection? direction)
         {
             this.fieldSelectionType = fieldSelectionType;
             this.defaultSort = defaultSort;
@@ -34,8 +34,8 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (!field.ResolveExpression.Type.IsEnumerableOrArray())
                 throw new ArgumentException($"Expression for field {field.Name} must be a collection to use SortExtension. Found type {field.ReturnType.TypeDotnet}");
 
-            if (!schema.HasType(typeof(SortDirectionEnum)))
-                schema.AddEnum("SortDirectionEnum", typeof(SortDirectionEnum), "Sort direction enum");
+            if (!schema.HasType(typeof(SortDirection)))
+                schema.AddEnum("SortDirectionEnum", typeof(SortDirection), "Sort direction enum");
             schemaReturnType = field.ReturnType.SchemaType;
             listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
             methodType = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet) ?
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 var sortValueField = schemaSortType.TypeDotnet.GetField(((MemberExpression)defaultSort.Body).Member.Name);
                 if (sortValueField != null)
                 {
-                    sortValueField.SetValue(defaultSortValue, defaultSortDirection ?? SortDirectionEnum.ASC);
+                    sortValueField.SetValue(defaultSortValue, defaultSortDirection ?? SortDirection.ASC);
                     var defaultSortValues = Activator.CreateInstance(typeof(List<>).MakeGenericType(schemaSortType.TypeDotnet))!;
                     ((IList)defaultSortValues).Add(defaultSortValue);
                     argType.GetProperty("Sort")!.SetValue(argInstance, defaultSortValues);
@@ -75,7 +75,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             var typeWithSortFields = fieldSelectionType ?? listType!;
             // Build the field args
             Dictionary<string, Type> fields = new();
-            var directionType = typeof(SortDirectionEnum?);
+            var directionType = typeof(SortDirection?);
             foreach (var prop in typeWithSortFields.GetProperties())
             {
                 if (IsNotInputType(prop.PropertyType))
@@ -113,13 +113,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     // find the field that tells us the order field
                     foreach (var fieldInfo in ((Type)sort.GetType()).GetFields())
                     {
-                        var direction = (SortDirectionEnum?)fieldInfo.GetValue(sort);
+                        var direction = (SortDirection?)fieldInfo.GetValue(sort);
                         if (!direction.HasValue)
                             continue;
 
                         string method = sortMethod;
 
-                        if (direction.Value == SortDirectionEnum.DESC)
+                        if (direction.Value == SortDirection.DESC)
                             method += "Descending";
 
                         var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
@@ -143,7 +143,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 var listParam = Expression.Parameter(listType!);
                 expression = Expression.Call(
                         methodType!,
-                        defaultSortDirection == SortDirectionEnum.ASC ? "OrderBy" : "OrderByDescending",
+                        defaultSortDirection == SortDirection.ASC ? "OrderBy" : "OrderByDescending",
                         new Type[] { listType!, defaultSort.Body.Type },
                         expression,
                         parameterReplacer.Replace(defaultSort, defaultSort.Parameters.First(), listParam)

@@ -12,14 +12,16 @@ namespace EntityGraphQL.Schema
         {
             type.AddDirective(new OneOfDirective());
 
-            type.OnAddField += (field) => {
+            type.OnAddField += (field) =>
+            {
                 if (field.ReturnType.TypeNotNullable)
                 {
                     throw new EntityQuerySchemaException($"{type.TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
                 }
             };
 
-            type.OnValidate += (value) => {
+            type.OnValidate += (value) =>
+            {
                 if (value != null)
                 {
                     var singleField = value.GetType().GetProperties().Count(x => x.GetValue(value) != null);
@@ -52,7 +54,7 @@ namespace EntityGraphQL.Schema.Directives
         }
 
         public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
-            TypeSystemDirectiveLocation.INPUT_OBJECT
+            TypeSystemDirectiveLocation.InputObject
         };
 
         public void ProcessType(Models.TypeElement type)

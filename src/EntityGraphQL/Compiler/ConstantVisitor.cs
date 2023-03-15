@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
         public override Expression? VisitInt(EntityQLParser.IntContext context)
         {
             string s = context.GetText();
-            return Expression.Constant(long.Parse(s));
+            return Expression.Constant(long.Parse(s, CultureInfo.InvariantCulture));
         }
 
         public override Expression? VisitBoolean(EntityQLParser.BooleanContext context)
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
                 return Expression.Constant(Guid.Parse(value));
 
             if (DateTimeRegex.IsMatch(value))
-                return Expression.Constant(DateTime.Parse(value));
+                return Expression.Constant(DateTime.Parse(value, CultureInfo.InvariantCulture));
 
             return Expression.Constant(value);
         }

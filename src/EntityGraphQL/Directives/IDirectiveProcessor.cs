@@ -10,7 +10,9 @@ namespace EntityGraphQL.Directives
     {
         string Name { get; }
         string Description { get; }
+#pragma warning disable CA1716
         List<ExecutableDirectiveLocation> On { get; }
+#pragma warning restore CA1716
         /// <summary>
         /// Return the Type used for the directive arguments
         /// </summary>

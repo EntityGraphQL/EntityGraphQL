@@ -50,7 +50,7 @@ namespace EntityGraphQL.Schema
         /// or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an 
         /// Interface including it's fields
         /// </summary>
-        public bool AutoCreateInterfaceTypes { get; set; } = false;
+        public bool AutoCreateInterfaceTypes { get; set; }
     }
 
     public class SchemaBuilderMethodOptions : SchemaBuilderOptions
@@ -60,11 +60,11 @@ namespace EntityGraphQL.Schema
         /// 
         /// If you set it true, EntityGraphQL doesn't know which objects should be InputTypes or a services to be injected at execution.
         /// </summary>
-        public bool AutoCreateInputTypes { get; set; } = false;
+        public bool AutoCreateInputTypes { get; set; }
         /// <summary>
         /// If true (default = false) Any public method in the mutation class will be added to the schema as a mutation
         /// </summary>
-        public bool AddNonAttributedMethods { get; set; } = false;
+        public bool AddNonAttributedMethods { get; set; }
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ namespace EntityGraphQL.Schema
         /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or 
         /// anything that may be needed for the schema to be built correctly.
         /// </summary>
-        public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; } = null;
+        public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; }
 
         /// <summary>
         /// If true (default), exceptions not implementing IExposableException will have their messages rendered in the 'errors' object

@@ -2,7 +2,9 @@
 
 namespace EntityGraphQL.Schema
 {
+#pragma warning disable CA1711
     public class AllowedException
+#pragma warning restore CA1711
     {
         private readonly Type exceptionType;
         private readonly bool exactMatch;

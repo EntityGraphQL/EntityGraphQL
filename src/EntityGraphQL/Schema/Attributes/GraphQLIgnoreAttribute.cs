@@ -6,6 +6,7 @@ namespace EntityGraphQL.Schema
     /// <summary>
     /// Tell the Schema Builder to ignore this field or property
     /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class GraphQLIgnoreAttribute : Attribute
     {
         public GraphQLIgnoreAttribute(GraphQLIgnoreType from = GraphQLIgnoreType.All)

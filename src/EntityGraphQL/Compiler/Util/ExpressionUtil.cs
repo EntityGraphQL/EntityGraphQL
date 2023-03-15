@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text.Json;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
@@ -46,7 +45,7 @@ namespace EntityGraphQL.Compiler.Util
                 exp = ((UnaryExpression)exp).Operand;
 
             if (exp.NodeType != ExpressionType.MemberAccess)
-                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", "fieldSelection");
+                throw new ArgumentException("fieldSelection should be a property or field accessor expression only. E.g (t) => t.MyField", nameof(fieldSelection));
             return (MemberExpression)exp;
         }
 
@@ -90,8 +89,7 @@ namespace EntityGraphQL.Compiler.Util
                         else
                         {
                             var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
-                            if (field != null)
-                                field.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
+                            field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
                         }
                     }
                     return value;
@@ -99,9 +97,7 @@ namespace EntityGraphQL.Compiler.Util
                 if (jsonEle.ValueKind == JsonValueKind.Array)
                 {
                     var eleType = toType.GetEnumerableOrArrayType()!;
-                    var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
-                    if (list == null)
-                        throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
+                    var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                     foreach (var item in jsonEle.EnumerateArray())
                         list.Add(ChangeType(item, eleType, schema));
                     return list;
@@ -114,9 +110,9 @@ namespace EntityGraphQL.Compiler.Util
             }
 
             // custom type converters after we unwind JSON elements
-            if (schema?.TypeConverters.ContainsKey(fromType) == true)
+            if (schema?.TypeConverters.TryGetValue(fromType, out var converter) == true)
             {
-                value = schema.TypeConverters[fromType].ChangeType(value, toType, schema);
+                value = converter.ChangeType(value, toType, schema);
                 fromType = value?.GetType()!;
 
                 if (value == null || fromType == toType)
@@ -132,15 +128,15 @@ namespace EntityGraphQL.Compiler.Util
                 if (toType == typeof(float) || toType == typeof(float?))
                     return float.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(int) || toType == typeof(int?))
-                    return int.Parse((string)value);
+                    return int.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(uint) || toType == typeof(uint?))
-                    return uint.Parse((string)value);
+                    return uint.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(short) || toType == typeof(short?))
-                    return short.Parse((string)value);
+                    return short.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(DateTime) || toType == typeof(DateTime?))
-                    return DateTime.Parse((string)value);
+                    return DateTime.Parse((string)value, CultureInfo.InvariantCulture);
                 if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
-                    return DateTimeOffset.Parse((string)value);
+                    return DateTimeOffset.Parse((string)value, CultureInfo.InvariantCulture);
             }
             else if (toType != typeof(long) && fromType == typeof(long))
             {
@@ -151,7 +147,7 @@ namespace EntityGraphQL.Compiler.Util
             }
 
             var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
-            var valueNonNullType = fromType.IsNullableType() ? Nullable.GetUnderlyingType(fromType) : fromType;
+            var valueNonNullType = fromType.IsNullableType() ? Nullable.GetUnderlyingType(fromType)! : fromType;
             if (argumentNonNullType.IsEnum)
             {
                 return valueNonNullType == typeof(string) ? Enum.Parse(argumentNonNullType, (string)value) : Enum.ToObject(argumentNonNullType, value);
@@ -172,8 +168,7 @@ namespace EntityGraphQL.Compiler.Util
                     else
                     {
                         var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
-                        if (toField != null)
-                            toField.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
+                        toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
                     }
                 }
                 return newValue;
@@ -181,9 +176,7 @@ namespace EntityGraphQL.Compiler.Util
             if (toType.IsEnumerableOrArray())
             {
                 var eleType = toType.GetEnumerableOrArrayType()!;
-                var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType));
-                if (list == null)
-                    throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
+                var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in (IEnumerable)value)
                     list.Add(ChangeType(item, eleType, schema));
                 if (toType.IsArray)
@@ -214,14 +207,14 @@ namespace EntityGraphQL.Compiler.Util
             if (argumentNonNullType != valueNonNullType)
             {
                 var implicitCastOperator = argumentNonNullType.GetMethod("op_Implicit", new[] { valueNonNullType });
-                if (implicitCastOperator !=  null)
+                if (implicitCastOperator != null)
                 {
                     return implicitCastOperator.Invoke(null, new[] { value });
                 }
-          
-                var newVal = Convert.ChangeType(value, argumentNonNullType);
+
+                var newVal = Convert.ChangeType(value, argumentNonNullType, CultureInfo.InvariantCulture);
                 return newVal;
-            }            
+            }
 
             return value;
         }
@@ -445,7 +438,7 @@ namespace EntityGraphQL.Compiler.Util
 
             //fallback to parent return type for mutations
             var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
-            if (gqlType == GqlTypeEnum.Union || gqlType == GqlTypeEnum.Interface)
+            if (gqlType == GqlTypes.Union || gqlType == GqlTypes.Interface)
             {
                 // get a list of distinct types asked for in the query (fragments for interfaces)
                 var validTypes = fieldExpressions.Values
@@ -462,12 +455,10 @@ namespace EntityGraphQL.Compiler.Util
                 var baseDynamicType = LinqRuntimeTypeBuilder.GetDynamicType(
                     fieldsOnBaseType.ToDictionary(x => x.Key, x => x.Value.Type),
                     field.Name + "baseDynamicType"
-                );
-                if (baseDynamicType == null)
-                    throw new EntityGraphQLCompilerException("Could not create dynamic type");
+                ) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
                 //create a cascading TypeIs X query for each type in query
-                Expression? previous = CreateNewExpression(field.Name, fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
+                Expression? previous = CreateNewExpression(fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
 
                 foreach (var type in validTypes)
                 {
@@ -516,7 +507,7 @@ namespace EntityGraphQL.Compiler.Util
         }
 
 
-        public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, Type type)
+        public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
 
@@ -528,9 +519,7 @@ namespace EntityGraphQL.Compiler.Util
             }
 
             var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var constructor = type.GetConstructor(Type.EmptyTypes);
-            if (constructor == null)
-                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var constructor = type.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
             var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
@@ -556,9 +545,7 @@ namespace EntityGraphQL.Compiler.Util
                 throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
-            if (constructor == null)
-                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
             var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
@@ -575,9 +562,7 @@ namespace EntityGraphQL.Compiler.Util
             var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
 
             var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-            var constructor = dynamicType.GetConstructor(Type.EmptyTypes);
-            if (constructor == null)
-                throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
             var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);
             return mi;
@@ -594,7 +579,7 @@ namespace EntityGraphQL.Compiler.Util
         ///
         /// This wraps the field expression that does the call once
         /// </summary>
-        internal static Expression WrapObjectProjectionFieldForNullCheck(string fieldDescription, Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        internal static Expression WrapObjectProjectionFieldForNullCheck(string fieldDescription, Expression nullCheckExpression, IEnumerable<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new Expression[] {
                 Expression.Constant(fieldDescription),
@@ -622,13 +607,13 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="schemaContextParam"></param>
         /// <param name="schemaContextValue"></param>
         /// <returns></returns>
-        public static object? WrapObjectProjectionFieldForNullCheckExec(string fieldDescription, object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapObjectProjectionFieldForNullCheckExec(string fieldDescription, object? nullCheck, ParameterExpression nullWrapParam, List<ParameterExpression> paramsForFieldExpressions, Dictionary<string, Expression> fieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
 
             var newExp = CreateNewExpression(fieldDescription, fieldExpressions);
-            var args = new List<object>();
+            var args = new List<object?>();
             args.AddRange(fieldSelectParamValues);
             if (schemaContextParam != null)
             {
@@ -646,7 +631,7 @@ namespace EntityGraphQL.Compiler.Util
             return result;
         }
 
-        internal static Expression WrapListFieldForNullCheck(Expression nullCheckExpression, Expression callOnList, IEnumerable<ParameterExpression> paramsForFieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
+        internal static Expression WrapListFieldForNullCheck(Expression nullCheckExpression, Expression callOnList, IEnumerable<ParameterExpression> paramsForFieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
         {
             var arguments = new Expression[] {
                 nullCheckExpression,
@@ -661,12 +646,12 @@ namespace EntityGraphQL.Compiler.Util
             return call;
         }
 
-        public static object? WrapListFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, Expression callOnList, List<ParameterExpression> paramsForFieldExpressions, IEnumerable<object> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
+        public static object? WrapListFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, Expression callOnList, List<ParameterExpression> paramsForFieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
         {
             if (nullCheck == null)
                 return null;
 
-            var args = new List<object>();
+            var args = new List<object?>();
             args.AddRange(fieldSelectParamValues);
             if (schemaContextParam != null)
             {

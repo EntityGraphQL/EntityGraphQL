@@ -1,12 +1,12 @@
 ﻿namespace EntityGraphQL.Schema
 {
-    public enum GqlTypeEnum
+    public enum GqlTypes
     {
         Scalar,
         Enum,
-        Object,
+        QueryObject,
         Interface,
-        Input,
+        InputObject,
         Mutation,
         Union
     }

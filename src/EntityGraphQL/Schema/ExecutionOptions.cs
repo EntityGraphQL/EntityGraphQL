@@ -29,13 +29,13 @@ namespace EntityGraphQL.Schema
         /// Include timing information about query execution
         /// </summary>
         /// <value></value>
-        public bool IncludeDebugInfo { get; set; } = false;
+        public bool IncludeDebugInfo { get; set; }
 
         /// <summary>
         /// Do not execute the expression. Used for performance testing on EntityGraphQL code
         /// </summary>
         /// <value></value>
-        public bool NoExecution { get; set; } = false;
+        public bool NoExecution { get; set; }
 #endif
     }
 }

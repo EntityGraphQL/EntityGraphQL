@@ -59,7 +59,7 @@ namespace EntityGraphQL.Schema
             return arg;
         }
 
-        private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, NullabilityInfoEx nullability)
+        private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, NullabilityInfo nullability)
         {
             var markedRequired = false;
             var typeToUse = type;
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Schema
                 requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute
             };
 
-            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || nullability.WriteState == NullabilityStateEx.NotNull)
+            if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || nullability.WriteState == NullabilityState.NotNull)
             {
                 arg.IsRequired = true;
             }

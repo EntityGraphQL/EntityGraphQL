@@ -64,22 +64,22 @@
             {
                 var kind = st.GqlType switch
                 {
-                    GqlTypeEnum.Interface => "INTERFACE",
-                    GqlTypeEnum.Union => "UNION",
+                    GqlTypes.Interface => "INTERFACE",
+                    GqlTypes.Union => "UNION",
                     _ => "OBJECT"
                 };
 
                 var typeElement = new TypeElement(kind, st.Name)
                 {
                     Description = st.Description,
-                    PossibleTypes = st.PossibleTypes
+                    PossibleTypes = st.PossibleTypesReadOnly
                                     .Select(i => new TypeElement("OBJECT", i.Name))
-                                    ?.ToArray() ?? new TypeElement[0]
+                                    ?.ToArray() ?? Array.Empty<TypeElement>()
                 };
 
-                if (st.BaseTypes != null && st.BaseTypes.Count > 0)
+                if (st.BaseTypesReadOnly != null && st.BaseTypesReadOnly.Count > 0)
                 {
-                    typeElement.Interfaces = st.BaseTypes.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
+                    typeElement.Interfaces = st.BaseTypesReadOnly.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
                 }
 
                 types.Add(typeElement);
@@ -102,13 +102,13 @@
 
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsInput))
             {
-                if (schemaType.Name.StartsWith("__"))
+                if (schemaType.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
                 var inputValues = new List<InputValue>();
-                foreach (Field field in schemaType.GetFields())
+                foreach (var field in schemaType.GetFields().Cast<Field>())
                 {
-                    if (field.Name.StartsWith("__"))
+                    if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                         continue;
 
                     // Skip any property with special attribute
@@ -154,16 +154,16 @@
                 var typeElement = new TypeElement("ENUM", schemaType.Name)
                 {
                     Description = schemaType.Description,
-                    EnumValues = new EnumValue[] { }
+                    EnumValues = Array.Empty<EnumValue>()
                 };
-                if (schemaType.Name.StartsWith("__"))
+                if (schemaType.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
                 var enumTypes = new List<EnumValue>();
 
                 foreach (var field in schemaType.GetFields().Cast<Field>())
                 {
-                    if (field.Name.StartsWith("__"))
+                    if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                         continue;
 
                     var e = new EnumValue(field.Name)
@@ -171,7 +171,7 @@
                         Description = field.Description,
                     };
 
-                    field.Directives.ProcessEnumValue(e);
+                    field.DirectivesReadOnly.ProcessEnumValue(e);
 
                     enumTypes.Add(e);
                 }
@@ -253,7 +253,7 @@
             var type = schema.Type(typeName);
             foreach (var field in type.GetFields())
             {
-                if (field.Name.StartsWith("__"))
+                if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
                 var f = new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
@@ -262,7 +262,7 @@
                     Description = field.Description,
                 };
 
-                field.Directives.ProcessField(f);
+                field.DirectivesReadOnly.ProcessField(f);
 
                 fieldDescs.Add(f);
             }
@@ -275,7 +275,7 @@
 
             foreach (var field in schema.Type(schema.QueryContextName).GetFields())
             {
-                if (field.Name.StartsWith("__"))
+                if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
                 // Skipping ENUM type
@@ -289,7 +289,7 @@
                     Description = field.Description
                 };
 
-                field.Directives.ProcessField(f);
+                field.DirectivesReadOnly.ProcessField(f);
 
                 rootFields.Add(f);
             }
@@ -302,7 +302,7 @@
 
             foreach (var field in schema.GetSchemaType(schema.MutationType, null).GetFields())
             {
-                if (field.Name.StartsWith("__"))
+                if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
                 var args = BuildArgs(schema, field).ToArray();
@@ -312,7 +312,7 @@
                     Description = field.Description
                 };
 
-                field.Directives.ProcessField(f);
+                field.DirectivesReadOnly.ProcessField(f);
 
                 rootFields.Add(f);
             }
@@ -329,7 +329,7 @@
             {
                 var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
 
-                var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer).Trim('"');
+                var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer)?.Trim('"');
                 var defaultValue = string.IsNullOrEmpty(stringValue) ? null : stringValue;
 
                 args.Add(new InputValue(arg.Key, type)

@@ -22,8 +22,8 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     {
-        protected readonly ISchemaProvider schema;
-        protected readonly List<GraphQLDirective> directives = new();
+        protected ISchemaProvider Schema { get; set; }
+        protected List<GraphQLDirective> Directives { get; set; } = new();
 
         /// <summary>
         /// Name of the field
@@ -70,7 +70,7 @@ namespace EntityGraphQL.Compiler
             RootParameter = rootParameter;
             ParentNode = parentNode;
             this.Arguments = arguments ?? new Dictionary<string, object>();
-            this.schema = schema;
+            this.Schema = schema;
             Field = field;
         }
 
@@ -81,7 +81,7 @@ namespace EntityGraphQL.Compiler
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
             this.Arguments = context.Arguments ?? new Dictionary<string, object>();
-            this.schema = context.schema;
+            this.Schema = context.Schema;
             Field = context.Field;
         }
 
@@ -167,14 +167,14 @@ namespace EntityGraphQL.Compiler
 
         public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
         {
-            directives.AddRange(graphQLDirectives);
+            Directives.AddRange(graphQLDirectives);
         }
         protected BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
         {
             BaseGraphQLField? result = field;
-            foreach (var directive in directives)
+            foreach (var directive in Directives)
             {
-                result = directive.ProcessField(schema, field, Arguments, docParam, docVariables);
+                result = directive.ProcessField(Schema, field, Arguments, docParam, docVariables);
             }
             return result;
         }
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Compiler
         {
             return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as BaseGraphQLField);
         }

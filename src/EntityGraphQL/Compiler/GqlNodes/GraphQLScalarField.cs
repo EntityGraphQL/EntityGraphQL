@@ -33,7 +33,7 @@ namespace EntityGraphQL.Compiler
             if (HasServices && withoutServiceFields)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
 
-            (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer);
+            (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
 
             if (result == null)
                 return null;

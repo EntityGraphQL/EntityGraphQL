@@ -16,7 +16,7 @@ namespace EntityGraphQL.Directives
         public override Expression? ProcessExpression(Expression expression, object? arguments)
         {
             if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @include directive");
+                throw new ArgumentNullException("if", "Argument 'if' is requred for @include directive");
             if (((IncludeArguments)arguments).@if)
                 return expression;
             return null;
@@ -24,7 +24,7 @@ namespace EntityGraphQL.Directives
         public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments)
         {
             if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @include directive");
+                throw new ArgumentNullException("if", "Argument 'if' is requred for @include directive");
             if (((IncludeArguments)arguments).@if)
                 return field;
             return null;

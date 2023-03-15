@@ -60,11 +60,7 @@ namespace EntityGraphQL.AspNet.WebSockets
                     if (receiveResult.Count == 0)
                         continue;
 
-#if NET5 || NET6_0_OR_GREATER
                     await memoryStream.WriteAsync(segment.AsMemory(segment.Offset, receiveResult.Count), CancellationToken.None);
-#else
-                    await memoryStream.WriteAsync(segment.Array!, segment.Offset, receiveResult.Count, CancellationToken.None);
-#endif
                 } while (!receiveResult.EndOfMessage);
 
                 if (!webSocket.CloseStatus.HasValue)
