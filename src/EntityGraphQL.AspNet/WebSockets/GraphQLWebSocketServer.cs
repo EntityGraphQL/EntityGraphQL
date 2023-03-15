@@ -177,9 +177,10 @@ namespace EntityGraphQL.AspNet.WebSockets
 
         public void CompleteSubscription(Guid id)
         {
-            if (subscriptions.ContainsKey(id))
+            subscriptions.TryGetValue(id, out var subscription);
+            if (subscription != null)
             {
-                subscriptions[id].Dispose();
+                subscription.Dispose();
                 subscriptions.Remove(id);
             }
         }

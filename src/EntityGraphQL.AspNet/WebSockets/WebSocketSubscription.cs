@@ -8,7 +8,7 @@ namespace EntityGraphQL.AspNet.WebSockets
     /// Ties the GraphQL subscription to the WebSocket connection.
     /// </summary>
     /// <typeparam name="TEventType"></typeparam>
-    internal class WebSocketSubscription<TQueryContext, TEventType> : IDisposable, IObserver<TEventType>
+    internal sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposable, IObserver<TEventType>
     {
         private readonly Guid id;
         private readonly IObservable<TEventType> observable;
