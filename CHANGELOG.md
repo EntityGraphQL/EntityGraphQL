@@ -2,7 +2,8 @@
 
 ## Breaking Changes
 
-- `EntityGraphQL.AspNet` now targets `net6.0` and `net7.0`, dropping tagets `netcoreapp3.1` or `net5.0`. You can still use `EntityGraphQL` with older targets.
+- `EntityGraphQL.AspNet` now targets `net6.0` and `net7.0`, dropping tagets `netcoreapp3.1` or `net5.0`. You can still use the base `EntityGraphQL` library with older targets.
+- Interface `IExposableException` has been removed. Use `SchemaBuilderSchemaOptions.AllowedExceptions` or the new `AllowedExceptionAttribute` to define which exceptions are rendered into the results
 
 ## Changes
 

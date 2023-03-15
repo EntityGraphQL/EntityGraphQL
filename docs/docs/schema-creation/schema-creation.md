@@ -101,8 +101,19 @@ Optional arguments for the schema builder:
    - `.IntrospectionEnabled` - Weather or not GraphQL query introspection is enabled or not for the schema. Default is `true`
    - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization`
    - `.PreBuildSchemaFromContext` - Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
-   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not implementing `IExposableException` will have their message replaced with 'Error occurred'
-   - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`
+   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not included in `AllowedExceptions` will have their message replaced with 'Error occurred'
+   - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`. You can also mark your exceptions with `AllowedExceptionAttribute`. These exceptions are included by default.
+
+```cs
+public List<AllowedException> AllowedExceptions { get; set; } = new List<AllowedException> {
+    new AllowedException(typeof(EntityGraphQLArgumentException)),
+    new AllowedException(typeof(EntityGraphQLException)),
+    new AllowedException(typeof(EntityGraphQLFieldException)),
+    new AllowedException(typeof(EntityGraphQLAccessException)),
+    new AllowedException(typeof(EntityGraphQLValidationException)),
+};
+```
+
 2. `SchemaBuilderOptions` - options used to control how the schema builder builds the schema
 
    - `.AutoCreateFieldWithIdArguments` - for any fields that return a list of an Object Type that has a field called `Id`, it will create a singular field in the schema with an `id` argument. For example the `DemoContext` used in Getting Started the `DemoContext.People` will create the following GraphQL schema. Default is `true`

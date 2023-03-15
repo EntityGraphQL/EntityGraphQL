@@ -2,7 +2,7 @@
 
 namespace EntityGraphQL
 {
-    internal sealed class EntityGraphQLFieldException : Exception, IExposableException
+    internal sealed class EntityGraphQLFieldException : Exception
     {
         public readonly string FieldName;
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
@@ -95,14 +96,20 @@ namespace EntityGraphQL.Schema
         public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; }
 
         /// <summary>
-        /// If true (default), exceptions not implementing IExposableException will have their messages rendered in the 'errors' object
-        /// If false, exceptions not implementing IExposableException will have their message replaced with 'Error occurred'
+        /// If true (default), exceptions will have their messages rendered in the 'errors' object
+        /// If false, exceptions not in AllowedExceptions will have their message replaced with 'Error occurred'
         /// </summary>
         public bool IsDevelopment { get; set; } = true;
 
         /// <summary>
         /// List of allowed exceptions that will be rendered in the 'errors' object when IsDevelopment is false
         /// </summary>
-        public List<AllowedException> AllowedExceptions { get; set; } = new();
+        public List<AllowedException> AllowedExceptions { get; set; } = new List<AllowedException> {
+            new AllowedException(typeof(EntityGraphQLArgumentException)),
+            new AllowedException(typeof(EntityGraphQLException)),
+            new AllowedException(typeof(EntityGraphQLFieldException)),
+            new AllowedException(typeof(EntityGraphQLAccessException)),
+            new AllowedException(typeof(EntityGraphQLValidationException)),
+        };
     }
 }

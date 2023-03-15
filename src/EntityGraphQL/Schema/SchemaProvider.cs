@@ -273,7 +273,7 @@ namespace EntityGraphQL.Schema
                 case EntityGraphQLFieldException fieldException:
                     return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.Item2));
                 default:
-                    if (isDevelopment || exception is IExposableException || AllowedExceptions.Any(e => e.IsAllowed(exception)))
+                    if (isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null)
                         return new[] { (exception.Message, (IDictionary<string, object>?)null) };
                     return new[] { ("Error occurred", (IDictionary<string, object>?)null) };
             }

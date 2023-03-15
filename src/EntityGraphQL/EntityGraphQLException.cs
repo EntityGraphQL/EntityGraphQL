@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace EntityGraphQL;
 
-public class EntityGraphQLException : Exception, IExposableException
+public class EntityGraphQLException : Exception
 {
     public ReadOnlyDictionary<string, object> Extensions { get; }
 

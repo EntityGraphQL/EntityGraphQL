@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace EntityGraphQL.Compiler;
 
-public class EntityGraphQLValidationException : Exception, IExposableException
+public class EntityGraphQLValidationException : Exception
 {
     public List<string> ValidationErrors { get; }
 
@@ -12,7 +12,7 @@ public class EntityGraphQLValidationException : Exception, IExposableException
     {
         ValidationErrors = validationErrors.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
-    
+
     public EntityGraphQLValidationException(string validationError)
     {
         ValidationErrors = new List<string> { validationError };

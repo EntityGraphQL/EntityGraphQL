@@ -99,6 +99,10 @@ namespace EntityGraphQL.Tests
             get => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
             set => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
         }
+        public string Error_Allowed
+        {
+            get => throw new TestException();
+        }
 
         public double GetHeight(HeightUnit unit)
         {
@@ -109,6 +113,14 @@ namespace EntityGraphQL.Tests
                 HeightUnit.Feet => Height * 0.0328,
                 _ => throw new NotSupportedException($"Height unit {unit} not supported"),
             };
+        }
+    }
+
+    [AllowedException]
+    public class TestException : Exception
+    {
+        public TestException() : base("This error is allowed")
+        {
         }
     }
 
