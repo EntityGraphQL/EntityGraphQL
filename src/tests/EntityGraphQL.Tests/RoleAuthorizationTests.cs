@@ -121,6 +121,24 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestTypeIsSecuredWithNullUser()
+        {
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects { id }
+                }"
+            };
+
+            var result = schema.ExecuteRequest(gql, new RolesDataContext(), null, null);
+
+            Assert.NotNull(result.Errors);
+            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
+        }
+
+        [Fact]
         public void TestNonTopLevelTypeIsSecured()
         {
             var schema = SchemaBuilder.FromObject<RolesDataContext>();

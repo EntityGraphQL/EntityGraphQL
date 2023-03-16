@@ -112,7 +112,7 @@ namespace Benchmarks
                   DirectorName = (string?)null,
                   ActorId = (Guid?)null,
                   ActorName = (string?)null,
-                  Genres = new string[0],
+                  Genres = Array.Empty<string>(),
               },
               (ctx, args) => ctx.Set<Movie>()
                     .AsSplitQuery()
@@ -138,7 +138,7 @@ namespace Benchmarks
                     .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
                     .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
                     .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0)
-              ,"List of movies");
+              , "List of movies");
         }
 
         [Benchmark]

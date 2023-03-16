@@ -24,14 +24,14 @@ namespace EntityGraphQL.Schema
         public virtual bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuthorization != null && requiredAuthorization.Any() && user != null)
+            if (requiredAuthorization != null && requiredAuthorization.Any())
             {
                 // check roles
                 var allRolesValid = true;
                 foreach (var role in requiredAuthorization.Roles)
                 {
                     // each role now is an OR
-                    var hasValidRole = role.Any(r => user.IsInRole(r));
+                    var hasValidRole = role.Any(r => user?.IsInRole(r) == true);
                     allRolesValid = allRolesValid && hasValidRole;
                     if (!allRolesValid)
                         break;

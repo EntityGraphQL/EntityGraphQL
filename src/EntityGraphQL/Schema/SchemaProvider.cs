@@ -183,8 +183,7 @@ namespace EntityGraphQL.Schema
             QueryResult result;
             try
             {
-                if (options == null)
-                    options = new ExecutionOptions();
+                options ??= new ExecutionOptions();
                 GraphQLDocument? compiledQuery = null;
                 if (options.EnablePersistedQueries)
                 {

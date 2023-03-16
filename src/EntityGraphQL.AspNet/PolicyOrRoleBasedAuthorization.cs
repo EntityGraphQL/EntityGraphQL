@@ -28,10 +28,10 @@ namespace EntityGraphQL.AspNet
         public override bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuthorization != null && requiredAuthorization.Any() && user != null)
+            if (requiredAuthorization != null && requiredAuthorization.Any())
             {
                 // check polices if principal with used
-                if (authService != null)
+                if (authService != null && user != null)
                 {
                     var allPoliciesValid = true;
                     foreach (var policy in requiredAuthorization.Policies)
