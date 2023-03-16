@@ -28,7 +28,7 @@ namespace EntityGraphQL.Compiler.Util
         private readonly Stack<Expression> currentExpression = new();
         private bool matchByType;
 
-        public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType = false, string? rootFieldName = null)
+        public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType = false)
         {
             this.rootContext = rootContext;
             extractedExpressions = new Dictionary<string, List<Expression>>();

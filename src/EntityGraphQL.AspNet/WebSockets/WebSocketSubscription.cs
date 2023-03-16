@@ -20,7 +20,7 @@ namespace EntityGraphQL.AspNet.WebSockets
         public WebSocketSubscription(Guid id, object observable, IGraphQLWebSocketServer server, GraphQLSubscriptionStatement subscriptionStatement, GraphQLSubscriptionField node)
         {
             this.id = id;
-            if (!(observable is IObservable<TEventType>))
+            if (observable is not IObservable<TEventType>)
                 throw new ArgumentException($"{nameof(observable)} must be of type {nameof(IObservable<TEventType>)}");
             this.observable = (IObservable<TEventType>)observable;
             this.server = server;

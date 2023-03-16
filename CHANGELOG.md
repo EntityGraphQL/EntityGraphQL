@@ -10,6 +10,10 @@
 
 - `EntityGraphQL` (the core implementation) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
 
+## Fixes
+
+- #266 - Fix error calling `AddPossibleType()` when some of the types have already been added to the schema
+
 # 4.3.0
 
 ## Changes

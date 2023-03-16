@@ -74,8 +74,7 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                if (options == null)
-                    options = new SchemaBuilderOptions();
+                options ??= new SchemaBuilderOptions();
                 var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, this, Schema, options, GqlType == GqlTypes.InputObject);
                 AddFields(fields);
             }
@@ -416,6 +415,10 @@ namespace EntityGraphQL.Schema
 
                 if (addAllFieldsOnAddedType)
                     schemaType.AddAllFields();
+            }
+            else if (hasType && schemaType == null)
+            {
+                schemaType = Schema.GetSchemaType(type, null);
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {type.Name}. Make sure you add the type to the schema. Or use parameter addTypeIfNotInSchema = true");

@@ -49,7 +49,7 @@ namespace Benchmarks
         // }
 
         [Benchmark]
-        public void ObjectWithReflection()
+        public static void ObjectWithReflection()
         {
             var variables = new QueryVariables {
                 { "names", new { Name = "Lisa", LastName = "Simpson" } }
@@ -62,7 +62,7 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void ListWithReflection()
+        public static void ListWithReflection()
         {
             var variables = new QueryVariables {
                 { "names", new List<InputType2>{new InputType2{ Name = "Lisa", LastName = "Simpson" } }}

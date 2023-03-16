@@ -23,11 +23,11 @@ namespace EntityGraphQL.AspNet.WebSockets
         /// <summary>
         /// These are the subscriptions/clients that are currently active with this server.
         /// </summary>
-        private readonly Dictionary<Guid, IDisposable> subscriptions = new Dictionary<Guid, IDisposable>();
+        private readonly Dictionary<Guid, IDisposable> subscriptions = new();
         private readonly WebSocket webSocket;
         private readonly HttpContext context;
         private bool initialised;
-        private readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions
+        private readonly JsonSerializerOptions jsonOptions = new()
         {
             IncludeFields = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

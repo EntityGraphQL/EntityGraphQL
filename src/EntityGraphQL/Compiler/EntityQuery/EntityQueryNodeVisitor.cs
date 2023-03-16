@@ -166,9 +166,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public override Expression VisitConstant(EntityQLParser.ConstantContext context)
         {
-            var result = constantVisitor.VisitConstant(context);
-            if (result == null)
-                throw new EntityGraphQLCompilerException($"Could not compile constant {context.GetText()}");
+            var result = constantVisitor.VisitConstant(context) ?? throw new EntityGraphQLCompilerException($"Could not compile constant {context.GetText()}");
             return result;
         }
 

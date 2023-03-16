@@ -204,13 +204,6 @@ namespace Nullability
             throw new MissingMemberException(type.FullName, member.Name);
         }
 
-        //https://github.com/dotnet/runtime/blob/main/src/coreclr/System.Private.CoreLib/src/System/Reflection/MemberInfo.Internal.cs
-        static bool HasSameMetadataDefinitionAs(this MemberInfo target, MemberInfo other)
-        {
-            return target.MetadataToken == other.MetadataToken &&
-                   target.Module.Equals(other.Module);
-        }
-
         //https://github.com/dotnet/runtime/issues/23493
         public static bool IsGenericMethodParameter(this Type target)
         {

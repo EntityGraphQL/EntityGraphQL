@@ -58,8 +58,6 @@ namespace EntityGraphQL.AspNet.Extensions
         /// <param name="options">An object that specifies the serialization options to use.</param>
         private void WriteDictionary(Utf8JsonWriter writer, IDictionary<string, object> value, ref JsonSerializerOptions options)
         {
-            var type = value.GetType();
-
             writer.WriteStartObject();
 
             foreach (var key in value.Keys)

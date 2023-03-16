@@ -312,7 +312,7 @@ namespace EntityGraphQL.Schema
         {
             var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypes.Interface : typeof(TBaseType).IsEnum ? GqlTypes.Enum : GqlTypes.QueryObject;
             var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
-            FinishAddingType(typeof(TBaseType), name, schemaType);
+            FinishAddingType(typeof(TBaseType), schemaType);
             return schemaType;
         }
 
@@ -327,7 +327,7 @@ namespace EntityGraphQL.Schema
         {
             var gqlType = contextType.IsAbstract || contextType.IsInterface ? GqlTypes.Interface : GqlTypes.QueryObject;
             var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, gqlType, null)!;
-            FinishAddingType(contextType, name, newType);
+            FinishAddingType(contextType, newType);
             return newType;
         }
 
@@ -357,18 +357,18 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddType(ISchemaType schemaType)
         {
-            schemaTypes.Add(schemaType.Name, schemaType);
+            FinishAddingType(schemaType.TypeDotnet, schemaType);
             return schemaType;
         }
 
-        private void FinishAddingType(Type contextType, string name, ISchemaType tt)
+        private void FinishAddingType(Type contextType, ISchemaType tt)
         {
             tt.RequiredAuthorization = AuthorizationService.GetRequiredAuthFromType(contextType);
             if (string.IsNullOrEmpty(tt.Description))
             {
                 tt.Description = contextType.GetCustomAttribute<DescriptionAttribute>()?.Description;
             }
-            schemaTypes.Add(name, tt);
+            schemaTypes.Add(tt.Name, tt);
         }
 
         /// <summary>
@@ -413,7 +413,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddInputType(Type type, string name, string? description)
         {
             var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.InputObject, null)!;
-            FinishAddingType(type, name, newType);
+            FinishAddingType(type, newType);
 
             return newType;
         }
@@ -662,7 +662,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddEnum(string name, Type type, string description)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.Enum, null)!;
-            FinishAddingType(type, name, schemaType);
+            FinishAddingType(type, schemaType);
             return schemaType.AddAllFields();
         }
 
@@ -676,7 +676,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddInterface(Type type, string name, string? description)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.Interface, null)!;
-            FinishAddingType(type, name, schemaType);
+            FinishAddingType(type, schemaType);
             return schemaType;
         }
 
@@ -690,7 +690,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddInterface<TInterface>(string name, string? description)
         {
             var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypes.Interface);
-            FinishAddingType(typeof(TInterface), name, schemaType);
+            FinishAddingType(typeof(TInterface), schemaType);
             return schemaType;
         }
 
@@ -704,7 +704,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddUnion(Type type, string name, string? description)
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypes.Union);
-            FinishAddingType(type, name, schemaType);
+            FinishAddingType(type, schemaType);
             return schemaType;
         }
 
@@ -718,7 +718,7 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddUnion<TInterface>(string name, string? description)
         {
             var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypes.Union);
-            FinishAddingType(typeof(TInterface), name, schemaType);
+            FinishAddingType(typeof(TInterface), schemaType);
             return schemaType;
         }
 
