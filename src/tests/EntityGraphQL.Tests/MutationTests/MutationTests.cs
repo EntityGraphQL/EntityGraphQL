@@ -738,9 +738,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          taskWithListInt(inputs: [{id: 1, idLong: 1}, {id: 20, idLong:20}])
-        }
-        ",
+                    taskWithListInt(inputs: [{id: 1, idLong: 1}, {id: 20, idLong:20}])
+                }",
             };
 
             var testSchema = new TestDataContext();
@@ -776,9 +775,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          addDouble(double: 1.3)
-        }
-        ",
+                    addDouble(double: 1.3)
+                }",
             };
 
             var testSchema = new TestDataContext();

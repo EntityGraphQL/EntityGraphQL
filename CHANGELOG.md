@@ -14,6 +14,7 @@
 
 - #266 - Fix error calling `AddPossibleType()` when some of the types have already been added to the schema
 - `ExecutionOptions` passed into `IApplicationBuilder.UseGraphQLWebSockets()` are now used when executing the queries for the subscription
+- #284 - Support generic class types as mutation arguments. `MyClass<OtherClass>` will become `input MyClassOtherClass {}`
 
 # 4.3.0
 

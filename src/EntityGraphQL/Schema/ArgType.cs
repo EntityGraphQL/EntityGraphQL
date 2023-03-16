@@ -62,17 +62,30 @@ namespace EntityGraphQL.Schema
         private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, NullabilityInfo nullability)
         {
             var markedRequired = false;
-            var typeToUse = type;
-            if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(RequiredField<>))
+            var gqlLookupType = type;
+            var argType = type;
+            if (gqlLookupType.IsConstructedGenericType && gqlLookupType.GetGenericTypeDefinition() == typeof(RequiredField<>))
             {
                 markedRequired = true;
-                typeToUse = type.GetGenericArguments()[0];
+                argType = gqlLookupType = gqlLookupType.GetGenericArguments()[0];
                 // default value will often be the default value of the non-null type (e.g. 0 for int). 
                 // We are saying here it must be provided by the query
                 defaultValue = null;
             }
+            if (gqlLookupType.IsConstructedGenericType && gqlLookupType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+            {
+                gqlLookupType = typeof(string);
+            }
+            if (gqlLookupType.IsEnumerableOrArray())
+            {
+                gqlLookupType = gqlLookupType.GetNonNullableOrEnumerableType();
+            }
+            if (gqlLookupType.IsNullableType())
+            {
+                gqlLookupType = gqlLookupType.GetGenericArguments()[0];
+            }
 
-            var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(typeToUse.IsConstructedGenericType && typeToUse.GetGenericTypeDefinition() == typeof(EntityQueryType<>) ? typeof(string) : typeToUse.GetNonNullableOrEnumerableType(), null), typeToUse, nullability);
+            var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(gqlLookupType, null), argType, nullability);
             var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, memberInfo, type)
             {
                 DefaultValue = defaultValue,

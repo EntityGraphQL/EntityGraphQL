@@ -52,7 +52,9 @@ namespace EntityGraphQL.Schema
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
 
-                    var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
+                    var inputType = item.ParameterType.IsEnumerableOrArray() ? item.ParameterType.GetEnumerableOrArrayType()! : item.ParameterType;
+                    if (inputType.IsNullableType())
+                        inputType = inputType.GetGenericArguments()[0];
 
                     if (inputType == typeof(GraphQLValidator))
                     {
@@ -66,7 +68,6 @@ namespace EntityGraphQL.Schema
                     if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
                     {
                         Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
-                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.ParameterType);
                     }
                 }
             }
@@ -74,9 +75,20 @@ namespace EntityGraphQL.Schema
 
         private static void AddInputTypesInArguments(ISchemaProvider schema, bool autoAddInputTypes, Type propType)
         {
-            var inputType = propType.GetEnumerableOrArrayType() ?? propType;
+            var inputType = propType.IsEnumerableOrArray() ? propType.GetEnumerableOrArrayType()! : propType.IsNullableType() ? propType.GetGenericArguments()[0] : propType;
             if (autoAddInputTypes && !schema.HasType(inputType))
-                schema.AddInputType(inputType, inputType.Name, null).AddAllFields();
+                schema.AddInputType(inputType, GetTypeName(inputType), null).AddAllFields();
+        }
+
+        private static string GetTypeName(Type inputType)
+        {
+            if (inputType.IsGenericType)
+            {
+                var name = inputType.Name.Split('`')[0];
+                var genericArgs = string.Join("", inputType.GetGenericArguments().Select(t => GetTypeName(t)));
+                return $"{name}{genericArgs}";
+            }
+            return inputType.Name;
         }
 
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)

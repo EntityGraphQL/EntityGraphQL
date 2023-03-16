@@ -340,6 +340,7 @@ namespace EntityGraphQL.Tests
         public int Id { get; set; }
         public long IdLong { get; set; }
     }
+
     [GraphQLArguments]
     public class FloatInput
     {

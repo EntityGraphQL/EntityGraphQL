@@ -308,7 +308,7 @@ namespace EntityGraphQL.Schema
         /// <param name="description">description of the type</param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns>The added type for further changes via chaining</returns>
-        public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
+        public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description = null)
         {
             var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypes.Interface : typeof(TBaseType).IsEnum ? GqlTypes.Enum : GqlTypes.QueryObject;
             var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
@@ -323,7 +323,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
         /// <returns>The added type for further changes via chaining</returns>
-        public ISchemaType AddType(Type contextType, string name, string? description)
+        public ISchemaType AddType(Type contextType, string name, string? description = null)
         {
             var gqlType = contextType.IsAbstract || contextType.IsInterface ? GqlTypes.Interface : GqlTypes.QueryObject;
             var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(contextType), this, contextType, name, description, null, gqlType, null)!;
@@ -399,7 +399,7 @@ namespace EntityGraphQL.Schema
         /// <param name="description">Description of the input type</param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns>The added type for further changes via chaining</returns>
-        public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description)
+        public SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description = null)
         {
             return (SchemaType<TBaseType>)AddInputType(typeof(TBaseType), name, description);
         }
@@ -410,7 +410,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name">Name of the type. Used as passed. Case sensitive</param>
         /// <param name="description">Description of the input type</param>
         /// <returns>The added type for further changes via chaining</returns>
-        public ISchemaType AddInputType(Type type, string name, string? description)
+        public ISchemaType AddInputType(Type type, string name, string? description = null)
         {
             var newType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.InputObject, null)!;
             FinishAddingType(type, newType);
@@ -425,7 +425,7 @@ namespace EntityGraphQL.Schema
         /// <param name="gqlTypeName">GraphQL scalar type name</param>
         /// <param name="description">Description of the scalar type</param>
         /// <returns>The added type for further changes via chaining</returns>
-        public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description)
+        public ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description = null)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(clrType), this, gqlTypeName, description, null, GqlTypes.Scalar, null)!;
             schemaTypes.Add(gqlTypeName, schemaType);
@@ -439,7 +439,7 @@ namespace EntityGraphQL.Schema
         /// <param name="gqlTypeName">GraphQL scalar type name</param>
         /// <param name="description">Description of the scalar type</param>
         /// <returns>The added type for further changes via chaining</returns>
-        public SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description)
+        public SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description = null)
         {
             var schemaType = new SchemaType<TType>(this, gqlTypeName, description, null, GqlTypes.Scalar);
             schemaTypes.Add(gqlTypeName, schemaType);
@@ -673,7 +673,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddInterface(Type type, string name, string? description)
+        public ISchemaType AddInterface(Type type, string name, string? description = null)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.Interface, null)!;
             FinishAddingType(type, schemaType);
@@ -687,7 +687,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddInterface<TInterface>(string name, string? description)
+        public ISchemaType AddInterface<TInterface>(string name, string? description = null)
         {
             var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypes.Interface);
             FinishAddingType(typeof(TInterface), schemaType);
@@ -701,7 +701,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddUnion(Type type, string name, string? description)
+        public ISchemaType AddUnion(Type type, string name, string? description = null)
         {
             var schemaType = new SchemaType<object>(this, type, name, description, null, GqlTypes.Union);
             FinishAddingType(type, schemaType);
@@ -715,7 +715,7 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public ISchemaType AddUnion<TInterface>(string name, string? description)
+        public ISchemaType AddUnion<TInterface>(string name, string? description = null)
         {
             var schemaType = new SchemaType<TInterface>(this, typeof(TInterface), name, description, null, GqlTypes.Union);
             FinishAddingType(typeof(TInterface), schemaType);
