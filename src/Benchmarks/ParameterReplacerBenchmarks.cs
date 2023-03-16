@@ -26,10 +26,10 @@ namespace Benchmarks
             public string[] Genres { get; set; } = Array.Empty<string>();
         }
 
-        Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node;
-        Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node2;
-        Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node3;
-        Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node4;
+        readonly Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node;
+        readonly Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node2;
+        readonly Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node3;
+        readonly Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node4;
 
         public ParameterReplacerBenchmarks()
         {

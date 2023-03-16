@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler.Util
         private bool finished;
         private bool replaceWholeExpression;
         private string? newFieldNameForType;
-        Dictionary<object, Expression> cache = new();
+        private Dictionary<object, Expression> cache = new();
         private bool hasNewFieldNameForType;
 
         /// <summary>
@@ -154,28 +154,33 @@ namespace EntityGraphQL.Compiler.Util
                 var key = node.Arguments[0];
                 // if we have already replaced this expression then use the cached version. 
                 // e.g. Extension method where the same expression is passed to each method
-                Expression callBase = cache.ContainsKey(key) ? callBase = cache[key] : callBase = cache[key] = base.Visit(key);
+                cache.TryGetValue(key, out Expression? callBase);
+                if (callBase == null)
+                {
+                    callBase = base.Visit(key);
+                    cache[key] = callBase;
+                }
 
                 var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
                 var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
                 {
                     var replaceAgain = new ParameterReplacer();
-                    var newTypeArgs = new List<Type> { callBaseType };
-                    var newArgs = new List<Expression>();
+                    var newTypeArgs = new List<Type>(node.Arguments.Count) { callBaseType };
+                    var newArgs = new List<Expression>(node.Arguments.Count) { callBase };
                     var oldTypeArgs = node.Method.GetGenericArguments();
                     foreach (var oldArg in node.Arguments.Skip(1))
                     {
                         var newArg = replaceAgain.ReplaceByType(oldArg, oldCallBaseType, Expression.Parameter(callBaseType));
                         newArgs.Add(newArg);
-                        if (oldTypeArgs.Contains(oldArg.Type))
-                            newTypeArgs.Add(newArg.Type);
-                        else if (newArg.NodeType == ExpressionType.Lambda && oldTypeArgs.Contains(((LambdaExpression)newArg).ReturnType))
+                        if (newArg.NodeType == ExpressionType.Lambda && oldTypeArgs.Contains(((LambdaExpression)newArg).ReturnType))
                             newTypeArgs.Add(((LambdaExpression)newArg).ReturnType);
+                        else
+                            newTypeArgs.Add(newArg.Type);
                     }
                     if (oldTypeArgs.Length != newTypeArgs.Count)
                         throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");
-                    var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), (new[] { callBase }).Concat(newArgs).ToArray());
+                    var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), newArgs.ToArray());
                     return newCall;
                 }
             }
