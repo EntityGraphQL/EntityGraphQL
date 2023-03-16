@@ -270,7 +270,7 @@ namespace EntityGraphQL.Schema
                 case TargetInvocationException targetInvocationException:
                     return GenerateMessage(targetInvocationException.InnerException!);
                 case EntityGraphQLFieldException fieldException:
-                    return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.Item2));
+                    return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.extensions));
                 default:
                     if (isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null)
                         return new[] { (exception.Message, (IDictionary<string, object>?)null) };

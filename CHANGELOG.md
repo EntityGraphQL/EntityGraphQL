@@ -13,6 +13,7 @@
 ## Fixes
 
 - #266 - Fix error calling `AddPossibleType()` when some of the types have already been added to the schema
+- `ExecutionOptions` passed into `IApplicationBuilder.UseGraphQLWebSockets()` are now used when executing the queries for the subscription
 
 # 4.3.0
 

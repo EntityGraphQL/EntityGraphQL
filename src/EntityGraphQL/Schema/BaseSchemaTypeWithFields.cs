@@ -58,10 +58,7 @@ namespace EntityGraphQL.Schema
                     else
                     {
                         var handler = Schema.GetAttributeHandlerFor(attribute.GetType());
-                        if (handler != null)
-                        {
-                            handler.ApplyExtension(this, attribute);
-                        }
+                        handler?.ApplyExtension(this, attribute);
                     }
                 }
             }

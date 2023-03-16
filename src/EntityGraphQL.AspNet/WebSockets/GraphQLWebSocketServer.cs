@@ -26,6 +26,7 @@ namespace EntityGraphQL.AspNet.WebSockets
         private readonly Dictionary<Guid, IDisposable> subscriptions = new();
         private readonly WebSocket webSocket;
         private readonly HttpContext context;
+        private readonly ExecutionOptions options;
         private bool initialised;
         private readonly JsonSerializerOptions jsonOptions = new()
         {
@@ -33,10 +34,11 @@ namespace EntityGraphQL.AspNet.WebSockets
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        public GraphQLWebSocketServer(WebSocket webSocket, HttpContext context)
+        public GraphQLWebSocketServer(WebSocket webSocket, HttpContext context, ExecutionOptions? options = null)
         {
             this.webSocket = webSocket;
             this.context = context;
+            this.options = options ?? new ExecutionOptions();
         }
 
         public async Task HandleAsync()
@@ -128,7 +130,7 @@ namespace EntityGraphQL.AspNet.WebSockets
                 {
                     var request = graphQLWSMessage.Payload;
                     // executing this sets up the observers etc. We don't return any data until we have an event
-                    var result = await schema.ExecuteRequestAsync(request, schemaContext, context.RequestServices, context.User, null)!;
+                    var result = await schema.ExecuteRequestAsync(request, schemaContext, context.RequestServices, context.User, options)!;
                     if (result.Errors != null)
                     {
                         await SendErrorAsync(graphQLWSMessage.Id!.Value, result.Errors);

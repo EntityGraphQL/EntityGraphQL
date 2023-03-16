@@ -29,7 +29,7 @@ namespace EntityGraphQL.AspNet
                             return;
                         }
 
-                        var server = new GraphQLWebSocketServer<TQueryType>(webSocket, context);
+                        var server = new GraphQLWebSocketServer<TQueryType>(webSocket, context, options);
 
                         await server.HandleAsync();
                     }
