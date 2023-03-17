@@ -55,8 +55,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaBuilderOptions? buildOptions = null, ILogger<SchemaProvider<TContextType>>? logger = null)
         {
-            if (buildOptions == null)
-                buildOptions = new SchemaBuilderOptions();
+            buildOptions ??= new SchemaBuilderOptions();
             var schemaOptions = new SchemaBuilderSchemaOptions();
 
             var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
@@ -168,7 +167,7 @@ namespace EntityGraphQL.Schema
                 if (f != null)
                     fields.AddRange(f);
             }
-            foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+            foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static))
             {
                 var attribute = method.GetCustomAttribute<GraphQLFieldAttribute>();
                 if (attribute == null)
@@ -233,7 +232,7 @@ namespace EntityGraphQL.Schema
                         argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
 
                         var paramExpressions = methodParameters.Select(x => Expression.PropertyOrField(argTypeParam!, x.Name!));
-                        var call = Expression.Call(param, method, paramExpressions);
+                        var call = Expression.Call(method.IsStatic ? null : param, method, paramExpressions);
                         le = Expression.Lambda(call, param, argTypeParam!);
                     }
                     else
