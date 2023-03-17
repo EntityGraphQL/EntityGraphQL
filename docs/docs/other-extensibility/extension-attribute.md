@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Extension Attribute
 
-[Field Extensions](../field-extensions/) and [Schema Directives](../directives/schema-directives) use the [ExtensionAttribute] or `IExtensionAttributeHandler` interface to apply extensions to `IFields`and `ISchemaTypes`.
+[Field Extensions](../field-extensions/) and [Schema Directives](../directives/schema-directives) use the [ExtensionAttribute] or `IExtensionAttributeHandler` interface to apply extensions to `IFields` and `ISchemaTypes`.
 
 `ExtensionAttribute` is useful when building new Attributes (see `GraphQLOneOfAttribute`) whereas `IExtensionAttributeHandler` allows you to use existing attributes (see `ObsoleteAttributeHandler` which marks items with the [ObsoleteAttribute] as @deprecated).
 

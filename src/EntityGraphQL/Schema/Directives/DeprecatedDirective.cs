@@ -37,7 +37,7 @@ namespace EntityGraphQL.Schema.Directives
 
         public string? Reason { get; }
 
-        public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
             TypeSystemDirectiveLocation.FieldDefinition,
             TypeSystemDirectiveLocation.ArgumentDefinition,
             TypeSystemDirectiveLocation.InputFieldDefinition,

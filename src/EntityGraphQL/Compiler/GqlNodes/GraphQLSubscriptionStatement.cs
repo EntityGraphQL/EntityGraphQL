@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
@@ -36,6 +37,13 @@ namespace EntityGraphQL.Compiler
             this.docVariables = BuildDocumentVariables(ref variables);
 
             var result = new ConcurrentDictionary<string, object?>();
+            // pass to directvies
+            foreach (var directive in Directives)
+            {
+                if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
+                    return result;
+            }
+
             CompileContext compileContext = new();
             foreach (var field in QueryFields)
             {

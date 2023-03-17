@@ -37,7 +37,7 @@ namespace Benchmarks
             };
 
             queryCache = new QueryCache();
-            queryCache.AddCompiledQuery(query, new GraphQLDocument((name) => name));
+            queryCache.AddCompiledQuery(query, new GraphQLDocument(Schema));
         }
 
         [Benchmark]

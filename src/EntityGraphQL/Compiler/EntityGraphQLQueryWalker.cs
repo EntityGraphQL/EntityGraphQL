@@ -6,6 +6,7 @@ using EntityGraphQL.Compiler.Util;
 using System;
 using EntityGraphQL.Extensions;
 using HotChocolate.Language;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Compiler
 {
@@ -44,7 +45,7 @@ namespace EntityGraphQL.Compiler
             if (context != null)
                 throw new ArgumentException("context should be null", nameof(context));
 
-            Document = new GraphQLDocument(schemaProvider.SchemaFieldNamer);
+            Document = new GraphQLDocument(schemaProvider);
             base.VisitDocument(node, context);
         }
         protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode? context)
@@ -59,6 +60,8 @@ namespace EntityGraphQL.Compiler
             {
                 var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"query_ctx");
                 context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
+                if (node.Directives?.Any() == true)
+                    context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.QUERY, node.Directives));
                 currentOperation = (GraphQLQueryStatement)context;
             }
             else if (node.Operation == OperationType.Mutation)
@@ -66,6 +69,8 @@ namespace EntityGraphQL.Compiler
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut_ctx");
                 context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
+                if (node.Directives?.Any() == true)
+                    context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.MUTATION, node.Directives));
                 currentOperation = (GraphQLMutationStatement)context;
             }
             else if (node.Operation == OperationType.Subscription)
@@ -73,6 +78,8 @@ namespace EntityGraphQL.Compiler
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.SubscriptionType, $"sub_ctx");
                 context = new GraphQLSubscriptionStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, operationVariables);
+                if (node.Directives?.Any() == true)
+                    context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.SUBSCRIPTION, node.Directives));
                 currentOperation = (GraphQLSubscriptionStatement)context;
             }
 
@@ -116,6 +123,15 @@ namespace EntityGraphQL.Compiler
                     DefaultValue = defaultValue,
                     IsRequired = isRequired
                 });
+
+                if (item.Directives?.Any() == true)
+                {
+                    var directives = ProcessFieldDirectives(ExecutableDirectiveLocation.VARIABLE_DEFINITION, item.Directives);
+                    foreach (var directive in directives)
+                    {
+                        directive.VisitNode(ExecutableDirectiveLocation.VARIABLE_DEFINITION, schemaProvider, null, new Dictionary<string, object>(), null, null);
+                    }
+                }
 
                 if (item.Type.Kind == SyntaxKind.NonNullType && variables.ContainsKey(argName) == false)
                 {
@@ -177,7 +193,7 @@ namespace EntityGraphQL.Compiler
                 }
                 if (node.Directives?.Any() == true)
                 {
-                    graphqlMutationField.AddDirectives(ProcessFieldDirectives(node.Directives));
+                    graphqlMutationField.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.FIELD, node.Directives));
                 }
 
                 context.AddField(graphqlMutationField);
@@ -206,7 +222,7 @@ namespace EntityGraphQL.Compiler
                 }
                 if (node.Directives?.Any() == true)
                 {
-                    graphqlSubscriptionField.AddDirectives(ProcessFieldDirectives(node.Directives));
+                    graphqlSubscriptionField.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.FIELD, node.Directives));
                 }
 
                 context.AddField(graphqlSubscriptionField);
@@ -232,7 +248,7 @@ namespace EntityGraphQL.Compiler
 
                 if (node.Directives?.Any() == true)
                 {
-                    fieldResult.AddDirectives(ProcessFieldDirectives(node.Directives));
+                    fieldResult.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.FIELD, node.Directives));
                 }
                 if (fieldResult != null)
                 {
@@ -351,12 +367,14 @@ namespace EntityGraphQL.Compiler
             return QueryWalkerHelper.ProcessArgumentValue(schema, argument.Value, argName, argType);
         }
 
-        private List<GraphQLDirective> ProcessFieldDirectives(IEnumerable<DirectiveNode> directives)
+        private List<GraphQLDirective> ProcessFieldDirectives(ExecutableDirectiveLocation location, IEnumerable<DirectiveNode> directives)
         {
             var result = new List<GraphQLDirective>();
             foreach (var directive in directives)
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
+                if (!processor.Location.Contains(location))
+                    throw new EntityGraphQLCompilerException($"Directive '{directive.Name.Value}' can not be used on '{location}'");
                 var argTypes = processor.GetArguments(schemaProvider);
                 var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
@@ -379,7 +397,14 @@ namespace EntityGraphQL.Compiler
             var typeName = node.TypeCondition.Name.Value;
 
             var fragParameter = Expression.Parameter(schemaProvider.Type(typeName).TypeDotnet, $"frag_{typeName}");
-            var fragDef = new GraphQLFragmentStatement(node.Name.Value, fragParameter, fragParameter);
+            var fragDef = new GraphQLFragmentStatement(schemaProvider, node.Name.Value, fragParameter, fragParameter);
+            if (node.Directives?.Any() == true)
+            {
+                foreach (var directive in ProcessFieldDirectives(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, node.Directives))
+                {
+                    directive.VisitNode(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, schemaProvider, fragDef, new Dictionary<string, object>(), null, null);
+                }
+            }
 
             Document.Fragments.Add(fragDef);
 
@@ -398,6 +423,11 @@ namespace EntityGraphQL.Compiler
                 {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");
                     var newContext = new GraphQLInlineFragmentField(schemaProvider, type.Name, fragParameter, fragParameter, context);
+
+                    if (node.Directives?.Any() == true)
+                    {
+                        newContext.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.INLINE_FRAGMENT, node.Directives));
+                    }
 
                     base.VisitInlineFragment(node, newContext);
 
@@ -418,10 +448,10 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
             // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
             // Just store the name to look up when needed
-            BaseGraphQLField? fragField = new GraphQLFragmentField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
+            BaseGraphQLField? fragField = new GraphQLFragmentSpreadField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
             if (node.Directives?.Any() == true)
             {
-                fragField.AddDirectives(ProcessFieldDirectives(node.Directives));
+                fragField.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.FRAGMENT_SPREAD, node.Directives));
             }
             if (fragField != null)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -22,7 +23,8 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     {
-        protected ISchemaProvider Schema { get; set; }
+        public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
+        public ISchemaProvider Schema { get; protected set; }
         protected List<GraphQLDirective> Directives { get; set; } = new();
 
         /// <summary>
@@ -112,9 +114,35 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+        public Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        {
+            IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
+            if (fieldNode == null)
+                return null;
+
+            return ((BaseGraphQLField)fieldNode).GetFieldExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+        }
+
+        /// <summary>
+        /// GetNodeExpression but without the directive processing as we do not want to process continuously
+        /// </summary>
+        protected abstract Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+
+        public IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        {
+            IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
+
+            if (fieldNode == null)
+                return new List<BaseGraphQLField>();
+
+            return ((BaseGraphQLField)fieldNode).ExpandField(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
+        }
+
+        protected virtual IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        {
+            return ExpandFromServices(withoutServiceFields, this);
+        }
 
         /// <summary>
         /// Bring up any context based expression from services
@@ -169,12 +197,12 @@ namespace EntityGraphQL.Compiler
         {
             Directives.AddRange(graphQLDirectives);
         }
-        protected BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+        protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
         {
-            BaseGraphQLField? result = field;
+            IGraphQLNode? result = field;
             foreach (var directive in Directives)
             {
-                result = directive.ProcessField(Schema, field, Arguments, docParam, docVariables);
+                result = directive.VisitNode(location, Schema, field, Arguments, docParam, docVariables);
             }
             return result;
         }

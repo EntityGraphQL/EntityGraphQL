@@ -6,6 +6,7 @@ namespace EntityGraphQL.Compiler
 {
     public interface IGraphQLNode
     {
+        ISchemaProvider Schema { get; }
         /// <summary>
         /// Name of the field
         /// </summary>
@@ -25,5 +26,6 @@ namespace EntityGraphQL.Compiler
         IField? Field { get; }
         bool HasServices { get; }
         IReadOnlyDictionary<string, object> Arguments { get; }
+        void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
     }
 }

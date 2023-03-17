@@ -49,7 +49,7 @@ namespace EntityGraphQL.Schema
 
             foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
             {
-                schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.On.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
+                schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
             }
             schemaBuilder.AppendLine();
 

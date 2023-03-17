@@ -28,13 +28,64 @@ The GraphQL spec defines 2 directives that are supported out of the box in Entit
 
 ## Custom Directives
 
-See the [IncludeDirective](https://github.com/lukemurray/EntityGraphQL/blob/master/src/EntityGraphQL/Directives/IncludeDirectiveProcessor.cs) implementation to see how you could implement a custom directive. You can add your directive to the schema with the following
+Directives give you access to the GraphQL Nodes - a abstract-code representation of the query document. You can return new `IGraphQLNode` with modified data to make changes before executing.
+
+The main interface is `IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)` - This is called when the node in the document graph is seen. You can return `null` to remove the node from the result.
+- `location` will tell you the location/type of the node the directive was added to (e.g. field, fragment spread)
+-  `node` is information about the node.
+- `arguments` are any arguments passed to the directive
+
+_We're keen to hear if you can or cannot implement the functionality you require with the above interface. Please open an issue describing what you are trying to implement if you have issues. You may also want to look at [Field Extensions](../field-extensions/)._
+
+### Example
+
+Here is a simple directive that rewrites the expression to provide date formatting in the query.
 
 ```cs
-// Example only, you don't need to actually add Include or Skip directives
-schema.AddDirective(new IncludeDirective());
+public class FormatDirective : DirectiveProcessor<FormatDirectiveArgs>
+{
+  public override string Name => "format";
+  public override string Description => "Formats DateTime scalar values";
+  public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD };
+
+  public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode node, object arguments)
+  {
+    if (arguments is FormatDirectiveArgs args)
+    {
+      // only operate on scalar nodes
+      if (node is GraphQLScalarField fieldNode)
+      {
+        var expression = fieldNode.NextFieldContext;
+        if (expression.Type != typeof(DateTime) && expression.Type != typeof(DateTime?))
+          throw new EntityGraphQLException("The format directive can only be used on DateTime fields");
+
+        if (expression.Type == typeof(DateTime?))
+          expression = Expression.Property(expression, "Value"); 
+        expression = Expression.Call(expression, "ToString", null, Expression.Constant(args.As));
+        return new GraphQLScalarField(fieldNode.Schema, fieldNode.Field, fieldNode.Name, expression, fieldNode.RootParameter, fieldNode.ParentNode, fieldNode.Arguments);
+      }
+    }
+    return node;
+  }
+}
+
+internal class FormatDirectiveArgs
+{
+  [GraphQLField("as", "The format to use")]
+  public string As { get; set; }
+}
+
+// Add it to you schema
+schema.AddDirective(new FormatDirective());
 ```
 
-These directives work on the internal representation of a field `GraphQLQueryNode`. This is working against the query graph not the data result.
+Use it like this...
 
-_There is more functionality planned for custom directives which can work on both the pre-execution query graph or the post-execution data._
+```gql
+query {
+  people {
+    id
+    birthday @format(as: "dd MMM yyyy")
+  }
+}
+```

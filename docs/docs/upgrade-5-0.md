@@ -13,3 +13,10 @@ You can see the full changelog which includes other changes and bug fixes as wel
 ## `IExposableException` removed
 
 Interface `IExposableException` has been removed. Use the existing `SchemaBuilderSchemaOptions.AllowedExceptions` property to define which exceptions are rendered into the results. Or mark your exceptions with the `AllowedExceptionAttribute` to have exception details in the results when `SchemaBuilderSchemaOptions.IsDevelopment` is `false`.
+
+
+## `IDirectiveProcessor` updated
+
+- `IDirectiveProcessor.On` renamed to `IDirectiveProcessor.Location`
+- `IDirectiveProcessor.ProcessField()` removed, use `IDirectiveProcessor.VisitNode`
+- `IDirectiveProcessor.ProcessExpression()` Has been removed. You can build a new `IGraphQLNode` in `VisitNode` to make changes to the graph

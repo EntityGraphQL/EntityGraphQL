@@ -30,7 +30,6 @@ namespace EntityGraphQL.Compiler
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; }
         public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
-        private readonly Func<string, string> fieldNamer;
 
         /// <summary>
         /// A list of GraphQL operations. These could be mutations or queries
@@ -38,11 +37,11 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public List<ExecutableGraphQLStatement> Operations { get; }
         public List<GraphQLFragmentStatement> Fragments { get; set; }
-        public GraphQLDocument(Func<string, string> fieldNamer)
+        public GraphQLDocument(ISchemaProvider schema)
         {
+            Schema = schema;
             Operations = new List<ExecutableGraphQLStatement>();
             Fragments = new List<GraphQLFragmentStatement>();
-            this.fieldNamer = fieldNamer;
             Arguments = new Dictionary<string, object>();
         }
 
@@ -55,6 +54,8 @@ namespace EntityGraphQL.Compiler
         public bool HasServices { get => Field?.Services.Any() == true; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
+
+        public ISchemaProvider Schema { get; }
 
         public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
         {
@@ -85,7 +86,7 @@ namespace EntityGraphQL.Compiler
             // execute the selected operation
             options ??= new ExecutionOptions(); // defaults
 
-            result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, fieldNamer, options, variables));
+            result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
 
             if (validator.Errors.Count > 0)
                 result.AddErrors(validator.Errors);
@@ -94,6 +95,11 @@ namespace EntityGraphQL.Compiler
         }
 
         public void AddField(BaseGraphQLField field)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
         {
             throw new NotImplementedException();
         }

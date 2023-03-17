@@ -24,7 +24,7 @@ namespace EntityGraphQL.Compiler
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
         protected Dictionary<string, ArgType> OpDefinedVariables { get; set; } = new();
-        protected ISchemaProvider Schema { get; set; }
+        public ISchemaProvider Schema { get; protected set; }
 
         public ParameterExpression? OpVariableParameter { get; }
 
@@ -36,6 +36,7 @@ namespace EntityGraphQL.Compiler
         public string Name { get; }
 
         public List<BaseGraphQLField> QueryFields { get; } = new();
+        protected List<GraphQLDirective> Directives { get; } = new();
 
         public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
         {
@@ -237,6 +238,11 @@ namespace EntityGraphQL.Compiler
         public virtual void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
+        }
+
+        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
+        {
+            Directives.AddRange(graphQLDirectives);
         }
     }
 }

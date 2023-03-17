@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema.Directives
         {
         }
 
-        public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
             TypeSystemDirectiveLocation.InputObject
         };
 

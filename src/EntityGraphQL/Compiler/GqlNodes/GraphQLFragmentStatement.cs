@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -20,25 +21,25 @@ namespace EntityGraphQL.Compiler
 
         public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
 
-        public GraphQLFragmentStatement(string name, ParameterExpression selectContext, ParameterExpression rootParameter)
+        public ISchemaProvider Schema { get; }
+
+        public GraphQLFragmentStatement(ISchemaProvider schema, string name, ParameterExpression selectContext, ParameterExpression rootParameter)
         {
             Name = name;
             NextFieldContext = selectContext;
             RootParameter = rootParameter;
             Arguments = new Dictionary<string, object>();
-        }
-
-        public GraphQLFragmentStatement(GraphQLFragmentStatement context, ParameterExpression? nextFieldContext)
-        {
-            Name = context.Name;
-            RootParameter = context.RootParameter;
-            NextFieldContext = nextFieldContext;
-            Arguments = new Dictionary<string, object>();
+            Schema = schema;
         }
 
         public void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
+        }
+
+        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
+        {
+            throw new NotImplementedException();
         }
     }
 }

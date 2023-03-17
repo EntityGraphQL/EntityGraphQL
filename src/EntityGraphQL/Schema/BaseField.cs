@@ -242,7 +242,7 @@ namespace EntityGraphQL.Schema
 
         public IField AddDirective(ISchemaDirective directive)
         {
-            if (!directive.On.Any(x => x == TypeSystemDirectiveLocation.FieldDefinition))
+            if (!directive.Location.Any(x => x == TypeSystemDirectiveLocation.FieldDefinition))
                 throw new InvalidOperationException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
 
             Directives.Add(directive);

@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -142,13 +143,6 @@ namespace EntityGraphQL.Schema
         public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? expression = fieldExpression;
-            foreach (var directive in directives)
-            {
-                expression = directive.Process(Schema, fieldExpression, args, docParam, docVariables);
-            }
-            if (expression == null)
-                return (null, null);
-
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
             (var result, var argumentParam) = PrepareFieldExpression(args, this, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
             if (result == null)

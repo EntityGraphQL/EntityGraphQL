@@ -146,12 +146,12 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddDirective(ISchemaDirective directive)
         {
             if (
-                (GqlType == GqlTypes.Scalar && !directive.On.Contains(TypeSystemDirectiveLocation.Scalar)) ||
-                (GqlType == GqlTypes.QueryObject && !directive.On.Contains(TypeSystemDirectiveLocation.QueryObject)) ||
-                (GqlType == GqlTypes.Interface && !directive.On.Contains(TypeSystemDirectiveLocation.Interface)) ||
-                (GqlType == GqlTypes.Enum && !directive.On.Contains(TypeSystemDirectiveLocation.Enum)) ||
-                (GqlType == GqlTypes.InputObject && !directive.On.Contains(TypeSystemDirectiveLocation.InputObject)) ||
-                (GqlType == GqlTypes.Union && !directive.On.Contains(TypeSystemDirectiveLocation.Union))
+                (GqlType == GqlTypes.Scalar && !directive.Location.Contains(TypeSystemDirectiveLocation.Scalar)) ||
+                (GqlType == GqlTypes.QueryObject && !directive.Location.Contains(TypeSystemDirectiveLocation.QueryObject)) ||
+                (GqlType == GqlTypes.Interface && !directive.Location.Contains(TypeSystemDirectiveLocation.Interface)) ||
+                (GqlType == GqlTypes.Enum && !directive.Location.Contains(TypeSystemDirectiveLocation.Enum)) ||
+                (GqlType == GqlTypes.InputObject && !directive.Location.Contains(TypeSystemDirectiveLocation.InputObject)) ||
+                (GqlType == GqlTypes.Union && !directive.Location.Contains(TypeSystemDirectiveLocation.Union))
             )
             {
                 throw new EntityQuerySchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");

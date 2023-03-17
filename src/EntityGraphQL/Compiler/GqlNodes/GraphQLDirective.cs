@@ -19,7 +19,7 @@ public class GraphQLDirective
         this.name = name;
     }
 
-    public Expression? Process(ISchemaProvider schema, Expression fieldExpression, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
+    public IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, ISchemaProvider schema, IGraphQLNode? node, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
     {
         var validationErrors = new List<string>();
         var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema).Values, processor.GetArgumentsType(), docParam, docVariables, validationErrors);
@@ -29,19 +29,6 @@ public class GraphQLDirective
             throw new EntityGraphQLValidationException(validationErrors);
         }
 
-        return processor.ProcessExpression(fieldExpression, arguments);
-    }
-
-    public BaseGraphQLField? ProcessField(ISchemaProvider schema, BaseGraphQLField field, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables)
-    {
-        var validationErrors = new List<string>();
-        var arguments = ArgumentUtil.BuildArgumentsObject(schema, name, null, inlineArgValues.MergeNew(args), processor.GetArguments(schema).Values, processor.GetArgumentsType(), docParam, docVariables, validationErrors);
-
-        if (validationErrors.Count > 0)
-        {
-            throw new EntityGraphQLValidationException(validationErrors);
-        }
-
-        return processor.ProcessField(field, arguments);
+        return processor.VisitNode(location, node, arguments);
     }
 }

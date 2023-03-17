@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
@@ -25,6 +25,13 @@ namespace EntityGraphQL.Compiler
         public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
+            // pass to directvies
+            foreach (var directive in Directives)
+            {
+                if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
+                    return result;
+            }
+
             // Mutation fields don't directly have services to collect. This is handled after the mutaiton is executed.
             // When we are building/executing the selection on the mutation result services are handled
             CompileContext compileContext = new();
