@@ -93,6 +93,20 @@ namespace EntityGraphQL.Schema
                 requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute
             };
 
+            if (memberInfo?.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute descAttr)
+            {
+                if (!string.IsNullOrEmpty(descAttr.Description))
+                    arg.Name = descAttr.Description;
+            }
+
+            if (memberInfo?.GetCustomAttribute<GraphQLFieldAttribute>() is GraphQLFieldAttribute gqlFieldAttr)
+            {
+                if (!string.IsNullOrEmpty(gqlFieldAttr.Name))
+                    arg.Name = gqlFieldAttr.Name;
+                if (!string.IsNullOrEmpty(gqlFieldAttr.Description))
+                    arg.Description = gqlFieldAttr.Description;
+            }
+
             if (arg.requiredAttribute != null || GraphQLNotNullAttribute.IsMemberMarkedNotNull(attributes) || nullability.WriteState == NullabilityState.NotNull)
             {
                 arg.IsRequired = true;

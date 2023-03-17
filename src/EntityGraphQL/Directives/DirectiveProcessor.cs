@@ -22,6 +22,8 @@ namespace EntityGraphQL.Directives
         public abstract List<ExecutableDirectiveLocation> On { get; }
 #pragma warning restore CA1716
 
+        private IDictionary<string, ArgType>? arguments;
+
         /// <summary>
         /// Implement this to make changes to the expression that will execute
         /// </summary>
@@ -45,9 +47,10 @@ namespace EntityGraphQL.Directives
             return field;
         }
 
-        public IEnumerable<ArgType> GetArguments(ISchemaProvider schema)
+        public IDictionary<string, ArgType> GetArguments(ISchemaProvider schema)
         {
-            return GetArgumentsType().GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null)).ToList();
+            arguments ??= typeof(TArguments).GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null)).ToDictionary(i => i.Name, i => i);
+            return arguments;
         }
     }
 }

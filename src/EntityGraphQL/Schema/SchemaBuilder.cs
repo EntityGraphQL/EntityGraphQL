@@ -168,6 +168,17 @@ namespace EntityGraphQL.Schema
                 if (f != null)
                     fields.AddRange(f);
             }
+            foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+            {
+                var attribute = method.GetCustomAttribute<GraphQLFieldAttribute>();
+                if (attribute == null)
+                    continue;
+
+                var f = ProcessFieldOrProperty(fromType, method, param, schema, options, isInputType)?.ToList();
+
+                if (f != null)
+                    fields.AddRange(f);
+            }
             return fields;
         }
 
@@ -180,15 +191,62 @@ namespace EntityGraphQL.Schema
             if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                 yield break;
 
-            // Get Description from ComponentModel.DescriptionAttribute
+            string name = schema.SchemaFieldNamer(prop.Name);
             string description = string.Empty;
-            var d = (DescriptionAttribute?)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
-            if (d != null)
+            var descAttribute = (DescriptionAttribute?)prop.GetCustomAttribute(typeof(DescriptionAttribute), false);
+            if (descAttribute != null)
             {
-                description = d.Description;
+                description = descAttribute.Description;
             }
 
-            LambdaExpression le = Expression.Lambda(prop.MemberType == MemberTypes.Property ? Expression.Property(param, prop.Name) : Expression.Field(param, prop.Name), param);
+            var attribute = prop.GetCustomAttribute<GraphQLFieldAttribute>();
+            if (attribute != null)
+            {
+                if (!string.IsNullOrEmpty(attribute.Name))
+                    name = attribute.Name;
+
+                if (!string.IsNullOrEmpty(attribute.Description))
+                    description = attribute.Description;
+            }
+
+            LambdaExpression? le = null;
+            Type? fieldArgType = null;
+            Dictionary<string, ArgType>? fieldArgs = null;
+            switch (prop.MemberType)
+            {
+                case MemberTypes.Property:
+                    le = Expression.Lambda(Expression.Property(param, prop.Name), param);
+                    break;
+
+                case MemberTypes.Field:
+                    le = Expression.Lambda(Expression.Field(param, prop.Name), param);
+                    break;
+
+                case MemberTypes.Method:
+                    var method = (MethodInfo)prop;
+                    var methodParameters = method.GetParameters();
+                    ParameterExpression? argTypeParam = null;
+                    if (methodParameters.Length > 0)
+                    {
+                        fieldArgs = methodParameters.ToDictionary(x => x.Name!, x => ArgType.FromParameter(schema, x, x.DefaultValue));
+                        fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), prop.Name)!;
+                        argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
+
+                        var paramExpressions = methodParameters.Select(x => Expression.PropertyOrField(argTypeParam!, x.Name!));
+                        var call = Expression.Call(param, method, paramExpressions);
+                        le = Expression.Lambda(call, param, argTypeParam!);
+                    }
+                    else
+                    {
+                        var call = Expression.Call(param, method);
+                        le = Expression.Lambda(call, param);
+                    }
+
+                    break;
+
+                default:
+                    throw new NotImplementedException($"{nameof(ProcessFieldOrProperty)} unknown MemberType: {prop.MemberType}");
+            }
 
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
@@ -226,7 +284,7 @@ namespace EntityGraphQL.Schema
                 // otherwise build the type info
                 var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
 
-                var field = new Field(schema, fromType, schema.SchemaFieldNamer(prop.Name), le, description, null, returnTypeInfo, requiredClaims);
+                var field = new Field(schema, fromType, name, le, description, fieldArgs, returnTypeInfo, requiredClaims);
 
                 if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
                 {

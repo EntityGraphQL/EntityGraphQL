@@ -19,7 +19,7 @@ namespace EntityGraphQL.Directives
         /// <returns></returns>
         Type GetArgumentsType();
         Expression? ProcessExpression(Expression expression, object? arguments);
-        IEnumerable<ArgType> GetArguments(ISchemaProvider schema);
+        IDictionary<string, ArgType> GetArguments(ISchemaProvider schema);
         BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments);
     }
 }

@@ -209,7 +209,7 @@ namespace EntityGraphQL.Schema
             if (args == null || !args.Any())
                 return string.Empty;
 
-            var allArgs = string.Join(", ", args.Select(f => f.Name + ": " + f.Type.GqlTypeForReturnOrArgument));
+            var allArgs = string.Join(", ", args.Select(f => f.Key + ": " + f.Value.Type.GqlTypeForReturnOrArgument));
             return string.IsNullOrEmpty(allArgs) ? string.Empty : $"({allArgs})";
         }
 

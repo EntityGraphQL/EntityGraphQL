@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
 {
@@ -17,7 +17,7 @@ namespace EntityGraphQL.Directives
         {
             if (arguments is null)
                 throw new ArgumentNullException("if", "Argument 'if' is requred for @include directive");
-            if (((IncludeArguments)arguments).@if)
+            if (((IncludeArguments)arguments).If)
                 return expression;
             return null;
         }
@@ -25,7 +25,7 @@ namespace EntityGraphQL.Directives
         {
             if (arguments is null)
                 throw new ArgumentNullException("if", "Argument 'if' is requred for @include directive");
-            if (((IncludeArguments)arguments).@if)
+            if (((IncludeArguments)arguments).If)
                 return field;
             return null;
         }
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Directives
 
     public class IncludeArguments
     {
-        [Description("Included when true.")]
-        public bool @if { get; set; }
+        [GraphQLField("if", "Included when true.")]
+        public bool If { get; set; }
     }
 }

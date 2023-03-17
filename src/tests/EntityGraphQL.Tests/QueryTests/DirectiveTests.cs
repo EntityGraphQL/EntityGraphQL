@@ -17,11 +17,11 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query {
-    people {
-        id
-        name @include(if: true)
-    }
-}"
+                    people {
+                        id
+                        name @include(if: true)
+                    }
+                }"
             };
             var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
@@ -169,11 +169,11 @@ namespace EntityGraphQL.Tests
             var query = new QueryRequest
             {
                 Query = @"query MyQuery($skip: Boolean!){
-    people @skip(if: $skip) {
-        id
-        name 
-    }
-}",
+                    people @skip(if: $skip) {
+                        id
+                        name 
+                    }
+                }",
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);

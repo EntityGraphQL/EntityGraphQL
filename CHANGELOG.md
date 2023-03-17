@@ -9,6 +9,8 @@
 ## Changes
 
 - `EntityGraphQL` (the core implementation) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
+- Introduce `GraphQLFieldAttribute` to allow you to rename fields in the schema as well as mark methods are fields in the schema. Method parameters will become field arguments in the same way as mutation methods. See updated docs for more information.
+- Argument types used for directvies now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
 
 ## Fixes
 

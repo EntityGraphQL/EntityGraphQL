@@ -357,11 +357,11 @@ namespace EntityGraphQL.Compiler
             foreach (var directive in directives)
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);
-                var argType = processor.GetArgumentsType();
+                var argTypes = processor.GetArguments(schemaProvider);
                 var args = new Dictionary<string, object>();
                 foreach (var arg in directive.Arguments)
                 {
-                    var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argType.GetProperty(arg.Name.Value)!.PropertyType);
+                    var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argTypes[arg.Name.Value].RawType);
                     if (argVal != null)
                         args.Add(arg.Name.Value, argVal);
                 }

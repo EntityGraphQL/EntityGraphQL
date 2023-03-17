@@ -48,7 +48,21 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, object? argTypes, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
+        /// <summary>
+        /// Create a GraphQL field
+        /// </summary>
+        /// <param name="schema">Schema it belongs to</param>
+        /// <param name="fromType">Schema type the field belongs to</param>
+        /// <param name="name">Name of the field</param>
+        /// <param name="resolve">Expression for executing the field</param>
+        /// <param name="description">Description of the field</param>
+        /// <param name="fieldArgsObject">
+        ///     You may supply an object containing the argument 
+        ///     definitions. This is useful for the anonymous argument types used when building fields
+        /// </param>
+        /// <param name="returnType">Schema return type of the field</param>
+        /// <param name="requiredAuth">Any authorization require to query the field</param>
+        public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, object? fieldArgsObject, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
         : base(schema, fromType, name, description, returnType)
         {
             RequiredAuthorization = requiredAuth;
@@ -56,12 +70,40 @@ namespace EntityGraphQL.Schema
 
             if (resolve != null)
             {
-                ProcessResolveExpression(resolve, false, argTypes != null);
+                ProcessResolveExpression(resolve, false, fieldArgsObject != null);
             }
-            if (argTypes != null)
+
+            if (fieldArgsObject != null)
             {
-                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, argTypes);
-                ArgumentsType = argTypes.GetType();
+                Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, fieldArgsObject);
+                ArgumentsType = fieldArgsObject.GetType();
+            }
+        }
+
+        /// <summary>
+        /// Create a GraphQL field
+        /// </summary>
+        /// <param name="schema">Schema it belongs to</param>
+        /// <param name="fromType">Schema type the field belongs to</param>
+        /// <param name="name">Name of the field</param>
+        /// <param name="resolve">Expression for executing the field</param>
+        /// <param name="description">Description of the field</param>
+        /// <param name="fieldArgs">List of arguments for the field</param>
+        /// <param name="returnType">Schema return type of the field</param>
+        /// <param name="requiredAuth">Any authorization require to query the field</param>
+        public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, Dictionary<string, ArgType>? fieldArgs, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
+        : this(schema, fromType, name, resolve, description, (object?)null, returnType, requiredAuth)
+        {
+            if (resolve != null)
+            {
+                ProcessResolveExpression(resolve, false, fieldArgs != null);
+            }
+
+            if (fieldArgs != null)
+            {
+                Arguments = fieldArgs;
+                if (ArgumentsType == null)
+                    ArgumentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 

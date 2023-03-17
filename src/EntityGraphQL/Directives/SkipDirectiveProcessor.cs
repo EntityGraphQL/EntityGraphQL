@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
 {
@@ -15,7 +15,7 @@ namespace EntityGraphQL.Directives
         {
             if (arguments is null)
                 throw new ArgumentNullException("if", "Argument 'if' is requred for @skip directive");
-            if (((SkipArguments)arguments).@if)
+            if (((SkipArguments)arguments).If)
                 return null;
             return expression;
         }
@@ -24,7 +24,7 @@ namespace EntityGraphQL.Directives
         {
             if (arguments is null)
                 throw new ArgumentNullException("if", "Argument 'if' is requred for @skip directive");
-            if (((SkipArguments)arguments).@if)
+            if (((SkipArguments)arguments).If)
                 return null;
             return field;
         }
@@ -33,7 +33,7 @@ namespace EntityGraphQL.Directives
 
     public class SkipArguments
     {
-        [Description("Excluded when true.")]
-        public bool @if { get; set; }
+        [GraphQLField("if", "Excluded when true.")]
+        public bool If { get; set; }
     }
 }
