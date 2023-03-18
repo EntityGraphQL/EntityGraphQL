@@ -205,6 +205,8 @@ EntityGraphQL needs to build a schema for output and introspection. We do not kn
 
 We know `DemoContext` is the root query context of the schema so that will not be included as an argument in the schema. Between the other 2 we need to tell EntityGraphQL.
 
+When looking for a methods parameters, EntityGraphQL will
+
 1. First all scalar / non-complex types will be added at arguments in the schema.
 
 2. If parameter type or enum type is already in the schema it will be added at an argument.

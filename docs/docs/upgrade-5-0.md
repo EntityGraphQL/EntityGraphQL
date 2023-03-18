@@ -12,10 +12,13 @@ You can see the full changelog which includes other changes and bug fixes as wel
 
 ## Changes to Method Argument Reflection
 
-Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter should be a GraphQL argument or an injected service. This has been refactored to be predictable. 
+Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter should be a GraphQL argument or an injected service unless you used `[GraphQLArguments]`. But this meant you couldn't have complex types as parameters in the method and have them reflected in the schema (`[GraphQLArguments]` flattens the arguments in the schema). This has been refactored to be predictable. 
 
-`AutoCreateInputTypes` now default to true and you may have to add some attributes to your parameters or classes.
-`[GraphQLInputType]` will include the parameter as an argument and use the type as an input type. `[GraphQLArguments]` will flatten the properties of that parameter type into  many arguments in the schema.
+`AutoCreateInputTypes` now defaults to `true` and you will have to add some attributes to your parameters or classes.
+
+`[GraphQLInputType]` will include the parameter as an argument and use the type as an input type. `[GraphQLArguments]` will flatten the properties of that parameter type into many arguments in the schema.
+
+When looking for a methods parameters, EntityGraphQL will
 
 1. First all scalar / non-complex types will be added at arguments in the schema.
 
