@@ -1,5 +1,7 @@
 using Xunit;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
+using static EntityGraphQL.Tests.ServiceFieldTests;
 
 namespace EntityGraphQL.Tests
 {
@@ -31,7 +33,7 @@ namespace EntityGraphQL.Tests
         public void SupportsGenericClassArgAsInputType()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Mutation().Add("addPerson", (Partial<Human> args) => 65, new SchemaBuilderOptions
+            schema.Mutation().Add("addPerson", ([GraphQLInputType] Partial<Human> args) => 65, new SchemaBuilderOptions
             {
                 AutoCreateInputTypes = true,
             });
@@ -51,6 +53,83 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(65, res.Data["addPerson"]);
         }
+
+        [Fact]
+        public void TestMethodWithScalarComplexAndServiceArgs()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Mutation().Add("addPerson", (string token, [GraphQLArguments] InputArgs args, ConfigService service) =>
+                {
+                    Assert.Equal("123", token);
+                    Assert.Equal("Herb", args.Name);
+                    Assert.NotNull(service);
+                    return args.Age;
+                }, new SchemaBuilderOptions
+                {
+                    AutoCreateInputTypes = true,
+                });
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("addPerson(token: String, name: String!, age: Int!): Int!", sdl);
+
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson {
+                  addPerson( name: ""Herb"", age: 43, token: ""123"")
+                }",
+            };
+            var serviceCollection = new ServiceCollection();
+            var service = new ConfigService();
+            serviceCollection.AddSingleton(service);
+
+            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(43, res.Data["addPerson"]);
+        }
+
+        [Fact]
+        public void TestMethodWithScalarComplexInlineAndServiceArgs()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            // Note the Argument not Argument_s_
+            schema.Mutation().Add("addPerson", (string token, [GraphQLInputType] InputArgs args, ConfigService service) =>
+                {
+                    Assert.Equal("123", token);
+                    Assert.Equal("Herb", args.Name);
+                    Assert.NotNull(service);
+                    return args.Age;
+                }, new SchemaBuilderOptions
+                {
+                    AutoCreateInputTypes = true,
+                });
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("addPerson(token: String, args: InputArgs): Int!", sdl);
+            Assert.Contains("input InputArgs {", sdl);
+
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson {
+                  addPerson( args: { name: ""Herb"", age: 43 }, token: ""123"")
+                }",
+            };
+            var serviceCollection = new ServiceCollection();
+            var service = new ConfigService();
+            serviceCollection.AddSingleton(service);
+
+            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(43, res.Data["addPerson"]);
+        }
+    }
+
+    internal class InputArgs
+    {
+        [GraphQLNotNull]
+        public string Name { get; set; }
+        public int Age { get; set; }
     }
 
     internal class Human

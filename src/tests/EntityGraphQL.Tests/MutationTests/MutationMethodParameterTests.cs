@@ -146,6 +146,7 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
 
             Assert.Contains("addPersonNullableNestedType(required: NestedInputObject!, optional: NestedInputObject): Person!", schema);
+            Assert.Contains("input NestedInputObject {", schema);
         }
 
         [Fact]

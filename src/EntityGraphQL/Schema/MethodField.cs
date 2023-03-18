@@ -25,59 +25,70 @@ namespace EntityGraphQL.Schema
         protected MethodInfo Method { get; set; }
         public bool IsAsync { get; protected set; }
 
+        private readonly Dictionary<string, Type> flattenArgmentTypes = new();
+
         public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, SchemaBuilderOptions options)
             : base(schema, fromType, methodName, description, returnType)
         {
             Services = new List<Type>();
-            this.Method = method;
+            Method = method;
             RequiredAuthorization = requiredAuth;
-            this.IsAsync = isAsync;
+            IsAsync = isAsync;
 
-            ArgumentsType = method.GetParameters()
-                .SingleOrDefault(p => p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)?.ParameterType;
-            if (ArgumentsType != null)
+            foreach (var item in method.GetParameters())
             {
-                foreach (var item in ArgumentsType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-                    Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
-                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
+                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                    continue;
 
+                var inputType = item.ParameterType.IsEnumerableOrArray() ? item.ParameterType.GetEnumerableOrArrayType()! : item.ParameterType;
+                if (inputType.IsNullableType())
+                    inputType = inputType.GetGenericArguments()[0];
+
+                if (inputType == typeof(GraphQLValidator))
+                    continue;
+
+                // primitive types are arguments or types already known in the schema
+                var shouldBeAddedAsArg = item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));
+
+                // if hasServices then we expect attributes
+                var argumentsAttr = item.GetCustomAttribute<GraphQLArgumentsAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>();
+                var inlineArgumentAttr = item.GetCustomAttribute<GraphQLInputTypeAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLInputTypeAttribute>();
+                if (!shouldBeAddedAsArg && argumentsAttr == null && inlineArgumentAttr == null)
+                    continue; // services are not arguments in the schema
+
+                if (argumentsAttr != null)
+                {
+                    FlattenArguments(item.ParameterType, schema, options);
+                    flattenArgmentTypes.Add(item.Name!, item.ParameterType);
                 }
-                foreach (var item in ArgumentsType.GetFields(BindingFlags.Instance | BindingFlags.Public))
+                else
                 {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-                    Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
-                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
-                }
-            }
-            else
-            {
-                foreach (var item in method.GetParameters())
-                {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-
-                    var inputType = item.ParameterType.IsEnumerableOrArray() ? item.ParameterType.GetEnumerableOrArrayType()! : item.ParameterType;
-                    if (inputType.IsNullableType())
-                        inputType = inputType.GetGenericArguments()[0];
-
-                    if (inputType == typeof(GraphQLValidator))
-                    {
-                        continue;
-                    }
+                    Arguments.Add(Schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
 
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
                         AddInputTypesInArguments(schema, options.AutoCreateInputTypes, inputType);
                     }
-                    if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
-                    {
-                        Arguments.Add(Schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
-                    }
                 }
+            }
+        }
+
+        private void FlattenArguments(Type argType, ISchemaProvider schema, SchemaBuilderOptions options)
+        {
+            foreach (var item in argType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                    continue;
+                Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
+                AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
+
+            }
+            foreach (var item in argType.GetFields(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
+                    continue;
+                Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
+                AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
             }
         }
 
@@ -113,9 +124,10 @@ namespace EntityGraphQL.Schema
             // add parameters and any DI services
             foreach (var p in Method.GetParameters())
             {
-                if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
+                if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors)!;
+                    var argType = flattenArgmentTypes[p.Name!];
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, argType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }
                 else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
@@ -151,11 +163,7 @@ namespace EntityGraphQL.Schema
                 }
                 else if (serviceProvider != null)
                 {
-                    var service = serviceProvider.GetService(p.ParameterType);
-                    if (service == null)
-                    {
-                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
-                    }
+                    var service = serviceProvider.GetService(p.ParameterType) ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                     allArgs.Add(service);
                 }
                 else
