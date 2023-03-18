@@ -190,8 +190,7 @@ namespace EntityGraphQL.Schema
 
             options ??= new SchemaBuilderOptions();
             var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-            var methodAuth = schema.AuthorizationService.GetRequiredAuthFromMember(method);
-            var requiredClaims = methodAuth;
+            var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(method);
 
             var methodParameters = method.GetParameters();
             ParameterExpression? argTypeParam = null;
@@ -215,27 +214,19 @@ namespace EntityGraphQL.Schema
                 le = Expression.Lambda(call, param);
             }
 
-            var actualReturnType = method.ReturnType;
+            var baseReturnType = GetBaseReturnType(schema, le.ReturnType, options);
 
-            if (isAsync || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)))
-            {
-                actualReturnType = method.ReturnType.GetGenericArguments()[0];
-            }
-
-            var nonListReturnType = actualReturnType.GetNonNullableOrEnumerableType();
-
-            if (options.IgnoreTypes.Contains(nonListReturnType))
+            if (options.IgnoreTypes.Contains(baseReturnType))
                 return null;
 
-            var typeName = schema.GetSchemaType(nonListReturnType, null).Name;
+            CacheType(baseReturnType, schema, options, false);
 
-            var nullability = method.GetNullabilityInfo().Unwrap();
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(typeName, null), actualReturnType, nullability);
+            var nullabilityInfo = method.GetNullabilityInfo();
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, fieldArgs, returnTypeInfo, requiredClaims);
 
             field.ApplyAttributes(method.GetCustomAttributes());
 
-            CacheType(nonListReturnType, schema, options, false);
             return field;
         }
 
@@ -265,9 +256,39 @@ namespace EntityGraphQL.Schema
                 _ => throw new NotImplementedException($"{nameof(ProcessFieldOrPropertyIntoField)} unknown MemberType: {prop.MemberType}"),
             };
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
+
+            var baseReturnType = GetBaseReturnType(schema, le.ReturnType, options);
+
+            if (options.IgnoreTypes.Contains(baseReturnType))
+                yield break;
+
+            CacheType(baseReturnType, schema, options, isInputType);
+
+            var nullabilityInfo = prop.GetNullabilityInfo();
+            // see if there is a direct type mapping from the expression return to to something.
+            // otherwise build the type info
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+            var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
+
+            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
+            {
+                // add non-pural field with argument of ID
+                var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field);
+                if (idArgField != null)
+                {
+                    yield return idArgField;
+                }
+            }
+
+            field.ApplyAttributes(prop.GetCustomAttributes());
+
+            yield return field;
+        }
+
+        private static Type GetBaseReturnType(ISchemaProvider schema, Type returnType, SchemaBuilderOptions options)
+        {
             // get the object type returned (ignoring list etc) so we know the context to find fields etc
-            var returnsTask = le.ReturnType.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (le.ReturnType.IsGenericType && le.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-            Type returnType = le.ReturnType;
+            var returnsTask = returnType.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>));
             if (returnsTask || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)))
             {
                 returnType = returnType.GetGenericArguments()[0];
@@ -275,46 +296,21 @@ namespace EntityGraphQL.Schema
             if (returnType.IsDictionary())
             {
                 // check for dictionaries
-                if (!options.AutoCreateNewComplexTypes)
-                    yield break;
-                Type[] genericTypeArguments = returnType.GenericTypeArguments;
-                returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
-                if (!schema.HasType(returnType))
-                    schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
+                if (options.AutoCreateNewComplexTypes)
+                {
+                    Type[] genericTypeArguments = returnType.GenericTypeArguments;
+                    returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
+                    if (!schema.HasType(returnType))
+                        schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
+                }
             }
             else
-                returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType();
+                returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType()!;
 
-            var baseReturnType = returnType;
+            Type baseReturnType = returnType;
             if (baseReturnType.IsEnumerableOrArray())
                 baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
-
-            if (!options.IgnoreTypes.Contains(baseReturnType))
-            {
-                CacheType(baseReturnType, schema, options, isInputType);
-
-                var nullabilityInfo = prop.GetNullabilityInfo();
-
-                // see if there is a direct type mapping from the expression return to to something.
-                // otherwise build the type info
-                var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
-
-                var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
-
-                if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
-                {
-                    // add non-pural field with argument of ID
-                    var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field);
-                    if (idArgField != null)
-                    {
-                        yield return idArgField;
-                    }
-                }
-
-                field.ApplyAttributes(prop.GetCustomAttributes());
-
-                yield return field;
-            }
+            return baseReturnType;
         }
 
         private static (string name, string description) GetNameAndDescription(MemberInfo prop, ISchemaProvider schema)
