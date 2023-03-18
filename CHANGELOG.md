@@ -8,12 +8,14 @@
 -  `IDirectiveProcessor` interface has changed. See upgrade docs for changes
 - `SchemaBuilderMethodOptions` removed, see updated properties on `SchemaBuilderOptions` and upgrade docs. This was because you can also now add methods ad query fields with `GraphQLFieldAttribute`
 - `SchemaBuilderOptions.AutoCreateInputTypes` now defaults to `true`. Meaning in `SchemaBuilder` when adding mutations etc any complex types will be added to the schema if they are not there already.
+- The rules for reflection on method parameters have been changed to make them clearer. Teh the upgrade to 5.0 docs and the mutation docs that cover examples.
 
 ## Changes
 
 - `EntityGraphQL` (the core implementation) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
 - Introduce `GraphQLFieldAttribute` to allow you to rename fields in the schema as well as mark methods are fields in the schema. Method parameters will become field arguments in the same way as mutation methods. See updated docs for more information.
 - Argument types used for directvies now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
+- Added `GraphQLInputTypeAttribute`. Whereas `GraphQLArgumentsAttribute` flattens the types properties into the schema, `GraphQLInputTypeAttribute` assumes the type is an input type and uses that as the schema argument
 
 ## Fixes
 

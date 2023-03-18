@@ -123,6 +123,40 @@ namespace EntityGraphQL.Tests
             Assert.Null(res.Errors);
             Assert.Equal(43, res.Data["addPerson"]);
         }
+
+        [Fact]
+        public void TestMethodWithMultipleFlattenArguments()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Mutation().Add("addPerson", ([GraphQLArguments] InputArgs args, [GraphQLArguments] InputExtraArgs extra, ConfigService service) =>
+                {
+                    Assert.Equal("123", extra.Token);
+                    Assert.Equal("Herb", args.Name);
+                    Assert.NotNull(service);
+                    return args.Age;
+                }, new SchemaBuilderOptions
+                {
+                    AutoCreateInputTypes = true,
+                });
+
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("addPerson(name: String!, age: Int!, token: String): Int!", sdl);
+
+            // Add a argument field with a require parameter
+            var gql = new QueryRequest
+            {
+                Query = @"mutation AddPerson {
+                  addPerson( name: ""Herb"", age: 43, token: ""123"")
+                }",
+            };
+            var serviceCollection = new ServiceCollection();
+            var service = new ConfigService();
+            serviceCollection.AddSingleton(service);
+
+            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            Assert.Equal(43, res.Data["addPerson"]);
+        }
     }
 
     internal class InputArgs
@@ -130,6 +164,11 @@ namespace EntityGraphQL.Tests
         [GraphQLNotNull]
         public string Name { get; set; }
         public int Age { get; set; }
+    }
+
+    internal class InputExtraArgs
+    {
+        public string Token { get; set; }
     }
 
     internal class Human
