@@ -105,7 +105,7 @@ namespace EntityGraphQL.AspNet.Tests
         public void JsonNewtonsoftJValue()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMethodOptions() {  AutoCreateInputTypes = true });
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());
@@ -153,7 +153,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
             Assert.Equal(null, addPersonResult.birthday);
-        }     
+        }
 
     }
 

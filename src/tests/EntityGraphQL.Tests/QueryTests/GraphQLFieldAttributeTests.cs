@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static EntityGraphQL.Tests.ServiceFieldTests;
 
 namespace EntityGraphQL.Tests;
 
@@ -309,6 +311,34 @@ public class GraphQLFieldAttributeTests
 
         Assert.Equal(88, ((dynamic)res.Data["fields"])[0].staticMethodField);
     }
+
+    [Fact]
+    public void TestGraphQLFieldAttributeWithService()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethodService>();
+
+        Assert.True(schemaProvider.Type<ContextFieldWithMethodService>().HasField("methodFieldWithService", null));
+
+        var sdl = schemaProvider.ToGraphQLSchemaString();
+
+        Assert.Contains("methodFieldWithService(value: Int!): Int!", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                methodFieldWithService(value: 88)
+            }"
+        };
+
+        var context = new ContextFieldWithMethodService();
+        var serviceCollection = new ServiceCollection();
+        var srv = new ConfigService();
+        serviceCollection.AddSingleton(srv);
+
+        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(44, ((dynamic)res.Data["fields"])[0].methodFieldWithService);
+    }
 }
 
 
@@ -320,6 +350,14 @@ public class ContextFieldWithMethod
     public int TestMethod()
     {
         return 23;
+    }
+}
+public class ContextFieldWithMethodService
+{
+    [GraphQLField]
+    public static int MethodFieldWithService(ConfigService service, int value)
+    {
+        return service.GetHalfInt(value);
     }
 }
 public class TypeWithMethod

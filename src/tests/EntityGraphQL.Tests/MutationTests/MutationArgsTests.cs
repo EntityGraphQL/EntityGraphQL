@@ -31,7 +31,7 @@ namespace EntityGraphQL.Tests
         public void SupportsGenericClassArgAsInputType()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Mutation().Add("addPerson", (Partial<Human> args) => 65, new SchemaBuilderMethodOptions
+            schema.Mutation().Add("addPerson", (Partial<Human> args) => 65, new SchemaBuilderOptions
             {
                 AutoCreateInputTypes = true,
             });

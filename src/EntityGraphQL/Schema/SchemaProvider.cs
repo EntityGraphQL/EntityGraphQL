@@ -451,7 +451,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <typeparam name="TType"></typeparam>
         /// <param name="options">Options for the schema builder</param>
-        public void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options = null) where TType : class
+        public void AddMutationsFrom<TType>(SchemaBuilderOptions? options = null) where TType : class
         {
             mutationType.AddFrom<TType>(options);
         }

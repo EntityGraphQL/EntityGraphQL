@@ -2102,6 +2102,12 @@ namespace EntityGraphQL.Tests
                 return Array.Empty<ProjectConfig>();
             }
 
+            public int GetHalfInt(int value)
+            {
+                CallCount += 1;
+                return value / 2;
+            }
+
             internal Task<int[]> GetArrayFieldAsync(int id, bool code)
             {
                 CallCount += 1;

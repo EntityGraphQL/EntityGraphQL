@@ -11,13 +11,21 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema
 {
-    public class MethodField : BaseField
+    /// <summary>
+    /// Respresents a GraphQL field backed by a method in dotnet. This is used for "controller" type fields. e.g. Mutations and Subscriptions.
+    /// This is not used for query fields.
+    /// 
+    /// The way we execute this field is different to a query field with is built inline to an expression.
+    /// 
+    /// A MethodField is the top level field in a mutation/subscription and maps to a dotnet method. The result is projected back into the query graph.
+    /// </summary>
+    public abstract class MethodField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; }
         protected MethodInfo Method { get; set; }
-        protected bool IsAsync { get; set; }
+        public bool IsAsync { get; protected set; }
 
-        public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
+        public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, SchemaBuilderOptions options)
             : base(schema, fromType, methodName, description, returnType)
         {
             Services = new List<Type>();
@@ -33,7 +41,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
+                    Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
                     AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
 
                 }
@@ -41,7 +49,7 @@ namespace EntityGraphQL.Schema
                 {
                     if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                         continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null));
+                    Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
                     AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
                 }
             }
@@ -67,7 +75,7 @@ namespace EntityGraphQL.Schema
                     }
                     if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
                     {
-                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
+                        Arguments.Add(Schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
                     }
                 }
             }
@@ -215,7 +223,7 @@ namespace EntityGraphQL.Schema
         {
             var result = fieldExpression;
 
-            if (schemaContext != null)
+            if (schemaContext != null && result != null)
             {
                 result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
             }

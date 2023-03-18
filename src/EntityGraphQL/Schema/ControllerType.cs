@@ -10,7 +10,7 @@ using Nullability;
 namespace EntityGraphQL.Schema;
 
 /// <summary>
-/// Provides the interface to add/modify a schema type based on a controller style class with methods
+/// Provides the interface to add/modify a schema type based on a controller style class with methods Specifically Mutations & Subscriptions
 /// </summary>
 public abstract class ControllerType
 {
@@ -26,9 +26,9 @@ public abstract class ControllerType
     /// </summary>
     /// <param name="options">Options for the schema builder</param>
     /// <typeparam name="TType"></typeparam>
-    public ControllerType AddFrom<TType>(SchemaBuilderMethodOptions? options = null) where TType : class
+    public ControllerType AddFrom<TType>(SchemaBuilderOptions? options = null) where TType : class
     {
-        options ??= new SchemaBuilderMethodOptions();
+        options ??= new SchemaBuilderOptions();
         var types = typeof(TType).Assembly
                                 .GetTypes()
                                 .Where(x => x.IsClass && !x.IsAbstract)
@@ -40,7 +40,7 @@ public abstract class ControllerType
             foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
                 var attribute = method.GetCustomAttribute(typeof(GraphQLMethodAttribute)) as GraphQLMethodAttribute;
-                if (attribute != null || options.AddNonAttributedMethods)
+                if (attribute != null || options.AddNonAttributedMethodsInControllers)
                 {
                     string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
                     AddMethodAsField(name, classLevelRequiredAuth, method, attribute?.Description ?? "", options);
@@ -56,7 +56,7 @@ public abstract class ControllerType
     /// </summary>
     /// <param name="delegate">A method to execute the logic</param>
     /// <param name="options">Options for the schema builder</param>
-    public BaseField Add(Delegate @delegate, SchemaBuilderMethodOptions? options = null)
+    public BaseField Add(Delegate @delegate, SchemaBuilderOptions? options = null)
     {
         return Add(SchemaType.Schema.SchemaFieldNamer(@delegate.Method.Name), @delegate, options);
     }
@@ -67,7 +67,7 @@ public abstract class ControllerType
     /// <param name="fieldName">Field name</param>
     /// <param name="delegate">A method to execute the logic</param>
     /// <param name="options">Options for the schema builder</param>
-    public BaseField Add(string fieldName, Delegate @delegate, SchemaBuilderMethodOptions? options = null)
+    public BaseField Add(string fieldName, Delegate @delegate, SchemaBuilderOptions? options = null)
     {
         var description = (@delegate.Method.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description ?? string.Empty;
         return Add(fieldName, description, @delegate, options);
@@ -80,14 +80,14 @@ public abstract class ControllerType
     /// <param name="description">Description of the field</param>
     /// <param name="delegate">A method to execute the logic</param>
     /// <param name="options">Options for the schema builder</param>
-    public BaseField Add(string fieldName, string description, Delegate @delegate, SchemaBuilderMethodOptions? options = null)
+    public BaseField Add(string fieldName, string description, Delegate @delegate, SchemaBuilderOptions? options = null)
     {
         return AddMethodAsField(fieldName, null, @delegate.Method, description, options);
     }
 
-    private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderMethodOptions? options)
+    private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderOptions? options)
     {
-        options ??= new SchemaBuilderMethodOptions();
+        options ??= new SchemaBuilderOptions();
         var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
@@ -115,7 +115,7 @@ public abstract class ControllerType
         return field;
     }
 
-    protected abstract BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderMethodOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType);
+    protected abstract BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType);
 
     /// <summary>
     /// Return the actual return type of the field - may strip out the Expression<Func<>> etc depedning on the implementation

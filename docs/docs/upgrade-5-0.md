@@ -20,3 +20,8 @@ Interface `IExposableException` has been removed. Use the existing `SchemaBuilde
 - `IDirectiveProcessor.On` renamed to `IDirectiveProcessor.Location`
 - `IDirectiveProcessor.ProcessField()` removed, use `IDirectiveProcessor.VisitNode`
 - `IDirectiveProcessor.ProcessExpression()` Has been removed. You can build a new `IGraphQLNode` in `VisitNode` to make changes to the graph
+
+## `SchemaBuilderMethodOptions` removed
+
+- `AutoCreateInputTypes` has been moved to `SchemaBuilderOptions`
+- `AddNonAttributedMethods` has been move to `SchemaBuilderOptions.AddNonAttributedMethodsInControllers`

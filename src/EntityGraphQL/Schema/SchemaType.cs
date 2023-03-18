@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using Nullability;
 
 namespace EntityGraphQL.Schema
@@ -184,7 +183,6 @@ namespace EntityGraphQL.Schema
             AddField(field);
             return field;
         }
-
 
         /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.

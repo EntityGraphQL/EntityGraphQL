@@ -15,7 +15,7 @@ public class ValidationTests
     public void TestValidationAttributesOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -42,7 +42,7 @@ public class ValidationTests
     public void TestValidationAttributesOnNestedMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
             Query = @"mutation Mutate {
@@ -86,7 +86,7 @@ public class ValidationTests
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
 
-        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderMethodOptions() { AutoCreateInputTypes = true });
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
 
         var gql = new QueryRequest
         {

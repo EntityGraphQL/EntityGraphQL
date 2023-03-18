@@ -52,10 +52,6 @@ namespace EntityGraphQL.Schema
         /// Interface including it's fields
         /// </summary>
         public bool AutoCreateInterfaceTypes { get; set; }
-    }
-
-    public class SchemaBuilderMethodOptions : SchemaBuilderOptions
-    {
         /// <summary>
         /// If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
         /// 
@@ -63,9 +59,10 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateInputTypes { get; set; }
         /// <summary>
-        /// If true (default = false) Any public method in the mutation class will be added to the schema as a mutation
+        /// If true (default = false) Any public method in the mutation/subscription class will be added to the schema as a mutation/subsscription. 
+        /// If false only methodds with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.
         /// </summary>
-        public bool AddNonAttributedMethods { get; set; }
+        public bool AddNonAttributedMethodsInControllers { get; set; }
     }
 
     /// <summary>

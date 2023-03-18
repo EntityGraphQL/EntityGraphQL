@@ -6,6 +6,7 @@
 - Interface `IExposableException` has been removed. Use `SchemaBuilderSchemaOptions.AllowedExceptions` or the new `AllowedExceptionAttribute` to define which exceptions are rendered into the results
 - #254 - Previously passing `null` for the `ClaimsPrincipal` in `ExecuteRequest()` would skip any authorization checks. All authorization checks are now done regardless of the `ClaimsPrincipal` value. Meaning `null` will fail if there is fields requiring authorization.
 -  `IDirectiveProcessor` interface has changed. See upgrade docs for changes
+- `SchemaBuilderMethodOptions` removed, see updated properties on `SchemaBuilderOptions` and upgrade docs. This was because you can also now add methods ad query fields with `GraphQLFieldAttribute`
 
 ## Changes
 

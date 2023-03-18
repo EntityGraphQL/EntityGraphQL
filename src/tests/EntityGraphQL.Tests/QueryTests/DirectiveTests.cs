@@ -242,7 +242,7 @@ namespace EntityGraphQL.Tests
             {
                 mutationCalled = true;
                 return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
-            }, new SchemaBuilderMethodOptions { AutoCreateInputTypes = true });
+            }, new SchemaBuilderOptions { AutoCreateInputTypes = true });
             var query = new QueryRequest
             {
                 Query = @"mutation MyQuery($skip: Boolean!){

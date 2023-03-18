@@ -53,8 +53,7 @@ namespace EntityGraphQL.Schema
         {
             get
             {
-                if (schemaType == null)
-                    schemaType = SchemaTypeGetter();
+                schemaType ??= SchemaTypeGetter();
                 return schemaType;
             }
         }
