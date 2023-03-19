@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler
 {
@@ -80,15 +81,15 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
             }
             var result = new QueryResult();
-            var validator = new GraphQLValidator();
+            IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
             // execute the selected operation
             options ??= new ExecutionOptions(); // defaults
 
-            result.SetData(await op.ExecuteAsync(context, validator, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
+            result.SetData(await op.ExecuteAsync(context, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
 
-            if (validator.Errors.Count > 0)
+            if (validator?.Errors.Count > 0)
                 result.AddErrors(validator.Errors);
 
             return result;

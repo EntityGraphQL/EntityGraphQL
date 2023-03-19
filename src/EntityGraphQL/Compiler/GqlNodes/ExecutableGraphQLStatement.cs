@@ -53,7 +53,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {

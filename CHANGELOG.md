@@ -9,6 +9,7 @@
 - `SchemaBuilderMethodOptions` removed, see updated properties on `SchemaBuilderOptions` and upgrade docs. This was because you can also now add methods ad query fields with `GraphQLFieldAttribute`
 - `SchemaBuilderOptions.AutoCreateInputTypes` now defaults to `true`. Meaning in `SchemaBuilder` when adding mutations etc any complex types will be added to the schema if they are not there already.
 - The rules for reflection on method parameters have been changed to make them clearer. Teh the upgrade to 5.0 docs and the mutation docs that cover examples.
+- `GraphQLValidator` is no longer magically added to your method fields (mutations/subscriptions). If you wish to use it please register it in your services. There is a new helper method in EntityGraphQL.AspNet `AddGraphQLValidator()`
 
 ## Changes
 
@@ -16,6 +17,7 @@
 - Introduce `GraphQLFieldAttribute` to allow you to rename fields in the schema as well as mark methods are fields in the schema. Method parameters will become field arguments in the same way as mutation methods. See updated docs for more information.
 - Argument types used for directvies now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
 - Added `GraphQLInputTypeAttribute`. Whereas `GraphQLArgumentsAttribute` flattens the types properties into the schema, `GraphQLInputTypeAttribute` assumes the type is an input type and uses that as the schema argument
+- You may implement you own `GraphQLValidator` by implementing (and registering) `IGraphQLValidator`
 
 ## Fixes
 

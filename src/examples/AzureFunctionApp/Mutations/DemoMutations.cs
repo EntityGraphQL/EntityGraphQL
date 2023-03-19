@@ -56,7 +56,7 @@ namespace demo.Mutations
         }
 
         [GraphQLMutation]
-        public Expression<Func<DemoContext, Person>>? AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, GraphQLValidator validator)
+        public Expression<Func<DemoContext, Person>>? AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, IGraphQLValidator validator)
         {
             if (string.IsNullOrEmpty(args.FirstName))
                 validator.AddError("Name argument is required");

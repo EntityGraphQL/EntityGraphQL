@@ -62,7 +62,8 @@ namespace demo
                 options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
                 // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
                 // builder.FieldNamer = name => name;
-            });
+            })
+            .AddGraphQLValidator();
 
             services.AddRouting();
             services.AddControllers()

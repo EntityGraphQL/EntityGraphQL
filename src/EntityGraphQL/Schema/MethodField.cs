@@ -41,9 +41,6 @@ namespace EntityGraphQL.Schema
                 if (inputType.IsNullableType())
                     inputType = inputType.GetGenericArguments()[0];
 
-                if (inputType == typeof(GraphQLValidator))
-                    continue;
-
                 // primitive types are arguments or types already known in the schema
                 var shouldBeAddedAsArg = item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));
 
@@ -112,7 +109,7 @@ namespace EntityGraphQL.Schema
             return inputType.Name;
         }
 
-        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
+        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
         {
             if (context == null)
                 return null;
@@ -157,11 +154,6 @@ namespace EntityGraphQL.Schema
                 else if (p.ParameterType == context.GetType())
                 {
                     allArgs.Add(context);
-                }
-                // todo we should put this in the IServiceCollection actually...
-                else if (p.ParameterType == typeof(GraphQLValidator))
-                {
-                    allArgs.Add(validator);
                 }
                 else if (serviceProvider != null)
                 {

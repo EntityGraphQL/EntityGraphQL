@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -99,8 +100,10 @@ public class ValidationTests
             }
         };
 
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IGraphQLValidator, GraphQLValidator>();
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequest(gql, testContext, serviceCollection.BuildServiceProvider(), null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Test Error", results.Errors[0].Message);
@@ -454,7 +457,7 @@ internal class ValidationTestsMutations
 
 
     [GraphQLMutation]
-    public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg arg, GraphQLValidator validator)
+    public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg arg, IGraphQLValidator validator)
     {
         validator.AddError("Test Error");
         return true;

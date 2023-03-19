@@ -29,7 +29,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             this.serviceProvider = serviceProvider;
             this.fragments = fragments;
@@ -59,7 +59,7 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        var data = await ExecuteAsync(node, context, validator, serviceProvider, docVariables);
+                        var data = await ExecuteAsync(node, context, serviceProvider, docVariables);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {
@@ -86,12 +86,12 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables)
         {
             if (context == null)
                 return null;
             // execute the subscription set up method. It returns in IObservable<T>
-            var result = await node.ExecuteSubscriptionAsync(context, validator, serviceProvider, OpVariableParameter, docVariables);
+            var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables);
 
             if (result == null || node.ResultSelection == null)
                 throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");

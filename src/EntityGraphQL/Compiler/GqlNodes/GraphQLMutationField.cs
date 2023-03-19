@@ -19,11 +19,11 @@ namespace EntityGraphQL.Compiler
             this.MutationField = mutationField;
         }
 
-        public Task<object?> ExecuteMutationAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
+        public Task<object?> ExecuteMutationAsync<TContext>(TContext context, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
         {
             try
             {
-                return MutationField.CallAsync(context, Arguments, validator, serviceProvider, variableParameter, variablesToUse);
+                return MutationField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse);
             }
             catch (EntityQuerySchemaException e)
             {

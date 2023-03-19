@@ -22,7 +22,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
             // pass to directvies
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        var data = await ExecuteAsync(compileContext, node, context, validator, serviceProvider, fragments, options, docVariables);
+                        var data = await ExecuteAsync(compileContext, node, context, serviceProvider, fragments, options, docVariables);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {
@@ -89,12 +89,12 @@ namespace EntityGraphQL.Compiler
         /// <param name="docVariables">Resolved values of variables pass in request</param>
         /// <typeparam name="TContext"></typeparam>
         /// <returns></returns>
-        private async Task<object?> ExecuteAsync<TContext>(CompileContext compileContext, GraphQLMutationField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(CompileContext compileContext, GraphQLMutationField node, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables)
         {
             if (context == null)
                 return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, validator, serviceProvider, OpVariableParameter, docVariables);
+            var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
