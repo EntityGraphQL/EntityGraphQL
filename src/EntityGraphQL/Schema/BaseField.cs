@@ -51,8 +51,8 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Name of the dotnet parameter and its types that was flattened into the schema.
         /// </summary>
-        public Dictionary<string, Type> FlattenArgmentTypes { get; private set; } = new();
-        private const string DefaultArgmentsTypeName = "egql_generated_args";
+        public Dictionary<string, Type> FlattenArgmentTypes { get; internal set; } = new();
+        internal const string DefaultArgmentsTypeName = "egql_generated_args";
         public Type? DefaultArgmentsType
         {
             get => FlattenArgmentTypes.ContainsKey(DefaultArgmentsTypeName) ? FlattenArgmentTypes[DefaultArgmentsTypeName] : null;

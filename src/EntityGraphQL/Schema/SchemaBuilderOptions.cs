@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateEnumTypes { get; set; } = true;
         /// <summary>
-        /// If true (default) and an object type is encountered during reflection of the object graph it will be added to the schema 
+        /// If true (default) and an object type is encountered during reflection of the query object graph it will be added to the schema 
         /// as a Type including it's fields. If that type is an interface it will be added as an interface. This includes return 
         /// types form mutations
         /// </summary>

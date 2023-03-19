@@ -4,7 +4,6 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema

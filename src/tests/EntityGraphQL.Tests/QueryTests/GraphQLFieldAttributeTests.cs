@@ -337,7 +337,35 @@ public class GraphQLFieldAttributeTests
 
         var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        Assert.Equal(44, ((dynamic)res.Data["fields"])[0].methodFieldWithService);
+        Assert.Equal(44, (dynamic)res.Data["methodFieldWithService"]);
+    }
+
+    [Fact]
+    public void TestGraphQLFieldAttributeWithServiceStatic()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethodService>();
+
+        Assert.True(schemaProvider.Type<ContextFieldWithMethodService>().HasField("methodFieldWithServiceStatic", null));
+
+        var sdl = schemaProvider.ToGraphQLSchemaString();
+
+        Assert.Contains("methodFieldWithServiceStatic(value: Int!): Int!", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                methodFieldWithServiceStatic(value: 88)
+            }"
+        };
+
+        var context = new ContextFieldWithMethodService();
+        var serviceCollection = new ServiceCollection();
+        var srv = new ConfigService();
+        serviceCollection.AddSingleton(srv);
+
+        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(44, (dynamic)res.Data["methodFieldWithServiceStatic"]);
     }
 }
 
@@ -355,7 +383,12 @@ public class ContextFieldWithMethod
 public class ContextFieldWithMethodService
 {
     [GraphQLField]
-    public static int MethodFieldWithService(ConfigService service, int value)
+    public int MethodFieldWithService(ConfigService service, int value)
+    {
+        return service.GetHalfInt(value);
+    }
+    [GraphQLField]
+    public static int MethodFieldWithServiceStatic(ConfigService service, int value)
     {
         return service.GetHalfInt(value);
     }

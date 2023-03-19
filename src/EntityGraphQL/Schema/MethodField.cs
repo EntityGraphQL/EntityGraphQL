@@ -31,23 +31,10 @@ namespace EntityGraphQL.Schema
             Method = method;
             RequiredAuthorization = requiredAuth;
             IsAsync = isAsync;
-
-            foreach (var item in method.GetParameters())
+            Dictionary<string, Type> flattenedTypes;
+            foreach (var item in SchemaBuilder.GetArgumentsFromMethod(schema, method, options, out flattenedTypes))
             {
-                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                    continue;
-
-                var inputType = item.ParameterType.IsEnumerableOrArray() ? item.ParameterType.GetEnumerableOrArrayType()! : item.ParameterType;
-                if (inputType.IsNullableType())
-                    inputType = inputType.GetGenericArguments()[0];
-
-                // primitive types are arguments or types already known in the schema
-                var shouldBeAddedAsArg = item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));
-
-                // if hasServices then we expect attributes
-                var argumentsAttr = item.GetCustomAttribute<GraphQLArgumentsAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>();
-                var inlineArgumentAttr = item.GetCustomAttribute<GraphQLInputTypeAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLInputTypeAttribute>();
-                if (!shouldBeAddedAsArg && argumentsAttr == null && inlineArgumentAttr == null)
+                if (item.IsService)
                     // services are not arguments in the schema
                     // We do not add service to BaseField.Services as this MethodField is used for mutations/subscriptions
                     // that make this method call then make a query on the result.
@@ -55,58 +42,9 @@ namespace EntityGraphQL.Schema
                     // Services will be injected for us below in CallAsync
                     continue;
 
-                if (argumentsAttr != null)
-                {
-                    FlattenArguments(item.ParameterType, schema, options);
-                    FlattenArgmentTypes.Add(item.Name!, item.ParameterType);
-                }
-                else
-                {
-                    Arguments.Add(Schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
-
-                    if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
-                    {
-                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, inputType);
-                    }
-                }
+                Arguments.Add(item.ArgName, item.ArgType!);
             }
-        }
-
-        private void FlattenArguments(Type argType, ISchemaProvider schema, SchemaBuilderOptions options)
-        {
-            foreach (var item in argType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                    continue;
-                Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
-                AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
-
-            }
-            foreach (var item in argType.GetFields(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                    continue;
-                Arguments.Add(Schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
-                AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
-            }
-        }
-
-        private static void AddInputTypesInArguments(ISchemaProvider schema, bool autoAddInputTypes, Type propType)
-        {
-            var inputType = propType.IsEnumerableOrArray() ? propType.GetEnumerableOrArrayType()! : propType.IsNullableType() ? propType.GetGenericArguments()[0] : propType;
-            if (autoAddInputTypes && !schema.HasType(inputType))
-                schema.AddInputType(inputType, GetTypeName(inputType), null).AddAllFields();
-        }
-
-        private static string GetTypeName(Type inputType)
-        {
-            if (inputType.IsGenericType)
-            {
-                var name = inputType.Name.Split('`')[0];
-                var genericArgs = string.Join("", inputType.GetGenericArguments().Select(t => GetTypeName(t)));
-                return $"{name}{genericArgs}";
-            }
-            return inputType.Name;
+            FlattenArgmentTypes = flattenedTypes;
         }
 
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
