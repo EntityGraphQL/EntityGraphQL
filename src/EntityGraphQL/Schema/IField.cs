@@ -30,7 +30,7 @@ namespace EntityGraphQL.Schema
         /// expression at execution time. You should not store this at configuration time in field extensions
         /// </summary>
         ParameterExpression? ArgumentParam { get; }
-        Type? ArgumentsType { get; set; }
+        Dictionary<string, Type> FlattenArgmentTypes { get; }
         string Name { get; }
         /// <summary>
         /// GraphQL type this fiel belongs to

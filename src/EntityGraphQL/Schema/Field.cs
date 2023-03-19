@@ -77,7 +77,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgsObject != null)
             {
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, fieldArgsObject);
-                ArgumentsType = fieldArgsObject.GetType();
+                DefaultArgmentsType = fieldArgsObject.GetType();
             }
         }
 
@@ -103,8 +103,8 @@ namespace EntityGraphQL.Schema
             if (fieldArgs != null)
             {
                 Arguments = fieldArgs;
-                if (ArgumentsType == null)
-                    ArgumentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+                if (DefaultArgmentsType == null)
+                    DefaultArgmentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 
@@ -178,9 +178,9 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                if (field.ArgumentsType != null && FieldParam != null)
+                if (field.DefaultArgmentsType != null && FieldParam != null)
                 {
-                    argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables, validationErrors);
+                    argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.DefaultArgmentsType, docParam, docVariables, validationErrors);
                 }
                 // we need to make a copy of the argument parameter as if they select the same field multiple times
                 // i.e. with different alias & arguments we need to have different ParameterExpression instances

@@ -40,7 +40,7 @@ namespace EntityGraphQL.Compiler
                 try
                 {
                     object? docVariables = BuildDocumentVariables(ref variables);
-                    foreach (var node in field.Expand(compileContext, fragments, true, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
+                    foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
                     {
 #if DEBUG
                         Stopwatch? timer = null;

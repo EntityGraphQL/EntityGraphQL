@@ -25,12 +25,9 @@ namespace EntityGraphQL.Schema
         protected MethodInfo Method { get; set; }
         public bool IsAsync { get; protected set; }
 
-        private readonly Dictionary<string, Type> flattenArgmentTypes = new();
-
         public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, SchemaBuilderOptions options)
             : base(schema, fromType, methodName, description, returnType)
         {
-            Services = new List<Type>();
             Method = method;
             RequiredAuthorization = requiredAuth;
             IsAsync = isAsync;
@@ -54,12 +51,17 @@ namespace EntityGraphQL.Schema
                 var argumentsAttr = item.GetCustomAttribute<GraphQLArgumentsAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>();
                 var inlineArgumentAttr = item.GetCustomAttribute<GraphQLInputTypeAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLInputTypeAttribute>();
                 if (!shouldBeAddedAsArg && argumentsAttr == null && inlineArgumentAttr == null)
-                    continue; // services are not arguments in the schema
+                    // services are not arguments in the schema
+                    // We do not add service to BaseField.Services as this MethodField is used for mutations/subscriptions
+                    // that make this method call then make a query on the result.
+                    // BaseField.Services are for fields in a query result
+                    // Services will be injected for us below in CallAsync
+                    continue;
 
                 if (argumentsAttr != null)
                 {
                     FlattenArguments(item.ParameterType, schema, options);
-                    flattenArgmentTypes.Add(item.Name!, item.ParameterType);
+                    FlattenArgmentTypes.Add(item.Name!, item.ParameterType);
                 }
                 else
                 {
@@ -126,7 +128,7 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    var argType = flattenArgmentTypes[p.Name!];
+                    var argType = FlattenArgmentTypes[p.Name!];
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, argType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }

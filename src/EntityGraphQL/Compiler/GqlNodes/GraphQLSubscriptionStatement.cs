@@ -49,7 +49,7 @@ namespace EntityGraphQL.Compiler
             {
                 try
                 {
-                    foreach (var node in field.Expand(compileContext, fragments, true, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
+                    foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
                     {
 #if DEBUG
                         Stopwatch? timer = null;
