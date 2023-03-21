@@ -81,7 +81,7 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         // set up the field's expresison so the types are all good 
         // rebuilt below if needed
-        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentParam!);
+        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
 

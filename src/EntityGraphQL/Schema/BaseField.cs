@@ -14,44 +14,31 @@ namespace EntityGraphQL.Schema
 {
     public abstract class BaseField : IField
     {
-        public IField? UseArgumentsFromField { get; set; }
-
+        #region IField properties
         public abstract GraphQLQueryFieldType FieldType { get; }
+        public ISchemaProvider Schema { get; set; }
         public ParameterExpression? FieldParam { get; set; }
-
+        public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
         public string Description { get; protected set; }
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
-        public ParameterExpression? ArgumentParam { get; set; }
+        public ParameterExpression? ArgumentsParameter { get; set; }
+        public Dictionary<string, Type> FlattenArgmentTypes { get; internal set; } = new();
         public string Name { get; internal set; }
         public ISchemaType FromType { get; }
         public GqlTypeInfo ReturnType { get; protected set; }
         public List<IFieldExtension> Extensions { get; set; }
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
-        protected List<ISchemaDirective> Directives { get; set; } = new();
         public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
-
-        /// <summary>
-        /// If true the arguments on the field are used internally for processing (usually in extensions that change the 
-        /// shape of the schema and need arguments from the original field)
-        /// Arguments will not be in introspection
-        /// </summary>
         public bool ArgumentsAreInternal { get; internal set; }
-
-        /// <summary>
-        /// Services required to be injected for this fields selection
-        /// </summary>
-        /// <value></value>
         public IEnumerable<Type> Services { get; set; } = new List<Type>();
-
         public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
-
+        public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
 
-        public ISchemaProvider Schema { get; set; }
-        /// <summary>
-        /// Name of the dotnet parameter and its types that was flattened into the schema.
-        /// </summary>
-        public Dictionary<string, Type> FlattenArgmentTypes { get; internal set; } = new();
+        #endregion IField properties
+
+        protected List<ISchemaDirective> Directives { get; set; } = new();
+        protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
         internal const string DefaultArgmentsTypeName = "egql_generated_args";
         public Type? DefaultArgmentsType
         {
@@ -64,10 +51,6 @@ namespace EntityGraphQL.Schema
                     FlattenArgmentTypes[DefaultArgmentsTypeName] = value;
             }
         }
-
-        public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
-
-        protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
@@ -157,10 +140,10 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            if (ArgumentParam != null && ResolveExpression != null)
-                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentParam, argParam);
+            if (ArgumentsParameter != null && ResolveExpression != null)
+                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentsParameter, argParam);
 
-            ArgumentParam = argParam;
+            ArgumentsParameter = argParam;
             DefaultArgmentsType = newArgType;
         }
         public IField Returns(GqlTypeInfo gqlTypeInfo)
@@ -174,7 +157,7 @@ namespace EntityGraphQL.Schema
             // Move the arguments definition to the new field as it needs them for processing
             // don't push field.FieldParam over 
             FlattenArgmentTypes = field.FlattenArgmentTypes;
-            ArgumentParam = field.ArgumentParam;
+            ArgumentsParameter = field.ArgumentsParameter;
             Arguments = field.Arguments;
             ArgumentsAreInternal = true;
             UseArgumentsFromField = field;

@@ -367,12 +367,44 @@ public class GraphQLFieldAttributeTests
         Assert.Null(res.Errors);
         Assert.Equal(44, (dynamic)res.Data["methodFieldWithServiceStatic"]);
     }
+
+    [Fact]
+    public void TestGraphQLFieldAttributeWithArgumentsClass()
+    {
+        var schema = SchemaBuilder.FromObject<ContextFieldWithMethod2>();
+
+        var sdl = schema.ToGraphQLSchemaString();
+
+        Assert.Contains("methodFieldWithArgs(name: String): String", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                complex {
+                    methodFieldWithArgs(name: ""Superman"")
+                }
+            }"
+        };
+
+        var context = new ContextFieldWithMethod2
+        {
+            Complex = new List<TypeWithMethodArgs>
+                {
+                    new TypeWithMethodArgs()
+                }
+        };
+
+        var res = schema.ExecuteRequest(gql, context, null, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("Superman", (dynamic)res.Data["methodFieldWithArgs"]);
+    }
 }
 
 
 public class ContextFieldWithMethod
 {
     public IEnumerable<TypeWithMethod> Fields { get; set; }
+    public IEnumerable<TypeWithMethodArgs> Complex { get; set; }
 
     [GraphQLField]
     public int TestMethod()
@@ -393,6 +425,26 @@ public class ContextFieldWithMethodService
         return service.GetHalfInt(value);
     }
 }
+
+public class ContextFieldWithMethod2
+{
+    public IEnumerable<TypeWithMethodArgs> Complex { get; set; }
+}
+public class TypeWithMethodArgs
+{
+    [GraphQLField]
+    public string MethodFieldWithArgs([GraphQLArguments] MyArgs args)
+    {
+        Assert.NotNull(args);
+        return args.Name;
+    }
+}
+
+public class MyArgs
+{
+    public string Name { get; set; }
+}
+
 public class TypeWithMethod
 {
     [GraphQLField]

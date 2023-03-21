@@ -42,7 +42,15 @@ namespace EntityGraphQL.Schema
                     // Services will be injected for us below in CallAsync
                     continue;
 
-                Arguments.Add(item.ArgName, item.ArgType!);
+                if (item.ShouldFlatten)
+                {
+                    foreach (var f in item.FlattenArgs!)
+                    {
+                        Arguments.Add(f.ArgName, f.ArgType!);
+                    }
+                }
+                else
+                    Arguments.Add(item.ArgName, item.ArgType!);
             }
             FlattenArgmentTypes = flattenedTypes;
         }

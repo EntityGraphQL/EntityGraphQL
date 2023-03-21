@@ -192,37 +192,50 @@ namespace EntityGraphQL.Schema
             var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
             var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(method);
 
-            var methodParameters = method.GetParameters();
-            ParameterExpression? argTypeParam = null;
             LambdaExpression? le = null;
-            Type? fieldArgType = null;
-            Dictionary<string, ArgType>? fieldArgs = null;
-            Dictionary<string, ParameterExpression> services = new();
+            // Fields for the schema (no services to [GraphQLArguments] that get expanded)
+            Dictionary<string, ArgType>? fieldSchemaArgs = null;
+            Dictionary<string, ParameterExpression> fieldServices = new();
+            // Types of the [GraphQLArguments] that got expanded
             Dictionary<string, Type> flattenedTypes = new();
 
-            if (methodParameters.Length > 0)
+            if (method.GetParameters().Length > 0)
             {
-                var allArgForExpression = new Dictionary<string, FieldArgInfo>();
-                fieldArgs = new Dictionary<string, ArgType>();
+                // This needs args, services and the [GraphQLArguments] types (not the expanded ones on the schema)
+                var argsForCallExpression = new Dictionary<string, FieldArgInfo>();
+                // Arg type for the created type that holds all the method args
+                // this is current how query field args work. They expect 1 type that has all the schema args as props
+                var fieldDotnetArgtypes = new Dictionary<string, Type>();
+                fieldSchemaArgs = new Dictionary<string, ArgType>();
                 foreach (var item in GetArgumentsFromMethod(schema, method, options, out flattenedTypes))
                 {
                     if (item.IsService)
                     {
-                        services.Add(item.ArgName, Expression.Parameter(item.ServiceType!, item.ArgName));
-                        allArgForExpression.Add(item.ArgName, item!);
+                        fieldServices.Add(item.ArgName, Expression.Parameter(item.ServiceType!, item.ArgName));
+                        argsForCallExpression.Add(item.ArgName, item!);
+                    }
+                    else if (item.ShouldFlatten)
+                    {
+                        foreach (var arg in item.FlattenArgs!)
+                        {
+                            fieldSchemaArgs.Add(arg.ArgName, arg.ArgType!);
+                        }
+                        argsForCallExpression.Add(item.ArgName, item);
+                        fieldDotnetArgtypes.Add(item.ArgName, flattenedTypes[item.ArgName]);
                     }
                     else
                     {
-                        fieldArgs.Add(item.ArgName, item.ArgType!);
-                        allArgForExpression.Add(item.ArgName, item);
+                        fieldSchemaArgs.Add(item.ArgName, item.ArgType!);
+                        argsForCallExpression.Add(item.ArgName, item);
+                        fieldDotnetArgtypes.Add(item.ArgName, item.ArgType!.RawType);
                     }
                 }
-                fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(f => f.Key, f => f.Value.RawType), method.Name)!;
-                argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
+                var fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldDotnetArgtypes, method.Name)!;
+                var argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
 
-                var paramExpressions = allArgForExpression.Values.Select(x => x.IsService ? (Expression)services[x.ArgName] : Expression.PropertyOrField(argTypeParam!, x.ArgName)).ToList();
+                var paramExpressions = argsForCallExpression.Values.Select(x => x.IsService ? (Expression)fieldServices[x.ArgName] : Expression.PropertyOrField(argTypeParam!, x.ArgName)).ToList();
                 var call = Expression.Call(method.IsStatic ? null : param, method, paramExpressions);
-                var lambdaParams = new[] { param, argTypeParam }.Concat(services.Values);
+                var lambdaParams = new[] { param, argTypeParam }.Concat(fieldServices.Values);
                 le = Expression.Lambda(call, lambdaParams);
                 flattenedTypes[BaseField.DefaultArgmentsTypeName] = fieldArgType;
             }
@@ -241,11 +254,11 @@ namespace EntityGraphQL.Schema
 
             var nullabilityInfo = method.GetNullabilityInfo();
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
-            var field = new Field(schema, fromType, name, le, description, fieldArgs, returnTypeInfo, requiredClaims);
+            var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
 
-            if (services.Count > 0)
+            if (fieldServices.Count > 0)
             {
-                field.Services = services.Values.Select(x => x.Type).ToList();
+                field.Services = fieldServices.Values.Select(x => x.Type).ToList();
                 field.FlattenArgmentTypes = flattenedTypes;
             }
 
@@ -475,7 +488,7 @@ namespace EntityGraphQL.Schema
 
                 if (argumentsAttr != null)
                 {
-                    arguments.AddRange(FlattenArguments(item.ParameterType, schema, options));
+                    arguments.Add(new FieldArgInfo(item.Name!, FlattenArguments(item.ParameterType, schema, options)));
                     flattenArgmentTypes.Add(item.Name!, item.ParameterType);
                 }
                 else
@@ -521,6 +534,12 @@ namespace EntityGraphQL.Schema
 
     public class FieldArgInfo
     {
+        public FieldArgInfo(string argName, IEnumerable<FieldArgInfo> flattedArgs)
+        {
+            ArgName = argName;
+            FlattenArgs = flattedArgs;
+        }
+
         public FieldArgInfo(string argName, ArgType argType)
         {
             ArgName = argName;
@@ -535,7 +554,15 @@ namespace EntityGraphQL.Schema
 
         public string ArgName { get; }
         public ArgType? ArgType { get; }
+        /// <summary>
+        /// This argument is a service
+        /// </summary>
         public bool IsService => ServiceType != null;
         public Type? ServiceType { get; }
+        /// <summary>
+        /// This argument should be flatten in the GraphQL schema. But not in the method call
+        /// </summary>
+        public bool ShouldFlatten => FlattenArgs != null;
+        public IEnumerable<FieldArgInfo>? FlattenArgs { get; }
     }
 }

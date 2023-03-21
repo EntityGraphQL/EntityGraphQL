@@ -133,7 +133,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression!);
-            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type })!, totalCountExp, field.ArgumentParam));
+            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentsParameter!.Type })!, totalCountExp, field.ArgumentsParameter));
             field.UpdateExpression(fieldExpression);
         }
 

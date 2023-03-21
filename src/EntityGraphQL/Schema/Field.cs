@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema
             ResolveExpression = resolve.Body;
             FieldParam = resolve.Parameters.First();
             if (hasArguments)
-                ArgumentParam = resolve.Parameters.ElementAt(1);
+                ArgumentsParameter = resolve.Parameters.ElementAt(1);
 
             if (resolve.Body.NodeType == ExpressionType.MemberAccess)
             {
@@ -92,8 +92,11 @@ namespace EntityGraphQL.Schema
         /// <param name="returnType">Schema return type of the field</param>
         /// <param name="requiredAuth">Any authorization require to query the field</param>
         public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, Dictionary<string, ArgType>? fieldArgs, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
-        : this(schema, fromType, name, resolve, description, (object?)null, returnType, requiredAuth)
+        : base(schema, fromType, name, description, returnType)
         {
+            RequiredAuthorization = requiredAuth;
+            Extensions = new List<IFieldExtension>();
+
             if (resolve != null)
             {
                 ProcessResolveExpression(resolve, false, fieldArgs != null);
@@ -102,8 +105,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgs != null)
             {
                 Arguments = fieldArgs;
-                if (DefaultArgmentsType == null)
-                    DefaultArgmentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+                DefaultArgmentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 
@@ -166,7 +168,7 @@ namespace EntityGraphQL.Schema
             object? argumentValues = null;
             Expression? result = fieldExpression;
             var validationErrors = new List<string>();
-            var newArgParam = ArgumentParam;
+            var newArgParam = ArgumentsParameter;
             // check if we are taking args from elsewhere (extensions do this)
             if (UseArgumentsFromField != null && compileContext != null)
             {
@@ -183,9 +185,9 @@ namespace EntityGraphQL.Schema
                 }
                 // we need to make a copy of the argument parameter as if they select the same field multiple times
                 // i.e. with different alias & arguments we need to have different ParameterExpression instances
-                if (ArgumentParam != null)
+                if (ArgumentsParameter != null)
                 {
-                    newArgParam = Expression.Parameter(ArgumentParam.Type, $"{ArgumentParam.Name}_exec");
+                    newArgParam = Expression.Parameter(ArgumentsParameter.Type, $"{ArgumentsParameter.Name}_exec");
                 }
                 if (argumentValues != null && compileContext != null)
                     compileContext.AddConstant(this, newArgParam!, argumentValues);
@@ -201,9 +203,9 @@ namespace EntityGraphQL.Schema
             }
 
             // replace the arg param after extensions (don't rely on extensions to do this)
-            if (ArgumentParam != null)
+            if (ArgumentsParameter != null)
             {
-                result = replacer.Replace(result, ArgumentParam, newArgParam!);
+                result = replacer.Replace(result, ArgumentsParameter, newArgParam!);
             }
 
             if (ArgumentValidators.Count > 0)

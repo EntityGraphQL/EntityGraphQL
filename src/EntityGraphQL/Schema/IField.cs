@@ -26,10 +26,15 @@ namespace EntityGraphQL.Schema
         string? Description { get; }
         IDictionary<string, ArgType> Arguments { get; }
         /// <summary>
-        /// The parameter expression for the field arguments (if any). Note that this instance is replaced within the
-        /// expression at execution time. You should not store this at configuration time in field extensions
+        /// These are the ParameterExpressiond that are used to access all the field's schema arguments. 
+        /// Note that these instances are replaced within the expression at execution time. 
+        /// You should not store these at configuration time in field extensions
         /// </summary>
-        ParameterExpression? ArgumentParam { get; }
+        ParameterExpression? ArgumentsParameter { get; }
+        /// <summary>
+        /// These are the Types used in the field's expression. They need to be mapped from the schema arguments which may different as
+        /// we can flatten objects out inot many arguments in the schema
+        /// </summary>
         Dictionary<string, Type> FlattenArgmentTypes { get; }
         string Name { get; }
         /// <summary>
@@ -42,10 +47,17 @@ namespace EntityGraphQL.Schema
 
         IList<ISchemaDirective> DirectivesReadOnly { get; }
         IField AddDirective(ISchemaDirective directive);
-
         ArgType GetArgumentType(string argName);
         bool HasArgumentByName(string argName);
+        /// <summary>
+        /// If true the arguments on the field are used internally for processing (usually in extensions that change the 
+        /// shape of the schema and need arguments from the original field)
+        /// Arguments will not be in introspection
+        /// </summary>
         bool ArgumentsAreInternal { get; }
+        /// <summary>
+        /// Services required to be injected for this fields selection
+        /// </summary>
         IEnumerable<Type> Services { get; }
         IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
         IField? UseArgumentsFromField { get; }
