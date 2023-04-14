@@ -35,7 +35,7 @@ namespace EntityGraphQL.Schema
         /// These are the Types used in the field's expression. They need to be mapped from the schema arguments which may different as
         /// we can flatten objects out inot many arguments in the schema
         /// </summary>
-        Dictionary<string, Type> FlattenArgmentTypes { get; }
+        Dictionary<string, Type> ExpressionArgmentTypes { get; }
         string Name { get; }
         /// <summary>
         /// GraphQL type this fiel belongs to

@@ -259,7 +259,7 @@ namespace EntityGraphQL.Schema
             if (fieldServices.Count > 0)
             {
                 field.Services = fieldServices.Values.Select(x => x.Type).ToList();
-                field.FlattenArgmentTypes = flattenedTypes;
+                field.ExpressionArgmentTypes = flattenedTypes;
             }
 
             field.ApplyAttributes(method.GetCustomAttributes());

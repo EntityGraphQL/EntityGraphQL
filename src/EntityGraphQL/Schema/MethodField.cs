@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema
                 else
                     Arguments.Add(item.ArgName, item.ArgType!);
             }
-            FlattenArgmentTypes = flattenedTypes;
+            ExpressionArgmentTypes = flattenedTypes;
         }
 
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    var argType = FlattenArgmentTypes[p.Name!];
+                    var argType = ExpressionArgmentTypes[p.Name!];
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, argType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }

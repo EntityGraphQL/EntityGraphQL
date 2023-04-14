@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
         public string Description { get; protected set; }
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
         public ParameterExpression? ArgumentsParameter { get; set; }
-        public Dictionary<string, Type> FlattenArgmentTypes { get; internal set; } = new();
+        public Dictionary<string, Type> ExpressionArgmentTypes { get; internal set; } = new();
         public string Name { get; internal set; }
         public ISchemaType FromType { get; }
         public GqlTypeInfo ReturnType { get; protected set; }
@@ -40,17 +40,6 @@ namespace EntityGraphQL.Schema
         protected List<ISchemaDirective> Directives { get; set; } = new();
         protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
         internal const string DefaultArgmentsTypeName = "egql_generated_args";
-        public Type? DefaultArgmentsType
-        {
-            get => FlattenArgmentTypes.ContainsKey(DefaultArgmentsTypeName) ? FlattenArgmentTypes[DefaultArgmentsTypeName] : null;
-            protected set
-            {
-                if (value == null && FlattenArgmentTypes.ContainsKey(DefaultArgmentsTypeName))
-                    FlattenArgmentTypes.Remove(DefaultArgmentsTypeName);
-                else if (value != null)
-                    FlattenArgmentTypes[DefaultArgmentsTypeName] = value;
-            }
-        }
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
@@ -128,7 +117,8 @@ namespace EntityGraphQL.Schema
             // get new argument values
             var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);
             // build new argument Type
-            var newArgType = ExpressionUtil.MergeTypes(DefaultArgmentsType, args.GetType());
+            ExpressionArgmentTypes.TryGetValue(DefaultArgmentsTypeName, out var argType);
+            var newArgType = ExpressionUtil.MergeTypes(argType, args.GetType());
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
             newArgs.ToList().ForEach(k => Arguments.Add(k.Key, k.Value));
             // now we need to update the MemberInfo
@@ -144,7 +134,7 @@ namespace EntityGraphQL.Schema
                 ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentsParameter, argParam);
 
             ArgumentsParameter = argParam;
-            DefaultArgmentsType = newArgType;
+            ExpressionArgmentTypes[DefaultArgmentsTypeName] = newArgType;
         }
         public IField Returns(GqlTypeInfo gqlTypeInfo)
         {
@@ -156,7 +146,7 @@ namespace EntityGraphQL.Schema
         {
             // Move the arguments definition to the new field as it needs them for processing
             // don't push field.FieldParam over 
-            FlattenArgmentTypes = field.FlattenArgmentTypes;
+            ExpressionArgmentTypes = field.ExpressionArgmentTypes;
             ArgumentsParameter = field.ArgumentsParameter;
             Arguments = field.Arguments;
             ArgumentsAreInternal = true;

@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgsObject != null)
             {
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, fieldArgsObject);
-                DefaultArgmentsType = fieldArgsObject.GetType();
+                ExpressionArgmentTypes[DefaultArgmentsTypeName] = fieldArgsObject.GetType();
             }
         }
 
@@ -105,7 +105,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgs != null)
             {
                 Arguments = fieldArgs;
-                DefaultArgmentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+                ExpressionArgmentTypes[DefaultArgmentsTypeName] = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 
@@ -145,7 +145,7 @@ namespace EntityGraphQL.Schema
         {
             Expression? expression = fieldExpression;
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
-            (var result, var argumentParam) = PrepareFieldExpression(args, this, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
+            (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
             if (result == null)
                 return (null, null);
             // the expressions we collect have a different starting parameter. We need to change that
@@ -163,7 +163,7 @@ namespace EntityGraphQL.Schema
             return (result, argumentParam);
         }
 
-        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Field field, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
+        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
         {
             object? argumentValues = null;
             Expression? result = fieldExpression;
@@ -179,9 +179,12 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                if (field.DefaultArgmentsType != null && FieldParam != null)
+                // TODO
+                // need to build arguments for the expression
+                // e.g. (obj, obj2, string, int)
+                if (ExpressionArgmentTypes.ContainsKey(DefaultArgmentsTypeName) && ExpressionArgmentTypes[DefaultArgmentsTypeName] != null && FieldParam != null)
                 {
-                    argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.DefaultArgmentsType, docParam, docVariables, validationErrors);
+                    argumentValues = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, args, Arguments.Values, ExpressionArgmentTypes[DefaultArgmentsTypeName], docParam, docVariables, validationErrors);
                 }
                 // we need to make a copy of the argument parameter as if they select the same field multiple times
                 // i.e. with different alias & arguments we need to have different ParameterExpression instances
@@ -210,7 +213,7 @@ namespace EntityGraphQL.Schema
 
             if (ArgumentValidators.Count > 0)
             {
-                var invokeContext = new ArgumentValidatorContext(field, argumentValues);
+                var invokeContext = new ArgumentValidatorContext(this, argumentValues);
                 foreach (var m in ArgumentValidators)
                 {
                     m(invokeContext);
