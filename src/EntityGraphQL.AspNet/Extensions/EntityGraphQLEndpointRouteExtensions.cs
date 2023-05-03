@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -9,11 +10,11 @@ namespace EntityGraphQL.AspNet
 {
     public static class EntityGraphQLEndpointRouteExtensions
     {
-        public static IEndpointRouteBuilder MapGraphQL<TQueryType>(this IEndpointRouteBuilder builder, string path = "graphql", ExecutionOptions? options = null)
+        public static IEndpointRouteBuilder MapGraphQL<TQueryType>(this IEndpointRouteBuilder builder, string path = "graphql", ExecutionOptions? options = null, string[]? endpointAuthorizationPolicyNames = null)
         {
             path = path.TrimEnd('/');
             var requestPipeline = builder.CreateApplicationBuilder();
-            builder.MapPost(path, async context =>
+            var postEndpoint = builder.MapPost(path, async context =>
             {
                 if (context.Request.ContentType?.StartsWith("application/json", StringComparison.InvariantCulture) == false)
                 {
@@ -40,6 +41,11 @@ namespace EntityGraphQL.AspNet
                 var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                 await serializer.SerializeAsync(context.Response.Body, data);
             });
+
+            if (endpointAuthorizationPolicyNames != null && endpointAuthorizationPolicyNames.Any())
+            {
+                postEndpoint.RequireAuthorization(endpointAuthorizationPolicyNames);
+            }
 
             return builder;
         }
