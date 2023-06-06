@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     {
         private readonly HashSet<Type> servicesCollected = new();
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
-        private readonly Dictionary<IField, List<ParameterExpression>> constantParametersForField = new();
+        private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
         public HashSet<Type> Services { get => servicesCollected; }
         public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
@@ -29,10 +29,10 @@ namespace EntityGraphQL.Compiler
         {
             constantParameters[parameterExpression] = value;
             if (fromField != null)
-                constantParametersForField[fromField] = new List<ParameterExpression> { parameterExpression };
+                constantParametersForField[fromField] = parameterExpression;
         }
 
-        public List<ParameterExpression>? GetConstantParameterForField(IField field)
+        public ParameterExpression? GetConstantParameterForField(IField field)
         {
             if (constantParametersForField.TryGetValue(field, out var param))
                 return param;

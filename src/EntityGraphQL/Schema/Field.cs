@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgsObject != null)
             {
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, fieldArgsObject);
-                ExpressionArgmentType = fieldArgsObject.GetType();
+                ExpressionArgumentType = fieldArgsObject.GetType();
             }
         }
 
@@ -105,7 +105,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgs != null)
             {
                 Arguments = fieldArgs;
-                ExpressionArgmentType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+                ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 
@@ -165,17 +165,15 @@ namespace EntityGraphQL.Schema
 
         private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
         {
-            Dictionary<string, object> argumentValues = new();
+            object? argumentValue = null;
             Expression? result = fieldExpression;
             var validationErrors = new List<string>();
             var newArgParam = ArgumentsParameter;
             // check if we are taking args from elsewhere (extensions do this)
             if (UseArgumentsFromField != null && compileContext != null)
             {
-                var moreArgs = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
-                // TODO 
-                argumentValues = moreArgs.Select(a => compileContext.ConstantParameters[a]).Where(a => a is not null).ToDictionary(i => i?.ToString() ?? "salkdhsjk", i => i)!;
-                throw new EntityGraphQLArgumentException("Not implemented");
+                var newArgValue = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
+                argumentValue = compileContext.ConstantParameters[newArgValue];
             }
             else
             {
@@ -184,10 +182,9 @@ namespace EntityGraphQL.Schema
                     // we need to make a copy of the argument parameter as if they select the same field multiple times
                     // i.e. with different alias & arguments we need to have different ParameterExpression instances
                     newArgParam = Expression.Parameter(ArgumentsParameter.Type, $"{ArgumentsParameter.Name}_exec");
-                    var argumentValue = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, args, Arguments.Values, newArgParam.Type, docParam, docVariables, validationErrors);
-                    if (argumentValue != null)
-                        argumentValues.Add(ArgumentsParameter.Name!, argumentValue);
-                    compileContext?.AddConstant(this, newArgParam, argumentValue);
+                    argumentValue = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, args, Arguments.Values, newArgParam.Type, docParam, docVariables, validationErrors);
+                    if (argumentValue != null && compileContext != null)
+                        compileContext?.AddConstant(this, newArgParam, argumentValue);
                 }
             }
 
@@ -196,7 +193,7 @@ namespace EntityGraphQL.Schema
                 foreach (var extension in Extensions)
                 {
                     if (result != null)
-                        result = extension.GetExpression(this, result, newArgParam, argumentValues, context, parentNode, servicesPass, replacer);
+                        result = extension.GetExpression(this, result, newArgParam, argumentValue, context, parentNode, servicesPass, replacer);
                 }
             }
 

@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema
             RequiredAuthorization = requiredAuth;
             IsAsync = isAsync;
             Dictionary<string, Type> flattenedTypes;
-            foreach (var item in SchemaBuilder.GetArgumentsFromMethod(schema, method, options, out flattenedTypes))
+            foreach (var item in SchemaBuilder.GetGraphQlSchemaArgumentsFromMethod(schema, method, options, out flattenedTypes))
             {
                 if (item.IsService)
                     // services are not arguments in the schema
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema
                 else
                     Arguments.Add(item.ArgName, item.ArgType!);
             }
-            ExpressionArgmentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
+            ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
         }
 
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
@@ -71,8 +71,8 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    var argType = ExpressionArgmentType;
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, argType, variableParameter, docVariables, validationErrors)!;
+                    // need to map GQL args to the GraphQLArguments object - p.ParameterType
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, p.ParameterType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }
                 else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))

@@ -39,7 +39,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// This is the Type used in the field's expression. It maps to the arguments of the field.
         /// </summary>
-        Type? ExpressionArgmentType { get; }
+        Type? ExpressionArgumentType { get; }
         string Name { get; }
         /// <summary>
         /// GraphQL type this fiel belongs to

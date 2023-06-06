@@ -12,7 +12,7 @@ You can see the full changelog which includes other changes and bug fixes as wel
 
 ## Changes to Method Argument Reflection
 
-Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter should be a GraphQL argument or an injected service unless you used `[GraphQLArguments]`. But this meant you couldn't have complex types as parameters in the method and have them reflected in the schema (`[GraphQLArguments]` flattens the arguments in the schema). This has been refactored to be predictable. 
+Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter should be a GraphQL argument or an injected service unless you used `[GraphQLArguments]`. But this meant you couldn't have complex types as parameters in the method and have them reflected in the schema (`[GraphQLArguments]` flattens the properties in the schema as arguments). This has been refactored to be predictable.
 
 `AutoCreateInputTypes` now defaults to `true` and you will have to add some attributes to your parameters or classes.
 
@@ -24,16 +24,17 @@ When looking for a methods parameters, EntityGraphQL will
 
 2. If parameter type or enum type is already in the schema it will be added at an argument.
 
-2. Any argument or type with `GraphQLInputTypeAttribute` or `GraphQLArgumentsAttribute` found will be added as schema arguments.
+3. Any argument or type with `GraphQLInputTypeAttribute` will be added to the schema as a `InputType`
 
-3. If no attributes are found it will assume they are services and not add them to the schema. *I.e. Label your arguments with the attributes or add them to the schema beforehand.*
+4. Any argument or type with `GraphQLArgumentsAttribute` found will have the types properties added as schema arguments.
+
+5. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your arguments with the attributes or add them to the schema beforehand._
 
 `AutoCreateInputTypes` now only controls if the type of the argument should be added to the schema.
 
 ## `IExposableException` removed
 
 Interface `IExposableException` has been removed. Use the existing `SchemaBuilderSchemaOptions.AllowedExceptions` property to define which exceptions are rendered into the results. Or mark your exceptions with the `AllowedExceptionAttribute` to have exception details in the results when `SchemaBuilderSchemaOptions.IsDevelopment` is `false`.
-
 
 ## `IDirectiveProcessor` updated
 

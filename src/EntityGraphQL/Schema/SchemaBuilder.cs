@@ -208,7 +208,7 @@ namespace EntityGraphQL.Schema
                 // TODO fieldDotnetArgtypes vs flattenedTypes
                 var fieldDotnetArgtypes = new Dictionary<string, Type>();
                 fieldSchemaArgs = new Dictionary<string, ArgType>();
-                foreach (var item in GetArgumentsFromMethod(schema, method, options, out flattenedTypes))
+                foreach (var item in GetGraphQlSchemaArgumentsFromMethod(schema, method, options, out flattenedTypes))
                 {
                     if (item.IsService)
                     {
@@ -259,7 +259,7 @@ namespace EntityGraphQL.Schema
             if (fieldServices.Count > 0)
             {
                 field.Services = fieldServices.Values.Select(x => x.Type).ToList();
-                field.ExpressionArgmentType = fieldArgType;
+                field.ExpressionArgumentType = fieldArgType;
             }
 
             field.ApplyAttributes(method.GetCustomAttributes());
@@ -458,7 +458,7 @@ namespace EntityGraphQL.Schema
             return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType(), null), returnType);
         }
 
-        public static IEnumerable<FieldArgInfo> GetArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgmentTypes)
+        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgmentTypes)
         {
             flattenArgmentTypes = new Dictionary<string, Type>();
             var arguments = new List<FieldArgInfo>();
