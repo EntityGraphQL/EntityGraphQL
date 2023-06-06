@@ -172,8 +172,8 @@ namespace EntityGraphQL.Schema
             // check if we are taking args from elsewhere (extensions do this)
             if (UseArgumentsFromField != null && compileContext != null)
             {
-                var newArgValue = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
-                argumentValue = compileContext.ConstantParameters[newArgValue];
+                newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
+                argumentValue = compileContext.ConstantParameters[newArgParam];
             }
             else
             {
@@ -206,14 +206,14 @@ namespace EntityGraphQL.Schema
             if (ArgumentValidators.Count > 0)
             {
                 // TODO I think we only want to send the default args to this (user defined)
-                // var invokeContext = new ArgumentValidatorContext(this, argumentValues[DefaultArgmentsTypeName]);
-                // foreach (var m in ArgumentValidators)
-                // {
-                //     m(invokeContext);
-                //     argumentValues = invokeContext.Arguments;
-                // }
+                var invokeContext = new ArgumentValidatorContext(this, argumentValue);
+                foreach (var m in ArgumentValidators)
+                {
+                    m(invokeContext);
+                    argumentValue = invokeContext.Arguments;
+                }
 
-                // validationErrors.AddRange(invokeContext.Errors);
+                validationErrors.AddRange(invokeContext.Errors);
             }
 
             if (validationErrors.Count > 0)

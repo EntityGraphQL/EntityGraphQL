@@ -13,7 +13,6 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// </summary>
 public class OffsetPagingExtension : BaseFieldExtension
 {
-    internal static readonly string OffsetPagingFieldArgName = "egql_offsetArgs";
     private IField? itemsField;
     private IField? field;
     private List<IFieldExtension> extensions = new();
@@ -64,7 +63,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
 
         // Update field arguments
-        field.AddArguments(OffsetPagingFieldArgName, new OffsetArgs());
+        field.AddArguments(new OffsetArgs());
         if (defaultPageSize.HasValue)
             field.Arguments["take"].DefaultValue = defaultPageSize.Value;
 

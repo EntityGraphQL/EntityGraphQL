@@ -13,7 +13,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class ConnectionPagingExtension : BaseFieldExtension
     {
-        internal static readonly string ConnectionPagingArgName = "egql_connectionArgs";
         private readonly int? defaultPageSize;
         private readonly int? maxPageSize;
         private IField? edgesField;
@@ -79,7 +78,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, connectionName));
 
             // Update field arguments
-            field.AddArguments(ConnectionPagingArgName, new ConnectionArgs());
+            field.AddArguments(new ConnectionArgs());
 
             // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
@@ -145,6 +144,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 field.ArgumentsParameter
             };
             var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(argTypes.ToArray())!, paramsArgs));
+
             field.UpdateExpression(fieldExpression);
         }
 

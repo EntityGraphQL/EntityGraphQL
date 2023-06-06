@@ -77,7 +77,7 @@ public static class ArgumentUtil
             var validators = argumentsType!.GetCustomAttributes<ArgumentValidatorAttribute>();
             if (validators != null)
             {
-                var context = new ArgumentValidatorContext(field, new List<object> { argumentValues });
+                var context = new ArgumentValidatorContext(field, argumentValues);
                 foreach (var validator in validators)
                 {
                     validator.Validator.ValidateAsync(context).GetAwaiter().GetResult();

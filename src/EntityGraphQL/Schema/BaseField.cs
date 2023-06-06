@@ -107,12 +107,7 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        /// <summary>
-        /// Adds a argument object to the field. The fields on the object will be added as arguments.
-        /// Any exisiting arguments with the same name will be overwritten.
-        /// </summary>
-        /// <param name="args"></param>
-        public void AddArguments(string name, object args)
+        public void AddArguments(object args)
         {
             // get new argument values
             var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);

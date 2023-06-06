@@ -6,7 +6,7 @@ public class ArgumentValidatorContext
 {
     private readonly List<string> errors = new();
     // TODO how is these used
-    public ArgumentValidatorContext(IField field, List<object> argumentValues, MethodInfo? method = null)
+    public ArgumentValidatorContext(IField field, object? argumentValues, MethodInfo? method = null)
     {
         Field = field;
         Arguments = argumentValues;
@@ -16,7 +16,7 @@ public class ArgumentValidatorContext
     /// <summary>
     /// The value of the argments for the field.
     /// </summary>
-    public List<object> Arguments { get; set; }
+    public dynamic? Arguments { get; set; }
 
     /// <summary>
     /// The method (mutation) about to be called

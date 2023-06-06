@@ -79,7 +79,11 @@ namespace EntityGraphQL.Schema
         IField UpdateExpression(Expression expression);
 
         void AddExtension(IFieldExtension extension);
-        void AddArguments(string name, object args);
+        /// <summary>
+        /// Add new arguments to the field. Properties on the args object will be merged with any existing arguments on the field.
+        /// </summary>
+        /// <param name="args"></param>
+        void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
         void UseArgumentsFrom(IField field);
         IField AddValidator<TValidator>() where TValidator : IArgumentValidator;

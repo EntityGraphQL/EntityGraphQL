@@ -67,7 +67,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     argType.GetProperty("Sort")!.SetValue(argInstance, defaultSortValues);
                 }
             }
-            field.AddArguments("sortArgs", argInstance);
+            field.AddArguments(argInstance);
         }
 
         private Type MakeSortType(IField field)
