@@ -13,6 +13,7 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// </summary>
 public class OffsetPagingExtension : BaseFieldExtension
 {
+    internal static readonly string OffsetPagingFieldArgName = "egql_offsetArgs";
     private IField? itemsField;
     private IField? field;
     private List<IFieldExtension> extensions = new();
@@ -63,7 +64,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, page));
 
         // Update field arguments
-        field.AddArguments(new OffsetArgs());
+        field.AddArguments(OffsetPagingFieldArgName, new OffsetArgs());
         if (defaultPageSize.HasValue)
             field.Arguments["take"].DefaultValue = defaultPageSize.Value;
 
@@ -85,9 +86,10 @@ public class OffsetPagingExtension : BaseFieldExtension
         field.UpdateExpression(fieldExpression);
     }
 
-    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression? argumentParam)
+    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
+
         var expression = Expression.MemberInit(
             Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
         );
@@ -98,6 +100,9 @@ public class OffsetPagingExtension : BaseFieldExtension
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now
+
+        if (argumentParam == null)
+            throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires argumentParams to be set");
 
         if (maxPageSize != null && arguments?.Take > maxPageSize.Value)
             throw new EntityGraphQLArgumentException($"Argument take can not be greater than {maxPageSize}.");

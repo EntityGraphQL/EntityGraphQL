@@ -117,10 +117,13 @@ public class ValidationTests
         .Add(AddPerson)
         .AddValidator(context =>
         {
-            if (context.Arguments is PersonArgs args)
+            foreach (var arg in context.Arguments)
             {
-                if (args.Name == "Luke")
-                    context.AddError("Name can't be Luke");
+                if (arg is PersonArgs args)
+                {
+                    if (args.Name == "Luke")
+                        context.AddError("Name can't be Luke");
+                }
             }
         });
         var gql = new QueryRequest
@@ -264,12 +267,15 @@ public class ValidationTests
             "Get a list of Movies")
             .AddValidator((context) =>
             {
-                if (context.Arguments is MovieQueryArgs args)
+                foreach (var arg in context.Arguments)
                 {
-                    if (args.Price == 150)
-                        context.AddError("You can't use 150 for the price");
-                    if (string.IsNullOrEmpty(args.Title))
-                        context.AddError("Empty or null Title is an invalid search term");
+                    if (arg is MovieQueryArgs args)
+                    {
+                        if (args.Price == 150)
+                            context.AddError("You can't use 150 for the price");
+                        if (string.IsNullOrEmpty(args.Title))
+                            context.AddError("Empty or null Title is an invalid search term");
+                    }
                 }
             });
         var gql = new QueryRequest
@@ -300,12 +306,15 @@ public class ValidationTests
                 // pretend await
                 await System.Threading.Tasks.Task.Run(() =>
                 {
-                    if (context.Arguments is MovieQueryArgs args)
+                    foreach (var arg in context.Arguments)
                     {
-                        if (args.Price == 150)
-                            context.AddError("You can't use 150 for the price");
-                        if (string.IsNullOrEmpty(args.Title))
-                            context.AddError("Empty or null Title is an invalid search term");
+                        if (arg is MovieQueryArgs args)
+                        {
+                            if (args.Price == 150)
+                                context.AddError("You can't use 150 for the price");
+                            if (string.IsNullOrEmpty(args.Title))
+                                context.AddError("Empty or null Title is an invalid search term");
+                        }
                     }
                 });
             });
@@ -358,16 +367,18 @@ internal class PersonValidator : IArgumentValidator
 {
     public System.Threading.Tasks.Task ValidateAsync(ArgumentValidatorContext context)
     {
-        // reusing for tests - but you could too
-        if (context.Arguments is PersonArgs args)
+        foreach (var arg in context.Arguments)
         {
-            if (args.Name == "Luke")
-                context.AddError("Name can't be Luke");
-        }
-        else if (context.Arguments is PersonArgsWithValidator args2)
-        {
-            if (args2.Name == "Luke")
-                context.AddError("Name can't be Luke");
+            if (arg is PersonArgs args)
+            {
+                if (args.Name == "Luke")
+                    context.AddError("Name can't be Luke");
+            }
+            else if (arg is PersonArgsWithValidator args2)
+            {
+                if (args2.Name == "Luke")
+                    context.AddError("Name can't be Luke");
+            }
         }
         return System.Threading.Tasks.Task.CompletedTask;
     }
@@ -377,20 +388,22 @@ internal class MovieValidator : IArgumentValidator
 {
     public System.Threading.Tasks.Task ValidateAsync(ArgumentValidatorContext context)
     {
-        // should always be true 
-        if (context.Arguments is MovieQueryArgs args)
+        foreach (var arg in context.Arguments)
         {
-            if (args.Price == 150)
-                context.AddError("You can't use 150 for the price");
-            if (string.IsNullOrEmpty(args.Title))
-                context.AddError("Empty or null Title is an invalid search term");
-        }
-        else if (context.Arguments is MovieQueryArgsWithValidator args2)
-        {
-            if (string.IsNullOrEmpty(args2.Genre))
-                context.AddError("Genre is required");
-            if (string.IsNullOrEmpty(args2.Title))
-                context.AddError("Empty or null Title is an invalid search term");
+            if (arg is MovieQueryArgs args)
+            {
+                if (args.Price == 150)
+                    context.AddError("You can't use 150 for the price");
+                if (string.IsNullOrEmpty(args.Title))
+                    context.AddError("Empty or null Title is an invalid search term");
+            }
+            else if (arg is MovieQueryArgsWithValidator args2)
+            {
+                if (string.IsNullOrEmpty(args2.Genre))
+                    context.AddError("Genre is required");
+                if (string.IsNullOrEmpty(args2.Title))
+                    context.AddError("Empty or null Title is an invalid search term");
+            }
         }
         return System.Threading.Tasks.Task.CompletedTask;
     }

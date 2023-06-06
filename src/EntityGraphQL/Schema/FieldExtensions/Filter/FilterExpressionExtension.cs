@@ -29,7 +29,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             // Update field arguments
             var args = Activator.CreateInstance(typeof(FilterArgs<>).MakeGenericType(listType))!;
-            field.AddArguments(args);
+            field.AddArguments("filterArgs", args);
 
             isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
         }

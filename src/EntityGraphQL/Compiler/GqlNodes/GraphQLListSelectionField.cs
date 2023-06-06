@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler
                 listContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, listContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
-            (listContext, var argumentParam) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (ListExpression, null);
+            (listContext, var argumentParams) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (ListExpression, null);
             if (listContext == null)
                 return null;
 
@@ -79,7 +79,7 @@ namespace EntityGraphQL.Compiler
                 return listContext;
             }
 
-            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParam, contextChanged, replacer);
+            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParams, contextChanged, replacer);
 
             if (HasServices)
                 compileContext.AddServices(Field!.Services);

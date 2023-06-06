@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema
                 else
                     Arguments.Add(item.ArgName, item.ArgType!);
             }
-            ExpressionArgmentTypes = flattenedTypes;
+            ExpressionArgmentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
         }
 
         public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
@@ -71,7 +71,7 @@ namespace EntityGraphQL.Schema
             {
                 if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    var argType = ExpressionArgmentTypes[p.Name!];
+                    var argType = ExpressionArgmentType;
                     argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, argType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }
@@ -118,7 +118,7 @@ namespace EntityGraphQL.Schema
 
             if (ArgumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, Method);
+                var validatorContext = new ArgumentValidatorContext(this, new List<object> { argInstance ?? argsToValidate }, Method);
                 foreach (var argValidator in ArgumentValidators)
                 {
                     argValidator(validatorContext);

@@ -4,6 +4,9 @@ using EntityGraphQL.Schema;
 using System.Linq;
 using System;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
+using static EntityGraphQL.Tests.ServiceFieldTests;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -27,10 +30,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"query {
-  projects {
-    tasks { id }
-  }
-}"
+                    projects {
+                        tasks { id }
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -68,10 +71,10 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"{
-    projects {
-        tasks(like: ""h"") { name }
-    }
-}"
+                    projects {
+                        tasks(like: ""h"") { name }
+                    }
+                }"
             };
 
             var context = new TestDataContext
@@ -96,6 +99,41 @@ namespace EntityGraphQL.Tests
             Type projectType = project.GetType();
             Assert.Single(projectType.GetFields());
             Assert.Equal("tasks", projectType.GetFields()[0].Name);
+        }
+
+        [Fact]
+        public void TestOffsetPagingWithOthersAndServices()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            data.People.Add(new Person { Id = 1, Name = "Jill", LastName = "Frank", Birthday = DateTime.Now.AddYears(22) });
+            data.People.Add(new Person { Id = 2, Name = "Cheryl", LastName = "Frank", Birthday = DateTime.Now.AddYears(10) });
+
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people")
+                .UseFilter();
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(filter: ""age > 21"") {
+                        name id age lastName
+                    }
+                }",
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var ager = new AgeService();
+            serviceCollection.AddSingleton(ager);
+
+            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person1 = Enumerable.ElementAt(people, 0);
+            Assert.Equal("Frank", person1.lastName);
+            Assert.Equal("Jill", person1.name);
         }
     }
 }

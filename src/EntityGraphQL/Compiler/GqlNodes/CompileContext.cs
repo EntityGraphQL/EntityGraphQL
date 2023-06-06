@@ -6,13 +6,13 @@ using EntityGraphQL.Schema;
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
-    /// Class to hold required services ro constant parameters required to execute the compiled query
+    /// Class to hold required services and constant parameters required to execute the compiled query
     /// </summary>
     public class CompileContext
     {
         private readonly HashSet<Type> servicesCollected = new();
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
-        private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
+        private readonly Dictionary<IField, List<ParameterExpression>> constantParametersForField = new();
 
         public HashSet<Type> Services { get => servicesCollected; }
         public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
@@ -29,10 +29,10 @@ namespace EntityGraphQL.Compiler
         {
             constantParameters[parameterExpression] = value;
             if (fromField != null)
-                constantParametersForField[fromField] = parameterExpression;
+                constantParametersForField[fromField] = new List<ParameterExpression> { parameterExpression };
         }
 
-        public ParameterExpression? GetConstantParameterForField(IField field)
+        public List<ParameterExpression>? GetConstantParameterForField(IField field)
         {
             if (constantParametersForField.TryGetValue(field, out var param))
                 return param;

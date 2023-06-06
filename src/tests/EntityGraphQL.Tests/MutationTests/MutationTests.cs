@@ -562,9 +562,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          defaultValueTest
-        }
-        ",
+                    defaultValueTest
+                }",
             };
 
             var testSchema = new TestDataContext();
@@ -598,6 +597,7 @@ namespace EntityGraphQL.Tests
 
             results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
 
+            Assert.Null(results.Errors);
             result = results.Data["__schema"];
 
             var field = ((IEnumerable<dynamic>)result.mutationType.fields).Where(x => x.name == "defaultValueTest");

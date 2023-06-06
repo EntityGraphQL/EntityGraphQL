@@ -24,18 +24,22 @@ namespace EntityGraphQL.Schema
         ParameterExpression? FieldParam { get; set; }
         List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; }
         string? Description { get; }
+        /// <summary>
+        /// Information about each field argument. This is used to map the schema arguments to the expression arguments
+        /// </summary>
         IDictionary<string, ArgType> Arguments { get; }
         /// <summary>
-        /// These are the ParameterExpressiond that are used to access all the field's schema arguments. 
+        /// This is a ParameterExpression that is used to access all the field's arguments. The type is a type that has all the field's arguemnts as properties.
+        /// E.g. if the field has argsmuents (a, b, c) then expressions access them them like (args) => args.a + args.b + args.c
+        /// This means arguments passed in a query map the the Type of this parameter.
         /// Note that these instances are replaced within the expression at execution time. 
         /// You should not store these at configuration time in field extensions
         /// </summary>
         ParameterExpression? ArgumentsParameter { get; }
         /// <summary>
-        /// These are the Types used in the field's expression. They need to be mapped from the schema arguments which may different as
-        /// we can flatten objects out inot many arguments in the schema
+        /// This is the Type used in the field's expression. It maps to the arguments of the field.
         /// </summary>
-        Dictionary<string, Type> ExpressionArgmentTypes { get; }
+        Type? ExpressionArgmentType { get; }
         string Name { get; }
         /// <summary>
         /// GraphQL type this fiel belongs to
@@ -75,7 +79,7 @@ namespace EntityGraphQL.Schema
         IField UpdateExpression(Expression expression);
 
         void AddExtension(IFieldExtension extension);
-        void AddArguments(object args);
+        void AddArguments(string name, object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
         void UseArgumentsFrom(IField field);
         IField AddValidator<TValidator>() where TValidator : IArgumentValidator;

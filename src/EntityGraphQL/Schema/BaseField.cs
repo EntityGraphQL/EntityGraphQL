@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
         public string Description { get; protected set; }
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
         public ParameterExpression? ArgumentsParameter { get; set; }
-        public Dictionary<string, Type> ExpressionArgmentTypes { get; internal set; } = new();
+        public Type? ExpressionArgmentType { get; internal set; }
         public string Name { get; internal set; }
         public ISchemaType FromType { get; }
         public GqlTypeInfo ReturnType { get; protected set; }
@@ -112,15 +112,14 @@ namespace EntityGraphQL.Schema
         /// Any exisiting arguments with the same name will be overwritten.
         /// </summary>
         /// <param name="args"></param>
-        public void AddArguments(object args)
+        public void AddArguments(string name, object args)
         {
             // get new argument values
             var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);
-            // build new argument Type
-            ExpressionArgmentTypes.TryGetValue(DefaultArgmentsTypeName, out var argType);
-            var newArgType = ExpressionUtil.MergeTypes(argType, args.GetType());
+            var newArgType = args.GetType();
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
             newArgs.ToList().ForEach(k => Arguments.Add(k.Key, k.Value));
+
             // now we need to update the MemberInfo
             foreach (var item in Arguments)
             {
@@ -134,7 +133,7 @@ namespace EntityGraphQL.Schema
                 ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentsParameter, argParam);
 
             ArgumentsParameter = argParam;
-            ExpressionArgmentTypes[DefaultArgmentsTypeName] = newArgType;
+            ExpressionArgmentType = newArgType;
         }
         public IField Returns(GqlTypeInfo gqlTypeInfo)
         {
@@ -146,7 +145,7 @@ namespace EntityGraphQL.Schema
         {
             // Move the arguments definition to the new field as it needs them for processing
             // don't push field.FieldParam over 
-            ExpressionArgmentTypes = field.ExpressionArgmentTypes;
+            ExpressionArgmentType = field.ExpressionArgmentType;
             ArgumentsParameter = field.ArgumentsParameter;
             Arguments = field.Arguments;
             ArgumentsAreInternal = true;

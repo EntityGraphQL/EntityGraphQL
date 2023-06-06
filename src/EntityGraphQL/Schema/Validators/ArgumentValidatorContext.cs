@@ -5,7 +5,8 @@ namespace EntityGraphQL.Schema;
 public class ArgumentValidatorContext
 {
     private readonly List<string> errors = new();
-    public ArgumentValidatorContext(IField field, object? argumentValues, MethodInfo? method = null)
+    // TODO how is these used
+    public ArgumentValidatorContext(IField field, List<object> argumentValues, MethodInfo? method = null)
     {
         Field = field;
         Arguments = argumentValues;
@@ -15,7 +16,7 @@ public class ArgumentValidatorContext
     /// <summary>
     /// The value of the argments for the field.
     /// </summary>
-    public object? Arguments { get; set; }
+    public List<object> Arguments { get; set; }
 
     /// <summary>
     /// The method (mutation) about to be called
