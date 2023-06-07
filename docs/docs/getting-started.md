@@ -112,6 +112,37 @@ _You can authorize the route how ever you wish using ASP.NET. See the Authorizat
 
 You can also expose any endpoint over any protocol you'd like. We'll use HTTP/S for these examples.
 
+## Securing the route in ASP.NET core
+
+When using `MapGraphQL()`, the route is added with the `IEndpointRouteBuilder.MapPost` method.  The `.MapPost()` method can be chained with `.RequireAuthorization()` where an array of Policy Names can be passed.  The policy names are ANDed together with `.RequireAuthorization()`.
+
+To add one or more security policies when using `MapGraphQL()` you can pass an array of strings with the name of the security policies that should be applied
+
+```cs
+//in ConfigureServices
+services.AddAuthentication()
+services.AddAuthorization(options =>
+{
+    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser();
+});
+
+
+//in Configure
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseEndpoints(endpoints =>
+                 {
+                     // defaults to /graphql endpoint
+                     endpoints.MapGraphQL<DemoContext>(endpointAuthorizationPolicyNames: new[]
+                                                                        {
+                                                                            "authorized"
+                                                                        });
+                 });
+
+```
+
 ## Query your API
 
 You can now make a request to your API via any HTTP tool/library.
