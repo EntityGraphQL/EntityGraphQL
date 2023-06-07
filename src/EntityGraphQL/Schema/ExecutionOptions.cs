@@ -24,6 +24,8 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool EnableQueryCache { get; set; } = true;
 
+        public bool EnableDelegateCache { get; set; } = true;
+
 #if DEBUG
         /// <summary>
         /// Include timing information about query execution

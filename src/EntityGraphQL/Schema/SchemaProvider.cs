@@ -30,6 +30,7 @@ namespace EntityGraphQL.Schema
         private readonly Dictionary<string, ISchemaType> schemaTypes = new();
         private readonly Dictionary<string, IDirectiveProcessor> directives = new();
         private readonly QueryCache queryCache;
+        public DelegateCache DelegateCache { get; private set; }
 
         public string QueryContextName { get => queryType.Name; }
 
@@ -64,6 +65,7 @@ namespace EntityGraphQL.Schema
             this.introspectionEnabled = introspectionEnabled;
             this.isDevelopment = isDevelopment;
             queryCache = new QueryCache();
+            DelegateCache = new DelegateCache();
 
             // default GQL scalar types
             schemaTypes.Add("Int", new SchemaType<int>(this, "Int", "Int scalar", null, GqlTypes.Scalar));

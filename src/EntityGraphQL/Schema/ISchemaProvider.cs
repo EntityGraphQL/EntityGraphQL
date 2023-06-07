@@ -18,6 +18,7 @@ namespace EntityGraphQL.Schema
         Type MutationType { get; }
         Type SubscriptionType { get; }
         Func<string, string> SchemaFieldNamer { get; }
+        public DelegateCache DelegateCache { get; }
         IGqlAuthorizationService AuthorizationService { get; set; }
         string QueryContextName { get; }
         IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }

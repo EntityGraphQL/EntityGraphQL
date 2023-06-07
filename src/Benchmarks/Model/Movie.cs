@@ -5,6 +5,7 @@ namespace Benchmarks
 {
     public class Movie
     {
+        public Movie() { }
         public Movie(Guid id, string name, float rating, DateTime released, Person director, List<Person> actors, MovieGenre genre)
         {
             Id = id;

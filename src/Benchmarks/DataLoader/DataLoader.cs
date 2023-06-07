@@ -1,5 +1,7 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Benchmarks
@@ -11,25 +13,25 @@ namespace Benchmarks
             if (db == null)
                 throw new ArgumentNullException(nameof(db));
 
-            // db.Database.EnsureDeleted();
-            // db.Database.EnsureCreated();
-            // var movieData = JsonConvert.DeserializeObject<List<MovieData>>(File.ReadAllText("./DataLoader/moviedata.json"));
-            // foreach (var movie in movieData.OrderByDescending(m => m.Info.Rating).Take(1000))
-            // {
-            //     db.Movies.Add(new Movie
-            //     {
-            //         Id = Guid.NewGuid(),
-            //         Name = movie.Title,
-            //         Released = movie.Info.ReleaseDate,
-            //         Rating = movie.Info.Rating,
-            //         Genre = movie.Info.Genres != null ? GetOrMakeGenre(db, movie.Info.Genres[0]) : null,
-            //         Actors = MakePersons(db, movie.Info.Actors),
-            //         Director = MakePerson(db, movie.Info.Directors?.FirstOrDefault()),
-            //     });
-            //     db.SaveChanges();
-            // }
-            // var movies = db.Movies.OrderByDescending(m => m.Rating).Take(10).ToList();
-            // var top = movies.FirstOrDefault();
+            db.Database.EnsureDeleted();
+            db.Database.EnsureCreated();
+            var movieData = JsonConvert.DeserializeObject<List<MovieData>>(File.ReadAllText("./DataLoader/moviedata.json"));
+            foreach (var movie in movieData.OrderByDescending(m => m.Info.Rating).Take(1000))
+            {
+                db.Movies.Add(new Movie
+                {
+                    Id = Guid.NewGuid(),
+                    Name = movie.Title,
+                    Released = movie.Info.ReleaseDate,
+                    Rating = movie.Info.Rating,
+                    Genre = movie.Info.Genres != null ? GetOrMakeGenre(db, movie.Info.Genres[0]) : null,
+                    Actors = MakePersons(db, movie.Info.Actors),
+                    Director = MakePerson(db, movie.Info.Directors?.FirstOrDefault()),
+                });
+                db.SaveChanges();
+            }
+            var movies = db.Movies.OrderByDescending(m => m.Rating).Take(10).ToList();
+            var top = movies.FirstOrDefault();
         }
 
         private static MovieGenre GetOrMakeGenre(BenchmarkContext db, string name)

@@ -212,7 +212,7 @@ namespace EntityGraphQL.Compiler
             {
                 parameters.AddRange(compileContext.ConstantParameters.Keys);
                 allArgs.AddRange(compileContext.ConstantParameters.Values);
-            }
+            }            
 
             // evaluate everything using ToList(). But handle null result
             if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
@@ -228,9 +228,9 @@ namespace EntityGraphQL.Compiler
 #endif
             object? res = null;
             if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
-                res = await (dynamic?)lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+                res = await (dynamic?)lambdaExpression.CompileAndCache(Schema.DelegateCache, options.EnableDelegateCache).DynamicInvoke(allArgs.ToArray());
             else
-                res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+                res = lambdaExpression.CompileAndCache(Schema.DelegateCache, options.EnableDelegateCache).DynamicInvoke(allArgs.ToArray());
 
             return (res, true);
         }

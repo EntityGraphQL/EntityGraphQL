@@ -5,6 +5,7 @@ namespace Benchmarks
 {
     public class Person
     {
+        public Person() { }
         public Person(Guid id, string firstName, string lastName, DateTime dob, IEnumerable<Movie> directorOf)
         {
             Id = id;

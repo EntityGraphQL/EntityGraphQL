@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
@@ -40,7 +41,7 @@ public class QueryCacheTests
                         }
                     }
                 }";
-        var hash = QueryCache.ComputeHash(query);
+        var hash = query.ComputeHash();
         var gql = new QueryRequest
         {
             Query = query,
