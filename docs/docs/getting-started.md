@@ -116,34 +116,7 @@ You can also expose any endpoint over any protocol you'd like. We'll use HTTP/S 
 
 When using `MapGraphQL()`, the route is added with the `IEndpointRouteBuilder.MapPost` method. The `.MapPost()` method can be chained with `.RequireAuthorization()` where an array of Policy Names can be passed. The policy names are ANDed together with `.RequireAuthorization()`.
 
-To add one or more security policies when using `MapGraphQL()` you can pass an array of strings with the name of the security policies that should be applied
-
-```cs
-//in ConfigureServices
-services.AddAuthentication()
-services.AddAuthorization(options =>
-{
-    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser();
-});
-
-
-//in Configure
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseEndpoints(endpoints =>
-  {
-      // defaults to /graphql endpoint
-    endpoints.MapGraphQL<DemoContext>(endpointAuthorizationPolicyNames: new[]
-    {
-        "authorized"
-    });
-  });
-
-```
-
-You can also get access to the `IEndpointConventionBuilder` from the created `.MapPost()` call with the overload like so
+To add one or more security policies when using `MapGraphQL()` you can pass an a configure function that has access to the `IEndpointConventionBuilder` from the created `.MapPost()`.
 
 ```cs
 //in ConfigureServices
@@ -163,7 +136,8 @@ app.UseEndpoints(endpoints =>
   {
       // defaults to /graphql endpoint
     endpoints.MapGraphQL<DemoContext>(configureEndpoint: (endpoint) => {
-      // directly call things like .RequireAuthorization() or other builder methods
+      endpoint.RequireAuthorization("authorized");
+      // do other things with endpoint
     });
   });
 
