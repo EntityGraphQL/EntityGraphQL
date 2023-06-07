@@ -73,6 +73,70 @@ schema.Query().AddField(
 );
 ```
 
+## Turning methods into fields
+
+EntityGraphQL can map methods on your classes to query fields using the `GraphQLFieldAttribute`. When using `SchemaBuilder` or `SchemaType.AddAllFields()` EntityGraphQL will add any methods that have the `GraphQLFieldAttribute` on them as a field on that type. The parameters of the method will become the GraphQL field arguments. Mapping method parameters to GraphQL arguments follow the same rules as mutations and subscription methods.
+
+Using `[GraphQLInputType]` on a parameter will include the parameter as an argument and use the type as an input type. `[GraphQLArguments]` will flatten the properties of that parameter type into many arguments in the schema.
+
+When looking for a methods parameters, EntityGraphQL will
+
+1. First all scalar / non-complex types will be added as arguments in the schema.
+
+2. If parameter type or enum type is already in the schema it will be added at an argument.
+
+3. Any argument or type with `GraphQLInputTypeAttribute` will be added to the schema as an `InputType`
+
+4. Any argument or type with `GraphQLArgumentsAttribute` found will have the types properties added as schema arguments.
+
+5. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your arguments with the attributes or add them to the schema beforehand._
+
+### Note about execution with EF
+
+Let's look at an example.
+
+```cs
+public class MyContext : DbContext
+{
+    public DbSet<Task> Tasks { get; set; }
+}
+
+public class Task
+{
+    public uint Id { get; set; }
+    public string Title { get; set; }
+    public DateTime Due { get; set; }
+
+    public int DaysUntilDue() => (DateTime.Now - Due).TotalDays;
+}
+
+var schema = new SchemaProvider<MyContext>();
+```
+
+`DaysUntilDue` will become a field `daysUntilDue` on the GraphQL type `Task` with no arguments. If you query this field like
+
+```gql
+{
+  tasks {
+    id
+    daysUntilDue
+  }
+}
+```
+
+It will generate the follow expression
+
+```cs
+(ctx) => ctx.Task.Select(t => new {
+    id = t.Id,
+    daysUntilDue = t.DaysUntilDue()
+})
+```
+
+_Depending on the complexitiy of your method, if you are using EF, it may fail to execute as EF doesn't know what to do with the method._
+
+If your method includes a service as a parameter this will be handled by EntityGraphQL and executed after fetching data from EF. See [Entity Framework](../entity-framework) section for more information.
+
 ## Helper methods
 
 ### WhereWhen()

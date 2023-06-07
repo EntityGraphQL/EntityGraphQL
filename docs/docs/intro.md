@@ -15,5 +15,3 @@ A core feature of EntityGraphQL _with_ Entity Framework (although EF is not a re
 [EntityGraphQL.AspNet](https://www.nuget.org/packages/EntityGraphQL.AspNet) will get you easily set up with ASP.NET. However the core [EntityGraphQL](https://www.nuget.org/packages/EntityGraphQL) package has no ASP.NET dependency.
 
 **Please explore, give feedback and join the development.**
-
-_If you're looking for a .NET library to generate code to query an C# API from a GraphQL schema see [DotNetGraphQLQueryGen](https://github.com/lukemurray/DotNetGraphQLQueryGen)_

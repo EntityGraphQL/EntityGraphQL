@@ -20,11 +20,11 @@ Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter s
 
 When looking for a methods parameters, EntityGraphQL will
 
-1. First all scalar / non-complex types will be added at arguments in the schema.
+1. First all scalar / non-complex types will be added as arguments in the schema.
 
 2. If parameter type or enum type is already in the schema it will be added at an argument.
 
-3. Any argument or type with `GraphQLInputTypeAttribute` will be added to the schema as a `InputType`
+3. Any argument or type with `GraphQLInputTypeAttribute` will be added to the schema as an `InputType`
 
 4. Any argument or type with `GraphQLArgumentsAttribute` found will have the types properties added as schema arguments.
 

@@ -207,13 +207,13 @@ We know `DemoContext` is the root query context of the schema so that will not b
 
 When looking for a methods parameters, EntityGraphQL will
 
-1. First all scalar / non-complex types will be added at arguments in the schema.
+1. First all scalar / non-complex types will be added as arguments in the schema.
 
 2. If parameter type or enum type is already in the schema it will be added at an argument.
 
-2. Any argument or type with `GraphQLInputTypeAttribute` or `GraphQLArgumentsAttribute` found will be added as schema arguments.
+3. Any argument or type with `GraphQLInputTypeAttribute` or `GraphQLArgumentsAttribute` found will be added as schema arguments.
 
-3. If no attributes are found it will assume they are services and not add them to the schema. *I.e. Label your arguments with the attributes or add them to the schema beforehand.*
+4. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your arguments with the attributes or add them to the schema beforehand._
 
 These rules are also used for subscription methods and query field methods defined with `GraphQLFieldAttribute`.
 
