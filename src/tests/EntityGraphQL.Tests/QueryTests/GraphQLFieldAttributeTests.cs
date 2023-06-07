@@ -398,6 +398,38 @@ public class GraphQLFieldAttributeTests
         Assert.Null(res.Errors);
         Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithArgs);
     }
+
+    [Fact]
+    public void TestGraphQLFieldAttributeWithInputClass()
+    {
+        var schema = SchemaBuilder.FromObject<ContextFieldWithMethod3>();
+
+        var sdl = schema.ToGraphQLSchemaString();
+
+        Assert.Contains("methodFieldWithInput(props: MyArgs): String", sdl);
+        Assert.Contains("input MyArgs {", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                complex {
+                    methodFieldWithInput(props: { name: ""Superman"" })
+                }
+            }"
+        };
+
+        var context = new ContextFieldWithMethod3
+        {
+            Complex = new List<TypeWithMethodInput>
+                {
+                    new TypeWithMethodInput()
+                }
+        };
+
+        var res = schema.ExecuteRequest(gql, context, null, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithInput);
+    }
 }
 
 
@@ -423,6 +455,21 @@ public class ContextFieldWithMethodService
     public static int MethodFieldWithServiceStatic(ConfigService service, int value)
     {
         return service.GetHalfInt(value);
+    }
+}
+
+public class ContextFieldWithMethod3
+{
+    public IEnumerable<TypeWithMethodInput> Complex { get; set; }
+}
+
+public class TypeWithMethodInput
+{
+    [GraphQLField]
+    public string MethodFieldWithInput([GraphQLInputType] MyArgs props)
+    {
+        Assert.NotNull(props);
+        return props.Name;
     }
 }
 
