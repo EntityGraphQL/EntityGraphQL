@@ -4,7 +4,6 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Directives;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -33,7 +32,7 @@ namespace EntityGraphQL.Schema
             ResolveExpression = resolve.Body;
             FieldParam = resolve.Parameters.First();
             if (hasArguments)
-                ArgumentParam = resolve.Parameters.ElementAt(1);
+                ArgumentsParameter = resolve.Parameters.ElementAt(1);
 
             if (resolve.Body.NodeType == ExpressionType.MemberAccess)
             {
@@ -77,7 +76,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgsObject != null)
             {
                 Arguments = ExpressionUtil.ObjectToDictionaryArgs(schema, fieldArgsObject);
-                ArgumentsType = fieldArgsObject.GetType();
+                ExpressionArgumentType = fieldArgsObject.GetType();
             }
         }
 
@@ -93,8 +92,11 @@ namespace EntityGraphQL.Schema
         /// <param name="returnType">Schema return type of the field</param>
         /// <param name="requiredAuth">Any authorization require to query the field</param>
         public Field(ISchemaProvider schema, ISchemaType fromType, string name, LambdaExpression? resolve, string? description, Dictionary<string, ArgType>? fieldArgs, GqlTypeInfo returnType, RequiredAuthorization? requiredAuth)
-        : this(schema, fromType, name, resolve, description, (object?)null, returnType, requiredAuth)
+        : base(schema, fromType, name, description, returnType)
         {
+            RequiredAuthorization = requiredAuth;
+            Extensions = new List<IFieldExtension>();
+
             if (resolve != null)
             {
                 ProcessResolveExpression(resolve, false, fieldArgs != null);
@@ -103,8 +105,7 @@ namespace EntityGraphQL.Schema
             if (fieldArgs != null)
             {
                 Arguments = fieldArgs;
-                if (ArgumentsType == null)
-                    ArgumentsType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+                ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
             }
         }
 
@@ -144,7 +145,7 @@ namespace EntityGraphQL.Schema
         {
             Expression? expression = fieldExpression;
             // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
-            (var result, var argumentParam) = PrepareFieldExpression(args, this, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
+            (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
             if (result == null)
                 return (null, null);
             // the expressions we collect have a different starting parameter. We need to change that
@@ -162,58 +163,53 @@ namespace EntityGraphQL.Schema
             return (result, argumentParam);
         }
 
-        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Field field, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
+        private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(IReadOnlyDictionary<string, object> args, Expression fieldExpression, ParameterReplacer replacer, Expression context, IGraphQLNode? parentNode, ParameterExpression? docParam, object? docVariables, bool servicesPass, CompileContext? compileContext)
         {
-            object? argumentValues = null;
+            object? argumentValue = null;
             Expression? result = fieldExpression;
             var validationErrors = new List<string>();
-            var newArgParam = ArgumentParam;
+            var newArgParam = ArgumentsParameter;
             // check if we are taking args from elsewhere (extensions do this)
             if (UseArgumentsFromField != null && compileContext != null)
             {
-                newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField);
-                if (newArgParam == null)
-                    throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
-                argumentValues = compileContext.ConstantParameters[newArgParam];
+                newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
+                argumentValue = compileContext.ConstantParameters[newArgParam];
             }
             else
             {
-                if (field.ArgumentsType != null && FieldParam != null)
+                if (FieldParam != null && ArgumentsParameter != null)
                 {
-                    argumentValues = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, field.ArgumentsType, docParam, docVariables, validationErrors);
+                    // we need to make a copy of the argument parameter as if they select the same field multiple times
+                    // i.e. with different alias & arguments we need to have different ParameterExpression instances
+                    newArgParam = Expression.Parameter(ArgumentsParameter.Type, $"{ArgumentsParameter.Name}_exec");
+                    argumentValue = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, args, Arguments.Values, newArgParam.Type, docParam, docVariables, validationErrors);
+                    if (argumentValue != null && compileContext != null)
+                        compileContext?.AddConstant(this, newArgParam, argumentValue);
                 }
-                // we need to make a copy of the argument parameter as if they select the same field multiple times
-                // i.e. with different alias & arguments we need to have different ParameterExpression instances
-                if (ArgumentParam != null)
-                {
-                    newArgParam = Expression.Parameter(ArgumentParam.Type, $"{ArgumentParam.Name}_exec");
-                }
-                if (argumentValues != null && compileContext != null)
-                    compileContext.AddConstant(this, newArgParam!, argumentValues);
             }
 
             if (Extensions.Count > 0)
             {
-                foreach (var m in Extensions)
+                foreach (var extension in Extensions)
                 {
                     if (result != null)
-                        result = m.GetExpression(this, result, newArgParam, argumentValues, context, parentNode, servicesPass, replacer);
+                        result = extension.GetExpression(this, result, newArgParam, argumentValue, context, parentNode, servicesPass, replacer);
                 }
             }
 
             // replace the arg param after extensions (don't rely on extensions to do this)
-            if (ArgumentParam != null)
+            if (ArgumentsParameter != null && newArgParam != null && ArgumentsParameter != newArgParam)
             {
-                result = replacer.Replace(result, ArgumentParam, newArgParam!);
+                result = replacer.Replace(result, ArgumentsParameter, newArgParam);
             }
 
             if (ArgumentValidators.Count > 0)
             {
-                var invokeContext = new ArgumentValidatorContext(field, argumentValues);
+                var invokeContext = new ArgumentValidatorContext(this, argumentValue);
                 foreach (var m in ArgumentValidators)
                 {
                     m(invokeContext);
-                    argumentValues = invokeContext.Arguments;
+                    argumentValue = invokeContext.Arguments;
                 }
 
                 validationErrors.AddRange(invokeContext.Errors);
@@ -233,7 +229,10 @@ namespace EntityGraphQL.Schema
             // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
             var returnType = fieldExpression.Body.Type;
             if (fieldExpression.Body.NodeType == ExpressionType.Convert)
+            {
                 returnType = ((UnaryExpression)fieldExpression.Body).Operand.Type;
+                ResolveExpression = ((UnaryExpression)ResolveExpression!).Operand;
+            }
 
             if (fieldExpression.Body.NodeType == ExpressionType.Call)
                 returnType = ((MethodCallExpression)fieldExpression.Body).Type;

@@ -81,13 +81,14 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         // set up the field's expresison so the types are all good 
         // rebuilt below if needed
-        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentParam!);
+        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
 
-    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression? argumentParam)
+    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
+
         var expression = Expression.MemberInit(
             Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
         );
@@ -98,6 +99,9 @@ public class OffsetPagingExtension : BaseFieldExtension
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now
+
+        if (argumentParam == null)
+            throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires argumentParams to be set");
 
         if (maxPageSize != null && arguments?.Take > maxPageSize.Value)
             throw new EntityGraphQLArgumentException($"Argument take can not be greater than {maxPageSize}.");

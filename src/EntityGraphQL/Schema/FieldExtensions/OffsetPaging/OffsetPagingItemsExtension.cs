@@ -35,13 +35,16 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         if (servicesPass)
             return newItemsExp; // paging is done already
 
+        if (argumentParam == null)
+            throw new EntityGraphQLCompilerException("OffsetPagingItemsExtension requires an argument parameter to be passed in");
+
         // Build our items expression with the paging
         newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
             Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
                 newItemsExp,
-                Expression.PropertyOrField(argumentParam!, "skip")
+                Expression.PropertyOrField(argumentParam, "skip")
             ),
-            Expression.PropertyOrField(argumentParam!, "take")
+            Expression.PropertyOrField(argumentParam, "take")
         );
 
         return newItemsExp;

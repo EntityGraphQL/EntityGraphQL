@@ -41,7 +41,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateEnumTypes { get; set; } = true;
         /// <summary>
-        /// If true (default) and an object type is encountered during reflection of the object graph it will be added to the schema 
+        /// If true (default) and an object type is encountered during reflection of the query object graph it will be added to the schema 
         /// as a Type including it's fields. If that type is an interface it will be added as an interface. This includes return 
         /// types form mutations
         /// </summary>
@@ -53,11 +53,11 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateInterfaceTypes { get; set; }
         /// <summary>
-        /// If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
+        /// If true (default = true) and an object type is encountered during reflection of method parameters it will be added to the schema as an InputObject type if used as an argument.
         /// 
-        /// If you set it true, EntityGraphQL doesn't know which objects should be InputTypes or a services to be injected at execution.
+        /// If you set it false, you will need to add any InputTypes to the schema before add the methods fields/mutation/subscriptions.
         /// </summary>
-        public bool AutoCreateInputTypes { get; set; }
+        public bool AutoCreateInputTypes { get; set; } = true;
         /// <summary>
         /// If true (default = false) Any public method in the mutation/subscription class will be added to the schema as a mutation/subsscription. 
         /// If false only methodds with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.

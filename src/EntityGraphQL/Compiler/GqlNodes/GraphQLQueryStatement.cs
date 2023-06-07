@@ -15,7 +15,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
             var result = new ConcurrentDictionary<string, object?>();
             // pass to directvies
@@ -24,7 +24,7 @@ namespace EntityGraphQL.Compiler
                 if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)
                     return Task.FromResult(result);
             }
-            return base.ExecuteAsync(context, validator, serviceProvider, fragments, fieldNamer, options, variables);
+            return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables);
         }
     }
 }

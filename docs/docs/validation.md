@@ -33,7 +33,17 @@ If any of those validations fail, the graph QL result will have errors for each 
 
 Throwing an exception in your mutation will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
+This service needs to be registered in your service provider. You can always implement you own `GraphQLValidator` by implementing the `IGraphQLValidator` interface.
+
 ```cs
+
+// In your Startup.cs
+services.AddGraphQLValidator(); // with EntityGraphQL.AspNet
+
+// Or without / or you own implementation
+services.AddTransient<IGraphQLValidator, GraphQLValidator>();
+
+// your mutation
 public class MovieMutations
 {
   [GraphQLMutation]

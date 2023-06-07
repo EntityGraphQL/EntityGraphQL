@@ -25,7 +25,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="field"></param>
         /// <param name="expression">The current expression for the field</param>
         /// <param name="argumentParam">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
-        /// <param name="arguments">The values of the arguments. Null if field have no arguments</param>
+        /// <param name="arguments">The value of the arguments. Null if field have no arguments</param>
         /// <param name="context">The context of the schema</param>
         /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
         /// <returns></returns>

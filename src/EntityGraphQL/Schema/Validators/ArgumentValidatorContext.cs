@@ -15,7 +15,7 @@ public class ArgumentValidatorContext
     /// <summary>
     /// The value of the argments for the field.
     /// </summary>
-    public object? Arguments { get; set; }
+    public dynamic? Arguments { get; set; }
 
     /// <summary>
     /// The method (mutation) about to be called

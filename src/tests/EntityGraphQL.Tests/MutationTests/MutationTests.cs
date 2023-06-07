@@ -562,9 +562,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation {
-          defaultValueTest
-        }
-        ",
+                    defaultValueTest
+                }",
             };
 
             var testSchema = new TestDataContext();
@@ -598,6 +597,7 @@ namespace EntityGraphQL.Tests
 
             results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
 
+            Assert.Null(results.Errors);
             result = results.Data["__schema"];
 
             var field = ((IEnumerable<dynamic>)result.mutationType.fields).Where(x => x.name == "defaultValueTest");
@@ -864,11 +864,13 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestNoArgMutationWithService()
         {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.Mutation().Add("noArgsWithService", (AgeService ageService) =>
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Mutation().Add("noArgsWithService", (AgeService ageService) =>
             {
                 return ageService != null;
             });
+            var sdl = schema.ToGraphQLSchemaString();
+            Assert.Contains("noArgsWithService: Boolean!", sdl);
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
@@ -882,12 +884,11 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schema.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
-            Assert.Empty(schemaProvider.Mutation().SchemaType.GetField("noArgsWithService", null).Arguments);
+            Assert.Empty(schema.Mutation().SchemaType.GetField("noArgsWithService", null).Arguments);
         }
-
 
         [Fact]
         public void TestNullableGuid()

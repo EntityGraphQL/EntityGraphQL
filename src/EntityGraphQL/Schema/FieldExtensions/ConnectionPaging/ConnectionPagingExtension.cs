@@ -133,7 +133,18 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression!);
-            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(new[] { totalCountExp.Type, field.ArgumentParam!.Type })!, totalCountExp, field.ArgumentParam));
+            var argTypes = new List<Type>
+            {
+                totalCountExp.Type,
+                field.ArgumentsParameter!.Type
+            };
+            var paramsArgs = new List<Expression>
+            {
+                totalCountExp,
+                field.ArgumentsParameter
+            };
+            var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(argTypes.ToArray())!, paramsArgs));
+
             field.UpdateExpression(fieldExpression);
         }
 
@@ -142,6 +153,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
             if (servicesPass)
                 return expression;
+
+            if (argumentParam == null)
+                throw new ArgumentNullException(nameof(argumentParam));
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
             var edgeExpression = edgesField!.ResolveExpression;
@@ -155,7 +169,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 }
             }
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression!);
-            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, argumentParam!.Type })!, totalCountExp, argumentParam));
+            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, argumentParam.Type })!, totalCountExp, argumentParam));
 
             return expression;
         }

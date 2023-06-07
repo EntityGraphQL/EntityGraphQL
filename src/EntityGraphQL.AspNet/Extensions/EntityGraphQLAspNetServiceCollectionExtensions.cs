@@ -47,7 +47,7 @@ namespace EntityGraphQL.AspNet
             configure(options);
 
             var schema = new SchemaProvider<TSchemaContext>(
-                new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer, 
+                new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer,
                 isDevelopment: webHostEnvironment?.IsEnvironment("Development") ?? true
                 );
             options.PreBuildSchemaFromContext?.Invoke(schema);
@@ -56,6 +56,16 @@ namespace EntityGraphQL.AspNet
             options.ConfigureSchema?.Invoke(schema);
             serviceCollection.AddSingleton(schema);
 
+            return serviceCollection;
+        }
+        /// <summary>
+        /// Registers the default IGraphQLValidator implementation to use as a service in your method fields to report a colletion of errors
+        /// </summary>
+        /// <param name="serviceCollection"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddGraphQLValidator(this IServiceCollection serviceCollection)
+        {
+            serviceCollection.TryAddTransient<IGraphQLValidator, GraphQLValidator>();
             return serviceCollection;
         }
     }
