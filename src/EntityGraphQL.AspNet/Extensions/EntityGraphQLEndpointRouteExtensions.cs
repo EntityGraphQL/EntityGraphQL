@@ -12,6 +12,19 @@ namespace EntityGraphQL.AspNet
     {
         public static IEndpointRouteBuilder MapGraphQL<TQueryType>(this IEndpointRouteBuilder builder, string path = "graphql", ExecutionOptions? options = null, string[]? endpointAuthorizationPolicyNames = null)
         {
+            MapGraphQL<TQueryType>(builder, path, options, configureEndpoint =>
+            {
+                if (endpointAuthorizationPolicyNames != null && endpointAuthorizationPolicyNames.Any())
+                {
+                    configureEndpoint.RequireAuthorization(endpointAuthorizationPolicyNames);
+                }
+            });
+
+            return builder;
+        }
+
+        public static IEndpointRouteBuilder MapGraphQL<TQueryType>(this IEndpointRouteBuilder builder, string path = "graphql", ExecutionOptions? options = null, Action<IEndpointConventionBuilder>? configureEndpoint = null)
+        {
             path = path.TrimEnd('/');
             var requestPipeline = builder.CreateApplicationBuilder();
             var postEndpoint = builder.MapPost(path, async context =>
@@ -42,10 +55,7 @@ namespace EntityGraphQL.AspNet
                 await serializer.SerializeAsync(context.Response.Body, data);
             });
 
-            if (endpointAuthorizationPolicyNames != null && endpointAuthorizationPolicyNames.Any())
-            {
-                postEndpoint.RequireAuthorization(endpointAuthorizationPolicyNames);
-            }
+            configureEndpoint?.Invoke(postEndpoint);
 
             return builder;
         }
