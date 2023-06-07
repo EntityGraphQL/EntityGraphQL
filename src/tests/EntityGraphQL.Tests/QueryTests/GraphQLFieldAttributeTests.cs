@@ -396,7 +396,7 @@ public class GraphQLFieldAttributeTests
 
         var res = schema.ExecuteRequest(gql, context, null, null);
         Assert.Null(res.Errors);
-        Assert.Equal("Superman", (dynamic)res.Data["methodFieldWithArgs"]);
+        Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithArgs);
     }
 }
 

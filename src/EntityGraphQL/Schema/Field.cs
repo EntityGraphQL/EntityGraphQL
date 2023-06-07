@@ -205,7 +205,6 @@ namespace EntityGraphQL.Schema
 
             if (ArgumentValidators.Count > 0)
             {
-                // TODO I think we only want to send the default args to this (user defined)
                 var invokeContext = new ArgumentValidatorContext(this, argumentValue);
                 foreach (var m in ArgumentValidators)
                 {

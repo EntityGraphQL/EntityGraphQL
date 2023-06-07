@@ -507,7 +507,7 @@ namespace EntityGraphQL.Compiler.Util
         }
 
 
-        public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type)
+        public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type, bool includeProperties = false)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
 
@@ -518,7 +518,9 @@ namespace EntityGraphQL.Compiler.Util
                     fieldExpressionsByName[item.Key] = item.Value;
             }
 
-            var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
+            var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>().ToList();
+            if (includeProperties)
+                bindings.AddRange(type.GetProperties().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>());
             var constructor = type.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
             var newExp = Expression.New(constructor);
             var mi = Expression.MemberInit(newExp, bindings);

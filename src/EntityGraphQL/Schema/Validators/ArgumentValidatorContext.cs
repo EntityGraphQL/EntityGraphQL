@@ -5,7 +5,6 @@ namespace EntityGraphQL.Schema;
 public class ArgumentValidatorContext
 {
     private readonly List<string> errors = new();
-    // TODO how is these used
     public ArgumentValidatorContext(IField field, object? argumentValues, MethodInfo? method = null)
     {
         Field = field;

@@ -25,13 +25,14 @@ namespace EntityGraphQL.Schema
         List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; }
         string? Description { get; }
         /// <summary>
-        /// Information about each field argument. This is used to map the schema arguments to the expression arguments
+        /// Information about each field argument as represented in the GraphQL schema. 
+        /// This is used to map the schema arguments to the dotnet expression arguments
         /// </summary>
         IDictionary<string, ArgType> Arguments { get; }
         /// <summary>
-        /// This is a ParameterExpression that is used to access all the field's arguments. The type is a type that has all the field's arguemnts as properties.
-        /// E.g. if the field has argsmuents (a, b, c) then expressions access them them like (args) => args.a + args.b + args.c
-        /// This means arguments passed in a query map the the Type of this parameter.
+        /// This is a ParameterExpression that is used to access all the field's arguments in the field expression. 
+        /// The type is a type that has all the field's GraphQL Schema arguments as properties.
+        /// E.g. if the field has arguments (a, b, c) then expressions access them them like (args) => args.a + args.b + args.c
         /// Note that these instances are replaced within the expression at execution time. 
         /// You should not store these at configuration time in field extensions
         /// </summary>
@@ -42,9 +43,12 @@ namespace EntityGraphQL.Schema
         Type? ExpressionArgumentType { get; }
         string Name { get; }
         /// <summary>
-        /// GraphQL type this fiel belongs to
+        /// GraphQL type this field belongs to
         /// </summary>
         ISchemaType FromType { get; }
+        /// <summary>
+        /// Information about the GraphQL type returned by this field
+        /// </summary>
         GqlTypeInfo ReturnType { get; }
         List<IFieldExtension> Extensions { get; set; }
         RequiredAuthorization? RequiredAuthorization { get; }

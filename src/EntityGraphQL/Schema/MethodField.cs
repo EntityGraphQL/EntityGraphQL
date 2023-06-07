@@ -118,7 +118,7 @@ namespace EntityGraphQL.Schema
 
             if (ArgumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, new List<object> { argInstance ?? argsToValidate }, Method);
+                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, Method);
                 foreach (var argValidator in ArgumentValidators)
                 {
                     argValidator(validatorContext);

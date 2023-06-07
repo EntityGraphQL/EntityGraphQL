@@ -54,22 +54,17 @@ public static class ArgumentUtil
         var argumentValues = con.Invoke(parameters);
 
         // regardless of the constructor, we make sure the values are set on the object
-        foreach (var item in argumentValues.GetType().GetMembers())
+        var argMembers = argumentValues.GetType().GetMembers();
+        foreach (var item in argMembers)
         {
-            if (!values.ContainsKey(item.Name))
+            if (item.MemberType != MemberTypes.Property && item.MemberType != MemberTypes.Field)
+                continue;
+            var type = item.MemberType == MemberTypes.Property ? ((PropertyInfo)item).PropertyType : ((FieldInfo)item).FieldType;
+            var argsAttribute = type.GetCustomAttribute<GraphQLArgumentsAttribute>();
+            if (!values.ContainsKey(item.Name) && argsAttribute == null)
                 continue;
 
-            if (item is FieldInfo fieldInfo)
-            {
-                fieldInfo.SetValue(argumentValues, values[item.Name]);
-            }
-            else if (item is PropertyInfo propertyInfo)
-            {
-                if (propertyInfo.CanWrite)
-                {
-                    propertyInfo.SetValue(argumentValues, values[item.Name]);
-                }
-            }
+            SetArgumentValues(values, argumentValues, item);
         }
 
         if (field != null)
@@ -89,6 +84,21 @@ public static class ArgumentUtil
         }
 
         return argumentValues;
+    }
+
+    private static void SetArgumentValues(Dictionary<string, object?> values, object? argumentValues, MemberInfo? item)
+    {
+        if (item is FieldInfo fieldInfo)
+        {
+            fieldInfo.SetValue(argumentValues, values[item.Name]);
+        }
+        else if (item is PropertyInfo propertyInfo)
+        {
+            if (propertyInfo.CanWrite)
+            {
+                propertyInfo.SetValue(argumentValues, values[item.Name]);
+            }
+        }
     }
 
     internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
