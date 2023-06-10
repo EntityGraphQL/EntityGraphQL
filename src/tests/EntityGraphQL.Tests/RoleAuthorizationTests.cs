@@ -163,6 +163,31 @@ namespace EntityGraphQL.Tests
             Assert.Null(result.Errors);
         }
 
+        [Fact]
+        public void TestGraphQLFieldAttributeSecure()
+        {
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
+
+            var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    tasks {
+                        id description
+                    }
+                }"
+            };
+
+            var result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.Equal("You are not authorized to access the 'description' field on type 'Task'.", result.Errors.First().Message);
+
+            claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "can-description") }, "authed");
+            result = schema.ExecuteRequest(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.Null(result.Errors);
+        }
+
         internal class RolesDataContext
         {
             public IEnumerable<Project> Projects { get; set; } = new List<Project>();
@@ -183,6 +208,13 @@ namespace EntityGraphQL.Tests
             public string Name { get; set; }
             public bool IsActive { get; set; }
             public Project Project { get; set; }
+
+            [GraphQLAuthorize("can-description")]
+            [GraphQLField("description")]
+            public string GetDescription()
+            {
+                return "This is a description";
+            }
         }
     }
 }
