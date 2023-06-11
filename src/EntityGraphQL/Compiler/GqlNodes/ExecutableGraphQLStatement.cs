@@ -221,7 +221,13 @@ namespace EntityGraphQL.Compiler
                 expression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { expression.Type.GetEnumerableOrArrayType()! }, expression, Expression.Constant(node.Field!.ReturnType.TypeNotNullable));
             }
 
+            if (options.BeforeExecuting != null)
+            {
+                expression = options.BeforeExecuting.Invoke(expression);
+            }
+
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+
 #if DEBUG
             if (options.NoExecution)
                 return (null, false);
