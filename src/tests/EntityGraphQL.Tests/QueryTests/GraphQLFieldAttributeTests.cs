@@ -24,12 +24,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod {
-                       fields {
-                         methodField
-                       }
-                     }"
+            Query = @"query TypeWithMethod {
+                fields {
+                    methodField
+                }
+            }"
         };
 
         var context = new ContextFieldWithMethod
@@ -62,12 +61,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod($value: Int!) {
-                       fields {
-                         methodFieldWithArgs(value: $value)
-                       }
-                     }",
+            Query = @"query TypeWithMethod($value: Int!) {
+                fields {
+                    methodFieldWithArgs(value: $value)
+                }
+            }",
             Variables = new QueryVariables {
                      { "value", 13 }
                  }
@@ -103,12 +101,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod {
-                       fields {
-                         methodFieldWithOptionalArgs
-                       }
-                     }"
+            Query = @"query TypeWithMethod {
+                fields {
+                    methodFieldWithOptionalArgs
+                }
+            }"
         };
 
         var context = new ContextFieldWithMethod
@@ -141,12 +138,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod($value: Int, $value2: Int) {
-                       fields {
-                         methodFieldWithTwoArgs(value: $value, value2: $value2)
-                       }
-                     }",
+            Query = @"query TypeWithMethod($value: Int, $value2: Int) {
+                fields {
+                    methodFieldWithTwoArgs(value: $value, value2: $value2)
+                }
+            }",
             Variables = new QueryVariables {
                      { "value", 6 },
                      { "value2", 7 },
@@ -183,12 +179,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod {
-                       fields {
-                         methodFieldWithDefaultArgs
-                       }
-                     }"
+            Query = @"query TypeWithMethod {
+                fields {
+                    methodFieldWithDefaultArgs
+                }
+            }"
         };
 
         var context = new ContextFieldWithMethod
@@ -222,12 +217,11 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod {
-                       fields {
-                         renamedMethod
-                       }
-                     }"
+            Query = @"query TypeWithMethod {
+                fields {
+                    renamedMethod
+                }
+            }"
         };
 
         var context = new ContextFieldWithMethod
@@ -257,10 +251,9 @@ public class GraphQLFieldAttributeTests
 
         var gql = new QueryRequest
         {
-            Query = @"
-                     query TypeWithMethod {
-                       testMethod
-                     }"
+            Query = @"query TypeWithMethod {
+                testMethod
+            }"
         };
 
         var context = new ContextFieldWithMethod
@@ -430,6 +423,90 @@ public class GraphQLFieldAttributeTests
         Assert.Null(res.Errors);
         Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithInput);
     }
+
+    [Fact]
+    public void TestGraphQLFieldReturnSchemaType()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+        Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+        Assert.True(schemaProvider.Type<ContextFieldWithMethod>().HasField("getMyTask", null));
+
+        var sdl = schemaProvider.ToGraphQLSchemaString();
+
+        Assert.Contains("getMyTask(id: Int!): Task", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                getMyTask(id: 8) {
+                    id  
+                }
+            }"
+        };
+
+        var context = new ContextFieldWithMethod();
+
+        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        Assert.Null(res.Errors);
+
+        Assert.Equal(8, ((dynamic)res.Data["getMyTask"]).id);
+    }
+
+    [Fact]
+    public void TestGraphQLFieldReturnSchemaTypeRelation()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+        Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
+        Assert.True(schemaProvider.Type<Project>().HasField("searchTasks", null));
+
+        var sdl = schemaProvider.ToGraphQLSchemaString();
+
+        Assert.Contains("searchTasks(name: String): [Task!]", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query TypeWithMethod {
+                projects {
+                    searchTasks(name: ""a"") {
+                        id name
+                    }
+                }
+            }"
+        };
+
+        var context = new ContextFieldWithMethod
+        {
+            Projects = new List<Project>
+                {
+                    new Project
+                    {
+                        Id = 1,
+                        Name = "Hello",
+                        Tasks = new List<Task>
+                        {
+                            new Task
+                            {
+                                Id = 1,
+                                Name = "abba"
+                            },
+                            new Task
+                            {
+                                Id = 2,
+                                Name = "b"
+                            }
+                        }
+                    }
+                }
+        };
+
+        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        Assert.Null(res.Errors);
+
+        Assert.Equal(1, ((dynamic)res.Data["projects"])[0].searchTasks.Count);
+        Assert.Equal("abba", ((dynamic)res.Data["projects"])[0].searchTasks[0].name);
+    }
 }
 
 
@@ -438,10 +515,15 @@ public class ContextFieldWithMethod
     public IEnumerable<TypeWithMethod> Fields { get; set; }
     public IEnumerable<TypeWithMethodArgs> Complex { get; set; }
 
+    public IEnumerable<Project> Projects { get; set; }
+
     [GraphQLField]
-    public int TestMethod()
+    public int TestMethod() => 23;
+
+    [GraphQLField]
+    public static Task GetMyTask(int id)
     {
-        return 23;
+        return new Task { Id = id };
     }
 }
 public class ContextFieldWithMethodService

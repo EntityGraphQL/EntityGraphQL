@@ -139,6 +139,12 @@ namespace EntityGraphQL.Tests
         public DateTimeOffset? Created { get; set; }
         public DateTime? Updated { get; set; }
         public IEnumerable<Project> Children { get; set; }
+
+        [GraphQLField]
+        public IEnumerable<Task> SearchTasks(string name)
+        {
+            return Tasks.Where(t => t.Name.Contains(name));
+        }
     }
 
     public class Task
