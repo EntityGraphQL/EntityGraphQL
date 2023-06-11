@@ -28,9 +28,14 @@ namespace EntityGraphQL.Schema
         public bool EnableQueryCache { get; set; } = true;
 
         /// <summary>
-        /// Allows you to hook into just before an expression is executed and modify it to suit
+        /// Allows you to hook into just before an expression is executed and modify it to suit. Note that if 
+        /// <code>ExecuteServiceFieldsSeparately</code> is true, this will be called twice if your query includes fields with serivces.
+        /// Second parameter bool isFinal == true if the expression is the final execution - this means
+        ///  - ExecuteServiceFieldsSeparately = false, or
+        ///  - The query does not reference any fields with services
+        ///  - The query references fields with service and the first execution has completed (isFinal == false) and we are executing again to merge the service results
         /// </summary>
-        public Func<Expression, Expression>? BeforeExecuting { get; set; } = null;
+        public Func<Expression, bool, Expression>? BeforeExecuting { get; set; }
 
 #if DEBUG
         /// <summary>

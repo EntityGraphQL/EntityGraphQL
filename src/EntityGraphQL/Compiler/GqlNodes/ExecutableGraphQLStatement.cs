@@ -164,7 +164,7 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext, node);
+                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext, node, false);
                     if (runningContext == null)
                         return (null, true);
 
@@ -187,11 +187,11 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node);
+            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node, true);
             return data;
         }
 
-        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node)
+        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node, bool isFinal)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
@@ -223,7 +223,7 @@ namespace EntityGraphQL.Compiler
 
             if (options.BeforeExecuting != null)
             {
-                expression = options.BeforeExecuting.Invoke(expression);
+                expression = options.BeforeExecuting.Invoke(expression, isFinal);
             }
 
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());

@@ -836,8 +836,7 @@ namespace EntityGraphQL.Schema
         /// <param name="options"></param>
         public void PopulateFromContext(SchemaBuilderOptions? options = null)
         {
-            if (options == null)
-                options = new SchemaBuilderOptions();
+            options ??= new SchemaBuilderOptions();
             SchemaBuilder.FromObject(this, options);
         }
 

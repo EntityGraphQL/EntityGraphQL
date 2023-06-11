@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using EntityFrameworkCore.Projectables;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace demo
@@ -28,6 +30,9 @@ namespace demo
         }
 
         [Description("Collection of Movies")]
+        [UseFilter]
+        [UseSort]
+        [UseConnectionPaging]
         public DbSet<Movie> Movies { get; set; }
         [Description("Collection of Peoples")]
         public DbSet<Person> People { get; set; }
@@ -46,29 +51,45 @@ namespace demo
         public string Name { get; set; }
 
         [Description("Enum of Genre")]
-        public Genre Genre { get; set; }
-        public DateTime Released { get; set; }
-        public List<Actor> Actors { get; set; }
-        public List<Writer> Writers { get; set; }
-        public Person Director { get; set; }
+        public virtual Genre Genre { get; set; }
+        public virtual DateTime Released { get; set; }
+        public virtual List<Actor> Actors { get; set; }
+        public virtual List<Writer> Writers { get; set; }
+        public virtual Person Director { get; set; }
         public uint? DirectorId { get; set; }
         public double Rating { get; set; }
         public uint CreatedBy { get; set; }
+
+        [GraphQLField]
+        [Projectable]
+        public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
+
+        [GraphQLField]
+        [Projectable]
+        public uint[] AgesOfActorsAtRelease()
+        {
+            var ages = new List<uint>();
+            foreach (var actor in Actors)
+            {
+                ages.Add((uint)((Released - actor.Person.Dob).Days / 365));
+            }
+            return ages.ToArray();
+        }
     }
 
     public class Actor
     {
         public uint PersonId { get; set; }
-        public Person Person { get; set; }
+        public virtual Person Person { get; set; }
         public uint MovieId { get; set; }
-        public Movie Movie { get; set; }
+        public virtual Movie Movie { get; set; }
     }
     public class Writer
     {
         public uint PersonId { get; set; }
-        public Person Person { get; set; }
+        public virtual Person Person { get; set; }
         public uint MovieId { get; set; }
-        public Movie Movie { get; set; }
+        public virtual Movie Movie { get; set; }
     }
 
     public enum Genre
@@ -93,9 +114,9 @@ namespace demo
         [GraphQLNotNull]
         public string LastName { get; set; }
         public DateTime Dob { get; set; }
-        public List<Actor> ActorIn { get; set; }
-        public List<Writer> WriterOf { get; set; }
-        public List<Movie> DirectorOf { get; set; }
+        public virtual List<Actor> ActorIn { get; set; }
+        public virtual List<Writer> WriterOf { get; set; }
+        public virtual List<Movie> DirectorOf { get; set; }
         public DateTime? Died { get; set; }
         public bool IsDeleted { get; set; }
     }

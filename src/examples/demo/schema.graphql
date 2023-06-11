@@ -46,7 +46,7 @@ type Query {
 	"""Return a Movie by its Id"""
 	movie(id: Int!): Movie
 	"""Collection of Movies"""
-	movies: [Movie!]
+	movies(filter: String, sort: [MoviesSortInput!], first: Int, after: String, last: Int, before: String): MovieConnection
 	"""Collection of Peoples"""
 	people: [Person!]
 	"""Return a Person by its Id"""
@@ -71,17 +71,6 @@ type ConnectionEdgePerson {
 	node: Person!
 }
 
-type ConnectionPageInfo {
-	"""Last cursor in the page. Use this as the next from argument"""
-	endCursor: String!
-	"""If there is more data after this page"""
-	hasNextPage: Boolean!
-	"""If there is data previous to this page"""
-	hasPreviousPage: Boolean!
-	"""Start cursor in the page. Use this to go backwards with the before argument"""
-	startCursor: String!
-}
-
 """Detail item"""
 input Detail {
 	description: String
@@ -100,10 +89,12 @@ input DirectorsSortInput {
 type Movie {
 	"""Actors in the movie"""
 	actors: [Person!]
+	agesOfActorsAtRelease: [Int!]
 	"""User who added this movie"""
 	contributedBy: User
 	createdBy: Int!
 	director: Person
+	directorAgeAtRelease: Int!
 	directorId: Int
 	"""Enum of Genre"""
 	genre: Genre!
@@ -113,6 +104,48 @@ type Movie {
 	released: Date!
 	"""Writers in the movie"""
 	writers: [Person!]
+}
+
+"""Metadata about a Movie connection (paging over people)"""
+type MovieConnection {
+	"""Edge information about each node in the collection"""
+	edges: [MovieEdge!]!
+	"""Information about this page of data"""
+	pageInfo: PageInfo!
+	"""Total count of items in the collection"""
+	totalCount: Int!
+}
+
+"""Metadata about an edge of page result"""
+type MovieEdge {
+	"""The cursor for this items position within the collection"""
+	cursor: String!
+	"""The item of the collection"""
+	node: Movie!
+}
+
+"""Sort arguments for movies"""
+input MoviesSortInput {
+	createdBy: SortDirectionEnum
+	directorAgeAtRelease: SortDirectionEnum
+	directorId: SortDirectionEnum
+	genre: SortDirectionEnum
+	id: SortDirectionEnum
+	name: SortDirectionEnum
+	rating: SortDirectionEnum
+	released: SortDirectionEnum
+}
+
+"""Metadata about a page of data"""
+type PageInfo {
+	"""Last cursor in the page. Use this as the next from argument"""
+	endCursor: String!
+	"""If there is more data after this page"""
+	hasNextPage: Boolean!
+	"""If there is data previous to this page"""
+	hasPreviousPage: Boolean!
+	"""Start cursor in the page. Use this to go backwards with the before argument"""
+	startCursor: String!
 }
 
 type Person {
@@ -140,7 +173,7 @@ type PersonConnection {
 	"""Edge information about each node in the collection"""
 	edges: [ConnectionEdgePerson!]!
 	"""Information about this page of data"""
-	pageInfo: ConnectionPageInfo!
+	pageInfo: PageInfo!
 	"""Total count of items in the collection"""
 	totalCount: Int!
 }

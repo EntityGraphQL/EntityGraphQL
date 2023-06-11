@@ -23,26 +23,27 @@ public class BeforeExecutionTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
             Query = query,
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions {  });
+        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { });
         Assert.Null(result.Errors);
 
         dynamic project = result.Data["project"];
         Assert.Equal(5, Enumerable.Count(project.tasks));
 
-        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { 
-            BeforeExecuting = (e) =>  Expression.Constant(null)
+        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions
+        {
+            BeforeExecuting = (e, isFinal) => Expression.Constant(null)
         });
         Assert.Null(result.Errors);
 
         project = result.Data["project"];
-        Assert.Null(project);        
+        Assert.Null(project);
     }
 
 

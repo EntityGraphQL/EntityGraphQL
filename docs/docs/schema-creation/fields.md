@@ -73,9 +73,9 @@ schema.Query().AddField(
 );
 ```
 
-## Turning methods into fields
+## Using methods as fields
 
-EntityGraphQL can map methods on your classes to query fields using the `GraphQLFieldAttribute`. When using `SchemaBuilder` or `SchemaType.AddAllFields()` EntityGraphQL will add any methods that have the `GraphQLFieldAttribute` on them as a field on that type. The parameters of the method will become the GraphQL field arguments. Mapping method parameters to GraphQL arguments follow the same rules as mutations and subscription methods.
+EntityGraphQL can map methods on your classes to query fields using the `GraphQLFieldAttribute`. When using `SchemaBuilder` or `SchemaType.AddAllFields()` EntityGraphQL will add any methods that have the `GraphQLFieldAttribute` as a field on that type. The parameters of the method will become the GraphQL field arguments. Mapping method parameters to GraphQL arguments follow the same rules as mutations and subscription methods.
 
 Using `[GraphQLInputType]` on a parameter will include the parameter as an argument and use the type as an input type. `[GraphQLArguments]` will flatten the properties of that parameter type into many arguments in the schema.
 
@@ -89,37 +89,49 @@ When looking for a methods parameters, EntityGraphQL will
 
 4. Any argument or type with `GraphQLArgumentsAttribute` found will have the types properties added as schema arguments.
 
-5. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your arguments with the attributes or add them to the schema beforehand._
+5. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your parameters with the attributes or add the type to the schema beforehand._
 
-### Note about execution with EF
+### Note about method execution with EF
 
 Let's look at an example.
 
 ```cs
-public class MyContext : DbContext
+public class DemoContext : DbContext
 {
-    public DbSet<Task> Tasks { get; set; }
+    [Description("Collection of Movies")]
+    public DbSet<Movie> Movies { get; set; }
+    [Description("Collection of Peoples")]
+    public DbSet<Person> People { get; set; }
+    [Description("Collection of Actors")]
+    public DbSet<Actor> Actors { get; set; }
 }
 
-public class Task
+public class Movie
 {
     public uint Id { get; set; }
-    public string Title { get; set; }
-    public DateTime Due { get; set; }
+    public string Name { get; set; }
 
-    public int DaysUntilDue() => (DateTime.Now - Due).TotalDays;
+    // other fields hidden
+
+    public virtual DateTime Released { get; set; }
+    public virtual List<Actor> Actors { get; set; }
+    public virtual Person Director { get; set; }
+
+// highlight-next-line
+    [GraphQLField]
+    public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
 }
 
-var schema = new SchemaProvider<MyContext>();
+var schema = new SchemaProvider<DemoContext>();
 ```
 
-`DaysUntilDue` will become a field `daysUntilDue` on the GraphQL type `Task` with no arguments. If you query this field like
+`DirectorAgeAtRelease` will become a field `directorAgeAtRelease` on the GraphQL type `Movie` with no arguments. If you query this field like
 
 ```gql
 {
-  tasks {
-    id
-    daysUntilDue
+  movies {
+    name
+    directorAgeAtRelease
   }
 }
 ```
@@ -127,15 +139,75 @@ var schema = new SchemaProvider<MyContext>();
 It will generate the follow expression
 
 ```cs
-(ctx) => ctx.Task.Select(t => new {
-    id = t.Id,
-    daysUntilDue = t.DaysUntilDue()
+(ctx) => ctx.Movies.Select(m => new {
+    name = m.Name,
+    directorAgeAtRelease = m.DirectorAgeAtRelease()
 })
 ```
 
-_Depending on the complexitiy of your method, if you are using EF, it may fail to execute as EF doesn't know what to do with the method._
+_If you are using EF, it does not know how to translate your method and will try to execute this method after fetching data._ This issue is the method relies on the `Director` property on `Movie` which EF doesn't know and did not fetch so you will not get the expected result. There are a few solutions to this.
 
-If your method includes a service as a parameter this will be handled by EntityGraphQL and executed after fetching data from EF. See [Entity Framework](../entity-framework) section for more information.
+#### Lazy Loading
+
+One solution is [Microsoft.EntityFrameworkCore.Proxies](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.Proxies/) to lazy load the properties, which comes with its own tradeoffs. If you install the Nuget package and follow the instructions for using lazy loading proxies these methods will work.
+
+#### EntityFrameworkCore.Projectables Library
+
+Another solution is [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) (Also [Expressionify](https://github.com/ClaveConsulting/Expressionify)) which uses source generators to generate an EF compatible expression.
+
+```cs
+// configure projectables
+services.AddDbContext<DemoContext>(opt =>
+// highlight-next-line
+    opt.UseProjectables()
+);
+
+// add the attributes to your methods
+[GraphQLField]
+// highlight-next-line
+[Projectable]
+public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
+```
+
+Now the expression will be translated into expression that EF will handle. See [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) documention for more information. Or your perferred library.
+
+These libraries require the methods by expression - For example [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) will not work for a method like below, _whereas lazy loading will_.
+
+```cs
+[GraphQLField]
+[Projectable] // will fail as it can't generate an expression - does work with lazy loading
+public uint[] AgesOfActorsAtRelease()
+{
+    var ages = new List<uint>();
+    foreach (var actor in Actors)
+    {
+        ages.Add((uint)((Released - actor.Person.Dob).Days / 365));
+    }
+    return ages.ToArray();
+}
+```
+
+#### Use EntityGraphQL Services
+
+If your method includes a service as a parameter this will be handled by EntityGraphQL and executed after fetching data from EF. See [Entity Framework](../library-compatibility/entity-framework) section for more information. Your `DbContext` is also a service.
+
+```cs
+[GraphQLField]
+public uint[] AgesOfActorsAtRelease(DemoContext ctx)
+{
+    var actors = ctx.Actors
+        .Include(a => a.Person)
+        .Where(a => a.MoveId == Id);
+    var ages = new List<uint>();
+    foreach (var actor in actors)
+    {
+        ages.Add((uint)((Released - actor.Person.Dob).Days / 365));
+    }
+    return ages.ToArray();
+}
+```
+
+EntityGraphQL will be extract this from the first execution when `ExecutionOptions.ExecuteServiceFieldsSeparately = true` (default) and be executed with the fetched data and merged into the result. See [Entity Framework](../library-compatibility/entity-framework) section for more information.
 
 ## Helper methods
 

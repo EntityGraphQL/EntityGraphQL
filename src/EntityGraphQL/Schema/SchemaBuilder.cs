@@ -8,7 +8,6 @@ using EntityGraphQL.Compiler.Util;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
 using Nullability;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -40,8 +39,7 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public static SchemaProvider<TContext> Create<TContext>(SchemaBuilderSchemaOptions? options = null, ILogger<SchemaProvider<TContext>>? logger = null)
         {
-            if (options == null)
-                options = new SchemaBuilderSchemaOptions();
+            options ??= new SchemaBuilderSchemaOptions();
             var schema = new SchemaProvider<TContext>(options.AuthorizationService, options.FieldNamer, logger, options.IntrospectionEnabled, options.IsDevelopment);
             return ApplyOptions(schema, options);
         }
