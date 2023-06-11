@@ -65,7 +65,6 @@ namespace demo
         public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
 
         [GraphQLField]
-        [Projectable]
         public uint[] AgesOfActorsAtRelease()
         {
             var ages = new List<uint>();
