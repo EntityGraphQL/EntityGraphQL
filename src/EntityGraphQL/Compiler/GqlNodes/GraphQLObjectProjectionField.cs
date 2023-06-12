@@ -123,8 +123,8 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
-            // TODO services injected here - is this needed?
-            var updatedExpression = compileContext.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
+            // do not need to inject serivces here as this expression is used in the call arguments
+            var updatedExpression = nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
@@ -149,7 +149,7 @@ namespace EntityGraphQL.Compiler
 
             (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, argumentParam, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
-            var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+            var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
             updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;

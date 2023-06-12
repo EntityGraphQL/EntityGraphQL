@@ -67,19 +67,19 @@ namespace EntityGraphQL.Compiler
         /// Executes the compiled GraphQL document adding data results into QueryResult.
         /// If no OperationName is supplied the first operation in the query document is executed
         /// </summary>
-        /// <param name="context">Instance of the context type of the schema</param>
+        /// <param name="overwriteContext">Instance of the context type of the schema. If provided this is used whereever the context is needed.
+        /// If not supplied the context is fetched from serviceProvider allowing you to control the scope</param>
         /// <param name="serviceProvider">Service provider used for DI</param>
         /// <param name="variables">Variables passed in the request</param>
         /// <param name="operationName">Optional name of operation to execute. If null the first operation will be executed</param>
         /// <param name="options">Options for execution.</param>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext context, IServiceProvider? serviceProvider, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
+        public async Task<QueryResult> ExecuteQueryAsync<TContext>(TContext? overwriteContext, IServiceProvider? serviceProvider, QueryVariables? variables, string? operationName, ExecutionOptions? options = null)
         {
             // check operation names
             if (Operations.Count > 1 && Operations.Any(o => string.IsNullOrEmpty(o.Name)))
-            {
                 throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
-            }
+
             var result = new QueryResult();
             IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
             var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
@@ -87,7 +87,7 @@ namespace EntityGraphQL.Compiler
             // execute the selected operation
             options ??= new ExecutionOptions(); // defaults
 
-            result.SetData(await op.ExecuteAsync(context, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
+            result.SetData(await op.ExecuteAsync(overwriteContext, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
 
             if (validator?.Errors.Count > 0)
                 result.AddErrors(validator.Errors);

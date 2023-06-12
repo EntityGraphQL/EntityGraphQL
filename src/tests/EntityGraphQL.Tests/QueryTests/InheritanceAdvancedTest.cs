@@ -150,7 +150,7 @@ namespace EntityGraphQL.Tests
                 }
             }".Replace('\r', ' ').Replace('\n', ' ');
             var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            var results = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
 
@@ -267,7 +267,7 @@ namespace EntityGraphQL.Tests
                 }
             }".Replace('\r', ' ').Replace('\n', ' ');
             var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            var results = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
 

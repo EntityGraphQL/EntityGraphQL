@@ -28,7 +28,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Male }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Male }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -74,7 +74,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Female }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -94,7 +94,7 @@ namespace EntityGraphQL.Tests
                     { "nameInput", new InputObject() { Name = "Frank" } },
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Tests
                     { "differentName", new InputObject() { Name = "Frank" } },
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.Equal("Frank", ((dynamic)res.Data["addPersonSingleArgument"]).name);
         }
@@ -134,7 +134,7 @@ namespace EntityGraphQL.Tests
                     { "nameInput", new InputObject() { Name = "Frank" } },
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Female }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -201,7 +201,7 @@ namespace EntityGraphQL.Tests
                      { "nameInput", new NestedInputObject() { Name = "Frank" } },
                  }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -224,7 +224,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Female }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
         }
 
@@ -247,7 +247,7 @@ namespace EntityGraphQL.Tests
                     { "gender", Gender.Female }
                 }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.True(schemaProvider.HasType(typeof(Person)));
         }

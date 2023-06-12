@@ -54,7 +54,7 @@ namespace Benchmarks
         [Benchmark]
         public void PlainDbSet()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,
@@ -86,7 +86,7 @@ namespace Benchmarks
         [Benchmark]
         public void SetOfBasicWhereStatements()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,
@@ -144,7 +144,7 @@ namespace Benchmarks
         [Benchmark]
         public void LargerSetOfWhereWhens()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,

@@ -22,8 +22,11 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables) where TContext : default
         {
+            if (context == null && serviceProvider == null)
+                throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+
             var result = new ConcurrentDictionary<string, object?>();
             // pass to directvies
             foreach (var directive in Directives)
@@ -50,7 +53,10 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        var data = await ExecuteAsync(compileContext, node, context, serviceProvider, fragments, options, docVariables);
+
+                        var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
+
+                        var data = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {

@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "na", "Frank" } }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.NotNull(res.Errors);
             var err = Enumerable.First(res.Errors);
             Assert.Equal("Missing required variable 'name' on operation 'AddPerson'", err.Message);
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { }
             };
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             dynamic addPersonResult = res.Data["addPerson"];
             // we only have the fields requested
@@ -75,7 +75,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data["addPersonNames"];
             // we only have the fields requested
@@ -106,7 +106,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data["addPersonNamesAsync"];
             // we only have the fields requested
@@ -137,7 +137,7 @@ namespace EntityGraphQL.Tests
                     {"names", new [] {"Bill", "Frank"}}
                 };
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(new QueryRequest
+            var results = schemaProvider.ExecuteRequestWithContext(new QueryRequest
             {
                 Query = query,
                 Variables = vars1
@@ -154,7 +154,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Frank", addPersonResult.lastName);
 
             // add another one to trigger the issue
-            results = schemaProvider.ExecuteRequest(new QueryRequest
+            results = schemaProvider.ExecuteRequestWithContext(new QueryRequest
             {
                 Query = query,
                 Variables = new QueryVariables {
@@ -192,7 +192,7 @@ namespace EntityGraphQL.Tests
                         { "names", new { name = "Lisa", lastName = "Simpson" } }
                 }
             };
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Single(result.Errors);
             Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
         }
@@ -216,7 +216,7 @@ namespace EntityGraphQL.Tests
                         { "names", new [] { "Lisa", "Simpson" } }
                 }
             };
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Single(result.Errors);
             Assert.Equal("Variable or value used for argument 'nameInput' does not match argument type 'InputObject' on field 'addPersonInput'", result.Errors.First().Message);
         }
@@ -240,7 +240,7 @@ namespace EntityGraphQL.Tests
                         { "names", new { name = "Lisa", lastName = "Simpson" } }
                 }
             };
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
             // we only have the fields requested
@@ -272,7 +272,7 @@ namespace EntityGraphQL.Tests
                         { "names", new InputObject{ Name = "Lisa", LastName = "Simpson" } }
                 }
             };
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data["addPersonInput"];
             // we only have the fields requested
@@ -307,7 +307,7 @@ namespace EntityGraphQL.Tests
                         }}
                 }
             };
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
             // we only have the fields requested
@@ -338,7 +338,7 @@ namespace EntityGraphQL.Tests
                         }
             };
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data["addPersonAdv"];
             // we only have the fields requested
@@ -366,7 +366,7 @@ namespace EntityGraphQL.Tests
                         }
             };
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic addPersonResults = results.Data["addPersonAdvList"];
             var addPersonResult = Enumerable.First(addPersonResults);
@@ -408,7 +408,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
@@ -446,7 +446,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
@@ -479,7 +479,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic addPersonResult = results.Data;
             addPersonResult = Enumerable.First(addPersonResult);
@@ -506,7 +506,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThing"];
             Assert.True((bool)result);
@@ -525,7 +525,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThingWithoutAsyncKeyword"];
             Assert.True((bool)result);
@@ -546,7 +546,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThing"];
             Assert.True((bool)result);
@@ -567,7 +567,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["defaultValueTest"];
             Assert.Equal(8, result);
@@ -595,7 +595,7 @@ namespace EntityGraphQL.Tests
                 }"
             };
 
-            results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
 
             Assert.Null(results.Errors);
             result = results.Data["__schema"];
@@ -619,7 +619,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Single(results.Errors);
             Assert.Equal("Field 'needsGuid' - missing required argument 'id'", results.Errors[0].Message);
@@ -640,7 +640,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Single(results.Errors);
             Assert.Equal("Field 'regexValidation' - Title does not match required format", results.Errors[0].Message);
@@ -659,7 +659,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Single(results.Errors);
             Assert.Equal("Field 'regexValidation' - Author does not match required format", results.Errors[0].Message);
@@ -680,7 +680,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'needsGuidNonNull' - missing required argument 'id'", results.Errors[0].Message);
         }
@@ -700,7 +700,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithList"]);
             Assert.Equal(true, results.Data["taskWithListSeparateArg"]);
@@ -723,7 +723,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithList"]);
         }
@@ -743,7 +743,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["taskWithListInt"]);
         }
@@ -762,7 +762,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(1.3f, results.Data["addFloat"]);
         }
@@ -780,7 +780,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(1.3d, results.Data["addDouble"]);
         }
@@ -799,7 +799,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(1.3m, results.Data["addDecimal"]);
         }
@@ -817,7 +817,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             var person = (dynamic)results.Data["addPerson"];
             Assert.NotNull(person);
@@ -836,7 +836,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThingStaticly"];
             Assert.True((bool)result);
@@ -856,7 +856,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             dynamic result = results.Data["doGreatThingsHere"];
             Assert.True((bool)result);
@@ -884,7 +884,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schema.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["noArgsWithService"]);
             Assert.Empty(schema.Mutation().SchemaType.GetField("noArgsWithService", null).Arguments);
@@ -915,7 +915,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(results.Errors);
             Assert.Equal(true, results.Data["nullableGuidArgs"]);
         }
@@ -938,7 +938,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' can not be applied to defined variable type 'ID'", results.Errors[0].Message);
         }
@@ -960,7 +960,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
             Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
@@ -983,7 +983,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
             Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
@@ -1091,7 +1091,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
             Assert.Equal(0, results.Data["getValue"]);
         }

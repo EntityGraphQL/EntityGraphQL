@@ -30,7 +30,7 @@ namespace EntityGraphQL.Schema
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
         public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
         public bool ArgumentsAreInternal { get; internal set; }
-        public IEnumerable<Type> Services { get; set; } = new List<Type>();
+        public IEnumerable<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
         public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
         public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }

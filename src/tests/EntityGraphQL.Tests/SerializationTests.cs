@@ -37,7 +37,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDate"": null  }
                 }
             }");
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
             // we only have the fields requested
@@ -69,7 +69,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
             }");
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
             // we only have the fields requested
@@ -94,7 +94,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
             }");
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
             // we only have the fields requested
@@ -122,7 +122,7 @@ namespace EntityGraphQL.AspNet.Tests
             }");
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 
@@ -141,7 +141,7 @@ namespace EntityGraphQL.AspNet.Tests
                 }
             }";
             var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            var result = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
             // we only have the fields requested

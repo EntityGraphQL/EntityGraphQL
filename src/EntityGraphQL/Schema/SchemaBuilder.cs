@@ -277,7 +277,7 @@ namespace EntityGraphQL.Schema
 
             if (fieldServices.Count > 0)
             {
-                field.Services = fieldServices.Values.Select(x => x.Type).ToList();
+                field.Services = fieldServices.Values.ToList();
                 field.ExpressionArgumentType = fieldArgType;
             }
 
@@ -491,7 +491,10 @@ namespace EntityGraphQL.Schema
                     inputType = inputType.GetGenericArguments()[0];
 
                 if (inputType == schema.QueryContextType)
+                {
+                    arguments.Add(new FieldArgInfo(item.Name!, item.ParameterType));
                     continue;
+                }
 
                 // primitive types are arguments or types already known in the schema
                 var shouldBeAddedAsArg = item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));

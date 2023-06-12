@@ -130,7 +130,7 @@ namespace EntityGraphQL.AspNet.WebSockets
                 {
                     var request = graphQLWSMessage.Payload;
                     // executing this sets up the observers etc. We don't return any data until we have an event
-                    var result = await schema.ExecuteRequestAsync(request, schemaContext, context.RequestServices, context.User, options)!;
+                    var result = await schema.ExecuteRequestWithContextAsync(request, schemaContext, context.RequestServices, context.User, options)!;
                     if (result.Errors != null)
                     {
                         await SendErrorAsync(graphQLWSMessage.Id!.Value, result.Errors);

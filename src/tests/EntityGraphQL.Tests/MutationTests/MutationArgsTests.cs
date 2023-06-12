@@ -24,7 +24,7 @@ namespace EntityGraphQL.Tests
                   addPerson(name: ""Herb"" others: { age: 43 })
                 }",
             };
-            var res = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.Equal(65, res.Data["addPerson"]);
         }
@@ -49,7 +49,7 @@ namespace EntityGraphQL.Tests
                   addPerson(args: { name: ""Herb"", others: { age: 43 } })
                 }",
             };
-            var res = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.Equal(65, res.Data["addPerson"]);
         }
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
             var service = new ConfigService();
             serviceCollection.AddSingleton(service);
 
-            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(43, res.Data["addPerson"]);
         }
@@ -119,7 +119,7 @@ namespace EntityGraphQL.Tests
             var service = new ConfigService();
             serviceCollection.AddSingleton(service);
 
-            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(43, res.Data["addPerson"]);
         }
@@ -153,7 +153,7 @@ namespace EntityGraphQL.Tests
             var service = new ConfigService();
             serviceCollection.AddSingleton(service);
 
-            var res = schema.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(43, res.Data["addPerson"]);
         }

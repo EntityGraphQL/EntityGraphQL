@@ -10,6 +10,8 @@
 - `SchemaBuilderOptions.AutoCreateInputTypes` now defaults to `true`. Meaning in `SchemaBuilder` when adding mutations etc any complex types will be added to the schema if they are not there already.
 - The rules for reflection on method parameters have been changed to make them clearer. See the upgrade to 5.0 docs and the mutation docs that cover examples.
 - `GraphQLValidator` is no longer magically added to your method fields (mutations/subscriptions). If you wish to use it please register it in your services. There is a new helper method in EntityGraphQL.AspNet `AddGraphQLValidator()`. This means you can implement and register your own implementation.
+- `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` have been renamed to `ExecuteRequestWithContext` & `ExecuteRequestWithContextAsync`. The schema context instance provided will be used for all context references within that query.
+- #309 - Introduced new `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` which take no schema context instance as an argument. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the perferred way to execute a query
 
 ## Changes
 

@@ -38,7 +38,7 @@ namespace EntityGraphQL.Tests
             var pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
         }
@@ -67,7 +67,7 @@ namespace EntityGraphQL.Tests
             var pager = new EntityPager();
             serviceCollection.AddSingleton(pager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
         }
@@ -109,7 +109,7 @@ namespace EntityGraphQL.Tests
             //              .ToList()
             //              .Select(p => new { pager.PageProjects(p.projects, args) })
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Tests
             //                  })
             //              })
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Single(person.GetType().GetFields());
@@ -214,7 +214,7 @@ namespace EntityGraphQL.Tests
             var srv = new ConfigService();
             serviceCollection.AddSingleton(srv);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
             Assert.Single(person.GetType().GetFields());
@@ -257,7 +257,7 @@ namespace EntityGraphQL.Tests
             EntityPager pager = new();
             serviceCollection.AddSingleton(pager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
@@ -303,7 +303,7 @@ namespace EntityGraphQL.Tests
             EntityPager pager = new();
             serviceCollection.AddSingleton(pager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, pager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
@@ -350,7 +350,7 @@ namespace EntityGraphQL.Tests
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, ager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
@@ -398,7 +398,7 @@ namespace EntityGraphQL.Tests
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, ager.CallCount);
             var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
@@ -443,7 +443,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             Assert.Equal(2, res.Data["user"].GetType().GetFields().Length);
@@ -484,7 +484,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic users = res.Data["users"];
@@ -526,7 +526,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic user = res.Data["user"];
@@ -584,7 +584,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic project = res.Data["project"];
@@ -667,7 +667,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(context);
             serviceCollection.AddSingleton(new TestDataContext2());
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic users = res.Data["users"];
@@ -718,7 +718,7 @@ namespace EntityGraphQL.Tests
             var settings = new SettingsService();
             serviceCollection.AddSingleton(settings);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
             Assert.Null(res.Errors);
@@ -766,7 +766,7 @@ namespace EntityGraphQL.Tests
             var settings = new SettingsService();
             serviceCollection.AddSingleton(settings);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
             Assert.Null(res.Errors);
@@ -822,7 +822,7 @@ namespace EntityGraphQL.Tests
             var settings = new SettingsService();
             serviceCollection.AddSingleton(settings);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -877,7 +877,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -926,7 +926,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -976,7 +976,7 @@ namespace EntityGraphQL.Tests
             };
             context.Projects.First().Tasks.First().Project = context.Projects.First();
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -1026,7 +1026,7 @@ namespace EntityGraphQL.Tests
             };
             context.Projects.First().Tasks.First().Project = context.Projects.First();
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -1078,7 +1078,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
             Type projectType = project.GetType();
@@ -1119,7 +1119,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             dynamic project = (dynamic)res.Data["project"];
             Type projectType = project.GetType();
@@ -1194,7 +1194,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             Assert.Equal(1, ageSrv.CallCount);
@@ -1240,7 +1240,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = res.Data["task"];
@@ -1288,7 +1288,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = (dynamic)res.Data["task"];
@@ -1336,7 +1336,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = (dynamic)res.Data["task"];
@@ -1382,7 +1382,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var project = (dynamic)res.Data["task"];
         }
@@ -1425,7 +1425,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var project = (dynamic)res.Data["project"];
         }
@@ -1478,7 +1478,7 @@ namespace EntityGraphQL.Tests
                 }
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, configSrv.CallCount);
             dynamic project = (dynamic)res.Data["project"];
@@ -1518,7 +1518,7 @@ namespace EntityGraphQL.Tests
                 Name = "yo"
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, service.CallCount);
             dynamic projects = res.Data["projects"];
@@ -1640,7 +1640,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(userService);
             serviceCollection.AddSingleton(context);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             Assert.Equal(1, userService.CallCount);
             dynamic users = res.Data["users"];
@@ -1694,7 +1694,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var project = (dynamic)res.Data["project"];
             Type projectType = project.GetType();
@@ -1750,7 +1750,7 @@ namespace EntityGraphQL.Tests
                         },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var project = (dynamic)res.Data["project"];
             Type projectType = project.GetType();
@@ -1819,7 +1819,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var projects = (dynamic)res.Data["projects"];
             Type projectType = Enumerable.First(projects).GetType();
@@ -1870,7 +1870,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var projects = (dynamic)res.Data["projects"];
             Type projectType = Enumerable.First(projects).GetType();
@@ -1919,7 +1919,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var projects = (dynamic)res.Data["projects"];
             Type projectType = Enumerable.First(projects).GetType();
@@ -1977,7 +1977,7 @@ namespace EntityGraphQL.Tests
              },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var projects = (dynamic)res.Data["projects"];
             Type projectType = Enumerable.First(projects).GetType();
@@ -2035,7 +2035,7 @@ namespace EntityGraphQL.Tests
              },
             };
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
             var projects = (dynamic)res.Data["projects"];
             Type projectType = Enumerable.First(projects).GetType();

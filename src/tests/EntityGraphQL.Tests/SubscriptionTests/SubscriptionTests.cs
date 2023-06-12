@@ -49,7 +49,7 @@ public class SubscriptionTests
                   }
                 }",
         };
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
         dynamic data = res.Data["sub"];
         Assert.Single(data.fields);
@@ -93,7 +93,7 @@ public class SubscriptionTests
         };
         var services = new ServiceCollection();
         services.AddSingleton(new ChatService());
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), services.BuildServiceProvider(), null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.NotNull(res.Errors);
         Assert.Equal("Subscription operations may only have a single root field. Field 'secondOne' should be used in another operation.", res.Errors[0].Message);
     }
@@ -112,7 +112,7 @@ public class SubscriptionTests
         };
         var services = new ServiceCollection();
         services.AddSingleton(new ChatService());
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), services.BuildServiceProvider(), null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
     }
 }

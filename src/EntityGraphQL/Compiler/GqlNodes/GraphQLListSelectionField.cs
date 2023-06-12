@@ -109,15 +109,12 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
-            // TODO services injected here - is this needed?
             var updatedListContext = listContext;
             if (compileContext.Services.Any() == true)
             {
-                updatedListContext = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, listContext, fieldParams, replacer);
-
                 foreach (var selectExpression in selectExpressions)
                 {
-                    selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
+                    selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
                 }
             }
 

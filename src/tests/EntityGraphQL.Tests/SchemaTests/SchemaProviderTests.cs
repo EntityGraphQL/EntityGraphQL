@@ -112,7 +112,7 @@ namespace EntityGraphQL.Tests
 
             var context = new TestDataContext();
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
 
             var schemaType = (dynamic)((dynamic)res.Data["__type"]);

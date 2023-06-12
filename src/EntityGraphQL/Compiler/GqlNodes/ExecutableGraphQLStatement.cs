@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler
 {
@@ -53,8 +54,11 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
+            if (context == null && serviceProvider == null)
+                throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
             //      people { name id }
@@ -62,8 +66,6 @@ namespace EntityGraphQL.Compiler
             // }
             // people & movies will be the 2 fields that will be 2 separate expressions
             var result = new ConcurrentDictionary<string, object?>();
-            if (context == null)
-                return result;
 
             object? docVariables = BuildDocumentVariables(ref variables);
 
@@ -79,8 +81,9 @@ namespace EntityGraphQL.Compiler
                         timer.Start();
                     }
 #endif
+                    var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                    (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(), context, serviceProvider, fragments, fieldNode, options, docVariables);
+                    (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(), contextToUse, serviceProvider, fragments, fieldNode, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -106,6 +109,14 @@ namespace EntityGraphQL.Compiler
                 }
             }
             return result;
+        }
+
+        protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
+        {
+            if (context == null)
+                return serviceProvider.GetService<TContext>()! ?? throw new EntityGraphQLCompilerException($"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
+
+            return context;
         }
 
         protected object? BuildDocumentVariables(ref QueryVariables? variables)

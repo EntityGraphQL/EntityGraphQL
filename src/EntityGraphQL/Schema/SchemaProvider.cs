@@ -156,29 +156,60 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Execute a query using this schema.
         /// </summary>
-        /// <param name="gql">The query</param>
-        /// <param name="context">The context object. An instance of the context the schema was build from</param>
-        /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+        /// <param name="gql">The GraphQL query document</param>
+        /// <param name="serviceProvider">A service provider used for looking up the context dependency and services in field selections and mutations</param>
         /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
         /// <param name="options"></param>
-        /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public QueryResult ExecuteRequest(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        public QueryResult ExecuteRequest(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
         {
-            return ExecuteRequestAsync(gql, context, serviceProvider, user, options).GetAwaiter().GetResult();
+            return ExecuteRequestAsync(gql, serviceProvider, user, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Execute a query using this schema.
+        /// </summary>
+        /// <param name="gql">The GraphQL query document</param>
+        /// <param name="serviceProvider">A service provider used for looking up the context dependency and services in field selections and mutations</param>
+        /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        {
+            return await DoExecuteRequestAsync(gql, default, serviceProvider, user, options);
         }
 
         /// <summary>
         /// Execute a query using this schema.
         /// </summary>
         /// <param name="gql">The query</param>
-        /// <param name="context">The context object. An instance of the context the schema was build from</param>
+        /// <param name="context">The context object. An instance of the context the schema was build from. This is used anywhere the context is required</param>
         /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
         /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
         /// <param name="options"></param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        public QueryResult ExecuteRequestWithContext(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        {
+            return ExecuteRequestWithContextAsync(gql, context, serviceProvider, user, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Execute a query using this schema.
+        /// </summary>
+        /// <param name="gql">The query</param>
+        /// <param name="context">The context object. An instance of the context the schema was build from. This is used anywhere the context is required</param>
+        /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+        /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
+        /// <param name="options"></param>
+        /// <typeparam name="TContextType"></typeparam>
+        /// <returns></returns>
+        public async Task<QueryResult> ExecuteRequestWithContextAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
+        {
+            return await DoExecuteRequestAsync(gql, context, serviceProvider, user, options);
+        }
+
+        private async Task<QueryResult> DoExecuteRequestAsync(QueryRequest gql, TContextType? overwriteContext, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options)
         {
             QueryResult result;
             try
@@ -236,7 +267,7 @@ namespace EntityGraphQL.Schema
                     compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                 }
 
-                result = await compiledQuery.ExecuteQueryAsync(context, serviceProvider, gql.Variables, gql.OperationName, options);
+                result = await compiledQuery.ExecuteQueryAsync(overwriteContext, serviceProvider, gql.Variables, gql.OperationName, options);
             }
             catch (Exception ex)
             {

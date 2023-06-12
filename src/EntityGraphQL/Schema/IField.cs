@@ -66,7 +66,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
-        IEnumerable<Type> Services { get; }
+        IEnumerable<ParameterExpression> Services { get; }
         IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
         IField? UseArgumentsFromField { get; }
 

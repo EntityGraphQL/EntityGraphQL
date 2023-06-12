@@ -39,7 +39,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(1, ((dynamic)res.Data["fields"])[0].methodField);
@@ -79,7 +79,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithArgs);
@@ -116,7 +116,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(20, ((dynamic)res.Data["fields"])[0].methodFieldWithOptionalArgs);
@@ -157,7 +157,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithTwoArgs);
@@ -194,7 +194,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(27, ((dynamic)res.Data["fields"])[0].methodFieldWithDefaultArgs);
@@ -232,7 +232,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(33, ((dynamic)res.Data["fields"])[0].renamedMethod);
@@ -264,7 +264,7 @@ public class GraphQLFieldAttributeTests
                  }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(23, (dynamic)res.Data["testMethod"]);
@@ -299,7 +299,7 @@ public class GraphQLFieldAttributeTests
                 }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(88, ((dynamic)res.Data["fields"])[0].staticMethodField);
@@ -328,7 +328,7 @@ public class GraphQLFieldAttributeTests
         var srv = new ConfigService();
         serviceCollection.AddSingleton(srv);
 
-        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(44, (dynamic)res.Data["methodFieldWithService"]);
     }
@@ -356,7 +356,7 @@ public class GraphQLFieldAttributeTests
         var srv = new ConfigService();
         serviceCollection.AddSingleton(srv);
 
-        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(44, (dynamic)res.Data["methodFieldWithServiceStatic"]);
     }
@@ -387,7 +387,7 @@ public class GraphQLFieldAttributeTests
                 }
         };
 
-        var res = schema.ExecuteRequest(gql, context, null, null);
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
         Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithArgs);
     }
@@ -419,7 +419,7 @@ public class GraphQLFieldAttributeTests
                 }
         };
 
-        var res = schema.ExecuteRequest(gql, context, null, null);
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
         Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithInput);
     }
@@ -447,7 +447,7 @@ public class GraphQLFieldAttributeTests
 
         var context = new ContextFieldWithMethod();
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(8, ((dynamic)res.Data["getMyTask"]).id);
@@ -501,7 +501,7 @@ public class GraphQLFieldAttributeTests
                 }
         };
 
-        var res = schemaProvider.ExecuteRequest(gql, context, null, null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
         Assert.Equal(1, ((dynamic)res.Data["projects"])[0].searchTasks.Count);
@@ -540,7 +540,7 @@ public class GraphQLFieldAttributeTests
         var srv = new ConfigService();
         serviceCollection.AddSingleton(srv);
 
-        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(88, ((dynamic)res.Data["fields"])[0].fieldWithService);
     }

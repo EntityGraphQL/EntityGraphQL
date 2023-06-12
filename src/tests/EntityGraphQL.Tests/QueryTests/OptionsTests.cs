@@ -26,7 +26,7 @@ namespace EntityGraphQL.Tests
                 }"
             };
             var contextData = new OptionsContext().AddCustomerWithOrder("Lisa", 4);
-            var res = schema.ExecuteRequest(gql, contextData, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, contextData, null, null);
             Assert.Null(res.Errors);
             dynamic customers = res.Data["customers"];
             Assert.Single(customers);
@@ -55,7 +55,7 @@ namespace EntityGraphQL.Tests
             var serviceCollection = new ServiceCollection();
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
-            var res = schema.ExecuteRequest(gql, contextData, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
+            var res = schema.ExecuteRequestWithContext(gql, contextData, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
             Assert.Null(res.Errors);
             dynamic customers = res.Data["customers"];
             Assert.Single(customers);

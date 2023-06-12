@@ -47,7 +47,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
             Type projectType = project.GetType();
@@ -93,7 +93,7 @@ namespace EntityGraphQL.Tests
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
             dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
             Type projectType = project.GetType();
@@ -126,7 +126,7 @@ namespace EntityGraphQL.Tests
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
 
-            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];

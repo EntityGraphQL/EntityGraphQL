@@ -52,7 +52,7 @@ namespace Benchmarks
         /// <exception cref="InvalidOperationException"></exception>
         protected void RunQuery(BenchmarkContext context, QueryRequest query, ExecutionOptions? options = null)
         {
-            var result = Schema.ExecuteRequest(query, context, Services, null, options);
+            var result = Schema.ExecuteRequestWithContext(query, context, Services, null, options);
             if (result.Errors != null)
                 throw new InvalidOperationException("query failed: " + string.Join("\n", result.Errors.Select(m => m.Message)));
         }

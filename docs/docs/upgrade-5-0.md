@@ -10,6 +10,12 @@ EntityGraphQL respects [Semantic Versioning](https://semver.org/), meaning versi
 You can see the full changelog which includes other changes and bug fixes as well as links back to GitHub issues/MRs with more information [here on GitHub](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/CHANGELOG.md).
 :::
 
+## `SchemaProvider.ExecuteRequest` change
+
+`SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` no longer take an instance of the schema context. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the perferred way to execute a query.
+
+If you wish to maintain the 4.x execution you can use`ExecuteRequestWithContext` & `ExecuteRequestWithContextAsync` which operate in the same way as 4.x - the instance of the schema context passed in will be used for all references to that type.
+
 ## Changes to Method Argument Reflection
 
 Previously if `AutoCreateInputTypes` was enabled we didn't know if a parameter should be a GraphQL argument or an injected service unless you used `[GraphQLArguments]`. But this meant you couldn't have complex types as parameters in the method and have them reflected in the schema (`[GraphQLArguments]` flattens the properties in the schema as arguments). This has been refactored to be predictable.

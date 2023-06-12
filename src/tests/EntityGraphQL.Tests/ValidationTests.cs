@@ -27,7 +27,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(7, results.Errors.Count);
         Assert.Equal("Field 'addMovie' - Title is required", results.Errors[0].Message);
@@ -54,7 +54,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'addMovie' - Actor is required", results.Errors[0].Message);
@@ -76,7 +76,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Field 'addPerson' - Name can't be Luke", results.Errors[0].Message);
@@ -103,7 +103,7 @@ public class ValidationTests
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<IGraphQLValidator, GraphQLValidator>();
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, serviceCollection.BuildServiceProvider(), null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, serviceCollection.BuildServiceProvider(), null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Test Error", results.Errors[0].Message);
@@ -131,7 +131,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Field 'addPerson' - Name can't be Luke", results.Errors[0].Message);
@@ -150,7 +150,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Field 'addPersonValidatorAttribute' - Name can't be Luke", results.Errors[0].Message);
@@ -172,7 +172,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Field 'addPersonValidatorOnArgs' - Name can't be Luke", results.Errors[0].Message);
@@ -193,7 +193,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(3, results.Errors.Count);
         Assert.Equal("Field 'movies' - Genre is required", results.Errors[0].Message);
@@ -219,7 +219,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'movies' - You can't use 150 for the price", results.Errors[0].Message);
@@ -249,7 +249,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Single(results.Errors);
         Assert.Equal("Field 'movies' - search arg cannot be empty or null", results.Errors[0].Message);
@@ -282,7 +282,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'movies' - You can't use 150 for the price", results.Errors[0].Message);
@@ -319,7 +319,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'movies' - You can't use 150 for the price", results.Errors[0].Message);
@@ -341,7 +341,7 @@ public class ValidationTests
         };
 
         var testContext = new ValidationTestsContext();
-        var results = schema.ExecuteRequest(gql, testContext, null, null);
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'movies' - Genre is required", results.Errors[0].Message);

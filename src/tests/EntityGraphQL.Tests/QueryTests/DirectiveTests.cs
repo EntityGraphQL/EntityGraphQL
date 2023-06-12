@@ -27,7 +27,7 @@ namespace EntityGraphQL.Tests
                     }
                 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
@@ -45,7 +45,7 @@ namespace EntityGraphQL.Tests
                     }
                 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
@@ -65,7 +65,7 @@ namespace EntityGraphQL.Tests
                     }
                 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
             Assert.False(result.Data.ContainsKey("person"));
         }
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
                     }
                 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
 
             Assert.False(result.Data.ContainsKey("people"));
@@ -104,7 +104,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "include", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
@@ -123,7 +123,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("id"));
@@ -141,7 +141,7 @@ namespace EntityGraphQL.Tests
     }
 }"
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
@@ -160,7 +160,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             dynamic person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
@@ -180,7 +180,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
             Assert.Empty(result.Data);
         }
@@ -202,7 +202,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
@@ -226,7 +226,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
@@ -253,7 +253,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "skip", true } }
             };
-            var result = schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.False(mutationCalled);
             Assert.Null(result.Errors);
             Assert.Empty(result.Data);
@@ -295,7 +295,7 @@ namespace EntityGraphQL.Tests
             };
             var data = new TestDataContext();
             data.People.Add(new Person { Id = 1, Birthday = new DateTime(2000, 1, 1) });
-            var result = schema.ExecuteRequest(query, data, null, null, null);
+            var result = schema.ExecuteRequestWithContext(query, data, null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));

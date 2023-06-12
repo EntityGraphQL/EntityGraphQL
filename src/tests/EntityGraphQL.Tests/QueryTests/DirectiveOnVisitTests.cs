@@ -23,7 +23,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
     [Fact]
@@ -40,7 +40,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
     [Fact]
@@ -55,7 +55,7 @@ public class DirectiveOnVisitTests
                 totalPeople @myDirective
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
 
@@ -76,7 +76,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
     [Fact]
@@ -96,7 +96,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
     [Fact]
@@ -114,7 +114,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
 
@@ -135,7 +135,7 @@ public class DirectiveOnVisitTests
                 id
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, directive.WasVisited);
     }
 
@@ -156,7 +156,7 @@ public class DirectiveOnVisitTests
                 id
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
     }
     [Fact]
@@ -207,7 +207,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
 
@@ -229,7 +229,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
 
@@ -251,7 +251,7 @@ public class DirectiveOnVisitTests
                 }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.MUTATION, directive.WasVisited);
     }
     [Fact]
@@ -266,7 +266,7 @@ public class DirectiveOnVisitTests
                 people { id }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.QUERY, directive.WasVisited);
     }
     [Fact]
@@ -283,7 +283,7 @@ public class DirectiveOnVisitTests
                 onMessage { id }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.SUBSCRIPTION, directive.WasVisited);
     }
     [Fact]
@@ -300,7 +300,7 @@ public class DirectiveOnVisitTests
                 onMessage @myDirective { id }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
     }
     [Fact]
@@ -315,7 +315,7 @@ public class DirectiveOnVisitTests
                 people { id }
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.VARIABLE_DEFINITION, directive.WasVisited);
     }
     [Fact]
@@ -336,7 +336,7 @@ public class DirectiveOnVisitTests
                 id
             }"
         };
-        schema.ExecuteRequest(query, new TestDataContext().FillWithTestData(), null, null, null);
+        schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
         Assert.Equal(1, directive.Calls);
     }

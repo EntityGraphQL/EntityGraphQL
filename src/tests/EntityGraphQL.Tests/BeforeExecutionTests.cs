@@ -30,13 +30,13 @@ public class BeforeExecutionTests
             Query = query,
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { });
         Assert.Null(result.Errors);
 
         dynamic project = result.Data["project"];
         Assert.Equal(5, Enumerable.Count(project.tasks));
 
-        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions
+        result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions
         {
             BeforeExecuting = (e, isFinal) => Expression.Constant(null)
         });

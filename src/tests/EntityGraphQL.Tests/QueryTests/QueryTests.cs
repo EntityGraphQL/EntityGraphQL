@@ -35,7 +35,7 @@ namespace EntityGraphQL.Tests
         public void CanQueryAsyncField()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            var result = schemaProvider.ExecuteRequest(new QueryRequest
+            var result = schemaProvider.ExecuteRequestWithContext(new QueryRequest
             {
                 Query = @"{
                     firstUserId
@@ -246,7 +246,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 
@@ -266,7 +266,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var result = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var result = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(result.Errors);
             Assert.NotNull(((dynamic)result.Data["projects"])[0].created);
             Assert.NotNull(((dynamic)result.Data["projects"])[0].updated);
@@ -304,7 +304,7 @@ query {
 
             var testSchema = new DeepContext();
 
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 
@@ -360,7 +360,7 @@ query {
                 Query = @"query deep { projects { sum }}",
             };
 
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
 
             gql = new QueryRequest
@@ -369,7 +369,7 @@ query {
             };
 
 
-            results = schema.ExecuteRequest(gql, testSchema, null, null);
+            results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
 
             gql = new QueryRequest
@@ -381,7 +381,7 @@ query {
             };
 
 
-            results = schema.ExecuteRequest(gql, testSchema, null, null);
+            results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
 
             Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
             Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
@@ -413,7 +413,7 @@ query {
                 Query = @"query deep { test }",
             };
 
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Equal(1, v);
 
         }
@@ -443,7 +443,7 @@ query {
                 Query = @"query deep { test }",
             };
 
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Equal(1, v);
         }
 
@@ -468,7 +468,7 @@ query {
                 Query = @"query deep { userIds }",
             };
 
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(((dynamic)results.Data)["userIds"]);
         }
 
@@ -493,7 +493,7 @@ query {
                 Query = @"query deep { userIds }",
             };
 
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(((dynamic)results.Data)["userIds"]);
             Assert.Empty(((dynamic)results.Data)["userIds"]);
         }

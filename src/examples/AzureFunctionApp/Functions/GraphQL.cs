@@ -56,7 +56,7 @@ namespace AzureFunctionApp.Functions
                 return new BadRequestObjectResult("No query or invalid query syntax in request body");
             }
 
-            var results = _schemaProvider.ExecuteRequest(query, _dbContext, _serviceProvider, principal, new ExecutionOptions() { });
+            var results = _schemaProvider.ExecuteRequestWithContext(query, _dbContext, _serviceProvider, principal, new ExecutionOptions() { });
 
             if (results != null && results.Errors != null && results.Errors.Any())
             {

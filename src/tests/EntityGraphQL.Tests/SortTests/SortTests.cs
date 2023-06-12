@@ -28,7 +28,7 @@ namespace EntityGraphQL.Tests
             {
                 LastName = "Zoo"
             });
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -55,7 +55,7 @@ namespace EntityGraphQL.Tests
             {
                 LastName = "Zoo"
             });
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -93,7 +93,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -129,7 +129,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -160,7 +160,7 @@ namespace EntityGraphQL.Tests
                 LastName = "Zoo",
                 Height = 1
             });
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(2, Enumerable.Count(people));
@@ -189,7 +189,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var context = new TestDataContext().FillWithTestData();
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
             Assert.Equal(1, Enumerable.Count(projects));
@@ -219,7 +219,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var context = new TestDataContext().FillWithTestData();
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
             Assert.Equal(1, Enumerable.Count(projects));
@@ -248,7 +248,7 @@ namespace EntityGraphQL.Tests
                 }
             };
             var context = new TestDataContext().FillWithTestData();
-            var tree = schema.ExecuteRequest(gql, context, null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic project = ((IDictionary<string, object>)tree.Data)["project"];
             Assert.Equal(4, Enumerable.Count(project.tasks));

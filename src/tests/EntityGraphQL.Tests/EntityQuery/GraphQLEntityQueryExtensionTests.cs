@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(2, Enumerable.Count(users));
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(2, Enumerable.Count(users));
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -106,7 +106,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(2, Enumerable.Count(users));
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Tests
             };
             var context = new TestDataContext().FillWithTestData();
             context.Users.Add(new User { Field2 = "99" });
-            var tree = schemaProvider.ExecuteRequest(gql, context, null, null);
+            var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(2, Enumerable.Count(users));
@@ -154,7 +154,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
             };
-            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -175,7 +175,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\" or field2 == \"3\"" } }
             };
-            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -196,7 +196,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 == \"2\" and field2 == \"2\"" } }
             };
-            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -217,7 +217,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "field2 != \"3\"" } }
             };
-            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
             Assert.Equal(1, Enumerable.Count(users));
@@ -240,7 +240,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "(id == 2) || (id == 4)" } }
             };
-            var tree = schema.ExecuteRequest(gql, new TestDataContext().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
             Assert.Equal(1, Enumerable.Count(projects));
@@ -261,7 +261,7 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "name == \"Luke\"" } }
             };
-            var tree = schema.ExecuteRequest(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
             dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
             Assert.Equal(1, Enumerable.Count(people));

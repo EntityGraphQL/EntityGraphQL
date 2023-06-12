@@ -24,7 +24,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             // error from execution that prevented a valid response, the data entry in the response should be null
             Assert.Null(results.Data);
@@ -44,7 +44,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - Field failed to execute", results.Errors[0].Message);
         }
@@ -62,7 +62,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.False(results.HasErrors());
             var result = System.Text.Json.JsonSerializer.Serialize(results);
             Assert.DoesNotContain("errors", result);
@@ -81,7 +81,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.True(results.HasErrors());
             Assert.NotNull(results.Errors);
             var error = results.Errors[0];
@@ -110,7 +110,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             // error from execution that prevented a valid response, the data entry in the response should be null
             Assert.Null(results.Data);
@@ -135,7 +135,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             // error from execution that prevented a valid response, the data entry in the response should be null
             Assert.Null(results.Data);
@@ -155,7 +155,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
         }
@@ -173,7 +173,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -192,7 +192,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -211,7 +211,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -230,7 +230,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -249,7 +249,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -268,7 +268,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
         }
@@ -287,7 +287,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - You should not see this message outside of Development", results.Errors[0].Message);
         }
@@ -304,7 +304,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Single(results.Errors);
             Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
@@ -323,7 +323,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext().FillWithTestData();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'people' - This error is allowed", results.Errors[0].Message);
         }

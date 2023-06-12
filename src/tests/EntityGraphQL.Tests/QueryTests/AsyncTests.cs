@@ -37,7 +37,7 @@ public class AsyncTests
         AgeService service = new();
         serviceCollection.AddSingleton(service);
 
-        var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
 
         Assert.NotNull(res.Data);
         Assert.Equal(2, ((dynamic)res.Data["people"])[0].age);

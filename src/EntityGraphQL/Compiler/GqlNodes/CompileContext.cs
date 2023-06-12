@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
@@ -10,14 +9,14 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class CompileContext
     {
-        private readonly HashSet<Type> servicesCollected = new();
+        private readonly List<ParameterExpression> servicesCollected = new();
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
         private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
-        public HashSet<Type> Services { get => servicesCollected; }
+        public List<ParameterExpression> Services { get => servicesCollected; }
         public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
 
-        public void AddServices(IEnumerable<Type> services)
+        public void AddServices(IEnumerable<ParameterExpression> services)
         {
             foreach (var service in services)
             {

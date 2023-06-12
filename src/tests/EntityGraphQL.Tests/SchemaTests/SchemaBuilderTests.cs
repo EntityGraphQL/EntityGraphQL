@@ -134,7 +134,7 @@ namespace EntityGraphQL.Tests
                 Projects = new List<Project>()
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).name);
@@ -165,7 +165,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("InheritedClass", ((dynamic)res.Data["__type"]).name);
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema2(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema2(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("Property", ((dynamic)res.Data["__type"]).name);
@@ -261,7 +261,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
@@ -286,7 +286,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);

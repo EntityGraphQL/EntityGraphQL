@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
@@ -29,7 +28,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables) where TContext : default
         {
             this.serviceProvider = serviceProvider;
             this.fragments = fragments;

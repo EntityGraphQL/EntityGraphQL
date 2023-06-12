@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
@@ -75,7 +75,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
@@ -120,7 +120,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.NotNull(res.Errors);
             Assert.Equal("Exactly one field must be specified for argument of type InputObject.", res.Errors[0].Message);
         }
@@ -141,7 +141,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.True((bool)res.Data["createOneOfInputType"]);
 

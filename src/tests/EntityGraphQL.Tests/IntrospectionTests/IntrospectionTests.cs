@@ -122,7 +122,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -160,7 +160,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -193,7 +193,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
@@ -227,7 +227,7 @@ fragment TypeRef on __Type {
                 Projects = new List<Project>()
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
             var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
             Assert.True(Enumerable.Any(fields));
