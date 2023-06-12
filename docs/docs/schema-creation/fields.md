@@ -153,7 +153,7 @@ One solution is [Microsoft.EntityFrameworkCore.Proxies](https://www.nuget.org/pa
 
 #### EntityFrameworkCore.Projectables Library
 
-Another solution is [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) (Also [Expressionify](https://github.com/ClaveConsulting/Expressionify)) which uses source generators to generate an EF compatible expression.
+Another solution is [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) (Or [Expressionify](https://github.com/ClaveConsulting/Expressionify)) which uses source generators to generate an EF compatible expression.
 
 ```cs
 // configure projectables
@@ -186,28 +186,6 @@ public uint[] AgesOfActorsAtRelease()
     return ages.ToArray();
 }
 ```
-
-#### Use EntityGraphQL Services
-
-If your method includes a service as a parameter this will be handled by EntityGraphQL and executed after fetching data from EF. See [Entity Framework](../library-compatibility/entity-framework) section for more information. Your `DbContext` is also a service.
-
-```cs
-[GraphQLField]
-public uint[] AgesOfActorsAtRelease(DemoContext ctx)
-{
-    var actors = ctx.Actors
-        .Include(a => a.Person)
-        .Where(a => a.MoveId == Id);
-    var ages = new List<uint>();
-    foreach (var actor in actors)
-    {
-        ages.Add((uint)((Released - actor.Person.Dob).Days / 365));
-    }
-    return ages.ToArray();
-}
-```
-
-EntityGraphQL will be extract this from the first execution when `ExecutionOptions.ExecuteServiceFieldsSeparately = true` (default) and be executed with the fetched data and merged into the result. See [Entity Framework](../library-compatibility/entity-framework) section for more information.
 
 ## Helper methods
 

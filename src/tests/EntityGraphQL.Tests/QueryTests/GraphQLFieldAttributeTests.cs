@@ -507,6 +507,43 @@ public class GraphQLFieldAttributeTests
         Assert.Equal(1, ((dynamic)res.Data["projects"])[0].searchTasks.Count);
         Assert.Equal("abba", ((dynamic)res.Data["projects"])[0].searchTasks[0].name);
     }
+
+    [Fact(Skip = "Not implemented yet - See explanation in other-data-sources.md")]
+    public void TestGraphQLFieldAttributeWithServiceNotRoot()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<ContextFieldWithMethod>();
+
+        Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("fieldWithService", null));
+
+        var sdl = schemaProvider.ToGraphQLSchemaString();
+
+        Assert.Contains("fieldWithService(value: Int!): Int!", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query = @"query {
+                fields {
+                    id
+                    fieldWithService(value: 88)
+                }
+            }"
+        };
+
+        var context = new ContextFieldWithMethod
+        {
+            Fields = new List<TypeWithMethod>
+                {
+                    new TypeWithMethod()
+                }
+        };
+        var serviceCollection = new ServiceCollection();
+        var srv = new ConfigService();
+        serviceCollection.AddSingleton(srv);
+
+        var res = schemaProvider.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(88, ((dynamic)res.Data["fields"])[0].fieldWithService);
+    }
 }
 
 
@@ -576,6 +613,8 @@ public class MyArgs
 
 public class TypeWithMethod
 {
+    public int Id { get; set; }
+
     [GraphQLField]
     public int MethodField()
     {
@@ -616,5 +655,12 @@ public class TypeWithMethod
     public int UnknownName()
     {
         return 33;
+    }
+
+    [GraphQLField]
+    public int FieldWithService(ConfigService srv, int value)
+    {
+        Assert.NotNull(srv);
+        return value;
     }
 }
