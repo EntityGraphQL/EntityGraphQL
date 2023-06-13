@@ -96,9 +96,10 @@ namespace EntityGraphQL.Compiler
             // build a .Select(...) - returning a IEnumerable<>
             var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields);
 
-            // if selecting final graph make sure lists are evaluated
-            if (!isRoot && !withoutServiceFields && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-                resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
+            // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
+            // root level is handled in ExecutableGraphQLStatement with a null check
+            if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+                resultExpression = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
 
             return resultExpression;
         }

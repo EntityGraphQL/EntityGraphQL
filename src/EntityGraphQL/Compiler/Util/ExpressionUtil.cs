@@ -436,7 +436,7 @@ namespace EntityGraphQL.Compiler.Util
             if (!fieldExpressions.Any())
                 return baseExp;
 
-            //fallback to parent return type for mutations
+            // fallback to parent return type for mutations
             var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
             if (gqlType == GqlTypes.Union || gqlType == GqlTypes.Interface)
             {
@@ -667,7 +667,7 @@ namespace EntityGraphQL.Compiler.Util
                     paramsForFieldExpressions.Add(nullWrapParam);
                 args.Add(nullCheck);
             }
-            callOnList = MakeCallOnEnumerable("ToList", new[] { callOnList.Type.GetEnumerableOrArrayType()! }, callOnList);
+            callOnList = MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { callOnList.Type.GetEnumerableOrArrayType()! }, callOnList);
             var result = Expression.Lambda(callOnList, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
             return result;
         }

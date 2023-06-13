@@ -82,7 +82,7 @@ namespace EntityGraphQL.Compiler
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
             if (isRoot)
-                result = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { genericType }, result);
+                result = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { genericType }, result);
 
             // rebuild the .First/FirstOrDefault/etc
             Expression exp;

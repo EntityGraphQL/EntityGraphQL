@@ -48,7 +48,7 @@ namespace EntityGraphQL.Extensions
         /// <param name="source"></param>
         /// <param name="returnEmptyList"></param>
         /// <returns></returns>
-        public static IEnumerable<TSource>? ToListWithNullCheck<TSource>(this IEnumerable<TSource> source, bool returnEmptyList)
+        public static List<TSource>? ToListWithNullCheck<TSource>(this IEnumerable<TSource> source, bool returnEmptyList)
         {
             if (source == null)
                 return returnEmptyList ? new List<TSource>() : null;
