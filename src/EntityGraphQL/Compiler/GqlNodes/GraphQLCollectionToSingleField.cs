@@ -41,6 +41,8 @@ namespace EntityGraphQL.Compiler
             : base(schema, null, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
             collectionSelectionNode = collectionNode;
+            // do not call tolist as we end up calling First()/etc
+            collectionSelectionNode.AllowToList = false;
             this.objectProjectionNode = objectProjectionNode;
             this.combineExpression = combineExpression;
         }

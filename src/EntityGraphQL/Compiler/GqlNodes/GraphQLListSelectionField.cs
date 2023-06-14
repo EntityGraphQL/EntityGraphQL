@@ -19,6 +19,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
+        public bool AllowToList { get; internal set; } = true;
         public Expression ListExpression { get; internal set; }
 
         /// <summary>
@@ -98,7 +99,7 @@ namespace EntityGraphQL.Compiler
 
             // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
             // root level is handled in ExecutableGraphQLStatement with a null check
-            if (!isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+            if (AllowToList && !isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
                 resultExpression = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
 
             return resultExpression;

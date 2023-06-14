@@ -202,7 +202,7 @@ namespace EntityGraphQL.Compiler
             return data;
         }
 
-        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node, bool isFinal)
+        private static async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node, bool isFinal)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)

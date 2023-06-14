@@ -13,7 +13,7 @@ namespace EntityGraphQL.Tests.IQueryableTests
     {
 
         [Fact]
-        public void TestServiceInPaging()
+        public void TestServicesInOffsetPaging()
         {
             var schema = SchemaBuilder.FromObject<TestDbContext>();
             schema.UpdateQuery(queryType =>

@@ -9,7 +9,6 @@ namespace EntityGraphQL.Tests.IQueryableTests
 {
     public class ListToSingleTests
     {
-
         [Fact]
         public void TestListToSingle()
         {
@@ -34,12 +33,11 @@ namespace EntityGraphQL.Tests.IQueryableTests
 
             serviceCollection.AddDbContext<TestDbContext>(opt => opt.UseInMemoryDatabase("TestListToSingle"));
             var serviceProvider = serviceCollection.BuildServiceProvider();
-            var scope = serviceProvider.CreateScope();
-            var data = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+            var data = serviceProvider.GetRequiredService<TestDbContext>();
             data.Movies.AddRange(
                 new Movie { Id = 10, Name = "A New Hope", Actors = new List<Actor> { new Actor { Id = 1, Name = "Alec Guinness" }, new Actor { Id = 2, Name = "Mark Hamill" } } });
             data.SaveChanges();
-            var result = schema.ExecuteRequest(gql, scope.ServiceProvider, null);
+            var result = schema.ExecuteRequest(gql, serviceProvider, null);
             Assert.Null(result.Errors);
 
             dynamic movies = result.Data["movies"];
