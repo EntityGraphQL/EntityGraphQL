@@ -85,49 +85,24 @@ namespace EntityGraphQL.Compiler
             if (HasServices)
                 compileContext.AddServices(Field!.Services);
 
+            Expression? resultExpression = null;
             if (!withoutServiceFields)
             {
                 bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
                 if (needsServiceWrap)
                 {
-                    var wrappedExpression = WrapWithNullCheck(compileContext, nextFieldContext!, listContext, selectionFields, serviceProvider, schemaContext, replacer);
-                    return wrappedExpression;
+                    resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, true);
                 }
             }
-            // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields);
+
+            resultExpression ??= ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, false);
 
             // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
             // root level is handled in ExecutableGraphQLStatement with a null check
             if (AllowToList && !isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-                resultExpression = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
+                resultExpression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression, Expression.Constant(Field!.ReturnType.TypeNotNullable));
 
             return resultExpression;
-        }
-
-        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<IFieldKey, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
-        {
-            // null check on listContext which may be a call to a service that we do not want to call twice
-            var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
-            var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
-
-            var updatedListContext = listContext;
-            if (compileContext.Services.Any() == true)
-            {
-                foreach (var selectExpression in selectExpressions)
-                {
-                    selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
-                }
-            }
-
-            // replace with null_wrap
-            // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
-            var nullWrapParam = Expression.Parameter(updatedListContext.Type, "nullwrap");
-
-            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(this, selectParam, nullWrapParam, selectExpressions);
-
-            updatedListContext = ExpressionUtil.WrapListFieldForNullCheck(updatedListContext, callOnList, fieldParams, fieldParamValues, nullWrapParam, schemaContext);
-            return updatedListContext;
         }
     }
 }

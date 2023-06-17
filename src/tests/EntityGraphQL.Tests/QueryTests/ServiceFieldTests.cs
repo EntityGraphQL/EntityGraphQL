@@ -1686,12 +1686,12 @@ namespace EntityGraphQL.Tests
             var context = new TestDataContext
             {
                 Projects = new List<Project>
-                        {
-                            new Project
-                            {
-                                Id = 0,
-                            }
-                        },
+                {
+                    new Project
+                    {
+                        Id = 0,
+                    }
+                },
             };
 
             var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);

@@ -153,7 +153,7 @@ namespace EntityGraphQL.Schema
             {
                 if (fieldContext != null)
                     result = replacer.Replace(result, FieldParam, fieldContext);
-                else if (parentNode?.NextFieldContext != null)
+                else if (parentNode?.NextFieldContext != null && parentNode.NextFieldContext.Type != FieldParam.Type)
                     result = replacer.Replace(result, FieldParam, parentNode.NextFieldContext);
             }
             // need to make sure the schema context param is correct

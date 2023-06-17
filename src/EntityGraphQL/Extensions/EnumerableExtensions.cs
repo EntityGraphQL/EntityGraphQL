@@ -54,5 +54,12 @@ namespace EntityGraphQL.Extensions
                 return returnEmptyList ? new List<TSource>() : null;
             return source.ToList();
         }
+
+        public static IEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector)
+        {
+            if (source == null)
+                return null;
+            return source.Select(selector);
+        }
     }
 }

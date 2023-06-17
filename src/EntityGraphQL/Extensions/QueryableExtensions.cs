@@ -40,5 +40,12 @@ namespace EntityGraphQL.Extensions
                 return Queryable.Where(source, filter.Query!);
             return source;
         }
+
+        public static IQueryable<TResult>? SelectWithNullCheck<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector)
+        {
+            if (source == null)
+                return null;
+            return source.Select(selector);
+        }
     }
 }

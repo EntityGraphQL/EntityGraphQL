@@ -431,7 +431,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions)
+        public static Expression MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck)
         {
             if (!fieldExpressions.Any())
                 return baseExp;
@@ -488,8 +488,12 @@ namespace EntityGraphQL.Compiler.Util
                 var selector = Expression.Lambda(previous!, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
 
-                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
-                      MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
+                Expression call;
+                if (nullCheck)
+                    call = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.SelectWithNullCheck), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
+                else
+                    call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
+                        MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
                 return call;
             }
             else
@@ -500,8 +504,12 @@ namespace EntityGraphQL.Compiler.Util
                     return baseExp;
                 var selector = Expression.Lambda(memberInit, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
-                var call = isQueryable ? MakeCallOnQueryable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
-                    MakeCallOnEnumerable("Select", new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+                Expression call;
+                if (nullCheck)
+                    call = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), isQueryable ? nameof(QueryableExtensions.SelectWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+                else
+                    call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
+                        MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
                 return call;
             }
         }
@@ -630,45 +638,6 @@ namespace EntityGraphQL.Compiler.Util
                 args.Add(nullCheck);
             }
             var result = Expression.Lambda(newExp, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
-            return result;
-        }
-
-        internal static Expression WrapListFieldForNullCheck(Expression nullCheckExpression, Expression callOnList, IEnumerable<ParameterExpression> paramsForFieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression nullWrapParam, Expression schemaContext)
-        {
-            var arguments = new Expression[] {
-                nullCheckExpression,
-                Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
-                Expression.Constant(callOnList),
-                Expression.Constant(paramsForFieldExpressions.ToList()),
-                Expression.Constant(fieldSelectParamValues),
-                schemaContext == null ? Expression.Constant(null, typeof(ParameterExpression)) : Expression.Constant(schemaContext),
-                schemaContext ?? Expression.Constant(null),
-            };
-            var call = Expression.Call(typeof(ExpressionUtil), nameof(WrapListFieldForNullCheckExec), null, arguments);
-            return call;
-        }
-
-        public static object? WrapListFieldForNullCheckExec(object? nullCheck, ParameterExpression nullWrapParam, Expression callOnList, List<ParameterExpression> paramsForFieldExpressions, IEnumerable<object?> fieldSelectParamValues, ParameterExpression schemaContextParam, object schemaContextValue)
-        {
-            if (nullCheck == null)
-                return null;
-
-            var args = new List<object?>();
-            args.AddRange(fieldSelectParamValues);
-            if (schemaContextParam != null)
-            {
-                args.Add(schemaContextValue);
-                if (!paramsForFieldExpressions.Contains(schemaContextParam))
-                    paramsForFieldExpressions.Add(schemaContextParam);
-            }
-            if (nullWrapParam != null)
-            {
-                if (!paramsForFieldExpressions.Contains(nullWrapParam))
-                    paramsForFieldExpressions.Add(nullWrapParam);
-                args.Add(nullCheck);
-            }
-            callOnList = MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { callOnList.Type.GetEnumerableOrArrayType()! }, callOnList);
-            var result = Expression.Lambda(callOnList, paramsForFieldExpressions).Compile().DynamicInvoke(args.ToArray());
             return result;
         }
 
