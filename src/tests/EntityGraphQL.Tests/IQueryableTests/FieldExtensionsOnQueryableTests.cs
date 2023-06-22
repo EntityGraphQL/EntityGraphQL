@@ -45,9 +45,10 @@ namespace EntityGraphQL.Tests.IQueryableTests
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<ActorService>();
 
-            serviceCollection.AddDbContext<TestDbContext>(opt => opt.UseInMemoryDatabase("TestServiceInPaging"));
+            using var factory = new TestDbContextFactory();
+            var data = factory.CreateContext();
+            serviceCollection.AddSingleton(data);
             var serviceProvider = serviceCollection.BuildServiceProvider();
-            var data = serviceProvider.GetRequiredService<TestDbContext>();
             data.Movies.AddRange(
                 new Movie { Id = 1, Name = "A New Hope" },
                 new Movie { Id = 2, Name = "The Empire Strike Back" },

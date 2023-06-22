@@ -1,3 +1,9 @@
+# 5.0.0-beta2
+
+## Fixes
+
+- Fix naming of fields extracted from service calls when those field use convert
+
 # 5.0.0-beta1
 
 ## Breaking Changes

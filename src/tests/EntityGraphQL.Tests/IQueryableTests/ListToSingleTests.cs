@@ -3,7 +3,6 @@ using EntityGraphQL.Schema;
 using Xunit;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 
 namespace EntityGraphQL.Tests.IQueryableTests
 {
@@ -30,10 +29,10 @@ namespace EntityGraphQL.Tests.IQueryableTests
 
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<ActorService>();
-
-            serviceCollection.AddDbContext<TestDbContext>(opt => opt.UseInMemoryDatabase("TestListToSingle"));
+            using var factory = new TestDbContextFactory();
+            var data = factory.CreateContext();
+            serviceCollection.AddSingleton(data);
             var serviceProvider = serviceCollection.BuildServiceProvider();
-            var data = serviceProvider.GetRequiredService<TestDbContext>();
             data.Movies.AddRange(
                 new Movie { Id = 10, Name = "A New Hope", Actors = new List<Actor> { new Actor { Id = 1, Name = "Alec Guinness" }, new Actor { Id = 2, Name = "Mark Hamill" } } });
             data.SaveChanges();

@@ -13,7 +13,7 @@ public class GraphQLExtractedField : BaseGraphQLField
     public IEnumerable<Expression> FieldExpressions { get; }
 
     public GraphQLExtractedField(ISchemaProvider schema, string name, IEnumerable<Expression> fieldExpressions, ParameterExpression originalParam)
-    : base(schema, null, name, null, null, null, null)
+    : base(schema, null, name.Replace(" ", "").Replace(",", ""), null, null, null, null)
     {
         this.originalParam = originalParam;
         this.FieldExpressions = fieldExpressions;
