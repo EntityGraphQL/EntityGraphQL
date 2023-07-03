@@ -147,6 +147,18 @@ public List<AllowedException> AllowedExceptions { get; set; } = new List<Allowed
    ```
 
    - `.IgnoreTypes` - List of type names to ignore when `AutoCreateNewComplexTypes = true`. Default is empty.
+   - `.OnFieldCreated` - callback for each field that is created by the `SchemaBuilder`. Example usage is to apply something to all fields or all fields matching some criteria e.g. 
+
+   ```cs
+   // Add Sort to all list fields
+   OnFieldCreated = (field) =>
+    {
+        if (field.ReturnType.IsList && field.ReturnType.SchemaType.GqlType == GqlTypes.QueryObject)
+        {
+            field.UseSort();
+        }
+    }
+   ```
 
 ### Adding all fields on a type
 

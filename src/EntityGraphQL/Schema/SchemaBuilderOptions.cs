@@ -4,6 +4,8 @@ using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
+
+    public delegate void OnFieldCreated(IField field);
     /// <summary>
     /// Options used by SchemaBuilder when reflection the object graph to auto create schema types & fields
     /// </summary>
@@ -63,6 +65,8 @@ namespace EntityGraphQL.Schema
         /// If false only methodds with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.
         /// </summary>
         public bool AddNonAttributedMethodsInControllers { get; set; }
+
+        public OnFieldCreated? OnFieldCreated { get; set; }
     }
 
     /// <summary>

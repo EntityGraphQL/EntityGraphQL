@@ -17,6 +17,8 @@ schema.ReplaceField("people",
     );
 ```
 
+- `SchemaBuilderOptions` now has a `OnFieldCreated` callback to make changes to fields as `SchemaBuilder` is building the schema.
+
 ## Fixes
 
 - Fix naming of fields extracted from service calls when those field use convert

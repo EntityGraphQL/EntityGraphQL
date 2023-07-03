@@ -1,16 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Collections.Generic;
 using System.Reflection;
-using Humanizer;
-using EntityGraphQL.Compiler.Util;
-using System.ComponentModel;
-using Microsoft.Extensions.Logging;
-using EntityGraphQL.Extensions;
-using Nullability;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
+using Humanizer;
+using Microsoft.Extensions.Logging;
+using Nullability;
 
 namespace EntityGraphQL.Schema
 {
@@ -100,7 +100,7 @@ namespace EntityGraphQL.Schema
             return schema;
         }
 
-        private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp)
+        private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp, SchemaBuilderOptions options)
         {
             if (fieldProp.ResolveExpression == null)
                 throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for AutoCreateIdArguments to work.");
@@ -142,7 +142,9 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it (or it returns the same name) just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            return new Field(schema, schemaType, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
+            var f = new Field(schema, schemaType, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
+            options.OnFieldCreated?.Invoke(f);
+            return f;
         }
 
         public static List<BaseField> GetFieldsFromObject(Type type, ISchemaType fromType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
@@ -274,6 +276,7 @@ namespace EntityGraphQL.Schema
             var nullabilityInfo = method.GetNullabilityInfo();
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
+            options.OnFieldCreated?.Invoke(field);
 
             if (fieldServices.Count > 0)
             {
@@ -325,11 +328,12 @@ namespace EntityGraphQL.Schema
             // otherwise build the type info
             var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
+            options.OnFieldCreated?.Invoke(field);
 
             if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
             {
                 // add non-pural field with argument of ID
-                var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field);
+                var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field, options);
                 if (idArgField != null)
                 {
                     yield return idArgField;
@@ -476,7 +480,7 @@ namespace EntityGraphQL.Schema
         {
             Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
                                                 ? () => schema.Type(returnSchemaType)
-                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() ? returnType.GetNonNullableOrEnumerableType() : returnType, null);
+                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType, null);
             return new GqlTypeInfo(typeGetter, returnType);
         }
 
