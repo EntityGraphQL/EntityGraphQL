@@ -153,7 +153,7 @@ public List<AllowedException> AllowedExceptions { get; set; } = new List<Allowed
    // Add Sort to all list fields
    OnFieldCreated = (field) =>
     {
-        if (field.ReturnType.IsList && field.ReturnType.SchemaType.GqlType == GqlTypes.QueryObject)
+        if (field.ReturnType.IsList && field.ReturnType.SchemaType.GqlType == GqlTypes.QueryObject && !field.FromType.IsInterface)
         {
             field.UseSort();
         }
