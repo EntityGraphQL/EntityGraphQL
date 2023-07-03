@@ -79,10 +79,11 @@ namespace EntityGraphQL.Schema
         /// Add a field extension to this field 
         /// </summary>
         /// <param name="extension"></param>
-        public void AddExtension(IFieldExtension extension)
+        public IField AddExtension(IFieldExtension extension)
         {
             Extensions.Add(extension);
             extension.Configure(Schema, this);
+            return this;
         }
 
         public ArgType GetArgumentType(string argName)

@@ -175,7 +175,7 @@ namespace EntityGraphQL.Compiler.Util
                         newArgs.Add(newArg);
                         if (newArg.NodeType == ExpressionType.Lambda && oldTypeArgs.Contains(((LambdaExpression)newArg).ReturnType))
                             newTypeArgs.Add(((LambdaExpression)newArg).ReturnType);
-                        else
+                        else if (oldTypeArgs.Contains(oldArg.Type))
                             newTypeArgs.Add(newArg.Type);
                     }
                     if (oldTypeArgs.Length != newTypeArgs.Count)

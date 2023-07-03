@@ -47,12 +47,13 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
+            schema.AddType<Pagination<Project>>("ProjectPagination", "Desc").AddAllFields();
 
             schema.Query().ReplaceField("projects",
                 new PagerArgs { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((db, p, pager) => pager.PageProjects(db.Projects, p));
+                .ResolveWithService<EntityPager>((db, p, pager) => pager.PageProjects(db.Projects, p))
+                .Returns("ProjectPagination");
 
             var gql = new QueryRequest
             {

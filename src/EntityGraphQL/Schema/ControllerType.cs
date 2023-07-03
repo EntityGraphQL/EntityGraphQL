@@ -94,7 +94,7 @@ public abstract class ControllerType
         if (classLevelRequiredAuth != null)
             requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
         var actualReturnType = GetTypeFromMethodReturn(method.ReturnType, isAsync);
-        var nonListReturnType = actualReturnType.GetNonNullableOrEnumerableType();
+        var nonListReturnType = actualReturnType.IsEnumerableOrArray() ? actualReturnType.GetNonNullableOrEnumerableType() : actualReturnType;
         if (!SchemaType.Schema.HasType(nonListReturnType) && options.AutoCreateNewComplexTypes)
         {
             SchemaBuilder.CacheType(nonListReturnType, SchemaType.Schema, options, false);

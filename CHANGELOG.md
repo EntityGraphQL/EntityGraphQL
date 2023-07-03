@@ -1,5 +1,22 @@
 # 5.0.0-beta2
 
+## Breaking Changes
+- Generated schema type name for field sort inputs now include the name of the schema type the field is on to avoid conflicts
+
+## Changes
+- `IField.AddExtension` now returns the `IField`
+- `UseSort()` field extension now can take a list of default sort fields e.g.
+
+```cs
+schema.ReplaceField("people",
+    ctx => ctx.People,
+    "Return a list of people. Optional sorted")
+    .UseSort(
+        new Sort<Person>((person) => person.Height, SortDirection.ASC),
+        new Sort<Person>((person) => person.LastName, SortDirection.ASC)
+    );
+```
+
 ## Fixes
 
 - Fix naming of fields extracted from service calls when those field use convert

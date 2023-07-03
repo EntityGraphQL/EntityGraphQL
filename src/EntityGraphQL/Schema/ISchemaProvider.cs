@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
         ISchemaType AddType(Type contextType, string name, string? description);
-        void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
+        SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc);
         SchemaType<TBaseType> AddType<TBaseType>(string description);
         ISchemaType AddType(ISchemaType schemaType);
         void AddTypeMapping<TFromType>(string gqlType);

@@ -102,19 +102,34 @@ schema.ReplaceField("people",
     .UseSort((Person person) => person.Dob, SortDirectionEnum.DESC);
 ```
 
-## Choosing the sort fields
-
-If you use the `UseSort()` method (not the attribute) you can pass in an expression which tells the extension which fields to set in the input type. Make sure you use the correct type for the fields collection.
+### Default with multiple field
 
 ```cs
 schema.ReplaceField("people",
     ctx => ctx.People,
     "Return a list of people. Optional sorted")
+    .UseSort(
+        new Sort<Person>((person) => person.Height, SortDirection.ASC),
+        new Sort<Person>((person) => person.LastName, SortDirection.ASC)
+    );
+```
+
+## Choosing the sort fields
+
+If you use the `UseSort()` method (not the attribute) you can pass in an expression which tells the extension which fields to set in the input type. Make sure you use the correct type for the fields collection. You can still set the default sort as well.
+
+```cs
+schema.ReplaceField("people",
+    ctx => ctx.People,
+    "Return a list of people. Optional sorted")
+    // available sort fields
     .UseSort((Person person) => new
     {
         person.Dob,
         person.LastName
-    });
+    },
+    // Default sort
+    (Person person) => person.Dob, SortDirectionEnum.DESC);
 ```
 
 This will result in only 2 options for sorting.

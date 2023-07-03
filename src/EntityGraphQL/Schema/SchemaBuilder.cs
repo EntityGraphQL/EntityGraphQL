@@ -369,7 +369,7 @@ namespace EntityGraphQL.Schema
             return baseReturnType;
         }
 
-        private static (string name, string description) GetNameAndDescription(MemberInfo prop, ISchemaProvider schema)
+        internal static (string name, string description) GetNameAndDescription(MemberInfo prop, ISchemaProvider schema)
         {
             var name = schema.SchemaFieldNamer(prop.Name);
             var description = string.Empty;
@@ -474,7 +474,10 @@ namespace EntityGraphQL.Schema
 
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
         {
-            return new GqlTypeInfo(!string.IsNullOrEmpty(returnSchemaType) ? () => schema.Type(returnSchemaType) : () => schema.GetSchemaType(returnType.GetNonNullableOrEnumerableType(), null), returnType);
+            Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
+                                                ? () => schema.Type(returnSchemaType)
+                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() ? returnType.GetNonNullableOrEnumerableType() : returnType, null);
+            return new GqlTypeInfo(typeGetter, returnType);
         }
 
         public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgmentTypes)

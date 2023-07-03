@@ -82,7 +82,7 @@ namespace EntityGraphQL.Schema
 
         IField UpdateExpression(Expression expression);
 
-        void AddExtension(IFieldExtension extension);
+        IField AddExtension(IFieldExtension extension);
         /// <summary>
         /// Add new arguments to the field. Properties on the args object will be merged with any existing arguments on the field.
         /// </summary>

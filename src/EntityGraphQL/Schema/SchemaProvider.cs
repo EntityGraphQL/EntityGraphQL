@@ -333,13 +333,13 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a new type into the schema with TBaseType as its context.
+        /// Add a new Object type into the schema with TBaseType as its context.
         /// </summary>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
         /// <typeparam name="TBaseType"></typeparam>
         /// <returns>The added type for further changes via chaining</returns>
-        public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description = null)
+        public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
         {
             var gqlType = typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypes.Interface : typeof(TBaseType).IsEnum ? GqlTypes.Enum : GqlTypes.QueryObject;
             var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
@@ -348,7 +348,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a new type into the schema with contextType as its context
+        /// Add a new Object type into the schema with contextType as its context
         /// </summary>
         /// <param name="contextType"></param>
         /// <param name="name">Name of the type</param>
@@ -363,19 +363,21 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a new type into the schema with TBaseType as its context
+        /// Add a new Object type into the schema with TBaseType as its context
         /// </summary>
         /// <typeparam name="TBaseType"></typeparam>
         /// <param name="name">Name of the type</param>
         /// <param name="description">description of the type</param>
         /// <param name="updateFunc">Callback called with the schema type where you can further update the type</param>
-        public void AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc)
+        public SchemaType<TBaseType> AddType<TBaseType>(string name, string description, Action<SchemaType<TBaseType>> updateFunc)
         {
-            updateFunc(AddType<TBaseType>(name, description));
+            var type = AddType<TBaseType>(name, description);
+            updateFunc(type);
+            return type;
         }
 
         /// <summary>
-        /// Adds a new type into the schema. The name defaults to the TBaseType name
+        /// Adds a new Object type into the schema. The name defaults to the TBaseType name
         /// </summary>
         /// <param name="description">description of the type</param>
         /// <typeparam name="TBaseType"></typeparam>
@@ -424,7 +426,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a GraphQL Input type to the schema. Input types are objects used in arguments of fields or mutations
+        /// Add a GraphQL Input Object type to the schema. Input types are objects used in arguments of fields or mutations
         /// </summary>
         /// <param name="name">Name of the type. Used as passed. Case sensitive</param>
         /// <param name="description">Description of the input type</param>
@@ -436,7 +438,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a GraphQL Input type to the schema. Input types are objects used in arguments of fields or mutations
+        /// Add a GraphQL Input Object type to the schema. Input types are objects used in arguments of fields or mutations
         /// </summary>
         /// <param name="name">Name of the type. Used as passed. Case sensitive</param>
         /// <param name="description">Description of the input type</param>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -16,7 +17,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [PeopleSortInput]) {
+                Query = @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = new QueryVariables {
@@ -36,13 +37,13 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Zoo", person.lastName);
         }
         [Fact]
-        public void TestAttribute()
+        public void TestSortAttribute()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext2>();
 
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [PeopleSortInput]) {
+                Query = @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = new QueryVariables{
@@ -80,7 +81,7 @@ namespace EntityGraphQL.Tests
                 });
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [PeopleSortInput]) {
+                Query = @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
                 Variables = new QueryVariables{
@@ -99,7 +100,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, Enumerable.Count(people));
             var person = Enumerable.First(people);
             Assert.Equal("Zoo", person.lastName);
-            var schemaType = schema.Type("PeopleSortInput");
+            var schemaType = schema.Type("QueryPeopleSortInput");
             var fields = schemaType.GetFields().ToList();
             Assert.Equal(3, fields.Count);
             Assert.Equal("__typename", fields[0].Name);
@@ -135,7 +136,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, Enumerable.Count(people));
             var person = Enumerable.First(people);
             Assert.Equal("Zoo", person.lastName);
-            var schemaType = schema.Type("PeopleSortInput");
+            var schemaType = schema.Type("QueryPeopleSortInput");
             var fields = schemaType.GetFields().ToList();
             Assert.Equal(3, fields.Count);
             Assert.Equal("__typename", fields[0].Name);
@@ -166,11 +167,50 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, Enumerable.Count(people));
             var person = Enumerable.First(people);
             Assert.Equal("Zoo", person.lastName);
-            var schemaType = schema.Type("PeopleSortInput");
+            var schemaType = schema.Type("QueryPeopleSortInput");
             var fields = schemaType.GetFields().ToList();
             Assert.Equal(13, fields.Count);
-            Assert.Contains("people(sort: [PeopleSortInput!] = [{ height: ASC }]): [Person!]", schema.ToGraphQLSchemaString());
+            Assert.Contains("people(sort: [QueryPeopleSortInput!] = [{ height: ASC }]): [Person!]", schema.ToGraphQLSchemaString());
         }
+
+        [Fact]
+        public void SupportUseSortDefaultMulti()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Type<TestDataContext>().GetField("people", null)
+                .UseSort(
+                    new Sort<Person>((person) => person.Height, SortDirection.ASC),
+                    new Sort<Person>((person) => person.LastName, SortDirection.ASC)
+                );
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    people { lastName }
+                }",
+            };
+            var context = new TestDataContext().FillWithTestData();
+            context.People.Add(new Person
+            {
+                LastName = "Zoo",
+                Height = 10
+            });
+            context.People.Add(new Person
+            {
+                LastName = "Abe",
+                Height = 10
+            });
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(3, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Abe", person.lastName);
+            var schemaType = schema.Type("QueryPeopleSortInput");
+            var fields = schemaType.GetFields().ToList();
+            Assert.Equal(13, fields.Count);
+            Assert.Contains("people(sort: [QueryPeopleSortInput!] = [{ height: ASC }, { lastName: ASC }]): [Person!]", schema.ToGraphQLSchemaString());
+        }
+
         [Fact]
         public void SupportUseSortOnNonRoot()
         {
@@ -179,7 +219,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [TasksSortInput]) {
+                Query = @"query($sort: [ProjectTasksSortInput]) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
@@ -208,7 +248,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [TasksSortInput]) {
+                Query = @"query($sort: [ProjectTasksSortInput]) {
                     projects {
                         tasks(sort: $sort) { id }
                     }
@@ -238,7 +278,7 @@ namespace EntityGraphQL.Tests
                 .UseSort();
             var gql = new QueryRequest
             {
-                Query = @"query($sort: [TasksSortInput]) {
+                Query = @"query($sort: [ProjectTasksSortInput]) {
                     project(id: 55) {
                         tasks(sort: $sort) { id }
                     }

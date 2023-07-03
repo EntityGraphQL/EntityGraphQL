@@ -163,7 +163,7 @@ namespace EntityGraphQL.Compiler
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
-            var schemaType = schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
+            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
@@ -269,7 +269,7 @@ namespace EntityGraphQL.Compiler
             // other levels are object selection. e.g. from the top level people query I am selecting all their children { field1, etc. }
             // Can we turn a list.First().Blah into and list.Select(i => new {i.Blah}).First()
             var listExp = ExpressionUtil.FindEnumerable(fieldExp);
-            if (listExp.Item1 != null)
+            if (listExp.Item1 != null && listExp.Item2 != null)
             {
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
