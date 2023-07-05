@@ -85,6 +85,54 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             Assert.Equal("Boba", result.ElementAt(1).Name);
         }
 
+        [Fact]
+        public void CompilesStringContains()
+        {
+            var exp = EntityQueryCompiler.Compile(@"people.where(name.contains(""ob""))", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            Assert.Equal(3, result.Count());
+            Assert.Equal("Bob", result.ElementAt(0).Name);
+            Assert.Equal("Boba", result.ElementAt(1).Name);
+            Assert.Equal("Robin", result.ElementAt(2).Name);
+        }
+
+        [Fact]
+        public void CompilesStringStartsWith()
+        {
+            var exp = EntityQueryCompiler.Compile(@"people.where(name.startsWith(""Bo""))", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            Assert.Equal(2, result.Count());
+            Assert.Equal("Bob", result.ElementAt(0).Name);
+            Assert.Equal("Boba", result.ElementAt(1).Name);
+        }
+
+        [Fact]
+        public void CompilesStringEndsWith()
+        {
+            var exp = EntityQueryCompiler.Compile(@"people.where(name.endsWith(""b""))", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            Assert.Single(result);
+            Assert.Equal("Bob", result.ElementAt(0).Name);
+        }
+
+        [Fact]
+        public void CompilesStringToLower()
+        {
+            var exp = EntityQueryCompiler.Compile(@"people.where(name.toLower() == ""bob"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            Assert.Single(result);
+            Assert.Equal("Bob", result.ElementAt(0).Name);
+        }
+
+        [Fact]
+        public void CompilesStringToUpper()
+        {
+            var exp = EntityQueryCompiler.Compile(@"people.where(name.toUpper() == ""BOB"")", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
+            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            Assert.Single(result);
+            Assert.Equal("Bob", result.ElementAt(0).Name);
+        }
+
         // This would be your Entity/Object graph you use with EntityFramework
         private class TestSchema
         {

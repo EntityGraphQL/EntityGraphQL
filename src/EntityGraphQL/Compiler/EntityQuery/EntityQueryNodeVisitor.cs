@@ -199,7 +199,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args);
+            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, currentContext.Type);
             currentContext = call;
             return call;
         }
