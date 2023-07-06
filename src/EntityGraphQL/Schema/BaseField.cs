@@ -39,7 +39,6 @@ namespace EntityGraphQL.Schema
 
         protected List<ISchemaDirective> Directives { get; set; } = new();
         protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
-        internal const string DefaultArgmentsTypeName = "egql_generated_args";
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
