@@ -22,6 +22,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   List.count(filter?)
     ///   List.orderBy(field)
     ///   List.orderByDesc(field)
+    ///   string.contains(string)
+    ///   string.startsWith(string)
+    ///   string.endsWith(string)
+    ///   string.toLower()
+    ///   string.toUpper()
     ///
     ///   TODO:
     ///   List.select(field, ...)?
@@ -29,13 +34,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   List.isAtOrBelow(primary_key)
     ///   List.isAbove(primary_key)
     ///   List.isAtOrAbove(primary_key)
-    ///   string.startsWith(string)
-    ///   string.endsWith(string)
     /// </summary>
     public class DefaultMethodProvider : IMethodProvider
     {
         // Map of the method names and a function that makes the Expression.Call
-        private readonly Dictionary<string, Func<Expression, Expression, string, Expression[], Expression>> supportedMethods = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, Func<Expression, Expression, string, Expression[], Expression>> supportedListMethods = new(StringComparer.OrdinalIgnoreCase)
         {
             { "where", MakeWhereMethod },
             { "filter", MakeWhereMethod },
@@ -49,9 +52,21 @@ namespace EntityGraphQL.Compiler.EntityQuery
             { "orderbydesc", MakeOrderByDescMethod },
         };
 
+        private readonly Dictionary<string, Func<Expression, string, Expression[], Expression>> supportedStringMethods = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "contains", MakeStringContainsMethod },
+            { "startsWith", MakeStringStartsWithMethod },
+            { "endsWith", MakeStringEndsWithMethod },
+            { "toLower", MakeStringToLowerMethod },
+            { "toUpper", MakeStringToUpperMethod },
+        };
+
         public bool EntityTypeHasMethod(Type context, string methodName)
         {
-            return supportedMethods.ContainsKey(methodName);
+            if (context == typeof(string))
+                return supportedStringMethods.ContainsKey(methodName);
+
+            return supportedListMethods.ContainsKey(methodName);
         }
 
         public Expression GetMethodContext(Expression context, string methodName)
@@ -62,11 +77,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return GetContextFromEnumerable(context);
         }
 
-        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression>? args)
+        public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression>? args, Type? type = null)
         {
-            if (supportedMethods.ContainsKey(methodName))
+            if (type == typeof(string) && supportedStringMethods.ContainsKey(methodName))
             {
-                return supportedMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : Array.Empty<Expression>());
+                return supportedStringMethods[methodName](context, methodName, args != null ? args.ToArray() : Array.Empty<Expression>());
+            }
+
+            if (supportedListMethods.ContainsKey(methodName))
+            {
+                return supportedListMethods[methodName](context, argContext, methodName, args != null ? args.ToArray() : Array.Empty<Expression>());
             }
             throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
         }
@@ -153,6 +173,32 @@ namespace EntityGraphQL.Compiler.EntityQuery
             var lambda = Expression.Lambda(column, (ParameterExpression)argContext);
 
             return ExpressionUtil.MakeCallOnQueryable("OrderByDescending", new[] { argContext.Type, column.Type }, context, lambda);
+        }
+
+        private static Expression MakeStringContainsMethod(Expression context, string methodName, Expression[] args) =>
+            MakeStringMethod(string.Empty.Contains, context, methodName, args);
+        private static Expression MakeStringStartsWithMethod(Expression context, string methodName, Expression[] args) =>
+            MakeStringMethod(string.Empty.StartsWith, context, methodName, args);
+        private static Expression MakeStringEndsWithMethod(Expression context, string methodName, Expression[] args) =>
+            MakeStringMethod(string.Empty.EndsWith, context, methodName, args);
+
+        private static Expression MakeStringToLowerMethod(Expression context, string methodName, Expression[] args) =>
+            MakeStringMethod(string.Empty.ToLower, context, methodName, args);
+        private static Expression MakeStringToUpperMethod(Expression context, string methodName, Expression[] args) =>
+            MakeStringMethod(string.Empty.ToUpper, context, methodName, args);
+
+        private static Expression MakeStringMethod(Func<string> method, Expression context, string methodName, Expression[] args)
+        {
+            ExpectArgsCount(0, args, methodName);
+            return Expression.Call(context, method.Method);
+        }
+
+        private static Expression MakeStringMethod(Func<string, bool> method, Expression context, string methodName, Expression[] args)
+        {
+            ExpectArgsCount(1, args, methodName);
+            var predicate = args.First();
+            predicate = ConvertTypeIfWeCan(methodName, predicate, typeof(string));
+            return Expression.Call(context, method.Method, predicate);
         }
 
         private static Expression GetContextFromEnumerable(Expression context)
