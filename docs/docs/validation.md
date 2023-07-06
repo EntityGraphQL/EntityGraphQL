@@ -41,7 +41,7 @@ This service needs to be registered in your service provider. You can always imp
 services.AddGraphQLValidator(); // with EntityGraphQL.AspNet
 
 // Or without / or you own implementation
-services.AddTransient<IGraphQLValidator, GraphQLValidator>();
+services.AddScoped<IGraphQLValidator, GraphQLValidator>();
 
 // your mutation
 public class MovieMutations
