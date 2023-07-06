@@ -18,6 +18,7 @@ schema.ReplaceField("people",
 ```
 
 - `SchemaBuilderOptions` now has a `OnFieldCreated` callback to make changes to fields as `SchemaBuilder` is building the schema.
+- `.contains(string)`, `.startsWith(string)`, `.endsWith(string)` & `.toLower()` / `.toUpper()` string methods now available in the filter argument expression.
 
 ## Fixes
 
