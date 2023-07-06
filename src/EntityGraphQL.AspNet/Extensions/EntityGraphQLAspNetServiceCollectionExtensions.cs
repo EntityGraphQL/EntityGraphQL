@@ -65,7 +65,7 @@ namespace EntityGraphQL.AspNet
         /// <returns></returns>
         public static IServiceCollection AddGraphQLValidator(this IServiceCollection serviceCollection)
         {
-            serviceCollection.TryAddTransient<IGraphQLValidator, GraphQLValidator>();
+            serviceCollection.TryAddScoped<IGraphQLValidator, GraphQLValidator>();
             return serviceCollection;
         }
     }
