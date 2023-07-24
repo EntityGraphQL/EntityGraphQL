@@ -52,3 +52,8 @@ Interface `IExposableException` has been removed. Use the existing `SchemaBuilde
 
 - `AutoCreateInputTypes` has been moved to `SchemaBuilderOptions` and is now defaulted to `true`.
 - `AddNonAttributedMethods` has been move to `SchemaBuilderOptions.AddNonAttributedMethodsInControllers`
+
+
+## Register `GraphQLValidator`
+
+`GraphQLValidator` is no longer magically added to your method fields (mutations/subscriptions). If you wish to use it please register it in your services. There is a new helper method in EntityGraphQL.AspNet `AddGraphQLValidator()`. This means you can implement and register your own implementation.

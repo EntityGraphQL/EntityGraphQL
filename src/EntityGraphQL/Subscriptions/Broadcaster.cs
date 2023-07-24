@@ -33,6 +33,8 @@ namespace EntityGraphQL.Subscriptions
     {
         private readonly List<IObserver<TType>> subscribers = new();
 
+        public Action<IObserver<TType>>? OnUnsubscribe { get; set; }
+
         /// <summary>
         /// Register an observer to the broadcaster.
         /// </summary>
@@ -47,6 +49,7 @@ namespace EntityGraphQL.Subscriptions
         public void Unsubscribe(IObserver<TType> observer)
         {
             subscribers.Remove(observer);
+            OnUnsubscribe?.Invoke(observer);
         }
         /// <summary>
         /// Broadcast the message to all subscribers.

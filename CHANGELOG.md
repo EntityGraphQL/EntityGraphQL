@@ -1,4 +1,6 @@
-# 5.0.0-beta2
+# 5.0.0
+
+Make sure to check out the changes 5.0.0-beta1
 
 ## Breaking Changes
 - Generated schema type name for field sort inputs now include the name of the schema type the field is on to avoid conflicts
@@ -6,6 +8,7 @@
 ## Changes
 - `IField.AddExtension` now returns the `IField`
 - `UseSort()` field extension now can take a list of default sort fields e.g.
+- `Broadcaster` (inbuilt `IObservable<TType>` you can use for subscriptions) now has a `OnUnsubscribe` callback
 
 ```cs
 schema.ReplaceField("people",
