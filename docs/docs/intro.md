@@ -4,9 +4,7 @@ sidebar_position: 1
 
 # Introduction
 
-EntityGraphQL is a .NET library that allows you to easily build a GraphQL API on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
-
-Visit [graphql.org](https://graphql.org/learn/) to learn more about GraphQL.
+EntityGraphQL is a .NET library that allows you to easily build a [GraphQL API](https://graphql.org/learn/) on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
 
 EntityGraphQL builds a GraphQL schema that maps to .NET objects. It provides the functionality to parse a GraphQL query document and execute that against your mapped objects. These objects can be an Entity Framework `DbContext` or any other .NET object, it doesn't matter.
 
