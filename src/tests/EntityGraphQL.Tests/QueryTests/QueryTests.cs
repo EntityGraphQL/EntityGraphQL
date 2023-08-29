@@ -3,7 +3,6 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace EntityGraphQL.Tests
 {

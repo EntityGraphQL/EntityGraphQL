@@ -65,15 +65,15 @@ namespace EntityGraphQL.Compiler
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
             // if we have services and they don't want service fields, return the expression only for extraction
-            if (withoutServiceFields && Field?.Services.Any() == true && !isRoot)
+            if (withoutServiceFields && HasServices && !isRoot)
                 return nextFieldContext;
 
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;
 
-            if (Field?.Services.Any() == true)
-                compileContext.AddServices(Field.Services);
+            if (HasServices)
+                compileContext.AddServices(Field!.Services);
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
@@ -133,7 +133,7 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in selectionFields)
                 {
-                    if (item.Value.Field.Field?.Services.Any() == true || item.Key.Name == "__typename")
+                    if (item.Value.Field.HasServices || item.Key.Name == "__typename")
                         item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                     else
                         item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);

@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && Field?.Services.Any() == true;
+        protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && HasServices;
 
         protected virtual Dictionary<IFieldKey, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {

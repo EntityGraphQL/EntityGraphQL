@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler
             }
             newExpression = ProcessScalarExpression(newExpression, replacer);
 
-            if (Field?.Services.Any() == true)
+            if (HasServices)
                 compileContext.AddServices(Field.Services);
             return newExpression;
         }
