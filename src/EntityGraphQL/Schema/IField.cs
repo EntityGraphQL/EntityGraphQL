@@ -19,6 +19,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public interface IField
     {
+        IBulkFieldResolver? BulkResolver { get; }
         GraphQLQueryFieldType FieldType { get; }
         ISchemaProvider Schema { get; }
         ParameterExpression? FieldParam { get; set; }
@@ -66,7 +67,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// Services required to be injected for this fields selection
         /// </summary>
-        IEnumerable<ParameterExpression> Services { get; }
+        List<ParameterExpression> Services { get; }
         IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
         IField? UseArgumentsFromField { get; }
 

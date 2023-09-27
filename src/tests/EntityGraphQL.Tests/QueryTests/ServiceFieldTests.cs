@@ -2226,6 +2226,12 @@ namespace EntityGraphQL.Tests
             };
         }
 
+        public IDictionary<int, User> GetAllUsers(IEnumerable<int> data)
+        {
+            CallCount += 1;
+            return data.Select(id => new User { Id = id, Field2 = "Hello", Name = $"Name_{id}" }).ToDictionary(u => u.Id, u => u);
+        }
+
         internal User GetUserById(int id)
         {
             CallCount += 1;
@@ -2233,6 +2239,35 @@ namespace EntityGraphQL.Tests
             {
                 Id = id,
             };
+        }
+
+        internal List<User> GetUsersByProjectId(int id)
+        {
+            CallCount += 1;
+            return new List<User> {
+                new User
+                {
+                    Id = id,
+                }
+            };
+        }
+
+        internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids)
+        {
+            CallCount += 1;
+            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } });
+        }
+
+        internal User GetUserByProjectId(int projectId, int userId)
+        {
+            CallCount += 1;
+            return new User { Id = userId, Name = $"Name_{userId}" };
+        }
+
+        internal IDictionary<int, List<User>> GetUserByIdForProjectId(IEnumerable<int> ids, IEnumerable<RequiredField<int>> enumerable)
+        {
+            CallCount += 1;
+            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } });
         }
     }
     public class AgeService

@@ -25,7 +25,9 @@ namespace EntityGraphQL.Compiler
             if (HasServices && withoutServiceFields)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
 
-            (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
+            var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext)!;
+
+            (var result, _) = Field!.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
 
             if (result == null)
                 return null;

@@ -56,7 +56,8 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && isRoot && HasServices)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
 
-            var listContext = ListExpression;
+            var listContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, ListExpression)!;
+
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
             {
@@ -103,6 +104,11 @@ namespace EntityGraphQL.Compiler
                 resultExpression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression, Expression.Constant(Field!.ReturnType.TypeNotNullable));
 
             return resultExpression;
+        }
+
+        protected override void HandleBulkResolverForField(CompileContext compileContext, Expression nextFieldContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterReplacer replacer)
+        {
+            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, bulkResolver.FieldExpression, ListExpression, bulkResolver.ExtractedFields);
         }
     }
 }

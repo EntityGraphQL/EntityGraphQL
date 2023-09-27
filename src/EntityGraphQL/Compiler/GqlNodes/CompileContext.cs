@@ -13,8 +13,19 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
         private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
+        public CompileContext() { }
+
+        public CompileContext(Dictionary<string, object> bulkData)
+        {
+            BulkData = bulkData;
+            BulkParameter = Expression.Parameter(BulkData.GetType(), "bulkData");
+        }
+
         public List<ParameterExpression> Services { get => servicesCollected; }
         public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
+        public List<CompiledBulkFieldResolver> BulkResolvers { get; private set; } = new();
+        public Dictionary<string, object>? BulkData { get; }
+        public ParameterExpression? BulkParameter { get; }
 
         public void AddServices(IEnumerable<ParameterExpression> services)
         {
@@ -36,6 +47,29 @@ namespace EntityGraphQL.Compiler
             if (constantParametersForField.TryGetValue(field, out var param))
                 return param;
             return null;
+        }
+
+        public void AddBulkResolver(string name, LambdaExpression dataSelection, LambdaExpression fieldExpression, Expression listExpression, IEnumerable<GraphQLExtractedField> extractedFields)
+        {
+            BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, listExpression, extractedFields));
+        }
+    }
+
+    public class CompiledBulkFieldResolver
+    {
+        public string Name { get; private set; }
+        public LambdaExpression DataSelection { get; private set; }
+        public LambdaExpression FieldExpression { get; private set; }
+        public Expression ListExpression { get; }
+        public IEnumerable<GraphQLExtractedField> ExtractedFields { get; }
+
+        public CompiledBulkFieldResolver(string name, LambdaExpression dataSelection, LambdaExpression fieldExpression, Expression listExpression, IEnumerable<GraphQLExtractedField> extractedFields)
+        {
+            this.Name = name;
+            this.DataSelection = dataSelection;
+            this.FieldExpression = fieldExpression;
+            ListExpression = listExpression;
+            ExtractedFields = extractedFields;
         }
     }
 }
