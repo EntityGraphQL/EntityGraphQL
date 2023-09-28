@@ -5,7 +5,6 @@ using System.Linq;
 using System;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
-using static EntityGraphQL.Tests.ServiceFieldTests;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests

@@ -55,6 +55,8 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             methodProvider ??= new DefaultMethodProvider();
             var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider);
+            if (expression == null)
+                throw new EntityGraphQLCompilerException("Failed to compile expression");
 
             var parameters = expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression).Parameters.ToList() : new List<ParameterExpression>();
             return new CompiledQueryResult(expression, parameters);

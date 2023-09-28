@@ -1,3 +1,8 @@
+# 5.0.1
+
+## Fixes
+- Fix #314 - Some clean up of the Antlr4 grammer for the filter expressions
+
 # 5.0.0
 
 Make sure to check out the changes 5.0.0-beta1

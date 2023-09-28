@@ -268,10 +268,30 @@ namespace EntityGraphQL.Tests
             var user = Enumerable.First(people);
             Assert.Equal("Luke", user.name);
         }
+
+        [Fact]
+        public void TestTrueConstant()
+        {
+            // came from here https://github.com/EntityGraphQL/EntityGraphQL/issues/314
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    tasks(filter: $filter) { name }
+                }",
+                Variables = new QueryVariables { { "filter", "isActive == true)" } } // extra ) bracket
+            };
+            var tree = schema.ExecuteRequestWithContext(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
+            Assert.Null(tree.Errors);
+        }
+
         private class TestDataContext2 : TestDataContext
         {
             [UseFilter]
             public override List<Person> People { get; set; } = new List<Person>();
+            [UseFilter]
+            public override IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         }
     }
 }

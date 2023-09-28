@@ -25,11 +25,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
+        public override Expression VisitEqlStart(EntityQLParser.EqlStartContext context)
+        {
+            return Visit(context.expr);
+        }
+
         public override Expression VisitBinary(EntityQLParser.BinaryContext context)
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
-            var op = MakeOperator(context.op.GetText());
+            var op = MakeOperator(context.op.Text);
             // we may need to do some converting here
             if (left.Type != right.Type)
             {
