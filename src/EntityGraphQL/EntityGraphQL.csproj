@@ -19,8 +19,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Antlr4" Version="4.6.6" />
-    <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
+    <PackageReference Include="Antlr4BuildTasks" Version="12.2.0" PrivateAssets="all" />
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.4" />
@@ -36,11 +36,11 @@
     <None Include="../../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <Antlr4 Update="Compiler/Grammer/EntityQL.g4">
-      <Generator>MSBuild:Compile</Generator>
-      <CustomToolNamespace>EntityQL.Grammer</CustomToolNamespace>
+    <Antlr4 Include="Compiler/Grammer/EntityQL.g4">
+      <Package>EntityQL.Grammer</Package>
       <Listener>false</Listener>
       <Visitor>True</Visitor>
+      <JavaExec>/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home/bin/java</JavaExec>
     </Antlr4>
   </ItemGroup>
 </Project>
