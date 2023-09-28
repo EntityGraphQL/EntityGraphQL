@@ -22,7 +22,7 @@ namespace EntityGraphQL.Tests
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
         public IEnumerable<Project> Projects { get => projects; set => projects = value; }
         public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
-        public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
+        public virtual IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
         public List<User> Users { get; set; } = new List<User>();
