@@ -1,7 +1,7 @@
 # 5.1.0
 
 ## Changes
-- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings
+- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
 
 # 5.0.1
 
