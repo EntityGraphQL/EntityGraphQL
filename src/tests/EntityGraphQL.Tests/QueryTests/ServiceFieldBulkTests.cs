@@ -148,7 +148,7 @@ public class ServiceFieldBulkTests
 
         schema.UpdateType<Project>(type =>
         {
-            type.AddField("assignedUser", new { id = ArgumentHelper.Required<int>() }, "Get user assigned to project by ID")
+            type.AddField("assignedUsers", new { id = ArgumentHelper.Required<int>() }, "Get user assigned to project by ID")
                 .ResolveWithService<UserService>((proj, args, users) => users.GetUserByProjectId(proj.Id, args.id))
                 .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, args, srv) => srv.GetUserByIdForProjectId(ids, args.Select(a => a.id)));
         });
