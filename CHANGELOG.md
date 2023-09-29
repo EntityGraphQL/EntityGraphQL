@@ -1,7 +1,7 @@
 # 5.1.0
 
 ## Changes
-- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings
+- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression in a list result. Example
 
 ```cs

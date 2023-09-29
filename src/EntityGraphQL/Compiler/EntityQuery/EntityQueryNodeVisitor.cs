@@ -60,7 +60,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
-            var op = MakeOperator(context.op.GetText());
+            var op = MakeOperator(context.op.Text);
             // we may need to do some converting here
             if (left.Type != right.Type)
             {

@@ -22,24 +22,23 @@ constant: string
 
 ws: ' ' | '\t' | '\n' | '\r';
 
-// This is EntityQuery expression language
 args: expression (',' ws* expression)*;
 call: method = identity '(' arguments = args? ')';
 callPath: (identity | call) ('.' (identity | call))*;
 
-logicOperator:
-	'or'
-	| '||' 
-	| 'and'
-	| '&&';
-
-expression:
+expression: 
 	'if ' (' ' | '\t')* test = expression (' ' | '\t')* 'then ' (' ' | '\t')* ifTrue = expression (' ' | '\t')* 'else ' (' ' | '\t')* ifFalse = expression # ifThenElse
 	| test = expression ' '* '?' ' '* ifTrue = expression ' '* ':' ' '* ifFalse = expression #ifThenElseInline
-	| left = expression ' '* op = ('*' | '/' | '%' | '+' | '-' | '<=' | '>=' | '<' | '>' | '==' | '!=' | '^'  ) ' '* right = expression	# binary
-	| left = expression ' '* op = logicOperator ' '* right = expression	# logic
-	| '(' body = expression ')'										# expr
-	| callPath														# callOrId
-	| constant														# const; 
+	| left = expression ' '* op = ('*' | '/' | '%') ' '* right = expression # binary
+	| left = expression ' '* op = ('+' | '-') ' '* right = expression # binary
+	| left = expression ' '* op = ('<=' | '>=' | '<' | '>') ' '* right = expression # binary
+	| left = expression ' '* op = ('==' | '!=') ' '* right = expression # binary
+	| left = expression ' '* op = '^' ' '* right = expression # binary
+	| left = expression ' '* op = ('and' | '&&') ' '* right = expression # logic
+	| left = expression ' '* op = ('or' | '||') ' '* right = expression # logic
+	| '(' body = expression ')' # expr
+	| callPath # callOrId
+	| constant # const
+	;
 	 
 eqlStart: expr = expression EOF;
