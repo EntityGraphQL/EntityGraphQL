@@ -35,8 +35,7 @@ namespace EntityGraphQL.Compiler
                     if (withoutServiceFields)
                     {
                         // This is where we have the information to build the bulk resolver data loading expression
-                        HandleBulkResolverForField(compileContext, nextFieldContext, field, field.Field.BulkResolver, replacer);
-                        compileContext.AddServices(field.Field!.Services);
+                        var newArgParam = HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
                     }
                 }
                 // Might be a fragment that expands into many fields hence the Expand
@@ -79,9 +78,10 @@ namespace EntityGraphQL.Compiler
             return selectionFields;
         }
 
-        protected virtual void HandleBulkResolverForField(CompileContext compileContext, Expression nextFieldContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterReplacer replacer)
+        protected virtual ParameterExpression? HandleBulkResolverForField(CompileContext compileContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
         {
             // default do nothing
+            return field.Field?.ArgumentsParameter;
         }
     }
 }

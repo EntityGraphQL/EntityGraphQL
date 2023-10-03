@@ -16,6 +16,8 @@ public class BulkFieldResolver<TContext, TService, TKey, TResult> : IBulkFieldRe
     public IEnumerable<GraphQLExtractedField> ExtractedFields { get; }
     public string Name { get; }
 
+    public ParameterExpression? BulkArgParam => null;
+
     public BulkFieldResolver(string name, Expression<Func<IEnumerable<TKey>, TService, IDictionary<TKey, TResult>>> fieldExpression, Expression<Func<TContext, TKey>> dataSelector, IEnumerable<Compiler.GraphQLExtractedField> extractedFields)
     {
         this.fieldExpression = fieldExpression;
@@ -27,7 +29,7 @@ public class BulkFieldResolver<TContext, TService, TKey, TResult> : IBulkFieldRe
 
 public class BulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResult> : IBulkFieldResolver
 {
-    private readonly Expression<Func<IEnumerable<TKey>, IEnumerable<TParams>, TService, IDictionary<TKey, TResult>>> fieldExpression;
+    private readonly Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression;
     private readonly Expression<Func<TContext, TKey>> dataSelector;
 
     public LambdaExpression FieldExpression => fieldExpression;
@@ -35,8 +37,9 @@ public class BulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResul
 
     public IEnumerable<GraphQLExtractedField> ExtractedFields { get; }
     public string Name { get; }
+    public ParameterExpression? BulkArgParam => fieldExpression.Parameters[1];
 
-    public BulkFieldResolverWithArgs(string name, Expression<Func<IEnumerable<TKey>, IEnumerable<TParams>, TService, IDictionary<TKey, TResult>>> fieldExpression, Expression<Func<TContext, TKey>> dataSelector, IEnumerable<Compiler.GraphQLExtractedField> extractedFields)
+    public BulkFieldResolverWithArgs(string name, Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression, Expression<Func<TContext, TKey>> dataSelector, IEnumerable<Compiler.GraphQLExtractedField> extractedFields)
     {
         this.fieldExpression = fieldExpression;
         this.dataSelector = dataSelector;
@@ -51,4 +54,5 @@ public interface IBulkFieldResolver
     LambdaExpression DataSelector { get; }
     IEnumerable<GraphQLExtractedField> ExtractedFields { get; }
     string Name { get; }
+    ParameterExpression? BulkArgParam { get; }
 }

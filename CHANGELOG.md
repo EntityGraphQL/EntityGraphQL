@@ -2,7 +2,7 @@
 
 ## Changes
 - Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
-- Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression in a list result. Example
+- Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
 
 ```cs
 var schema = SchemaBuilder.FromObject<MyContext>();
@@ -19,10 +19,19 @@ schema.UpdateType<Project>(type =>
 If you have a query like
 ```graphql
 {
+  # ResolveBulk
   projects {
     # project fields
     name id
-    # service field
+    # service field - resolved with ResolveBulk expression for all Projects loaded
+    createdBy { name }
+  }
+
+  # ResolveWithService
+  project(id: 78) {
+    # project fields
+    name id
+    # service field - resolved with ResolveWithService expression for the single project loaded
     createdBy { name }
   }
 }

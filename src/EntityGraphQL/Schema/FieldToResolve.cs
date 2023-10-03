@@ -19,14 +19,14 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
     {
     }
 
-    public Field ResolveBulk<TService, TKey, TResult>(Expression<Func<TContext, TKey>> dataSelector, Expression<Func<IEnumerable<TKey>, IEnumerable<TParams>, TService, IDictionary<TKey, TResult>>> fieldExpression)
+    public Field ResolveBulk<TService, TKey, TResult>(Expression<Func<TContext, TKey>> dataSelector, Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression)
     {
         var extractor = new ExpressionExtractor();
         var keyParam = dataSelector.Parameters.First();
         var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
         ExtractedFieldsFromServices!.AddRange(fields);
         BulkResolver = new BulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResult>($"bulk_{Name}", fieldExpression, dataSelector, fields);
-        Services.Add(fieldExpression.Parameters[1]);
+        Services.Add(fieldExpression.Parameters[2]);
         return this;
     }
 }

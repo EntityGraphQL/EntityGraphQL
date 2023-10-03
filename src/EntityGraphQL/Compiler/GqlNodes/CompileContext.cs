@@ -53,6 +53,18 @@ namespace EntityGraphQL.Compiler
         {
             BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, listExpression, extractedFields));
         }
+
+        public void AddArgsToCompileContext(IField field, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, ref object? argumentValue, List<string> validationErrors, ParameterExpression? newArgParam)
+        {
+            if (field.FieldParam != null && field.ArgumentsParameter != null)
+            {
+                // we need to make a copy of the argument parameter as if they select the same field multiple times
+                // i.e. with different alias & arguments we need to have different ParameterExpression instances
+                argumentValue = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, newArgParam?.Type, docParam, docVariables, validationErrors);
+                if (argumentValue != null)
+                    AddConstant(field, newArgParam!, argumentValue);
+            }
+        }
     }
 
     public class CompiledBulkFieldResolver

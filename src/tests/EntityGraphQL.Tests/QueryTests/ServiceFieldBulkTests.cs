@@ -105,8 +105,8 @@ public class ServiceFieldBulkTests
         schema.UpdateType<Project>(type =>
         {
             type.AddField("assignedUsers", "Get users assigned to project")
-                .ResolveWithService<UserService>((proj, users) => users.GetUsersByProjectId(proj.Id))
-                .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, srv) => srv.GetUsersByProjectId(ids));
+                .ResolveWithService<UserService>((proj, users) => users.GetUsersByProjectId(proj.Id, null))
+                .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, srv) => srv.GetUsersByProjectId(ids, null));
         });
 
         var gql = new QueryRequest
@@ -142,22 +142,66 @@ public class ServiceFieldBulkTests
     }
 
     [Fact]
-    public void TestServicesBulkResolverListToObject()
+    public void TestServicesBulkResolverWithArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
         schema.UpdateType<Project>(type =>
         {
-            type.AddField("assignedUsers", new { id = ArgumentHelper.Required<int>() }, "Get user assigned to project by ID")
+            type.AddField("assignedUser", new { id = ArgumentHelper.Required<int>() }, "Get user assigned to project by ID")
                 .ResolveWithService<UserService>((proj, args, users) => users.GetUserByProjectId(proj.Id, args.id))
-                .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, args, srv) => srv.GetUserByIdForProjectId(ids, args.Select(a => a.id)));
+                .ResolveBulk<UserService, int, User>(proj => proj.Id, (ids, args, srv) => srv.GetUserByIdForProjectId(ids, args.id));
         });
 
         var gql = new QueryRequest
         {
             Query = @"{ 
                 projects { 
-                    name assignedUsers { name }
+                    name assignedUser(id: 1) { name }
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = new List<Project> {
+                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
+                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            },
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data["projects"];
+        Assert.Equal(2, projects.Count);
+        Assert.Equal("Name_1", projects[0].assignedUser.name);
+        Assert.Null(projects[1].assignedUser);
+    }
+
+    [Fact]
+    public void TestServicesBulkResolverListWithArgs()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.UpdateType<Project>(type =>
+        {
+            type.AddField("assignedUsers", new { name = (string)null }, "Get users assigned to project")
+                .ResolveWithService<UserService>((proj, args, users) => users.GetUsersByProjectId(proj.Id, args.name))
+                .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, args, srv) => srv.GetUsersByProjectId(ids, args.name));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                projects { 
+                    name assignedUsers(name: ""1"") { name }
                 } 
             }"
         };
@@ -182,6 +226,6 @@ public class ServiceFieldBulkTests
         dynamic projects = res.Data["projects"];
         Assert.Equal(2, projects.Count);
         Assert.Equal("Name_1", projects[0].assignedUsers[0].name);
-        Assert.Equal("Name_2", projects[1].assignedUsers[0].name);
+        Assert.Empty(projects[1].assignedUsers);
     }
 }

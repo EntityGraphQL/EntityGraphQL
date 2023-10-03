@@ -106,9 +106,23 @@ namespace EntityGraphQL.Compiler
             return resultExpression;
         }
 
-        protected override void HandleBulkResolverForField(CompileContext compileContext, Expression nextFieldContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterReplacer replacer)
+        protected override ParameterExpression? HandleBulkResolverForField(CompileContext compileContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
         {
-            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, bulkResolver.FieldExpression, ListExpression, bulkResolver.ExtractedFields);
+            // Need the args that may be used in the bulk resolver expression
+            var argumentValue = default(object);
+            var validationErrors = new List<string>();
+            var bulkFieldArgParam = bulkResolver.BulkArgParam;
+            var newArgParam = bulkFieldArgParam != null ? Expression.Parameter(bulkFieldArgParam!.Type, $"{bulkFieldArgParam.Name}_exec") : null;
+            compileContext.AddArgsToCompileContext(field.Field!, field.Arguments, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
+
+            // replace the arg param after extensions (don't rely on extensions to do this)
+            Expression bulkFieldExpr = bulkResolver.FieldExpression;
+
+            GraphQLHelper.ValidateAndReplaceFieldArgs(field.Field!, bulkFieldArgParam, replacer, ref argumentValue, ref bulkFieldExpr, validationErrors, newArgParam);
+
+            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, ListExpression, bulkResolver.ExtractedFields);
+            compileContext.AddServices(field.Field!.Services);
+            return newArgParam;
         }
     }
 }

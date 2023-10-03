@@ -2241,21 +2241,23 @@ namespace EntityGraphQL.Tests
             };
         }
 
-        internal List<User> GetUsersByProjectId(int id)
+        internal List<User> GetUsersByProjectId(int id, string nameFilter)
         {
             CallCount += 1;
             return new List<User> {
                 new User
                 {
                     Id = id,
+                    Name = "Blah"
                 }
-            };
+            }.Where(u => u.Name.Contains(nameFilter)).ToList();
         }
 
-        internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids)
+        internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids, string nameFilter)
         {
             CallCount += 1;
-            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } });
+            // Obviously this is not a real implementation, but it's enough to test the functionality
+            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } }.Where(u => string.IsNullOrEmpty(nameFilter) ? true : u.Name.Contains(nameFilter)).ToList());
         }
 
         internal User GetUserByProjectId(int projectId, int userId)
@@ -2264,10 +2266,11 @@ namespace EntityGraphQL.Tests
             return new User { Id = userId, Name = $"Name_{userId}" };
         }
 
-        internal IDictionary<int, List<User>> GetUserByIdForProjectId(IEnumerable<int> ids, IEnumerable<RequiredField<int>> enumerable)
+        internal IDictionary<int, User> GetUserByIdForProjectId(IEnumerable<int> ids, int id)
         {
             CallCount += 1;
-            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } });
+            // "load" users from IDs and return them
+            return ids.ToDictionary(id => id, i => i != id ? null : new User { Id = i, Name = $"Name_{i}" });
         }
     }
     public class AgeService
