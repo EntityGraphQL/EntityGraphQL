@@ -1,8 +1,5 @@
 using Xunit;
-using System.Linq;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 

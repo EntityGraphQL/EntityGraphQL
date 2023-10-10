@@ -11,11 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup .NET 7.0.x
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Restore dependencies
         run: dotnet restore
       - name: Build

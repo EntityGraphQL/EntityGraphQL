@@ -40,7 +40,7 @@
       <Package>EntityQL.Grammer</Package>
       <Listener>false</Listener>
       <Visitor>True</Visitor>
-      <JavaExec>/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home/bin/java</JavaExec>
+      <JavaExec>/usr/bin/java</JavaExec>
     </Antlr4>
   </ItemGroup>
 </Project>
