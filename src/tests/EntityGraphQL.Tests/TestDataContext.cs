@@ -15,13 +15,13 @@ namespace EntityGraphQL.Tests
     public class TestDataContext
     {
         [GraphQLIgnore]
-        private IEnumerable<Project> projects = new List<Project>();
+        private List<Project> projects = new();
 
         public int TotalPeople => People.Count;
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
-        public IEnumerable<Project> Projects { get => projects; set => projects = value; }
-        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
+        public List<Project> Projects { get => projects; set => projects = value; }
+        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value.ToList(); }
         public virtual IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
@@ -57,6 +57,7 @@ namespace EntityGraphQL.Tests
     public class User
     {
         public int Id { get; set; }
+        public string Name { get; set; }
         public int Field1 { get; set; }
         public string Field2 { get; set; }
         public Person Relation { get; set; }
@@ -213,26 +214,28 @@ namespace EntityGraphQL.Tests
                 Created = DateTimeOffset.Now.AddMonths(-3),
                 Updated = DateTime.Now.AddMonths(-2),
             };
-            context.People = new List<Person>
-            {
-                new Person
-                {
-                    Id = 99,
-                    Guid = new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"),
-                    Name ="Luke",
-                    LastName ="Last Name",
-                    Birthday = new DateTime(2000, 1, 1, 1, 1, 1, 1),
-                    User = user,
-                    Height = 183,
-                    Gender = Gender.Male,
-                    Projects = new List<Project> { project },
-                }
-            };
+            context.People = new List<Person> { MakePerson(99, user, project) };
             context.Projects = new List<Project>
             {
                 project
             };
             return context;
+        }
+
+        public static Person MakePerson(int id, User user, Project project)
+        {
+            return new Person
+            {
+                Id = id,
+                Guid = new Guid("cccccccc-bbbb-4444-1111-ccddeeff0033"),
+                Name = "Luke",
+                LastName = "Last Name",
+                Birthday = new DateTime(2000, 1, 1, 1, 1, 1, 1),
+                User = user,
+                Height = 183,
+                Gender = Gender.Male,
+                Projects = project != null ? new List<Project> { project } : new List<Project>(),
+            };
         }
     }
 }
