@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
                 // serviceProvider.GetService is used and the rules registered with the service provider are used
                 // e.g. a new instance or a singleton etc.
                 var srvParam = Expression.Parameter(serviceParam.Type, $"exec_{serviceParam.Name}");
-                parameters.Add(serviceParam);
+                parameters.Add(srvParam);
                 var service = serviceProvider.GetService(serviceParam.Type) ?? throw new EntityGraphQLExecutionException($"Service {serviceParam.Type.Name} not found in service provider");
                 allArgs.Add(service);
 

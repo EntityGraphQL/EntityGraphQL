@@ -9,13 +9,36 @@ EntityGraphQL supports customizing your GraphQL schema in all the expected ways;
 - Adding optional/required arguments to fields
 - Adding new types (including input types)
 - Adding mutations to modify data
-- Including data from multiple sources
+- Including data from multiple/other sources/services
+- Creating subscription endpoints
 
-To create a new schema we need to supply a base context type.
+To create a new schema we need to supply a base context type. This base type is used as the base for _top-level query fields_. `DemoContext` is our base query context for the schema.
 
 ```cs
-// DemoContext is our base query context for the schema.
-// Schema has no types or fields yet
+// Using EntityGraphQL.AspNet extension method to add the schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.ConfigureSchema = (schema) => {
+        // configure schema heree
+    };
+});
+
+// Create a blank schema with the base query type. Schema has no types or fields yet.
+services.AddGraphQLSchema<DemoContext>(options =>
+{
+    options.AutoBuildSchemaFromContext = false;
+    options.ConfigureSchema = (schema) => {
+        // configure schema heree
+    };
+});
+```
+
+If you need to create a schema outside of ASP.NET.
+
+```cs
+// Create a schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+var schema = new SchemaBuilder.FromObject<DemoContext>();
+
+// Create a blank schema with the base query type. Schema has no types or fields yet.
 var schema = new SchemaProvider<DemoContext>();
 ```
 
@@ -85,7 +108,7 @@ We now have a very simple GraphQL schema ready to use. It has a single root quer
 
 ## Helper Methods
 
-EntityGraphQL comes with some methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
+EntityGraphQL has methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
 
 ### Building a full schema
 

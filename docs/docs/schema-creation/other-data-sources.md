@@ -4,15 +4,16 @@ sidebar_position: 10
 
 # Adding Other Data Sources or Services
 
-EntityGraphQL lets you add fields that resolve data from other sources other than the core context you created your schema with. This is powerful as it let's you create a single API that brings together multiple data sources into an object graph.
+EntityGraphQL lets you add fields that resolve (fetch) data from sources other than the core query context you created your schema with. This is powerful as it let's you create a single API that brings together multiple data sources into an object graph.
 
 ## `ResolveWithService<TService>()` Fields
 
-To use other services in a field we use the `ResolveWithService<TService>()` method on the field. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve the services.
+To use other services in a field we use the `ResolveWithService<TService>()` (See `ResolveWithServices<>()` to include multiple services int he dependency) method on the field. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve the services.
 
 Let's use a service in our `Person` type example.
 
 ```cs
+// Where you create your schema
 schema.UpdateType<Person>(personType => {
     personType.AddField("age", "Person's age")
         .ResolveWithService<IAgeService>((person, srv) => srv.GetAge(person.Dob));
