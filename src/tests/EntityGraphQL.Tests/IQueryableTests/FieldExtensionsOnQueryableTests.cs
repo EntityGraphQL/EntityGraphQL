@@ -25,9 +25,9 @@ namespace EntityGraphQL.Tests.IQueryableTests
             schema.UpdateType<Movie>(schemaType =>
             {
                 schemaType.ReplaceField("actors", null)
-                    .ResolveWithService<ActorService>((m, actors) => actors.GetByMovie(m.Id));
+                    .Resolve<ActorService>((m, actors) => actors.GetByMovie(m.Id));
                 schemaType.AddField("mainActor", null)
-                    .ResolveWithService<ActorService>((m, actors) => actors.GetFirstActorNameByMovie(m.Id));
+                    .Resolve<ActorService>((m, actors) => actors.GetFirstActorNameByMovie(m.Id));
             });
 
             var gql = new QueryRequest

@@ -111,7 +111,7 @@ namespace EntityGraphQL.Tests
             schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people")
                 .UseFilter();
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+                .Resolve<AgeService>((person, ager) => ager.GetAge(person.Birthday));
             var gql = new QueryRequest
             {
                 Query = @"{

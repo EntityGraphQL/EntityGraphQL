@@ -4,6 +4,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Tests
 {
@@ -132,6 +133,7 @@ namespace EntityGraphQL.Tests
         public string Name { get; set; }
         public int Type { get; set; }
         public Location Location { get; set; }
+        [UseAggregate]
         public IEnumerable<Task> Tasks { get; set; }
         public Person Owner { get; set; }
         public int CreatedBy { get; set; }
@@ -155,6 +157,8 @@ namespace EntityGraphQL.Tests
         public bool IsActive { get; set; }
         public Person Assignee { get; set; }
         public Project Project { get; set; }
+        public float HoursEstimated { get; set; }
+        public float HoursCompleted { get; set; }
     }
     public class Location
     {
