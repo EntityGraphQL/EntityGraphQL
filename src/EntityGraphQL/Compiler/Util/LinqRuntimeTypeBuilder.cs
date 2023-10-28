@@ -34,12 +34,12 @@ namespace EntityGraphQL.Compiler.Util
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static Type GetDynamicType(Dictionary<string, Type> fields, string description, Type? parentType = null)
+        public static Type GetDynamicType(Dictionary<string, Type> fields, string description, Type? parentType = null, Type[]? interfaces = null, Action<TypeBuilder>? build = null)
         {
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
-          
-            string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
+
+            string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode() + (interfaces != null ? string.Join("_", interfaces.Select(i => i.Name.GetHashCode())) : "");
             lock (typesByFullName)
             {
                 if (!typesByFullName.ContainsKey(classFullName))
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler.Util
                 if (builtTypes.ContainsKey(classId))
                     return builtTypes[classId];
 
-                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable, parentType);
+                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable, parentType, interfaces);
 
                 foreach (var field in fields)
                 {
@@ -60,6 +60,8 @@ namespace EntityGraphQL.Compiler.Util
 
                     typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
                 }
+
+                build?.Invoke(typeBuilder);
 
                 builtTypes[classId] = typeBuilder.CreateTypeInfo()!.AsType();
                 return builtTypes[classId];
