@@ -4,7 +4,7 @@
 
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
 
-Jump into the [https://entitygraphql.github.io/](https://entitygraphql.github.io/) for documentation and to get started.
+Head to [entitygraphql.github.io](https://entitygraphql.github.io/) for documentation and to get started.
 
 EntityGraphQL is a .NET library that allows you to easily build a [GraphQL API](https://graphql.org/learn/) on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
 
@@ -28,14 +28,6 @@ _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IE
 
 ```c#
 public class DemoContext : DbContext {
-  public DemoContext(DbContextOptions options) : base(options)
-  {
-  }
-
-  protected override void OnModelCreating(ModelBuilder builder) {
-    // Set up your relations
-  }
-
   public DbSet<Property> Properties { get; set; }
   public DbSet<PropertyType> PropertyTypes { get; set; }
   public DbSet<Location> Locations { get; set; }
