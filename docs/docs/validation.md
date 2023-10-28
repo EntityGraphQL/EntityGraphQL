@@ -40,14 +40,14 @@ This service needs to be registered in your service provider. You can always imp
 // In your Startup.cs
 services.AddGraphQLValidator(); // with EntityGraphQL.AspNet
 
-// Or without / or you own implementation
-services.AddScoped<IGraphQLValidator, GraphQLValidator>();
+// Or with your own implementation
+services.AddScoped<IGraphQLValidator, MyGraphQLValidator>();
 
 // your mutation
 public class MovieMutations
 {
   [GraphQLMutation]
-  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, GraphQLValidator validator)
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
   {
     if (string.IsNullOrEmpty(args.Name))
       validator.AddError("Name argument is required");
@@ -223,7 +223,7 @@ Errors often can be useful for end users. Other times they are for the developer
 public class MovieMutations
 {
   [GraphQLMutation]
-  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, GraphQLValidator validator)
+  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
   {
     if (string.IsNullOrEmpty(args.Name))
       validator.AddError("Name argument is required", new Dictionary<string, object> {{"type", 1}});
