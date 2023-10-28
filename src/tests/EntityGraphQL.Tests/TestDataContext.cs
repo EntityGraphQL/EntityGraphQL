@@ -133,7 +133,6 @@ namespace EntityGraphQL.Tests
         public string Name { get; set; }
         public int Type { get; set; }
         public Location Location { get; set; }
-        [UseAggregate]
         public IEnumerable<Task> Tasks { get; set; }
         public Person Owner { get; set; }
         public int CreatedBy { get; set; }
