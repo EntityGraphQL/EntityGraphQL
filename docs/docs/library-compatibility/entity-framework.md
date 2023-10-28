@@ -82,7 +82,7 @@ You'll note that EntityGraphQL doesn't care what the context is. It could be a o
 
 Other ORMs built on top of `LinqProvider` and `IQueryable` should also work although have not been tested.
 
-## How EntityGraphQL handles services / Resolve<TService>()
+## How EntityGraphQL handles services / Resolve&lt;TService&gt;()
 
 Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `Resolve<TService>()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate the services used in `Resolve<TService>()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
 
@@ -128,7 +128,7 @@ var dbResult = dbResultFunc(dbContext); // executes the expression
 
 // note dbResult is an anonymous type known at runtime
 var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
-    age = ager.GetAge(p.p_Birthday)), // passing in data we selected just for this
+    age = ager.GetAge(p.p_Birthday), // passing in data we selected just for this
     manager = p.manager // simple selection from the previous result
 })
 .ToList();
