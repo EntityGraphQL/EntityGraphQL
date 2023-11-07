@@ -224,6 +224,28 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         }
 
         [Theory]
+        [InlineData("\"3145-00-15T00:00:00\"")]
+        [InlineData("\"2023-01-15T24:00:00\"")]
+        [InlineData("\"2023-01-15T23:60:00\"")]
+        [InlineData("\"2023-01-15T23:59:60\"")]
+        public void TestEntityQueryFailsOnInvalidDate(string dateValue)
+        {
+            var schemaProvider = SchemaBuilder.FromObject<Entry>();
+            schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
+            var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider);
+            var list = new List<Entry> {
+                new Entry("First") {
+                    When = new DateTime(2020, 08, 10)
+                },
+            };
+            Assert.Single(list);
+            var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+
+            var exception = Assert.Throws<FormatException>(() => results.ToList());
+            Assert.Equal($"The DateTime represented by the string '{dateValue.Trim('"')}' is not supported in calendar 'System.Globalization.GregorianCalendar'.", exception.Message);
+        }
+
+        [Theory]
         [InlineData("\"2020-08-11T13:22:11\"")]
         [InlineData("\"2020-08-11 13:22:11\"")]
         [InlineData("\"2020-08-11 13:22:11.1\"")]
@@ -286,14 +308,14 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesEnum3()
         {
-            
+
 
             var schema = SchemaBuilder.FromObject<TestSchema>();
             var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema);
             var res = (IEnumerable<Person>)exp.Execute(new TestSchema
             {
                 People = new List<Person> {
-                    new Person {                        
+                    new Person {
                         Gender = Gender.Female
                     },
                     new Person {
@@ -311,7 +333,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.AddEnum("Size", typeof(Size), "");
-            
+
             Assert.Throws<InvalidOperationException>(() =>
             {
                 var exp = EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema);

@@ -40,6 +40,48 @@ If you have a query like
 
 Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
 
+## Fixes
+- #319 - Only convert strings to `Guid` or `DateTime` when required
+- If you add a field connecting back to the Query Context that ends in a method to go from a list to a single result the graph object projection will now correctly be inserted before the last call. Example
+
+```c#
+var schema = SchemaBuilder.FromObject<MyContext>();
+schema.AddType<ExternalData>("ExternalData").AddAllFields();
+
+schema.UpdateType<ExternalData>(ed =>
+{
+    // connect back to the MyContext types
+    ed.AddField("movie", "Get movie")
+      // here FirstOrDefault() goes from list -> single
+      .ResolveWithService<MyContext>((ed, db) => db.Movies.Where(m => m.Id == ed.Id).FirstOrDefault());
+});
+
+schema.Query().AddField("externalData", "Get Data")
+    .ResolveWithService<ExternalDataService>((p, srv) => srv.GetData());
+```
+
+In the above case if you select 
+
+```gql
+{
+  externalData {
+    movie { director { name } }
+  }
+}
+```
+
+The movie field will have the selection inserted allowing EF to resolve fields without lazy loading turned on. Without this the `m.Director.Name` would also be `null` as no relation was included. e.g.
+
+```cs
+db.Movies.Where(m => m.Id == ed.Id)
+.Select(m => new [
+  director = new {
+    name = m.Director.Name
+  }
+])
+.FirstOrDefault();
+```
+
 # 5.0.1
 
 ## Fixes

@@ -43,7 +43,7 @@ namespace EntityGraphQL.Tests.IQueryableTests
             var serviceProvider = serviceCollection.BuildServiceProvider();
             data.Database.EnsureCreated();
             data.Movies.AddRange(
-                new Movie { Id = 10, Name = "A New Hope", Actors = new List<Actor> { new Actor { Id = 1, Name = "Alec Guinness" }, new Actor { Id = 2, Name = "Mark Hamill" } } });
+                new Movie { Id = 10, Name = "A New Hope", Actors = new List<Actor> { new() { Id = 1, Name = "Alec Guinness" }, new() { Id = 2, Name = "Mark Hamill" } } });
             data.SaveChanges();
 
             var res = schema.ExecuteRequest(gql, serviceProvider, null);
@@ -88,6 +88,61 @@ namespace EntityGraphQL.Tests.IQueryableTests
             var res = schema.ExecuteRequest(gql, serviceProvider, null);
             Assert.Null(res.Errors);
             var movies = (dynamic)res.Data["movies"];
+        }
+
+        [Fact]
+        public void TestServiceBackToDbManyToOne()
+        {
+            // { serviceField { dbField { childField { field } } } }
+            var schema = SchemaBuilder.FromObject<TestDbContext>();
+            schema.AddType<ProjectConfig>("Config").AddAllFields();
+
+            schema.UpdateType<ProjectConfig>(config =>
+            {
+                // connect back to the main query types
+                config.AddField("movie", "Get movie")
+                    .ResolveWithService<TestDbContext>((c, db) => db.Movies.Where(m => m.Id == c.Id).FirstOrDefault());
+            });
+
+            schema.Query().AddField("configs", "Get configs")
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(3, 100))
+                .IsNullable(false);
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    configs {
+                        id
+                        movie {
+                            director { name }
+                        }
+                    }
+                 }"
+            };
+
+            var serviceCollection = new ServiceCollection();
+            using var factory = new TestDbContextFactory();
+            var data = factory.CreateContext();
+            serviceCollection.AddTransient((sp) => factory.CreateContext());
+            serviceCollection.AddSingleton(new ConfigService());
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+            data.Directors.AddRange(
+                new Director { Id = 31, Name = "George Lucas" },
+                new Director { Id = 32, Name = "George Lucas1" },
+                new Director { Id = 33, Name = "George Lucas2" });
+            data.Movies.AddRange(
+                new Movie { Id = 100, Name = "A New Hope", DirectorId = 31 },
+                new Movie { Id = 101, Name = "A New Hope1", DirectorId = 32 },
+                new Movie { Id = 102, Name = "A New Hope2", DirectorId = 33 });
+            data.SaveChanges();
+
+            var res = schema.ExecuteRequest(gql, serviceProvider, null);
+            Assert.Null(res.Errors);
+            var configs = (dynamic)res.Data["configs"];
+            // If correctly loaded by EF these should not be null
+            // select should be inserted before the .FirstOrDefault()
+            Assert.NotNull(configs[0].movie.director);
+            Assert.NotNull(configs[1].movie.director);
+            Assert.NotNull(configs[2].movie.director);
         }
 
         private static void AddExternalIdentifierProperty<TEntityType>(SchemaProvider<TestDbContext> schema) where TEntityType : IEntityWithId

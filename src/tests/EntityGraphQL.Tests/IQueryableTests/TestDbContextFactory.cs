@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
-using EntityGraphQL.Tests.IQueryableTests;
 using Microsoft.Data.Sqlite;
 
 namespace EntityGraphQL.Tests.IQueryableTests;
