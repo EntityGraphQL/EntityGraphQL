@@ -606,7 +606,7 @@ namespace EntityGraphQL.Compiler.Util
         }
 
         /// <summary>
-        /// DO NOT REMOVE. Used at runtuime.
+        /// Used at runtuime.
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
         /// <param name="nullCheck">Object that we build the select on. Check if it is null first</param>

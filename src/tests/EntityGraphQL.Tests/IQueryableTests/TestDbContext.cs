@@ -9,6 +9,7 @@ namespace EntityGraphQL.Tests.IQueryableTests
         public TestDbContext(DbContextOptions<TestDbContext> options) : base(options) { }
 
         public DbSet<Actor> Actors { get; set; }
+        public DbSet<Director> Directors { get; set; }
         public DbSet<Movie> Movies { get; set; }
         public DbSet<ExternalIdentifier> ExternalIdentifiers { get; internal set; }
     }
@@ -32,11 +33,18 @@ namespace EntityGraphQL.Tests.IQueryableTests
         public string Name { get; set; }
     }
 
+    internal class Director : IEntityWithId
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
     internal class Movie : IEntityWithId
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public int DirectorId { get; set; }
+        public int? DirectorId { get; set; }
+        public Director Director { get; set; }
         public DateTime Released { get; set; }
         public List<Actor> Actors { get; set; }
     }

@@ -1712,7 +1712,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("configs", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(p.Id))
+                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(p.Id, 0))
                 .IsNullable(false);
 
             schema.Query().ReplaceField("project",
@@ -2097,10 +2097,19 @@ namespace EntityGraphQL.Tests
                 CallCount += 1;
                 return null;
             }
-            public ProjectConfig[] GetList(int id)
+            public ProjectConfig[] GetList(int count, int from = 0)
             {
                 CallCount += 1;
-                return Array.Empty<ProjectConfig>();
+                var configs = new List<ProjectConfig>();
+                for (int i = from; i < from + count; i++)
+                {
+                    configs.Add(new ProjectConfig
+                    {
+                        Id = i,
+                        Type = $"Something {i}"
+                    });
+                }
+                return configs.ToArray();
             }
 
             public int GetHalfInt(int value)
@@ -2259,6 +2268,7 @@ namespace EntityGraphQL.Tests
 
     public class ProjectConfig
     {
+        public int Id { get; set; }
         public string Type { get; set; }
     }
 }

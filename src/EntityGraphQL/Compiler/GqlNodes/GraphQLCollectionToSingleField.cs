@@ -56,19 +56,11 @@ namespace EntityGraphQL.Compiler
         protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? exp;
-            // this is a first pass || just a single pass
-            if (withoutServiceFields || !HasAnyServices(fragments) && isRoot)
-            {
-                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, replacer);
-            }
-            else
-            {
-                // second / last pass
+            // second / last pass
+            if (contextChanged)
                 exp = objectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
-            }
-
-            if (exp == null)
-                return null;
+            else
+                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, replacer);
 
             return exp;
         }
