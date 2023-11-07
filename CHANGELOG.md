@@ -1,3 +1,10 @@
+# 5.1.1
+
+## Fixes
+
+- #319 - Only convert strings to `Guid` or `DateTime` when required
+
+
 # 5.1.0
 
 ## Changes

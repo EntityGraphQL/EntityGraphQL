@@ -1,7 +1,6 @@
 using System;
 using System.Linq.Expressions;
 using EntityQL.Grammer;
-using System.Text.RegularExpressions;
 using System.Globalization;
 using EntityGraphQL.Schema;
 using System.Linq;
@@ -13,8 +12,6 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     internal class ConstantVisitor : EntityQLBaseVisitor<Expression?>
     {
-        public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
-        public static readonly Regex DateTimeRegex = new("^[0-9]{4}[-][0-9]{2}[-][0-9]{2}([T ][0-9]{2}[:][0-9]{2}[:][0-9]{2}(\\.[0-9]{1,7})?([-+][0-9]{3})?)?$", RegexOptions.IgnoreCase);
         private readonly ISchemaProvider? schema;
 
         public ConstantVisitor(ISchemaProvider? schema)
@@ -42,13 +39,8 @@ namespace EntityGraphQL.Compiler
         public override Expression? VisitString(EntityQLParser.StringContext context)
         {
             // we may need to convert a string into a DateTime or Guid type
+            // this will happen later in the use of this requires that type
             string value = context.GetText()[1..^1].Replace("\\\"", "\"");
-            if (GuidRegex.IsMatch(value))
-                return Expression.Constant(Guid.Parse(value));
-
-            if (DateTimeRegex.IsMatch(value))
-                return Expression.Constant(DateTime.Parse(value, CultureInfo.InvariantCulture));
-
             return Expression.Constant(value);
         }
 

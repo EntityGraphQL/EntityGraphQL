@@ -5,6 +5,7 @@ using EntityQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
@@ -106,6 +107,10 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private static Expression ConvertToGuid(Expression expression)
         {
             return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")!));
+        }
+        private static Expression ConvertToDateTime(Expression expression)
+        {
+            return Expression.Call(typeof(DateTime), "Parse", null, expression, Expression.Constant(CultureInfo.InvariantCulture));
         }
 
         public override Expression VisitExpr(EntityQLParser.ExprContext context)
@@ -229,6 +234,19 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 right = Expression.Convert(right, left.Type);
             else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
                 left = Expression.Convert(left, right.Type);
+
+            if (left.Type != right.Type)
+            {
+                if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
+                    right = ConvertToGuid(right);
+                else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
+                    left = ConvertToGuid(left);
+
+                if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                    right = ConvertToDateTime(right);
+                else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
+                    left = ConvertToDateTime(left);
+            }
 
             return Expression.MakeBinary(op, left, right);
         }
