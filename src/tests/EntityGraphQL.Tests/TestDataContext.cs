@@ -4,6 +4,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Tests
 {
@@ -15,13 +16,13 @@ namespace EntityGraphQL.Tests
     public class TestDataContext
     {
         [GraphQLIgnore]
-        private IEnumerable<Project> projects = new List<Project>();
+        private List<Project> projects = new List<Project>();
 
         public int TotalPeople => People.Count;
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
-        public IEnumerable<Project> Projects { get => projects; set => projects = value; }
-        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value; }
+        public List<Project> Projects { get => projects; set => projects = value; }
+        public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value.ToList(); }
         public virtual IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         public List<Location> Locations { get; set; } = new List<Location>();
         public virtual List<Person> People { get; set; } = new List<Person>();
@@ -131,6 +132,7 @@ namespace EntityGraphQL.Tests
         public string Name { get; set; }
         public int Type { get; set; }
         public Location Location { get; set; }
+        [UseAggregate]
         public IEnumerable<Task> Tasks { get; set; }
         public Person Owner { get; set; }
         public int CreatedBy { get; set; }
@@ -154,6 +156,7 @@ namespace EntityGraphQL.Tests
         public bool IsActive { get; set; }
         public Person Assignee { get; set; }
         public Project Project { get; set; }
+        public int HoursEstimated { get; set; }
     }
     public class Location
     {
