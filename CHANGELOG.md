@@ -2,11 +2,6 @@
 
 ## Changes
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
-
-# 5.1.0
-
-## Changes
-- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
 - Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
 
@@ -44,6 +39,11 @@ If you have a query like
 ```
 
 Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
+
+# 5.1.0
+
+## Changes
+- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
 
 ## Fixes
 - #319 - Only convert strings to `Guid` or `DateTime` when required
