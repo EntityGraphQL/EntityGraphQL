@@ -182,8 +182,11 @@ namespace EntityGraphQL.Compiler
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
                     var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
 
+                    // core context data is fetched. Now fetch all the bulk resolvers
+                    var bulkData = ResolveBulkLoaders(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
+
                     // new context
-                    compileContext = new();
+                    compileContext = new(bulkData);
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
@@ -200,6 +203,40 @@ namespace EntityGraphQL.Compiler
 
             var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node, true);
             return data;
+        }
+
+        private static Dictionary<string, object> ResolveBulkLoaders(CompileContext compileContext, IServiceProvider? serviceProvider, BaseGraphQLField node, object? runningContext, ParameterReplacer replacer, ParameterExpression newContextType)
+        {
+            var bulkData = new Dictionary<string, object>();
+            if (compileContext.BulkResolvers?.Any() == true)
+            {
+                foreach (var bulkResolver in compileContext.BulkResolvers)
+                {
+                    // rebuild list expression on new context
+                    var listExpression = replacer.Replace(bulkResolver.ListExpression, node.Field!.ResolveExpression!, newContextType);
+                    var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
+                    // replace the data selection expression with the new context
+                    var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false);
+                    var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
+                    var selectionLambda = Expression.Lambda(selection, newParam);
+                    selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), new Type[] { newParam.Type, selection.Type }, listExpression, selectionLambda);
+
+                    var bulkDataArgs = Expression.Lambda(selection, newContextType).Compile().DynamicInvoke(new[] { runningContext });
+                    var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
+                    var allArgs = new List<object?> { bulkDataArgs };
+                    var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
+                    if (compileContext.ConstantParameters.Any())
+                    {
+                        parameters.AddRange(compileContext.ConstantParameters.Keys);
+                        allArgs.AddRange(compileContext.ConstantParameters.Values);
+                    }
+
+                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke(allArgs.ToArray())!;
+                    bulkData[bulkResolver.Name] = dataLoaded;
+                }
+            }
+
+            return bulkData;
         }
 
         private static async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node, bool isFinal)
@@ -230,6 +267,12 @@ namespace EntityGraphQL.Compiler
             {
                 var returnType = typeof(List<>).MakeGenericType(expression.Type.GetEnumerableOrArrayType()!);
                 expression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { expression.Type.GetEnumerableOrArrayType()! }, expression, Expression.Constant(node.Field!.ReturnType.TypeNotNullable));
+            }
+
+            if (compileContext.BulkData != null)
+            {
+                parameters.Add(compileContext.BulkParameter!);
+                allArgs.Add(compileContext.BulkData);
             }
 
             if (options.BeforeExecuting != null)

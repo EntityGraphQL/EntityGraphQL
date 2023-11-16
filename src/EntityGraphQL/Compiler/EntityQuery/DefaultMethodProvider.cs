@@ -27,13 +27,6 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   string.endsWith(string)
     ///   string.toLower()
     ///   string.toUpper()
-    ///
-    ///   TODO:
-    ///   List.select(field, ...)?
-    ///   List.isBelow(primary_key)
-    ///   List.isAtOrBelow(primary_key)
-    ///   List.isAbove(primary_key)
-    ///   List.isAtOrAbove(primary_key)
     /// </summary>
     public class DefaultMethodProvider : IMethodProvider
     {

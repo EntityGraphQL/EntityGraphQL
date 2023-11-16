@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -31,6 +30,14 @@ namespace EntityGraphQL.Compiler
 
             foreach (var field in QueryFields)
             {
+                if (field.Field?.BulkResolver != null)
+                {
+                    if (withoutServiceFields)
+                    {
+                        // This is where we have the information to build the bulk resolver data loading expression
+                        var newArgParam = HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
+                    }
+                }
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
@@ -42,6 +49,7 @@ namespace EntityGraphQL.Compiler
                     {
                         actualNextFieldContext = subField.RootParameter;
                     }
+
                     var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, false, contextChanged, replacer);
                     if (fieldExp == null)
                         continue;
@@ -68,6 +76,12 @@ namespace EntityGraphQL.Compiler
             }
 
             return selectionFields;
+        }
+
+        protected virtual ParameterExpression? HandleBulkResolverForField(CompileContext compileContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
+        {
+            // default do nothing
+            return field.Field?.ArgumentsParameter;
         }
     }
 }

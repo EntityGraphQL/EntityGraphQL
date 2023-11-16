@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests
                 .UseSort()
                 .UseOffsetPaging();
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>(
+                .Resolve<AgeService>(
                     // use a filed not another relation/entity
                     (person, ager) => ager.GetAge(person.Birthday)
                 );
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Tests
                 .UseSort()
                 .UseConnectionPaging();
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>(
+                .Resolve<AgeService>(
                     // use a filed not another relation/entity
                     (person, ager) => ager.GetAge(person.Birthday)
                 );
@@ -199,7 +199,7 @@ namespace EntityGraphQL.Tests
                 .UseConnectionPaging(defaultPageSize: 2);
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
             schema.Type<Task>().AddField("config", "Task config")
-                .ResolveWithService<ConfigService>((t, srv) => srv.Get(t.Id));
+                .Resolve<ConfigService>((t, srv) => srv.Get(t.Id));
             var gql = new QueryRequest
             {
                 Query = @"{

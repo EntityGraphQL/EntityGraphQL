@@ -20,7 +20,7 @@ namespace EntityGraphQL.Tests.IQueryableTests
             schema.AddType<ProjectConfig>("Config").AddAllFields();
 
             schema.Type<Movie>().AddField("config", "Get configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id))
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id))
                 .IsNullable(false);
             schema.Type<Movie>().AddField("mainActor", p => p.Actors.FirstOrDefault(), "Actor");
 
@@ -152,7 +152,7 @@ namespace EntityGraphQL.Tests.IQueryableTests
                 {
                     externalIdName = default(string)
                 }, "External IDs")
-                .ResolveWithService<TestDbContext>((movie, args, context) =>
+                .Resolve<TestDbContext>((movie, args, context) =>
                     context.ExternalIdentifiers
                         .WhereWhen(ei => ei.ExternalIdName == args.externalIdName, !string.IsNullOrWhiteSpace(args.externalIdName))
                         .Where(ei => ei.EntityName == context.GetEntityTableName<TEntityType>() && ei.EntityId == movie.Id)

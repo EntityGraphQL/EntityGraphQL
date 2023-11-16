@@ -239,6 +239,24 @@ namespace EntityGraphQL.Compiler
             return nextFieldContext;
         }
 
+        protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
+        {
+            if (Field?.BulkResolver != null)
+            {
+                if (!withoutServiceFields)
+                {
+                    // we replace the expression with a lookup in the bulk resolver data
+                    // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
+                    var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
+                    var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
+                    nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
+                    nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
+                }
+            }
+
+            return nextFieldContext;
+        }
+
         public override int GetHashCode()
         {
             return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;

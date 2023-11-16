@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler.Util
     {
         private Expression? newParam;
         private Type? toReplaceType;
-        private ParameterExpression? toReplace;
+        private Expression? toReplace;
         private bool finished;
         private bool replaceWholeExpression;
         private string? newFieldNameForType;
@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="newParam"></param>
         /// <param name="newFieldName"></param>
         /// <returns></returns>
-        public Expression Replace(Expression node, ParameterExpression toReplace, Expression newParam, bool replaceWholeExpression = false)
+        public Expression Replace(Expression node, Expression toReplace, Expression newParam, bool replaceWholeExpression = false)
         {
             this.newParam = newParam;
             this.toReplace = toReplace;
@@ -97,6 +97,9 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMember(MemberExpression node)
         {
+            if (node == toReplace)
+                return newParam!;
+
             // returned expression may have been modified and we need to rebuild
             if (node.Expression != null)
             {

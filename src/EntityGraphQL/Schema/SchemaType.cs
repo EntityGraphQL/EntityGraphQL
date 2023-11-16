@@ -153,7 +153,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        /// Add a field definition. Use the Resolve<>() chain method to build the resolve expression. This lets you add dependencies on other services
         /// Throws an exception if the field already exists
         /// </summary>
         /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field with arguments. Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        /// Add a field with arguments. Add a field definition. Use the Resolve<>() chain method to build the resolve expression. This lets you add dependencies on other services
         ///     field(arg: val)
         /// Throws an exception if the field already exists
         /// </summary>

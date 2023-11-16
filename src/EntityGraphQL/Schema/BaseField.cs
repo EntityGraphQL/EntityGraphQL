@@ -30,7 +30,7 @@ namespace EntityGraphQL.Schema
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
         public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
         public bool ArgumentsAreInternal { get; internal set; }
-        public IEnumerable<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
+        public List<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
         public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
         public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
@@ -39,6 +39,11 @@ namespace EntityGraphQL.Schema
 
         protected List<ISchemaDirective> Directives { get; set; } = new();
         protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
+
+        /// <summary>
+        /// Expressions used to resolve the field in a bulk fashion. This is used for optimising the number of calls to the underlying data source.
+        /// </summary>
+        public IBulkFieldResolver? BulkResolver { get; protected set; }
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {

@@ -48,10 +48,9 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
+            var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext);
             if (HasServices && withoutServiceFields)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
-
-            var nextFieldContext = NextFieldContext;
 
             if (contextChanged && replacementNextFieldContext != null)
             {

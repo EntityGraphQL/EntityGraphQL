@@ -336,7 +336,7 @@ query {
             schema.UpdateType<Project>(x =>
             {
                 x.AddField("sum", "").Resolve(y => y.Tasks.Count());
-                x.AddField("test", "").ResolveWithService<TestDataContext>((y, db) => y.Updated.Value.AddDays(3));
+                x.AddField("test", "").Resolve<TestDataContext>((y, db) => y.Updated.Value.AddDays(3));
             });
 
             var testSchema = new TestDataContext()
@@ -394,7 +394,7 @@ query {
 
             int v = 0;
             var func = () => { return v++; };
-            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+            schema.Query().AddField("test", "").Resolve<TestDataContext>((y, db) => func());
 
             var testSchema = new TestDataContext()
             {
@@ -424,7 +424,7 @@ query {
 
             int v = 0;
             var func = () => { v++; return new List<int>(); };
-            schema.Query().AddField("test", "").ResolveWithService<TestDataContext>((y, db) => func());
+            schema.Query().AddField("test", "").Resolve<TestDataContext>((y, db) => func());
 
             var testSchema = new TestDataContext()
             {

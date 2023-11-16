@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
             schema.Type<Project>().AddField("settings", "Return settings")
-                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
                 .IsNullable(false);
 
             var gql = new QueryRequest
@@ -69,7 +69,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
             schema.Type<Project>().AddField("settings", "Return settings")
-                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
                 .IsNullable(false);
 
             var gql = new QueryRequest

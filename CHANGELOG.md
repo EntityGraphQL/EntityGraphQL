@@ -2,6 +2,43 @@
 
 ## Changes
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
+- Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
+- Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
+
+```cs
+var schema = SchemaBuilder.FromObject<MyContext>();
+schema.UpdateType<Project>(type =>
+{
+    type.ReplaceField("createdBy", "Get user that created it")
+      // normal service to fetch the User object for creator of the Project type
+      .ResolveWithService<UserService>((proj, users) => users.GetUserById(proj.CreatedById))
+      // Bulk service used to fetch many User objects
+      .ResolveBulk<UserService, int, User>(proj => proj.CreatedById, (ids, srv) => srv.GetAllUsers(ids));
+});
+```
+
+If you have a query like
+```graphql
+{
+  # ResolveBulk
+  projects {
+    # project fields
+    name id
+    # service field - resolved with ResolveBulk expression for all Projects loaded
+    createdBy { name }
+  }
+
+  # ResolveWithService
+  project(id: 78) {
+    # project fields
+    name id
+    # service field - resolved with ResolveWithService expression for the single project loaded
+    createdBy { name }
+  }
+}
+```
+
+Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
 
 # 5.1.0
 

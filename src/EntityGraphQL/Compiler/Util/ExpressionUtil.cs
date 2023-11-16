@@ -313,8 +313,8 @@ namespace EntityGraphQL.Compiler.Util
                         var filter = call.Arguments.ElementAt(1);
                         var isQueryable = typeof(IQueryable).IsAssignableFrom(contextExpression.Type);
                         contextExpression = isQueryable ?
-                            MakeCallOnQueryable("Where", new Type[] { combineExpression.Type }, contextExpression, filter) :
-                            MakeCallOnEnumerable("Where", new Type[] { combineExpression.Type }, contextExpression, filter);
+                            MakeCallOnQueryable(nameof(Queryable.Where), new Type[] { combineExpression.Type }, contextExpression, filter) :
+                            MakeCallOnEnumerable(nameof(Enumerable.Where), new Type[] { combineExpression.Type }, contextExpression, filter);
                         // we can first call ToList() as the data is filtered so risk of over fetching is low
                         capMethod = call.Method.Name;
                         collectionSelectionNode.ListExpression = contextExpression;

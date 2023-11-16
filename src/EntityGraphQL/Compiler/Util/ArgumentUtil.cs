@@ -47,7 +47,7 @@ public static class ArgumentUtil
         }
 
         // Build our object
-        var con = argumentsType!.GetConstructors()?[0] ?? throw new EntityGraphQLCompilerException($"Could not find constructor for arguments type {argumentsType.Name}");
+        var con = argumentsType!.GetConstructors()?.FirstOrDefault() ?? throw new EntityGraphQLCompilerException($"Could not find constructor for arguments type {argumentsType.Name}");
         var parameters = con.GetParameters().Select(x => values[x.Name!]).ToArray();
 
         // anonymous objects will have a contructor with taking the properties as arguments

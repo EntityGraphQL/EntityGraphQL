@@ -565,7 +565,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
                     // just need any service here to build the relation testing the use case
-                    .ResolveWithService<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
             });
             var gql = new QueryRequest
             {
@@ -603,7 +603,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
                     // just need any service here to build the relation testing the use case
-                    .ResolveWithService<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
             });
             var gql = new QueryRequest
             {
