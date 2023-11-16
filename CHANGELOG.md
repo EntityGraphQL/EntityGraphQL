@@ -1,3 +1,8 @@
+# 5.2.0
+
+## Changes
+- Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
+
 # 5.1.0
 
 ## Changes

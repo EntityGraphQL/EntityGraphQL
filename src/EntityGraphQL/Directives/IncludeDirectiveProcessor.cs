@@ -15,7 +15,7 @@ namespace EntityGraphQL.Directives
         public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
         {
             if (arguments is null)
-                throw new ArgumentNullException("if", "Argument 'if' is requred for @include directive");
+                throw new EntityGraphQLException("Argument 'if' is requred for @include directive");
             return ((IncludeArguments)arguments).If ? node : null;
         }
     }

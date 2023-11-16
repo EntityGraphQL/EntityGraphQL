@@ -19,8 +19,8 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
-        public bool AllowToList { get; internal set; } = true;
-        public Expression ListExpression { get; internal set; }
+        public bool AllowToList { get; set; } = true;
+        public Expression ListExpression { get; set; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
