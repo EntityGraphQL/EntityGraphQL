@@ -50,6 +50,10 @@ public static class ArgumentUtil
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }
+            catch (EntityGraphQLValidationException)
+            {
+                throw;
+            }
             catch (Exception)
             {
                 validationErrors.Add($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'");

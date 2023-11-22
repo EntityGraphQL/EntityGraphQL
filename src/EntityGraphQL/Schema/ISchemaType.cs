@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Input
         /// </summary>
-        bool IsInput { get; }        
+        bool IsInput { get; }
         /// <summary>
         /// True if GqlType is GqlTypeEnum.Interface
         /// </summary>

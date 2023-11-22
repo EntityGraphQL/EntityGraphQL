@@ -107,6 +107,9 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException"></exception>
         public void Validate(object? val, string fieldName, IList<string> validationErrors)
         {
+            var valType = val?.GetType();
+            if (valType != null && valType.IsGenericType && valType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                val = valType.GetProperty("Value")!.GetValue(val);
             if (requiredAttribute != null && !requiredAttribute.IsValid(val))
                 validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
             else if (IsRequired && val == null && DefaultValue == null)

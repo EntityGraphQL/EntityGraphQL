@@ -1,3 +1,8 @@
+# 4.3.1
+
+## Fixes
+- Fix issue using the `OneOf` directive with `ArgumentHelper.Required<T>()` in a query field argument.
+
 # 4.3.0
 
 ## Changes
