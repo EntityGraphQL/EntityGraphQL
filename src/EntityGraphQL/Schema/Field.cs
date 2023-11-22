@@ -190,7 +190,7 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            GraphQLHelper.ValidateAndReplaceFieldArgs(this, ArgumentsParameter, replacer, ref argumentValue, ref result, validationErrors, newArgParam);
+            GraphQLHelper.ValidateAndReplaceFieldArgs(this, ArgumentsParameter, replacer, ref argumentValue, ref result!, validationErrors, newArgParam);
 
             return (result, newArgParam);
         }

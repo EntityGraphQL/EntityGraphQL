@@ -161,7 +161,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.Equal(1, (int)res.Data["createOneOfInputType"]);
 
