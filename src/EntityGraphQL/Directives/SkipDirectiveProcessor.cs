@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
 {
@@ -10,30 +9,19 @@ namespace EntityGraphQL.Directives
     {
         public override string Name { get => "skip"; }
         public override string Description { get => "Directs the executor to skip this field or fragment when the `if` argument is true."; }
-        public override List<ExecutableDirectiveLocation> On => new() { ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT };
-        public override Expression? ProcessExpression(Expression expression, object? arguments)
+        public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT };
+
+        public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
         {
             if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @skip directive");
-            if (((SkipArguments)arguments).@if)
-                return null;
-            return expression;
+                throw new EntityGraphQLException("Argument 'if' is requred for @skip directive");
+            return !((SkipArguments)arguments).If ? node : null;
         }
-
-        public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments)
-        {
-            if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @skip directive");
-            if (((SkipArguments)arguments).@if)
-                return null;
-            return field;
-        }
-
     }
 
     public class SkipArguments
     {
-        [Description("Excluded when true.")]
-        public bool @if { get; set; }
+        [GraphQLField("if", "Excluded when true.")]
+        public bool If { get; set; }
     }
 }

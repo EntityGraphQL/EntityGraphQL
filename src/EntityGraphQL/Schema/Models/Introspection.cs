@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace EntityGraphQL.Schema.Models
 {
@@ -41,13 +42,13 @@ namespace EntityGraphQL.Schema.Models
 
         // Fields is added dynamically so it is lazily loaded
 
-        public InputValue[] InputFields { get; set; } = new InputValue[0];
+        public InputValue[] InputFields { get; set; } = Array.Empty<InputValue>();
 
-        public TypeElement[] Interfaces { get; set; } = new TypeElement[0];
+        public TypeElement[] Interfaces { get; set; } = Array.Empty<TypeElement>();
 
-        public EnumValue[] EnumValues { get; set; } = new EnumValue[0];
+        public EnumValue[] EnumValues { get; set; } = Array.Empty<EnumValue>();
 
-        public TypeElement[] PossibleTypes { get; set; } = new TypeElement[0];
+        public TypeElement[] PossibleTypes { get; set; } = Array.Empty<TypeElement>();
         public TypeElement? OfType { get; set; }
         public bool OneField { get; set; }
         // may be non-null for custom SCALAR, otherwise null.
@@ -66,7 +67,7 @@ namespace EntityGraphQL.Schema.Models
 
         public string? Description { get; set; }
 
-        public IEnumerable<InputValue> Args { get; set; } = new InputValue[0];
+        public IEnumerable<InputValue> Args { get; set; } = Array.Empty<InputValue>();
 
         public TypeElement Type { get; private set; }
 
@@ -100,9 +101,9 @@ namespace EntityGraphQL.Schema.Models
 
         public string? Description { get; set; }
 
-        public IEnumerable<string> Locations { get; set; } = new string[0];
+        public IEnumerable<string> Locations { get; set; } = Array.Empty<string>();
 
-        public IEnumerable<InputValue> Args { get; set; } = new InputValue[0];
+        public IEnumerable<InputValue> Args { get; set; } = Array.Empty<InputValue>();
     }
 
     public partial class EnumValue

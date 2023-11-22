@@ -53,8 +53,8 @@ namespace EntityGraphQL.Schema.Directives
         {
         }
 
-        public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
-            TypeSystemDirectiveLocation.INPUT_OBJECT
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
+            TypeSystemDirectiveLocation.InputObject
         };
 
         public void ProcessType(Models.TypeElement type)

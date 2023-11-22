@@ -16,9 +16,9 @@ namespace Benchmarks
             var servicesCollection = new ServiceCollection();
             ConfigureServices(servicesCollection);
             Services = servicesCollection.BuildServiceProvider();
-            Schema = Services.GetService<SchemaProvider<BenchmarkContext>>();
+            Schema = Services.GetRequiredService<SchemaProvider<BenchmarkContext>>();
 
-            DataLoader.EnsureDbCreated(Services.GetService<BenchmarkContext>());
+            DataLoader.EnsureDbCreated(Services.GetRequiredService<BenchmarkContext>());
         }
 
         protected virtual SchemaProvider<BenchmarkContext> BuildSchema()
@@ -40,7 +40,7 @@ namespace Benchmarks
 
         protected BenchmarkContext GetContext()
         {
-            return Services.GetService<BenchmarkContext>();
+            return Services.GetRequiredService<BenchmarkContext>();
         }
 
         /// <summary>
@@ -50,9 +50,9 @@ namespace Benchmarks
         /// <param name="query"></param>
         /// <param name="options"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        protected void RunQuery(BenchmarkContext context, QueryRequest query, ExecutionOptions options = null)
+        protected void RunQuery(BenchmarkContext context, QueryRequest query, ExecutionOptions? options = null)
         {
-            var result = Schema.ExecuteRequest(query, context, Services, null, options);
+            var result = Schema.ExecuteRequestWithContext(query, context, Services, null, options);
             if (result.Errors != null)
                 throw new InvalidOperationException("query failed: " + string.Join("\n", result.Errors.Select(m => m.Message)));
         }

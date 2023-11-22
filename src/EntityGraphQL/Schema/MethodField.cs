@@ -11,75 +11,51 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema
 {
-    public class MethodField : BaseField
+    /// <summary>
+    /// Respresents a GraphQL field backed by a method in dotnet. This is used for "controller" type fields. e.g. Mutations and Subscriptions.
+    /// This is not used for query fields.
+    /// 
+    /// The way we execute this field is different to a query field with is built inline to an expression.
+    /// 
+    /// A MethodField is the top level field in a mutation/subscription and maps to a dotnet method. The result is projected back into the query graph.
+    /// </summary>
+    public abstract class MethodField : BaseField
     {
         public override GraphQLQueryFieldType FieldType { get; }
-        protected readonly MethodInfo method;
-        protected readonly bool isAsync;
+        protected MethodInfo Method { get; set; }
+        public bool IsAsync { get; protected set; }
 
-        public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, Func<string, string> fieldNamer, SchemaBuilderMethodOptions options)
+        public MethodField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, SchemaBuilderOptions options)
             : base(schema, fromType, methodName, description, returnType)
         {
-            Services = new List<Type>();
-            this.method = method;
+            Method = method;
             RequiredAuthorization = requiredAuth;
-            this.isAsync = isAsync;
-
-            ArgumentsType = method.GetParameters()
-                .SingleOrDefault(p => p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)?.ParameterType;
-            if (ArgumentsType != null)
+            IsAsync = isAsync;
+            Dictionary<string, Type> flattenedTypes;
+            foreach (var item in SchemaBuilder.GetGraphQlSchemaArgumentsFromMethod(schema, method, options, out flattenedTypes))
             {
-                foreach (var item in ArgumentsType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
-                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.PropertyType);
+                if (item.IsService)
+                    // services are not arguments in the schema
+                    // We do not add service to BaseField.Services as this MethodField is used for mutations/subscriptions
+                    // that make this method call then make a query on the result.
+                    // BaseField.Services are for fields in a query result
+                    // Services will be injected for us below in CallAsync
+                    continue;
 
-                }
-                foreach (var item in ArgumentsType.GetFields(BindingFlags.Instance | BindingFlags.Public))
+                if (item.ShouldFlatten)
                 {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-                    Arguments.Add(fieldNamer(item.Name), ArgType.FromField(schema, item, null));
-                    AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.FieldType);
+                    foreach (var f in item.FlattenArgs!)
+                    {
+                        Arguments.Add(f.ArgName, f.ArgType!);
+                    }
                 }
+                else
+                    Arguments.Add(item.ArgName, item.ArgType!);
             }
-            else
-            {
-                foreach (var item in method.GetParameters())
-                {
-                    if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
-                        continue;
-
-                    var inputType = item.ParameterType.GetEnumerableOrArrayType() ?? item.ParameterType;
-
-                    if (inputType == typeof(GraphQLValidator))
-                    {
-                        continue;
-                    }
-
-                    if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
-                    {
-                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, inputType);
-                    }
-                    if (item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum)))
-                    {
-                        Arguments.Add(fieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue));
-                        AddInputTypesInArguments(schema, options.AutoCreateInputTypes, item.ParameterType);
-                    }
-                }
-            }
+            ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
         }
 
-        private static void AddInputTypesInArguments(ISchemaProvider schema, bool autoAddInputTypes, Type propType)
-        {
-            var inputType = propType.GetEnumerableOrArrayType() ?? propType;
-            if (autoAddInputTypes && !schema.HasType(inputType))
-                schema.AddInputType(inputType, inputType.Name, null).AddAllFields();
-        }
-
-        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
+        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
         {
             if (context == null)
                 return null;
@@ -91,11 +67,12 @@ namespace EntityGraphQL.Schema
             var validationErrors = new List<string>();
 
             // add parameters and any DI services
-            foreach (var p in method.GetParameters())
+            foreach (var p in Method.GetParameters())
             {
-                if (p.GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null || p.ParameterType.GetTypeInfo().GetCustomAttribute(typeof(GraphQLArgumentsAttribute)) != null)
+                if (p.GetCustomAttribute<GraphQLArgumentsAttribute>() != null || p.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>() != null)
                 {
-                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, ArgumentsType, variableParameter, docVariables, validationErrors)!;
+                    // need to map GQL args to the GraphQLArguments object - p.ParameterType
+                    argInstance = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, gqlRequestArgs ?? new Dictionary<string, object>(), Arguments.Values, p.ParameterType, variableParameter, docVariables, validationErrors)!;
                     allArgs.Add(argInstance);
                 }
                 else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
@@ -104,9 +81,9 @@ namespace EntityGraphQL.Schema
                     var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     if (docVariables != null)
                     {
-                        if (value is Expression)
+                        if (value is Expression and not null)
                         {
-                            value = Expression.Lambda(value as Expression, variableParameter).Compile().DynamicInvoke(new[] { docVariables });
+                            value = Expression.Lambda((Expression)value, variableParameter!).Compile().DynamicInvoke(new[] { docVariables });
                         }
                     }
                     // this could be int to RequiredField<int>
@@ -124,33 +101,25 @@ namespace EntityGraphQL.Schema
                 {
                     allArgs.Add(context);
                 }
-                // todo we should put this in the IServiceCollection actually...
-                else if (p.ParameterType == typeof(GraphQLValidator))
-                {
-                    allArgs.Add(validator);
-                }
                 else if (serviceProvider != null)
                 {
-                    var service = serviceProvider.GetService(p.ParameterType);
-                    if (service == null)
-                    {
-                        throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {method.Name}");
-                    }
+                    var service = serviceProvider.GetService(p.ParameterType) ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                     allArgs.Add(service);
-                } else
+                }
+                else
                 {
                     var argField = Arguments[p.Name!];
-                    if(argField.DefaultValue != null)
+                    if (argField.DefaultValue != null)
                     {
                         allArgs.Add(argField.DefaultValue);
                     }
                 }
             }
 
-            if (argumentValidators.Count > 0)
+            if (ArgumentValidators.Count > 0)
             {
-                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, method);
-                foreach (var argValidator in argumentValidators)
+                var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, Method);
+                foreach (var argValidator in ArgumentValidators)
                 {
                     argValidator(validatorContext);
                 }
@@ -173,20 +142,20 @@ namespace EntityGraphQL.Schema
             if (instance == null)
             {
                 instance = serviceProvider != null ?
-                    ActivatorUtilities.CreateInstance(serviceProvider, method.DeclaringType!) :
-                    Activator.CreateInstance(method.DeclaringType!);
+                    ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) :
+                    Activator.CreateInstance(Method.DeclaringType!);
             }
 
             object? result;
-            if (isAsync)
+            if (IsAsync)
             {
-                result = await (dynamic?)method.Invoke(instance, allArgs.Any() ? allArgs.ToArray() : null);
+                result = await (dynamic?)Method.Invoke(instance, allArgs.Any() ? allArgs.ToArray() : null);
             }
             else
             {
                 try
                 {
-                    result = method.Invoke(instance, allArgs.ToArray());
+                    result = Method.Invoke(instance, allArgs.ToArray());
                 }
                 catch (TargetInvocationException ex)
                 {
@@ -202,7 +171,7 @@ namespace EntityGraphQL.Schema
         {
             var result = fieldExpression;
 
-            if (schemaContext != null)
+            if (schemaContext != null && result != null)
             {
                 result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
             }

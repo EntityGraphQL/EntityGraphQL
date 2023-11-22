@@ -5,6 +5,7 @@ using EntityQL.Grammer;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
@@ -25,11 +26,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
             this.constantVisitor = new ConstantVisitor(schemaProvider);
         }
 
+        public override Expression VisitEqlStart(EntityQLParser.EqlStartContext context)
+        {
+            return Visit(context.expr);
+        }
+
         public override Expression VisitBinary(EntityQLParser.BinaryContext context)
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
-            var op = MakeOperator(context.op.GetText());
+            var op = MakeOperator(context.op.Text);
             // we may need to do some converting here
             if (left.Type != right.Type)
             {
@@ -55,7 +61,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         {
             var left = Visit(context.left);
             var right = Visit(context.right);
-            var op = MakeOperator(context.op.GetText());
+            var op = MakeOperator(context.op.Text);
             // we may need to do some converting here
             if (left.Type != right.Type)
             {
@@ -77,7 +83,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return Expression.MakeBinary(op, left, right);
         }
 
-        private Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
+        private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
         {
             var convertedToSameTypes = false;
 
@@ -101,6 +107,10 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private static Expression ConvertToGuid(Expression expression)
         {
             return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")!));
+        }
+        private static Expression ConvertToDateTime(Expression expression)
+        {
+            return Expression.Call(typeof(DateTime), "Parse", null, expression, Expression.Constant(CultureInfo.InvariantCulture));
         }
 
         public override Expression VisitExpr(EntityQLParser.ExprContext context)
@@ -166,9 +176,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public override Expression VisitConstant(EntityQLParser.ConstantContext context)
         {
-            var result = constantVisitor.VisitConstant(context);
-            if (result == null)
-                throw new EntityGraphQLCompilerException($"Could not compile constant {context.GetText()}");
+            var result = constantVisitor.VisitConstant(context) ?? throw new EntityGraphQLCompilerException($"Could not compile constant {context.GetText()}");
             return result;
         }
 
@@ -201,7 +209,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             // Compile the arguments with the new context
             var args = context.arguments?.children.Select(c => Visit(c)).ToList();
             // build our method call
-            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args);
+            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, currentContext.Type);
             currentContext = call;
             return call;
         }
@@ -215,7 +223,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+        private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
                 right = Expression.Convert(right, left.Type);
@@ -227,17 +235,30 @@ namespace EntityGraphQL.Compiler.EntityQuery
             else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
                 left = Expression.Convert(left, right.Type);
 
+            if (left.Type != right.Type)
+            {
+                if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
+                    right = ConvertToGuid(right);
+                else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
+                    left = ConvertToGuid(left);
+
+                if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                    right = ConvertToDateTime(right);
+                else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
+                    left = ConvertToDateTime(left);
+            }
+
             return Expression.MakeBinary(op, left, right);
         }
 
-        private Expression CheckConditionalTest(Expression test)
+        private static Expression CheckConditionalTest(Expression test)
         {
             if (test.Type != typeof(bool))
                 throw new EntityGraphQLCompilerException($"Expected boolean value in conditional test but found '{test}'");
             return test;
         }
 
-        private ExpressionType MakeOperator(string op)
+        private static ExpressionType MakeOperator(string op)
         {
             return op switch
             {

@@ -31,6 +31,8 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
     public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
+        if (argumentParam == null)
+            throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
         // field.Resolve will be built with the original field context and needs to be updated
         expression = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
@@ -42,8 +44,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         if (servicesPass)
             return expression; // don't need to do paging as it is done already
 
-        if (arguments == null)
-            arguments = new { };
+        arguments ??= new { };
 
         // check and set up arguments
         if (arguments.Before != null && arguments.After != null)
@@ -104,6 +105,8 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     }
     public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentsParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
+        if (argumentsParam == null)
+            throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
         foreach (var extension in extensions)
         {
             (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentsParam, servicesPass, parameterReplacer);

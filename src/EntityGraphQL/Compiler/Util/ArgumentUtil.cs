@@ -13,8 +13,7 @@ public static class ArgumentUtil
     public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables, List<string> validationErrors)
     {
         // get the values for the argument anonymous type object constructor
-        var propVals = new Dictionary<PropertyInfo, object?>();
-        var fieldVals = new Dictionary<FieldInfo, object?>();
+        var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
@@ -29,10 +28,7 @@ public static class ArgumentUtil
                         val = Expression.Lambda(argExpression, docParam!).Compile().DynamicInvoke(new[] { docVariables });
                     else
                         val = argExpression;
-                    if (argField.MemberInfo is PropertyInfo info)
-                        propVals.Add(info!, ExpressionUtil.ChangeType(val, ((PropertyInfo)argField.MemberInfo!).PropertyType, schema));
-                    else
-                        fieldVals.Add((FieldInfo)argField.MemberInfo!, ExpressionUtil.ChangeType(val, ((FieldInfo)argField.MemberInfo!).FieldType, schema));
+                    values.Add(argField.Name, ExpressionUtil.ChangeType(val, argField.RawType, schema));
                 }
                 else
                 {
@@ -40,13 +36,7 @@ public static class ArgumentUtil
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
-                    if (argField.MemberInfo != null)
-                    {
-                        if (argField.MemberInfo is PropertyInfo info)
-                            propVals.Add(info, val);
-                        else
-                            fieldVals.Add((FieldInfo)argField.MemberInfo, val);
-                    }
+                    values.Add(argField.Name, val);
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }
@@ -60,31 +50,25 @@ public static class ArgumentUtil
             }
         }
 
-        // create a copy of the anonymous object. It will have the default values set
-        // there is only 1 constructor for the anonymous type that takes all the property values
-        var con = argumentsType!.GetConstructor(propVals.Keys.Select(v => v.PropertyType).ToArray());
-        object? argumentValues;
-        if (con != null)
+        // Build our object
+        var con = argumentsType!.GetConstructors()?.FirstOrDefault() ?? throw new EntityGraphQLCompilerException($"Could not find constructor for arguments type {argumentsType.Name}");
+        var parameters = con.GetParameters().Select(x => values[x.Name!]).ToArray();
+
+        // anonymous objects will have a contructor with taking the properties as arguments
+        var argumentValues = con.Invoke(parameters);
+
+        // regardless of the constructor, we make sure the values are set on the object
+        var argMembers = argumentValues.GetType().GetMembers();
+        foreach (var item in argMembers)
         {
-            argumentValues = con.Invoke(propVals.Values.ToArray());
-            foreach (var item in fieldVals)
-            {
-                item.Key.SetValue(argumentValues, item.Value);
-            }
-        }
-        else
-        {
-            // expect an empty constructor
-            con = argumentsType.GetConstructor(Array.Empty<Type>())!;
-            argumentValues = con.Invoke(Array.Empty<object>());
-            foreach (var item in fieldVals)
-            {
-                item.Key.SetValue(argumentValues, item.Value);
-            }
-            foreach (var item in propVals)
-            {
-                item.Key.SetValue(argumentValues, item.Value);
-            }
+            if (item.MemberType != MemberTypes.Property && item.MemberType != MemberTypes.Field)
+                continue;
+            var type = item.MemberType == MemberTypes.Property ? ((PropertyInfo)item).PropertyType : ((FieldInfo)item).FieldType;
+            var argsAttribute = type.GetCustomAttribute<GraphQLArgumentsAttribute>();
+            if (!values.ContainsKey(item.Name) && argsAttribute == null)
+                continue;
+
+            SetArgumentValues(values, argumentValues, item);
         }
 
         if (field != null)
@@ -104,6 +88,21 @@ public static class ArgumentUtil
         }
 
         return argumentValues;
+    }
+
+    private static void SetArgumentValues(Dictionary<string, object?> values, object? argumentValues, MemberInfo? item)
+    {
+        if (item is FieldInfo fieldInfo)
+        {
+            fieldInfo.SetValue(argumentValues, values[item.Name]);
+        }
+        else if (item is PropertyInfo propertyInfo)
+        {
+            if (propertyInfo.CanWrite)
+            {
+                propertyInfo.SetValue(argumentValues, values[item.Name]);
+            }
+        }
     }
 
     internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)

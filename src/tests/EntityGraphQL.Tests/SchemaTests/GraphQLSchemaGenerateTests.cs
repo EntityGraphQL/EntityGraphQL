@@ -19,7 +19,7 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"query Test { movies { id } }",
             };
-            dynamic results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null).Errors;
+            dynamic results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null).Errors;
             var err = Enumerable.First(results);
             Assert.Equal("Field 'movies' not found on type 'Query'", err.Message);
         }
@@ -32,7 +32,7 @@ namespace EntityGraphQL.Tests
             {
                 Query = @"query Test { albums { id } }",
             };
-            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Empty((IEnumerable)results.Data["albums"]);
         }
 
@@ -55,7 +55,7 @@ namespace EntityGraphQL.Tests
                     {"hiddenInputField", "yeh"},
                 }
             };
-            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
             Assert.Equal("No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
         }
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Tests
                     {"name", "Balance, Not Symmetry"},
                 }
             };
-            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Null(results.Errors);
             dynamic data = results.Data["addAlbum"];
             Assert.Equal("Balance, Not Symmetry", data.name);
@@ -103,7 +103,7 @@ namespace EntityGraphQL.Tests
                     {"hiddenField", "yeh"},
                 }
             };
-            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
             Assert.Equal("No argument 'hiddenField' found on field 'addAlbum'", error.Message);
         }
@@ -122,7 +122,7 @@ namespace EntityGraphQL.Tests
 }",
                 Variables = new QueryVariables { }
             };
-            var results = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
             Assert.Equal("Field 'hiddenField' not found on type 'Album'", error.Message);
         }
@@ -291,7 +291,7 @@ namespace EntityGraphQL.Tests
                 "
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new IgnoreTestSchema(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Null(res.Errors);
 
             var mutation = (dynamic)res.Data["__type"];
@@ -577,7 +577,7 @@ namespace EntityGraphQL.Tests
         [GraphQLIgnore(GraphQLIgnoreType.Query)]
         public List<Movie> Movies { get; set; }
         public List<Album> Albums { get; set; }
-        [GraphQLElementTypeNullable]
+        [GraphQLElementTypeNullableAttribute]
         public List<Album> NullAlbums { get; set; }
         public List<Artist> Artists { get; set; }
     }

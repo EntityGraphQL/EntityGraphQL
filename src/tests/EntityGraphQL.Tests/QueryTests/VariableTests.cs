@@ -109,7 +109,7 @@ namespace EntityGraphQL.Tests
             serviceCollection.AddSingleton(service);
 
             var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequest(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
             Assert.NotNull(results.Errors);
             Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' is null while the variable definition is non-null. Please update query document or supply a non-null value.", results.Errors[0].Message);
         }
@@ -129,7 +129,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 
@@ -148,7 +148,7 @@ namespace EntityGraphQL.Tests
             };
 
             var testSchema = new TestDataContext();
-            var results = schema.ExecuteRequest(gql, testSchema, null, null);
+            var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(results.Errors);
         }
 

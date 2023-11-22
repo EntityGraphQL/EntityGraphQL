@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Directives
 {
@@ -11,29 +10,19 @@ namespace EntityGraphQL.Directives
         public override string Name { get => "include"; }
         public override string Description { get => "Directs the executor to include this field or fragment only when the `if` argument is true."; }
 
-        public override List<ExecutableDirectiveLocation> On => new() { ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT };
+        public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT };
 
-        public override Expression? ProcessExpression(Expression expression, object? arguments)
+        public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
         {
             if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @include directive");
-            if (((IncludeArguments)arguments).@if)
-                return expression;
-            return null;
-        }
-        public override BaseGraphQLField? ProcessField(BaseGraphQLField field, object? arguments)
-        {
-            if (arguments is null)
-                throw new ArgumentNullException("Argument 'if' is requred for @include directive");
-            if (((IncludeArguments)arguments).@if)
-                return field;
-            return null;
+                throw new EntityGraphQLException("Argument 'if' is requred for @include directive");
+            return ((IncludeArguments)arguments).If ? node : null;
         }
     }
 
     public class IncludeArguments
     {
-        [Description("Included when true.")]
-        public bool @if { get; set; }
+        [GraphQLField("if", "Included when true.")]
+        public bool If { get; set; }
     }
 }

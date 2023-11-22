@@ -1,6 +1,161 @@
+# 5.2.0
+
+## Changes
+- Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
+- Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
+- Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
+
+```cs
+var schema = SchemaBuilder.FromObject<MyContext>();
+schema.UpdateType<Project>(type =>
+{
+    type.ReplaceField("createdBy", "Get user that created it")
+      // normal service to fetch the User object for creator of the Project type
+      .ResolveWithService<UserService>((proj, users) => users.GetUserById(proj.CreatedById))
+      // Bulk service used to fetch many User objects
+      .ResolveBulk<UserService, int, User>(proj => proj.CreatedById, (ids, srv) => srv.GetAllUsers(ids));
+});
+```
+
+If you have a query like
+```graphql
+{
+  # ResolveBulk
+  projects {
+    # project fields
+    name id
+    # service field - resolved with ResolveBulk expression for all Projects loaded
+    createdBy { name }
+  }
+
+  # ResolveWithService
+  project(id: 78) {
+    # project fields
+    name id
+    # service field - resolved with ResolveWithService expression for the single project loaded
+    createdBy { name }
+  }
+}
+```
+
+Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
+
+# 5.1.0
+
+## Changes
+- Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
+
+## Fixes
+- #319 - Only convert strings to `Guid` or `DateTime` when required
+- If you add a field connecting back to the Query Context that ends in a method to go from a list to a single result the graph object projection will now correctly be inserted before the last call. Example
+
+```c#
+var schema = SchemaBuilder.FromObject<MyContext>();
+schema.AddType<ExternalData>("ExternalData").AddAllFields();
+
+schema.UpdateType<ExternalData>(ed =>
+{
+    // connect back to the MyContext types
+    ed.AddField("movie", "Get movie")
+      // here FirstOrDefault() goes from list -> single
+      .ResolveWithService<MyContext>((ed, db) => db.Movies.Where(m => m.Id == ed.Id).FirstOrDefault());
+});
+
+schema.Query().AddField("externalData", "Get Data")
+    .ResolveWithService<ExternalDataService>((p, srv) => srv.GetData());
+```
+
+In the above case if you select 
+
+```gql
+{
+  externalData {
+    movie { director { name } }
+  }
+}
+```
+
+The movie field will have the selection inserted allowing EF to resolve fields without lazy loading turned on. Without this the `m.Director.Name` would also be `null` as no relation was included. e.g.
+
+```cs
+db.Movies.Where(m => m.Id == ed.Id)
+.Select(m => new [
+  director = new {
+    name = m.Director.Name
+  }
+])
+.FirstOrDefault();
+```
+
+# 5.0.1
+
+## Fixes
+- Fix #314 - Some clean up of the Antlr4 grammer for the filter expressions
+
+# 5.0.0
+
+Make sure to check out the changes 5.0.0-beta1
+
+## Breaking Changes
+- Generated schema type name for field sort inputs now include the name of the schema type the field is on to avoid conflicts
+
+## Changes
+- `IField.AddExtension` now returns the `IField`
+- `UseSort()` field extension now can take a list of default sort fields e.g.
+- `Broadcaster` (inbuilt `IObservable<TType>` you can use for subscriptions) now has a `OnUnsubscribe` callback
+
+```cs
+schema.ReplaceField("people",
+    ctx => ctx.People,
+    "Return a list of people. Optional sorted")
+    .UseSort(
+        new Sort<Person>((person) => person.Height, SortDirection.ASC),
+        new Sort<Person>((person) => person.LastName, SortDirection.ASC)
+    );
+```
+
+- `SchemaBuilderOptions` now has a `OnFieldCreated` callback to make changes to fields as `SchemaBuilder` is building the schema.
+- `.contains(string)`, `.startsWith(string)`, `.endsWith(string)` & `.toLower()` / `.toUpper()` string methods now available in the filter argument expression.
+
+## Fixes
+
+- Fix naming of fields extracted from service calls when those field use convert
+
+# 5.0.0-beta1
+
+## Breaking Changes
+
+- `EntityGraphQL.AspNet` now targets `net6.0` and `net7.0`, dropping tagets `netcoreapp3.1` or `net5.0`. You can still use the base `EntityGraphQL` library with older targets.
+- Interface `IExposableException` has been removed. Use `SchemaBuilderSchemaOptions.AllowedExceptions` or the new `AllowedExceptionAttribute` to define which exceptions are rendered into the results
+- #254 - Previously passing `null` for the `ClaimsPrincipal` in `ExecuteRequest()` would skip any authorization checks. All authorization checks are now done regardless of the `ClaimsPrincipal` value. Meaning `null` will fail if there is fields requiring authorization.
+- `IDirectiveProcessor` interface has changed. See upgrade docs for changes
+- `SchemaBuilderMethodOptions` removed, see updated properties on `SchemaBuilderOptions` and upgrade docs. This was because you can also now add methods as query fields with `GraphQLFieldAttribute`
+- `SchemaBuilderOptions.AutoCreateInputTypes` now defaults to `true`. Meaning in `SchemaBuilder` when adding mutations etc any complex types will be added to the schema if they are not there already.
+- The rules for reflection on method parameters have been changed to make them clearer. See the upgrade to 5.0 docs and the mutation docs that cover examples.
+- `GraphQLValidator` is no longer magically added to your method fields (mutations/subscriptions). If you wish to use it please register it in your services. There is a new helper method in EntityGraphQL.AspNet `AddGraphQLValidator()`. This means you can implement and register your own implementation.
+- `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` have been renamed to `ExecuteRequestWithContext` & `ExecuteRequestWithContextAsync`. The schema context instance provided will be used for all context references within that query.
+- #309 - Introduced new `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` which take no schema context instance as an argument. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the perferred way to execute a query
+
+## Changes
+
+- `EntityGraphQL` (the core library) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
+- Introduced `GraphQLFieldAttribute` to allow you to rename fields in the schema as well as mark methods as fields in the schema. Method parameters will become field arguments in the same way as mutation methods. See updated docs for more information.
+- Argument types used for directvies now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
+- Added `GraphQLInputTypeAttribute`. Whereas `GraphQLArgumentsAttribute` flattens the types properties into the schema, `GraphQLInputTypeAttribute` assumes the type is an input type and uses that as the schema argument
+- You may implement you own `GraphQLValidator` by implementing (and registering) `IGraphQLValidator`
+- Added a `options.BeforeExecuting` callback to allow modification of the expression before execution
+
+## Fixes
+
+- #266 - Fix error calling `AddPossibleType()` when some of the types have already been added to the schema
+- `ExecutionOptions` passed into `IApplicationBuilder.UseGraphQLWebSockets()` are now used when executing the queries for the subscription
+- #284 - Support generic class types as mutation arguments. `MyClass<OtherClass>` will become `input MyClassOtherClass {}`
+- #302 - Fix issue where using service fields with `IQueryable`/`DbContext` fields
+
 # 4.3.1
 
 ## Fixes
+
 - Fix issue using the `OneOf` directive with `ArgumentHelper.Required<T>()` in a query field argument.
 
 # 4.3.0
@@ -14,7 +169,7 @@
 public class UserDbContextNonNullable
 {
     // empty list will be returned if UserIds resolves to null. If you use nullable types you can control with the ? operator (to return null)
-    [GraphQLNotNull] 
+    [GraphQLNotNull]
     public List<string> UserIds { get; set; }
 }
 ```
@@ -41,7 +196,7 @@ public class UserDbContextNonNullable
 
 - Prevent double SQL (when using against EF) query on base type (4.1 regression)
 - #279 - Remove duplicate fields when creating expressions
-- #280 - Fix for mutations that return interfaces/unions 
+- #280 - Fix for mutations that return interfaces/unions
 
 # 4.1.2
 
@@ -69,7 +224,7 @@ public class UserDbContextNonNullable
 When running in development (read via `IWebHostEnvironment.IsEnvironment("Development")` or when manually creating `SchemaProvider`), messages of exceptions will not be dumped out into the 'errors' field of a query result, unless they implement the newly created (and empty) interface `IExposableException`.
 
 - #260 - Support default values in C# methods for mutations
-- #264 -  Versions prior to .NET 7, `System.Text.Json` doesn't support the serialization of polymorphic type hierarchies. EntityGraphQL now registers a `RuntimeTypeJsonConverter` class as part of the `DefaultGraphQLResponseSerializer`
+- #264 - Versions prior to .NET 7, `System.Text.Json` doesn't support the serialization of polymorphic type hierarchies. EntityGraphQL now registers a `RuntimeTypeJsonConverter` class as part of the `DefaultGraphQLResponseSerializer`
 
 ## Fixes
 
@@ -146,7 +301,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 - Fix #225 - Mutations with separate (not using `MutationArgumentsAttribute`) parameters fail if called without variables
 - Fix #229 - Using `Field.Resolve()` would incorrectly assume the field had a service
 - #219 - Handle conversion of variables as lists to a `RequiredField<>` arg of the list type
-- #215 - Fix issue using GraphQLValidator if using inline mutation arguments  
+- #215 - Fix issue using GraphQLValidator if using inline mutation arguments
 - #235 - Fix issue where arguments with the same name at the same level in a query would receive the same value
 
 # 3.0.5

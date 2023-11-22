@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
             schema.Type<Project>().AddField("settings", "Return settings")
-                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
                 .IsNullable(false);
 
             var gql = new QueryRequest
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests
             ConfigService service = new();
             serviceCollection.AddSingleton(service);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
 
             Assert.Null(res.Errors);
             Assert.Equal("ProjectConfig", ((dynamic)res.Data["projects"])[0].settings.__typename);
@@ -69,7 +69,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
             schema.Type<Project>().AddField("settings", "Return settings")
-                .ResolveWithService<ConfigService>((p, c) => c.Get(p.Id))
+                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
                 .IsNullable(false);
 
             var gql = new QueryRequest
@@ -99,7 +99,7 @@ namespace EntityGraphQL.Tests
             ConfigService service = new();
             serviceCollection.AddSingleton(service);
 
-            var res = schema.ExecuteRequest(gql, context, serviceCollection.BuildServiceProvider(), null);
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
 
             Assert.Null(res.Errors);
             Assert.Equal("ProjectConfig", ((dynamic)res.Data["projects"])[0].settings.__typename);
@@ -132,7 +132,7 @@ namespace EntityGraphQL.Tests
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];

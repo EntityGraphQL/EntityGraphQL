@@ -11,7 +11,7 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
     public MutationSchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
         : base(schema, name, description, requiredAuthorization)
     {
-        GqlType = GqlTypeEnum.Mutation;
+        GqlType = GqlTypes.Mutation;
     }
 
     public override ISchemaType AddAllFields(SchemaBuilderOptions? options = null)
@@ -21,14 +21,14 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 
     public override ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
-        throw new Exception("Cannot add base types to a mutation");
+        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
     }
     public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
-        throw new Exception("Cannot add base types to a mutation");
+        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
     }
     public override ISchemaType Implements(string typeName)
     {
-        throw new Exception("Cannot add base types to a mutation");
+        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
     }
 }

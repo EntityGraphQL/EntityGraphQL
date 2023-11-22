@@ -10,18 +10,6 @@
                 "${workspaceFolder}"
             ],
             "problemMatcher": "$tsc"
-        },
-        {
-            "label": "pack",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "pack",
-                "-c",
-                "Release",
-                "${workspaceFolder}"
-            ],
-            "problemMatcher": "$tsc"
         }
     ]
 }

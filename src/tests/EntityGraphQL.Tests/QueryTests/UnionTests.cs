@@ -13,12 +13,12 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypeEnum.Union);
+            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypeEnum.Object);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypeEnum.Object);
+            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
+            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
 
 
 
@@ -58,12 +58,12 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypeEnum.Union);
+            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypeEnum.Object);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypeEnum.Object);
+            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
+            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
 
 
 
@@ -103,12 +103,12 @@ query {
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypeEnum.Union);
+            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypeEnum.Object);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypeEnum.Object);
+            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
+            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
 
 
 
@@ -144,12 +144,12 @@ query {
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypeEnum.Union);
+            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypeEnum.Object);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypeEnum.Object);
+            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
+            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
 
             var gql = new GraphQLCompiler(schema).Compile(@"
 query {
@@ -182,12 +182,12 @@ query {
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypeEnum.Union);
+            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypeEnum.Object);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypeEnum.Object);
+            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
+            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
 
 
 

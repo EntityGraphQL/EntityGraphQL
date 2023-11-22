@@ -1,8 +1,5 @@
 using Xunit;
-using System.Linq;
 using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 
@@ -26,7 +23,7 @@ namespace EntityGraphQL.Tests
                 }"
             };
             var contextData = new OptionsContext().AddCustomerWithOrder("Lisa", 4);
-            var res = schema.ExecuteRequest(gql, contextData, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, contextData, null, null);
             Assert.Null(res.Errors);
             dynamic customers = res.Data["customers"];
             Assert.Single(customers);
@@ -38,7 +35,7 @@ namespace EntityGraphQL.Tests
         public void Test_ExecuteServiceFieldsSeparately_False_WithListNavigation()
         {
             var schema = SchemaBuilder.FromObject<OptionsContext>();
-            schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).ResolveWithService<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
+            schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).Resolve<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
             var gql = new QueryRequest
             {
                 Query = @"{
@@ -55,7 +52,7 @@ namespace EntityGraphQL.Tests
             var serviceCollection = new ServiceCollection();
             var ager = new AgeService();
             serviceCollection.AddSingleton(ager);
-            var res = schema.ExecuteRequest(gql, contextData, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
+            var res = schema.ExecuteRequestWithContext(gql, contextData, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
             Assert.Null(res.Errors);
             dynamic customers = res.Data["customers"];
             Assert.Single(customers);

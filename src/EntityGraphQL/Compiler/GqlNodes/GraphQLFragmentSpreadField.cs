@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
 {
-    public class GraphQLFragmentField : BaseGraphQLField
+    public class GraphQLFragmentSpreadField : BaseGraphQLField
     {
-        public GraphQLFragmentField(ISchemaProvider schema, string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
+        public GraphQLFragmentSpreadField(ISchemaProvider schema, string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
             : base(schema, null, name, nodeExpression, rootParameter, parentNode, null)
         {
+            LocationForDirectives = ExecutableDirectiveLocation.FRAGMENT_SPREAD;
         }
 
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
@@ -21,12 +23,8 @@ namespace EntityGraphQL.Compiler
             return graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name)!.QueryFields.Any(f => f.HasAnyServices(graphQlFragmentStatements));
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
-            var result = ProcessFieldDirectives(this, docParam, docVariables);
-            if (result == null)
-                return new List<BaseGraphQLField>();
-
             var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
             var fields = fragment.QueryFields.SelectMany(f => f.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
             // the current op did not know about services in the fragment as the fragment definition may be after the operation in the query
@@ -52,7 +50,7 @@ namespace EntityGraphQL.Compiler
             return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : (field != null ? new List<BaseGraphQLField> { field } : new List<BaseGraphQLField>());
         }
 
-        private void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
+        private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
         {
             if (gqlField.Field != null && gqlField.Field.Services.Any())
             {
@@ -64,7 +62,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

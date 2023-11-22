@@ -86,7 +86,7 @@ fragment info on Person {
 
             var context = new TestDataContext().FillWithTestData();
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -134,7 +134,7 @@ fragment info on Person {
                 },
             };
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
         }
 
@@ -177,7 +177,7 @@ fragment info on Person {
 
             var context = new TestDataContext();
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
             dynamic typeData = res.Data["__type"];
             Assert.Equal("Person", typeData.name);

@@ -67,18 +67,18 @@ Above we use our mutation to add a person and select their `fullName` and `id` i
 ## AddMutationsFrom method arguments
 
 ```cs
-  void AddMutationsFrom<TType>(SchemaBuilderMethodOptions? options =  null) where TType : class;
+  void AddMutationsFrom<TType>(SchemaBuilderOptions? options =  null) where TType : class;
 ```
 
-**SchemaBuilderMethodOptions.AutoCreateInputTypes**
+**SchemaBuilderOptions.AutoCreateInputTypes**
 If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
 
 When `AutoCreateInputTypes` is true, to inject a service, pass it to the constructor of the mutation controller and store it in a field. EntityGraphQL can't detect services passed as method parameters because `ServiceProvider` is not supplied at schema screation.
 
-**SchemaBuilderMethodOptions.AddNonAttributedMethods**
+**SchemaBuilderOptions.AddNonAttributedMethodsInControllers**
 If true (deafult = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
-`SchemaBuilderMethodOptions` in herits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
+`SchemaBuilderOptions` in herits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
 
 **SchemaBuilderOptions.AutoCreateNewComplexTypes**
 If true (default = true) any complex class types that a mutation returns is added to the schema as a query type if it is not already there.
@@ -187,9 +187,101 @@ class PeopleMutations(IDemoService demoService)
 
 Later we'll learn how to access services within query fields of the schema.
 
-### `GraphQLArguments` classes
+### Service vs. Schema Argument
 
-Depending on the complexity of your mutation you may end up with many method arguments to build the mutation field schema arguments. Consider a mutation that creates an object and lets you pass all the properties in.
+Given the example
+
+```cs
+public Expression<Func<DemoContext, Person>> AddPerson(DemoContext db, AddPersonArgs args, string token, IDemoService demoService) {}
+
+public class AddPersonArgs
+{
+  public String FirstName { get; set; }
+  public String LastName { get; set; }
+}
+```
+
+EntityGraphQL needs to build a schema for output and introspection. We do not know the services registered until we execute a query. Therefore EntityGraphQL provides a few options for you to help define your schema.
+
+We know `DemoContext` is the root query context of the schema so that will not be included as an argument in the schema. Between the other 2 we need to tell EntityGraphQL.
+
+When looking for a methods parameters, EntityGraphQL will
+
+1. First all scalar / non-complex types will be added as arguments in the schema.
+
+2. If parameter type or enum type is already in the schema it will be added at an argument.
+
+3. Any argument or type with `GraphQLInputTypeAttribute` or `GraphQLArgumentsAttribute` found will be added as schema arguments.
+
+4. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your arguments with the attributes or add them to the schema beforehand._
+
+These rules are also used for subscription methods and query field methods defined with `GraphQLFieldAttribute`.
+
+#### Example: No attributes
+
+```cs
+public Expression<Func<DemoContext, Person>> AddPerson(DemoContext db, AddPersonArgs args, string token, IDemoService demoService) {}
+```
+
+Will incorrectly try to make a schema
+
+```graphql
+type Mutation {
+  addPerson(args: AddPersonArgs, token: String, demoService: IDemoService)
+}
+```
+
+This is not what we want and will likely fail on creation unless you also set the other types.
+
+_Note this is fine if you have no DI services in your mutation methods._
+
+#### Example: `GraphQLArgumentsAttribute`
+
+Note the `s` in Argumentments.
+
+```cs
+public Expression<Func<DemoContext, Person>> AddPerson(DemoContext db, [GraphQLArguments] AddPersonArgs args, string token, IDemoService demoService) {}
+```
+
+Will correctly make the below schema as we know what is in the schema and what is not.
+
+```graphql
+type Mutation {
+  addPerson(
+    firstName: String
+    lastName: String
+    token: String
+  )
+}
+```
+
+`GraphQLArgumentsAttribute` puts all of the properties from that class as top level arguments in the GraphQL schema.
+
+#### Example: `GraphQLInputTypeAttribute`
+
+```cs
+public Expression<Func<DemoContext, Person>> AddPerson(DemoContext db, [GraphQLArgument] AddPersonArgs args, string token, IDemoService demoService) {}
+```
+
+Will correctly make the below schema as we know what is in the schema and what is not.
+
+```graphql
+type Mutation {
+  addPerson(
+    args: AddPersonArgs
+    token: String
+  )
+}
+
+# ...
+input type AddPersonArgs {}
+```
+
+`GraphQLInputTypeAttribute` puts all that class as top level argument in the GraphQL schema. If `AutoCreateNewComplexTypes` is true (default) `AddPersonArgs` will be added as an input type. Otherwise you will need to add this yourself.
+
+`GraphQLInputTypeAttribute` and `GraphQLArgumentsAttribute` can also be defined on the class instead of inline on the method parameters. They give you options to encapsulate arguments by grouping them and reusing them while letting you define how they appear in the schema.
+
+Depending on the complexity of your mutation and the design of your schema will determine which method best suits you. You may end up with many method arguments to build the mutation field schema arguments. Consider a mutation that creates an object and lets you pass all the properties in.
 
 ```cs
 [GraphQLMutation("Add a new person to the system.")]
@@ -216,7 +308,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPer
     // use args.*
 }
 
-[GraphQLArguments]
+[GraphQLArguments] // or [GraphQLArgument] if you want the AddPersonArgs as an input type
 public class AddPersonArgs
 {
     public String FirstName { get; set; }

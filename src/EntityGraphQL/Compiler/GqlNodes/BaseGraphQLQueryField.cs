@@ -22,16 +22,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
-        {
-            var result = ProcessFieldDirectives(this, docParam, docVariables);
-            if (result == null)
-                return new List<BaseGraphQLField>();
-
-            return base.ExpandFromServices(withoutServiceFields, result);
-        }
-
-        protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && Field?.Services.Any() == true;
+        protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && HasServices;
 
         protected virtual Dictionary<IFieldKey, CompiledField> GetSelectionFields(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, bool withoutServiceFields, Expression nextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterReplacer replacer)
         {
@@ -39,6 +30,14 @@ namespace EntityGraphQL.Compiler
 
             foreach (var field in QueryFields)
             {
+                if (field.Field?.BulkResolver != null)
+                {
+                    if (withoutServiceFields)
+                    {
+                        // This is where we have the information to build the bulk resolver data loading expression
+                        var newArgParam = HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
+                    }
+                }
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
@@ -46,10 +45,11 @@ namespace EntityGraphQL.Compiler
                     // fragments might be fragments on the actualy type whereas the context is a interface
                     // we do not need to change the context in this case
                     var actualNextFieldContext = nextFieldContext;
-                    if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentField) && (subField.FromType?.BaseTypes.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypeEnum.Union))
+                    if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField) && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union))
                     {
                         actualNextFieldContext = subField.RootParameter;
                     }
+
                     var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, false, contextChanged, replacer);
                     if (fieldExp == null)
                         continue;
@@ -59,11 +59,11 @@ namespace EntityGraphQL.Compiler
                     {
                         // if we have a match, we need to check if the types are the same
                         // if they are, we can just use the existing field
-                        if (potentialMatch.FromType?.BaseTypes.Contains(subField.FromType) == true)
+                        if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
                         {
                             continue;
                         }
-                        if (potentialMatch.FromType != null && subField.FromType.BaseTypes.Contains(potentialMatch.FromType) == true)
+                        if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType) == true)
                         {
                             // replace - use the non-base type field
                             selectionFields.Remove(potentialMatch);
@@ -76,6 +76,12 @@ namespace EntityGraphQL.Compiler
             }
 
             return selectionFields;
+        }
+
+        protected virtual ParameterExpression? HandleBulkResolverForField(CompileContext compileContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
+        {
+            // default do nothing
+            return field.Field?.ArgumentsParameter;
         }
     }
 }

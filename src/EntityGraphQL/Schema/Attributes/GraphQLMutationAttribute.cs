@@ -16,7 +16,7 @@ namespace EntityGraphQL.Schema
     }
 
     [AttributeUsage(AttributeTargets.Method)]
-    public class GraphQLMethodAttribute : Attribute
+    public abstract class GraphQLMethodAttribute : Attribute
     {
         public GraphQLMethodAttribute(string description = "")
         {

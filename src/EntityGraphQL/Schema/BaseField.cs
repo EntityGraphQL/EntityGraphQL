@@ -14,45 +14,36 @@ namespace EntityGraphQL.Schema
 {
     public abstract class BaseField : IField
     {
-        public IField? UseArgumentsFromField { get; set; }
-
+        #region IField properties
         public abstract GraphQLQueryFieldType FieldType { get; }
+        public ISchemaProvider Schema { get; set; }
         public ParameterExpression? FieldParam { get; set; }
-
+        public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
         public string Description { get; protected set; }
         public IDictionary<string, ArgType> Arguments { get; set; } = new Dictionary<string, ArgType>();
-        public ParameterExpression? ArgumentParam { get; set; }
+        public ParameterExpression? ArgumentsParameter { get; set; }
+        public Type? ExpressionArgumentType { get; internal set; }
         public string Name { get; internal set; }
         public ISchemaType FromType { get; }
         public GqlTypeInfo ReturnType { get; protected set; }
         public List<IFieldExtension> Extensions { get; set; }
         public RequiredAuthorization? RequiredAuthorization { get; protected set; }
-        protected List<ISchemaDirective> directives = new();
-        public IList<ISchemaDirective> Directives => directives.AsReadOnly();
-
-        /// <summary>
-        /// If true the arguments on the field are used internally for processing (usually in extensions that change the 
-        /// shape of the schema and need arguments from the original field)
-        /// Arguments will not be in introspection
-        /// </summary>
+        public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
         public bool ArgumentsAreInternal { get; internal set; }
-
-        /// <summary>
-        /// Services required to be injected for this fields selection
-        /// </summary>
-        /// <value></value>
-        public IEnumerable<Type> Services { get; set; } = new List<Type>();
-
-        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => argumentValidators; }
-
+        public List<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
+        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
+        public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
 
-        public ISchemaProvider Schema { get; set; }
-        public Type? ArgumentsType { get; set; }
+        #endregion IField properties
 
-        public List<GraphQLExtractedField>? ExtractedFieldsFromServices { get; protected set; }
+        protected List<ISchemaDirective> Directives { get; set; } = new();
+        protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = new();
 
-        protected List<Action<ArgumentValidatorContext>> argumentValidators = new();
+        /// <summary>
+        /// Expressions used to resolve the field in a bulk fashion. This is used for optimising the number of calls to the underlying data source.
+        /// </summary>
+        public IBulkFieldResolver? BulkResolver { get; protected set; }
 
         protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
         {
@@ -82,10 +73,7 @@ namespace EntityGraphQL.Schema
                     else
                     {
                         var handler = Schema.GetAttributeHandlerFor(attribute.GetType());
-                        if (handler != null)
-                        {
-                            handler.ApplyExtension(this, attribute);
-                        }
+                        handler?.ApplyExtension(this, attribute);
                     }
                 }
             }
@@ -95,10 +83,11 @@ namespace EntityGraphQL.Schema
         /// Add a field extension to this field 
         /// </summary>
         /// <param name="extension"></param>
-        public void AddExtension(IFieldExtension extension)
+        public IField AddExtension(IFieldExtension extension)
         {
             Extensions.Add(extension);
             extension.Configure(Schema, this);
+            return this;
         }
 
         public ArgType GetArgumentType(string argName)
@@ -123,19 +112,15 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        /// <summary>
-        /// Adds a argument object to the field. The fields on the object will be added as arguments.
-        /// Any exisiting arguments with the same name will be overwritten.
-        /// </summary>
-        /// <param name="args"></param>
         public void AddArguments(object args)
         {
             // get new argument values
             var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);
-            // build new argument Type
-            var newArgType = ExpressionUtil.MergeTypes(ArgumentsType, args.GetType());
+            // build a new type with the new arguments
+            var newArgType = ExpressionUtil.MergeTypes(ExpressionArgumentType, args.GetType());
             // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
             newArgs.ToList().ForEach(k => Arguments.Add(k.Key, k.Value));
+
             // now we need to update the MemberInfo
             foreach (var item in Arguments)
             {
@@ -145,11 +130,11 @@ namespace EntityGraphQL.Schema
             var parameterReplacer = new ParameterReplacer();
 
             var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");
-            if (ArgumentParam != null && ResolveExpression != null)
-                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentParam, argParam);
+            if (ArgumentsParameter != null && ResolveExpression != null)
+                ResolveExpression = parameterReplacer.Replace(ResolveExpression, ArgumentsParameter, argParam);
 
-            ArgumentParam = argParam;
-            ArgumentsType = newArgType;
+            ArgumentsParameter = argParam;
+            ExpressionArgumentType = newArgType;
         }
         public IField Returns(GqlTypeInfo gqlTypeInfo)
         {
@@ -161,8 +146,8 @@ namespace EntityGraphQL.Schema
         {
             // Move the arguments definition to the new field as it needs them for processing
             // don't push field.FieldParam over 
-            ArgumentsType = field.ArgumentsType;
-            ArgumentParam = field.ArgumentParam;
+            ExpressionArgumentType = field.ExpressionArgumentType;
+            ArgumentsParameter = field.ArgumentsParameter;
             Arguments = field.Arguments;
             ArgumentsAreInternal = true;
             UseArgumentsFromField = field;
@@ -228,27 +213,27 @@ namespace EntityGraphQL.Schema
         public IField AddValidator<TValidator>() where TValidator : IArgumentValidator
         {
             var validator = (IArgumentValidator)Activator.CreateInstance<TValidator>();
-            argumentValidators.Add((context) => validator.ValidateAsync(context));
+            ArgumentValidators.Add((context) => validator.ValidateAsync(context));
             return this;
         }
 
         public IField AddValidator(Action<ArgumentValidatorContext> callback)
         {
-            argumentValidators.Add(callback);
+            ArgumentValidators.Add(callback);
             return this;
         }
         public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
         {
-            argumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
+            ArgumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
             return this;
         }
 
         public IField AddDirective(ISchemaDirective directive)
         {
-            if (!directive.On.Any(x => x == TypeSystemDirectiveLocation.FIELD_DEFINITION))
+            if (!directive.Location.Any(x => x == TypeSystemDirectiveLocation.FieldDefinition))
                 throw new InvalidOperationException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
 
-            directives.Add(directive);
+            Directives.Add(directive);
             return this;
         }
 

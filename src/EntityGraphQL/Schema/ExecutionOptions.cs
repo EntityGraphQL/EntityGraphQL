@@ -1,3 +1,6 @@
+using System;
+using System.Linq.Expressions;
+
 namespace EntityGraphQL.Schema
 {
     public class ExecutionOptions
@@ -24,18 +27,28 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool EnableQueryCache { get; set; } = true;
 
+        /// <summary>
+        /// Allows you to hook into just before an expression is executed and modify it to suit. Note that if 
+        /// <code>ExecuteServiceFieldsSeparately</code> is true, this will be called twice if your query includes fields with serivces.
+        /// Second parameter bool isFinal == true if the expression is the final execution - this means
+        ///  - ExecuteServiceFieldsSeparately = false, or
+        ///  - The query does not reference any fields with services
+        ///  - The query references fields with service and the first execution has completed (isFinal == false) and we are executing again to merge the service results
+        /// </summary>
+        public Func<Expression, bool, Expression>? BeforeExecuting { get; set; }
+
 #if DEBUG
         /// <summary>
         /// Include timing information about query execution
         /// </summary>
         /// <value></value>
-        public bool IncludeDebugInfo { get; set; } = false;
+        public bool IncludeDebugInfo { get; set; }
 
         /// <summary>
         /// Do not execute the expression. Used for performance testing on EntityGraphQL code
         /// </summary>
         /// <value></value>
-        public bool NoExecution { get; set; } = false;
+        public bool NoExecution { get; set; }
 #endif
     }
 }

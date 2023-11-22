@@ -46,18 +46,17 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
+            var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext);
             if (HasServices && withoutServiceFields)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
-
-            var nextFieldContext = NextFieldContext;
 
             if (contextChanged && replacementNextFieldContext != null)
             {
                 nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
             }
-            (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer) ?? (nextFieldContext, null);
+            (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (nextFieldContext, null);
             if (nextFieldContext == null)
                 return null;
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
@@ -65,15 +64,15 @@ namespace EntityGraphQL.Compiler
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
             // if we have services and they don't want service fields, return the expression only for extraction
-            if (withoutServiceFields && Field?.Services.Any() == true && !isRoot)
+            if (withoutServiceFields && HasServices && !isRoot)
                 return nextFieldContext;
 
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
             if (selectionFields == null || !selectionFields.Any())
                 return null;
 
-            if (Field?.Services.Any() == true)
-                compileContext.AddServices(Field.Services);
+            if (HasServices)
+                compileContext.AddServices(Field!.Services);
 
             if (needsServiceWrap ||
                 ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
@@ -120,11 +119,11 @@ namespace EntityGraphQL.Compiler
         {
             // selectionFields is set up but we need to wrap
             // we wrap here as we have access to the values and services etc
-            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
+            var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
-            // TODO services injected here - is this needed?
-            var updatedExpression = compileContext.Services.Any() == true ? GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, nextFieldContext, fieldParams, replacer) : nextFieldContext;
+            // do not need to inject serivces here as this expression is used in the call arguments
+            var updatedExpression = nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
             var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
@@ -133,7 +132,7 @@ namespace EntityGraphQL.Compiler
             {
                 foreach (var item in selectionFields)
                 {
-                    if (item.Value.Field.Field?.Services.Any() == true || item.Key.Name == "__typename")
+                    if (item.Value.Field.HasServices || item.Key.Name == "__typename")
                         item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                     else
                         item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);
@@ -149,7 +148,7 @@ namespace EntityGraphQL.Compiler
 
             (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, argumentParam, contextChanged, replacer);
             // we need to make sure the wrap can resolve any services in the select
-            var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
+            var selectionExpressions = selectionFields.ToDictionary(f => f.Key.Name, f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer));
 
             updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;

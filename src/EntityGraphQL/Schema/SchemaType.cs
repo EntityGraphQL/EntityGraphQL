@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using Nullability;
 
 namespace EntityGraphQL.Schema
@@ -14,13 +13,13 @@ namespace EntityGraphQL.Schema
     {
         public override Type TypeDotnet { get; }
 
-        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
+        public SchemaType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypes gqlType = GqlTypes.QueryObject, string? baseType = null)
             : this(schema, typeof(TBaseType), name, description, requiredAuthorization, gqlType, baseType)
         {
 
         }
 
-        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypeEnum gqlType = GqlTypeEnum.Object, string? baseType = null)
+        public SchemaType(ISchemaProvider schema, Type dotnetType, string name, string? description, RequiredAuthorization? requiredAuthorization, GqlTypes gqlType = GqlTypes.QueryObject, string? baseType = null)
             : base(schema, name, description, requiredAuthorization)
         {
             GqlType = gqlType;
@@ -28,9 +27,9 @@ namespace EntityGraphQL.Schema
 
             RequiredAuthorization = requiredAuthorization;
 
-            if (gqlType != GqlTypeEnum.Scalar)
+            if (gqlType != GqlTypes.Scalar)
             {
-                if (gqlType == GqlTypeEnum.Interface || gqlType == GqlTypeEnum.Union)
+                if (gqlType == GqlTypes.Interface || gqlType == GqlTypes.Union)
                     // Because the type might actually be the type extending from the interface we need to look it up
                     AddField("__typename", t => schema.Type(t!.GetType().Name).Name, "Type name").IsNullable(false);
                 else
@@ -40,7 +39,7 @@ namespace EntityGraphQL.Schema
 
             if (baseType != null)
             {
-                baseTypes.Add(schema.GetSchemaType(baseType, null));
+                BaseTypes.Add(schema.GetSchemaType(baseType, null));
             }
 
             ApplyAttributes(dotnetType.GetCustomAttributes());
@@ -54,7 +53,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The schema type the fields were added to</returns>
         public override ISchemaType AddAllFields(SchemaBuilderOptions? options = null)
         {
-            if (GqlType == GqlTypeEnum.Enum)
+            if (GqlType == GqlTypes.Enum)
             {
                 foreach (var field in TypeDotnet.GetFields())
                 {
@@ -74,9 +73,8 @@ namespace EntityGraphQL.Schema
             }
             else
             {
-                if (options == null)
-                    options = new SchemaBuilderOptions();
-                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, this, Schema, options, GqlType == GqlTypeEnum.Input);
+                options ??= new SchemaBuilderOptions();
+                var fields = SchemaBuilder.GetFieldsFromObject(TypeDotnet, this, Schema, options, GqlType == GqlTypes.InputObject);
                 AddFields(fields);
             }
             return this;
@@ -84,16 +82,16 @@ namespace EntityGraphQL.Schema
 
         public Field AddField(Field field)
         {
-            if (GqlType == GqlTypeEnum.Union && field.Name != "__typename")
+            if (GqlType == GqlTypes.Union && field.Name != "__typename")
                 throw new InvalidOperationException("Unions cannot contain fields");
 
             if (FieldsByName.ContainsKey(field.Name))
                 throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {Name}. Use ReplaceField() if this is intended.");
 
-            if (field.Arguments.Any() && (GqlType == GqlTypeEnum.Input || GqlType == GqlTypeEnum.Enum))
+            if (field.Arguments.Any() && (GqlType == GqlTypes.InputObject || GqlType == GqlTypes.Enum))
                 throw new EntityQuerySchemaException($"Field {field.Name} on type {Name} has arguments but is a GraphQL {GqlType} type and can not have arguments.");
 
-            if (GqlType == GqlTypeEnum.Scalar)
+            if (GqlType == GqlTypes.Scalar)
                 throw new EntityQuerySchemaException($"Cannot add field {field.Name} to type {Name}, as {Name} is a scalar type and can not have fields.");
 
             FieldsByName.Add(field.Name, field);
@@ -155,7 +153,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        /// Add a field definition. Use the Resolve<>() chain method to build the resolve expression. This lets you add dependencies on other services
         /// Throws an exception if the field already exists
         /// </summary>
         /// <param name="name">Name of the field in the schema. Is used as passed. Case sensitive</param>
@@ -169,7 +167,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field with arguments. Add a field definition. Use the Resolve<>() or ResolveWithService<>() chain method to build the resolve expression. This lets you add dependencies on other services
+        /// Add a field with arguments. Add a field definition. Use the Resolve<>() chain method to build the resolve expression. This lets you add dependencies on other services
         ///     field(arg: val)
         /// Throws an exception if the field already exists
         /// </summary>
@@ -185,7 +183,6 @@ namespace EntityGraphQL.Schema
             AddField(field);
             return field;
         }
-
 
         /// <summary>
         /// Replaces a field matching the name with this new field. If the field does not exist, it will be added.
@@ -361,7 +358,7 @@ namespace EntityGraphQL.Schema
             if (interfaceType == null)
                 throw new EntityGraphQLCompilerException($"No schema interface found for dotnet type {type.Name}. Make sure you add the interface to the schema. Or use parameter addTypeIfNotInSchema = true");
 
-            baseTypes.Add(interfaceType);
+            BaseTypes.Add(interfaceType);
             return this;
         }
 
@@ -371,13 +368,13 @@ namespace EntityGraphQL.Schema
             if (!interfaceType.IsInterface)
                 throw new EntityGraphQLCompilerException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
 
-            baseTypes.Add(interfaceType);
+            BaseTypes.Add(interfaceType);
             return this;
         }
 
         public ISchemaType AddAllPossibleTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            if (GqlType != GqlTypeEnum.Union)
+            if (GqlType != GqlTypes.Union)
                 throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
 
 
@@ -395,7 +392,7 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType AddPossibleType<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            if (GqlType != GqlTypeEnum.Union)
+            if (GqlType != GqlTypes.Union)
                 throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
 
             var type = typeof(TClrType);
@@ -404,7 +401,7 @@ namespace EntityGraphQL.Schema
 
         private ISchemaType AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
-            if (GqlType != GqlTypeEnum.Union)
+            if (GqlType != GqlTypes.Union)
                 throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
 
             var hasType = Schema.HasType(type);
@@ -417,13 +414,17 @@ namespace EntityGraphQL.Schema
                 if (addAllFieldsOnAddedType)
                     schemaType.AddAllFields();
             }
+            else if (hasType && schemaType == null)
+            {
+                schemaType = Schema.GetSchemaType(type, null);
+            }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {type.Name}. Make sure you add the type to the schema. Or use parameter addTypeIfNotInSchema = true");
 
-            if (schemaType.GqlType != GqlTypeEnum.Object)
+            if (schemaType.GqlType != GqlTypes.QueryObject)
                 throw new EntityGraphQLCompilerException($"The member types of a Union type must all be Object base types");
 
-            possibleTypes.Add(schemaType);
+            PossibleTypes.Add(schemaType);
 
             return this;
         }

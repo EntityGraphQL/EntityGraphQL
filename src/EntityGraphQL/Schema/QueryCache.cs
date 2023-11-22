@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.Caching;
 using System.Security.Cryptography;
 using System.Text;
@@ -5,7 +6,7 @@ using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
-    public class QueryCache
+    public class QueryCache : IDisposable
     {
         private readonly MemoryCache cache;
         public QueryCache()
@@ -31,7 +32,7 @@ namespace EntityGraphQL.Schema
             cache.Add(hash, compiledQuery, new CacheItemPolicy { SlidingExpiration = new System.TimeSpan(0, 10, 0) });
         }
 
-        public string ComputeHash(string data)
+        public static string ComputeHash(string data)
         {
             using SHA256 sha256Hash = SHA256.Create();
             // ComputeHash - returns byte array  
@@ -52,6 +53,12 @@ namespace EntityGraphQL.Schema
                 c[i * 2 + 1] = (char)(55 + b + (((b - 10) >> 31) & -7));
             }
             return new string(c);
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            cache.Dispose();
         }
     }
 }

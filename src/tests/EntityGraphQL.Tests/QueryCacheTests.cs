@@ -40,7 +40,7 @@ public class QueryCacheTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
         var gql = new QueryRequest
         {
             Query = query,
@@ -51,7 +51,7 @@ public class QueryCacheTests
         };
 
         // cache the query
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
         CheckResults(result, 99);
 
         // will be from cache
@@ -59,7 +59,7 @@ public class QueryCacheTests
         {
             { "project", 1 }
         };
-        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
+        result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
         CheckResults(result, 1);
 
         static void CheckResults(QueryResult result, int projectId)
@@ -132,7 +132,7 @@ public class QueryCacheTests
             try
             {
                 // cache the query
-                var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
+                var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
                 CheckResults(result, 99);
             }
             catch (Exception e)

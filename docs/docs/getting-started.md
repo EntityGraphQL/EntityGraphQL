@@ -112,6 +112,37 @@ _You can authorize the route how ever you wish using ASP.NET. See the Authorizat
 
 You can also expose any endpoint over any protocol you'd like. We'll use HTTP/S for these examples.
 
+## Securing the route in ASP.NET core
+
+When using `MapGraphQL()`, the route is added with the `IEndpointRouteBuilder.MapPost` method. The `.MapPost()` method can be chained with `.RequireAuthorization()` where an array of Policy Names can be passed. The policy names are ANDed together with `.RequireAuthorization()`.
+
+To add one or more security policies when using `MapGraphQL()` you can pass an a configure function that has access to the `IEndpointConventionBuilder` from the created `.MapPost()`.
+
+```cs
+//in ConfigureServices
+services.AddAuthentication()
+services.AddAuthorization(options =>
+{
+    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser();
+});
+
+
+//in Configure
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseEndpoints(endpoints =>
+  {
+      // defaults to /graphql endpoint
+    endpoints.MapGraphQL<DemoContext>(configureEndpoint: (endpoint) => {
+      endpoint.RequireAuthorization("authorized");
+      // do other things with endpoint
+    });
+  });
+
+```
+
 ## Query your API
 
 You can now make a request to your API via any HTTP tool/library.
@@ -229,10 +260,12 @@ You can execute GraphQL queries in your own controller or outside of ASP.NET. Be
 
 ### Build the GraphQL schema
 
-We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schema from the .NET object model we defined above.
+We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schema from the .NET object model we defined above. Create this once at startup and register it with your services.
 
 ```cs
 var schema = SchemaBuilder.FromObject<DemoContext>();
+
+services.AddSingleton<SchemaProvider<DemoContext>>();
 ```
 
 _See the [Schema Creation](./schema-creation) section to learn more about `SchemaBuilder.FromObject<T>>()`_
@@ -307,12 +340,12 @@ var gql = JsonSerializer.Deserialize<QueryRequest>(query);
 Assert.True(gql.Variables["var"].GetType() == typeof(JsonElement));
 ```
 
-What we want is a nested `Dictionary<string, object>`. `EntityGraphQL` handles System.Text.Json's `JsonElement` itself. However if you are using `Newtonsoft.Json` or another library (that doesn't deserialize to nested dictionaries) you will have to provide a custom type converter.
+What we want is a nested `Dictionary<string, object>`. `EntityGraphQL` handles `System.Text.Json`'s `JsonElement` itself. However if you are using `Newtonsoft.Json` or another library (that doesn't deserialize to nested dictionaries) you will have to provide a custom type converter.
 
 See the serialization tests for [an example with Newtonsoft.Json](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
 
 ## Threading and async execution
 
-`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` starts and awaits each top-level mutation individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). After awaiting the last mutation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
+`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
 
 Since a GraphQL request is processed with a single thread, database contexts can be scoped services like they do for ordinary web services. Likewise, queries (and mutations) that call external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.

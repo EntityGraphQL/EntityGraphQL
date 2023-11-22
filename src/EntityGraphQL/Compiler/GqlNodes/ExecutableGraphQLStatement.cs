@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler
 {
@@ -24,8 +24,8 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// Variables that are expected to be passed in to execute this query
         /// </summary>
-        protected readonly Dictionary<string, ArgType> opDefinedVariables = new();
-        protected readonly ISchemaProvider schema;
+        protected Dictionary<string, ArgType> OpDefinedVariables { get; set; } = new();
+        public ISchemaProvider Schema { get; protected set; }
 
         public ParameterExpression? OpVariableParameter { get; }
 
@@ -37,24 +37,28 @@ namespace EntityGraphQL.Compiler
         public string Name { get; }
 
         public List<BaseGraphQLField> QueryFields { get; } = new();
+        protected List<GraphQLDirective> Directives { get; } = new();
 
         public ExecutableGraphQLStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
         {
             Name = name;
             NextFieldContext = nodeExpression;
             RootParameter = rootParameter;
-            opDefinedVariables = opVariables;
-            this.schema = schema;
+            OpDefinedVariables = opVariables;
+            this.Schema = schema;
             Arguments = new Dictionary<string, object>();
-            if (opDefinedVariables.Any())
+            if (OpDefinedVariables.Any())
             {
-                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(opDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
+                var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
                 OpVariableParameter = Expression.Parameter(variableType, "docVars");
             }
         }
 
-        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
         {
+            if (context == null && serviceProvider == null)
+                throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+
             // build separate expression for all root level nodes in the op e.g. op is
             // query Op1 {
             //      people { name id }
@@ -62,8 +66,6 @@ namespace EntityGraphQL.Compiler
             // }
             // people & movies will be the 2 fields that will be 2 separate expressions
             var result = new ConcurrentDictionary<string, object?>();
-            if (context == null)
-                return result;
 
             object? docVariables = BuildDocumentVariables(ref variables);
 
@@ -79,8 +81,9 @@ namespace EntityGraphQL.Compiler
                         timer.Start();
                     }
 #endif
+                    var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                    (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(), context, serviceProvider, fragments, fieldNode, options, docVariables);
+                    (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(), contextToUse, serviceProvider, fragments, fieldNode, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -108,21 +111,28 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
+        protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
+        {
+            if (context == null)
+                return serviceProvider.GetService<TContext>()! ?? throw new EntityGraphQLCompilerException($"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
+
+            return context;
+        }
+
         protected object? BuildDocumentVariables(ref QueryVariables? variables)
         {
             // inject document level variables - letting the query be cached and passing in different variables
             object? variablesToUse = null;
 
-            if (opDefinedVariables.Any() && OpVariableParameter != null)
+            if (OpDefinedVariables.Any() && OpVariableParameter != null)
             {
-                if (variables == null)
-                    variables = new QueryVariables();
+                variables ??= new QueryVariables();
                 variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
-                foreach (var (name, argType) in opDefinedVariables)
+                foreach (var (name, argType) in OpDefinedVariables)
                 {
                     try
                     {
-                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, schema);
+                        var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema);
                         if (argValue == null && argType.IsRequired)
                             throw new EntityGraphQLCompilerException($"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value.");
                         OpVariableParameter.Type.GetField(name)!.SetValue(variablesToUse, argValue);
@@ -165,15 +175,18 @@ namespace EntityGraphQL.Compiler
                 {
                     // execute expression now and get a result that we will then perform a full select over
                     // This part is happening via EntityFramework if you use it
-                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext, node);
+                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, options, compileContext, node, false);
                     if (runningContext == null)
                         return (null, true);
 
                     // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
                     var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
 
+                    // core context data is fetched. Now fetch all the bulk resolvers
+                    var bulkData = ResolveBulkLoaders(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
+
                     // new context
-                    compileContext = new();
+                    compileContext = new(bulkData);
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
@@ -188,17 +201,51 @@ namespace EntityGraphQL.Compiler
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
             }
 
-            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node);
+            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node, true);
             return data;
         }
 
-        private async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node)
+        private static Dictionary<string, object> ResolveBulkLoaders(CompileContext compileContext, IServiceProvider? serviceProvider, BaseGraphQLField node, object? runningContext, ParameterReplacer replacer, ParameterExpression newContextType)
+        {
+            var bulkData = new Dictionary<string, object>();
+            if (compileContext.BulkResolvers?.Any() == true)
+            {
+                foreach (var bulkResolver in compileContext.BulkResolvers)
+                {
+                    // rebuild list expression on new context
+                    var listExpression = replacer.Replace(bulkResolver.ListExpression, node.Field!.ResolveExpression!, newContextType);
+                    var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
+                    // replace the data selection expression with the new context
+                    var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false);
+                    var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
+                    var selectionLambda = Expression.Lambda(selection, newParam);
+                    selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), new Type[] { newParam.Type, selection.Type }, listExpression, selectionLambda);
+
+                    var bulkDataArgs = Expression.Lambda(selection, newContextType).Compile().DynamicInvoke(new[] { runningContext });
+                    var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
+                    var allArgs = new List<object?> { bulkDataArgs };
+                    var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
+                    if (compileContext.ConstantParameters.Any())
+                    {
+                        parameters.AddRange(compileContext.ConstantParameters.Keys);
+                        allArgs.AddRange(compileContext.ConstantParameters.Values);
+                    }
+
+                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke(allArgs.ToArray())!;
+                    bulkData[bulkResolver.Name] = dataLoaded;
+                }
+            }
+
+            return bulkData;
+        }
+
+        private static async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(Expression? expression, object context, ParameterExpression contextParam, IServiceProvider? serviceProvider, ParameterReplacer replacer, ExecutionOptions options, CompileContext compileContext, BaseGraphQLField node, bool isFinal)
         {
             // they had a query with a directive that was skipped, resulting in an empty query?
             if (expression == null)
                 return (null, false);
 
-            var allArgs = new List<object> { context };
+            var allArgs = new List<object?> { context };
 
             var parameters = new List<ParameterExpression> { contextParam };
 
@@ -222,7 +269,19 @@ namespace EntityGraphQL.Compiler
                 expression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { expression.Type.GetEnumerableOrArrayType()! }, expression, Expression.Constant(node.Field!.ReturnType.TypeNotNullable));
             }
 
+            if (compileContext.BulkData != null)
+            {
+                parameters.Add(compileContext.BulkParameter!);
+                allArgs.Add(compileContext.BulkData);
+            }
+
+            if (options.BeforeExecuting != null)
+            {
+                expression = options.BeforeExecuting.Invoke(expression, isFinal);
+            }
+
             var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+
 #if DEBUG
             if (options.NoExecution)
                 return (null, false);
@@ -239,6 +298,11 @@ namespace EntityGraphQL.Compiler
         public virtual void AddField(BaseGraphQLField field)
         {
             QueryFields.Add(field);
+        }
+
+        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
+        {
+            Directives.AddRange(graphQLDirectives);
         }
     }
 }

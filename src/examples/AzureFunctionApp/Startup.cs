@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
+﻿using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using EntityGraphQL.Schema;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using EntityGraphQL.AspNet;
 using demo.Infrastructure;
@@ -37,7 +29,8 @@ namespace demo
                 options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
                 // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
                 // builder.FieldNamer = name => name;
-            });
+            })
+            .AddGraphQLValidator();
         }
     }
 }

@@ -14,21 +14,21 @@ namespace EntityGraphQL.Schema
         public abstract Type TypeDotnet { get; }
         public string Name { get; }
         public string? Description { get; set; }
-        public GqlTypeEnum GqlType { get; protected set; }
+        public GqlTypes GqlType { get; protected set; }
 
-        protected List<ISchemaType> baseTypes = new();
-        protected List<ISchemaType> possibleTypes = new();
-        public IList<ISchemaType> BaseTypes => baseTypes.AsReadOnly();
-        public IList<ISchemaType> PossibleTypes => possibleTypes.AsReadOnly();
+        protected List<ISchemaType> BaseTypes { get; set; } = new();
+        protected List<ISchemaType> PossibleTypes { get; set; } = new();
+        public IList<ISchemaType> BaseTypesReadOnly => BaseTypes.AsReadOnly();
+        public IList<ISchemaType> PossibleTypesReadOnly => PossibleTypes.AsReadOnly();
 
-        protected List<ISchemaDirective> directives = new();
+        private readonly List<ISchemaDirective> directives = new();
         public IList<ISchemaDirective> Directives => directives.AsReadOnly();
-        public bool IsInput { get { return GqlType == GqlTypeEnum.Input; } }
-        public bool IsInterface { get { return GqlType == GqlTypeEnum.Interface; } }
-        public bool IsEnum { get { return GqlType == GqlTypeEnum.Enum; } }
-        public bool IsScalar { get { return GqlType == GqlTypeEnum.Scalar; } }
+        public bool IsInput { get { return GqlType == GqlTypes.InputObject; } }
+        public bool IsInterface { get { return GqlType == GqlTypes.Interface; } }
+        public bool IsEnum { get { return GqlType == GqlTypes.Enum; } }
+        public bool IsScalar { get { return GqlType == GqlTypes.Scalar; } }
 
-        public bool RequiresSelection => GqlType != GqlTypeEnum.Scalar && GqlType != GqlTypeEnum.Enum;
+        public bool RequiresSelection => GqlType != GqlTypes.Scalar && GqlType != GqlTypes.Enum;
         public RequiredAuthorization? RequiredAuthorization { get; set; }
         private readonly Regex nameRegex = new("^[_a-zA-Z0-9]+$");
 
@@ -58,10 +58,7 @@ namespace EntityGraphQL.Schema
                     else
                     {
                         var handler = Schema.GetAttributeHandlerFor(attribute.GetType());
-                        if (handler != null)
-                        {
-                            handler.ApplyExtension(this, attribute);
-                        }
+                        handler?.ApplyExtension(this, attribute);
                     }
                 }
             }
@@ -149,12 +146,12 @@ namespace EntityGraphQL.Schema
         public ISchemaType AddDirective(ISchemaDirective directive)
         {
             if (
-                (GqlType == GqlTypeEnum.Scalar && !directive.On.Contains(TypeSystemDirectiveLocation.SCALAR)) ||
-                (GqlType == GqlTypeEnum.Object && !directive.On.Contains(TypeSystemDirectiveLocation.OBJECT)) ||
-                (GqlType == GqlTypeEnum.Interface && !directive.On.Contains(TypeSystemDirectiveLocation.INTERFACE)) ||
-                (GqlType == GqlTypeEnum.Enum && !directive.On.Contains(TypeSystemDirectiveLocation.ENUM)) ||
-                (GqlType == GqlTypeEnum.Input && !directive.On.Contains(TypeSystemDirectiveLocation.INPUT_OBJECT)) ||
-                (GqlType == GqlTypeEnum.Union && !directive.On.Contains(TypeSystemDirectiveLocation.UNION))
+                (GqlType == GqlTypes.Scalar && !directive.Location.Contains(TypeSystemDirectiveLocation.Scalar)) ||
+                (GqlType == GqlTypes.QueryObject && !directive.Location.Contains(TypeSystemDirectiveLocation.QueryObject)) ||
+                (GqlType == GqlTypes.Interface && !directive.Location.Contains(TypeSystemDirectiveLocation.Interface)) ||
+                (GqlType == GqlTypes.Enum && !directive.Location.Contains(TypeSystemDirectiveLocation.Enum)) ||
+                (GqlType == GqlTypes.InputObject && !directive.Location.Contains(TypeSystemDirectiveLocation.InputObject)) ||
+                (GqlType == GqlTypes.Union && !directive.Location.Contains(TypeSystemDirectiveLocation.Union))
             )
             {
                 throw new EntityQuerySchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");
@@ -171,7 +168,9 @@ namespace EntityGraphQL.Schema
         }
 
         public abstract ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
+#pragma warning disable CA1716
         public abstract ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
         public abstract ISchemaType Implements(string typeName);
+#pragma warning restore CA1716
     }
 }

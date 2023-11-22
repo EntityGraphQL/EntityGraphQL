@@ -37,11 +37,11 @@ namespace EntityGraphQL.Schema.Directives
 
         public string? Reason { get; }
 
-        public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
-            TypeSystemDirectiveLocation.FIELD_DEFINITION,
-            TypeSystemDirectiveLocation.ARGUMENT_DEFINITION,
-            TypeSystemDirectiveLocation.INPUT_FIELD_DEFINITION,
-            TypeSystemDirectiveLocation.ENUM_VALUE
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
+            TypeSystemDirectiveLocation.FieldDefinition,
+            TypeSystemDirectiveLocation.ArgumentDefinition,
+            TypeSystemDirectiveLocation.InputFieldDefinition,
+            TypeSystemDirectiveLocation.EnumValue
         };
 
         public void ProcessField(Models.Field field)

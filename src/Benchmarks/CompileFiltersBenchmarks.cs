@@ -54,7 +54,7 @@ namespace Benchmarks
         [Benchmark]
         public void PlainDbSet()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,
@@ -86,7 +86,7 @@ namespace Benchmarks
         [Benchmark]
         public void SetOfBasicWhereStatements()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,
@@ -112,7 +112,7 @@ namespace Benchmarks
                   DirectorName = (string?)null,
                   ActorId = (Guid?)null,
                   ActorName = (string?)null,
-                  Genres = new string[0],
+                  Genres = Array.Empty<string>(),
               },
               (ctx, args) => ctx.Set<Movie>()
                     .AsSplitQuery()
@@ -138,13 +138,13 @@ namespace Benchmarks
                     .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
                     .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
                     .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0)
-              ,"List of movies");
+              , "List of movies");
         }
 
         [Benchmark]
         public void LargerSetOfWhereWhens()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,

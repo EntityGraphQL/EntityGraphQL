@@ -30,55 +30,44 @@ namespace EntityGraphQL.Compiler
     ///             name = ctx.Movies.FirstOrDefault(m => m.Id == id)?.Name,
     ///         }
     /// </summary>
-    internal class GraphQLCollectionToSingleField : BaseGraphQLQueryField
+    public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
     {
-        private readonly GraphQLListSelectionField collectionSelectionNode;
-        private readonly GraphQLObjectProjectionField objectProjectionNode;
-        private readonly Expression combineExpression;
+        public GraphQLListSelectionField CollectionSelectionNode { get; set; }
+        public GraphQLObjectProjectionField ObjectProjectionNode { get; set; }
+        public Expression CombineExpression { get; set; }
 
         public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
             : base(schema, null, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
-            collectionSelectionNode = collectionNode;
-            this.objectProjectionNode = objectProjectionNode;
-            this.combineExpression = combineExpression;
+            CollectionSelectionNode = collectionNode;
+            // do not call tolist as we end up calling First()/etc
+            CollectionSelectionNode.AllowToList = false;
+            this.ObjectProjectionNode = objectProjectionNode;
+            this.CombineExpression = combineExpression;
         }
-     
+
         public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-            return collectionSelectionNode.HasAnyServices(graphQlFragmentStatements) || objectProjectionNode.HasAnyServices(graphQlFragmentStatements) || objectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(graphQlFragmentStatements)) == true;
+            return CollectionSelectionNode.HasAnyServices(graphQlFragmentStatements) || ObjectProjectionNode.HasAnyServices(graphQlFragmentStatements) || ObjectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(graphQlFragmentStatements)) == true;
         }
 
-        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? exp;
-            // this is a first pass || just a single pass
-            if (withoutServiceFields || !HasAnyServices(fragments) && isRoot)
-            {
-                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, replacer);
-            }
+            // second / last pass
+            if (contextChanged)
+                exp = ObjectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
             else
-            {
-                // second / last pass
-                exp = objectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
-            }
-
-            if (exp == null)
-                return null;
-
-            foreach (var directive in directives)
-            {
-                exp = directive.Process(schema, exp!, Arguments, docParam, docVariables);
-            }
+                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, replacer);
 
             return exp;
         }
 
         private Expression? GetCollectionToSingleExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
         {
-            var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(collectionSelectionNode, combineExpression);
-            var result = collectionSelectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+            var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(CollectionSelectionNode, CombineExpression);
+            var result = CollectionSelectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
             if (result == null)
                 return null;
 
@@ -86,12 +75,12 @@ namespace EntityGraphQL.Compiler
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
             if (isRoot)
-                result = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { genericType }, result);
+                result = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { genericType }, result);
 
             // rebuild the .First/FirstOrDefault/etc
             Expression exp;
             if (capMethod == null)
-                exp = ExpressionUtil.CombineExpressions(result, combineExpression, replacer);
+                exp = ExpressionUtil.CombineExpressions(result, CombineExpression, replacer);
             else
                 exp = ExpressionUtil.MakeCallOnQueryable(capMethod, new[] { genericType }, result);
             return exp;

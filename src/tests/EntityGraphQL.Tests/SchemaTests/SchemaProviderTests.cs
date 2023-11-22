@@ -76,11 +76,11 @@ namespace EntityGraphQL.Tests
 
             Assert.Equal("Dog", schema.Type("Dog").Name);
             Assert.False(schema.Type("Dog").IsInterface);
-            Assert.Equal("Animal", schema.Type("Dog").BaseTypes[0].Name);
+            Assert.Equal("Animal", schema.Type("Dog").BaseTypesReadOnly[0].Name);
 
             Assert.Equal("Cat", schema.Type("Cat").Name);
             Assert.False(schema.Type("Cat").IsInterface);
-            Assert.Equal("Animal", schema.Type("Cat").BaseTypes[0].Name);
+            Assert.Equal("Animal", schema.Type("Cat").BaseTypesReadOnly[0].Name);
         }
         [Fact]
         public void HasTypeChecksMappings()
@@ -112,7 +112,7 @@ namespace EntityGraphQL.Tests
 
             var context = new TestDataContext();
 
-            var res = schema.ExecuteRequest(gql, context, null, null);
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
 
             var schemaType = (dynamic)((dynamic)res.Data["__type"]);

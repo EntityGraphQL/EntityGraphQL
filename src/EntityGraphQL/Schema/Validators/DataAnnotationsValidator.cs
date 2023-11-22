@@ -21,7 +21,7 @@ namespace EntityGraphQL.Schema.Validators
         /// Validate the arguments against the validation attributes in the specified method
         /// </summary>
         /// <param name="context"></param>
-        private void ValidateMethodArguments(ArgumentValidatorContext context)
+        private static void ValidateMethodArguments(ArgumentValidatorContext context)
         {
             if (context.Method != null)
             {
@@ -60,7 +60,7 @@ namespace EntityGraphQL.Schema.Validators
         /// </summary>
         /// <param name="context"></param>
         /// <param name="obj"></param>
-        private void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
+        private static void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
         {
             if (obj == null)
                 return;

@@ -42,7 +42,7 @@ namespace EntityGraphQL.Tests
 
         [GraphQLMutation]
 
-        public Person AddPersonSingleArgument(InputObject nameInput)
+        public Person AddPersonSingleArgument([GraphQLInputType] InputObject nameInput)
         {
             return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
         }
@@ -57,7 +57,7 @@ namespace EntityGraphQL.Tests
 #nullable enable
         [GraphQLMutation]
 
-        public Person AddPersonNullableNestedType(NestedInputObject required, NestedInputObject? optional)
+        public Person AddPersonNullableNestedType([GraphQLInputType] NestedInputObject required, [GraphQLInputType] NestedInputObject? optional)
         {
             return new Person { Name = string.IsNullOrEmpty(required.Name) ? "Default" : required.Name, Id = 555, Projects = new List<Project>() };
         }
@@ -340,6 +340,7 @@ namespace EntityGraphQL.Tests
         public int Id { get; set; }
         public long IdLong { get; set; }
     }
+
     [GraphQLArguments]
     public class FloatInput
     {

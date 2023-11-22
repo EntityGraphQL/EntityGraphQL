@@ -6,13 +6,7 @@ DIGIT: [0-9];
 STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:"'\u005B\u005D;<>?,./-];
 
 // identity includes keywords too
-identity: ID
-	| 'true'
-	| 'false'
-	| 'and'
-	| 'if'
-	| 'then'
-	| 'else';
+identity: ID;
 
 int: '-'? DIGIT+;
 decimal: '-'? DIGIT+ '.' DIGIT+;
@@ -28,36 +22,23 @@ constant: string
 
 ws: ' ' | '\t' | '\n' | '\r';
 
-// This is EntityQuery expression language
 args: expression (',' ws* expression)*;
 call: method = identity '(' arguments = args? ')';
 callPath: (identity | call) ('.' (identity | call))*;
-operator: '-'
-	| '+'
-	| '%'
-	| '^'
-	| '*'
-	| '=='
-	| '!='
-	| '<='
-	| '>='
-	| '<'
-	| '>'
-	| '/';
 
-logicOperator:
-	'or'
-	| '||' 
-	| 'and'
-	| '&&';
-
-expression:
+expression: 
 	'if ' (' ' | '\t')* test = expression (' ' | '\t')* 'then ' (' ' | '\t')* ifTrue = expression (' ' | '\t')* 'else ' (' ' | '\t')* ifFalse = expression # ifThenElse
 	| test = expression ' '* '?' ' '* ifTrue = expression ' '* ':' ' '* ifFalse = expression #ifThenElseInline
-	| left = expression ' '* op = operator ' '* right = expression	# binary
-	| left = expression ' '* op = logicOperator ' '* right = expression	# logic
-	| '(' body = expression ')'										# expr
-	| callPath														# callOrId
-	| constant														# const; 
+	| left = expression ' '* op = ('*' | '/' | '%') ' '* right = expression # binary
+	| left = expression ' '* op = ('+' | '-') ' '* right = expression # binary
+	| left = expression ' '* op = ('<=' | '>=' | '<' | '>') ' '* right = expression # binary
+	| left = expression ' '* op = ('==' | '!=') ' '* right = expression # binary
+	| left = expression ' '* op = '^' ' '* right = expression # binary
+	| left = expression ' '* op = ('and' | '&&') ' '* right = expression # logic
+	| left = expression ' '* op = ('or' | '||') ' '* right = expression # logic
+	| '(' body = expression ')' # expr
+	| callPath # callOrId
+	| constant # const
+	;
 	 
-eqlStart: expression;
+eqlStart: expr = expression EOF;

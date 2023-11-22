@@ -22,7 +22,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -33,12 +33,12 @@ public class PersistedQueriesTests
             }
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
         CheckResult(result);
 
         // look no query!
         gql.Query = null;
-        result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
         CheckResult(result);
 
         static void CheckResult(QueryResult result)
@@ -65,7 +65,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -76,7 +76,7 @@ public class PersistedQueriesTests
             }
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotFound", result.Errors.First().Message);
@@ -97,7 +97,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -108,7 +108,7 @@ public class PersistedQueriesTests
             }
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = false });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = false });
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotSupported", result.Errors.First().Message);
@@ -128,7 +128,7 @@ public class PersistedQueriesTests
                         }
                     }
                 }";
-        var hash = new QueryCache().ComputeHash(query);
+        var hash = QueryCache.ComputeHash(query);
 
         var gql = new QueryRequest
         {
@@ -139,7 +139,7 @@ public class PersistedQueriesTests
             }
         };
 
-        var result = schema.ExecuteRequest(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotSupported", result.Errors.First().Message);

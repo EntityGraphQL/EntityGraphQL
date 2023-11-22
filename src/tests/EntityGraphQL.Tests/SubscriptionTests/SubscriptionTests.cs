@@ -1,6 +1,7 @@
 using System;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Subscriptions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -48,7 +49,7 @@ public class SubscriptionTests
                   }
                 }",
         };
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), null, null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
         dynamic data = res.Data["sub"];
         Assert.Single(data.fields);
@@ -81,7 +82,7 @@ public class SubscriptionTests
         var schema = new SchemaProvider<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        schema.Subscription().Add("secondOne", (ChatService chat) => { return chat; });
+        schema.Subscription().Add("secondOne", (ChatService chat) => { return chat.Subscribe(); });
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
@@ -92,7 +93,7 @@ public class SubscriptionTests
         };
         var services = new ServiceCollection();
         services.AddSingleton(new ChatService());
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), services.BuildServiceProvider(), null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.NotNull(res.Errors);
         Assert.Equal("Subscription operations may only have a single root field. Field 'secondOne' should be used in another operation.", res.Errors[0].Message);
     }
@@ -101,7 +102,7 @@ public class SubscriptionTests
     {
         var schema = new SchemaProvider<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
-        schema.Subscription().Add("onMessage", (ChatService chat, string user) => { return chat; });
+        schema.Subscription().Add("onMessage", (ChatService chat, string user) => { return chat.Subscribe(); });
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
@@ -111,7 +112,7 @@ public class SubscriptionTests
         };
         var services = new ServiceCollection();
         services.AddSingleton(new ChatService());
-        var res = schema.ExecuteRequest(gql, new TestDataContext(), services.BuildServiceProvider(), null);
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
     }
 }
@@ -121,7 +122,7 @@ internal class TestSubscriptions
     [GraphQLSubscription]
     public IObservable<Message> OnMessage(ChatService chat)
     {
-        return chat;
+        return chat.Subscribe();
     }
 }
 
@@ -131,10 +132,25 @@ internal class Message
     public string Text { get; set; }
 }
 
-internal class ChatService : IObservable<Message>
+internal class ChatService
 {
-    public IDisposable Subscribe(IObserver<Message> observer)
+    private readonly Broadcaster<Message> broadcaster = new();
+
+    public Message PostMessage(string message)
     {
-        return null;
+        var msg = new Message
+        {
+            Id = 2,
+            Text = message,
+        };
+
+        broadcaster.OnNext(msg);
+
+        return msg;
+    }
+
+    public IObservable<Message> Subscribe()
+    {
+        return broadcaster;
     }
 }

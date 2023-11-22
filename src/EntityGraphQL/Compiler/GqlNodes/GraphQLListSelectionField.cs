@@ -19,7 +19,8 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLListSelectionField : BaseGraphQLQueryField
     {
-        public Expression ListExpression { get; internal set; }
+        public bool AllowToList { get; set; } = true;
+        public Expression ListExpression { get; set; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -50,19 +51,20 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (withoutServiceFields && isRoot && HasServices)
                 return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
 
-            var listContext = ListExpression;
+            var listContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, ListExpression)!;
+
             ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
             if (contextChanged && replacementNextFieldContext != null)
             {
                 listContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, listContext!);
                 nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             }
-            (listContext, var argumentParam) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, directives, contextChanged, replacer) ?? (ListExpression, null);
+            (listContext, var argumentParams) = Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (ListExpression, null);
             if (listContext == null)
                 return null;
 
@@ -79,56 +81,52 @@ namespace EntityGraphQL.Compiler
                 return listContext;
             }
 
-            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParam, contextChanged, replacer);
+            (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParams, contextChanged, replacer);
 
             if (HasServices)
                 compileContext.AddServices(Field!.Services);
 
+            Expression? resultExpression = null;
             if (!withoutServiceFields)
             {
                 bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
                 if (needsServiceWrap)
                 {
-                    var wrappedExpression = WrapWithNullCheck(compileContext, nextFieldContext!, listContext, selectionFields, serviceProvider, schemaContext, replacer);
-                    return wrappedExpression;
+                    // To support a common use case where we are coming from a service result to another service field where the 
+                    // service is the Query Context. Which we are assuming is likely an EF context and we don't need the null check
+                    // Use ExecutionOptions.ExecuteServiceFieldsSeparately = false to disable this behaviour
+                    var nullCheck = Field!.Services.Any(s => s.Type != Field.Schema.QueryContextType);
+                    resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, nullCheck);
                 }
             }
-            // build a .Select(...) - returning a IEnumerable<>
-            var resultExpression = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields);
 
-            // if selecting final graph make sure lists are evaluated
-            if (!isRoot && !withoutServiceFields && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-                resultExpression = ExpressionUtil.MakeCallOnEnumerable("ToList", new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression);
+            resultExpression ??= ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, false);
+
+            // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
+            // root level is handled in ExecutableGraphQLStatement with a null check
+            if (AllowToList && !isRoot && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+                resultExpression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToListWithNullCheck), new[] { resultExpression.Type.GetEnumerableOrArrayType()! }, resultExpression, Expression.Constant(Field!.ReturnType.TypeNotNullable));
 
             return resultExpression;
         }
 
-        private Expression WrapWithNullCheck(CompileContext compileContext, ParameterExpression selectParam, Expression listContext, Dictionary<IFieldKey, CompiledField> selectExpressions, IServiceProvider? serviceProvider, ParameterExpression schemaContext, ParameterReplacer replacer)
+        protected override ParameterExpression? HandleBulkResolverForField(CompileContext compileContext, BaseGraphQLField field, IBulkFieldResolver bulkResolver, ParameterExpression? docParam, object? docVariables, ParameterReplacer replacer)
         {
-            // null check on listContext which may be a call to a service that we do not want to call twice
-            var fieldParamValues = new List<object>(compileContext.ConstantParameters.Values);
-            var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
+            // Need the args that may be used in the bulk resolver expression
+            var argumentValue = default(object);
+            var validationErrors = new List<string>();
+            var bulkFieldArgParam = bulkResolver.BulkArgParam;
+            var newArgParam = bulkFieldArgParam != null ? Expression.Parameter(bulkFieldArgParam!.Type, $"{bulkFieldArgParam.Name}_exec") : null;
+            compileContext.AddArgsToCompileContext(field.Field!, field.Arguments, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
 
-            // TODO services injected here - is this needed?
-            var updatedListContext = listContext;
-            if (compileContext.Services.Any() == true)
-            {
-                updatedListContext = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, listContext, fieldParams, replacer);
+            // replace the arg param after extensions (don't rely on extensions to do this)
+            Expression bulkFieldExpr = bulkResolver.FieldExpression;
 
-                foreach (var selectExpression in selectExpressions)
-                {
-                    selectExpression.Value.Expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, fieldParamValues, selectExpression.Value.Expression, fieldParams, replacer);
-                }
-            }
+            GraphQLHelper.ValidateAndReplaceFieldArgs(field.Field!, bulkFieldArgParam, replacer, ref argumentValue, ref bulkFieldExpr, validationErrors, newArgParam);
 
-            // replace with null_wrap
-            // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
-            var nullWrapParam = Expression.Parameter(updatedListContext.Type, "nullwrap");
-
-            var callOnList = ExpressionUtil.MakeSelectWithDynamicType(this, selectParam, nullWrapParam, selectExpressions);
-
-            updatedListContext = ExpressionUtil.WrapListFieldForNullCheck(updatedListContext, callOnList, fieldParams, fieldParamValues, nullWrapParam, schemaContext);
-            return updatedListContext;
+            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, ListExpression, bulkResolver.ExtractedFields);
+            compileContext.AddServices(field.Field!.Services);
+            return newArgParam;
         }
     }
 }

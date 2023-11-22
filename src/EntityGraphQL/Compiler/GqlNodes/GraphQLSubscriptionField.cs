@@ -19,11 +19,11 @@ namespace EntityGraphQL.Compiler
             this.SubscriptionField = subscriptionField;
         }
 
-        public Task<object?> ExecuteSubscriptionAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
+        public Task<object?> ExecuteSubscriptionAsync<TContext>(TContext context, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
         {
             try
             {
-                return SubscriptionField.CallAsync(context, Arguments, validator, serviceProvider, variableParameter, variablesToUse);
+                return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -31,7 +31,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        public override Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (ResultSelection == null)
                 throw new EntityGraphQLCompilerException($"Subscription {Name} should have a result selection");

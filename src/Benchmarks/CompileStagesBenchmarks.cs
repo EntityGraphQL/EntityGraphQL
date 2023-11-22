@@ -62,7 +62,7 @@ namespace Benchmarks
         [Benchmark]
         public void CompileNoCache()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,
@@ -73,7 +73,7 @@ namespace Benchmarks
         [Benchmark]
         public void CompileCache()
         {
-            Schema.ExecuteRequest(gql, context, null, null, new ExecutionOptions
+            Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions
             {
 #if DEBUG
                 NoExecution = true,

@@ -25,12 +25,12 @@ namespace EntityGraphQL.Compiler
                     case SyntaxKind.IntValue:
                         argValue = argType switch
                         {
-                            _ when argType == typeof(short) || argType == typeof(short?) => short.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(ushort) || argType == typeof(ushort?) => ushort.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(int) || argType == typeof(int?) => int.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(uint) || argType == typeof(uint?) => uint.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(long) || argType == typeof(long?) => long.Parse(argumentValue.Value.ToString()!),
-                            _ when argType == typeof(ulong) || argType == typeof(ulong?) => ulong.Parse(argumentValue.Value.ToString()!),
+                            _ when argType == typeof(short) || argType == typeof(short?) => short.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(ushort) || argType == typeof(ushort?) => ushort.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(int) || argType == typeof(int?) => int.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(uint) || argType == typeof(uint?) => uint.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(long) || argType == typeof(long?) => long.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
+                            _ when argType == typeof(ulong) || argType == typeof(ulong?) => ulong.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
                             _ when argType == typeof(float) || argType == typeof(float?) => float.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
                             _ when argType == typeof(decimal) || argType == typeof(decimal?) => decimal.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),
                             _ when argType == typeof(double) || argType == typeof(double?) => double.Parse(argumentValue.Value.ToString()!, CultureInfo.InvariantCulture),

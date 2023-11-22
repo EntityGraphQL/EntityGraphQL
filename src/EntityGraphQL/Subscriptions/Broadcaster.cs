@@ -33,20 +33,23 @@ namespace EntityGraphQL.Subscriptions
     {
         private readonly List<IObserver<TType>> subscribers = new();
 
+        public Action<IObserver<TType>>? OnUnsubscribe { get; set; }
+
         /// <summary>
         /// Register an observer to the broadcaster.
         /// </summary>
-        /// <param name="subscriber"></param>
+        /// <param name="observer"></param>
         /// <returns></returns>
-        public IDisposable Subscribe(IObserver<TType> subscriber)
+        public IDisposable Subscribe(IObserver<TType> observer)
         {
-            subscribers.Add(subscriber);
-            return new GraphQLSubscription<TType>(this, subscriber);
+            subscribers.Add(observer);
+            return new GraphQLSubscription<TType>(this, observer);
         }
 
         public void Unsubscribe(IObserver<TType> observer)
         {
             subscribers.Remove(observer);
+            OnUnsubscribe?.Invoke(observer);
         }
         /// <summary>
         /// Broadcast the message to all subscribers.
@@ -69,6 +72,7 @@ namespace EntityGraphQL.Subscriptions
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
             foreach (var observer in subscribers)
             {
                 observer.OnCompleted();

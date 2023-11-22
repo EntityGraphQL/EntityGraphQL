@@ -9,13 +9,36 @@ EntityGraphQL supports customizing your GraphQL schema in all the expected ways;
 - Adding optional/required arguments to fields
 - Adding new types (including input types)
 - Adding mutations to modify data
-- Including data from multiple sources
+- Including data from multiple/other sources/services
+- Creating subscription endpoints
 
-To create a new schema we need to supply a base context type.
+To create a new schema we need to supply a base context type. This base type is used as the base for _top-level query fields_. `DemoContext` is our base query context for the schema.
 
 ```cs
-// DemoContext is our base query context for the schema.
-// Schema has no types or fields yet
+// Using EntityGraphQL.AspNet extension method to add the schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.ConfigureSchema = (schema) => {
+        // configure schema heree
+    };
+});
+
+// Create a blank schema with the base query type. Schema has no types or fields yet.
+services.AddGraphQLSchema<DemoContext>(options =>
+{
+    options.AutoBuildSchemaFromContext = false;
+    options.ConfigureSchema = (schema) => {
+        // configure schema heree
+    };
+});
+```
+
+If you need to create a schema outside of ASP.NET.
+
+```cs
+// Create a schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+var schema = new SchemaBuilder.FromObject<DemoContext>();
+
+// Create a blank schema with the base query type. Schema has no types or fields yet.
 var schema = new SchemaProvider<DemoContext>();
 ```
 
@@ -85,7 +108,7 @@ We now have a very simple GraphQL schema ready to use. It has a single root quer
 
 ## Helper Methods
 
-EntityGraphQL comes with some methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
+EntityGraphQL has methods to speed up the creation of your schema. This is helpful to get up and running but be aware if you are exposing this API externally it can be easy to make breaking API changes. For example using the methods above if you end up changing the underlying .NET types you will have compilation errors which alert you of breaking API changes and you can address them. Using the methods below will automatically pick up the underlying changes of the .NET types.
 
 ### Building a full schema
 
@@ -101,8 +124,19 @@ Optional arguments for the schema builder:
    - `.IntrospectionEnabled` - Weather or not GraphQL query introspection is enabled or not for the schema. Default is `true`
    - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization`
    - `.PreBuildSchemaFromContext` - Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
-   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not implementing `IExposableException` will have their message replaced with 'Error occurred'
-   - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`
+   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not included in `AllowedExceptions` will have their message replaced with 'Error occurred'
+   - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`. You can also mark your exceptions with `AllowedExceptionAttribute`. These exceptions are included by default.
+
+```cs
+public List<AllowedException> AllowedExceptions { get; set; } = new List<AllowedException> {
+    new AllowedException(typeof(EntityGraphQLArgumentException)),
+    new AllowedException(typeof(EntityGraphQLException)),
+    new AllowedException(typeof(EntityGraphQLFieldException)),
+    new AllowedException(typeof(EntityGraphQLAccessException)),
+    new AllowedException(typeof(EntityGraphQLValidationException)),
+};
+```
+
 2. `SchemaBuilderOptions` - options used to control how the schema builder builds the schema
 
    - `.AutoCreateFieldWithIdArguments` - for any fields that return a list of an Object Type that has a field called `Id`, it will create a singular field in the schema with an `id` argument. For example the `DemoContext` used in Getting Started the `DemoContext.People` will create the following GraphQL schema. Default is `true`
@@ -136,6 +170,18 @@ Optional arguments for the schema builder:
    ```
 
    - `.IgnoreTypes` - List of type names to ignore when `AutoCreateNewComplexTypes = true`. Default is empty.
+   - `.OnFieldCreated` - callback for each field that is created by the `SchemaBuilder`. Example usage is to apply something to all fields or all fields matching some criteria e.g. 
+
+   ```cs
+   // Add Sort to all list fields
+   OnFieldCreated = (field) =>
+    {
+        if (field.ReturnType.IsList && field.ReturnType.SchemaType.GqlType == GqlTypes.QueryObject && !field.FromType.IsInterface)
+        {
+            field.UseSort();
+        }
+    }
+   ```
 
 ### Adding all fields on a type
 

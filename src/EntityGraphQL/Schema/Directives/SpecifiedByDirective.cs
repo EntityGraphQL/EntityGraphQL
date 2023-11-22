@@ -37,8 +37,8 @@ namespace EntityGraphQL.Schema.Directives
             this.Url = url;
         }
 
-        public IEnumerable<TypeSystemDirectiveLocation> On => new[] {
-            TypeSystemDirectiveLocation.SCALAR
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
+            TypeSystemDirectiveLocation.Scalar
         };
 
         public void ProcessType(Models.TypeElement type)

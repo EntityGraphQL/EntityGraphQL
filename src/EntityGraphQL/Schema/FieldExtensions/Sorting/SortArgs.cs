@@ -8,7 +8,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public List<T>? Sort { get; set; }
     }
 
-    public enum SortDirectionEnum
+    public enum SortDirection
     {
         ASC,
         DESC

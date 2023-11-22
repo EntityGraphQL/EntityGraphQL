@@ -13,7 +13,7 @@ Arguments are defined using an anonymous object type when defining the field. Le
 ```cs
 // empty schema
 var schema = new SchemaProvider<DemoContext>();
-schema.AddType<Person>("Person", "Information about a person);
+schema.AddType<Person>("Person", "Information about a person");
 
 // add our root-level query field with an argument
 schema.Query().AddField(
@@ -71,6 +71,120 @@ schema.Query().AddField(
     (ctx, args) => ctx.People.Where(p => p.IsDeleted == args.deleted),
     "List all active people. Optional list all deleted people"
 );
+```
+
+## Using methods as fields
+
+EntityGraphQL can map methods on your classes to query fields using the `GraphQLFieldAttribute`. When using `SchemaBuilder` or `SchemaType.AddAllFields()` EntityGraphQL will add any methods that have the `GraphQLFieldAttribute` as a field on that type. The parameters of the method will become the GraphQL field arguments. Mapping method parameters to GraphQL arguments follow the same rules as mutations and subscription methods.
+
+Using `[GraphQLInputType]` on a parameter will include the parameter as an argument and use the type as an input type. `[GraphQLArguments]` will flatten the properties of that parameter type into many arguments in the schema.
+
+When looking for a methods parameters, EntityGraphQL will
+
+1. First all scalar / non-complex types will be added as arguments in the schema.
+
+2. If parameter type or enum type is already in the schema it will be added at an argument.
+
+3. Any argument or type with `GraphQLInputTypeAttribute` will be added to the schema as an `InputType`
+
+4. Any argument or type with `GraphQLArgumentsAttribute` found will have the types properties added as schema arguments.
+
+5. If no attributes are found it will assume they are services and not add them to the schema. _I.e. Label your parameters with the attributes or add the type to the schema beforehand._
+
+### Note about method execution with EF
+
+Let's look at an example.
+
+```cs
+public class DemoContext : DbContext
+{
+    [Description("Collection of Movies")]
+    public DbSet<Movie> Movies { get; set; }
+    [Description("Collection of Peoples")]
+    public DbSet<Person> People { get; set; }
+    [Description("Collection of Actors")]
+    public DbSet<Actor> Actors { get; set; }
+}
+
+public class Movie
+{
+    public uint Id { get; set; }
+    public string Name { get; set; }
+
+    // other fields hidden
+
+    public virtual DateTime Released { get; set; }
+    public virtual List<Actor> Actors { get; set; }
+    public virtual Person Director { get; set; }
+
+// highlight-next-line
+    [GraphQLField]
+    public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
+}
+
+var schema = new SchemaProvider<DemoContext>();
+```
+
+`DirectorAgeAtRelease` will become a field `directorAgeAtRelease` on the GraphQL type `Movie` with no arguments. If you query this field like
+
+```gql
+{
+  movies {
+    name
+    directorAgeAtRelease
+  }
+}
+```
+
+It will generate the follow expression
+
+```cs
+(ctx) => ctx.Movies.Select(m => new {
+    name = m.Name,
+    directorAgeAtRelease = m.DirectorAgeAtRelease()
+})
+```
+
+_If you are using EF, it does not know how to translate your method and will try to execute this method after fetching data._ This issue is the method relies on the `Director` property on `Movie` which EF doesn't know and did not fetch so you will not get the expected result. There are a few solutions to this.
+
+#### Lazy Loading
+
+One solution is [Microsoft.EntityFrameworkCore.Proxies](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.Proxies/) to lazy load the properties, which comes with its own tradeoffs. If you install the Nuget package and follow the instructions for using lazy loading proxies these methods will work.
+
+#### EntityFrameworkCore.Projectables Library
+
+Another solution is [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) (Or [Expressionify](https://github.com/ClaveConsulting/Expressionify)) which uses source generators to generate an EF compatible expression.
+
+```cs
+// configure projectables
+services.AddDbContext<DemoContext>(opt =>
+// highlight-next-line
+    opt.UseProjectables()
+);
+
+// add the attributes to your methods
+[GraphQLField]
+// highlight-next-line
+[Projectable]
+public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
+```
+
+Now the expression will be translated into expression that EF will handle. See [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) documention for more information. Or your perferred library.
+
+These libraries require the methods by expression - For example [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) will not work for a method like below, _whereas lazy loading will_.
+
+```cs
+[GraphQLField]
+[Projectable] // will fail as it can't generate an expression - does work with lazy loading
+public uint[] AgesOfActorsAtRelease()
+{
+    var ages = new List<uint>();
+    foreach (var actor in Actors)
+    {
+        ages.Add((uint)((Released - actor.Person.Dob).Days / 365));
+    }
+    return ages.ToArray();
+}
 ```
 
 ## Helper methods

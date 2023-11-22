@@ -4,9 +4,9 @@ namespace Benchmarks
 {
     public class BenchmarkContext : DbContext
     {
-        public DbSet<Movie> Movies { get; set; }
-        public DbSet<Person> People { get; set; }
-        public DbSet<MovieGenre> Genres { get; set; }
+        public DbSet<Movie> Movies => Set<Movie>();
+        public DbSet<Person> People => Set<Person>();
+        public DbSet<MovieGenre> Genres => Set<MovieGenre>();
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

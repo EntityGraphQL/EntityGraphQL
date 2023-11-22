@@ -15,7 +15,7 @@ public class EntityGraphQLExecutionException : Exception
     {
     }
 }
-public class EntityGraphQLAccessException : Exception, IExposableException
+public class EntityGraphQLAccessException : Exception
 {
     public EntityGraphQLAccessException(string message) : base(message)
     {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -22,8 +23,9 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     {
-        protected readonly ISchemaProvider schema;
-        protected readonly List<GraphQLDirective> directives = new();
+        public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
+        public ISchemaProvider Schema { get; protected set; }
+        protected List<GraphQLDirective> Directives { get; set; } = new();
 
         /// <summary>
         /// Name of the field
@@ -70,7 +72,7 @@ namespace EntityGraphQL.Compiler
             RootParameter = rootParameter;
             ParentNode = parentNode;
             this.Arguments = arguments ?? new Dictionary<string, object>();
-            this.schema = schema;
+            this.Schema = schema;
             Field = field;
         }
 
@@ -81,7 +83,7 @@ namespace EntityGraphQL.Compiler
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
             this.Arguments = context.Arguments ?? new Dictionary<string, object>();
-            this.schema = context.schema;
+            this.Schema = context.Schema;
             Field = context.Field;
         }
 
@@ -112,9 +114,35 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
-        public abstract Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+        public Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        {
+            IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
 
-        public abstract IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables);
+            if (fieldNode == null)
+                return null;
+
+            return ((BaseGraphQLField)fieldNode).GetFieldExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+        }
+
+        /// <summary>
+        /// GetNodeExpression but without the directive processing as we do not want to process continuously
+        /// </summary>
+        protected abstract Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+
+        public IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        {
+            IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
+
+            if (fieldNode == null)
+                return new List<BaseGraphQLField>();
+
+            return ((BaseGraphQLField)fieldNode).ExpandField(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
+        }
+
+        protected virtual IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        {
+            return ExpandFromServices(withoutServiceFields, this);
+        }
 
         /// <summary>
         /// Bring up any context based expression from services
@@ -167,14 +195,14 @@ namespace EntityGraphQL.Compiler
 
         public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
         {
-            directives.AddRange(graphQLDirectives);
+            Directives.AddRange(graphQLDirectives);
         }
-        protected BaseGraphQLField? ProcessFieldDirectives(BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+        protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
         {
-            BaseGraphQLField? result = field;
-            foreach (var directive in directives)
+            IGraphQLNode? result = field;
+            foreach (var directive in Directives)
             {
-                result = directive.ProcessField(schema, field, Arguments, docParam, docVariables);
+                result = directive.VisitNode(location, Schema, field, Arguments, docParam, docVariables);
             }
             return result;
         }
@@ -211,11 +239,29 @@ namespace EntityGraphQL.Compiler
             return nextFieldContext;
         }
 
+        protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
+        {
+            if (Field?.BulkResolver != null)
+            {
+                if (!withoutServiceFields)
+                {
+                    // we replace the expression with a lookup in the bulk resolver data
+                    // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
+                    var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
+                    var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
+                    nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
+                    nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
+                }
+            }
+
+            return nextFieldContext;
+        }
+
         public override int GetHashCode()
         {
             return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as BaseGraphQLField);
         }

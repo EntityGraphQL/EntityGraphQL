@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
@@ -28,7 +28,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables)
+        public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables) where TContext : default
         {
             this.serviceProvider = serviceProvider;
             this.fragments = fragments;
@@ -36,12 +36,19 @@ namespace EntityGraphQL.Compiler
             this.docVariables = BuildDocumentVariables(ref variables);
 
             var result = new ConcurrentDictionary<string, object?>();
+            // pass to directvies
+            foreach (var directive in Directives)
+            {
+                if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
+                    return result;
+            }
+
             CompileContext compileContext = new();
             foreach (var field in QueryFields)
             {
                 try
                 {
-                    foreach (var node in field.Expand(compileContext, fragments, true, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
+                    foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
                     {
 #if DEBUG
                         Stopwatch? timer = null;
@@ -51,7 +58,7 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        var data = await ExecuteAsync(node, context, validator, serviceProvider, docVariables);
+                        var data = await ExecuteAsync(node, context, serviceProvider, docVariables);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {
@@ -78,12 +85,12 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, GraphQLValidator validator, IServiceProvider? serviceProvider, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables)
         {
             if (context == null)
                 return null;
             // execute the subscription set up method. It returns in IObservable<T>
-            var result = await node.ExecuteSubscriptionAsync(context, validator, serviceProvider, OpVariableParameter, docVariables);
+            var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables);
 
             if (result == null || node.ResultSelection == null)
                 throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");

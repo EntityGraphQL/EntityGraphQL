@@ -13,18 +13,13 @@ public class GraphQLExtractedField : BaseGraphQLField
     public IEnumerable<Expression> FieldExpressions { get; }
 
     public GraphQLExtractedField(ISchemaProvider schema, string name, IEnumerable<Expression> fieldExpressions, ParameterExpression originalParam)
-    : base(schema, null, name, null, null, null, null)
+    : base(schema, null, name.Replace(" ", "").Replace(",", ""), null, null, null, null)
     {
         this.originalParam = originalParam;
         this.FieldExpressions = fieldExpressions;
     }
 
-    public override IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override Expression GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+    protected override Expression GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
     {
         if (withoutServiceFields)
         {

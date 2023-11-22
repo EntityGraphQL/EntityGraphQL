@@ -97,7 +97,7 @@ The expression language supports the following operators:
 - `or` or `||` - Or
 - `and` or `&&` - And
 
-The expression language supports the follow methods:
+The expression language supports the following methods:
 
 - `List.where(filter)`, or `List.filter(filter)` - Filter the list
 - `List.any(filter)` - Return `true` if any of the items in the list match the filter. Otherwise `false`
@@ -108,3 +108,13 @@ The expression language supports the follow methods:
 - `List.count(filter?)` - Return the count of a list. Optionally counting items that match a filter
 - `List.orderBy(field)` - Order the list by a given field
 - `List.orderByDesc(field)` - Order the list in reverse by a given field
+- `string.contains(string)` - Return `true` if the specified string occurs in this string instance
+- `string.startsWith(string)` - Return `true` if the beginning of this string instance matches the specified string
+- `string.endsWith(string)` - Return `true` if the end of this string instance matches the specified string
+- `string.toLower()` - Return the string converted to lowercase
+- `string.toUpper()` - Return the string converted to uppercase
+
+
+The expression language supports ternary and conditional:
+- `__ ? __ : __`
+- `if __ then __ else __`

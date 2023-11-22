@@ -31,11 +31,11 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             // next read close the socked to end things
             socket.InSequence(sequence).SetupReceiveCloseAsync();
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -48,11 +48,11 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             // client sends again 
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync(4429, "Too many initialisation requests");
 
@@ -64,11 +64,11 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.PING}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.Ping}\"}}");
             // next read close the socked to end things
             socket.InSequence(sequence).SetupReceiveCloseAsync();
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.PONG}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.Pong}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -79,7 +79,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             var (server, socket, _) = Setup();
 
-            socket.SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.SUBSCRIBE}\"}}");
+            socket.SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.Subscribe}\"}}");
 
             socket.SetupAndAssertCloseAsync(4401, "Unauthorized");
 
@@ -91,10 +91,10 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.SUBSCRIBE}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.Subscribe}\"}}");
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync(4400, "Invalid subscribe message, missing id field.");
 
@@ -106,10 +106,10 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"id\":\"{Guid.NewGuid()}\",\"type\":\"{GraphQLWSMessageType.SUBSCRIBE}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"id\":\"{Guid.NewGuid()}\",\"type\":\"{GraphQLWSMessageType.Subscribe}\"}}");
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync(4400, "Invalid subscribe message, missing payload field.");
 
@@ -121,11 +121,11 @@ namespace EntityGraphQL.AspNet.Tests
             var (server, socket, _) = Setup();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             socket.InSequence(sequence).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = Guid.NewGuid(),
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "subscription DoIt { onMessage { text } }"
@@ -133,7 +133,7 @@ namespace EntityGraphQL.AspNet.Tests
             });
             socket.InSequence(sequence).SetupReceiveCloseAsync();
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -146,11 +146,11 @@ namespace EntityGraphQL.AspNet.Tests
             var id = Guid.NewGuid();
 
             var sequence = new MockSequence();
-            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(sequence).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             socket.InSequence(sequence).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = id,
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "subscription DoIt { onMessage { text } }"
@@ -159,14 +159,14 @@ namespace EntityGraphQL.AspNet.Tests
             socket.InSequence(sequence).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = id,
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "subscription DoIt { onMessage { text } }"
                 }
             });
 
-            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
+            socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
 
             socket.SetupAndAssertCloseAsync(4409, $"Subscriber for {id} already exists");
 
@@ -180,11 +180,11 @@ namespace EntityGraphQL.AspNet.Tests
             var chatService = httpContext.Object.RequestServices.GetService<TestChatService>()!;
 
             var recvSeq = new MockSequence();
-            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             socket.InSequence(recvSeq).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = id,
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "subscription DoIt { onMessage { text } }"
@@ -199,8 +199,8 @@ namespace EntityGraphQL.AspNet.Tests
             socket.InSequence(recvSeq).SetupReceiveCloseAsync();
 
             var sendSeq = new MockSequence();
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"onMessage\":{{\"text\":\"Hello\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.NEXT}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"onMessage\":{{\"text\":\"Hello\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -215,11 +215,11 @@ namespace EntityGraphQL.AspNet.Tests
             var id = Guid.NewGuid();
 
             var recvSeq = new MockSequence();
-            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             socket.InSequence(recvSeq).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = id,
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "query GetIt { messages { text } }"
@@ -228,9 +228,9 @@ namespace EntityGraphQL.AspNet.Tests
             socket.InSequence(recvSeq).SetupReceiveCloseAsync();
 
             var sendSeq = new MockSequence();
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"messages\":[{{\"text\":\"Hello\"}}]}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.NEXT}\"}}");
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.COMPLETE}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"messages\":[{{\"text\":\"Hello\"}}]}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -249,11 +249,11 @@ namespace EntityGraphQL.AspNet.Tests
             var id = Guid.NewGuid();
 
             var recvSeq = new MockSequence();
-            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_INIT}\"}}");
+            socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
             socket.InSequence(recvSeq).SetupReceiveAsync(new GraphQLWSRequest
             {
                 Id = id,
-                Type = GraphQLWSMessageType.SUBSCRIBE,
+                Type = GraphQLWSMessageType.Subscribe,
                 Payload = new QueryRequest
                 {
                     Query = "mutation MutateIt { postMessage(text: \"hey\") { text } }"
@@ -263,9 +263,9 @@ namespace EntityGraphQL.AspNet.Tests
             socket.InSequence(recvSeq).SetupReceiveCloseAsync();
 
             var sendSeq = new MockSequence();
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.CONNECTION_ACK}\"}}");
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"postMessage\":{{\"text\":\"hey\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.NEXT}\"}}");
-            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.COMPLETE}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"postMessage\":{{\"text\":\"hey\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
+            socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
 
             socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 

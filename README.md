@@ -3,23 +3,22 @@
 ## A GraphQL library for .NET Core
 
 ![Build](https://github.com/lukemurray/EntityGraphQL/actions/workflows/dotnet.yml/badge.svg)
-[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
 
-Jump into the [https://entitygraphql.github.io/](https://entitygraphql.github.io/) for documentation and to get started.
+Head to [entitygraphql.github.io](https://entitygraphql.github.io/) for documentation and to get started.
 
-Entity GraphQL is a .NET Core (netstandard 2.1) library that allows you to easily build a GraphQL API on top of your data with the extensibility to bring multiple data sources together in the single GraphQL schema.
+EntityGraphQL is a .NET library that allows you to easily build a [GraphQL API](https://graphql.org/learn/) on top of your data model with the extensibility to easily bring multiple data sources together in the single GraphQL schema.
 
-It can also be used to execute simple LINQ-style expressions at runtime against a given object which provides powerful runtime configuration.
+EntityGraphQL builds a GraphQL schema that maps to .NET objects. It provides the functionality to parse a GraphQL query document and execute that against your mapped objects. These objects can be an Entity Framework `DbContext` or any other .NET object, it doesn't matter.
+
+A core feature of EntityGraphQL _with_ Entity Framework (although EF is not a requirement) is that it builds selections of only the fields requested in the GraphQL query which means Entity Framework is not returning all columns from a table. This is done with the [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/) projection operator [`Select()`](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/projection-operations#select) hence it works across any object tree.
 
 _Please explore, give feedback or join the development._
 
-If you're looking for a dotnet library to generate code to query an API from a GraphQL schema see https://github.com/lukemurray/DotNetGraphQLQueryGen
-
 ## Installation
 
-Via Nuget
+The [EntityGraphQL.AspNet ![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet) package will get you easily set up with ASP.NET. 
 
-[![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL)
+However the core [EntityGraphQL ![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL) package has no ASP.NET dependency.
 
 # Quick Start with Entity Framework
 
@@ -29,14 +28,6 @@ _Note: There is no dependency on EF. Queries are compiled to `IQueryable` or `IE
 
 ```c#
 public class DemoContext : DbContext {
-  public DemoContext(DbContextOptions options) : base(options)
-  {
-  }
-
-  protected override void OnModelCreating(ModelBuilder builder) {
-    // Set up your relations
-  }
-
   public DbSet<Property> Properties { get; set; }
   public DbSet<PropertyType> PropertyTypes { get; set; }
   public DbSet<Location> Locations { get; set; }

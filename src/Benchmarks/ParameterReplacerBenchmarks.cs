@@ -4,10 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Benchmarks
@@ -26,13 +23,13 @@ namespace Benchmarks
             public string? DirectorName { get; set; }
             public Guid? ActorId { get; set; }
             public string? ActorName { get; set; }
-            public string[] Genres { get; set; }
+            public string[] Genres { get; set; } = Array.Empty<string>();
         }
 
-        Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node;
-        Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node2;
-        Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node3;
-        Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node4;
+        readonly Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node;
+        readonly Expression<Func<BenchmarkContext, IEnumerable<Movie>>> _node2;
+        readonly Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node3;
+        readonly Expression<Func<BenchmarkContext, Args, IEnumerable<Movie>>> _node4;
 
         public ParameterReplacerBenchmarks()
         {

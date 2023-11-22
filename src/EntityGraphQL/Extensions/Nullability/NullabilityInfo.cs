@@ -1,13 +1,6 @@
-﻿#nullable enable
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-
-using System.Collections.ObjectModel;
-
-
-using NullabilityInfoContext = Nullability.NullabilityInfoContextEx;
-using NullabilityInfo = Nullability.NullabilityInfoEx;
-using NullabilityState = Nullability.NullabilityStateEx;
+#if NETSTANDARD2_1
 using System;
 
 namespace Nullability
@@ -15,9 +8,9 @@ namespace Nullability
     /// <summary>
     /// A class that represents nullability info
     /// </summary>
-    public sealed class NullabilityInfoEx
+    public sealed class NullabilityInfo
     {
-        internal NullabilityInfoEx(Type type, NullabilityState readState, NullabilityState writeState,
+        internal NullabilityInfo(Type type, NullabilityState readState, NullabilityState writeState,
             NullabilityInfo? elementType, NullabilityInfo[] typeArguments)
         {
             Type = type;
@@ -53,7 +46,7 @@ namespace Nullability
     /// <summary>
     /// An enum that represents nullability state
     /// </summary>
-    public enum NullabilityStateEx
+    public enum NullabilityState
     {
         /// <summary>
         /// Nullability context not enabled (oblivious)
@@ -69,3 +62,4 @@ namespace Nullability
         Nullable
     }
 }
+#endif

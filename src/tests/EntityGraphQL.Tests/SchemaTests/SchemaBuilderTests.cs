@@ -105,11 +105,11 @@ namespace EntityGraphQL.Tests
         public void AbstractClassesBecomeInterfaces()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
-            Assert.Equal(GqlTypeEnum.Interface, schemaProvider.Type<AbstractClass>().GqlType);
+            Assert.Equal(GqlTypes.Interface, schemaProvider.Type<AbstractClass>().GqlType);
             Assert.Equal(2, schemaProvider.Type<AbstractClass>().GetFields().Count());
 
             schemaProvider.AddType<InheritedClass>("InheritedClass");
-            Assert.Equal(GqlTypeEnum.Object, schemaProvider.Type<InheritedClass>().GqlType);
+            Assert.Equal(GqlTypes.QueryObject, schemaProvider.Type<InheritedClass>().GqlType);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
         }
 
@@ -134,7 +134,7 @@ namespace EntityGraphQL.Tests
                 Projects = new List<Project>()
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).name);
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema3>();
             schemaProvider.AddType<InheritedClass>("").ImplementAllBaseTypes();
-            Assert.Equal(GqlTypeEnum.Object, schemaProvider.Type<InheritedClass>().GqlType);
+            Assert.Equal(GqlTypes.QueryObject, schemaProvider.Type<InheritedClass>().GqlType);
             Assert.Single(schemaProvider.Type<InheritedClass>().GetFields());
 
             var gql = new QueryRequest
@@ -165,7 +165,7 @@ namespace EntityGraphQL.Tests
                     }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema3(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("InheritedClass", ((dynamic)res.Data["__type"]).name);
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema2(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema2(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("Property", ((dynamic)res.Data["__type"]).name);
@@ -202,7 +202,7 @@ namespace EntityGraphQL.Tests
         public void InterfacesWithNoFieldsBecomeUnions()
         {
             var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
-            Assert.Equal(GqlTypeEnum.Union, schemaProvider.Type<IUnion>().GqlType);
+            Assert.Equal(GqlTypes.Union, schemaProvider.Type<IUnion>().GqlType);
             Assert.Single(schemaProvider.Type<IUnion>().GetFields()); //__typename only
             Assert.Equal("__typename", schemaProvider.Type<IUnion>().GetFields().First().Name); //__typename only
         }
@@ -261,7 +261,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
@@ -286,7 +286,7 @@ namespace EntityGraphQL.Tests
         }"
             };
 
-            var res = schemaProvider.ExecuteRequest(gql, new TestSchema4(), null, null);
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
             Assert.Null(res.Errors);
 
             Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);

@@ -43,7 +43,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -93,7 +93,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -142,7 +142,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -191,7 +191,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -240,7 +240,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -300,7 +300,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -348,7 +348,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic people = result.Data["people"];
@@ -391,7 +391,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.NotNull(result.Errors);
             Assert.Equal("Field 'people' - first argument can not be greater than 2.", result.Errors[0].Message);
         }
@@ -418,7 +418,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.NotNull(result.Errors);
             Assert.Equal("Field 'people' - last argument can not be greater than 2.", result.Errors[0].Message);
         }
@@ -442,7 +442,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
             dynamic people = result.Data["people"];
             Assert.Equal(4, Enumerable.Count(people.edges));
@@ -481,7 +481,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic projects = result.Data["projects"];
@@ -534,7 +534,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 }",
             };
 
-            var result = schema.ExecuteRequest(gql, data, null, null);
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
             Assert.Null(result.Errors);
 
             dynamic project = result.Data["project"];
@@ -565,7 +565,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
                     // just need any service here to build the relation testing the use case
-                    .ResolveWithService<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
             });
             var gql = new QueryRequest
             {
@@ -588,7 +588,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillProjectData(data);
 
-            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
         }
 
@@ -603,7 +603,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
                     // just need any service here to build the relation testing the use case
-                    .ResolveWithService<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
             });
             var gql = new QueryRequest
             {
@@ -626,7 +626,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillProjectData(data);
 
-            var result = schema.ExecuteRequest(gql, data, serviceCollection.BuildServiceProvider(), null);
+            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
             Assert.Null(result.Errors);
         }
 

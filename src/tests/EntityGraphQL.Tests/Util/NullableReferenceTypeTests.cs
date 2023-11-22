@@ -94,7 +94,7 @@ namespace EntityGraphQL.Tests.Util
                 "
             };
 
-            var res = schema.ExecuteRequest(gql, new WithNullableRefEnabled(), null, null);
+            var res = schema.ExecuteRequestWithContext(gql, new WithNullableRefEnabled(), null, null);
             Assert.Null(res.Errors);
 
             var type = (dynamic)res.Data["__type"];
@@ -103,8 +103,8 @@ namespace EntityGraphQL.Tests.Util
             Assert.Equal(@"{""name"":""nullableInt"",""type"":{""name"":""Int"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", JsonConvert.SerializeObject(type.fields[1]));
             Assert.Equal(@"{""name"":""nullable"",""type"":{""name"":""String"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", JsonConvert.SerializeObject(type.fields[3]));
             Assert.Equal(@"{""name"":""nonNullable"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""String"",""kind"":""SCALAR""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[2]));
-            
-            
+
+
 
             Assert.Equal(@"{""name"":""tests"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":null,""kind"":""LIST""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[4]));
             Assert.Equal(@"{""name"":""tests2"",""type"":{""name"":null,""kind"":""LIST"",""ofType"":{""name"":""Test"",""kind"":""OBJECT""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[5]));

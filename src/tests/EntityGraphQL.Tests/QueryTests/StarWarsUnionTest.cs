@@ -1,9 +1,5 @@
 ﻿using EntityGraphQL.Schema;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace EntityGraphQL.Tests
@@ -12,7 +8,7 @@ namespace EntityGraphQL.Tests
     {
         public abstract class Character
         {
-            
+
         }
 
         public class Human : Character
@@ -42,7 +38,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = new SchemaProvider<StarWarsContext>();
 
-            schema.AddUnion<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");            
+            schema.AddUnion<Character>(name: "Character", description: "represents any character in the Star Wars trilogy");
             schema.Type<Character>().AddPossibleType<Human>();
             schema.Type<Character>().AddPossibleType<Droid>();
 
@@ -57,6 +53,20 @@ namespace EntityGraphQL.Tests
         public void StarWarsUnionTest_AutoCreation()
         {
             var schema = SchemaBuilder.FromObject<StarWarsContext>();
+            schema.Type<Character>().AddAllPossibleTypes();
+
+            var sdl = schema.ToGraphQLSchemaString();
+
+            Assert.Contains("union Character = Human | Droid", sdl);
+            Assert.Contains("type Human {", sdl);
+            Assert.Contains("type Droid {", sdl);
+        }
+
+        [Fact]
+        public void AddAllPossibleTypesWithExistingType_266()
+        {
+            var schema = SchemaBuilder.FromObject<StarWarsContext>();
+            schema.AddType<Human>("Human", "A human").AddAllFields();
             schema.Type<Character>().AddAllPossibleTypes();
 
             var sdl = schema.ToGraphQLSchemaString();

@@ -23,18 +23,18 @@ namespace EntityGraphQL.AspNet
         /// <summary>
         /// Check if this user has the right security claims, roles or policies to access the request type/field
         /// </summary>
-        /// <param name="requiredAuth">The required auth for the field or type you want to check against the user</param>
+        /// <param name="requiredAuthorization">The required auth for the field or type you want to check against the user</param>
         /// <returns></returns>
-        public override bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuth)
+        public override bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
         {
             // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-            if (requiredAuth != null && requiredAuth.Any() && user != null)
+            if (requiredAuthorization != null && requiredAuthorization.Any())
             {
                 // check polices if principal with used
-                if (authService != null)
+                if (authService != null && user != null)
                 {
                     var allPoliciesValid = true;
-                    foreach (var policy in requiredAuth.Policies)
+                    foreach (var policy in requiredAuthorization.Policies)
                     {
                         // each policy now is an OR
                         var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
@@ -47,7 +47,7 @@ namespace EntityGraphQL.AspNet
                 }
 
                 // check roles
-                return base.IsAuthorized(user, requiredAuth);
+                return base.IsAuthorized(user, requiredAuthorization);
             }
             return true;
         }

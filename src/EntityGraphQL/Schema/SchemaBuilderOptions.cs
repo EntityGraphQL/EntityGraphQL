@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema
 {
+
+    public delegate void OnFieldCreated(IField field);
     /// <summary>
     /// Options used by SchemaBuilder when reflection the object graph to auto create schema types & fields
     /// </summary>
@@ -40,7 +43,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AutoCreateEnumTypes { get; set; } = true;
         /// <summary>
-        /// If true (default) and an object type is encountered during reflection of the object graph it will be added to the schema 
+        /// If true (default) and an object type is encountered during reflection of the query object graph it will be added to the schema 
         /// as a Type including it's fields. If that type is an interface it will be added as an interface. This includes return 
         /// types form mutations
         /// </summary>
@@ -50,21 +53,20 @@ namespace EntityGraphQL.Schema
         /// or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an 
         /// Interface including it's fields
         /// </summary>
-        public bool AutoCreateInterfaceTypes { get; set; } = false;
-    }
-
-    public class SchemaBuilderMethodOptions : SchemaBuilderOptions
-    {
+        public bool AutoCreateInterfaceTypes { get; set; }
         /// <summary>
-        /// If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
+        /// If true (default = true) and an object type is encountered during reflection of method parameters it will be added to the schema as an InputObject type if used as an argument.
         /// 
-        /// If you set it true, EntityGraphQL doesn't know which objects should be InputTypes or a services to be injected at execution.
+        /// If you set it false, you will need to add any InputTypes to the schema before add the methods fields/mutation/subscriptions.
         /// </summary>
-        public bool AutoCreateInputTypes { get; set; } = false;
+        public bool AutoCreateInputTypes { get; set; } = true;
         /// <summary>
-        /// If true (default = false) Any public method in the mutation class will be added to the schema as a mutation
+        /// If true (default = false) Any public method in the mutation/subscription class will be added to the schema as a mutation/subsscription. 
+        /// If false only methodds with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.
         /// </summary>
-        public bool AddNonAttributedMethods { get; set; } = false;
+        public bool AddNonAttributedMethodsInControllers { get; set; }
+
+        public OnFieldCreated? OnFieldCreated { get; set; }
     }
 
     /// <summary>
@@ -92,17 +94,23 @@ namespace EntityGraphQL.Schema
         /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or 
         /// anything that may be needed for the schema to be built correctly.
         /// </summary>
-        public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; } = null;
+        public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; }
 
         /// <summary>
-        /// If true (default), exceptions not implementing IExposableException will have their messages rendered in the 'errors' object
-        /// If false, exceptions not implementing IExposableException will have their message replaced with 'Error occurred'
+        /// If true (default), exceptions will have their messages rendered in the 'errors' object
+        /// If false, exceptions not in AllowedExceptions will have their message replaced with 'Error occurred'
         /// </summary>
         public bool IsDevelopment { get; set; } = true;
 
         /// <summary>
         /// List of allowed exceptions that will be rendered in the 'errors' object when IsDevelopment is false
         /// </summary>
-        public List<AllowedException> AllowedExceptions { get; set; } = new();
+        public List<AllowedException> AllowedExceptions { get; set; } = new List<AllowedException> {
+            new AllowedException(typeof(EntityGraphQLArgumentException)),
+            new AllowedException(typeof(EntityGraphQLException)),
+            new AllowedException(typeof(EntityGraphQLFieldException)),
+            new AllowedException(typeof(EntityGraphQLAccessException)),
+            new AllowedException(typeof(EntityGraphQLValidationException)),
+        };
     }
 }
