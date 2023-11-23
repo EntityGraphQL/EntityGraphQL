@@ -144,6 +144,26 @@ namespace EntityGraphQL.Tests
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.True((bool)res.Data["createOneOfInputType"]);
+        }
+
+        [Fact]
+        public void TestOneOfWorksWithRequired()
+        {
+            var schemaProvider = SchemaBuilder.Create<TestDataContext>();
+            schemaProvider.AddInputType<OneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields();
+            schemaProvider.Query().AddField("createOneOfInputType", new { input = ArgumentHelper.Required<OneOfInputType>() }, (ctx, args) => args.input.Value.One ?? args.input.Value.Two, "Descrption");
+
+            var gql = new QueryRequest
+            {
+                Query = @"
+                    query Test {
+                        createOneOfInputType(input: { one: 1 })
+                    }"
+            };
+
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+            Assert.Equal(1, (int)res.Data["createOneOfInputType"]);
 
         }
     }
