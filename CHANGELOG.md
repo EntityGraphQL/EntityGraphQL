@@ -1,5 +1,8 @@
 # 5.2.0
 
+## Fixes
+- Fix error when using a service at a query root field that uses `First()` as friends (List to single pattern). E.g. `(ctx, service) => ctx.SomeList.First(i => i.Thing == service.Other)`
+
 ## Changes
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
 - Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.

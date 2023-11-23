@@ -2047,6 +2047,81 @@ namespace EntityGraphQL.Tests
             Assert.Equal(3, projects[0].someService.Count);
         }
 
+        [Fact]
+        public void TestServiceFieldWithExpressionReturnCollectionToSingle()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.Name, ctx.Description).FirstOrDefault());
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        someService { type }
+                    }
+                 }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                 {
+                     new Project
+                     {
+                         Id = 0,
+                         Name = "Project",
+                         Children = new List<Project>
+                         {
+                             new Project
+                             {
+                                 Id = 1,
+                                 Name = "Child1"
+                             },
+                         },
+                     }
+             },
+            };
+
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var data = (dynamic)res.Data["projects"];
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
+        public void TestRootServiceFieldWithExpressionReturnCollectionToSingle()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Query().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.TotalPeople.ToString(), "b").FirstOrDefault());
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    someService { type }
+                 }"
+            };
+
+            var context = new TestDataContext();
+
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var data = (dynamic)res.Data["someService"];
+            Assert.Equal(1, srv.CallCount);
+        }
         public class ConfigService
         {
             public ConfigService()

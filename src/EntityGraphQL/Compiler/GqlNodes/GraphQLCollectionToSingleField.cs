@@ -37,7 +37,7 @@ namespace EntityGraphQL.Compiler
         public Expression CombineExpression { get; set; }
 
         public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
-            : base(schema, null, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
+            : base(schema, collectionNode.Field, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
             CollectionSelectionNode = collectionNode;
             // do not call tolist as we end up calling First()/etc
@@ -56,7 +56,7 @@ namespace EntityGraphQL.Compiler
         {
             Expression? exp;
             // second / last pass
-            if (contextChanged)
+            if (contextChanged || (HasServices && isRoot))
                 exp = ObjectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
             else
                 exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, replacer);
