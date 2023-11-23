@@ -166,7 +166,7 @@ namespace EntityGraphQL.Compiler
             Expression? expression = null;
             var contextParam = node.RootParameter;
 
-            if (node.HasAnyServices(fragments) && options.ExecuteServiceFieldsSeparately == true)
+            if (node.HasServicesAtOrBelow(fragments) && options.ExecuteServiceFieldsSeparately == true)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services

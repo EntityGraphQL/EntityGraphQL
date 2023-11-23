@@ -337,7 +337,7 @@ namespace EntityGraphQL.Compiler.Util
                 case ExpressionType.Call:
                     {
                         var mc = (MethodCallExpression)nextExp;
-                        if (mc.Object == null)
+                        if (mc.Object == null && baseExp.Type.IsGenericType)
                         {
                             var args = new List<Expression> { baseExp };
                             var type = baseExp.Type.GetGenericArguments().First();

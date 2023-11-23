@@ -61,7 +61,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public IReadOnlyDictionary<string, object> Arguments { get; }
         /// <summary>
-        /// True if this field has services
+        /// True if this field directly has services
         /// </summary>
         public bool HasServices { get => Field?.Services.Any() == true; }
 
@@ -92,9 +92,9 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public virtual bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasAnyServices(fragments)) == true;
+            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
         }
 
         /// <summary>
@@ -214,7 +214,7 @@ namespace EntityGraphQL.Compiler
                 nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
             else // need to replace context expressions in the service expression with the new context
             {
-                // If this is a root field, we replace teh whole expresison unless there is services at the root level
+                // If this is a root field, we replace the whole expresison unless there is services at the root level
                 if (isRoot && !HasServices)
                     nextFieldContext = replacementNextFieldContext;
                 else if (HasServices)

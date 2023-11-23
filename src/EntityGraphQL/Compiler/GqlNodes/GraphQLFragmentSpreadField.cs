@@ -16,11 +16,11 @@ namespace EntityGraphQL.Compiler
             LocationForDirectives = ExecutableDirectiveLocation.FRAGMENT_SPREAD;
         }
 
-        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
 
-            return graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name)!.QueryFields.Any(f => f.HasAnyServices(graphQlFragmentStatements));
+            return graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name)!.QueryFields.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements));
         }
 
         protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)

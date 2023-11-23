@@ -15,7 +15,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             return Field?.Services.Any() == true;
         }

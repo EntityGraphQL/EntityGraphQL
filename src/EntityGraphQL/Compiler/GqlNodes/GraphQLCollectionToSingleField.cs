@@ -46,10 +46,10 @@ namespace EntityGraphQL.Compiler
             this.CombineExpression = combineExpression;
         }
 
-        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-            return CollectionSelectionNode.HasAnyServices(graphQlFragmentStatements) || ObjectProjectionNode.HasAnyServices(graphQlFragmentStatements) || ObjectProjectionNode.QueryFields?.Any(f => f.HasAnyServices(graphQlFragmentStatements)) == true;
+            return CollectionSelectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements)) == true;
         }
 
         protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
