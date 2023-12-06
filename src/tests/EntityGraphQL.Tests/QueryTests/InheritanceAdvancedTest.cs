@@ -42,9 +42,9 @@ namespace EntityGraphQL.Tests
             public int Colour { get; set; }
             public TShirt TShirt { get; set; }
 
-            public string FormatTShirtPropertiesAsString()
+            public static string FormatTShirtPropertiesAsString(int size, int colour)
             {
-                return $"{Size} {Colour}";
+                return $"{size} {colour}";
             }
         }
 
@@ -355,7 +355,7 @@ namespace EntityGraphQL.Tests
 
             schemaProvider.UpdateType<TShirtOrderItem>(Order =>
             {
-                Order.AddField("statusAsString", (o) => o.FormatTShirtPropertiesAsString(), "Get the order status as a string");
+                Order.AddField("statusAsString", (o) => TShirtOrderItem.FormatTShirtPropertiesAsString(o.Size, o.Colour), "Get the order status as a string");
             });
 
             // Simulate a JSON request with System.Text.Json
@@ -373,7 +373,8 @@ namespace EntityGraphQL.Tests
                 }
 
                 fragment orderItem on OrderItem {
-                    ... on TShirtOrderItem {
+                    id
+                    ... on TShirtOrderItem {                        
                         statusAsString
                     }
                 }"",
@@ -474,6 +475,7 @@ namespace EntityGraphQL.Tests
                 }
 
                 fragment orderItem on OrderItem {
+                    id
                     ... on TShirtOrderItem {
                         statusAsString
                     }

@@ -417,13 +417,23 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
-        private static Type? RootType(Expression expression)
+        private static Type? RootType(CompiledField field)
+        {
+            if (field.Field.FromType?.TypeDotnet != null)
+            {
+                return field.Field.FromType?.TypeDotnet;
+            }
+
+            return ExpressionRootType(field.Expression);
+        }
+
+        private static Type? ExpressionRootType(Expression expression)
         {
             return expression switch
             {
                 MemberExpression me => me.Expression?.Type,
-                ConditionalExpression ce => RootType(ce.Test),
-                BinaryExpression be => RootType(be.Left),
+                ConditionalExpression ce => ExpressionRootType(ce.Test),
+                BinaryExpression be => ExpressionRootType(be.Left),
                 _ => null
             };
         }
@@ -442,12 +452,12 @@ namespace EntityGraphQL.Compiler.Util
             {
                 // get a list of distinct types asked for in the query (fragments for interfaces)
                 var validTypes = fieldExpressions.Values
-                    .Select(i => RootType(i.Expression))
+                    .Select(i => RootType(i))
                     .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
                     .Distinct();
 
                 var fieldsOnBaseType = fieldExpressions.Values
-                       .Where(i => RootType(i.Expression) == null || RootType(i.Expression)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
+                       .Where(i => RootType(i) == null || RootType(i)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
                        .ToLookup(i => i.Field.Name, i => i.Expression)
                        .ToDictionary(i => i.Key, i => i.Last());
 
@@ -466,7 +476,7 @@ namespace EntityGraphQL.Compiler.Util
                         continue;
 
                     var fieldsOnType = fieldExpressions.Values
-                       .Where(i => RootType(i.Expression) == null || RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
+                       .Where(i => RootType(i)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
                        .ToLookup(i => i.Field.Name, i => i.Expression)
                        .ToDictionary(i => i.Key, i => i.Last());
 
@@ -476,6 +486,8 @@ namespace EntityGraphQL.Compiler.Util
 
                     var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
                     var convertedExpression = conversionVisitor.Visit(memberInit);
+                    //var replacer = new ParameterReplacer();
+                    //var convertedExpression = replacer.ReplaceByType(memberInit, type!, Expression.Convert(currentContextParam, type!));
 
                     previous = Expression.Condition(
                           test: Expression.TypeIs(currentContextParam, type!),
