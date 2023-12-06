@@ -391,32 +391,6 @@ namespace EntityGraphQL.Compiler.Util
             }
             return Tuple.Create(exp, endExpression);
         }
-
-        class ConversionVisitor : ExpressionVisitor
-        {
-            private readonly Expression parameter;
-            private readonly Type convertTo;
-
-            public ConversionVisitor(Expression parameter, Type convertTo)
-            {
-                this.parameter = parameter;
-                this.convertTo = convertTo;
-            }
-            protected override Expression VisitMember(MemberExpression node)
-            {
-                if (!node.Expression?.Type.IsAssignableFrom(convertTo) == true)
-                {
-                    if (node.Expression is MemberExpression)
-                    {
-                        return Expression.PropertyOrField(Visit(node.Expression), node.Member.Name);
-                    }
-                    return node;
-                }
-
-                return Expression.PropertyOrField(Expression.Convert(parameter, convertTo), node.Member.Name);
-            }
-        }
-
         private static Type? RootType(CompiledField field)
         {
             if (field.Field.FromType?.TypeDotnet != null)
@@ -484,10 +458,8 @@ namespace EntityGraphQL.Compiler.Util
                     if (memberInit == null)
                         continue;
 
-                    var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
-                    var convertedExpression = conversionVisitor.Visit(memberInit);
-                    //var replacer = new ParameterReplacer();
-                    //var convertedExpression = replacer.ReplaceByType(memberInit, type!, Expression.Convert(currentContextParam, type!));
+                    var replacer = new ParameterReplacer();
+                    var convertedExpression = replacer.ReplaceByType(memberInit, type!, Expression.Convert(currentContextParam, type!));
 
                     previous = Expression.Condition(
                           test: Expression.TypeIs(currentContextParam, type!),
