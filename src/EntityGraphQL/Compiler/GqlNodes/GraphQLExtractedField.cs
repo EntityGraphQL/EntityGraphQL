@@ -26,7 +26,10 @@ public class GraphQLExtractedField : BaseGraphQLField
             // we don't need any other expression as they are the same. We just need to make sure we select the data
             var fieldExp = FieldExpressions!.First();
             if (replacementNextFieldContext != null)
-                fieldExp = replacer.Replace(fieldExp, originalParam, replacementNextFieldContext!);
+            {
+                var newParam = replacementNextFieldContext.Type == originalParam.Type ? replacementNextFieldContext : Expression.Convert(replacementNextFieldContext, originalParam.Type);
+                fieldExp = replacer.Replace(fieldExp, originalParam, newParam);
+            }
             return fieldExp;
         }
         return GetNodeExpression(replacementNextFieldContext!);

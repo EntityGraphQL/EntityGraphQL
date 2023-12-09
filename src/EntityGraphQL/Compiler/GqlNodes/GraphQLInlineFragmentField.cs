@@ -16,9 +16,23 @@ namespace EntityGraphQL.Compiler
             LocationForDirectives = ExecutableDirectiveLocation.INLINE_FRAGMENT;
         }
 
-        protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return QueryFields;
+           return QueryFields.Any(x => x.HasServices);
+        }
+
+        protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        {            
+            return QueryFields.SelectMany(x => x.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
+        }
+
+        internal override IEnumerable<BaseGraphQLField> ExpandFromServices(bool withoutServiceFields, BaseGraphQLField? field)
+        {
+            if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
+                return Field.ExtractedFieldsFromServices.ToList();
+
+            // we do not want to return the fragment field
+            return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : (field != null ? new List<BaseGraphQLField> { field } : new List<BaseGraphQLField>());
         }
 
         private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)

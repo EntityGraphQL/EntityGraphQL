@@ -226,6 +226,10 @@ namespace EntityGraphQL.Compiler
                     // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
                     // if ParentNode?.HasServices == true the above has been done and we just need to replace the 
                     // expression, not rebuild it with a different name
+
+
+                    //TODO replacementNextFieldContext is currently of the wrong type, needs to be converted
+
                     var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, isRoot && HasServices);
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
