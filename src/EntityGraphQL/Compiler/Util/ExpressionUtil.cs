@@ -448,7 +448,7 @@ namespace EntityGraphQL.Compiler.Util
                 {
                     if (type == currentContextParam.Type)
                         continue;
-
+                   
                     var fieldsOnType = fieldExpressions.Values
                        .Where(i => RootType(i)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
                        .ToLookup(i => i.Field.Name, i => i.Expression)

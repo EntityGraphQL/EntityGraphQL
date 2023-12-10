@@ -37,7 +37,28 @@ public class GraphQLExtractedField : BaseGraphQLField
 
     public Expression GetNodeExpression(Expression replacementNextFieldContext)
     {
-        // extracted fields get flatten as they are selected in the first pass. The new expression can be built
-        return Expression.PropertyOrField(replacementNextFieldContext!, Name);
+        try
+        {
+            // extracted fields get flatten as they are selected in the first pass. The new expression can be built
+            return Expression.PropertyOrField(replacementNextFieldContext!, Name);
+        }
+        catch (ArgumentException )
+        {
+            //HACK - works but will be slow
+            var subTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => t.IsSubclassOf(replacementNextFieldContext.Type));
+          
+            foreach (var type in subTypes)
+            {
+                try
+                {
+                    return Expression.PropertyOrField(Expression.Convert(replacementNextFieldContext!, type), Name);
+                }
+                catch { }
+            }
+
+            throw;
+        }
     }
 }
