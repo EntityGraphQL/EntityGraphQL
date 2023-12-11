@@ -117,7 +117,7 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void SerializeBoolean()
         {
-            var item = new { value = false};
+            var item = new { value = false };
 
             var options = new JsonSerializerOptions
             {
@@ -156,7 +156,7 @@ namespace EntityGraphQL.AspNet.Tests
             var item = new QueryResult();
             item.SetData(new Dictionary<string, object?>()
             {
-                { 
+                {
                     "users",
                     new List<SubClass>() {
                           new SubClass() { Id = 1, Name = "Fred", NameField = "Included" },
@@ -164,7 +164,7 @@ namespace EntityGraphQL.AspNet.Tests
                     }
                 }
             });
-            
+
             var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
             var memoryStream = new MemoryStream();
             graphqlResponseSerializer.SerializeAsync(memoryStream, item);
