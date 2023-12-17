@@ -97,24 +97,78 @@ The expression language supports the following operators:
 - `or` or `||` - Or
 - `and` or `&&` - And
 
-The expression language supports the following methods:
+The expression language supports the following methods, these are called against fields within the filter context:
 
-- `List.where(filter)`, or `List.filter(filter)` - Filter the list
-- `List.any(filter)` - Return `true` if any of the items in the list match the filter. Otherwise `false`
+- `List.any(filter)` - Return `true` if any of the items in the list match the filter. The filter within `any` is on the context of the list item type. Otherwise `false`
+
+```gql
+{
+  # In C# - people.Where(p => p.ActorIn.Any(a => a.Name == "Star Wars"))
+  people(filter: "actorIn.any(name == \"Star Wars\")") { ... }
+}
+```
+
+- `List.count(filter?)` - Return the count of a list. Optionally counting items that match a filter
+
+```gql
+{
+  # No filter - all people that acted in 3 movies
+  people(filter: "actorIn.count() == 3") { ... }
+
+
+  # Count only those that match the filter - all people that acted in any movie starting with "Star"
+  people(filter: "actorIn.count(name.startsWith(\"Star\")) > 0") { ... }
+}
+```
+
 - `List.first(filter?)` - Return the first item from a list. Optionally by a filter
 - `List.last(filter?)` - Return the last item from a list. Optionally by a filter
 - `List.take(int)` - Return the first `x` items
 - `List.skip(int)` - Return the items after `x`
-- `List.count(filter?)` - Return the count of a list. Optionally counting items that match a filter
 - `List.orderBy(field)` - Order the list by a given field
 - `List.orderByDesc(field)` - Order the list in reverse by a given field
+- `List.where(filter)`, or `List.filter(filter)` - Filter the list
 - `string.contains(string)` - Return `true` if the specified string occurs in this string instance
+
+```gql
+{
+  people(filter: "firstName.contains(\"o\")") { ... }
+}
+```
+
 - `string.startsWith(string)` - Return `true` if the beginning of this string instance matches the specified string
+
+```gql
+{
+  people(filter: "firstName.startsWith(\"b\")") { ... }
+}
+```
+
 - `string.endsWith(string)` - Return `true` if the end of this string instance matches the specified string
+
+```gql
+{
+  people(filter: "firstName.endsWith(\"b\")") { ... }
+}
+```
+
 - `string.toLower()` - Return the string converted to lowercase
+
+```gql
+{
+  people(filter: "firstName.toLower() == \"bob\"") { ... }
+}
+```
+
 - `string.toUpper()` - Return the string converted to uppercase
 
+```gql
+{
+  people(filter: "firstName.toUpper() == \"BOB\"") { ... }
+}
+```
 
 The expression language supports ternary and conditional:
+
 - `__ ? __ : __`
 - `if __ then __ else __`
