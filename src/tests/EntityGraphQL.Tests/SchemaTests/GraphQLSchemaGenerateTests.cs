@@ -375,6 +375,15 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestOutputsScalarDescription()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains("\"\"\"Date with time scalar\"\"\"", schema);
+        }
+
+        [Fact]
         public void TestGetArgDefaultValue_Null()
         {
             Assert.Equal("", SchemaGenerator.GetArgDefaultValue(null, (e) => e));

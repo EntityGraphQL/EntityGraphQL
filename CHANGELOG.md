@@ -5,6 +5,7 @@
 - Fix error when using a service at a query root field that uses `First()` as friends (List to single pattern). E.g. `(ctx, service) => ctx.SomeList.First(i => i.Thing == service.Other)`
 - #318 - Fix issue comparing `int` style fields against `float` style fields in the filter expression
 - Better error message when comparing different enum types in the filter language
+- Include descriptions for scalars and directives in introspection and schema output
 
 ## Changes
 

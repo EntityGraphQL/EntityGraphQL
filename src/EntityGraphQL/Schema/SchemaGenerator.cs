@@ -43,12 +43,16 @@ namespace EntityGraphQL.Schema
 
             foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
             {
+                if (!string.IsNullOrEmpty(item.Description))
+                    schemaBuilder.AppendLine($"\"\"\"{EscapeString(item.Description)}\"\"\"");
                 schemaBuilder.AppendLine($"scalar {item.Name}{GetDirectives(item.Directives)}");
             }
             schemaBuilder.AppendLine();
 
             foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
             {
+                if (!string.IsNullOrEmpty(directive.Description))
+                    schemaBuilder.AppendLine($"\"\"\"{EscapeString(directive.Description)}\"\"\"");
                 schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
             }
             schemaBuilder.AppendLine();

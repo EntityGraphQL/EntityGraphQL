@@ -46,7 +46,10 @@
 
             foreach (var customScalar in schema.GetScalarTypes())
             {
-                var typeElement = new TypeElement("SCALAR", customScalar.Name);
+                var typeElement = new TypeElement("SCALAR", customScalar.Name)
+                {
+                    Description = customScalar.Description
+                };
 
                 customScalar.Directives.ProcessType(typeElement);
 
