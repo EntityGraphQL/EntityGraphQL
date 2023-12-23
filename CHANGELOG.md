@@ -1,9 +1,14 @@
 # 5.2.0
 
 ## Fixes
+
 - Fix error when using a service at a query root field that uses `First()` as friends (List to single pattern). E.g. `(ctx, service) => ctx.SomeList.First(i => i.Thing == service.Other)`
+- #318 - Fix issue comparing `int` style fields against `float` style fields in the filter expression
+- Better error message when comparing different enum types in the filter language
 
 ## Changes
+
+- #318 - Support Unicode characters in the string of the filter language
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
 - Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
@@ -21,22 +26,29 @@ schema.UpdateType<Project>(type =>
 ```
 
 If you have a query like
+
 ```graphql
 {
   # ResolveBulk
   projects {
     # project fields
-    name id
+    name
+    id
     # service field - resolved with ResolveBulk expression for all Projects loaded
-    createdBy { name }
+    createdBy {
+      name
+    }
   }
 
   # ResolveWithService
   project(id: 78) {
     # project fields
-    name id
+    name
+    id
     # service field - resolved with ResolveWithService expression for the single project loaded
-    createdBy { name }
+    createdBy {
+      name
+    }
   }
 }
 ```
@@ -46,9 +58,11 @@ Instead of calling `users.GetUserById()` for each project to resolve `createdBy 
 # 5.1.0
 
 ## Changes
+
 - Upgrade to the latest standard Antlr4 - the parser/tool used for the filter expression strings. Fixing precedence of operators
 
 ## Fixes
+
 - #319 - Only convert strings to `Guid` or `DateTime` when required
 - If you add a field connecting back to the Query Context that ends in a method to go from a list to a single result the graph object projection will now correctly be inserted before the last call. Example
 
@@ -68,12 +82,16 @@ schema.Query().AddField("externalData", "Get Data")
     .ResolveWithService<ExternalDataService>((p, srv) => srv.GetData());
 ```
 
-In the above case if you select 
+In the above case if you select
 
 ```gql
 {
   externalData {
-    movie { director { name } }
+    movie {
+      director {
+        name
+      }
+    }
   }
 }
 ```
@@ -93,6 +111,7 @@ db.Movies.Where(m => m.Id == ed.Id)
 # 5.0.1
 
 ## Fixes
+
 - Fix #314 - Some clean up of the Antlr4 grammer for the filter expressions
 
 # 5.0.0
@@ -100,9 +119,11 @@ db.Movies.Where(m => m.Id == ed.Id)
 Make sure to check out the changes 5.0.0-beta1
 
 ## Breaking Changes
+
 - Generated schema type name for field sort inputs now include the name of the schema type the field is on to avoid conflicts
 
 ## Changes
+
 - `IField.AddExtension` now returns the `IField`
 - `UseSort()` field extension now can take a list of default sort fields e.g.
 - `Broadcaster` (inbuilt `IObservable<TType>` you can use for subscriptions) now has a `OnUnsubscribe` callback

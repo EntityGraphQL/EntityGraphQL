@@ -49,8 +49,15 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesStringConstant2()
         {
-            var exp = EntityQueryCompiler.Compile("\"\"Hello\" there\"");
+            var exp = EntityQueryCompiler.Compile("\"\\\"Hello\\\" there\"");
             Assert.Equal("\"Hello\" there", exp.Execute());
+        }
+
+        [Fact]
+        public void CompilesStringConstant3()
+        {
+            var exp = EntityQueryCompiler.Compile("\" \\\"\\n\\r\\0\\a\\b\\f\\t\\v \"");
+            Assert.Equal(" \"\n\r\0\a\b\f\t\v ", exp.Execute());
         }
 
         [Fact]
@@ -334,9 +341,9 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var schema = SchemaBuilder.FromObject<TestSchema>();
             schema.AddEnum("Size", typeof(Size), "");
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<EntityGraphQLCompilerException>(() =>
             {
-                var exp = EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema);
+                EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema);
             });
         }
 

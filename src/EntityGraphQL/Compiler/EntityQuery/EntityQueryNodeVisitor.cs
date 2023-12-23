@@ -230,22 +230,32 @@ namespace EntityGraphQL.Compiler.EntityQuery
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
                 left = Expression.Convert(left, right.Type);
 
-            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
+            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
                 right = Expression.Convert(right, left.Type);
-            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
+            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
                 left = Expression.Convert(left, right.Type);
 
             if (left.Type != right.Type)
             {
+                if (left.Type.IsEnum && right.Type.IsEnum)
+                    throw new EntityGraphQLCompilerException($"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
                 if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
                     right = ConvertToGuid(right);
                 else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
                     left = ConvertToGuid(left);
-
-                if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
                     right = ConvertToDateTime(right);
                 else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
                     left = ConvertToDateTime(left);
+                // convert ints "up" to float/decimal
+                else if ((left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong)) &&
+                        (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal)))
+                    left = Expression.Convert(left, right.Type);
+                else if ((right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong)) &&
+                        (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal)))
+                    right = Expression.Convert(right, left.Type);
+                else // default try to make types match
+                    left = Expression.Convert(left, right.Type);
             }
 
             return Expression.MakeBinary(op, left, right);
