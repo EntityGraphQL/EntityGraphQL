@@ -10,7 +10,7 @@ identity: ID;
 int: '-'? DIGIT+;
 decimal: '-'? DIGIT+ '.' DIGIT+;
 boolean: 'true' | 'false';
-STRING: '"' (~['"'\\\r\n\u0085\u2028\u2029] | ESCAPE_CHARS)* '"';
+STRING: '"' (~['"\\\r\n\u0085\u2028\u2029] | ESCAPE_CHARS)* '"';
 null: 'null';
 constant: stringVal = STRING
 	| int
