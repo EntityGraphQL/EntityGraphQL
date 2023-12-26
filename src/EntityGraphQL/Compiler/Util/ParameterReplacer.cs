@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler.Util
         private bool finished;
         private bool replaceWholeExpression;
         private string? newFieldNameForType;
-        private Dictionary<object, Expression> cache = new();
+        private Dictionary<object, Expression> cache = [];
         private bool hasNewFieldNameForType;
 
         /// <summary>
@@ -32,13 +32,16 @@ namespace EntityGraphQL.Compiler.Util
         /// <returns></returns>
         public Expression Replace(Expression node, Expression toReplace, Expression newParam, bool replaceWholeExpression = false)
         {
+            if (node == toReplace)
+                return newParam;
+
             this.newParam = newParam;
             this.toReplace = toReplace;
             this.toReplaceType = null;
             this.newFieldNameForType = null;
             finished = false;
             this.replaceWholeExpression = replaceWholeExpression;
-            cache = new Dictionary<object, Expression>();
+            cache = [];
             return Visit(node);
         }
 
@@ -67,9 +70,8 @@ namespace EntityGraphQL.Compiler.Util
         protected override Expression VisitParameter(ParameterExpression node)
         {
             if (toReplace != null && toReplace == node)
-            {
                 return newParam!;
-            }
+
             if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
                 return newParam!;
             return node;
@@ -77,6 +79,9 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
             var p = node.Parameters.Select(base.Visit).Cast<ParameterExpression>();
             var body = base.Visit(node.Body);
             return Expression.Lambda(body, p);
@@ -84,6 +89,9 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitUnary(UnaryExpression node)
         {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
             // RequiredField<> causes a convert
             if (node.Operand != null)
             {
@@ -97,7 +105,7 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (node == toReplace)
+            if (toReplace != null && toReplace == node)
                 return newParam!;
 
             // returned expression may have been modified and we need to rebuild
@@ -150,6 +158,9 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
             bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {

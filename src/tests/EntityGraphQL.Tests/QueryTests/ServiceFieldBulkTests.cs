@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -23,6 +24,61 @@ public class ServiceFieldBulkTests
         {
             Query = @"{ 
                 projects { 
+                    name createdBy { id field2 } 
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = new List<Project> {
+                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
+                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            },
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data["projects"];
+        Assert.Equal(2, projects.Count);
+        var project = projects[0];
+        Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
+        Assert.Equal(1, project.createdBy.id);
+        Assert.Equal("Hello", project.createdBy.field2);
+    }
+
+    [Fact]
+    public void TestServicesBulkResolverFullObjectWithOrderBy()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().ReplaceField("projects",
+            new
+            {
+                like = (string)null,
+            },
+            (ctx, args) => ctx.QueryableProjects
+                .WhereWhen(f => f.Name.ToLower().Contains(args.like.ToLower()), !string.IsNullOrEmpty(args.like))
+                .OrderBy(f => f.Name),
+            "Get projects");
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.Id, (ids, srv) => srv.GetUsersByProjectId(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                projects { 
+                    id
                     name createdBy { id field2 } 
                 } 
             }"

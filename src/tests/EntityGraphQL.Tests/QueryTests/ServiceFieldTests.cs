@@ -2336,6 +2336,20 @@ namespace EntityGraphQL.Tests
                 }
             }.Where(u => u.Name.Contains(nameFilter)).ToList();
         }
+        internal IDictionary<int, User> GetUsersByProjectId(IEnumerable<int> ids)
+        {
+            CallCount += 1;
+            return ids.Select(id => new
+            {
+                ProjectId = id,
+                User = new User
+                {
+                    Id = id,
+                    Name = "Blah",
+                    Field2 = "Hello"
+                }
+            }).ToDictionary(u => u.ProjectId, u => u.User);
+        }
 
         internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids, string nameFilter)
         {
