@@ -427,7 +427,7 @@ namespace EntityGraphQL.Schema
                         _ => nameof(ISchemaProvider.AddType)
                     };
 
-                    var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
+                    var method = schema.GetType().GetMethod(addMethod, [typeof(string), typeof(string)]);
                     if (method == null)
                         throw new EntityQuerySchemaException($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
@@ -526,7 +526,8 @@ namespace EntityGraphQL.Schema
 
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
-                        CacheType(item.ParameterType, schema, options, true);
+                        // use input type as it has resolved to a non list/nullable type
+                        CacheType(inputType, schema, options, true);
                     }
                 }
             }

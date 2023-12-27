@@ -6,6 +6,7 @@
 - #318 - Fix issue comparing `int` style fields against `float` style fields in the filter expression
 - Better error message when comparing different enum types in the filter language
 - Include descriptions for scalars and directives in introspection and schema output
+- Fix issue using the default `SchemaBuilderOptions` with a mutation method that has a list argument. The argument input type was not being correctly added to the schema. Not an issue if you were already adding the type manually
 
 ## Changes
 
