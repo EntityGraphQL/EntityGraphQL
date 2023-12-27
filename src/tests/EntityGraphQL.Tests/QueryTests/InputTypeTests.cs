@@ -86,6 +86,38 @@ public class InputTypeTests
         Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
     }
 
+    [Fact]
+    public void SupportsEnumInInputTypeAsListInMutationArgs_Introspection()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        // testing that auto creation of mutation args does correctly add the type
+        schema.Mutation().Add("AddPerson", "Description", ([GraphQLArguments] TestMutationArgs args) =>
+        {
+            return true;
+        });
+        var gql = new QueryRequest
+        {
+            Query = @"query {
+                        __type(name: ""PeopleArgs"") {
+                            name
+                            fields {
+                                name
+                            }
+                        }
+                    }"
+        };
+        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.Null(result.Errors);
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
+    }
+
+    [GraphQLArguments]
+    internal class TestMutationArgs
+    {
+        public List<PeopleArgs> People { get; set; } = new();
+    }
     internal class PeopleArgs
     {
         // System enum
