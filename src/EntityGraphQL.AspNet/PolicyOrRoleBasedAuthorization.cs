@@ -65,7 +65,7 @@ namespace EntityGraphQL.AspNet
 
             var attributes2 = thing.GetCustomAttributes(typeof(GraphQLAuthorizePolicyAttribute), true).Cast<GraphQLAuthorizePolicyAttribute>();
 
-            requiredPolicies = attributes2.Where(c => c.Policies?.Any() == true).Select(c => c.Policies.ToList()).ToList();
+            requiredPolicies = attributes2.Where(c => c.Policies?.Count == 0).Select(c => c.Policies.ToList()).ToList();
             requiredAuth = requiredAuth.Concat(new RequiredAuthorization(null, requiredPolicies));
             return requiredAuth;
         }

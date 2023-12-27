@@ -15,6 +15,7 @@
 - Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
 - Add `schema.AddEnum<TEnum>(typeName, description)` to the schema building API
+- Add `net8.0` as a target for EntityGraphQL.AspNet project
 
 ```cs
 var schema = SchemaBuilder.FromObject<MyContext>();
