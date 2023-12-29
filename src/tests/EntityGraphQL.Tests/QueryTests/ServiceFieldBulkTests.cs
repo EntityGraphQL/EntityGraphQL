@@ -284,4 +284,58 @@ public class ServiceFieldBulkTests
         Assert.Equal("Name_1", projects[0].assignedUsers[0].name);
         Assert.Empty(projects[1].assignedUsers);
     }
+
+    [Fact]
+    public void TestServicesBulkResolverFullObjectDeep()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Task>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((task, users) => users.GetUserById(task.Id))
+                .ResolveBulk<UserService, int, User>(task => task.Id, (ids, srv) => srv.GetUsersByProjectId(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                projects { 
+                    id
+                    tasks {
+                        name createdBy { id field2 } 
+                    }
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = new List<Project> {
+                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = new List<Task> {
+                    new() { Id = 1, Name = "Task 1" },
+                    new() { Id = 2, Name = "Task 2" },
+                } },
+                new Project { Id = 2, CreatedBy = 2, Name = "Project 2", Tasks = new List<Task> {
+                    new() { Id = 3, Name = "Task 3" },
+                    new() { Id = 4, Name = "Task 4" },
+                } }
+            }
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data["projects"];
+        Assert.Equal(2, projects.Count);
+        var project = projects[0];
+        Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
+        Assert.Equal(1, project.createdBy.id);
+        Assert.Equal("Hello", project.createdBy.field2);
+    }
 }
