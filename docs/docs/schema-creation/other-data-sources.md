@@ -166,8 +166,11 @@ If we query all projects
 ```gql
 {
   projects {
-    name id
-    createdBy { name }
+    name
+    id
+    createdBy {
+      name
+    }
   }
 }
 ```
@@ -199,24 +202,30 @@ schema.UpdateType<Project>(type =>
 });
 ```
 
-Now the following quereis will trigger one or the other service call
+Now the following queries will trigger one or the other service call
 
 ```gql
 {
   # ResolveBulk
   projects {
     # project fields
-    name id
+    name
+    id
     # service field - resolved with ResolveBulk expression for all Projects loaded
-    createdBy { name }
+    createdBy {
+      name
+    }
   }
 
   # Resolve
   project(id: 78) {
     # project fields
-    name id
+    name
+    id
     # service field - resolved with Resolv service expression for the single project loaded
-    createdBy { name }
+    createdBy {
+      name
+    }
   }
 }
 ```
@@ -231,6 +240,12 @@ public IDictionary<TKey, TResult> MethodName(IEnumerable<TKey> data) {}
 // Example of this above
 public IDictionary<int, User> GetAllUsers(IEnumerable<int> data) {}
 ```
+
+:::info
+
+The `IEnumerable<T>` that is passed into you bulk data loader is _not_ a unique list. Depending on where in the graph the field is selected it may end up with duplicate items. It is up to your implementation to handle that, if it is a simple `int` etc. you can just call `.Distinct()` on it. As it returns an `IDictionary<,>` you'll get a runtime duplicate key error if you do not handle it.
+
+:::
 
 The method returneds a `IDictionary<>` where the key is the same type as the key selector in `ResolveBulk` (`proj => proj.CreatedById` above) and the value is the return type of the field (`User` in the above example).
 
