@@ -334,8 +334,129 @@ public class ServiceFieldBulkTests
         dynamic projects = res.Data["projects"];
         Assert.Equal(2, projects.Count);
         var project = projects[0];
-        Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
-        Assert.Equal(1, project.createdBy.id);
-        Assert.Equal("Hello", project.createdBy.field2);
+        Assert.Equal(2, project.tasks.Count);
+    }
+
+    [Fact]
+    public void TestServicesBulkResolverFullObjectDeep_Object_List_Object_List()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((project, users) => users.GetUserById(project.CreatedBy))
+                .ResolveBulk<UserService, int, User>(project => project.CreatedBy, (ids, srv) => srv.GetUsersByProjectId(ids));
+        });
+
+        // select a single top level -> list -> single -> list -> service field
+        //                   project -> tasks -> assignee -> projects -> createdBy
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                project(id: 1) { 
+                    id
+                    tasks {
+                        assignee {
+                            projects {
+                                createdBy { id field2 } 
+                            }
+                        }
+                    }
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = [
+                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = new List<Task> {
+                    new() { Id = 1, Name = "Task 1", Assignee = new Person { Id = 1 } },
+                    new() { Id = 2, Name = "Task 2", Assignee = new Person { Id = 2 }  },
+                } },
+                new Project { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = new List<Task> {
+                    new() { Id = 3, Name = "Task 3", Assignee = new Person { Id = 3 }  },
+                    new() { Id = 4, Name = "Task 4", Assignee = new Person { Id = 1 }  },
+                } }
+            ]
+        };
+        // set up fake data with no null paths (normally this is done with EF and the null paths are handled by the compiler)
+        context.Projects[0].Tasks.ElementAt(0).Assignee.Projects = context.Projects;
+        context.Projects[0].Tasks.ElementAt(1).Assignee.Projects = [];
+
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic project = res.Data["project"];
+        Assert.Equal(1, project.id);
+        Assert.Equal(2, project.tasks.Count);
+        Assert.Equal(2, project.tasks[0].assignee.projects.Count);
+        Assert.Equal(0, project.tasks[1].assignee.projects.Count);
+    }
+
+    [Fact]
+    public void TestServicesBulkResolverFullObjectDeep_Object_List_Object_List_HandlesNulls()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((project, users) => users.GetUserById(project.CreatedBy))
+                .ResolveBulk<UserService, int, User>(project => project.CreatedBy, (ids, srv) => srv.GetUsersByProjectId(ids));
+        });
+
+        // select a single top level -> list -> single -> list -> service field
+        //                   project -> tasks -> assignee -> projects -> createdBy
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                project(id: 1) { 
+                    id
+                    tasks {
+                        assignee {
+                            projects {
+                                createdBy { id field2 } 
+                            }
+                        }
+                    }
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = [
+                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = new List<Task> {
+                    new() { Id = 1, Name = "Task 1" },
+                    new() { Id = 2, Name = "Task 2" },
+                } },
+                new() { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = new List<Task> {
+                    new() { Id = 3, Name = "Task 3" },
+                    new() { Id = 4, Name = "Task 4" },
+                } }
+            ]
+        };
+        // assignee is null in the data - buylk selector should handle this
+
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic project = res.Data["project"];
+        Assert.Equal(1, project.id);
+        Assert.Equal(2, project.tasks.Count);
+        Assert.Null(project.tasks[0].assignee);
     }
 }

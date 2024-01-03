@@ -150,10 +150,51 @@ namespace EntityGraphQL.Compiler.Util
             return base.VisitMember(node);
         }
 
-        protected override Expression VisitConstant(ConstantExpression node)
+        protected override Expression VisitBinary(BinaryExpression node)
         {
-            // we do not want to replace constant ParameterExpressions in a nullwrap            
-            return node;
+            var left = base.Visit(node.Left);
+            var right = base.Visit(node.Right);
+            // as we do not replace constants we need to make sure the types match as 
+            // we now have dynamic types and the null might be of the original type
+            if (left.NodeType == ExpressionType.Constant && left.Type != right.Type)
+            {
+                left = Expression.Constant(null, right.Type);
+            }
+            if (right.NodeType == ExpressionType.Constant && right.Type != left.Type)
+            {
+                right = Expression.Constant(null, left.Type);
+            }
+            var bin = Expression.MakeBinary(node.NodeType, left, right, node.IsLiftedToNull, node.Method);
+            return bin;
+        }
+
+        protected override Expression VisitConditional(ConditionalExpression node)
+        {
+            var test = base.Visit(node.Test);
+            var ifTrue = base.Visit(node.IfTrue);
+            var ifFalse = base.Visit(node.IfFalse);
+            var type = node.Type;
+            if (node.Type.IsEnumerableOrArray() && (node.Type != ifTrue.Type || node.Type != ifFalse.Type))
+            {
+                // we may have changed a IEnumerable<T> to an IEnumerable<TDymamic> where TDymamic is a dynamic type
+                // built for the graph selection
+
+                // We create a NewArrayInit as part of the bulk service loading
+                if (ifTrue.NodeType == ExpressionType.NewArrayInit)
+                {
+                    var ifFaleType = ifFalse.Type.GetEnumerableOrArrayType()!;
+                    ifTrue = Expression.NewArrayInit(ifFaleType);
+                    type = typeof(IEnumerable<>).MakeGenericType(ifFaleType);
+                }
+                if (ifFalse.NodeType == ExpressionType.NewArrayInit)
+                {
+                    var ifTrueType = ifTrue.Type.GetEnumerableOrArrayType()!;
+                    ifFalse = Expression.NewArrayInit(ifTrueType);
+                    type = typeof(IEnumerable<>).MakeGenericType(ifTrueType);
+                }
+            }
+            var cond = Expression.Condition(test, ifTrue, ifFalse, type);
+            return cond;
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -185,12 +226,23 @@ namespace EntityGraphQL.Compiler.Util
                     var oldTypeArgs = node.Method.GetGenericArguments();
                     foreach (var oldArg in node.Arguments.Skip(1))
                     {
-                        var newArg = replaceAgain.ReplaceByType(oldArg, oldCallBaseType, Expression.Parameter(callBaseType));
-                        newArgs.Add(newArg);
-                        if (newArg.NodeType == ExpressionType.Lambda && oldTypeArgs.Contains(((LambdaExpression)newArg).ReturnType))
-                            newTypeArgs.Add(((LambdaExpression)newArg).ReturnType);
-                        else if (oldTypeArgs.Contains(oldArg.Type))
-                            newTypeArgs.Add(newArg.Type);
+                        if (oldArg is LambdaExpression oldLambda)
+                        {
+                            var newArg = (LambdaExpression)replaceAgain.Replace(oldArg, ((LambdaExpression)oldArg).Parameters[0], Expression.Parameter(callBaseType));
+                            newArgs.Add(newArg);
+                            var argTypeNonList = newArg.ReturnType.IsEnumerableOrArray() ? newArg.ReturnType.GetEnumerableOrArrayType()! : null;
+                            var oldArgTypeNonList = oldLambda.ReturnType.IsEnumerableOrArray() ? oldLambda.ReturnType.GetEnumerableOrArrayType()! : null;
+                            if (oldTypeArgs.Contains(oldLambda.ReturnType))
+                                newTypeArgs.Add(newArg.ReturnType);
+                            else if (argTypeNonList != null && oldTypeArgs.Contains(oldArgTypeNonList))
+                                newTypeArgs.Add(argTypeNonList);
+                        }
+                        else
+                        {
+                            newArgs.Add(oldArg);
+                            if (oldTypeArgs.Contains(oldArg.Type))
+                                newTypeArgs.Add(oldArg.Type);
+                        }
                     }
                     if (oldTypeArgs.Length != newTypeArgs.Count)
                         throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");

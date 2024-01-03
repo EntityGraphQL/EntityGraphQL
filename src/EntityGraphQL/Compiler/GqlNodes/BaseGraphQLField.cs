@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
     {
         public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
         public ISchemaProvider Schema { get; protected set; }
-        protected List<GraphQLDirective> Directives { get; set; } = new();
+        protected List<GraphQLDirective> Directives { get; set; } = [];
 
         /// <summary>
         /// Name of the field
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public ISchemaType? FromType { get => Field?.FromType; }
         public IField? Field { get; }
-        public List<BaseGraphQLField> QueryFields { get; } = new();
+        public List<BaseGraphQLField> QueryFields { get; } = [];
         public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; set; }
 
@@ -82,9 +82,12 @@ namespace EntityGraphQL.Compiler
             NextFieldContext = nextFieldContext;
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
-            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
-            this.Schema = context.Schema;
+            Arguments = context.Arguments.ToDictionary(k => k.Key, v => v.Value);
+            Schema = context.Schema;
             Field = context.Field;
+            LocationForDirectives = context.LocationForDirectives;
+            Directives.AddRange(context.Directives);
+            QueryFields.AddRange(context.QueryFields);
         }
 
         /// <summary>

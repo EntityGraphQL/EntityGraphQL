@@ -213,15 +213,16 @@ namespace EntityGraphQL.Compiler
                 foreach (var bulkResolver in compileContext.BulkResolvers)
                 {
                     // rebuild list expression on new context
-                    var listExpression = replacer.Replace(bulkResolver.ListExpression, node.Field!.ResolveExpression!, newContextType);
+                    var toReplace = node.Field!.ResolveExpression!;
+                    var listExpression = replacer.Replace(bulkResolver.ListExpression, toReplace, newContextType);
                     var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
                     // replace the data selection expression with the new context
                     var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false);
                     var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
                     var selectionLambda = Expression.Lambda(selection, newParam);
-                    selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), new Type[] { newParam.Type, selection.Type }, listExpression, selectionLambda);
+                    selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
 
-                    var bulkDataArgs = Expression.Lambda(selection, newContextType).Compile().DynamicInvoke(new[] { runningContext });
+                    var bulkDataArgs = Expression.Lambda(selection, newContextType).Compile().DynamicInvoke([runningContext]);
                     var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                     var allArgs = new List<object?> { bulkDataArgs };
                     var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
@@ -231,7 +232,7 @@ namespace EntityGraphQL.Compiler
                         allArgs.AddRange(compileContext.ConstantParameters.Values);
                     }
 
-                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke(allArgs.ToArray())!;
+                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke([.. allArgs])!;
                     bulkData[bulkResolver.Name] = dataLoaded;
                 }
             }

@@ -2339,7 +2339,7 @@ namespace EntityGraphQL.Tests
         internal IDictionary<int, User> GetUsersByProjectId(IEnumerable<int> ids)
         {
             CallCount += 1;
-            return ids.Select(id => new
+            return ids.Distinct().Select(id => new
             {
                 ProjectId = id,
                 User = new User

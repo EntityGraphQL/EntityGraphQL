@@ -183,12 +183,12 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public override Expression VisitIfThenElse(EntityQLParser.IfThenElseContext context)
         {
-            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
         public override Expression VisitIfThenElseInline(EntityQLParser.IfThenElseInlineContext context)
         {
-            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
         public override Expression VisitCall(EntityQLParser.CallContext context)
