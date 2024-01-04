@@ -226,9 +226,9 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-                right = Expression.Convert(right, left.Type);
+                right = Expression.Convert(right, right.Type.GetNullableType());
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-                left = Expression.Convert(left, right.Type);
+                left = Expression.Convert(left, left.Type.GetNullableType());
 
             else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
                 right = Expression.Convert(right, left.Type);
@@ -257,6 +257,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 else // default try to make types match
                     left = Expression.Convert(left, right.Type);
             }
+
+            if (left.Type.IsNullableType() && !right.Type.IsNullableType())
+                right = Expression.Convert(right, left.Type);
+            else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
+                left = Expression.Convert(left, right.Type);
 
             return Expression.MakeBinary(op, left, right);
         }
