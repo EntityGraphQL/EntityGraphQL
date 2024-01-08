@@ -23,6 +23,21 @@ namespace EntityGraphQL.Extensions
             return source;
         }
 
+        /// <summary>
+        /// Return the Type wrapped as a Nullable<>
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        public static Type GetNullableType(this Type source)
+        {
+            var type = Nullable.GetUnderlyingType(source) ?? source;
+            if (type.IsValueType)
+                return typeof(Nullable<>).MakeGenericType(type);
+            else
+                return type;
+        }
+
+
         public static Type GetNonNullableOrEnumerableType(this Type source)
         {
             return source.GetNonNullableType().GetEnumerableOrArrayType() ?? source.GetNonNullableType();
