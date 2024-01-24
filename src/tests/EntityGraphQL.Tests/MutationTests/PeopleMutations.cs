@@ -3,6 +3,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using System.Linq.Expressions;
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 
@@ -262,6 +263,12 @@ namespace EntityGraphQL.Tests
                 throw new ArgumentException("Ids can not be empty GUID values");
             return args.Ids.Select(g => g.ToString()).ToArray();
         }
+        
+        [GraphQLMutation]
+        static public int DescriptionArgs(DescriptionArgs args)
+        {
+            return args.X;
+        }
     }
 
     public class NestedInputObject
@@ -364,5 +371,12 @@ namespace EntityGraphQL.Tests
     public class ListOfGuidArgs
     {
         public List<Guid> Ids { get; set; }
+    }
+    
+    [GraphQLArguments]
+    public class DescriptionArgs
+    {
+        [Description("The x parameter")]
+        public int X { get; set; }
     }
 }
