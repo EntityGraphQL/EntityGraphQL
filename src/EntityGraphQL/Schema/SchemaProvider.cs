@@ -261,7 +261,7 @@ namespace EntityGraphQL.Schema
                         if (hash != null)
                             throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
-                        throw new ArgumentNullException(nameof(gql.Query), "Query must be set unless you are using persisted queries");
+                        throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");
                     }
 
                     compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
@@ -319,7 +319,7 @@ namespace EntityGraphQL.Schema
                 string? phash = ((PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
                 if (phash != null)
                     throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
-                throw new ArgumentNullException(nameof(gql.Query), "Query must be set unless you are using persisted queries");
+                throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");
             }
 
             (compiledQuery, var hash) = queryCache.GetCompiledQuery(gql.Query, null);

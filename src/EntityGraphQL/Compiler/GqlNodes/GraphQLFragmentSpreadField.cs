@@ -50,7 +50,7 @@ namespace EntityGraphQL.Compiler
             return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : (field != null ? new List<BaseGraphQLField> { field } : new List<BaseGraphQLField>());
         }
 
-        private void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
+        private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
         {
             if (gqlField.Field != null && gqlField.Field.Services.Any())
             {

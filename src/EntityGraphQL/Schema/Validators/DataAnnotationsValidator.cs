@@ -60,7 +60,7 @@ namespace EntityGraphQL.Schema.Validators
         /// </summary>
         /// <param name="context"></param>
         /// <param name="obj"></param>
-        private void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
+        private static void ValidateObjectRecursive(ArgumentValidatorContext context, object? obj)
         {
             if (obj == null)
                 return;

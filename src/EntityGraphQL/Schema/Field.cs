@@ -200,7 +200,7 @@ namespace EntityGraphQL.Schema
             // replace the arg param after extensions (don't rely on extensions to do this)
             if (ArgumentsParameter != null && newArgParam != null && ArgumentsParameter != newArgParam)
             {
-                result = replacer.Replace(result, ArgumentsParameter, newArgParam);
+                result = replacer.Replace(result!, ArgumentsParameter, newArgParam);
             }
 
             if (ArgumentValidators.Count > 0)
