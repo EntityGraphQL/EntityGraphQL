@@ -1053,7 +1053,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(32, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(33, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod
