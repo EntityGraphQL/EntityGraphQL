@@ -990,6 +990,28 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestDescriptionAttribute()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddMutationsFrom<PeopleMutations>();
+            var gql = new QueryRequest
+            {
+                Query = @"mutation Mutate($x: Int!) {
+                     descriptionArgs(x: $x)
+                 }",
+                Variables = new QueryVariables {
+                     {"x", 3 }
+                 }
+            };
+
+            var testSchema = new TestDataContext();
+            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+            Assert.Null(results.Errors);
+            var result = (int)results.Data["descriptionArgs"];
+            Assert.Equal(3, result);
+        }
+
+        [Fact]
         public void ConstOnMutationArgOrInpoutTypeNotAdded()
         {
             var schema = SchemaBuilder.Create<TestDataContext>();
@@ -1030,7 +1052,7 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-            Assert.Equal(32, schemaProvider.Mutation().SchemaType.GetFields().Count());
+            Assert.Equal(33a, schemaProvider.Mutation().SchemaType.GetFields().Count());
         }
 
         public class NonAttributeMarkedMethod

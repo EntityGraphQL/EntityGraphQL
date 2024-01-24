@@ -96,7 +96,7 @@ namespace EntityGraphQL.Schema
             if (memberInfo?.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute descAttr)
             {
                 if (!string.IsNullOrEmpty(descAttr.Description))
-                    arg.Name = descAttr.Description;
+                    arg.Description = descAttr.Description;
             }
 
             if (memberInfo?.GetCustomAttribute<GraphQLFieldAttribute>() is GraphQLFieldAttribute gqlFieldAttr)
