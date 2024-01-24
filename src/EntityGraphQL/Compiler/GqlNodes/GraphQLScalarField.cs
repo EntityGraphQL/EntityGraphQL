@@ -15,7 +15,7 @@ namespace EntityGraphQL.Compiler
         {
         }
 
-        public override bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             return Field?.Services.Any() == true;
         }
@@ -23,9 +23,11 @@ namespace EntityGraphQL.Compiler
         protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (HasServices && withoutServiceFields)
-                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.FieldExpressions!.First();
+                return null;
 
-            (var result, _) = Field!.GetExpression(NextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
+            var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext)!;
+
+            (var result, _) = Field!.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
 
             if (result == null)
                 return null;

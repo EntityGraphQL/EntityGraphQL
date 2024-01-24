@@ -87,6 +87,18 @@ namespace EntityGraphQL.Schema
 
             throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on type '{Name}'");
         }
+
+        public bool GetField(string identifier, QueryRequestContext? requestContext, out IField? field)
+        {
+            if (HasField(identifier, requestContext))
+            {
+                field = (Field)GetField(identifier, requestContext);
+                return true;
+            }
+            field = null;
+            return false;
+        }
+
         /// <summary>
         /// Return all the fields defined on this type
         /// </summary>

@@ -82,15 +82,15 @@ You'll note that EntityGraphQL doesn't care what the context is. It could be a o
 
 Other ORMs built on top of `LinqProvider` and `IQueryable` should also work although have not been tested.
 
-## How EntityGraphQL handles services / ResolveWithService()
+## How EntityGraphQL handles services / Resolve&lt;TService&gt;()
 
-Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `ResolveWithService()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate the services used in `ResolveWithService()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
+Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `Resolve<TService>()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate the services used in `Resolve<TService>()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
 
 _This can be disabled by setting the argument `ExecuteServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
 
-If you encounter any issues when using `ResolveWithService()` on fields and EF Core 3.1+ please raise an issue.
+If you encounter any issues when using `Resolve<TService>()` on fields and EF Core 3.1+ please raise an issue.
 
-Example of how EntityGraphQL handles `ResolveWithService()`, which can help inform how you build/use other services.
+Example of how EntityGraphQL handles `Resolve<TService>()`, which can help inform how you build/use other services.
 
 Given the following GQL
 
@@ -109,16 +109,16 @@ Where `age` is defined with a service as
 
 ```cs
 schema.Type<Person>().AddField("age", "Persons age")
-    .ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+    .Resolve<AgeService>((person, ager) => ager.GetAge(person.Birthday));
 ```
 
-EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `ResolveWithService()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
+EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `Resolve<TService>()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
 
 An example in C# of what this ends up looking like.
 
 ```cs
 var dbResultFunc = (DbContext context) => context.People.Select(p => new {
-    p_Birthday = p.Birthday, // extracted from the ResolveWithService expression as it is needed in the in-memory resolution
+    p_Birthday = p.Birthday, // extracted from the Resolve<TService> expression as it is needed in the in-memory resolution
     manager = new {
         name = p.Manager.Name
     }
@@ -128,7 +128,7 @@ var dbResult = dbResultFunc(dbContext); // executes the expression
 
 // note dbResult is an anonymous type known at runtime
 var resultsFunc = (AnonType dbResult, AgeService ager) => dbResult.Select(p => {
-    age = ager.GetAge(p.p_Birthday)), // passing in data we selected just for this
+    age = ager.GetAge(p.p_Birthday), // passing in data we selected just for this
     manager = p.manager // simple selection from the previous result
 })
 .ToList();
@@ -144,7 +144,7 @@ To do this EntityGraphQL needs to update the service field expressions. It does 
 ```cs
 schema.UpdateType<Floor>(type => {
   type.AddField("floorUrl", "Current floor url")
-    .ResolveWithService<IFloorUrlService>((floor, srv) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));
+    .Resolve<IFloorUrlService>((floor, srv) => s.BuildFloorPlanUrl(f.SomeRelation.FirstOrDefault().Id));
 });
 ```
 

@@ -129,9 +129,9 @@ namespace EntityGraphQL.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.ResolveExpression, idLambda);
+            Expression body = ExpressionUtil.MakeCallOnQueryable(nameof(Queryable.Where), [arrayContextType], fieldProp.ResolveExpression, idLambda);
 
-            body = ExpressionUtil.MakeCallOnQueryable("FirstOrDefault", new Type[] { arrayContextType }, body);
+            body = ExpressionUtil.MakeCallOnQueryable(nameof(Queryable.FirstOrDefault), [arrayContextType], body);
             var contextParam = Expression.Parameter(contextType, $"cxt_{contextType.Name}");
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().Replace(body, fieldProp.FieldParam!, contextParam);
@@ -427,7 +427,7 @@ namespace EntityGraphQL.Schema
                         _ => nameof(ISchemaProvider.AddType)
                     };
 
-                    var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
+                    var method = schema.GetType().GetMethod(addMethod, [typeof(string), typeof(string)]);
                     if (method == null)
                         throw new EntityQuerySchemaException($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
@@ -526,7 +526,8 @@ namespace EntityGraphQL.Schema
 
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
-                        CacheType(item.ParameterType, schema, options, true);
+                        // use input type as it has resolved to a non list/nullable type
+                        CacheType(inputType, schema, options, true);
                     }
                 }
             }

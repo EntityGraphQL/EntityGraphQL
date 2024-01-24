@@ -41,7 +41,7 @@ namespace demo
                 // type.AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
                 // AgeService needs to be added to the ServiceProvider
                 type.AddField("age", "Show the person's age")
-                    .ResolveWithService<AgeService>((person, ageService) => ageService.Calc(person.Dob));
+                    .Resolve<AgeService>((person, ageService) => ageService.Calc(person.Dob));
                 type.AddField("filteredDirectorOf", new
                 {
                     filter = ArgumentHelper.EntityQuery<Movie>()
@@ -58,7 +58,7 @@ namespace demo
                 type.ReplaceField("actors", m => m.Actors.Select(a => a.Person), "Actors in the movie");
                 type.ReplaceField("writers", m => m.Writers.Select(a => a.Person), "Writers in the movie");
                 type.AddField("contributedBy", "User who added this movie")
-                    .ResolveWithService<UserService>((movie, users) => users.GetUser(movie.CreatedBy));
+                    .Resolve<UserService>((movie, users) => users.GetUser(movie.CreatedBy));
             });
 
             // let's pretend the Users come from another service
@@ -67,10 +67,10 @@ namespace demo
                 userType.AddAllFields();
                 // create a connection back to data from our main context
                 userType.AddField("moviesContributed", "Movies this user added")
-                    .ResolveWithService<DemoContext>((user, context) => context.Movies.Where(m => m.CreatedBy == user.Id));
+                    .Resolve<DemoContext>((user, context) => context.Movies.Where(m => m.CreatedBy == user.Id));
             });
             demoSchema.Query().AddField("users", "List of users")
-                .ResolveWithService<UserService>((_, users) => users.GetUsers());
+                .Resolve<UserService>((_, users) => users.GetUsers());
 
 
             // add some mutations 

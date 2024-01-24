@@ -38,7 +38,7 @@ namespace EntityGraphQL.Compiler.Util
         {
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
-          
+
             string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
             lock (typesByFullName)
             {

@@ -189,11 +189,11 @@ namespace EntityGraphQL.AspNet.Tests
                 {
                     Query = "subscription DoIt { onMessage { text } }"
                 }
-            }, () =>
+            }, async () =>
             {
                 // this runs after server has received the message
                 // We don't know whenthe execution of the subscribe finishes though so we wait a bit :(
-                Task.Delay(100).Wait();
+                await Task.Delay(100);
                 chatService.PostMessage("Hello");
             });
             socket.InSequence(recvSeq).SetupReceiveCloseAsync();

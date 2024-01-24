@@ -196,6 +196,7 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+
         [GraphQLMutation]
         public async Task<bool> NeedsGuid(GuidArgs args)
         {

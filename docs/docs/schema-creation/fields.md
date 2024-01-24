@@ -13,7 +13,7 @@ Arguments are defined using an anonymous object type when defining the field. Le
 ```cs
 // empty schema
 var schema = new SchemaProvider<DemoContext>();
-schema.AddType<Person>("Person", "Information about a person);
+schema.AddType<Person>("Person", "Information about a person");
 
 // add our root-level query field with an argument
 schema.Query().AddField(

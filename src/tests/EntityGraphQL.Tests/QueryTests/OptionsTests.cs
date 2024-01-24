@@ -35,7 +35,7 @@ namespace EntityGraphQL.Tests
         public void Test_ExecuteServiceFieldsSeparately_False_WithListNavigation()
         {
             var schema = SchemaBuilder.FromObject<OptionsContext>();
-            schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).ResolveWithService<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
+            schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).Resolve<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
             var gql = new QueryRequest
             {
                 Query = @"{

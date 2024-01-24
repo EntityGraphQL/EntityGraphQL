@@ -8,7 +8,7 @@ namespace EntityGraphQL.Compiler.Util
 {
     /// <summary>
     /// Extracts expression with the root context as the provided ParameterExpression.
-    /// Useful for getting required fields out of a ResolveWithService() call.
+    /// Useful for getting required fields out of a Resolve<TService>() call.
     /// For example if the full expression is the below and the root context is ctx
     ///     myService.CallThis(ctx.Field1, otherService.Call(ctx.Child.Field2))
     /// We extract the following expressions:

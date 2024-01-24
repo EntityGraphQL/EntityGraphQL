@@ -251,5 +251,28 @@ fragment TypeRef on __Type {
             Assert.False(schema.HasType("EnumValue"));
             Assert.False(schema.HasType("InputValue"));
         }
+
+        [Fact]
+        public void TestScalarDescription()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+            var gql = new QueryRequest
+            {
+                Query = @"query {
+                    __type(name: ""Date"") {
+                        name
+                        description
+                    }
+                }"
+            };
+
+            var context = new TestDataContext();
+
+            var res = schema.ExecuteRequestWithContext(gql, context, null, null);
+            Assert.Null(res.Errors);
+            var type = (dynamic)res.Data["__type"];
+            Assert.Equal("Date with time scalar", type.description);
+        }
     }
 }

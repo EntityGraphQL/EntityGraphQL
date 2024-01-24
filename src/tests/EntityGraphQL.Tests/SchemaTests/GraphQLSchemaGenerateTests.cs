@@ -299,14 +299,14 @@ namespace EntityGraphQL.Tests
             Assert.Equal("addAlbum", mutation.fields[0].name);
             Assert.Equal("Album", mutation.fields[0].type.name);
             Assert.Equal("OBJECT", mutation.fields[0].type.kind);
-            Assert.Equal(null, mutation.fields[0].type.ofType);
+            Assert.Equal((string)null, mutation.fields[0].type.ofType);
             Assert.Equal("name", mutation.fields[0].args[0].name);
             Assert.Equal("NON_NULL", mutation.fields[0].args[0].type.kind);
             Assert.Equal("genre", mutation.fields[0].args[1].name);
             Assert.Equal("NON_NULL", mutation.fields[0].args[1].type.kind);
 
             Assert.Equal("addAlbum2", mutation.fields[1].name);
-            Assert.Equal(null, mutation.fields[1].type.name);
+            Assert.Equal((string)null, mutation.fields[1].type.name);
             Assert.Equal("NON_NULL", mutation.fields[1].type.kind);
             Assert.Equal("Album", mutation.fields[1].type.ofType.name);
             Assert.Equal("name", mutation.fields[1].args[0].name);
@@ -317,7 +317,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("addAlbum3", mutation.fields[2].name);
             Assert.Equal("Album", mutation.fields[2].type.name);
             Assert.Equal("OBJECT", mutation.fields[2].type.kind);
-            Assert.Equal(null, mutation.fields[2].type.ofType);
+            Assert.Equal((string)null, mutation.fields[2].type.ofType);
             Assert.Equal("name", mutation.fields[2].args[0].name);
             Assert.Equal("NON_NULL", mutation.fields[2].args[0].type.kind);
             Assert.Equal("genre", mutation.fields[2].args[1].name);
@@ -372,6 +372,15 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("mutation:", schema);
             Assert.DoesNotContain($"type {schemaProvider.Mutation().SchemaType.Name}", schema);
+        }
+
+        [Fact]
+        public void TestOutputsScalarDescription()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<AbstractClassTestSchema>();
+
+            var schema = schemaProvider.ToGraphQLSchemaString();
+            Assert.Contains("\"\"\"Date with time scalar\"\"\"", schema);
         }
 
         [Fact]

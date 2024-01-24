@@ -144,7 +144,7 @@ namespace EntityGraphQL.Schema
         public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? expression = fieldExpression;
-            // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
+            // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
             (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
             if (result == null)
                 return (null, null);
@@ -175,17 +175,10 @@ namespace EntityGraphQL.Schema
                 newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
                 argumentValue = compileContext.ConstantParameters[newArgParam];
             }
-            else
+            else if (newArgParam != null)
             {
-                if (FieldParam != null && ArgumentsParameter != null)
-                {
-                    // we need to make a copy of the argument parameter as if they select the same field multiple times
-                    // i.e. with different alias & arguments we need to have different ParameterExpression instances
-                    newArgParam = Expression.Parameter(ArgumentsParameter.Type, $"{ArgumentsParameter.Name}_exec");
-                    argumentValue = ArgumentUtil.BuildArgumentsObject(Schema, Name, this, args, Arguments.Values, newArgParam.Type, docParam, docVariables, validationErrors);
-                    if (argumentValue != null && compileContext != null)
-                        compileContext?.AddConstant(this, newArgParam, argumentValue);
-                }
+                newArgParam = Expression.Parameter(newArgParam.Type, $"{newArgParam.Name}_exec");
+                compileContext?.AddArgsToCompileContext(this, args, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
             }
 
             if (Extensions.Count > 0)
@@ -197,28 +190,7 @@ namespace EntityGraphQL.Schema
                 }
             }
 
-            // replace the arg param after extensions (don't rely on extensions to do this)
-            if (ArgumentsParameter != null && newArgParam != null && ArgumentsParameter != newArgParam)
-            {
-                result = replacer.Replace(result!, ArgumentsParameter, newArgParam);
-            }
-
-            if (ArgumentValidators.Count > 0)
-            {
-                var invokeContext = new ArgumentValidatorContext(this, argumentValue);
-                foreach (var m in ArgumentValidators)
-                {
-                    m(invokeContext);
-                    argumentValue = invokeContext.Arguments;
-                }
-
-                validationErrors.AddRange(invokeContext.Errors);
-            }
-
-            if (validationErrors.Count > 0)
-            {
-                throw new EntityGraphQLValidationException(validationErrors);
-            }
+            GraphQLHelper.ValidateAndReplaceFieldArgs(this, ArgumentsParameter, replacer, ref argumentValue, ref result!, validationErrors, newArgParam);
 
             return (result, newArgParam);
         }

@@ -23,7 +23,7 @@ namespace EntityGraphQL.Tests
             schema.Query().ReplaceField("projects",
                 new PagerArgs { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((db, p, pager) => pager.PageProjects(db, p));
+                .Resolve<EntityPager>((db, p, pager) => pager.PageProjects(db, p));
 
             var gql = new QueryRequest
             {
@@ -52,7 +52,7 @@ namespace EntityGraphQL.Tests
             schema.Query().ReplaceField("projects",
                 new PagerArgs { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((db, p, pager) => pager.PageProjects(db.Projects, p))
+                .Resolve<EntityPager>((db, p, pager) => pager.PageProjects(db.Projects, p))
                 .Returns("ProjectPagination");
 
             var gql = new QueryRequest
@@ -83,7 +83,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Person>().ReplaceField("projects",
                 new { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((person, args, pager) => pager.PageProjects(person.Projects, args));
+                .Resolve<EntityPager>((person, args, pager) => pager.PageProjects(person.Projects, args));
 
             var gql = new QueryRequest
             {
@@ -126,7 +126,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
 
             var gql = new QueryRequest
             {
@@ -186,7 +186,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p));
 
             var gql = new QueryRequest
             {
@@ -235,7 +235,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Person>().ReplaceField("projects",
                 new { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((person, p, pager) => pager.PageProjects(person.Projects, p));
+                .Resolve<EntityPager>((person, p, pager) => pager.PageProjects(person.Projects, p));
 
             var gql = new QueryRequest
             {
@@ -277,7 +277,7 @@ namespace EntityGraphQL.Tests
             schema.Type<Person>().ReplaceField("projects",
                 new { page = 1, pagesize = 10 },
                 "Pagination. [defaults: page = 1, pagesize = 10]")
-                .ResolveWithService<EntityPager>((person, p, pager) => pager.PageProjects(person.Projects, p));
+                .Resolve<EntityPager>((person, p, pager) => pager.PageProjects(person.Projects, p));
 
             var gql = new QueryRequest
             {
@@ -321,7 +321,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
 
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>(
+                .Resolve<AgeService>(
                     // use a filed not another relation/entity
                     (person, ager) => ager.GetAge(person.Birthday)
                 );
@@ -368,7 +368,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<Pagination<Project>>("ProjectPagination").AddAllFields();
 
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>(
+                .Resolve<AgeService>(
                     // use a filed not another relation/entity
                     (person, ager) => ager.GetAge(person.Birthday)
                 );
@@ -418,10 +418,10 @@ namespace EntityGraphQL.Tests
 
             // Linking a type from a service back to the schema context
             schema.Type<User>().ReplaceField("projects", "Peoples projects")
-                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
 
             schema.Query().ReplaceField("user", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUser());
+                .Resolve<UserService>((ctx, users) => users.GetUser());
 
             var gql = new QueryRequest
             {
@@ -459,10 +459,10 @@ namespace EntityGraphQL.Tests
 
             // Linking a type from a service back to the schema context
             schema.Type<User>().ReplaceField("projects", "Peoples projects")
-                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
 
             schema.Query().ReplaceField("users", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
+                .Resolve<UserService>((ctx, users) => users.GetUsers(3));
 
             var gql = new QueryRequest
             {
@@ -501,10 +501,10 @@ namespace EntityGraphQL.Tests
 
             // Linking a type from a service back to the schema context
             schema.Type<User>().ReplaceField("project", "Peoples project")
-                .ResolveWithService<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner.Id == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner.Id == user.Id));
 
             schema.Query().ReplaceField("user", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUser());
+                .Resolve<UserService>((ctx, users) => users.GetUser());
 
             var gql = new QueryRequest
             {
@@ -543,10 +543,10 @@ namespace EntityGraphQL.Tests
 
             // Linking a type from a service back to the schema context
             schema.Type<User>().ReplaceField("projects", "Users projects")
-                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.CreatedBy == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.CreatedBy == user.Id));
 
             schema.Type<Project>().ReplaceField("createdBy", "Get user that created the project")
-                .ResolveWithService<UserService>((p, users) => users.GetUserById(p.CreatedBy));
+                .Resolve<UserService>((p, users) => users.GetUserById(p.CreatedBy));
 
             var gql = new QueryRequest
             {
@@ -601,23 +601,23 @@ namespace EntityGraphQL.Tests
 
             // root field is a service returning a list of items
             schema.Query().ReplaceField("users", "Get current user")
-                .ResolveWithService<UserService>((_, users) => users.GetUsers(10));
+                .Resolve<UserService>((_, users) => users.GetUsers(10));
 
             // connect back to a entity in the DB context
             schema.Type<User>().ReplaceField("projects", "Peoples projects")
-                .ResolveWithService<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
 
             schema.Type<User>().AddField("currentTask", "Peoples current task")
-                .ResolveWithService<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
+                .Resolve<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
 
             schema.Type<User>().AddField("indirectTasks", "Tasks assigned to people managed by user")
-             .ResolveWithService<TestDataContext2>((user, db) =>
+             .Resolve<TestDataContext2>((user, db) =>
                  from task in db.Tasks
                  where task.Assignee.Manager == user.Relation
                  select task);
 
             schema.Type<User>().AddField("indirectTasksWithExplicitJoin", "Tasks assigned to people managed by user")
-                .ResolveWithService<TestDataContext2>((user, db) =>
+                .Resolve<TestDataContext2>((user, db) =>
                     from task in db.Tasks
                     join person in db.People on task.Assignee equals person
                     where person.Manager == user.Relation
@@ -688,7 +688,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<Settings>("Settings", "The settings").AddAllFields();
             schema.Type<Task>().AddField("settings", "Task settings")
-                .ResolveWithService<SettingsService>((t, settings) => settings.Get(t.Id, false))
+                .Resolve<SettingsService>((t, settings) => settings.Get(t.Id, false))
                 .IsNullable(false);
 
             var gql = new QueryRequest
@@ -737,7 +737,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<Settings>("Settings", "The settings").AddAllFields();
             schema.Type<Project>().AddField("settings", "Project settings")
-                .ResolveWithService<SettingsService>((t, settings) => settings.Get(t.Id, false))
+                .Resolve<SettingsService>((t, settings) => settings.Get(t.Id, false))
                 .IsNullable(false);
             schema.Type<Project>().AddField("totalTasks", p => p.Tasks.Count(), "Total tasks");
 
@@ -785,7 +785,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<Settings>("Settings", "The settings").AddAllFields();
             schema.Type<Project>().AddField("settings", "Project settings")
-                .ResolveWithService<SettingsService>((t, settings) => settings.Get(t.Id, false))
+                .Resolve<SettingsService>((t, settings) => settings.Get(t.Id, false))
                 .IsNullable(false);
             schema.Type<Project>().AddField("totalTasks", p => p.Tasks.Count(), "Total tasks");
             schema.Type<Person>().AddField("managerId", p => p.Manager.Id, "Persons managers ID");
@@ -842,7 +842,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
             // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
             // the type of t will not match, need to be replaced
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
@@ -894,7 +894,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
             // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
             // the type of t will not match, need to be replaced
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
@@ -943,7 +943,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
             // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
             // the type of t will not match, need to be replaced
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(t => t.IsActive), "Active tasks");
@@ -993,7 +993,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
             // because of the selections of the config.type (a service) when we do our second selection (first is EF compatible)
             // the type of t will not match, need to be replaced
             schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.OrderBy(t => t.IsActive), "Ordered tasks");
@@ -1042,7 +1042,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Project>().AddField("configType", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id).Type);
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id).Type);
 
             schema.Query().ReplaceField("projects",
                 new
@@ -1093,7 +1093,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Project>().AddField("configType", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(0).Type);
+                .Resolve<ConfigService>((p, srv) => srv.Get(0).Type);
 
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
@@ -1134,11 +1134,11 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Project>().AddField("configType", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(0).Type);
+                .Resolve<ConfigService>((p, srv) => srv.Get(0).Type);
 
             schema.Type<Task>().AddField("assigneeProjects", t => t.Assignee.Projects, "All projects for assignee");
             schema.Type<Person>().AddField("age", "Persons age")
-                .ResolveWithService<AgeService>(
+                .Resolve<AgeService>(
                     // use a filed not another relation/entity
                     (person, ager) => ager.GetAge(person.Birthday)
                 );
@@ -1208,7 +1208,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Project>().AddField("configType", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(0).Type);
+                .Resolve<ConfigService>((p, srv) => srv.Get(0).Type);
 
             var serviceCollection = new ServiceCollection();
             var configSrv = new ConfigService();
@@ -1254,7 +1254,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<ProjectConfig>("ProjectConfig", "Config for the project").AddAllFields();
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(0));
+                .Resolve<ConfigService>((p, srv) => srv.Get(0));
 
             var serviceCollection = new ServiceCollection();
             var configSrv = new ConfigService();
@@ -1302,7 +1302,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<ProjectConfig>("ProjectConfig", "Config for the project").AddAllFields();
             schema.Type<Project>().AddField("config", "Get project config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
 
             var serviceCollection = new ServiceCollection();
             ConfigService configSrv = new();
@@ -1350,7 +1350,7 @@ namespace EntityGraphQL.Tests
 
             schema.Type<Project>().AddField("arrayField", "Get project config")
                 // p.Updated.HasValue is the important bit here
-                .ResolveWithService<ConfigService>((p, x) => x.GetArrayFieldAsync(p.Id, p.Updated.HasValue).GetAwaiter().GetResult())
+                .Resolve<ConfigService>((p, x) => x.GetArrayFieldAsync(p.Id, p.Updated.HasValue).GetAwaiter().GetResult())
                 .IsNullable(false);
 
             var serviceCollection = new ServiceCollection();
@@ -1395,7 +1395,7 @@ namespace EntityGraphQL.Tests
 
             schema.Type<Project>().AddField("serviceField", "Get project config")
                 // p.Updated.HasValue is the important bit here
-                .ResolveWithService<ConfigService>((p, x) => x.GetFieldAsync(p.Id, p.Tasks.Where(t => t.Name != "Task").Select(t => t.Id)).GetAwaiter().GetResult());
+                .Resolve<ConfigService>((p, x) => x.GetFieldAsync(p.Id, p.Tasks.Where(t => t.Name != "Task").Select(t => t.Id)).GetAwaiter().GetResult());
 
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddScoped<ConfigService, ConfigService>();
@@ -1438,7 +1438,7 @@ namespace EntityGraphQL.Tests
 
             schema.AddType<ProjectConfig>("ProjectConfig", "Config for the task").AddAllFields();
             schema.Type<Task>().AddField("config", "Get task config")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id));
             schema.Type<Project>().AddField("firstTask",
                 (p) => p.Tasks.FirstOrDefault(),
                 "Get first task");
@@ -1491,7 +1491,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Type<Person>().AddField("age", "Get age")
-                .ResolveWithService<AgeService>((p, srv) => srv.GetAge(p.Birthday));
+                .Resolve<AgeService>((p, srv) => srv.GetAge(p.Birthday));
 
             var serviceCollection = new ServiceCollection();
             AgeService service = new();
@@ -1541,7 +1541,7 @@ namespace EntityGraphQL.Tests
                 .OrderBy(p => p.Height),
             "Get people with height > {height}");
             schema.Type<Person>().AddField("resolvedSettings", "Return resolved settings")
-                .ResolveWithService<ConfigService>((f, b) => b.Get(f.Id))
+                .Resolve<ConfigService>((f, b) => b.Get(f.Id))
                 .IsNullable(false);
 
             var serviceCollection = new ServiceCollection();
@@ -1572,11 +1572,11 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.Query().AddField("currentUser", "Returns current user")
-                .ResolveWithService<UserService>((ctx, srv) => srv.GetUserById(ctx.People.FirstOrDefault().Id));
+                .Resolve<UserService>((ctx, srv) => srv.GetUserById(ctx.People.FirstOrDefault().Id));
 
             schema.UpdateType<User>(type =>
                 type.AddField("projectNames", "Get project names")
-                .ResolveWithService<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id)));
+                .Resolve<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id)));
             var gql = new QueryRequest
             {
                 Query = @"query {
@@ -1616,13 +1616,13 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             schema.Query().ReplaceField("users", "Get current user")
-                .ResolveWithService<UserService>((ctx, users) => users.GetUsers(3));
+                .Resolve<UserService>((ctx, users) => users.GetUsers(3));
 
             // join back to DB Context
             schema.UpdateType<User>(userSchema =>
                 userSchema.ReplaceField("relation", "Get relation")
                     // We want the expression to return null
-                    .ResolveWithService<TestDataContext>((user, ctx) => user.RelationId.HasValue ? ctx.People.FirstOrDefault(u => u.Id == user.RelationId.Value) : null)
+                    .Resolve<TestDataContext>((user, ctx) => user.RelationId.HasValue ? ctx.People.FirstOrDefault(u => u.Id == user.RelationId.Value) : null)
             );
 
             var gql = new QueryRequest
@@ -1657,7 +1657,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("configs", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.GetNullList(p.Id));
+                .Resolve<ConfigService>((p, srv) => srv.GetNullList(p.Id));
 
             schema.Query().ReplaceField("project",
                 new
@@ -1712,7 +1712,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("configs", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.GetList(p.Id, 0))
+                .Resolve<ConfigService>((p, srv) => srv.GetList(p.Id, 0))
                 .IsNullable(false);
 
             schema.Query().ReplaceField("project",
@@ -1769,7 +1769,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Id))
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Id))
                 .IsNullable(false);
             schema.Type<Project>().ReplaceField("task", p => p.Tasks.FirstOrDefault(), "A task");
 
@@ -1837,7 +1837,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => GetProjectConfig(p, srv))
+                .Resolve<ConfigService>((p, srv) => GetProjectConfig(p, srv))
                 .IsNullable(false);
 
             var serviceCollection = new ServiceCollection();
@@ -1886,7 +1886,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("config", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => GetProjectConfigInstance(p, srv))
+                .Resolve<ConfigService>((p, srv) => GetProjectConfigInstance(p, srv))
                 .IsNullable(false);
 
             var serviceCollection = new ServiceCollection();
@@ -1938,7 +1938,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("someService", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.Get(p.Name, p.Children.FirstOrDefault().Name));
+                .Resolve<ConfigService>((p, srv) => srv.Get(p.Name, p.Children.FirstOrDefault().Name));
 
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
@@ -1996,7 +1996,7 @@ namespace EntityGraphQL.Tests
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
             schema.Type<Project>().AddField("someService", "Get project configs if they exists")
-                .ResolveWithService<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
+                .Resolve<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
 
             var serviceCollection = new ServiceCollection();
             var srv = new ConfigService();
@@ -2047,6 +2047,81 @@ namespace EntityGraphQL.Tests
             Assert.Equal(3, projects[0].someService.Count);
         }
 
+        [Fact]
+        public void TestServiceFieldWithExpressionReturnCollectionToSingle()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Type<Project>().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.Name, ctx.Description).FirstOrDefault());
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    projects {
+                        someService { type }
+                    }
+                 }"
+            };
+
+            var context = new TestDataContext
+            {
+                Projects = new List<Project>
+                 {
+                     new Project
+                     {
+                         Id = 0,
+                         Name = "Project",
+                         Children = new List<Project>
+                         {
+                             new Project
+                             {
+                                 Id = 1,
+                                 Name = "Child1"
+                             },
+                         },
+                     }
+             },
+            };
+
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var data = (dynamic)res.Data["projects"];
+            Assert.Equal(1, srv.CallCount);
+        }
+
+        [Fact]
+        public void TestRootServiceFieldWithExpressionReturnCollectionToSingle()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+
+            schema.Query().AddField("someService", "Get project configs if they exists")
+                .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.TotalPeople.ToString(), "b").FirstOrDefault());
+
+            var serviceCollection = new ServiceCollection();
+            var srv = new ConfigService();
+            serviceCollection.AddSingleton(srv);
+
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    someService { type }
+                 }"
+            };
+
+            var context = new TestDataContext();
+
+            var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+            Assert.Null(res.Errors);
+            var data = (dynamic)res.Data["someService"];
+            Assert.Equal(1, srv.CallCount);
+        }
         public class ConfigService
         {
             public ConfigService()
@@ -2235,6 +2310,12 @@ namespace EntityGraphQL.Tests
             };
         }
 
+        public IDictionary<int, User> GetAllUsers(IEnumerable<int> data)
+        {
+            CallCount += 1;
+            return data.Select(id => new User { Id = id, Field2 = "Hello", Name = $"Name_{id}" }).ToDictionary(u => u.Id, u => u);
+        }
+
         internal User GetUserById(int id)
         {
             CallCount += 1;
@@ -2242,6 +2323,52 @@ namespace EntityGraphQL.Tests
             {
                 Id = id,
             };
+        }
+
+        internal List<User> GetUsersByProjectId(int id, string nameFilter)
+        {
+            CallCount += 1;
+            return new List<User> {
+                new User
+                {
+                    Id = id,
+                    Name = "Blah"
+                }
+            }.Where(u => u.Name.Contains(nameFilter)).ToList();
+        }
+        internal IDictionary<int, User> GetUsersByProjectId(IEnumerable<int> ids)
+        {
+            CallCount += 1;
+            return ids.Distinct().Select(id => new
+            {
+                ProjectId = id,
+                User = new User
+                {
+                    Id = id,
+                    Name = "Blah",
+                    Field2 = "Hello"
+                }
+            }).ToDictionary(u => u.ProjectId, u => u.User);
+        }
+
+        internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids, string nameFilter)
+        {
+            CallCount += 1;
+            // Obviously this is not a real implementation, but it's enough to test the functionality
+            return ids.ToDictionary(id => id, id => new List<User> { new() { Id = id, Name = $"Name_{id}" } }.Where(u => string.IsNullOrEmpty(nameFilter) ? true : u.Name.Contains(nameFilter)).ToList());
+        }
+
+        internal User GetUserByProjectId(int projectId, int userId)
+        {
+            CallCount += 1;
+            return new User { Id = userId, Name = $"Name_{userId}" };
+        }
+
+        internal IDictionary<int, User> GetUserByIdForProjectId(IEnumerable<int> ids, int id)
+        {
+            CallCount += 1;
+            // "load" users from IDs and return them
+            return ids.ToDictionary(id => id, i => i != id ? null : new User { Id = i, Name = $"Name_{i}" });
         }
     }
     public class AgeService

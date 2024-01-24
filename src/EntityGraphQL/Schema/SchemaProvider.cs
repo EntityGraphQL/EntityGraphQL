@@ -691,12 +691,21 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="type"></param>
         /// <param name="description"></param>
-        /// <returns></returns>
         public ISchemaType AddEnum(string name, Type type, string description)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.Enum, null)!;
             FinishAddingType(type, schemaType);
             return schemaType.AddAllFields();
+        }
+
+        /// <summary>
+        /// Add an Enum type to the schema
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        public SchemaType<TEnum> AddEnum<TEnum>(string name, string description)
+        {
+            return (SchemaType<TEnum>)AddEnum(name, typeof(TEnum), description);
         }
 
         /// <summary>

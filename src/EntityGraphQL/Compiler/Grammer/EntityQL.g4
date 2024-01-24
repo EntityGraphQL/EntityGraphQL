@@ -3,17 +3,16 @@ grammar EntityQL;
 // Core building blocks
 ID: [a-z_A-Z]+ [a-z_A-Z0-9-]*;
 DIGIT: [0-9];
-STRING_CHARS: [a-zA-Z0-9 \t`~!@#$%^&*()_+={}|\\:"'\u005B\u005D;<>?,./-];
-
+fragment ESCAPE_CHARS: '\\\'' | '\\"' | '\\\\' | '\\0' | '\\a' | '\\b' | '\\f' | '\\n' | '\\r' | '\\t' | '\\v';
 // identity includes keywords too
 identity: ID;
 
 int: '-'? DIGIT+;
 decimal: '-'? DIGIT+ '.' DIGIT+;
 boolean: 'true' | 'false';
-string: '"' ( '"' | ~('\n' | '\r') | STRING_CHARS)*? '"';
+STRING: '"' (~['"\\\r\n\u0085\u2028\u2029] | ESCAPE_CHARS)* '"';
 null: 'null';
-constant: string
+constant: stringVal = STRING
 	| int
 	| decimal
 	| boolean

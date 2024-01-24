@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
     {
         public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
         public ISchemaProvider Schema { get; protected set; }
-        protected List<GraphQLDirective> Directives { get; set; } = new();
+        protected List<GraphQLDirective> Directives { get; set; } = [];
 
         /// <summary>
         /// Name of the field
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public ISchemaType? FromType { get => Field?.FromType; }
         public IField? Field { get; }
-        public List<BaseGraphQLField> QueryFields { get; } = new();
+        public List<BaseGraphQLField> QueryFields { get; } = [];
         public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; set; }
 
@@ -61,7 +61,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public IReadOnlyDictionary<string, object> Arguments { get; }
         /// <summary>
-        /// True if this field has services
+        /// True if this field directly has services
         /// </summary>
         public bool HasServices { get => Field?.Services.Any() == true; }
 
@@ -82,9 +82,12 @@ namespace EntityGraphQL.Compiler
             NextFieldContext = nextFieldContext;
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
-            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
-            this.Schema = context.Schema;
+            Arguments = context.Arguments.ToDictionary(k => k.Key, v => v.Value);
+            Schema = context.Schema;
             Field = context.Field;
+            LocationForDirectives = context.LocationForDirectives;
+            Directives.AddRange(context.Directives);
+            QueryFields.AddRange(context.QueryFields);
         }
 
         /// <summary>
@@ -92,9 +95,9 @@ namespace EntityGraphQL.Compiler
         /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
         /// </summary>
         /// <value></value>
-        public virtual bool HasAnyServices(IEnumerable<GraphQLFragmentStatement> fragments)
+        public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasAnyServices(fragments)) == true;
+            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
         }
 
         /// <summary>
@@ -214,7 +217,7 @@ namespace EntityGraphQL.Compiler
                 nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
             else // need to replace context expressions in the service expression with the new context
             {
-                // If this is a root field, we replace teh whole expresison unless there is services at the root level
+                // If this is a root field, we replace the whole expresison unless there is services at the root level
                 if (isRoot && !HasServices)
                     nextFieldContext = replacementNextFieldContext;
                 else if (HasServices)
@@ -233,6 +236,24 @@ namespace EntityGraphQL.Compiler
                 if (Field?.FieldParam != null)
                 {
                     nextFieldContext = replacer.Replace(nextFieldContext, Field.FieldParam, replacementNextFieldContext);
+                }
+            }
+
+            return nextFieldContext;
+        }
+
+        protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
+        {
+            if (Field?.BulkResolver != null)
+            {
+                if (!withoutServiceFields)
+                {
+                    // we replace the expression with a lookup in the bulk resolver data
+                    // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
+                    var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
+                    var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
+                    nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
+                    nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
                 }
             }
 

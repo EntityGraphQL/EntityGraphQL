@@ -45,7 +45,7 @@ public class ServiceLifetimeTests
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         schema.UpdateType<MyMovie>(movie =>
             movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
-                .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365)
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365)
         );
         var services = new ServiceCollection();
         var allContextes = new List<MyDataContext>();
@@ -83,10 +83,10 @@ public class ServiceLifetimeTests
         schema.UpdateType<MyMovie>(movie =>
         {
             movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
-                .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
             movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContextes = new List<MyDataContext>();
@@ -128,10 +128,10 @@ public class ServiceLifetimeTests
         schema.UpdateType<MyMovie>(movie =>
         {
             movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
-                .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
             movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContextes = new List<MyDataContext>();
@@ -167,10 +167,10 @@ public class ServiceLifetimeTests
         schema.UpdateType<MyMovie>(movie =>
         {
             movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
-                .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
             movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .ResolveWithService<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContextes = new List<MyDataContext>();

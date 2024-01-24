@@ -24,6 +24,7 @@ namespace EntityGraphQL.Schema
 
         void AddDirective(IDirectiveProcessor directive);
         ISchemaType AddEnum(string name, Type type, string description);
+        SchemaType<TEnum> AddEnum<TEnum>(string name, string description);
         ISchemaType AddInterface<TInterface>(string name, string? description);
         ISchemaType AddInterface(Type type, string name, string? description);
         ISchemaType AddUnion(Type type, string name, string? description);

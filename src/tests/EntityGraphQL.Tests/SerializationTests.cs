@@ -48,7 +48,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
-            Assert.Equal(null, addPersonResult.birthday);
+            Assert.Equal((string)null, addPersonResult.birthday);
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
-            Assert.Equal(null, addPersonResult.birthday);
+            Assert.Equal((string)null, addPersonResult.birthday);
         }
 
     }

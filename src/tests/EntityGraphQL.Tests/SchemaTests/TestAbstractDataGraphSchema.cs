@@ -36,7 +36,7 @@ namespace EntityGraphQL.Tests
                 UpdateType<PersonType>(type =>
                 {
                     type.AddField("age", "The name of the person")
-                        .ResolveWithService<AgeService>((p, ager) => ager.GetAge(p.Birthday));
+                        .Resolve<AgeService>((p, ager) => ager.GetAge(p.Birthday));
                 });
             }
         }
