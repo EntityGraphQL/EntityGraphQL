@@ -988,29 +988,6 @@ namespace EntityGraphQL.Tests
             IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
             Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
         }
-        
-        
-        [Fact]
-        public void TestDescriptionAttribute()
-        {
-            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-            schemaProvider.AddMutationsFrom<PeopleMutations>();
-            var gql = new QueryRequest
-            {
-                Query = @"mutation Mutate($x: Int!) {
-                    descriptionArgs(x: $x)
-                }",
-                Variables = new QueryVariables {
-                    {"x", 3 }
-                }
-            };
-
-            var testSchema = new TestDataContext();
-            var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
-            Assert.Null(results.Errors);
-            var result = (int)results.Data["descriptionArgs"];
-            Assert.Equal(3, result);
-        }
 
         [Fact]
         public void TestDescriptionAttribute()
