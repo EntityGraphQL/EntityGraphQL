@@ -988,8 +988,7 @@ namespace EntityGraphQL.Tests
             IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
             Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
         }
-        
-        
+
         [Fact]
         public void TestDescriptionAttribute()
         {
@@ -998,11 +997,11 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation Mutate($x: Int!) {
-                    descriptionArgs(x: $x)
-                }",
+                     descriptionArgs(x: $x)
+                 }",
                 Variables = new QueryVariables {
-                    {"x", 3 }
-                }
+                     {"x", 3 }
+                 }
             };
 
             var testSchema = new TestDataContext();

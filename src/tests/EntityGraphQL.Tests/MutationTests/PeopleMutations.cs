@@ -196,6 +196,7 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+
         [GraphQLMutation]
         public async Task<bool> NeedsGuid(GuidArgs args)
         {
@@ -263,7 +264,7 @@ namespace EntityGraphQL.Tests
                 throw new ArgumentException("Ids can not be empty GUID values");
             return args.Ids.Select(g => g.ToString()).ToArray();
         }
-        
+
         [GraphQLMutation]
         static public int DescriptionArgs(DescriptionArgs args)
         {
@@ -372,7 +373,7 @@ namespace EntityGraphQL.Tests
     {
         public List<Guid> Ids { get; set; }
     }
-    
+
     [GraphQLArguments]
     public class DescriptionArgs
     {

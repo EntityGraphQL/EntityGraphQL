@@ -219,10 +219,12 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return VisitChildren(context);
         }
 
+        /// <summary>
         /// Implements rules about comparing non-matching types.
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
+        /// </summary>
         private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())

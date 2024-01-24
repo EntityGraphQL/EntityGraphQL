@@ -60,6 +60,12 @@ If you have a query like
 
 Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
 
+# 5.1.1
+
+## Fixes
+
+- Fix #337 - Description attribute accidentally updating name instead of description
+
 # 5.1.0
 
 ## Changes

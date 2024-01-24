@@ -14,7 +14,7 @@ namespace EntityGraphQL.Directives
         public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
         {
             if (arguments is null)
-                throw new EntityGraphQLException("Argument 'if' is requred for @skip directive");
+                throw new EntityGraphQLException("Argument 'if' is required for @skip directive");
             return !((SkipArguments)arguments).If ? node : null;
         }
     }
