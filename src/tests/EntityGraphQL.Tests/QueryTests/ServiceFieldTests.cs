@@ -2313,7 +2313,7 @@ namespace EntityGraphQL.Tests
         public IDictionary<int, User> GetAllUsers(IEnumerable<int> data)
         {
             CallCount += 1;
-            return data.Select(id => new User { Id = id, Field2 = "Hello", Name = $"Name_{id}" }).ToDictionary(u => u.Id, u => u);
+            return data.Distinct().Select(id => new User { Id = id, Field2 = "Hello", Name = $"Name_{id}" }).ToDictionary(u => u.Id, u => u);
         }
 
         internal User GetUserById(int id)
