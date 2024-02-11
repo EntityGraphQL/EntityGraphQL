@@ -101,6 +101,7 @@ namespace EntityGraphQL.Schema
 
             if (memberInfo?.GetCustomAttribute<GraphQLFieldAttribute>() is GraphQLFieldAttribute gqlFieldAttr)
             {
+                //Works if this is commented out
                 if (!string.IsNullOrEmpty(gqlFieldAttr.Name))
                     arg.Name = gqlFieldAttr.Name;
                 if (!string.IsNullOrEmpty(gqlFieldAttr.Description))
