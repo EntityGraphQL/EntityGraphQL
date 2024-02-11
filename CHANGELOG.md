@@ -10,6 +10,7 @@ Check release notes for the 5.2.0-beta1 below.
 - Include descriptions for scalars and directives in introspection and schema output
 - Fix issue using the default `SchemaBuilderOptions` with a mutation method that has a list argument. The argument input type was not being correctly added to the schema. Not an issue if you were already adding the type manually
 - #336 - Fix conversion of non-nullable/nullable types
+- #342 - Fix argument incorrectly being renamed when using `[GraphQLField]`
 
 ## Changes
 

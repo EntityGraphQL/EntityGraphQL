@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -229,10 +230,10 @@ public class GraphQLFieldAttributeTests
 
         var context = new ContextFieldWithMethod
         {
-            Fields = new List<TypeWithMethod>()
-            {
+            Fields =
+            [
                 new TypeWithMethod()
-            }
+            ]
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
@@ -655,7 +656,7 @@ public class TypeWithMethod
     }
 
     [GraphQLField("renamedMethod")]
-    public int UnknownName(int value)
+    public int UnknownName([Description("The value")] int value)
     {
         return value;
     }

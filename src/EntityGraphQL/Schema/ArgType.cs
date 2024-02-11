@@ -48,7 +48,7 @@ namespace EntityGraphQL.Schema
         public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo parameter, object? defaultValue)
         {
             var nullability = parameter.GetNullabilityInfo();
-            var arg = MakeArgType(schema, parameter.Name!, parameter.Member, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, nullability);
+            var arg = MakeArgType(schema, parameter.Name!, null, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, nullability);
             return arg;
         }
 
@@ -93,15 +93,8 @@ namespace EntityGraphQL.Schema
                 requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute
             };
 
-            if (memberInfo?.GetCustomAttribute<DescriptionAttribute>() is DescriptionAttribute descAttr)
-            {
-                if (!string.IsNullOrEmpty(descAttr.Description))
-                    arg.Description = descAttr.Description;
-            }
-
             if (memberInfo?.GetCustomAttribute<GraphQLFieldAttribute>() is GraphQLFieldAttribute gqlFieldAttr)
             {
-                //Works if this is commented out
                 if (!string.IsNullOrEmpty(gqlFieldAttr.Name))
                     arg.Name = gqlFieldAttr.Name;
                 if (!string.IsNullOrEmpty(gqlFieldAttr.Description))
