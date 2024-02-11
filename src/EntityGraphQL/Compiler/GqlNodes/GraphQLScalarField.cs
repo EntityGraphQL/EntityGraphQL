@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -20,7 +19,7 @@ namespace EntityGraphQL.Compiler
             return Field?.Services.Any() == true;
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (HasServices && withoutServiceFields)
                 return null;
@@ -36,7 +35,7 @@ namespace EntityGraphQL.Compiler
 
             if (contextChanged && replacementNextFieldContext != null)
             {
-                newExpression = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, newExpression!);
+                newExpression = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, newExpression!, possibleNextContextTypes);
             }
             newExpression = ProcessScalarExpression(newExpression, replacer);
 

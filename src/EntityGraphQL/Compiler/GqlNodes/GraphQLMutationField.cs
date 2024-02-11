@@ -31,12 +31,12 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             if (ResultSelection == null)
                 throw new EntityGraphQLCompilerException($"Mutation {Name} should have a result selection");
 
-            return ResultSelection.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+            return ResultSelection.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
         }
     }
 }

@@ -18,11 +18,11 @@ namespace EntityGraphQL.Compiler
 
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-           return QueryFields.Any(x => x.HasServices);
+            return QueryFields.Any(x => x.HasServices);
         }
 
         protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
-        {            
+        {
             return QueryFields.SelectMany(x => x.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
         }
 
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

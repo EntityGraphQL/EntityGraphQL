@@ -415,10 +415,10 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck)
+        public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck)
         {
             if (!fieldExpressions.Any())
-                return baseExp;
+                return (baseExp, null);
 
             // fallback to parent return type for mutations
             var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
@@ -443,12 +443,14 @@ namespace EntityGraphQL.Compiler.Util
 
                 //create a cascading TypeIs X query for each type in query
                 Expression? previous = CreateNewExpression(fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
+                // we do not need the base type, we need the other types to possibly cast to
+                var allNonBaseDynamicTypes = new List<Type>();
 
                 foreach (var type in validTypes)
                 {
                     if (type == currentContextParam.Type)
                         continue;
-                   
+
                     var fieldsOnType = fieldExpressions.Values
                        .Where(i => RootType(i)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
                        .ToLookup(i => i.Field.Name, i => i.Expression)
@@ -457,6 +459,8 @@ namespace EntityGraphQL.Compiler.Util
                     var memberInit = CreateNewExpression(field.Name, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
                     if (memberInit == null)
                         continue;
+
+                    allNonBaseDynamicTypes.Add(dynamicType);
 
                     var replacer = new ParameterReplacer();
                     var convertedExpression = replacer.ReplaceByType(memberInit, type!, Expression.Convert(currentContextParam, type!));
@@ -478,14 +482,14 @@ namespace EntityGraphQL.Compiler.Util
                 else
                     call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
                         MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
-                return call;
+                return (call, allNonBaseDynamicTypes);
             }
             else
             {
                 var memberExpressions = fieldExpressions.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
                 var memberInit = CreateNewExpression(field.Name, memberExpressions, out Type dynamicType);
                 if (memberInit == null || dynamicType == null) // nothing to select
-                    return baseExp;
+                    return (baseExp, null);
                 var selector = Expression.Lambda(memberInit, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
                 Expression call;
@@ -494,7 +498,7 @@ namespace EntityGraphQL.Compiler.Util
                 else
                     call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
                         MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
-                return call;
+                return (call, new List<Type> { dynamicType });
             }
         }
 
