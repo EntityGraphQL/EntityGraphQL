@@ -154,13 +154,17 @@ namespace EntityGraphQL.Schema.FieldExtensions
             if (servicesPass)
                 return expression;
 
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(argumentParam, nameof(argumentParam));
+#else
             if (argumentParam == null)
                 throw new ArgumentNullException(nameof(argumentParam));
+#endif
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
             var edgeExpression = edgesField!.ResolveExpression;
 
-            if (edgesField.Extensions.Any())
+            if (edgesField.Extensions.Count > 0)
             {
                 // if we have other extensions (filter etc) we need to apply them to the totalCount
                 foreach (var extension in extensionsBeforePaging)

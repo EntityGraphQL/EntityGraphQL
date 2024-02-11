@@ -74,9 +74,8 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
         public IField GetField(string identifier, QueryRequestContext? requestContext)
         {
-            if (FieldsByName.ContainsKey(identifier))
+            if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
@@ -114,9 +113,8 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public bool HasField(string identifier, QueryRequestContext? requestContext)
         {
-            if (FieldsByName.ContainsKey(identifier))
+            if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     return false;
 

@@ -36,7 +36,11 @@ namespace EntityGraphQL.Schema
         {
             using SHA256 sha256Hash = SHA256.Create();
             // ComputeHash - returns byte array  
+#if NET8_0_OR_GREATER
+            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));
+#else
             byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(data));
+#endif
             return ByteToHexBitFiddle(bytes);
         }
 

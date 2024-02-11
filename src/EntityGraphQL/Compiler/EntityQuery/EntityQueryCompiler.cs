@@ -33,8 +33,12 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// <returns></returns>
         public static CompiledQueryResult Compile(string query, ISchemaProvider? schemaProvider, IMethodProvider? methodProvider = null)
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(query, nameof(query));
+#else
             if (query == null)
                 throw new ArgumentNullException(nameof(query));
+#endif
 
             ParameterExpression? contextParam = null;
 

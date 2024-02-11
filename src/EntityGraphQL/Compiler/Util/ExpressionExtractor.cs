@@ -48,10 +48,14 @@ namespace EntityGraphQL.Compiler.Util
                 var expressionItem = currentExpression.Peek();
                 // use the expression as the extracted field name as it will be unique
                 var name = pattern.Replace(expressionItem.ToString(), "_");
-                if (!extractedExpressions!.ContainsKey(name))
-                    extractedExpressions![name] = new List<Expression> { expressionItem };
+                if (extractedExpressions!.TryGetValue(name, out var existing))
+                {
+                    existing.Add(expressionItem);
+                }
                 else
-                    extractedExpressions![name].Add(expressionItem);
+                {
+                    extractedExpressions[name] = [expressionItem];
+                }
             }
             return base.VisitParameter(node);
         }

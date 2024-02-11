@@ -118,12 +118,12 @@ namespace EntityGraphQL.Schema
             return types.ToString();
         }
 
-        private static object GetDirectives(IEnumerable<ISchemaDirective> directives)
+        private static string GetDirectives(IEnumerable<ISchemaDirective> directives)
         {
             return string.Join("", directives.Select(d => " " + d.ToGraphQLSchemaString()).Distinct());
         }
 
-        private static object GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
+        private static string GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
         {
             if (field.Arguments == null || !field.Arguments.Any() || field.ArgumentsAreInternal)
                 return noArgs;
@@ -207,7 +207,7 @@ namespace EntityGraphQL.Schema
             return ret;
         }
 
-        private static object GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
+        private static string GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
         {
             var args = directive.GetArguments(schema);
             if (args == null || !args.Any())

@@ -83,12 +83,12 @@ namespace EntityGraphQL.Compiler.Util
                     value = Activator.CreateInstance(toType);
                     foreach (var item in jsonEle.EnumerateObject())
                     {
-                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                         if (prop != null)
                             prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema));
                         else
                         {
-                            var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                            var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                             field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
                         }
                     }
@@ -162,12 +162,12 @@ namespace EntityGraphQL.Compiler.Util
                 var newValue = Activator.CreateInstance(toType);
                 foreach (string key in ((IDictionary<string, object>)value).Keys)
                 {
-                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                     if (toProp != null)
                         toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema));
                     else
                     {
-                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                         toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
                     }
                 }
@@ -224,24 +224,24 @@ namespace EntityGraphQL.Compiler.Util
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())
             {
-                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
                     toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema));
                 else
                 {
-                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
                         toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema));
                 }
             }
             foreach (var toProperty in toType.GetProperties())
             {
-                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
                     toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema));
                 else
                 {
-                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
                         toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema));
                 }
@@ -272,8 +272,12 @@ namespace EntityGraphQL.Compiler.Util
             if (type1 == null)
                 return type2;
 
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(type2, nameof(type2));
+#else
             if (type2 == null)
                 throw new ArgumentNullException(nameof(type2));
+#endif
 
             var fields = type1.GetFields().ToDictionary(f => f.Name, f => f.FieldType);
             type1.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
@@ -392,7 +396,7 @@ namespace EntityGraphQL.Compiler.Util
             return Tuple.Create(exp, endExpression);
         }
 
-        class ConversionVisitor : ExpressionVisitor
+        sealed class ConversionVisitor : ExpressionVisitor
         {
             private readonly Expression parameter;
             private readonly Type convertTo;
@@ -547,7 +551,7 @@ namespace EntityGraphQL.Compiler.Util
             }
 
             dynamicType = typeof(object);
-            if (!fieldExpressionsByName.Any())
+            if (fieldExpressionsByName.Count == 0)
                 return null;
 
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
@@ -561,7 +565,7 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        private static Expression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
+        private static MemberInitExpression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
             foreach (var item in fieldExpressions)

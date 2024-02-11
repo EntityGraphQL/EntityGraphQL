@@ -76,7 +76,7 @@ namespace EntityGraphQL.Compiler
 
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
-            if (selectionFields == null || !selectionFields.Any())
+            if (selectionFields == null || selectionFields.Count == 0)
             {
                 if (withoutServiceFields && HasServices)
                     return null;

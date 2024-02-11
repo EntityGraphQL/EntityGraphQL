@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? OpVariableParameter { get; }
 
         public IField? Field { get; }
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
             OpDefinedVariables = opVariables;
             this.Schema = schema;
             Arguments = new Dictionary<string, object>();
-            if (OpDefinedVariables.Any())
+            if (OpDefinedVariables.Count > 0)
             {
                 var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
                 OpVariableParameter = Expression.Parameter(variableType, "docVars");
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Compiler
             // inject document level variables - letting the query be cached and passing in different variables
             object? variablesToUse = null;
 
-            if (OpDefinedVariables.Any() && OpVariableParameter != null)
+            if (OpDefinedVariables.Count > 0 && OpVariableParameter != null)
             {
                 variables ??= new QueryVariables();
                 variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
@@ -208,7 +208,7 @@ namespace EntityGraphQL.Compiler
         private static Dictionary<string, object> ResolveBulkLoaders(CompileContext compileContext, IServiceProvider? serviceProvider, BaseGraphQLField node, object? runningContext, ParameterReplacer replacer, ParameterExpression newContextType)
         {
             var bulkData = new Dictionary<string, object>();
-            if (compileContext.BulkResolvers?.Any() == true)
+            if (compileContext.BulkResolvers?.Count > 0)
             {
                 foreach (var bulkResolver in compileContext.BulkResolvers)
                 {

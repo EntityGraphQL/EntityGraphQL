@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// True if this field directly has services
         /// </summary>
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
         {
@@ -97,7 +97,7 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
+            return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
         }
 
         /// <summary>
