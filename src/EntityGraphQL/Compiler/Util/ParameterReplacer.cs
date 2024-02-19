@@ -145,19 +145,7 @@ namespace EntityGraphQL.Compiler.Util
                         }
                         catch (ArgumentException)
                         {
-                            //HACK - works but will be slow
-                            var subTypes = AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(a => a.GetTypes())
-                                .Where(t => t.IsSubclassOf(nodeExp.Type));
-
-                            foreach (var type in subTypes)
-                            {
-                                try
-                                {
-                                    nodeExp = Expression.PropertyOrField(Expression.Convert(nodeExp, type), node.Member.Name);
-                                }
-                                catch { }
-                            }
+                           
 
                             if (nodeExp == null)
                             {

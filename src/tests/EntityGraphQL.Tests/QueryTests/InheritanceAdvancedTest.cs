@@ -503,6 +503,7 @@ namespace EntityGraphQL.Tests
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
 
+            Assert.Equal("colour: 1 - size: 7", order.orderItems[0].statusAsString);
         }
 
         [Fact]
@@ -577,8 +578,6 @@ namespace EntityGraphQL.Tests
                     id
                     ... on TShirtOrderItem {
                         statusAsString(length: 2)
-                        colour
-                        size  
                     }
                 }"",
                 ""variables"": {
@@ -599,6 +598,7 @@ namespace EntityGraphQL.Tests
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
 
+            Assert.Equal("colour: 1 - size: 7 - length: 2", order.orderItems[0].statusAsString);
         }
     }
 }
