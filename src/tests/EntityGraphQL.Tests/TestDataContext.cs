@@ -177,7 +177,7 @@ namespace EntityGraphQL.Tests
 
     internal static class DataFiller
     {
-        internal static TestDataContext FillWithTestData(this TestDataContext context)
+        internal static T FillWithTestData<T>(this T context) where T : TestDataContext
         {
             var user = new User
             {

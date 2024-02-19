@@ -120,7 +120,7 @@ namespace EntityGraphQL.Compiler
 
         public override void AddField(BaseGraphQLField field)
         {
-            if (QueryFields.Any())
+            if (QueryFields.Count > 0)
                 throw new EntityGraphQLCompilerException($"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation.");
             QueryFields.Add(field);
         }

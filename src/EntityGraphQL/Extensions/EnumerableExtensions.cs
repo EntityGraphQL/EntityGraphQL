@@ -51,7 +51,7 @@ namespace EntityGraphQL.Extensions
         public static List<TSource>? ToListWithNullCheck<TSource>(this IEnumerable<TSource> source, bool returnEmptyList)
         {
             if (source == null)
-                return returnEmptyList ? new List<TSource>() : null;
+                return returnEmptyList ? [] : null;
             return source.ToList();
         }
 
@@ -60,6 +60,13 @@ namespace EntityGraphQL.Extensions
             if (source == null)
                 return null;
             return source.Select(selector);
+        }
+
+        public static IEnumerable<TResult>? SelectManyWithNullCheck<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+        {
+            if (source == null)
+                return [];
+            return source.SelectMany(selector);
         }
     }
 }

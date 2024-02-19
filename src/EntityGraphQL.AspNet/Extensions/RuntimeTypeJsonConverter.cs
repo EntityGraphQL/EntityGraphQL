@@ -115,7 +115,7 @@ namespace EntityGraphQL.AspNet.Extensions
         /// </summary>
         /// <param name="t"></param>
         /// <returns></returns>
-        private static IEnumerable<MemberInfo> GetPropertyAndFieldInfos(Type t, JsonSerializerOptions options)
+        private static List<MemberInfo> GetPropertyAndFieldInfos(Type t, JsonSerializerOptions options)
         {
             var props = new List<MemberInfo>();
             props.AddRange(t.GetProperties());

@@ -40,13 +40,16 @@
             return schemaDescription;
         }
 
-        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema)
+        private static List<TypeElement> BuildScalarTypes(ISchemaProvider schema)
         {
             var types = new List<TypeElement>();
 
             foreach (var customScalar in schema.GetScalarTypes())
             {
-                var typeElement = new TypeElement("SCALAR", customScalar.Name);
+                var typeElement = new TypeElement("SCALAR", customScalar.Name)
+                {
+                    Description = customScalar.Description
+                };
 
                 customScalar.Directives.ProcessType(typeElement);
 

@@ -129,9 +129,9 @@ namespace EntityGraphQL.Schema
             argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
             var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
             var idLambda = Expression.Lambda(idBody, new[] { arrayContextParam });
-            Expression body = ExpressionUtil.MakeCallOnQueryable("Where", new Type[] { arrayContextType }, fieldProp.ResolveExpression, idLambda);
+            Expression body = ExpressionUtil.MakeCallOnQueryable(nameof(Queryable.Where), [arrayContextType], fieldProp.ResolveExpression, idLambda);
 
-            body = ExpressionUtil.MakeCallOnQueryable("FirstOrDefault", new Type[] { arrayContextType }, body);
+            body = ExpressionUtil.MakeCallOnQueryable(nameof(Queryable.FirstOrDefault), [arrayContextType], body);
             var contextParam = Expression.Parameter(contextType, $"cxt_{contextType.Name}");
             var lambdaParams = new[] { contextParam, argTypeParam };
             body = new ParameterReplacer().Replace(body, fieldProp.FieldParam!, contextParam);
@@ -240,7 +240,7 @@ namespace EntityGraphQL.Schema
                     }
                     else if (item.ShouldFlatten)
                     {
-                        // nedd to create expression new ArgType { Prop1 = args.Prop1, Prop2 = args.Prop2 }
+                        // need to create expression new ArgType { Prop1 = args.Prop1, Prop2 = args.Prop2 }
                         var propExpressions = new Dictionary<string, Expression>();
                         foreach (var arg in item.FlattenArgs!)
                         {
@@ -332,7 +332,7 @@ namespace EntityGraphQL.Schema
 
             if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
             {
-                // add non-pural field with argument of ID
+                // add non-plural field with argument of ID
                 var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field, options);
                 if (idArgField != null)
                 {
@@ -414,8 +414,8 @@ namespace EntityGraphQL.Schema
                     var fieldCount = typeInfo.GetProperties().Length + typeInfo.GetFields().Length;
 
                     // add type before we recurse more that may also add the type
-                    // dynamcially call generic method
-                    // hate this, but want to build the types with the right Genenics so you can extend them later.
+                    // dynamically call generic method
+                    // hate this, but want to build the types with the right generics so you can extend them later.
                     // this is not the fastest, but only done on schema creation
                     var addMethod = (isInputType, typeInfo.IsInterface, typeInfo.IsAbstract, fieldCount) switch
                     {
@@ -427,7 +427,7 @@ namespace EntityGraphQL.Schema
                         _ => nameof(ISchemaProvider.AddType)
                     };
 
-                    var method = schema.GetType().GetMethod(addMethod, new[] { typeof(string), typeof(string) });
+                    var method = schema.GetType().GetMethod(addMethod, [typeof(string), typeof(string)]);
                     if (method == null)
                         throw new EntityQuerySchemaException($"Could not find {addMethod} method on schema");
                     method = method.MakeGenericMethod(propType);
@@ -484,9 +484,9 @@ namespace EntityGraphQL.Schema
             return new GqlTypeInfo(typeGetter, returnType);
         }
 
-        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgmentTypes)
+        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgumentTypes)
         {
-            flattenArgmentTypes = new Dictionary<string, Type>();
+            flattenArgumentTypes = [];
             var arguments = new List<FieldArgInfo>();
             foreach (var item in method.GetParameters())
             {
@@ -518,7 +518,7 @@ namespace EntityGraphQL.Schema
                 if (argumentsAttr != null)
                 {
                     arguments.Add(new FieldArgInfo(item.Name!, item.ParameterType, FlattenArguments(item.ParameterType, schema, options)));
-                    flattenArgmentTypes.Add(item.Name!, item.ParameterType);
+                    flattenArgumentTypes.Add(item.Name!, item.ParameterType);
                 }
                 else
                 {
@@ -526,7 +526,8 @@ namespace EntityGraphQL.Schema
 
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {
-                        CacheType(item.ParameterType, schema, options, true);
+                        // use input type as it has resolved to a non list/nullable type
+                        CacheType(inputType, schema, options, true);
                     }
                 }
             }

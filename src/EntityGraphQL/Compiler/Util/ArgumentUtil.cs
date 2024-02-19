@@ -109,7 +109,7 @@ public static class ArgumentUtil
     {
         string argName = memberName;
         // check we have required arguments
-        if (memberType.GetGenericArguments().Any() && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+        if (memberType.GetGenericArguments().Length > 0 && memberType.GetGenericTypeDefinition() == typeof(RequiredField<>))
         {
             // Error is created by caller on arg validation
             if (args == null || !args.ContainsKey(argName))

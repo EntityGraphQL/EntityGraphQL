@@ -14,7 +14,7 @@ namespace EntityGraphQL.Compiler
     /// Visits nodes of a GraphQL request to build a representation of the query against the context objects via LINQ methods.
     /// </summary>
     /// <typeparam name="IGraphQLBaseNode"></typeparam>
-    internal class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?>
+    internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?>
     {
         private readonly ISchemaProvider schemaProvider;
         private readonly QueryVariables variables;

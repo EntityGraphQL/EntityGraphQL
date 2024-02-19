@@ -8,7 +8,7 @@ using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Tests
 {
-    public class GraphQLEntityQueryExtensionTests
+    public class FilterExtensionTests
     {
         [Fact]
         public void SupportEntityQuery()
@@ -282,8 +282,128 @@ namespace EntityGraphQL.Tests
                 }",
                 Variables = new QueryVariables { { "filter", "isActive == true)" } } // extra ) bracket
             };
-            var tree = schema.ExecuteRequestWithContext(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
+            var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext2().FillWithTestData(), null, null);
             Assert.Null(tree.Errors);
+        }
+
+        [Fact]
+        public void SupportUseFilterAnyMethod()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    people(filter: $filter) { id name }
+                }",
+                Variables = new QueryVariables { { "filter", "projects.any(name == \"Home\")" } }
+            };
+            var data = new TestDataContext2().FillWithTestData();
+            data.People.First().Name = "Lisa";
+            data.People.First().Projects.Add(new Project { Name = "Home" });
+            var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Lisa", person.name);
+        }
+        [Fact]
+        public void SupportUseFilterCountMethod()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    people(filter: $filter) { id name }
+                }",
+                Variables = new QueryVariables { { "filter", "projects.count() == 2" } }
+            };
+            var data = new TestDataContext2().FillWithTestData();
+            data.People.First().Name = "Lisa";
+            data.People.First().Projects.Add(new Project { Name = "Home" });
+            var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Lisa", person.name);
+        }
+
+        [Fact]
+        public void SupportUseFilterCountMethodWithFilter()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    people(filter: $filter) { id name }
+                }",
+                Variables = new QueryVariables { { "filter", "projects.count(name.startsWith(\"Plan\")) > 0" } }
+            };
+            var data = new TestDataContext2().FillWithTestData();
+            data.People.Add(DataFiller.MakePerson(33, null, null));
+            data.People.Last().Name = "Bob";
+            data.People.Last().Projects.Add(new Project { Name = "Plane" });
+            var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Bob", person.name);
+        }
+
+        [Fact]
+        public void SupportUseFilterDecimalWithInt()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    people(filter: $filter) { id name height }
+                }",
+                Variables = new QueryVariables { { "filter", "height > 170" } }
+            };
+            var data = new TestDataContext2();
+            var person1 = DataFiller.MakePerson(33, null, null);
+            person1.Height = 180;
+            data.People.Add(person1);
+            var person2 = DataFiller.MakePerson(34, null, null);
+            person2.Height = 160;
+            data.People.Add(person2);
+            Assert.Equal(2, data.People.Count);
+            var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal(180, person.height);
+        }
+
+        [Fact]
+        public void SupportUseFilterUnicode()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext2>();
+            var gql = new QueryRequest
+            {
+                Query = @"query Query($filter: String!) {
+                    people(filter: $filter) { id name height }
+                }",
+                Variables = new QueryVariables { { "filter", "name == \"Кирил\"" } }
+            };
+            var data = new TestDataContext2();
+            var person1 = DataFiller.MakePerson(33, null, null);
+            person1.Name = "Bill";
+            data.People.Add(person1);
+            var person2 = DataFiller.MakePerson(34, null, null);
+            person2.Name = "Кирил";
+            data.People.Add(person2);
+            Assert.Equal(2, data.People.Count);
+            var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Кирил", person.name);
         }
 
         private class TestDataContext2 : TestDataContext

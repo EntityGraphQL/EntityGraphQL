@@ -53,7 +53,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             var argType = typeof(SortInput<>).MakeGenericType(schemaSortType.TypeDotnet);
             var argInstance = Activator.CreateInstance(argType)!;
-            if (defaultSorts.Any())
+            if (defaultSorts.Count > 0)
             {
                 var defaultSortValues = Activator.CreateInstance(typeof(List<>).MakeGenericType(schemaSortType.TypeDotnet))!;
 
@@ -144,7 +144,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                     sortMethod = "ThenBy";
                 }
             }
-            else if (defaultSorts.Any())
+            else if (defaultSorts.Count > 0)
             {
                 var thenBy = false;
                 foreach (var defaultSort in defaultSorts)

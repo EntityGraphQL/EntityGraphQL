@@ -17,7 +17,7 @@ public enum Gender {
 }
 
 // building our schema
-schema.AddEnum("Gender", typeof(Gender), "A persons Gender");
+schema.AddEnum<Gender>("Gender", "A persons Gender");
 ```
 
 The GraphQL schema produced from this helps document and describe the data model to API users. Example GraphQL schema below

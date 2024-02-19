@@ -25,7 +25,7 @@ namespace EntityGraphQL.Compiler
     {
         public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
         public ISchemaProvider Schema { get; protected set; }
-        protected List<GraphQLDirective> Directives { get; set; } = new();
+        protected List<GraphQLDirective> Directives { get; set; } = [];
 
         /// <summary>
         /// Name of the field
@@ -51,7 +51,7 @@ namespace EntityGraphQL.Compiler
         /// </summary>
         public ISchemaType? FromType { get => Field?.FromType; }
         public IField? Field { get; }
-        public List<BaseGraphQLField> QueryFields { get; } = new();
+        public List<BaseGraphQLField> QueryFields { get; } = [];
         public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; set; }
 
@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// True if this field directly has services
         /// </summary>
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
         {
@@ -82,9 +82,12 @@ namespace EntityGraphQL.Compiler
             NextFieldContext = nextFieldContext;
             RootParameter = context.RootParameter;
             ParentNode = context.ParentNode;
-            this.Arguments = context.Arguments ?? new Dictionary<string, object>();
-            this.Schema = context.Schema;
+            Arguments = context.Arguments.ToDictionary(k => k.Key, v => v.Value);
+            Schema = context.Schema;
             Field = context.Field;
+            LocationForDirectives = context.LocationForDirectives;
+            Directives.AddRange(context.Directives);
+            QueryFields.AddRange(context.QueryFields);
         }
 
         /// <summary>
@@ -94,7 +97,7 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
+            return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
         }
 
         /// <summary>

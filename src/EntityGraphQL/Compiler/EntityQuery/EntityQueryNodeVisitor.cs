@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
-    internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<Expression>
+    internal sealed class EntityQueryNodeVisitor : EntityQLBaseVisitor<Expression>
     {
         private readonly QueryRequestContext requestContext;
         private Expression? currentContext;
@@ -104,11 +104,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return result;
         }
 
-        private static Expression ConvertToGuid(Expression expression)
+        private static MethodCallExpression ConvertToGuid(Expression expression)
         {
             return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")!));
         }
-        private static Expression ConvertToDateTime(Expression expression)
+        private static MethodCallExpression ConvertToDateTime(Expression expression)
         {
             return Expression.Call(typeof(DateTime), "Parse", null, expression, Expression.Constant(CultureInfo.InvariantCulture));
         }
@@ -183,12 +183,12 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         public override Expression VisitIfThenElse(EntityQLParser.IfThenElseContext context)
         {
-            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
         public override Expression VisitIfThenElseInline(EntityQLParser.IfThenElseInlineContext context)
         {
-            return (Expression)Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
+            return Expression.Condition(CheckConditionalTest(Visit(context.test)), Visit(context.ifTrue), Visit(context.ifFalse));
         }
 
         public override Expression VisitCall(EntityQLParser.CallContext context)
@@ -219,34 +219,51 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return VisitChildren(context);
         }
 
+        /// <summary>
         /// Implements rules about comparing non-matching types.
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+        /// </summary>
+        private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-                right = Expression.Convert(right, left.Type);
+                right = Expression.Convert(right, right.Type.GetNullableType());
             else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-                left = Expression.Convert(left, right.Type);
+                left = Expression.Convert(left, left.Type.GetNullableType());
 
-            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
+            else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
                 right = Expression.Convert(right, left.Type);
-            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(Int16) || right.Type == typeof(Int64) || right.Type == typeof(UInt16) || right.Type == typeof(UInt64)))
+            else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
                 left = Expression.Convert(left, right.Type);
 
             if (left.Type != right.Type)
             {
+                if (left.Type.IsEnum && right.Type.IsEnum)
+                    throw new EntityGraphQLCompilerException($"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
                 if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
                     right = ConvertToGuid(right);
                 else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
                     left = ConvertToGuid(left);
-
-                if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
                     right = ConvertToDateTime(right);
                 else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
                     left = ConvertToDateTime(left);
+                // convert ints "up" to float/decimal
+                else if ((left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong)) &&
+                        (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal)))
+                    left = Expression.Convert(left, right.Type);
+                else if ((right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong)) &&
+                        (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal)))
+                    right = Expression.Convert(right, left.Type);
+                else // default try to make types match
+                    left = Expression.Convert(left, right.Type);
             }
+
+            if (left.Type.IsNullableType() && !right.Type.IsNullableType())
+                right = Expression.Convert(right, left.Type);
+            else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
+                left = Expression.Convert(left, right.Type);
 
             return Expression.MakeBinary(op, left, right);
         }

@@ -42,6 +42,8 @@ namespace EntityGraphQL.Compiler
             CollectionSelectionNode = collectionNode;
             // do not call tolist as we end up calling First()/etc
             CollectionSelectionNode.AllowToList = false;
+            // we need a way to get back to this object in the heirarchy. Might revisit this later
+            CollectionSelectionNode.ToSingleNode = this;
             this.ObjectProjectionNode = objectProjectionNode;
             this.CombineExpression = combineExpression;
         }
@@ -75,14 +77,14 @@ namespace EntityGraphQL.Compiler
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
             if (isRoot)
-                result = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), new[] { genericType }, result);
+                result = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), [genericType], result);
 
             // rebuild the .First/FirstOrDefault/etc
             Expression exp;
             if (capMethod == null)
                 exp = ExpressionUtil.CombineExpressions(result, CombineExpression, replacer);
             else
-                exp = ExpressionUtil.MakeCallOnQueryable(capMethod, new[] { genericType }, result);
+                exp = ExpressionUtil.MakeCallOnQueryable(capMethod, [genericType], result);
             return exp;
         }
     }

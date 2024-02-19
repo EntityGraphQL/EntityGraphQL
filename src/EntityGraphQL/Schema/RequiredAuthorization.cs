@@ -37,7 +37,7 @@ namespace EntityGraphQL.Schema
             requiredPolicies = policies?.ToList() ?? new List<List<string>>();
         }
 
-        public bool Any() => requiredPolicies.Any() || requiredRoles.Any();
+        public bool Any() => requiredPolicies.Count > 0 || requiredRoles.Count > 0;
 
         public void RequiresAnyRole(params string[] roles)
         {

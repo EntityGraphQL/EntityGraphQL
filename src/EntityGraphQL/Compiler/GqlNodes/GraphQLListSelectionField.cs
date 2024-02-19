@@ -21,6 +21,7 @@ namespace EntityGraphQL.Compiler
     {
         public bool AllowToList { get; set; } = true;
         public Expression ListExpression { get; set; }
+        public GraphQLCollectionToSingleField? ToSingleNode { get; set; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -43,6 +44,7 @@ namespace EntityGraphQL.Compiler
            : base(context, nextFieldContext)
         {
             this.ListExpression = context.ListExpression;
+            AllowToList = context.AllowToList;
         }
 
         /// <summary>
@@ -74,7 +76,7 @@ namespace EntityGraphQL.Compiler
 
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
-            if (selectionFields == null || !selectionFields.Any())
+            if (selectionFields == null || selectionFields.Count == 0)
             {
                 if (withoutServiceFields && HasServices)
                     return null;
@@ -125,8 +127,40 @@ namespace EntityGraphQL.Compiler
             Expression bulkFieldExpr = bulkResolver.FieldExpression;
 
             GraphQLHelper.ValidateAndReplaceFieldArgs(field.Field!, bulkFieldArgParam, replacer, ref argumentValue, ref bulkFieldExpr, validationErrors, newArgParam);
-
-            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, ListExpression, bulkResolver.ExtractedFields);
+            var listExpression = ListExpression;
+            var parentNode = ParentNode;
+            var rootParameter = RootParameter;
+            var contextField = Field;
+            while (parentNode != null)
+            {
+                Type typeDotnet = Field!.ReturnType.SchemaType.TypeDotnet;
+                if (parentNode is GraphQLListSelectionField parentListNode)
+                {
+                    if (parentListNode.ToSingleNode != null)
+                    {
+                        listExpression = replacer.Replace(listExpression, rootParameter!, parentListNode.ToSingleNode.NextFieldContext!);
+                        var nullCheck = Expression.MakeBinary(ExpressionType.Equal, parentListNode.ToSingleNode.NextFieldContext!, Expression.Constant(null, parentListNode.ToSingleNode.NextFieldContext!.Type));
+                        listExpression = Expression.Condition(nullCheck, Expression.NewArrayInit(typeDotnet), listExpression, typeof(IEnumerable<>).MakeGenericType(typeDotnet));
+                        rootParameter = parentNode.RootParameter;
+                    }
+                    else
+                    {
+                        // We can do SelectManyWithNullCheck in memory as services are post EF
+                        listExpression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.SelectManyWithNullCheck), [rootParameter!.Type, typeDotnet], parentListNode.ListExpression!, Expression.Lambda(listExpression, rootParameter!));
+                        rootParameter = parentNode.RootParameter;
+                    }
+                }
+                else if (parentNode is GraphQLObjectProjectionField parentObjectNode)
+                {
+                    listExpression = replacer.Replace(listExpression, rootParameter!, parentObjectNode.NextFieldContext!);
+                    var nullCheck = Expression.MakeBinary(ExpressionType.Equal, parentObjectNode.NextFieldContext!, Expression.Constant(null, parentObjectNode.NextFieldContext!.Type));
+                    listExpression = Expression.Condition(nullCheck, Expression.NewArrayInit(typeDotnet), listExpression, typeof(IEnumerable<>).MakeGenericType(typeDotnet));
+                    rootParameter = parentNode.RootParameter;
+                }
+                contextField = parentNode.Field;
+                parentNode = parentNode.ParentNode;
+            }
+            compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, listExpression, bulkResolver.ExtractedFields);
             compileContext.AddServices(field.Field!.Services);
             return newArgParam;
         }

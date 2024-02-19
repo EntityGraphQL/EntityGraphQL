@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -207,29 +208,32 @@ public class GraphQLFieldAttributeTests
 
         Assert.True(schemaProvider.HasType(typeof(TypeWithMethod)));
 
-        Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("methodFieldWithDefaultArgs", null));
+        Assert.True(schemaProvider.Type<TypeWithMethod>().HasField("renamedMethod", null));
 
         var sdl = schemaProvider.ToGraphQLSchemaString();
 
         Assert.Contains("fields: [TypeWithMethod!]", sdl);
-        Assert.Contains("renamedMethod: Int!", sdl);
+        Assert.Contains("renamedMethod(value: Int!): Int!", sdl);
         Assert.DoesNotContain("unknownName", sdl);
 
         var gql = new QueryRequest
         {
-            Query = @"query TypeWithMethod {
+            Query = @"query TypeWithMethod($value: Int) {
                 fields {
-                    renamedMethod
+                    renamedMethod(value: $value)
                 }
-            }"
+            }",
+            Variables = new QueryVariables {
+                { "value", 33 },
+            }
         };
 
         var context = new ContextFieldWithMethod
         {
-            Fields = new List<TypeWithMethod>()
-                 {
-                     new TypeWithMethod()
-                 }
+            Fields =
+            [
+                new TypeWithMethod()
+            ]
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
@@ -639,7 +643,7 @@ public class TypeWithMethod
         return 20;
     }
 
-    [GraphQLField]
+    [GraphQLField()]
     public int MethodFieldWithTwoArgs(int value, int value2)
     {
         return value + value2;
@@ -652,9 +656,9 @@ public class TypeWithMethod
     }
 
     [GraphQLField("renamedMethod")]
-    public int UnknownName()
+    public int UnknownName([Description("The value")] int value)
     {
-        return 33;
+        return value;
     }
 
     [GraphQLField]

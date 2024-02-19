@@ -49,6 +49,7 @@ namespace EntityGraphQL.Schema
         void ApplyAttributes(IEnumerable<Attribute> attributes);
         RequiredAuthorization? RequiredAuthorization { get; set; }
         IField GetField(string identifier, QueryRequestContext? requestContext);
+        bool GetField(string identifier, QueryRequestContext? requestContext, out IField? field);
         IEnumerable<IField> GetFields();
         bool HasField(string identifier, QueryRequestContext? requestContext);
         ISchemaType AddAllFields(SchemaBuilderOptions? options = null);

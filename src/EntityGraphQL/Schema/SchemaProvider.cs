@@ -40,7 +40,7 @@ namespace EntityGraphQL.Schema
         private readonly bool isDevelopment;
         private readonly MutationType mutationType;
         private readonly SubscriptionType subscriptionType;
-        private readonly IDictionary<Type, IExtensionAttributeHandler> attributeHandlers = new Dictionary<Type, IExtensionAttributeHandler>();
+        private readonly Dictionary<Type, IExtensionAttributeHandler> attributeHandlers = new Dictionary<Type, IExtensionAttributeHandler>();
 
         public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
@@ -501,8 +501,8 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException">If type name not found</exception>
         public ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext)
         {
-            if (schemaTypes.ContainsKey(typeName))
-                return SchemaProvider<TContextType>.CheckTypeAccess(schemaTypes[typeName], requestContext);
+            if (schemaTypes.TryGetValue(typeName, out var schemaType))
+                return SchemaProvider<TContextType>.CheckTypeAccess(schemaType, requestContext);
 
             throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
@@ -522,9 +522,9 @@ namespace EntityGraphQL.Schema
             var schemaType = schemaTypes.Values.FirstOrDefault(t => t.TypeDotnet == dotnetType)
                 ?? schemaTypes.GetValueOrDefault(dotnetType.Name);
 
-            if (schemaType == null && customTypeMappings.ContainsKey(dotnetType))
+            if (schemaType == null && customTypeMappings.TryGetValue(dotnetType, out var typeInfo))
             {
-                schemaType = customTypeMappings[dotnetType].SchemaType;
+                schemaType = typeInfo.SchemaType;
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
@@ -658,8 +658,8 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public GqlTypeInfo? GetCustomTypeMapping(Type dotnetType)
         {
-            if (customTypeMappings.ContainsKey(dotnetType))
-                return customTypeMappings[dotnetType];
+            if (customTypeMappings.TryGetValue(dotnetType, out var typeInfo))
+                return typeInfo;
             return null;
         }
 
@@ -691,12 +691,21 @@ namespace EntityGraphQL.Schema
         /// <param name="name"></param>
         /// <param name="type"></param>
         /// <param name="description"></param>
-        /// <returns></returns>
         public ISchemaType AddEnum(string name, Type type, string description)
         {
             var schemaType = (ISchemaType)Activator.CreateInstance(typeof(SchemaType<>).MakeGenericType(type), this, type, name, description, null, GqlTypes.Enum, null)!;
             FinishAddingType(type, schemaType);
             return schemaType.AddAllFields();
+        }
+
+        /// <summary>
+        /// Add an Enum type to the schema
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        public SchemaType<TEnum> AddEnum<TEnum>(string name, string description)
+        {
+            return (SchemaType<TEnum>)AddEnum(name, typeof(TEnum), description);
         }
 
         /// <summary>
@@ -839,8 +848,8 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException"></exception>
         public IDirectiveProcessor GetDirective(string name)
         {
-            if (directives.ContainsKey(name))
-                return directives[name];
+            if (directives.TryGetValue(name, out var directive))
+                return directive;
             throw new EntityGraphQLCompilerException($"Directive {name} not defined in schema");
         }
         /// <summary>
@@ -881,8 +890,8 @@ namespace EntityGraphQL.Schema
 
         public IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType)
         {
-            if (attributeHandlers.ContainsKey(attributeType))
-                return attributeHandlers[attributeType];
+            if (attributeHandlers.TryGetValue(attributeType, out var handler))
+                return handler;
             return null;
         }
         public ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler)

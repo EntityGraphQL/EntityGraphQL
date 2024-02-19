@@ -79,13 +79,13 @@ public class OffsetPagingExtension : BaseFieldExtension
         itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!));
         itemsField.UseArgumentsFrom(field);
 
-        // set up the field's expresison so the types are all good 
+        // set up the field's expression so the types are all good 
         // rebuilt below if needed
         var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
 
-    private Expression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
+    private MemberInitExpression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
 

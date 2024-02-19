@@ -337,7 +337,7 @@ namespace EntityGraphQL.Schema
             return Implements(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
         }
 
-        private ISchemaType Implements(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        private SchemaType<TBaseType> Implements(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
             var hasInterface = Schema.HasType(type);
             ISchemaType? interfaceType = null;
@@ -399,7 +399,7 @@ namespace EntityGraphQL.Schema
             return AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
         }
 
-        private ISchemaType AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
+        private SchemaType<TBaseType> AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
         {
             if (GqlType != GqlTypes.Union)
                 throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
