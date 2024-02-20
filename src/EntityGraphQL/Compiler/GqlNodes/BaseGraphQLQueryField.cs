@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
         /// These are only needed after the for evaluation if a second one is required with service fields.
         /// They are dynamic types used to cast the base
         /// </summary>
-        protected List<Type>? PossibleNextContextTypes { get; set; }
+        internal List<Type>? PossibleNextContextTypes { get; set; }
 
         protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)

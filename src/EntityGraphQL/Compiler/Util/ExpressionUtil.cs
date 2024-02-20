@@ -395,9 +395,9 @@ namespace EntityGraphQL.Compiler.Util
             }
             return Tuple.Create(exp, endExpression);
         }
-        private static Type? RootType(CompiledField field)
+        private static Type? RootType(CompiledField field, bool withoutServiceFields)
         {
-            if (field.Field.FromType?.TypeDotnet != null)
+            if (withoutServiceFields && field.Field.FromType?.TypeDotnet != null)
             {
                 return field.Field.FromType?.TypeDotnet;
             }
@@ -419,7 +419,7 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck)
+        public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck, bool finalExecution)
         {
             if (!fieldExpressions.Any())
                 return (baseExp, null);
@@ -429,13 +429,23 @@ namespace EntityGraphQL.Compiler.Util
             if (gqlType == GqlTypes.Union || gqlType == GqlTypes.Interface)
             {
                 // get a list of distinct types asked for in the query (fragments for interfaces)
-                var validTypes = fieldExpressions.Values
-                    .Select(i => RootType(i))
-                    .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
-                    .Distinct();
+                List<Type> validTypes;
+                if (finalExecution)
+                {
+                    validTypes = fieldExpressions.Values
+                        .Select(i => RootType(i, true))
+                        .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
+                        .Distinct().Cast<Type>().ToList();
+                }
+                else
+                {
+                    validTypes = [currentContextParam.Type];
+                    if (field.PossibleNextContextTypes?.Count > 0)
+                        validTypes.AddRange(field.PossibleNextContextTypes);
+                }
 
                 var fieldsOnBaseType = fieldExpressions.Values
-                       .Where(i => RootType(i) == null || RootType(i)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
+                       .Where(i => CheckFieldType(currentContextParam, i, finalExecution))
                        .ToLookup(i => i.Field.Name, i => i.Expression)
                        .ToDictionary(i => i.Key, i => i.Last());
 
@@ -445,7 +455,7 @@ namespace EntityGraphQL.Compiler.Util
                     field.Name + "baseDynamicType"
                 ) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
-                //create a cascading TypeIs X query for each type in query
+                // create a cascading TypeIs X query for each type in query
                 Expression? previous = CreateNewExpression(fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
                 // we do not need the base type, we need the other types to possibly cast to
                 var allNonBaseDynamicTypes = new List<Type>();
@@ -456,9 +466,13 @@ namespace EntityGraphQL.Compiler.Util
                         continue;
 
                     var fieldsOnType = fieldExpressions.Values
-                       .Where(i => RootType(i)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i)))
-                       .ToLookup(i => i.Field.Name, i => i.Expression)
-                       .ToDictionary(i => i.Key, i => i.Last());
+                        .Where(i =>
+                        {
+                            var rt = RootType(i, finalExecution);
+                            return rt == null || rt!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(rt);
+                        })
+                        .ToLookup(i => i.Field.Name, i => i.Expression)
+                        .ToDictionary(i => i.Key, i => i.Last());
 
                     var memberInit = CreateNewExpression(field.Name, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
                     if (memberInit == null)
@@ -506,6 +520,11 @@ namespace EntityGraphQL.Compiler.Util
             }
         }
 
+        private static bool CheckFieldType(ParameterExpression currentContextParam, CompiledField i, bool withoutServiceFields)
+        {
+            var rt = RootType(i, withoutServiceFields);
+            return rt != null && (rt == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(rt));
+        }
 
         public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type, bool includeProperties = false)
         {

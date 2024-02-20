@@ -1,4 +1,5 @@
 ﻿using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -193,21 +194,21 @@ namespace EntityGraphQL.Tests
         {
             var context = new TestContext()
             {
-                Orders = new List<Order>()
-                {
+                Orders =
+                [
                     new Order()
                     {
                          Id = 1,
                          Name = "Barney",
                          Status = new Status() { Id = 0, Name = "Pending" },
-                         OrderItems = new List<OrderItem>()
-                         {
+                         OrderItems =
+                         [
                               new TShirtOrderItem()
                               {
-                                   Colour = 1,
-                                   Size = 7,
-                                   Status = new Status() { Id = 2, Name = "BackOrder" },
-                                   TShirt = new TShirt()
+                                    Colour = 1,
+                                    Size = 7,
+                                    Status = new Status() { Id = 2, Name = "BackOrder" },
+                                    TShirt = new TShirt()
                                     {
                                         Id = 3,
                                         Name = "SpiderMan"
@@ -215,17 +216,17 @@ namespace EntityGraphQL.Tests
                               },
                               new BookOrderItem()
                               {
-                                  Status = new Status() { Id = 4, Name = "Shipped"},
-                                   Book = new Book()
-                                   {
+                                    Status = new Status() { Id = 4, Name = "Shipped"},
+                                    Book = new Book()
+                                    {
                                         Author = "Ben Riley",
-                                         Name = "My Life",
-                                          Pages = 300
-                                   }
+                                        Name = "My Life",
+                                        Pages = 300
+                                    }
                               }
-                         }
+                         ]
                     }
-                }
+                ]
             };
 
             var schemaProvider = SchemaBuilder.FromObject<TestContext>();
@@ -274,7 +275,7 @@ namespace EntityGraphQL.Tests
                     ""orderId"": ""1""
                 }
             }".Replace('\r', ' ').Replace('\n', ' ');
-            var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
@@ -384,7 +385,7 @@ namespace EntityGraphQL.Tests
             }".Replace('\r', ' ').Replace('\n', ' ');
 
 
-            var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
 
             if (results.HasErrors())
@@ -491,8 +492,11 @@ namespace EntityGraphQL.Tests
             }".Replace('\r', ' ').Replace('\n', ' ');
 
 
-            var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var testService = new TestService();
+            var sc = new ServiceCollection();
+            sc.AddSingleton(testService);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, sc.BuildServiceProvider(), null);
 
             if (results.HasErrors())
             {
@@ -511,15 +515,15 @@ namespace EntityGraphQL.Tests
         {
             var context = new TestContext()
             {
-                Orders = new List<Order>()
-                {
+                Orders =
+                [
                     new Order()
                     {
                          Id = 1,
                          Name = "Barney",
                          Status = new Status() { Id = 0, Name = "Pending" },
-                         OrderItems = new List<OrderItem>()
-                         {
+                         OrderItems =
+                         [
                               new TShirtOrderItem()
                               {
                                    Colour = 1,
@@ -541,9 +545,9 @@ namespace EntityGraphQL.Tests
                                           Pages = 300
                                    }
                               }
-                         }
+                         ]
                     }
-                }
+                ]
             };
 
 
@@ -586,8 +590,10 @@ namespace EntityGraphQL.Tests
             }".Replace('\r', ' ').Replace('\n', ' ');
 
 
-            var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var sc = new ServiceCollection();
+            sc.AddSingleton(new TestService());
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, sc.BuildServiceProvider(), null);
 
             if (results.HasErrors())
             {

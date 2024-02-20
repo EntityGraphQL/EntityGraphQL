@@ -98,13 +98,13 @@ namespace EntityGraphQL.Compiler
                     // service is the Query Context. Which we are assuming is likely an EF context and we don't need the null check
                     // Use ExecutionOptions.ExecuteServiceFieldsSeparately = false to disable this behaviour
                     var nullCheck = Field!.Services.Any(s => s.Type != Field.Schema.QueryContextType);
-                    (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, nullCheck);
+                    (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, nullCheck, withoutServiceFields);
                 }
             }
 
             // have this return both the dynamic types so we can use them next, post-service
             if (resultExpression == null)
-                (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, false);
+                (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, false, withoutServiceFields || !contextChanged);
 
             // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
             // root level is handled in ExecutableGraphQLStatement with a null check

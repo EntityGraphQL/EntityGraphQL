@@ -144,12 +144,12 @@ query {
         {
             var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
             Assert.True(schema.HasType(typeof(IAnimal)));
-            Assert.True(schema.GetSchemaType(typeof(IAnimal), null).GqlType == GqlTypes.Union);
+            Assert.Equal(GqlTypes.Union, schema.GetSchemaType(typeof(IAnimal), null).GqlType);
 
             schema.Type<IAnimal>().AddPossibleType<Dog>();
             schema.Type<IAnimal>().AddPossibleType<Cat>();
-            Assert.True(schema.GetSchemaType(typeof(Cat), null).GqlType == GqlTypes.QueryObject);
-            Assert.True(schema.GetSchemaType(typeof(Dog), null).GqlType == GqlTypes.QueryObject);
+            Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), null).GqlType);
+            Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), null).GqlType);
 
             var gql = new GraphQLCompiler(schema).Compile(@"
 query {

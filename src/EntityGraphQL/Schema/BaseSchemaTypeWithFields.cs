@@ -16,12 +16,12 @@ namespace EntityGraphQL.Schema
         public string? Description { get; set; }
         public GqlTypes GqlType { get; protected set; }
 
-        protected List<ISchemaType> BaseTypes { get; set; } = new();
-        protected List<ISchemaType> PossibleTypes { get; set; } = new();
+        protected List<ISchemaType> BaseTypes { get; set; } = [];
+        protected List<ISchemaType> PossibleTypes { get; set; } = [];
         public IList<ISchemaType> BaseTypesReadOnly => BaseTypes.AsReadOnly();
         public IList<ISchemaType> PossibleTypesReadOnly => PossibleTypes.AsReadOnly();
 
-        private readonly List<ISchemaDirective> directives = new();
+        private readonly List<ISchemaDirective> directives = [];
         public IList<ISchemaDirective> Directives => directives.AsReadOnly();
         public bool IsInput { get { return GqlType == GqlTypes.InputObject; } }
         public bool IsInterface { get { return GqlType == GqlTypes.Interface; } }
