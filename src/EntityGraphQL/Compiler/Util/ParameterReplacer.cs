@@ -145,7 +145,6 @@ namespace EntityGraphQL.Compiler.Util
                         nodeExp = Expression.Property(nodeExp, prop);
                     else
                     {
-                        
                         try
                         {
                             // extracted fields get flatten as they are selected in the first pass. The new expression can be built
@@ -153,8 +152,6 @@ namespace EntityGraphQL.Compiler.Util
                         }
                         catch (ArgumentException)
                         {
-                           
-
                             if (nodeExp == null)
                             {
                                 throw new EntityGraphQLCompilerException($"Could not find field {node.Member.Name} on type {node.Type.Name}");

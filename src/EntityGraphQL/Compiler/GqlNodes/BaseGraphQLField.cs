@@ -156,7 +156,7 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
                 return Field.ExtractedFieldsFromServices.ToList();
 
-            return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : new List<BaseGraphQLField> { field ?? this };
+            return withoutServiceFields && HasServices ? [] : new List<BaseGraphQLField> { field ?? this };
         }
 
         public void AddField(BaseGraphQLField field)

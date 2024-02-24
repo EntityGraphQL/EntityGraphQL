@@ -25,6 +25,17 @@ namespace EntityGraphQL.Compiler
 
             var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext)!;
 
+            // We need to swap the context first as GetExpression() below may change the expression if it uses the arguments
+            // and the expressions will no longer match in ReplaceContext
+            // example: field is (x => srv.Something(x.Name, args.input))
+            // x.Name needs to be replaced before GetExpression() fixes up the execution args type
+            // this is for service fields that have parameters that reference the context and the query args
+            // See test InheritanceTestUsingResolveWithServiceUsingArgs
+            if (contextChanged && replacementNextFieldContext != null)
+            {
+                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!, possibleNextContextTypes);
+            }
+
             (var result, _) = Field!.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
 
             if (result == null)
@@ -32,10 +43,6 @@ namespace EntityGraphQL.Compiler
 
             var newExpression = result;
 
-            if (contextChanged && replacementNextFieldContext != null)
-            {
-                newExpression = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, newExpression!, possibleNextContextTypes);
-            }
             newExpression = ProcessScalarExpression(newExpression, replacer);
 
             if (HasServices)
