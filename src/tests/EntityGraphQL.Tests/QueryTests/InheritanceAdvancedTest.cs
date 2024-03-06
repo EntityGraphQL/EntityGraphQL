@@ -1,5 +1,9 @@
 ﻿using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Text.Json;
 using Xunit;
 
@@ -38,6 +42,11 @@ namespace EntityGraphQL.Tests
             public int Size { get; set; }
             public int Colour { get; set; }
             public TShirt TShirt { get; set; }
+
+            public static string FormatTShirtPropertiesAsString(int size, int colour)
+            {
+                return $"{size} {colour}";
+            }
         }
 
         public class Status
@@ -185,21 +194,21 @@ namespace EntityGraphQL.Tests
         {
             var context = new TestContext()
             {
-                Orders = new List<Order>()
-                {
+                Orders =
+                [
                     new Order()
                     {
                          Id = 1,
                          Name = "Barney",
                          Status = new Status() { Id = 0, Name = "Pending" },
-                         OrderItems = new List<OrderItem>()
-                         {
+                         OrderItems =
+                         [
                               new TShirtOrderItem()
                               {
-                                   Colour = 1,
-                                   Size = 7,
-                                   Status = new Status() { Id = 2, Name = "BackOrder" },
-                                   TShirt = new TShirt()
+                                    Colour = 1,
+                                    Size = 7,
+                                    Status = new Status() { Id = 2, Name = "BackOrder" },
+                                    TShirt = new TShirt()
                                     {
                                         Id = 3,
                                         Name = "SpiderMan"
@@ -207,17 +216,17 @@ namespace EntityGraphQL.Tests
                               },
                               new BookOrderItem()
                               {
-                                  Status = new Status() { Id = 4, Name = "Shipped"},
-                                   Book = new Book()
-                                   {
+                                    Status = new Status() { Id = 4, Name = "Shipped"},
+                                    Book = new Book()
+                                    {
                                         Author = "Ben Riley",
-                                         Name = "My Life",
-                                          Pages = 300
-                                   }
+                                        Name = "My Life",
+                                        Pages = 300
+                                    }
                               }
-                         }
+                         ]
                     }
-                }
+                ]
             };
 
             var schemaProvider = SchemaBuilder.FromObject<TestContext>();
@@ -266,7 +275,7 @@ namespace EntityGraphQL.Tests
                     ""orderId"": ""1""
                 }
             }".Replace('\r', ' ').Replace('\n', ' ');
-            var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
             var order = (dynamic)results.Data["order"];
@@ -295,6 +304,307 @@ namespace EntityGraphQL.Tests
             Assert.Null(order.orderItems[1].book.GetType().GetField("Author"));
             Assert.Equal("My Life", order.orderItems[1].book.name);
             Assert.Equal(300, order.orderItems[1].book.pages);
+        }
+
+        [Fact]
+        public void InheritanceTestUsingMethod()
+        {
+            var context = new TestContext()
+            {
+                Orders = new List<Order>()
+                {
+                    new Order()
+                    {
+                         Id = 1,
+                         Name = "Barney",
+                         Status = new Status() { Id = 0, Name = "Pending" },
+                         OrderItems = new List<OrderItem>()
+                         {
+                              new TShirtOrderItem()
+                              {
+                                   Colour = 1,
+                                   Size = 7,
+                                   Status = new Status() { Id = 2, Name = "BackOrder" },
+                                   TShirt = new TShirt()
+                                    {
+                                        Id = 3,
+                                        Name = "SpiderMan"
+                                    }
+                              },
+                              new BookOrderItem()
+                              {
+                                  Status = new Status() { Id = 4, Name = "Shipped"},
+                                   Book = new Book()
+                                   {
+                                        Author = "Ben Riley",
+                                         Name = "My Life",
+                                          Pages = 300
+                                   }
+                              }
+                         }
+                    }
+                }
+            };
+
+
+            var schemaProvider = SchemaBuilder.FromObject<TestContext>();
+            schemaProvider.AddType<BookOrderItem>("BookOrderItem").ImplementAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<TShirtOrderItem>("TShirtOrderItem").ImplementAllBaseTypes().AddAllFields();
+            // book and tshirt added with AddAllFields above
+            schemaProvider.UpdateType<Book>(type => type.ImplementAllBaseTypes());
+            schemaProvider.UpdateType<TShirt>(type => type.ImplementAllBaseTypes());
+
+            schemaProvider.UpdateType<TShirtOrderItem>(Order =>
+            {
+                Order.AddField("statusAsString", (o) => TShirtOrderItem.FormatTShirtPropertiesAsString(o.Size, o.Colour), "Get the order status as a string");
+            });
+
+            // Simulate a JSON request with System.Text.Json
+            var q = @"{
+                ""query"": ""query Order($orderId: Int) {
+                    order(id: $orderId) {
+                        ...order
+                    }
+                }
+
+                fragment order on Order {
+                    orderItems {
+                        ...orderItem
+                    }
+                }
+
+                fragment orderItem on OrderItem {
+                    id
+                    ... on TShirtOrderItem {                        
+                        statusAsString
+                    }
+                }"",
+                ""variables"": {
+                    ""orderId"": ""1""
+                }
+            }".Replace('\r', ' ').Replace('\n', ' ');
+
+
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+
+            if (results.HasErrors())
+            {
+                throw new Exception(results.Errors.First().Message);
+            }
+
+            //Uncomment these guys to have the test fail properly
+            Assert.False(results.HasErrors());
+            var order = (dynamic)results.Data["order"];
+
+        }
+
+        public class TestService
+        {
+            public string FormatTShirtPropertiesAsString(int colour, int size)
+            {
+                return $"colour: {colour} - size: {size}";
+            }
+
+            public string FormatTShirtPropertiesAsString(int colour, int size, int length)
+            {
+                return $"colour: {colour} - size: {size} - length: {length}";
+            }
+        }
+
+        [Fact]
+        public void InheritanceTestUsingResolveWithService()
+        {
+            var context = new TestContext()
+            {
+                Orders = new List<Order>()
+                {
+                    new Order()
+                    {
+                         Id = 1,
+                         Name = "Barney",
+                         Status = new Status() { Id = 0, Name = "Pending" },
+                         OrderItems = new List<OrderItem>()
+                         {
+                              new TShirtOrderItem()
+                              {
+                                   Colour = 1,
+                                   Size = 7,
+                                   Status = new Status() { Id = 2, Name = "BackOrder" },
+                                   TShirt = new TShirt()
+                                    {
+                                        Id = 3,
+                                        Name = "SpiderMan"
+                                    }
+                              },
+                              new BookOrderItem()
+                              {
+                                  Status = new Status() { Id = 4, Name = "Shipped"},
+                                   Book = new Book()
+                                   {
+                                        Author = "Ben Riley",
+                                         Name = "My Life",
+                                          Pages = 300
+                                   }
+                              }
+                         }
+                    }
+                }
+            };
+
+
+            var schemaProvider = SchemaBuilder.FromObject<TestContext>();
+            schemaProvider.AddType<BookOrderItem>("BookOrderItem").ImplementAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<TShirtOrderItem>("TShirtOrderItem").ImplementAllBaseTypes().AddAllFields();
+            // book and tshirt added with AddAllFields above
+            schemaProvider.UpdateType<Book>(type => type.ImplementAllBaseTypes());
+            schemaProvider.UpdateType<TShirt>(type => type.ImplementAllBaseTypes());
+
+            schemaProvider.UpdateType<TShirtOrderItem>(Order =>
+            {
+                Order.AddField("statusAsString", "Get the order status as a string")
+                .ResolveWithService<TestService>((o, srv) => srv.FormatTShirtPropertiesAsString(o.Colour, o.Size));
+            });
+
+            // Simulate a JSON request with System.Text.Json
+            var q = @"{
+                ""query"": ""query Order($orderId: Int) {
+                    order(id: $orderId) {
+                        ...order
+                    }
+                }
+
+                fragment order on Order {
+                    orderItems {
+                        ...orderItem
+                    }
+                }
+
+                fragment orderItem on OrderItem {
+                    id
+                    ... on TShirtOrderItem {
+                        statusAsString
+                    }
+                }"",
+                ""variables"": {
+                    ""orderId"": ""1""
+                }
+            }".Replace('\r', ' ').Replace('\n', ' ');
+
+
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var testService = new TestService();
+            var sc = new ServiceCollection();
+            sc.AddSingleton(testService);
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, sc.BuildServiceProvider(), null);
+
+            if (results.HasErrors())
+            {
+                throw new Exception(results.Errors.First().Message);
+            }
+
+            //Uncomment these guys to have the test fail properly
+            Assert.False(results.HasErrors());
+            var order = (dynamic)results.Data["order"];
+
+            Assert.Equal("colour: 1 - size: 7", order.orderItems[0].statusAsString);
+        }
+
+        [Fact]
+        public void InheritanceTestUsingResolveWithServiceUsingArgs()
+        {
+            var context = new TestContext()
+            {
+                Orders =
+                [
+                    new Order()
+                    {
+                         Id = 1,
+                         Name = "Barney",
+                         Status = new Status() { Id = 0, Name = "Pending" },
+                         OrderItems =
+                         [
+                              new TShirtOrderItem()
+                              {
+                                   Colour = 1,
+                                   Size = 7,
+                                   Status = new Status() { Id = 2, Name = "BackOrder" },
+                                   TShirt = new TShirt()
+                                    {
+                                        Id = 3,
+                                        Name = "SpiderMan"
+                                    }
+                              },
+                              new BookOrderItem()
+                              {
+                                  Status = new Status() { Id = 4, Name = "Shipped"},
+                                   Book = new Book()
+                                   {
+                                        Author = "Ben Riley",
+                                         Name = "My Life",
+                                          Pages = 300
+                                   }
+                              }
+                         ]
+                    }
+                ]
+            };
+
+
+            var schemaProvider = SchemaBuilder.FromObject<TestContext>();
+            schemaProvider.AddType<BookOrderItem>("BookOrderItem").ImplementAllBaseTypes().AddAllFields();
+            schemaProvider.AddType<TShirtOrderItem>("TShirtOrderItem").ImplementAllBaseTypes().AddAllFields();
+            // book and tshirt added with AddAllFields above
+            schemaProvider.UpdateType<Book>(type => type.ImplementAllBaseTypes());
+            schemaProvider.UpdateType<TShirt>(type => type.ImplementAllBaseTypes());
+
+            schemaProvider.UpdateType<TShirtOrderItem>(Order =>
+            {
+                Order.AddField("statusAsString", new { Length = 0 }, "Get the order status as a string")
+                .ResolveWithService<TestService>((o, args, srv) => srv.FormatTShirtPropertiesAsString(o.Colour, o.Size, args.Length));
+            });
+
+            // Simulate a JSON request with System.Text.Json
+            var q = @"{
+                ""query"": ""query Order($orderId: Int) {
+                    order(id: $orderId) {
+                        ...order
+                    }
+                }
+
+                fragment order on Order {
+                    orderItems {
+                        ...orderItem
+                    }
+                }
+
+                fragment orderItem on OrderItem {
+                    id
+                    ... on TShirtOrderItem {
+                        statusAsString(length: 2)
+                    }
+                }"",
+                ""variables"": {
+                    ""orderId"": ""1""
+                }
+            }".Replace('\r', ' ').Replace('\n', ' ');
+
+
+            var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            var sc = new ServiceCollection();
+            sc.AddSingleton(new TestService());
+            var results = schemaProvider.ExecuteRequestWithContext(gql, context, sc.BuildServiceProvider(), null);
+
+            if (results.HasErrors())
+            {
+                throw new Exception(results.Errors.First().Message);
+            }
+
+            //Uncomment these guys to have the test fail properly
+            Assert.False(results.HasErrors());
+            var order = (dynamic)results.Data["order"];
+
+            Assert.Equal("colour: 1 - size: 7 - length: 2", order.orderItems[0].statusAsString);
         }
     }
 }

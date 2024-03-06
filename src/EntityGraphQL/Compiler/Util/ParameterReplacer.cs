@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Xml.Linq;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.Util
@@ -143,7 +144,20 @@ namespace EntityGraphQL.Compiler.Util
                     if (prop != null)
                         nodeExp = Expression.Property(nodeExp, prop);
                     else
-                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                    {
+                        try
+                        {
+                            // extracted fields get flatten as they are selected in the first pass. The new expression can be built
+                            nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                        }
+                        catch (ArgumentException)
+                        {
+                            if (nodeExp == null)
+                            {
+                                throw new EntityGraphQLCompilerException($"Could not find field {node.Member.Name} on type {node.Type.Name}");
+                            }
+                        }
+                    }
                 }
                 return nodeExp;
             }

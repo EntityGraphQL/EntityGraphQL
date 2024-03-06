@@ -2,6 +2,10 @@
 
 Check release notes for the 5.2.0-beta1 and beta2 below.
 
+## Fixes
+
+- #333 - Fixes to method and service calls on interfaces/unions
+
 # 5.2.0-beta2
 
 Check release notes for the 5.2.0-beta1 below.

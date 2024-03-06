@@ -12,6 +12,13 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
+        /// <summary>
+        /// Possible types for the next field context, introduce by interfaces or unions
+        /// These are only needed after the for evaluation if a second one is required with service fields.
+        /// They are dynamic types used to cast the base
+        /// </summary>
+        internal List<Type>? PossibleNextContextTypes { get; set; }
+
         protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
@@ -42,7 +49,7 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
                 {
-                    // fragments might be fragments on the actualy type whereas the context is a interface
+                    // fragments might be fragments on the actually type whereas the context is a interface
                     // we do not need to change the context in this case
                     var actualNextFieldContext = nextFieldContext;
                     if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField) && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union))
@@ -50,7 +57,7 @@ namespace EntityGraphQL.Compiler
                         actualNextFieldContext = subField.RootParameter;
                     }
 
-                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, false, contextChanged, replacer);
+                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, PossibleNextContextTypes, false, contextChanged, replacer);
                     if (fieldExp == null)
                         continue;
 
