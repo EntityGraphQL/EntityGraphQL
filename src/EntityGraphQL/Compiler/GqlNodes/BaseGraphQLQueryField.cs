@@ -12,6 +12,13 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
+        /// <summary>
+        /// Possible types for the next field context, introduce by interfaces or unions
+        /// These are only needed after the for evaluation if a second one is required with service fields.
+        /// They are dynamic types used to cast the base
+        /// </summary>
+        internal List<Type>? PossibleNextContextTypes { get; set; }
+
         protected BaseGraphQLQueryField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
         {
@@ -50,7 +57,7 @@ namespace EntityGraphQL.Compiler
                         actualNextFieldContext = subField.RootParameter;
                     }
 
-                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, false, contextChanged, replacer);
+                    var fieldExp = subField.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, actualNextFieldContext, PossibleNextContextTypes, false, contextChanged, replacer);
                     if (fieldExp == null)
                         continue;
 

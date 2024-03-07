@@ -52,7 +52,7 @@ namespace EntityGraphQL.Compiler
 
         private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
         {
-            if (gqlField.Field != null && gqlField.Field.Services.Any())
+            if (gqlField.Field != null && gqlField.Field.Services.Count > 0)
             {
                 compileContext.AddServices(gqlField.Field.Services);
             }
@@ -62,7 +62,7 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }

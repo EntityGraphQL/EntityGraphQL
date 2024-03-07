@@ -12,7 +12,7 @@ namespace EntityGraphQL.Compiler
     /// <summary>
     /// Compiles a constant value from a query into an Expression. null if the constant is a unknown identifier (ENUM)
     /// </summary>
-    internal class ConstantVisitor : EntityQLBaseVisitor<Expression?>
+    internal sealed class ConstantVisitor : EntityQLBaseVisitor<Expression?>
     {
         private readonly ISchemaProvider? schema;
 

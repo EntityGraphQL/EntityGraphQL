@@ -16,12 +16,12 @@ namespace EntityGraphQL.Schema
         public string? Description { get; set; }
         public GqlTypes GqlType { get; protected set; }
 
-        protected List<ISchemaType> BaseTypes { get; set; } = new();
-        protected List<ISchemaType> PossibleTypes { get; set; } = new();
+        protected List<ISchemaType> BaseTypes { get; set; } = [];
+        protected List<ISchemaType> PossibleTypes { get; set; } = [];
         public IList<ISchemaType> BaseTypesReadOnly => BaseTypes.AsReadOnly();
         public IList<ISchemaType> PossibleTypesReadOnly => PossibleTypes.AsReadOnly();
 
-        private readonly List<ISchemaDirective> directives = new();
+        private readonly List<ISchemaDirective> directives = [];
         public IList<ISchemaDirective> Directives => directives.AsReadOnly();
         public bool IsInput { get { return GqlType == GqlTypes.InputObject; } }
         public bool IsInterface { get { return GqlType == GqlTypes.Interface; } }
@@ -74,9 +74,8 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
         public IField GetField(string identifier, QueryRequestContext? requestContext)
         {
-            if (FieldsByName.ContainsKey(identifier))
+            if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
@@ -114,9 +113,8 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public bool HasField(string identifier, QueryRequestContext? requestContext)
         {
-            if (FieldsByName.ContainsKey(identifier))
+            if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                var field = FieldsByName[identifier];
                 if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     return false;
 

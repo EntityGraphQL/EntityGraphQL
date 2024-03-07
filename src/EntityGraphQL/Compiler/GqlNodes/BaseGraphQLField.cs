@@ -63,7 +63,7 @@ namespace EntityGraphQL.Compiler
         /// <summary>
         /// True if this field directly has services
         /// </summary>
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
         {
@@ -97,7 +97,7 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
-            return Field?.Services.Any() == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
+            return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
         }
 
         /// <summary>
@@ -117,20 +117,20 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
-        public Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
 
             if (fieldNode == null)
                 return null;
 
-            return ((BaseGraphQLField)fieldNode).GetFieldExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+            return ((BaseGraphQLField)fieldNode).GetFieldExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
         }
 
         /// <summary>
         /// GetNodeExpression but without the directive processing as we do not want to process continuously
         /// </summary>
-        protected abstract Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+        protected abstract Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer);
 
         public IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
         {
@@ -156,7 +156,7 @@ namespace EntityGraphQL.Compiler
             if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
                 return Field.ExtractedFieldsFromServices.ToList();
 
-            return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : new List<BaseGraphQLField> { field ?? this };
+            return withoutServiceFields && HasServices ? [] : new List<BaseGraphQLField> { field ?? this };
         }
 
         public void AddField(BaseGraphQLField field)
@@ -210,14 +210,14 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        protected Expression ReplaceContext(Expression replacementNextFieldContext, bool isRoot, ParameterReplacer replacer, Expression nextFieldContext)
+        protected Expression ReplaceContext(Expression replacementNextFieldContext, bool isRoot, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
         {
             var possibleField = replacementNextFieldContext.Type.GetField(Name);
             if (possibleField != null)
                 nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
             else // need to replace context expressions in the service expression with the new context
             {
-                // If this is a root field, we replace the whole expresison unless there is services at the root level
+                // If this is a root field, we replace the whole expression unless there is services at the root level
                 if (isRoot && !HasServices)
                     nextFieldContext = replacementNextFieldContext;
                 else if (HasServices)
@@ -229,7 +229,8 @@ namespace EntityGraphQL.Compiler
                     // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
                     // if ParentNode?.HasServices == true the above has been done and we just need to replace the 
                     // expression, not rebuild it with a different name
-                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, isRoot && HasServices);
+
+                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, isRoot && HasServices, possibleNextContextTypes);
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
                 // may need to replace the field's original parameter

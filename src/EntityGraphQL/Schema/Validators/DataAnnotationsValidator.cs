@@ -99,7 +99,7 @@ namespace EntityGraphQL.Schema.Validators
                         continue;
                     }
 
-                    if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
+                    if (property.PropertyType.GetGenericArguments().Length > 0 && property.PropertyType.GetGenericTypeDefinition() == typeof(RequiredField<>))
                     {
                         if (value == null)
                         {
@@ -108,7 +108,7 @@ namespace EntityGraphQL.Schema.Validators
                         continue;
                     }
 
-                    if (property.PropertyType.GetGenericArguments().Any() && property.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                    if (property.PropertyType.GetGenericArguments().Length > 0 && property.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                     {
                         continue;
                     }

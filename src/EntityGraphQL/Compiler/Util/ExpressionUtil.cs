@@ -83,12 +83,12 @@ namespace EntityGraphQL.Compiler.Util
                     value = Activator.CreateInstance(toType);
                     foreach (var item in jsonEle.EnumerateObject())
                     {
-                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                        var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                         if (prop != null)
                             prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema));
                         else
                         {
-                            var field = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == item.Name.ToLowerInvariant());
+                            var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                             field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
                         }
                     }
@@ -162,12 +162,12 @@ namespace EntityGraphQL.Compiler.Util
                 var newValue = Activator.CreateInstance(toType);
                 foreach (string key in ((IDictionary<string, object>)value).Keys)
                 {
-                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                    var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                     if (toProp != null)
                         toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema));
                     else
                     {
-                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == key.ToLowerInvariant());
+                        var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                         toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
                     }
                 }
@@ -224,24 +224,24 @@ namespace EntityGraphQL.Compiler.Util
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())
             {
-                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
                     toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema));
                 else
                 {
-                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toField.Name.ToLowerInvariant());
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
                         toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema));
                 }
             }
             foreach (var toProperty in toType.GetProperties())
             {
-                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
                     toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema));
                 else
                 {
-                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.ToLowerInvariant() == toProperty.Name.ToLowerInvariant());
+                    var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
                         toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema));
                 }
@@ -272,8 +272,12 @@ namespace EntityGraphQL.Compiler.Util
             if (type1 == null)
                 return type2;
 
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(type2, nameof(type2));
+#else
             if (type2 == null)
                 throw new ArgumentNullException(nameof(type2));
+#endif
 
             var fields = type1.GetFields().ToDictionary(f => f.Name, f => f.FieldType);
             type1.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
@@ -391,39 +395,23 @@ namespace EntityGraphQL.Compiler.Util
             }
             return Tuple.Create(exp, endExpression);
         }
-
-        class ConversionVisitor : ExpressionVisitor
+        private static Type? RootType(CompiledField field, bool withoutServiceFields)
         {
-            private readonly Expression parameter;
-            private readonly Type convertTo;
-
-            public ConversionVisitor(Expression parameter, Type convertTo)
+            if (withoutServiceFields && field.Field.FromType?.TypeDotnet != null)
             {
-                this.parameter = parameter;
-                this.convertTo = convertTo;
+                return field.Field.FromType?.TypeDotnet;
             }
-            protected override Expression VisitMember(MemberExpression node)
-            {
-                if (!node.Expression?.Type.IsAssignableFrom(convertTo) == true)
-                {
-                    if (node.Expression is MemberExpression)
-                    {
-                        return Expression.PropertyOrField(Visit(node.Expression), node.Member.Name);
-                    }
-                    return node;
-                }
 
-                return Expression.PropertyOrField(Expression.Convert(parameter, convertTo), node.Member.Name);
-            }
+            return ExpressionRootType(field.Expression);
         }
 
-        private static Type? RootType(Expression expression)
+        private static Type? ExpressionRootType(Expression expression)
         {
             return expression switch
             {
                 MemberExpression me => me.Expression?.Type,
-                ConditionalExpression ce => RootType(ce.Test),
-                BinaryExpression be => RootType(be.Left),
+                ConditionalExpression ce => ExpressionRootType(ce.Test),
+                BinaryExpression be => ExpressionRootType(be.Left),
                 _ => null
             };
         }
@@ -431,23 +419,33 @@ namespace EntityGraphQL.Compiler.Util
         /// <summary>
         /// Makes a selection from a IEnumerable context
         /// </summary>
-        public static Expression MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck)
+        public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(GraphQLListSelectionField field, ParameterExpression currentContextParam, Expression baseExp, IDictionary<IFieldKey, CompiledField> fieldExpressions, bool nullCheck, bool finalExecution)
         {
             if (!fieldExpressions.Any())
-                return baseExp;
+                return (baseExp, null);
 
             // fallback to parent return type for mutations
             var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
             if (gqlType == GqlTypes.Union || gqlType == GqlTypes.Interface)
             {
                 // get a list of distinct types asked for in the query (fragments for interfaces)
-                var validTypes = fieldExpressions.Values
-                    .Select(i => RootType(i.Expression))
-                    .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
-                    .Distinct();
+                List<Type> validTypes;
+                if (finalExecution)
+                {
+                    validTypes = fieldExpressions.Values
+                        .Select(i => RootType(i, true))
+                        .Where(i => i != null && currentContextParam.Type.IsAssignableFrom(i))
+                        .Distinct().Cast<Type>().ToList();
+                }
+                else
+                {
+                    validTypes = [currentContextParam.Type];
+                    if (field.PossibleNextContextTypes?.Count > 0)
+                        validTypes.AddRange(field.PossibleNextContextTypes);
+                }
 
                 var fieldsOnBaseType = fieldExpressions.Values
-                       .Where(i => RootType(i.Expression) == null || RootType(i.Expression)! == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
+                       .Where(i => CheckFieldType(currentContextParam, i, finalExecution))
                        .ToLookup(i => i.Field.Name, i => i.Expression)
                        .ToDictionary(i => i.Key, i => i.Last());
 
@@ -457,8 +455,10 @@ namespace EntityGraphQL.Compiler.Util
                     field.Name + "baseDynamicType"
                 ) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
 
-                //create a cascading TypeIs X query for each type in query
+                // create a cascading TypeIs X query for each type in query
                 Expression? previous = CreateNewExpression(fieldsOnBaseType, baseDynamicType) ?? Expression.Constant(null, baseDynamicType);
+                // we do not need the base type, we need the other types to possibly cast to
+                var allNonBaseDynamicTypes = new List<Type>();
 
                 foreach (var type in validTypes)
                 {
@@ -466,16 +466,22 @@ namespace EntityGraphQL.Compiler.Util
                         continue;
 
                     var fieldsOnType = fieldExpressions.Values
-                       .Where(i => RootType(i.Expression) == null || RootType(i.Expression)!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(RootType(i.Expression)))
-                       .ToLookup(i => i.Field.Name, i => i.Expression)
-                       .ToDictionary(i => i.Key, i => i.Last());
+                        .Where(i =>
+                        {
+                            var rt = RootType(i, finalExecution);
+                            return rt == null || rt!.IsAssignableFrom(type) || typeof(ISchemaType).IsAssignableFrom(rt);
+                        })
+                        .ToLookup(i => i.Field.Name, i => i.Expression)
+                        .ToDictionary(i => i.Key, i => i.Last());
 
                     var memberInit = CreateNewExpression(field.Name, fieldsOnType, out Type dynamicType, parentType: baseDynamicType);
                     if (memberInit == null)
                         continue;
 
-                    var conversionVisitor = new ConversionVisitor(currentContextParam, type!);
-                    var convertedExpression = conversionVisitor.Visit(memberInit);
+                    allNonBaseDynamicTypes.Add(dynamicType);
+
+                    var replacer = new ParameterReplacer();
+                    var convertedExpression = replacer.ReplaceByType(memberInit, type!, Expression.Convert(currentContextParam, type!));
 
                     previous = Expression.Condition(
                           test: Expression.TypeIs(currentContextParam, type!),
@@ -494,14 +500,14 @@ namespace EntityGraphQL.Compiler.Util
                 else
                     call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector) :
                         MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
-                return call;
+                return (call, allNonBaseDynamicTypes);
             }
             else
             {
                 var memberExpressions = fieldExpressions.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
                 var memberInit = CreateNewExpression(field.Name, memberExpressions, out Type dynamicType);
                 if (memberInit == null || dynamicType == null) // nothing to select
-                    return baseExp;
+                    return (baseExp, null);
                 var selector = Expression.Lambda(memberInit, currentContextParam);
                 var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
                 Expression call;
@@ -510,10 +516,15 @@ namespace EntityGraphQL.Compiler.Util
                 else
                     call = isQueryable ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector) :
                         MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
-                return call;
+                return (call, new List<Type> { dynamicType });
             }
         }
 
+        private static bool CheckFieldType(ParameterExpression currentContextParam, CompiledField i, bool withoutServiceFields)
+        {
+            var rt = RootType(i, withoutServiceFields);
+            return rt != null && (rt == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(rt));
+        }
 
         public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type, bool includeProperties = false)
         {
@@ -547,7 +558,7 @@ namespace EntityGraphQL.Compiler.Util
             }
 
             dynamicType = typeof(object);
-            if (!fieldExpressionsByName.Any())
+            if (fieldExpressionsByName.Count == 0)
                 return null;
 
             dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
@@ -561,7 +572,7 @@ namespace EntityGraphQL.Compiler.Util
             return mi;
         }
 
-        private static Expression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
+        private static MemberInitExpression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
         {
             var fieldExpressionsByName = new Dictionary<string, Expression>();
             foreach (var item in fieldExpressions)
@@ -606,7 +617,7 @@ namespace EntityGraphQL.Compiler.Util
         }
 
         /// <summary>
-        /// Used at runtuime.
+        /// Used at runtime.
         /// Actually implements the null check code. This is executed at execution time of the whole query not at compile time
         /// </summary>
         /// <param name="nullCheck">Object that we build the select on. Check if it is null first</param>

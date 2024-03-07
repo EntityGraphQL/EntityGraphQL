@@ -47,15 +47,15 @@ namespace EntityGraphQL.Compiler
         /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on
         /// Execute() so we can look up any query fragment selections
         /// </summary>
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
         {
             var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext);
             if (HasServices && withoutServiceFields)
-                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, isRoot, contextChanged, replacer);
+                return Field?.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
 
             if (contextChanged && replacementNextFieldContext != null)
             {
-                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!);
+                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!, possibleNextContextTypes);
             }
             (nextFieldContext, var argumentParam) = Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer) ?? (nextFieldContext, null);
             if (nextFieldContext == null)
@@ -69,7 +69,7 @@ namespace EntityGraphQL.Compiler
                 return nextFieldContext;
 
             var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
-            if (selectionFields == null || !selectionFields.Any())
+            if (selectionFields == null || selectionFields.Count == 0)
                 return null;
 
             if (HasServices)

@@ -40,7 +40,7 @@
             return schemaDescription;
         }
 
-        private static IEnumerable<TypeElement> BuildScalarTypes(ISchemaProvider schema)
+        private static List<TypeElement> BuildScalarTypes(ISchemaProvider schema)
         {
             var types = new List<TypeElement>();
 

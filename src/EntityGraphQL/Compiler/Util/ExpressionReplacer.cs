@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -11,6 +12,7 @@ namespace EntityGraphQL.Compiler.Util
         private readonly Expression newContext;
         private readonly bool replaceInline;
         private readonly bool replaceWithNewContext;
+        private readonly List<Type>? possibleNextContextTypes;
         private readonly Dictionary<Expression, GraphQLExtractedField> expressionsToReplace = new();
 
         /// <summary>
@@ -19,11 +21,12 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="expressionsToReplace"></param>
         /// <param name="newContext"></param>
         /// <param name="replaceInline">If true, the matched expression is replaced. If false it will be rebuilt with potential a new name</param>
-        public ExpressionReplacer(IEnumerable<GraphQLExtractedField> expressionsToReplace, Expression newContext, bool replaceInline, bool replaceWithNewContext)
+        public ExpressionReplacer(IEnumerable<GraphQLExtractedField> expressionsToReplace, Expression newContext, bool replaceInline, bool replaceWithNewContext, List<Type>? possibleNextContextTypes)
         {
             this.newContext = newContext;
             this.replaceInline = replaceInline;
             this.replaceWithNewContext = replaceWithNewContext;
+            this.possibleNextContextTypes = possibleNextContextTypes;
             foreach (var field in expressionsToReplace)
             {
                 foreach (var exp in field.FieldExpressions)
@@ -49,7 +52,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (replaceInline || replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitParameter(node);
         }
@@ -60,7 +63,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (replaceInline || replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitLambda(node);
         }
@@ -71,7 +74,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (replaceInline || replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitUnary(node);
         }
@@ -84,7 +87,7 @@ namespace EntityGraphQL.Compiler.Util
                     return Expression.PropertyOrField(newContext, node.Member.Name);
                 if (replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitMember(node);
         }
@@ -95,7 +98,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (replaceInline || replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitConstant(node);
         }
@@ -108,7 +111,7 @@ namespace EntityGraphQL.Compiler.Util
                     return Expression.Call(newContext, node.Method);
                 if (replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitMethodCall(node);
         }
@@ -118,7 +121,7 @@ namespace EntityGraphQL.Compiler.Util
             {
                 if (replaceInline || replaceWithNewContext)
                     return newContext;
-                return expressionsToReplace[node].GetNodeExpression(newContext);
+                return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
             }
             return base.VisitBinary(node);
         }

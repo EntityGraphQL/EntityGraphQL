@@ -1,5 +1,15 @@
 # 5.2.0
 
+Check release notes for the 5.2.0-beta1 and beta2 below.
+
+## Fixes
+
+- #333 - Fixes to method and service calls on interfaces/unions
+
+# 5.2.0-beta2
+
+Check release notes for the 5.2.0-beta1 below.
+
 ## Fixes
 
 - Fix error when using a service at a query root field that uses `First()` as friends (List to single pattern). E.g. `(ctx, service) => ctx.SomeList.First(i => i.Thing == service.Other)`
@@ -8,12 +18,20 @@
 - Include descriptions for scalars and directives in introspection and schema output
 - Fix issue using the default `SchemaBuilderOptions` with a mutation method that has a list argument. The argument input type was not being correctly added to the schema. Not an issue if you were already adding the type manually
 - #336 - Fix conversion of non-nullable/nullable types
+- #342 - Fix argument incorrectly being renamed when using `[GraphQLField]`
 
 ## Changes
 
 - #318 - Support Unicode characters in the string of the filter language
+- Support more cases with `field.ResolveBulk<TService, TKey, TResult>()`
+- Add a net8.0 target output for the base EntityGraphQL library.
+
+# 5.2.0-beta1
+
+## Changes
+
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
-- Added `field.Resolve<Tservice, ...>()` to replace `ResolveWithService<>()`. Reccomended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
+- Added `field.Resolve<TService, ...>()` to replace `ResolveWithService<>()`. Recommended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
 - Add `schema.AddEnum<TEnum>(typeName, description)` to the schema building API
 - Add `net8.0` as a target for EntityGraphQL.AspNet project
@@ -59,6 +77,12 @@ If you have a query like
 ```
 
 Instead of calling `users.GetUserById()` for each project to resolve `createdBy { name }`, EntityGraphQL will build a list of keys using the `proj => proj.CreatedById` expression from the list of projects and then call the `(ids, srv) => srv.GetAllUsers(ids)` expression once for the whole list of projects in the results. See updated documentation for further details.
+
+# 5.1.1
+
+## Fixes
+
+- Fix #337 - Description attribute accidentally updating name instead of description
 
 # 5.1.0
 

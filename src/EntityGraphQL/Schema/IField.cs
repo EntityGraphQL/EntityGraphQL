@@ -72,7 +72,8 @@ namespace EntityGraphQL.Schema
         IField? UseArgumentsFromField { get; }
 
         /// <summary>
-        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field
+        /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field.
+        /// Note this will change fieldExpression if the expression references arguments
         /// </summary>
         /// <param name="context"></param>
         /// <param name="previousContext"></param>

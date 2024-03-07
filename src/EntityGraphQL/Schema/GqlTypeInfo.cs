@@ -96,10 +96,10 @@ namespace EntityGraphQL.Schema
             var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
             var typeInfo = new GqlTypeInfo(() => schema.Type(strippedType), dotnetType)
             {
-                TypeNotNullable = gqlType.EndsWith("!", StringComparison.InvariantCulture),
+                TypeNotNullable = gqlType.EndsWith('!'),
                 IsList = gqlType.Contains('[', StringComparison.InvariantCulture),
             };
-            typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith("!", StringComparison.InvariantCulture));
+            typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith('!'));
 
             return typeInfo;
         }

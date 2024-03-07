@@ -8,7 +8,7 @@ using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
-internal class ConnectionEdgeExtension : BaseFieldExtension
+public class ConnectionEdgeExtension : BaseFieldExtension
 {
     private readonly ParameterExpression originalFieldParam;
     private readonly int? defaultPageSize;
@@ -105,13 +105,13 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
 
         return (baseExpression, listTypeParam);
     }
-    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentsParam, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentParam, bool servicesPass, ParameterReplacer parameterReplacer)
     {
-        if (argumentsParam == null)
+        if (argumentParam == null)
             throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
         foreach (var extension in extensions)
         {
-            (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentsParam, servicesPass, parameterReplacer);
+            (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentParam, servicesPass, parameterReplacer);
         }
 
         if (servicesPass)
@@ -150,7 +150,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentsParam, idxParam))
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam))
                     }
                 ),
                 edgeParam,

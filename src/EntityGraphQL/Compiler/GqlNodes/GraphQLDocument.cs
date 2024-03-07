@@ -52,7 +52,7 @@ namespace EntityGraphQL.Compiler
         }
 
         public IField? Field { get; }
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 

@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
-    internal class EntityQueryNodeVisitor : EntityQLBaseVisitor<Expression>
+    internal sealed class EntityQueryNodeVisitor : EntityQLBaseVisitor<Expression>
     {
         private readonly QueryRequestContext requestContext;
         private Expression? currentContext;
@@ -104,11 +104,11 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return result;
         }
 
-        private static Expression ConvertToGuid(Expression expression)
+        private static MethodCallExpression ConvertToGuid(Expression expression)
         {
             return Expression.Call(typeof(Guid), "Parse", null, Expression.Call(expression, typeof(object).GetMethod("ToString")!));
         }
-        private static Expression ConvertToDateTime(Expression expression)
+        private static MethodCallExpression ConvertToDateTime(Expression expression)
         {
             return Expression.Call(typeof(DateTime), "Parse", null, expression, Expression.Constant(CultureInfo.InvariantCulture));
         }
@@ -219,11 +219,13 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return VisitChildren(context);
         }
 
+        /// <summary>
         /// Implements rules about comparing non-matching types.
         /// Nullable vs. non-nullable - the non-nullable gets converted to nullable
         /// int vs. uint - the uint gets down cast to int
         /// more to come...
-        private static Expression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+        /// </summary>
+        private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
         {
             if (left.Type.IsNullableType() && !right.Type.IsNullableType())
                 right = Expression.Convert(right, right.Type.GetNullableType());

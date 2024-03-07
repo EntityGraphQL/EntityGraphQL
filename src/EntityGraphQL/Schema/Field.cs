@@ -144,7 +144,7 @@ namespace EntityGraphQL.Schema
         public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? expression = fieldExpression;
-            // don't store parameterReplacer as a class field as GetExpression is caleld in compiling - i.e. across threads
+            // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
             (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
             if (result == null)
                 return (null, null);

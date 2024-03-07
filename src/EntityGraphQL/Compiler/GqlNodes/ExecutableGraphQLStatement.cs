@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? OpVariableParameter { get; }
 
         public IField? Field { get; }
-        public bool HasServices { get => Field?.Services.Any() == true; }
+        public bool HasServices { get => Field?.Services.Count > 0; }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler
             OpDefinedVariables = opVariables;
             this.Schema = schema;
             Arguments = new Dictionary<string, object>();
-            if (OpDefinedVariables.Any())
+            if (OpDefinedVariables.Count > 0)
             {
                 var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
                 OpVariableParameter = Expression.Parameter(variableType, "docVars");
@@ -124,7 +124,7 @@ namespace EntityGraphQL.Compiler
             // inject document level variables - letting the query be cached and passing in different variables
             object? variablesToUse = null;
 
-            if (OpDefinedVariables.Any() && OpVariableParameter != null)
+            if (OpDefinedVariables.Count > 0 && OpVariableParameter != null)
             {
                 variables ??= new QueryVariables();
                 variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
@@ -170,7 +170,7 @@ namespace EntityGraphQL.Compiler
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
-                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, isRoot: true, false, replacer);
+                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, null, isRoot: true, false, replacer);
                 if (expression != null)
                 {
                     // execute expression now and get a result that we will then perform a full select over
@@ -190,7 +190,7 @@ namespace EntityGraphQL.Compiler
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
-                    expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, isRoot: true, contextChanged: true, replacer);
+                    expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, newContextType, false, replacementNextFieldContext: newContextType, null, isRoot: true, contextChanged: true, replacer);
                     contextParam = newContextType;
                 }
             }
@@ -198,7 +198,7 @@ namespace EntityGraphQL.Compiler
             if (expression == null)
             {
                 // just do things normally
-                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, isRoot: true, contextChanged: false, replacer);
+                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, isRoot: true, contextChanged: false, replacer);
             }
 
             var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, options, compileContext, node, true);
@@ -208,7 +208,7 @@ namespace EntityGraphQL.Compiler
         private static Dictionary<string, object> ResolveBulkLoaders(CompileContext compileContext, IServiceProvider? serviceProvider, BaseGraphQLField node, object? runningContext, ParameterReplacer replacer, ParameterExpression newContextType)
         {
             var bulkData = new Dictionary<string, object>();
-            if (compileContext.BulkResolvers?.Any() == true)
+            if (compileContext.BulkResolvers?.Count > 0)
             {
                 foreach (var bulkResolver in compileContext.BulkResolvers)
                 {
@@ -217,7 +217,7 @@ namespace EntityGraphQL.Compiler
                     var listExpression = replacer.Replace(bulkResolver.ListExpression, toReplace, newContextType);
                     var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
                     // replace the data selection expression with the new context
-                    var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false);
+                    var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
                     var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
                     var selectionLambda = Expression.Lambda(selection, newParam);
                     selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);

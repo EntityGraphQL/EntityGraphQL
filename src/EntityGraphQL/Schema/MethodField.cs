@@ -149,7 +149,7 @@ namespace EntityGraphQL.Schema
             object? result;
             if (IsAsync)
             {
-                result = await (dynamic?)Method.Invoke(instance, allArgs.Any() ? allArgs.ToArray() : null);
+                result = await (dynamic?)Method.Invoke(instance, allArgs.Count > 0 ? allArgs.ToArray() : null);
             }
             else
             {

@@ -36,22 +36,26 @@ namespace EntityGraphQL.Compiler.Util
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static Type GetDynamicType(Dictionary<string, Type> fields, string description, Type? parentType = null)
         {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(fields, nameof(fields));
+#else
             if (null == fields)
                 throw new ArgumentNullException(nameof(fields));
+#endif
 
             string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
             lock (typesByFullName)
             {
-                if (!typesByFullName.ContainsKey(classFullName))
+                if (!typesByFullName.TryGetValue(classFullName, out var classId))
                 {
-                    typesByFullName[classFullName] = $"Dynamic_{(description != null ? $"{description}_" : "")}{Guid.NewGuid()}";
+                    classId = $"Dynamic_{(description != null ? $"{description}_" : "")}{Guid.NewGuid()}";
+                    typesByFullName[classFullName] = classId;
                 }
-                var classId = typesByFullName[classFullName];
 
-                if (builtTypes.ContainsKey(classId))
-                    return builtTypes[classId];
+                if (builtTypes.TryGetValue(classId, out var builtType))
+                    return builtType;
 
-                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable, parentType);
+                var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class, parentType);
 
                 foreach (var field in fields)
                 {
