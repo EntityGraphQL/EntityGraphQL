@@ -74,3 +74,7 @@ public class FormatStringExtension : IFieldExtension
 ```
 
 See [`FilterExpressionExtension`](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/EntityGraphQL/Schema/FieldExtensions/Filter/FilterExpressionExtension.cs) for a simple example. [`SortExtension`](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/EntityGraphQL/Schema/FieldExtensions/Sorting/SortExtension.cs) for a sightly more complex one. Or [`ConnectionPagingExtension.cs`](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/EntityGraphQL/Schema/FieldExtensions/ConnectionPaging/ConnectionPagingExtension.cs) for an example that changes the shape of the field (from a collection to a Connection object).
+
+:::tip
+If your field extension changes the shape of the original graph (like the 2 paging extensions) you will need to implement `GetListExpressionForBulkResolve` to support bulk resolvers on fields within your extension. See [`ConnectionPagingEdgeExtension`](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/EntityGraphQL/Schema/FieldExtensions/ConnectionPaging/ConnectionEdgeExtension.cs) for an example.
+:::

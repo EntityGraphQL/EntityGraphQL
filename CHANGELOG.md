@@ -32,7 +32,7 @@ Check release notes for the 5.2.0-beta1 below.
 ## Changes
 
 - Make more properties public in nodes like `GraphQLCollectionToSingleField` to better support customisation in custom directives
-- Added `field.Resolve<TService, ...>()` to replace `ResolveWithService<>()`. Recommended to use `Resolve()`. Release 5.2 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
+- Added `field.Resolve<TService, ...>()` to replace `ResolveWithService<>()`. Recommended to use `Resolve()`. Release 5.3 will mark `ResolveWithService` as deprecated and release 6.0 will remove them.
 - Add `field.ResolveBulk<TService, TKey, TResult>()` to allow you to use services to bulk load data to avoid multiple calls to a service resolve expression that may call an external service in a list result. Example
 - Add `schema.AddEnum<TEnum>(typeName, description)` to the schema building API
 - Add `net8.0` as a target for EntityGraphQL.AspNet project
@@ -142,7 +142,7 @@ db.Movies.Where(m => m.Id == ed.Id)
 
 ## Fixes
 
-- Fix #314 - Some clean up of the Antlr4 grammer for the filter expressions
+- Fix #314 - Some clean up of the Antlr4 grammar for the filter expressions
 
 # 5.0.0
 
@@ -188,13 +188,13 @@ schema.ReplaceField("people",
 - The rules for reflection on method parameters have been changed to make them clearer. See the upgrade to 5.0 docs and the mutation docs that cover examples.
 - `GraphQLValidator` is no longer magically added to your method fields (mutations/subscriptions). If you wish to use it please register it in your services. There is a new helper method in EntityGraphQL.AspNet `AddGraphQLValidator()`. This means you can implement and register your own implementation.
 - `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` have been renamed to `ExecuteRequestWithContext` & `ExecuteRequestWithContextAsync`. The schema context instance provided will be used for all context references within that query.
-- #309 - Introduced new `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` which take no schema context instance as an argument. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the perferred way to execute a query
+- #309 - Introduced new `SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` which take no schema context instance as an argument. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the preferred way to execute a query
 
 ## Changes
 
 - `EntityGraphQL` (the core library) targets both `netstandard2.1` & `net6`. `netstandard2.1` will be dropped around the time of `net8.0` being released.
 - Introduced `GraphQLFieldAttribute` to allow you to rename fields in the schema as well as mark methods as fields in the schema. Method parameters will become field arguments in the same way as mutation methods. See updated docs for more information.
-- Argument types used for directvies now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
+- Argument types used for directives now read `DescriptionAttribute` and `GraphQLFieldAttribute` to use different field name in the schema and set a description
 - Added `GraphQLInputTypeAttribute`. Whereas `GraphQLArgumentsAttribute` flattens the types properties into the schema, `GraphQLInputTypeAttribute` assumes the type is an input type and uses that as the schema argument
 - You may implement you own `GraphQLValidator` by implementing (and registering) `IGraphQLValidator`
 - Added a `options.BeforeExecuting` callback to allow modification of the expression before execution
@@ -336,14 +336,14 @@ bool AddNonAttributedMethods = false; // GraphQLMutationAttributes are still req
 bool AutoCreateNewComplexTypes = true; // Return types of mutations will be added to the schema
 ```
 
-- `SchemaBuilderOptions.IgnoreTypes` Now uses `Type` instead of `string`. It is a `HashSet<Type>` now to avoid confusion ofwhich name to use (full name space or not)
-- `ProcessExpressionSelection` used in Field Extentions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.
-- `MutationArgumentsAttribute` renamed to `GraphQLArgumentsAttribute` and is used with subscriptions or mutaiton method arguments
+- `SchemaBuilderOptions.IgnoreTypes` Now uses `Type` instead of `string`. It is a `HashSet<Type>` now to avoid confusion of which name to use (full name space or not)
+- `ProcessExpressionSelection` used in Field Extensions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.
+- `MutationArgumentsAttribute` renamed to `GraphQLArgumentsAttribute` and is used with subscriptions or mutation method arguments
 
 ## Changes
 
 - Add support for GraphQL subscriptions - see updated documentation
-- Added support for definng Union types in the schema (#107)
+- Added support for defining Union types in the schema (#107)
 - Core library `EntityGraphQL` only targets `netstandard2.1` as we do not need to multi-target and this still supports a large dotnet base (3.1+)
 
 ## Fixes
@@ -377,7 +377,7 @@ bool AutoCreateNewComplexTypes = true; // Return types of mutations will be adde
 ## Fixes
 
 - Prevent creation of invalid GraphQL schemas
-  - Exception is thrown if you try to add a field with arrguments to types that do not support arguments - `Enum` & `Input` types
+  - Exception is thrown if you try to add a field with arguments to types that do not support arguments - `Enum` & `Input` types
   - Exception is thrown if you try to add fields to a `Scalar` type
   - Exception is thrown on invalid type name
 - Schema builder now creates a valid GraphQL type name for generic types
@@ -424,15 +424,15 @@ services.AddGraphQLSchema<TContext>(options => {
   - `ISchemaType.Implements` will throw an exception if you try to implement a non-interface
 - Renamed `ISchemaType.AddAllBaseTypes` to `ISchemaType.ImplementAllBaseTypes` to align with GraphQL language
 - `Create` & `FromObject` on `SchemaBuilder` now take option classes to configure the create of the schema through reflection
-  - `ISchemaType.AddAllFields` also takes the option class to configure it's behaviour
-  - `ISchemaType.AddAllFields` default behaviour now auto adds any complex types found really reflection the properties & fields and will add those to the schema
+  - `ISchemaType.AddAllFields` also takes the option class to configure it's behavior
+  - `ISchemaType.AddAllFields` default behavior now auto adds any complex types found really reflection the properties & fields and will add those to the schema
 - Added new option when building a schema with `SchemaBuilder.FromObject` - `AutoCreateInterfaceTypes`. Defaults to `false`. If `true` any abstract classes or interfaces on types reflected with be added as Interfaces in the schema. This is useful if you expose lists of entities on a base/interface type.
 
 ## Changes
 
 - `ToGraphQLSchemaString` now outputs directives in the schema
-- #154 - Dyanmically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
-- #146 - Allow GraphQL mutation arguments as seperate arguments in the method signature. Avoiding the need to create the mutation argument classes. e.g.
+- #154 - Dynamically generated types used in the expressions now include the field name the type is being built for to aid in debugging issues
+- #146 - Allow GraphQL mutation arguments as separate arguments in the method signature. Avoiding the need to create the mutation argument classes. e.g.
 
 ```
 [GraphQLMutation]
@@ -460,7 +460,7 @@ type Mutation {
 - #160 - Nested data annotations for validation is now supported
 - Main `EntityGraphQL` package now targets `net6.0;net5.0;netstandard2.1`
 - #170 - EntityGraphQL now replaces query context expressions in service fields by matching the expression instance it extracted. This allows for more complex expressions when passing data to a service field
-- Added support for [@oneOf Input Types](https://github.com/graphql/graphql-spec/pull/825). Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution
+- Added support for [@oneOf Input Types](https://github.com/graphql/graphql-spec/pull/825). Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requirements on execution
 
 ## Fixes
 
@@ -479,17 +479,17 @@ type Mutation {
 
 - #163 - Fix to handle null property in a nested object when processing a System.Text.Json deserialised query document
 - #164 - Fix to support inline fragments in a fragment
-- #166 - Add missing `!=` operator in the fitler expression language and make sure precedence is correct for logic operators
+- #166 - Add missing `!=` operator in the filter expression language and make sure precedence is correct for logic operators
 
 # 2.3.0
 
 ## Changes
 
 - `AddMutationsFrom` now can use the `ServiceProvider` instance to create the mutation class allowing dependency injection at the constructor level like Controllers.
-- You can still provide an instance of the mutation class that will be used instead which is the same behaviour as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
+- You can still provide an instance of the mutation class that will be used instead which is the same behavior as previous, however this method is considered obsolete and will be removed in a future version. We suggest you utilse the ServiceProvider to register your mutation classes with your desired lifetime.
 - Allow types to inherit from multiple base classes/interfaces
 - Cleanup SchemaType to use an enum instead of lots of boolean type variables. Previous constructor is obsolete
-- Cleanup Interfaces api - added a `AddAllBaseTypes`, `AddBaseType` and `AddBaseType(string)` which provides a lot more flexiblity. See updated docs
+- Cleanup Interfaces api - added a `AddAllBaseTypes`, `AddBaseType` and `AddBaseType(string)` which provides a lot more flexibility. See updated docs
 - Added support for Inline Fragments for types that have interfaces
 - `ToGraphQLSchemaString` now orders types and fields by name for consistency regardless of order of fields added and to reduce differences when diffing the schema
 
@@ -507,11 +507,11 @@ type Mutation {
 
 ## Fixes
 
-- Fix generation of singluar field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
+- Fix generation of singular field with `id` arguments on list fields that use a paging extension when generating a schema. @bzbetty
 - Fix - when adding Mutation argument types only search for public instance properties. @breyed
 - Fix interface query introspection. @bzbetty
 - Fix #137 - multiple line endings were used in the schema output
-- Fix - make sure we use an array for arguemnts when expected instead of a list<>
+- Fix - make sure we use an array for arguments when expected instead of a list<>
 
 # 2.1.5
 
@@ -576,7 +576,7 @@ type Mutation {
 
 If you use the EntityGraphQL.AspNet package and the `MapGraphQL()` method you do not need to worry about anything. EntityGraphQL.AspNet uses `System.Text.Json` and handles the nested `JsonElement`s with a custom type converter.
 
-If you are directly using `SchemaProvider.ExecuteRequest()` (i.e. from a Controller or elsewhere), and you are using `Newtonsoft.Json` to deserilaize the incoming `QueryRequest` you can add a custom converter to your schema to handle nested `JObject`/`JToken`s when encounted in query variables.
+If you are directly using `SchemaProvider.ExecuteRequest()` (i.e. from a Controller or elsewhere), and you are using `Newtonsoft.Json` to deserialize the incoming `QueryRequest` you can add a custom converter to your schema to handle nested `JObject`/`JToken`s when encountered in query variables.
 
 ```
 schema.AddCustomTypeConverter(new JObjectTypeConverter());
@@ -841,7 +841,7 @@ public object NullCheckWrapper(Expression<Func<Context, IMyService>> baseValue, 
 }
 ```
 
-This works with services used deeper inthe graph too. Example
+This works with services used deeper in the graph too. Example
 
 ```c#
 schema.Type<Person>().AddField("complexField", (person) => DoSomething(person.Id));
@@ -890,8 +890,8 @@ This has been tested with EF Core and works well.
 - the parameters in the mutation methods are no longer required to follow a position
 - `SchemaProvider.AddCustomScalarType()` is deprecated, use `AddScalarType`
 - Directvies are now included in schema introspection
-- Fix #52 - sometimes incorrect types generated for schema intropection or the GraphQL schema file format
-- Refactor type information held in the schema. This mean return types etc are evaluated at schema creation time not execution. If you add a field that requires a type as an Arg ument or return type, that type must already be in the schema
+- Fix #52 - sometimes incorrect types generated for schema introspection or the GraphQL schema file format
+- Refactor type information held in the schema. This mean return types etc are evaluated at schema creation time not execution. If you add a field that requires a type as an Argument or return type, that type must already be in the schema
 - You can now provide a field namer function to name the generated fields when using `SchemaBuilder.FromObject()`, `ISchemaType.AddAllFields()` or `SchemaProvider.PopulateFromContext()`
 
 _Breaking changes_
@@ -944,7 +944,7 @@ _Breaking changes_
 # 0.40.0
 
 - Breaking changes
-  - Trying to clean up the interface for careting a schema and allowing an easier way to get services in mutations and field selections
+  - Trying to clean up the interface for creating a schema and allowing an easier way to get services in mutations and field selections
   - Rename `MappedSchemaProvider` to `SchemaProvider`
   - Remove extension `object.QueryObject()` and require a more specific call to `SchmeaProvider.ExecuteQuery()`
   - `SchmeaProvider.ExecuteQuery()` takes a `TArg` type which is an argument that will be passed to all field selections and mutation methods. This replaces `mutationArgs` in `object.QueryObject()` and lets both mutations and field selections access other services non-statically (e.g. via `TArg` being an `IServiceProvider`). See updated readme and demo project
@@ -962,7 +962,7 @@ _Breaking changes_
 
 # 0.31.0
 
-- Breaking change - Multiple `[GraphQLAuthorize]` mean all polcies are required and supplying multiple in a single `[GraphQLAuthorize]` mean any
+- Breaking change - Multiple `[GraphQLAuthorize]` mean all polices are required and supplying multiple in a single `[GraphQLAuthorize]` mean any
 - Do not generate an empty mutation type if there are no mutations
 - Fix query introspection to output mapped types correctly
 - Support multiple queries in a request with the operation name of which one to run - e.g. how GraphiQL handles multiple queries
@@ -1001,7 +1001,7 @@ _Breaking changes_
 
 - Introspection query `__type(name: "")` now correctly returns an object not an array
 - `[Description("")]` attributes on `enum` fields are now read into the schema
-- Fix issue where introspection query would have dupelicate types for enum types
+- Fix issue where introspection query would have duplicate types for enum types
 
 # 0.26.0
 
@@ -1084,12 +1084,12 @@ _Breaking changes_
 
 # 0.18.1
 
-- Update dependences (JSON.NET)
+- Update dependencies (JSON.NET)
 - Fix some small casing issues
 
 # 0.18.0
 
-- Support for schema introspection. Top two fields (`__schema` and `__type(name: String!)`) are implemented. There are some things missing where we currently don't support the feature (directives). GraphiQL introspection query executes and you can naviagte the example. Big thanks to @JTravis76 for starting the work.
+- Support for schema introspection. Top two fields (`__schema` and `__type(name: String!)`) are implemented. There are some things missing where we currently don't support the feature (directives). GraphiQL introspection query executes and you can navigate the example. Big thanks to @JTravis76 for starting the work.
 - Implement #18 default argument values in GQL operations `mutation MyMutation($arg: String = "hey defaults") { ... }`
 - Breaking change - If you purely use `SchemaBuilder.FromObject()` it now creates all field names `lowerCaseCamel` and type names `UpperCamelCase` like the GraphQL defaults. Also since GraphQL is case sensitive I have enforced that. You _may_ need to update some queries to match casing
 
@@ -1154,7 +1154,7 @@ _Breaking changes_
 
 # 0.15
 
-- Remove old code that supported multiple fields with the same name and different arguments. GrpahQL doesn't support that and it caused a bug where it would sometimes not find the field you want. You can implment optional arguments and build a complex field like `schemaProvider.AddField("myField", new {name = (string)null, id = (Guid?)null}, (db, param) => param.id.HasValue ? db.MyEntities.Where(l => l.Id == param.id).FirstOrDefault() : db.MyEntities.Where(l => l.Name == param.name).FirstOrDefault(), "Returns an Entity object by ID or a match on the name argument");`
+- Remove old code that supported multiple fields with the same name and different arguments. GraphQL doesn't support that and it caused a bug where it would sometimes not find the field you want. You can implement optional arguments and build a complex field like `schemaProvider.AddField("myField", new {name = (string)null, id = (Guid?)null}, (db, param) => param.id.HasValue ? db.MyEntities.Where(l => l.Id == param.id).FirstOrDefault() : db.MyEntities.Where(l => l.Name == param.name).FirstOrDefault(), "Returns an Entity object by ID or a match on the name argument");`
 
 # 0.14.4
 
@@ -1172,7 +1172,7 @@ _Breaking changes_
 # 0.14.1
 
 - Fix SchemaGenerator to support arrays better
-- Support turning `QueryRequest` variables from JSON objects into their requied objects
+- Support turning `QueryRequest` variables from JSON objects into their required objects
 
 # 0.14.0
 
@@ -1230,7 +1230,7 @@ _Breaking changes_
 
 # 0.9.1
 
-- Fix a issue where schema and metrhod provider were not being passed down in `QueryObject`
+- Fix a issue where schema and method provider were not being passed down in `QueryObject`
 
 # 0.9.0
 
@@ -1242,7 +1242,7 @@ _Breaking changes_
 
 - `Moved EntityQueryLanguage.DataApi` namespace to `EntityQueryLanguage.GraphQL` to better communicate that its intent is to support
 - Add support GraphQL arguments in fields. See updated readme
-- By default `SchemaBuilder.FromObject<TType>()` generates a non-pural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field
+- By default `SchemaBuilder.FromObject<TType>()` generates a non-plural field for any type with a public `Id` property, with the argument name of `id`. E.g. A field `people` that returns a `IEnumerable<Person>` will result in a `person(id)` field
 - Move results to field `data` in the resulting object to match GraphQL
 - Support the `query` keyword for graphql
 

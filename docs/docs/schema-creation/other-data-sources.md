@@ -8,7 +8,7 @@ EntityGraphQL lets you add fields that resolve (fetch) data from sources other t
 
 ## `Resolve<TService>()` Fields
 
-To use other services in a field we use the `Resolv<TService>()` method on the field. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve the services.
+To use other services in a field we use the `Resolve<TService>()` method on the field. EntityGraphQL uses the `IServiceProvider` you pass on execution to resolve the services.
 
 Let's use a service in our `Person` type example.
 
@@ -222,7 +222,7 @@ Now the following queries will trigger one or the other service call
     # project fields
     name
     id
-    # service field - resolved with Resolv service expression for the single project loaded
+    # service field - resolved with Resolve service expression for the single project loaded
     createdBy {
       name
     }
@@ -247,11 +247,11 @@ The `IEnumerable<T>` that is passed into you bulk data loader is _not_ a unique 
 
 :::
 
-The method returneds a `IDictionary<>` where the key is the same type as the key selector in `ResolveBulk` (`proj => proj.CreatedById` above) and the value is the return type of the field (`User` in the above example).
+The method returns a `IDictionary<>` where the key is the same type as the key selector in `ResolveBulk` (`proj => proj.CreatedById` above) and the value is the return type of the field (`User` in the above example).
 
 `ResolveBulk` signature is `ResolveBulk<TService, TKey, TResult>(ctx => keySelector, (ids, service) => dataLoader)` where `TService` is the service that will be injected and used to load the data. `keySelector` is an expression that is used to select the IDs/keys from each project object. `dataLoader` is an expression that will be passed a list of those selected IDs/keys and should return an `IDictionary<TKey, TResult>` that maps each result to a key.
 
-It might help to conceptionally see what this is doing in code.
+It might help to conceptually see what this is doing in code.
 
 ```cs
 // before we bulk load service data
@@ -296,7 +296,7 @@ public class Movie
     }
 }
 
-public class AgeCalulator : IAgeCalculator
+public class AgeCalculator : IAgeCalculator
 {
     public List<uint> CalculateAges(DateTime released, IEnumerable<Actor>)
     {
