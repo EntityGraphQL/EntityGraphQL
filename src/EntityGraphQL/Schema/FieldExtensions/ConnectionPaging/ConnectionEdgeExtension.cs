@@ -13,12 +13,13 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
     private readonly ParameterExpression originalFieldParam;
     private readonly int? defaultPageSize;
     private readonly int? maxPageSize;
+    private readonly Expression previousEdgesExpression;
     private readonly Type listType;
     private readonly ParameterExpression firstSelectParam;
     private readonly bool isQueryable;
     private readonly List<IFieldExtension> extensions;
 
-    public ConnectionEdgeExtension(Type listType, bool isQueryable, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize)
+    public ConnectionEdgeExtension(Type listType, bool isQueryable, List<IFieldExtension> extensions, ParameterExpression fieldParam, int? defaultPageSize, int? maxPageSize, Expression previousEdgesExpression)
     {
         this.listType = listType;
         this.isQueryable = isQueryable;
@@ -27,6 +28,7 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
         this.originalFieldParam = fieldParam;
         this.defaultPageSize = defaultPageSize;
         this.maxPageSize = maxPageSize;
+        this.previousEdgesExpression = previousEdgesExpression;
     }
 
     public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
@@ -161,5 +163,10 @@ internal class ConnectionEdgeExtension : BaseFieldExtension
             selectionExpressions.First(f => f.Key.Name == "cursor").Value.Expression = Expression.PropertyOrField(edgeParam, "Cursor");
 
         return (baseExpression, selectionExpressions, edgeParam);
+    }
+
+    public override Expression GetListExpressionForBulkResolve(Expression listExpression)
+    {
+        return previousEdgesExpression;
     }
 }

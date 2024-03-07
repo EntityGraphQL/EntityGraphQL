@@ -170,7 +170,7 @@ namespace EntityGraphQL.Compiler
             GraphQLHelper.ValidateAndReplaceFieldArgs(field.Field!, bulkFieldArgParam, replacer, ref argumentValue, ref bulkFieldExpr, validationErrors, newArgParam);
             Expression listExpression = field.RootParameter!;
             var parentNode = field.ParentNode;
-            var rootParameter = field.RootParameter;
+            var rootParameter = field.RootParameter!;
             var isList = false;
 
             while (parentNode != null)
@@ -183,14 +183,19 @@ namespace EntityGraphQL.Compiler
                         listExpression = replacer.Replace(listExpression, rootParameter!, parentListNode.ToSingleNode.NextFieldContext!);
                         var nullCheck = Expression.MakeBinary(ExpressionType.Equal, parentListNode.ToSingleNode.NextFieldContext!, Expression.Constant(null, parentListNode.ToSingleNode.NextFieldContext!.Type));
                         listExpression = Expression.Condition(nullCheck, Expression.NewArrayInit(typeDotnet), listExpression, typeof(IEnumerable<>).MakeGenericType(typeDotnet));
-                        rootParameter = parentNode.RootParameter;
+                        rootParameter = parentNode.RootParameter!;
                     }
                     else
                     {
                         // We can do SelectManyWithNullCheck in memory as services are post EF
                         string selectMethod = isList ? nameof(EnumerableExtensions.SelectManyWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck);
-                        listExpression = Expression.Call(typeof(EnumerableExtensions), selectMethod, [rootParameter!.Type, typeDotnet], parentListNode.ListExpression!, Expression.Lambda(listExpression, rootParameter!));
-                        rootParameter = parentNode.RootParameter;
+                        var parentListExpression = parentListNode.ListExpression!;
+                        foreach (var extension in parentNode.Field!.Extensions)
+                        {
+                            parentListExpression = extension.GetListExpressionForBulkResolve(parentListExpression);
+                        }
+                        listExpression = Expression.Call(typeof(EnumerableExtensions), selectMethod, [rootParameter!.Type, typeDotnet], parentListExpression, Expression.Lambda(listExpression, rootParameter!));
+                        rootParameter = parentNode.RootParameter!;
                     }
                     isList = true;
                 }
@@ -202,7 +207,7 @@ namespace EntityGraphQL.Compiler
                         var nullCheck = Expression.MakeBinary(ExpressionType.Equal, parentObjectNode.NextFieldContext!, Expression.Constant(null, parentObjectNode.NextFieldContext!.Type));
                         listExpression = Expression.Condition(nullCheck, Expression.NewArrayInit(typeDotnet), listExpression, typeof(IEnumerable<>).MakeGenericType(typeDotnet));
                     }
-                    rootParameter = parentNode.RootParameter;
+                    rootParameter = parentNode.RootParameter!;
                 }
                 parentNode = parentNode.ParentNode;
             }

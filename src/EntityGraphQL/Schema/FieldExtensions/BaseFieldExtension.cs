@@ -25,6 +25,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return (baseExpression, listTypeParam);
         }
 
+        public virtual Expression GetListExpressionForBulkResolve(Expression listExpression)
+        {
+            return listExpression;
+        }
+
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
         /// Not called for GraphQLFieldType.Scalar

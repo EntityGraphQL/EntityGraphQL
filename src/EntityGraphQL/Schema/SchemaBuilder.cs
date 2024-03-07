@@ -332,7 +332,7 @@ namespace EntityGraphQL.Schema
 
             if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
             {
-                // add non-pural field with argument of ID
+                // add non-plural field with argument of ID
                 var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field, options);
                 if (idArgField != null)
                 {
@@ -484,9 +484,9 @@ namespace EntityGraphQL.Schema
             return new GqlTypeInfo(typeGetter, returnType);
         }
 
-        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgmentTypes)
+        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenAugmentTypes)
         {
-            flattenArgmentTypes = new Dictionary<string, Type>();
+            flattenAugmentTypes = new Dictionary<string, Type>();
             var arguments = new List<FieldArgInfo>();
             foreach (var item in method.GetParameters())
             {
@@ -518,7 +518,7 @@ namespace EntityGraphQL.Schema
                 if (argumentsAttr != null)
                 {
                     arguments.Add(new FieldArgInfo(item.Name!, item.ParameterType, FlattenArguments(item.ParameterType, schema, options)));
-                    flattenArgmentTypes.Add(item.Name!, item.ParameterType);
+                    flattenAugmentTypes.Add(item.Name!, item.ParameterType);
                 }
                 else
                 {

@@ -42,7 +42,7 @@ namespace EntityGraphQL.Compiler
                 // or a service field that we expand into the required fields for input
                 foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
                 {
-                    // fragments might be fragments on the actualy type whereas the context is a interface
+                    // fragments might be fragments on the actually type whereas the context is a interface
                     // we do not need to change the context in this case
                     var actualNextFieldContext = nextFieldContext;
                     if (!contextChanged && subField.RootParameter != null && actualNextFieldContext.Type != subField.RootParameter.Type && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField) && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union))

@@ -491,10 +491,10 @@ public class ServiceFieldBulkTests
         var context = new TestDataContext
         {
             Projects = [
-                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = new List<Task> {
+                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = [
                     new() { Id = 1, Name = "Task 1", Assignee = new Person { Id = 1 } },
                     new() { Id = 2, Name = "Task 2", Assignee = new Person { Id = 2 }  },
-                } },
+                ] },
                 new Project { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = new List<Task> {
                     new() { Id = 3, Name = "Task 3", Assignee = new Person { Id = 3 }  },
                     new() { Id = 4, Name = "Task 4", Assignee = new Person { Id = 1 }  },
@@ -553,10 +553,10 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = new List<Project> {
+            Projects = [
                 new Project { Id = 1, CreatedBy = 1, Name = "Project 1"},
                 new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
-            },
+            ],
         };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
