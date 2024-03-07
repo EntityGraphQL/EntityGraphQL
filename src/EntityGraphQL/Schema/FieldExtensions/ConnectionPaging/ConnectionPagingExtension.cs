@@ -82,6 +82,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
             // set up Extension on Edges.Node field to handle the Select() insertion
             edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
+            var previousEdgesExpression = edgesField.ResolveExpression;
             // move expression
             // This is the original expression that was defined in the schema - the collection
             // UseConnectionPaging() basically moves it to originalField.edges
@@ -92,7 +93,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.Extensions = field.Extensions.Skip(extensionsBeforePaging.Count).ToList();
 
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize);
+            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize, previousEdgesExpression!);
             edgesField.AddExtension(edgesExtension);
             // args on field get used in edges field we inject
             edgesField.UseArgumentsFrom(field);
@@ -101,14 +102,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // and get it ready for completion at runtime (we need to know the selection fields to complete)
             // it is built to reduce redundant repeated expressions. The whole thing ends up in a null check wrap
             // conceptually it does similar to below (using Demo context)
-            // See Connection for implemention details of TotalCount and PageInfo
+            // See Connection for implementation details of TotalCount and PageInfo
             // (ctx, arguments) => {
             //      var connection = new Connection<Person>(ctx.Actors.Select(a => a.Person)
-            //              -- other extensions might do thigns here (e.g. filter / sort)
+            //              -- other extensions might do things here (e.g. filter / sort)
             //             .Count(), arguments)
             //      {
             //          Edges = ctx.Actors.Select(a => a.Person)
-            //              -- other extensions might do thigns here (e.g. filter / sort)
+            //              -- other extensions might do things here (e.g. filter / sort)
             //              .Skip(GetSkipNumber(arguments))
             //              .Take(GetTakeNumber(arguments))
             //              // we insert Select() here so that we do not fetch the whole table if using EF
@@ -129,7 +130,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      };
             //      if (connection == null)
             //          return null;
-            //      return .... // does the select of only the Conneciton fields asked for
+            //      return .... // does the select of only the Connection fields asked for
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression!);

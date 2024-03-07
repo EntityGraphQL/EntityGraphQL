@@ -164,8 +164,19 @@ namespace EntityGraphQL.Compiler.Util
             return base.VisitMember(node);
         }
 
+        protected override Expression VisitMemberInit(MemberInitExpression node)
+        {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
+            return base.VisitMemberInit(node);
+        }
+
         protected override Expression VisitBinary(BinaryExpression node)
         {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
             var left = base.Visit(node.Left);
             var right = base.Visit(node.Right);
             // as we do not replace constants we need to make sure the types match as 
@@ -184,6 +195,9 @@ namespace EntityGraphQL.Compiler.Util
 
         protected override Expression VisitConditional(ConditionalExpression node)
         {
+            if (toReplace != null && toReplace == node)
+                return newParam!;
+
             var test = base.Visit(node.Test);
             var ifTrue = base.Visit(node.IfTrue);
             var ifFalse = base.Visit(node.IfFalse);
@@ -196,9 +210,9 @@ namespace EntityGraphQL.Compiler.Util
                 // We create a NewArrayInit as part of the bulk service loading
                 if (ifTrue.NodeType == ExpressionType.NewArrayInit)
                 {
-                    var ifFaleType = ifFalse.Type.GetEnumerableOrArrayType()!;
-                    ifTrue = Expression.NewArrayInit(ifFaleType);
-                    type = typeof(IEnumerable<>).MakeGenericType(ifFaleType);
+                    var ifFalseType = ifFalse.Type.GetEnumerableOrArrayType()!;
+                    ifTrue = Expression.NewArrayInit(ifFalseType);
+                    type = typeof(IEnumerable<>).MakeGenericType(ifFalseType);
                 }
                 if (ifFalse.NodeType == ExpressionType.NewArrayInit)
                 {

@@ -30,6 +30,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
         /// <returns></returns>
         Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer);
+
+        /// <summary>
+        /// Get the list expression for the bulk resolve. Useful if your extension rebuilt the the graph like ConnectionPaging
+        /// </summary>
+        /// <param name="listExpression"></param>
+        /// <returns></returns>
+        Expression GetListExpressionForBulkResolve(Expression listExpression);
+
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet selected the fields for selection on this expression
         /// Not called for GraphQLFieldType.Scalar

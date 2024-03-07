@@ -13,13 +13,15 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
     private readonly Type listType;
     private readonly List<IFieldExtension> extensions;
     private readonly ParameterExpression originalFieldParam;
+    private readonly Expression previousItemsExpression;
 
-    public OffsetPagingItemsExtension(bool isQueryable, Type listType, List<IFieldExtension> extensions, ParameterExpression fieldParam)
+    public OffsetPagingItemsExtension(bool isQueryable, Type listType, List<IFieldExtension> extensions, ParameterExpression fieldParam, Expression previousItemsExpression)
     {
         this.isQueryable = isQueryable;
         this.listType = listType;
         this.extensions = extensions;
         this.originalFieldParam = fieldParam;
+        this.previousItemsExpression = previousItemsExpression;
     }
 
     public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
@@ -48,5 +50,10 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         );
 
         return newItemsExp;
+    }
+
+    public override Expression GetListExpressionForBulkResolve(Expression listExpression)
+    {
+        return previousItemsExpression;
     }
 }
