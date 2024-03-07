@@ -527,7 +527,7 @@ public class ServiceFieldBulkTests
     }
 
     [Fact]
-    public void TestServicesBulkResolverFullObjectWithPaging()
+    public void TestServicesBulkResolverFullObjectWithConnectionPaging()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().GetField(ctx => ctx.Projects).UseConnectionPaging();
@@ -568,6 +568,49 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
+        Assert.Equal(nameof(UserService.GetAllUsers), userService.Calls.First());
     }
 
+    [Fact]
+    public void TestServicesBulkResolverFullObjectWithOffsetPaging()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().GetField(ctx => ctx.Projects).UseOffsetPaging();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                projects { 
+                    items {
+                        name createdBy { id field2 } 
+                    }
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = [
+                new Project { Id = 1, CreatedBy = 1, Name = "Project 1"},
+                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        Assert.Equal(nameof(UserService.GetAllUsers), userService.Calls.First());
+    }
 }

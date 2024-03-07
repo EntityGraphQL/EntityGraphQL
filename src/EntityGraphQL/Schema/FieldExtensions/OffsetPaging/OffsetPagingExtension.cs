@@ -75,8 +75,9 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         // update the Items field before we update the field.Resolve below
         itemsField = returnSchemaType.GetField("items", null);
+        var previousItemsExpression = itemsField.ResolveExpression!;
         itemsField.UpdateExpression(field.ResolveExpression);
-        itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!));
+        itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!, previousItemsExpression));
         itemsField.UseArgumentsFrom(field);
 
         // set up the field's expression so the types are all good 
