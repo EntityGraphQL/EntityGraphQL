@@ -60,7 +60,7 @@ app.MapGraphQL<MyDbContext>(
 - With `builder.Services.AddOutputCache()`, in memory cache will be used. It can also be configured to use e.g. [Redis](https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis).
 
 
-We have to define and register our own `IOutputCachePolicy`, because the [DefaultPolicy](https://github.com/dotnet/dotnet/blob/main/src/aspnetcore/src/Middleware/OutputCaching/src/Policies/DefaultPolicy.cs#L70) only supports caching for HTTP GET endpoints, whereas GraphQL uses HTTP POST. Note that all implementations of `IOutputCachePolicy` are defined as `internal sealed` and thus, can't be extended.<br/>
+We have to define and register our own `IOutputCachePolicy`, because the [DefaultPolicy](https://github.com/dotnet/dotnet/blob/main/src/aspnetcore/src/Middleware/OutputCaching/src/Policies/DefaultPolicy.cs#L70) only supports caching for HTTP GET endpoints, whereas GraphQL uses HTTP POST. Note that [all implementations](https://github.com/dotnet/dotnet/tree/main/src/aspnetcore/src/Middleware/OutputCaching/src/Policies) of `IOutputCachePolicy` are defined as `internal sealed` and thus, can't be extended.<br/>
 The below `GraphQLPolicy` is a copy/paste of [DefaultPolicy](https://github.com/dotnet/dotnet/blob/main/src/aspnetcore/src/Middleware/OutputCaching/src/Policies/DefaultPolicy.cs), where only HTTP POST requests are supported, instead of GET.
 ```cs
 using Microsoft.AspNetCore.OutputCaching;
