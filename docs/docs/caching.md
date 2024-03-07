@@ -2,8 +2,11 @@
 sidebar_position: 13
 ---
 
-# Output caching
-The [output caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/overview?view=aspnetcore-8.0#output-caching), available in asp.net core, can be used to cache GraphQL requests/responses.
+# Caching
+Several ways of caching data are available in an asp.net project. Some will be described here.
+
+## Output caching
+The [output caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output), available in asp.net core, can be used to cache GraphQL requests/responses.
 
 Register required services (`builder.Services.AddXyz()`) and set up the request pipeline (`app.UseXyz()`) appropriately.
 
@@ -25,7 +28,7 @@ app.UseOutputCache();
 
 [...]
 
-app.MapGraphQL<MedicalDataDbContext>(
+app.MapGraphQL<MyDbContext>(
     configureEndpoint: endpointConventionBuilder =>
         endpointConventionBuilder.CacheOutput(outputCachePolicyBuilder =>
         {
