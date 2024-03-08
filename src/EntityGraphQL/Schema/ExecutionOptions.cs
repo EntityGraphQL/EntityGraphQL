@@ -18,12 +18,13 @@ namespace EntityGraphQL.Schema
         public bool ExecuteServiceFieldsSeparately { get; set; } = true;
         /// <summary>
         /// Enable support for persisted queries - https://www.apollographql.com/docs/react/api/link/persisted-queries/
-        /// This will enable the cache as well
+        /// This will set EnableQueryCache = true as the cache is used to implement persisted queries.
         /// </summary>
         public bool EnablePersistedQueries { get; set; } = true;
         /// <summary>
         /// Enables a cache of recently compiled queries to speed up execution of highly used queries.
         /// Cache is used for persisted queries as well.
+        /// Query results are not cached, only the compiled expression from the GraphQL document.
         /// </summary>
         public bool EnableQueryCache { get; set; } = true;
 

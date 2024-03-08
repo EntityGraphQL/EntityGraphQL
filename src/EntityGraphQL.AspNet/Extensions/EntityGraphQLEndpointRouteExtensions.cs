@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
