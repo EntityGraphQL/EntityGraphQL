@@ -102,6 +102,12 @@ app.UseEndpoints(endpoints =>
 app.Run();
 ```
 
+:::info
+`UseGraphQLWebSockets` registers a new URL endpoint at `/subscriptions` by default. This differs to the query/mutation endpoint default of `/graphql`. You can change either with the `path` parameter in `UseGraphQLWebSockets` or `MapGraphQL`.
+
+If you are using a tool like Postman, it expects the paths to be the same so you will need to tell it the correct path or use `UseGraphQLWebSockets<ChatContext>(path: "/graphql")`.
+:::
+
 We will use a mutation to allow clients to post messages as well, it uses the `ChatService` to post new messages, which as you see above broadcasts new messages to subscribers.
 
 ```cs
