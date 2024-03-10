@@ -2,6 +2,10 @@
 
 Check release notes for the 5.2.0-beta1 and beta2 below.
 
+## Changes
+
+- #347 - The handler for the subscriptions end point added by `UseGraphQLWebSockets` no longer returns `400` if the request is not a web socket request. Allowing the request to get passed to the next handlers. This allows you to have the same endpoint for queries/mutations and subscriptions.
+
 ## Fixes
 
 - #333 - Fixes to method and service calls on interfaces/unions

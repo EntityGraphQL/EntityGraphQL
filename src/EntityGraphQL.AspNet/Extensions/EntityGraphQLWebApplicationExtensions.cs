@@ -33,10 +33,6 @@ namespace EntityGraphQL.AspNet
 
                         await server.HandleAsync();
                     }
-                    else
-                    {
-                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    }
                 }
                 else
                 {
