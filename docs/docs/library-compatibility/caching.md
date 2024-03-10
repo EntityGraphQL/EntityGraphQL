@@ -144,3 +144,24 @@ internal sealed class GraphQLPolicy : IOutputCachePolicy
     }
 }
 ```
+
+## EFCore Second Leve Cache Interceptor
+
+EFCoreSecondLevelCacheInterceptor is a library that caches the result of EF commands and automatically invalidates cached data by watching what tables are updated via EF.  This makes it a really easy way to speed up the performance of EntityGraphQL without the overhead of manual invalidation.  EQL still needs to parse queries and convert them to expression trees, so there's still more cpu overhead than output caching.
+
+It supports numerous caching methods through its support of EasyCaching.Core (InMemory, Redis, Sql, Disk + more).
+
+For full setup instructions see their documentation on their github page (https://github.com/VahidN/EFCoreSecondLevelCacheInterceptor) however it can be as simple as enabling efsecondlevelcache, adding a caching provider and adding the intercepter to EFCore.
+
+```
+  services.AddEFSecondLevelCache(options => {
+     options.UseMemoryCacheProvider();
+  });
+
+  services.AddDbContextPool<ApplicationDbContext>((serviceProvider, optionsBuilder) => {
+     optionsBuilder
+        .UseSqlServer(...)
+        .AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>()));
+  });
+
+```
