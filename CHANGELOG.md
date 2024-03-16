@@ -8,6 +8,7 @@ Check release notes for the 5.2.0-beta1 and beta2 below.
 
 ## Fixes
 
+- #350 - Index accessors properties (which are methods to dotnet) on types are ignored when using `SchemaBuilder`. Previously they would fail.
 - #333 - Fixes to method and service calls on interfaces/unions
 - #344 - Support paging field extensions with `field.ResolveBulk<TService, TKey, TResult>()`
 
