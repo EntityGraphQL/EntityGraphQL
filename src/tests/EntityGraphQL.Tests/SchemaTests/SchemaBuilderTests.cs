@@ -318,6 +318,38 @@ namespace EntityGraphQL.Tests
             Assert.False(schemaProvider.HasType(typeof(C)));
             Assert.False(schemaProvider.HasType(typeof(D)));
         }
+
+        [Fact]
+        public void TypeWithIndexer()
+        {
+            var schemaProvider = SchemaBuilder.FromObject<TestSchema5>();
+
+            var gql = new QueryRequest
+            {
+                Query = """
+                        query IntrospectionQuery {
+                          __type(name: "Article") {
+                            name
+                            fields
+                            {
+                                name
+                            }
+                          }
+                        }
+                        """
+            };
+
+            var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema5(), null, null);
+            Assert.Null(res.Errors);
+
+            dynamic typeDef = res.Data["__type"];
+            Assert.Equal("Article", typeDef.name);
+            Assert.Collection((IEnumerable<dynamic>)typeDef.fields,
+                item => Assert.Equal("title", item.name),
+                item => Assert.Equal("contents", item.name),
+                item => Assert.Equal("searchVector", item.name));
+        }
+
         private class TestIgnoreTypesSchema
         {
             public IEnumerable<A> As { get; }
@@ -381,6 +413,23 @@ namespace EntityGraphQL.Tests
         private class TestSchema4
         {
             public IEnumerable<IUnion> Union { get; }
+        }
+
+        private class TestSchema5
+        {
+            public IEnumerable<Article> Articles { get; }
+
+            public class TsVector
+            {
+                public char this[int index] => 'a';
+            }
+
+            public class Article
+            {
+                public string Title { get; }
+                public string Contents { get; }
+                public TsVector SearchVector { get; }
+            }
         }
 
         private abstract class AbstractClass

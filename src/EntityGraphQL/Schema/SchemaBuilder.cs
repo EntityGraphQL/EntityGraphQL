@@ -297,6 +297,12 @@ namespace EntityGraphQL.Schema
             if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                 return false;
 
+            if (prop is PropertyInfo propertyInfo &&
+                propertyInfo.GetIndexParameters().Length > 0)
+            {
+                return false;
+            }
+
             return true;
         }
 
