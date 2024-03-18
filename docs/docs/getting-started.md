@@ -299,7 +299,7 @@ public class QueryController : Controller
 
 ## Configuring System.Text.Json
 
-If you use your own controller/method to execute GraphQL and use `System.Text.Json`, it is best to configure it like below for best compatiablity with other tools.
+If you use your own controller/method to execute GraphQL and use `System.Text.Json`, it is best to configure it like below for best compatibility with other tools.
 
 ```cs
 services.AddControllers()
@@ -333,7 +333,7 @@ _Sample incoming json request_
 }
 ```
 
-Many deserilaizers will deserialize this into the `QueryRequest.Variables` object with the value of `var` as a `JsonElement` (`System.Text.Json`) or a `JObject` (`Newtonsoft.Json`). e.g.
+Many deserializer libraries will deserialize this into the `QueryRequest.Variables` object with the value of `var` as a `JsonElement` (`System.Text.Json`) or a `JObject` (`Newtonsoft.Json`). e.g.
 
 ```cs
 var gql = JsonSerializer.Deserialize<QueryRequest>(query);

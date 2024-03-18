@@ -169,7 +169,7 @@ services.AddDbContext<DemoContext>(opt =>
 public uint DirectorAgeAtRelease => (uint)((Released - Director.Dob).Days / 365);
 ```
 
-Now the expression will be translated into expression that EF will handle. See [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) documention for more information. Or your perferred library.
+Now the expression will be translated into expression that EF will handle. See [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) documentation for more information. Or your preferred library.
 
 These libraries require the methods by expression - For example [EntityFrameworkCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables) will not work for a method like below, _whereas lazy loading will_.
 

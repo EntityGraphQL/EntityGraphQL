@@ -24,7 +24,7 @@ You can also use the Deprecate(string reason) extension method on a IField.
 
 EntityGraphQL supports [One Of Input Types](https://github.com/graphql/graphql-spec/pull/825).
 
-Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requiements on execution.
+Mark an input type with `GraphQLOneOfAttribute` and EntityGraphQL will mark the type with `@oneOf` in the schema and validate the input meets the requirements on execution.
 
 ```cs
 [GraphQLOneOf]

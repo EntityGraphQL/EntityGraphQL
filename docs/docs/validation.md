@@ -4,11 +4,11 @@ sidebar_position: 6
 
 # Validation
 
-When you privide input - via arguments - to your queries, you may want to perform some validation on that input before proceeding to you domain logic. EntityGraphQL provides a couple of ways to validation your input.
+When you provide input - via arguments - to your queries, you may want to perform some validation on that input before proceeding to you domain logic. EntityGraphQL provides a couple of ways to validation your input.
 
 ## Mutation Validation
 
-You can use the `[Required]`, `[Range]` & `[StringLength]` attributes to add validaiton to your mutation arguments. Example
+You can use the `[Required]`, `[Range]` & `[StringLength]` attributes to add validation to your mutation arguments. Example
 
 ```cs
 public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPersonArgs args)
@@ -115,7 +115,7 @@ public class MovieValidator : IArgumentValidator
 }
 ```
 
-Or as a deletgate.
+Or as a delegate.
 
 ```cs
 schema.Query().AddField("movies",

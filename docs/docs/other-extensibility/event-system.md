@@ -8,18 +8,18 @@ A couple of events has been added to fields to support other functionality which
 
 ## ISchemaType
 
-* OnAddField - called before adding a field to a type, allows you to throw an exception if the field is invalid in some way
-* OnValidate - called when validating an InputType before being passed to a mutation
+- OnAddField - called before adding a field to a type, allows you to throw an exception if the field is invalid in some way
+- OnValidate - called when validating an InputType before being passed to a mutation
 
 The `@oneOf` [Schema Directive](../directives/schema-directives) uses both these events
 
-```
+```cs
 public static class OneOfDirectiveExtensions
 {
     public static void OneOf(this ISchemaType type)
     {
         type.AddDirective(new OneOfDirective());
-        type.OnAddField += (field) => { 
+        type.OnAddField += (field) => {
             if (field.ReturnType.TypeNotNullable)
             {
                 throw new EntityQuerySchemaException($"{type.TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
@@ -29,7 +29,7 @@ public static class OneOfDirectiveExtensions
             if (value != null)
             {
                 var singleField = value.GetType().GetProperties().Count(x => x.GetValue(value) != null);
-                
+
                 if (singleField != 1) // we got multiple set
                     throw new EntityGraphQLValidationException($"Exactly one field must be specified for argument of type {type.Name}.");
             }

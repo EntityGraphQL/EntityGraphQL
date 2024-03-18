@@ -17,12 +17,12 @@ public abstract class Character {
 }
 
 public class Human : Character {
-  public IEnumerable<Starship> starships { get; set; }
+  public IEnumerable<Starship> Starships { get; set; }
   public int TotalCredits { get; set;}
 }
 
 public class Droid : Character {
-    public stirng PrimaryFunction { get; set;}
+    public string PrimaryFunction { get; set;}
 }
 
 // creating our schema

@@ -1,6 +1,6 @@
 # Using NewtonSoft JSON
 
-To avoid version conflicts with Newtonsoft.Json, EntityGraphQL has no reference to it and hence doesn't know what to do if it hits a `Jtoken` or `JObject`.
+To avoid version conflicts with Newtonsoft.Json, EntityGraphQL has no reference to it and hence doesn't know what to do if it hits a `JToken` or `JObject`.
 
 If you are not using EntityGraphQL.AspNet and are trying to deserialize incoming JSON into the `QueryRequest` and you have objects in the variables field Newtonsoft.Json will deserialize the incoming JSON objects into the variables dictionary as `JObject`/`JToken` types and EntityGraphQL doesn't know what to do with them when trying to mapping them to the field arguments.
 

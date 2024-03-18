@@ -88,7 +88,7 @@ public class Property {
 
 If a `ClaimsPrincipal` is provided with the `ExecuteRequest` call it will be required to be Authorized and have the Role `property-role` to query the root-level `properties` field and the role `property-admin` to query the `Property` field `location`.
 
-Authorization can be provided in the API for add/replacing fields on the schema objact.
+Authorization can be provided in the API for add/replacing fields on the schema object.
 
 ```cs
 schemaProvider.AddField("myField", (db) => db.MyEntities, "Description").RequiresAllRoles("admin");

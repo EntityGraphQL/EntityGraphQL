@@ -12,7 +12,7 @@ You can see the full changelog which includes other changes and bug fixes as wel
 
 ## Renamed Classes
 
-`MutationArgumentsAttribute` renamed to `GraphQLArgumentsAttribute` and is used with subscriptions or mutaiton method arguments. This should be a simple find and replace.
+`MutationArgumentsAttribute` renamed to `GraphQLArgumentsAttribute` and is used with subscriptions or mutation method arguments. This should be a simple find and replace.
 
 ## `AddMutationsFrom` Argument Changes
 
@@ -45,4 +45,4 @@ services.AddGraphQLSchema<DemoContext>(options =>
 
 ## Field Extensions
 
-`ProcessExpressionSelection` used in Field Extentions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.
+`ProcessExpressionSelection` used in Field Extensions now takes `Dictionary<IFieldKey, CompiledField>` for the `selectionExpressions` parameter. `IFieldKey` is the field name and the schema type the field belongs too. Helps when dealing with inline fragments/union types where we may have multiple fields with the same name from different types.

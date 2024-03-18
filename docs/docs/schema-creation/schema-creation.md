@@ -15,10 +15,10 @@ EntityGraphQL supports customizing your GraphQL schema in all the expected ways;
 To create a new schema we need to supply a base context type. This base type is used as the base for _top-level query fields_. `DemoContext` is our base query context for the schema.
 
 ```cs
-// Using EntityGraphQL.AspNet extension method to add the schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+// Using EntityGraphQL.AspNet extension method to add the schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behavior.
 services.AddGraphQLSchema<DemoContext>(options => {
     options.ConfigureSchema = (schema) => {
-        // configure schema heree
+        // configure schema here
     };
 });
 
@@ -27,7 +27,7 @@ services.AddGraphQLSchema<DemoContext>(options =>
 {
     options.AutoBuildSchemaFromContext = false;
     options.ConfigureSchema = (schema) => {
-        // configure schema heree
+        // configure schema here
     };
 });
 ```
@@ -35,7 +35,7 @@ services.AddGraphQLSchema<DemoContext>(options =>
 If you need to create a schema outside of ASP.NET.
 
 ```cs
-// Create a schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behaviour.
+// Create a schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behavior.
 var schema = new SchemaBuilder.FromObject<DemoContext>();
 
 // Create a blank schema with the base query type. Schema has no types or fields yet.
@@ -47,7 +47,7 @@ var schema = new SchemaProvider<DemoContext>();
 Now we need to add some types to our schema which we will use as return types for fields. The most common GraphQL types you will deal with are
 
 - Object types - a type that is part of the object graph and has fields. These are the most common type you will use in your schema
-- Input object types - Like Object types but are strictly used for input object for field or mutation arguments. The main difference is thata fields on an Input object type can not have arguments
+- Input object types - Like Object types but are strictly used for input object for field or mutation arguments. The main difference is that fields on an Input object type can not have arguments
 - Scalar types - An Object type has fields that can be queried. Scalar types resolve to concrete data. GraphQL spec defines the following built in scalar types (of course you can add your own)
   - Int: A signed 32-bit integer.
   - Float: A signed double-precision floating-point value.
@@ -170,7 +170,7 @@ public List<AllowedException> AllowedExceptions { get; set; } = new List<Allowed
    ```
 
    - `.IgnoreTypes` - List of type names to ignore when `AutoCreateNewComplexTypes = true`. Default is empty.
-   - `.OnFieldCreated` - callback for each field that is created by the `SchemaBuilder`. Example usage is to apply something to all fields or all fields matching some criteria e.g. 
+   - `.OnFieldCreated` - callback for each field that is created by the `SchemaBuilder`. Example usage is to apply something to all fields or all fields matching some criteria e.g.
 
    ```cs
    // Add Sort to all list fields

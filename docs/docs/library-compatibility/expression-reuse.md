@@ -1,6 +1,6 @@
 # Reusing Linq Expressions
 
-Computed properties don't work with most Linq providers out of the box. Dave Glick has a great related post on [Computed Proprties and EntityFramework](https://www.daveaglick.com/posts/computed-properties-and-entity-framework).
+Computed properties don't work with most Linq providers out of the box. Dave Glick has a great related post on [Computed Properties and EntityFramework](https://www.daveaglick.com/posts/computed-properties-and-entity-framework).
 
 Here's a list of various libraries that can help
 
@@ -33,7 +33,7 @@ dbContext.People
 
 If you go down the route of registering it per query then you'll need to override the resolve method on the relevant fields on the EQL Schema.
 
-2. Add an expression bodied function to the entityclass or helper class (generally be static or instance) and mark it using an attribute.
+2. Add an expression bodied function to the entity class or helper class (generally be static or instance) and mark it using an attribute.
 
 ```cs
 [Projectable]

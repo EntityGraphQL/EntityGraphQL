@@ -112,7 +112,7 @@ schema.Type<Person>().AddField("age", "Persons age")
     .Resolve<AgeService>((person, ager) => ager.GetAge(person.Birthday));
 ```
 
-EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `Resolve<TService>()` fields. This means EF can optimise your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
+EntityGraphQL will build an expression query that first selects everything from the base context (`DemoContext` in this case) that EF can execute. Then another expression query that runs on top of that result which includes the `Resolve<TService>()` fields. This means EF can optimize your query and return all the data requested (and nothing more) and in memory we then merge that with data from your services.
 
 An example in C# of what this ends up looking like.
 

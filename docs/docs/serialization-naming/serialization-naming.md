@@ -11,7 +11,7 @@ Examples:
 
 ## Serializing Inherited Types
 
-In versions prior to .NET 7, System.Text.Json doesn't support the serialization of polymorphic type hierarchies. For example, if a property's type is an interface or an abstract class, only the properties defined on the interface or abstract/union class are serialized, even if the runtime type has additional properties. 
+In versions prior to .NET 7, System.Text.Json doesn't support the serialization of polymorphic type hierarchies. For example, if a property's type is an interface or an abstract class, only the properties defined on the interface or abstract/union class are serialized, even if the runtime type has additional properties.
 
 For this reason EntityGraphQL registers a RuntimeTypeJsonConverter class as part of the DefaultGraphQLResponseSerializer (credit to litleAndroidMan from https://stackoverflow.com/a/71074354/629083).
 
@@ -23,10 +23,9 @@ this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter<object>());
 
 You can also disable it by passing in your own jsonOptions when you register/create DefaultGraphQLResponseSerializer.
 
-
 ## Override default naming
 
-To override the default behaviour you can pass in your own `fieldNamer` function when creating the `SchemaProvider` or configuring it.
+To override the default behavior you can pass in your own `fieldNamer` function when creating the `SchemaProvider` or configuring it.
 
 ```cs
 services.AddGraphQLSchema<DemoContext>(options => {
@@ -84,7 +83,7 @@ This means queries need to match the casing as GraphQL is case-sensitive.
 }
 ```
 
-The above query will generate typed objects _before serialization_ with the matching names from the schema. _Note the types are generated internally as part of compiling, users do not need to use/know them but it demostrates serialization impact_.
+The above query will generate typed objects _before serialization_ with the matching names from the schema. _Note the types are generated internally as part of compiling, users do not need to use/know them but it demonstrates serialization impact_.
 
 ```cs
 public class TempPersonResult
@@ -106,9 +105,9 @@ QueryResult result = ctx => {
 
 ## Serialization
 
-We see how types/fields are named by default above and how to change that. Next you may want to change how data comming in or returned is deserialized or serialized.
+We see how types/fields are named by default above and how to change that. Next you may want to change how data coming in or returned is deserialized or serialized.
 
-You can customise how EntityGraphQL handles de/serialization by registering your own `IGraphQLResponseSerializer` and/or `IGraphQLRequestDeserializer`. Both should be registered before calling `AddGraphQLSchema()` as it adds the default implementations if not already registered.
+You can customize how EntityGraphQL handles de/serialization by registering your own `IGraphQLResponseSerializer` and/or `IGraphQLRequestDeserializer`. Both should be registered before calling `AddGraphQLSchema()` as it adds the default implementations if not already registered.
 
 - `IGraphQLRequestDeserializer` - Used to deserialize an incoming `POST` body data into a `QueryRequest` object
 - `IGraphQLResponseSerializer` - Used to serialize a `QueryResult` object into the `Response` stream

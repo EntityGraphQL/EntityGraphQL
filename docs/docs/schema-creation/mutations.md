@@ -41,9 +41,9 @@ schema.AddMutationsFrom<PeopleMutations>();
 
 EntityGraphQL adds the `PeopleMutations` mutation controller and all its mutation methods (those with `[GraphQLMutation]` applied) to the schema.
 
-For each mutation request, EntityGraphQL creates a new instance of `PeopleMuations`. The constructor and mutation methods accept services passed through [dependency injection](#dependencies-injection--services).
+For each mutation request, EntityGraphQL creates a new instance of `PeopleMutations`. The constructor and mutation methods accept services passed through [dependency injection](#dependencies-injection--services).
 
-**Register all mutation controllers implementing or derving from a type**
+**Register all mutation controllers implementing or deriving from a type**
 
 ```cs
 schema.AddMutationsFrom<IPersonnelMutations>();
@@ -73,12 +73,12 @@ Above we use our mutation to add a person and select their `fullName` and `id` i
 **SchemaBuilderOptions.AutoCreateInputTypes**
 If true (default = false) and an object type is encountered during reflection of the mutation parameters it will be added to the schema as an InputObject type.
 
-When `AutoCreateInputTypes` is true, to inject a service, pass it to the constructor of the mutation controller and store it in a field. EntityGraphQL can't detect services passed as method parameters because `ServiceProvider` is not supplied at schema screation.
+When `AutoCreateInputTypes` is true, to inject a service, pass it to the constructor of the mutation controller and store it in a field. EntityGraphQL can't detect services passed as method parameters because `ServiceProvider` is not supplied at schema creation.
 
 **SchemaBuilderOptions.AddNonAttributedMethodsInControllers**
-If true (deafult = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
+If true (default = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
-`SchemaBuilderOptions` in herits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
+`SchemaBuilderOptions` inherits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
 
 **SchemaBuilderOptions.AutoCreateNewComplexTypes**
 If true (default = true) any complex class types that a mutation returns is added to the schema as a query type if it is not already there.
@@ -94,7 +94,7 @@ class PeopleMutations
     {
         schema.Mutation().Add("peopleMutations", "Add a new person to the system", AddNewPerson);
 
-        schema.Mutation().Add("peopleMutations", "Do somethign else", (OtherArgs args) => {
+        schema.Mutation().Add("peopleMutations", "Do something else", (OtherArgs args) => {
             // ... mutate logic here
         });
     }
@@ -237,7 +237,7 @@ _Note this is fine if you have no DI services in your mutation methods._
 
 #### Example: `GraphQLArgumentsAttribute`
 
-Note the `s` in Argumentments.
+Note the `s` in Arguments.
 
 ```cs
 public Expression<Func<DemoContext, Person>> AddPerson(DemoContext db, [GraphQLArguments] AddPersonArgs args, string token, IDemoService demoService) {}
@@ -322,7 +322,7 @@ public class AddPersonArgs
 }
 ```
 
-GraphQLArgument classes provide some flexibility in using inheritence etc for common mutation fields. Both still generate the same mutation field in the GraphQL schema.
+GraphQLArgument classes provide some flexibility in using inheritance etc for common mutation fields. Both still generate the same mutation field in the GraphQL schema.
 
 ```graphql
 type Mutation {

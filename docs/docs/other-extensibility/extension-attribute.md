@@ -8,7 +8,7 @@ sidebar_position: 6
 
 `ExtensionAttribute` is useful when building new Attributes (see `GraphQLOneOfAttribute`) whereas `IExtensionAttributeHandler` allows you to use existing attributes (see `ObsoleteAttributeHandler` which marks items with the [ObsoleteAttribute] as @deprecated).
 
-```
+```cs
 public abstract class ExtensionAttribute : Attribute
 {
     public virtual void ApplyExtension(IField field) { }

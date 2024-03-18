@@ -12,7 +12,7 @@ You can see the full changelog which includes other changes and bug fixes as wel
 
 ## `SchemaProvider.ExecuteRequest` change
 
-`SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` no longer take an instance of the schema context. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the perferred way to execute a query.
+`SchemaProvider.ExecuteRequest` & `SchemaProvider.ExecuteRequestAsync` no longer take an instance of the schema context. The context will be fetched from the provided `ServiceProvider` meaning the lifetime rules are adhered to - e.g. `ServiceLifetime.Transient` is now correctly used. This is the preferred way to execute a query.
 
 If you wish to maintain the 4.x execution you can use`ExecuteRequestWithContext` & `ExecuteRequestWithContextAsync` which operate in the same way as 4.x - the instance of the schema context passed in will be used for all references to that type.
 
@@ -52,7 +52,6 @@ Interface `IExposableException` has been removed. Use the existing `SchemaBuilde
 
 - `AutoCreateInputTypes` has been moved to `SchemaBuilderOptions` and is now defaulted to `true`.
 - `AddNonAttributedMethods` has been move to `SchemaBuilderOptions.AddNonAttributedMethodsInControllers`
-
 
 ## Register `GraphQLValidator`
 
