@@ -31,7 +31,12 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="newParam"></param>
         /// <param name="newFieldName"></param>
         /// <returns></returns>
-        public Expression Replace(Expression node, Expression toReplace, Expression newParam, bool replaceWholeExpression = false)
+        public Expression Replace(
+            Expression node,
+            Expression toReplace,
+            Expression newParam,
+            bool replaceWholeExpression = false
+        )
         {
             if (node == toReplace)
                 return newParam;
@@ -55,7 +60,12 @@ namespace EntityGraphQL.Compiler.Util
         /// <param name="newParam"></param>
         /// <param name="newContextFieldName"></param>
         /// <returns></returns>
-        public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string? newContextFieldName = null)
+        public Expression ReplaceByType(
+            Expression node,
+            Type toReplaceType,
+            Expression newParam,
+            string? newContextFieldName = null
+        )
         {
             this.newParam = newParam;
             this.toReplaceType = toReplaceType;
@@ -73,7 +83,11 @@ namespace EntityGraphQL.Compiler.Util
             if (toReplace != null && toReplace == node)
                 return newParam!;
 
-            if (toReplaceType != null && node.NodeType == ExpressionType.Parameter && toReplaceType == node.Type)
+            if (
+                toReplaceType != null
+                && node.NodeType == ExpressionType.Parameter
+                && toReplaceType == node.Type
+            )
                 return newParam!;
             return node;
         }
@@ -115,7 +129,13 @@ namespace EntityGraphQL.Compiler.Util
                 if (replaceWholeExpression)
                 {
                     // RequiredField<> causes a ctx.Field.Value
-                    if (node.Expression == toReplace || (node.Expression.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node.Expression).Expression == toReplace))
+                    if (
+                        node.Expression == toReplace
+                        || (
+                            node.Expression.NodeType == ExpressionType.MemberAccess
+                            && ((MemberExpression)node.Expression).Expression == toReplace
+                        )
+                    )
                     {
                         return newParam!;
                     }
@@ -154,7 +174,9 @@ namespace EntityGraphQL.Compiler.Util
                         {
                             if (nodeExp == null)
                             {
-                                throw new EntityGraphQLCompilerException($"Could not find field {node.Member.Name} on type {node.Type.Name}");
+                                throw new EntityGraphQLCompilerException(
+                                    $"Could not find field {node.Member.Name} on type {node.Type.Name}"
+                                );
                             }
                         }
                     }
@@ -179,17 +201,25 @@ namespace EntityGraphQL.Compiler.Util
 
             var left = base.Visit(node.Left);
             var right = base.Visit(node.Right);
-            // as we do not replace constants we need to make sure the types match as 
+            // as we do not replace constants we need to make sure the types match as
             // we now have dynamic types and the null might be of the original type
-            if (left.NodeType == ExpressionType.Constant && left.Type != right.Type)
+            var leftNonNullableType = left.Type.GetNonNullableType();
+            var rightNonNullableType = right.Type.GetNonNullableType();
+            if (left.NodeType == ExpressionType.Constant && leftNonNullableType != rightNonNullableType)
             {
                 left = Expression.Constant(null, right.Type);
             }
-            if (right.NodeType == ExpressionType.Constant && right.Type != left.Type)
+            if (right.NodeType == ExpressionType.Constant && rightNonNullableType != leftNonNullableType)
             {
                 right = Expression.Constant(null, left.Type);
             }
-            var bin = Expression.MakeBinary(node.NodeType, left, right, node.IsLiftedToNull, node.Method);
+            var bin = Expression.MakeBinary(
+                node.NodeType,
+                left,
+                right,
+                node.IsLiftedToNull,
+                node.Method
+            );
             return bin;
         }
 
@@ -202,9 +232,12 @@ namespace EntityGraphQL.Compiler.Util
             var ifTrue = base.Visit(node.IfTrue);
             var ifFalse = base.Visit(node.IfFalse);
             var type = node.Type;
-            if (node.Type.IsEnumerableOrArray() && (node.Type != ifTrue.Type || node.Type != ifFalse.Type))
+            if (
+                node.Type.IsEnumerableOrArray()
+                && (node.Type != ifTrue.Type || node.Type != ifFalse.Type)
+            )
             {
-                // we may have changed a IEnumerable<T> to an IEnumerable<TDymamic> where TDymamic is a dynamic type
+                // we may have changed a IEnumerable<T> to an IEnumerable<TDynamic> where TDynamic is a dynamic type
                 // built for the graph selection
 
                 // We create a NewArrayInit as part of the bulk service loading
@@ -230,12 +263,13 @@ namespace EntityGraphQL.Compiler.Util
             if (toReplace != null && toReplace == node)
                 return newParam!;
 
-            bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
+            bool baseCallIsEnumerable =
+                node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
             if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
             {
                 // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)
                 var key = node.Arguments[0];
-                // if we have already replaced this expression then use the cached version. 
+                // if we have already replaced this expression then use the cached version.
                 // e.g. Extension method where the same expression is passed to each method
                 cache.TryGetValue(key, out Expression? callBase);
                 if (callBase == null)
@@ -244,8 +278,12 @@ namespace EntityGraphQL.Compiler.Util
                     cache[key] = callBase;
                 }
 
-                var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
-                var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
+                var callBaseType = callBase.Type.IsEnumerableOrArray()
+                    ? callBase.Type.GetEnumerableOrArrayType()!
+                    : callBase.Type;
+                var oldCallBaseType = baseCallIsEnumerable
+                    ? node.Arguments[0].Type.GetEnumerableOrArrayType()!
+                    : node.Arguments[0].Type;
                 if (callBaseType != oldCallBaseType)
                 {
                     var replaceAgain = new ParameterReplacer();
@@ -256,13 +294,25 @@ namespace EntityGraphQL.Compiler.Util
                     {
                         if (oldArg is LambdaExpression oldLambda)
                         {
-                            var newArg = (LambdaExpression)replaceAgain.Replace(oldArg, ((LambdaExpression)oldArg).Parameters[0], Expression.Parameter(callBaseType));
+                            var newArg = (LambdaExpression)
+                                replaceAgain.Replace(
+                                    oldArg,
+                                    ((LambdaExpression)oldArg).Parameters[0],
+                                    Expression.Parameter(callBaseType)
+                                );
                             newArgs.Add(newArg);
-                            var argTypeNonList = newArg.ReturnType.IsEnumerableOrArray() ? newArg.ReturnType.GetEnumerableOrArrayType()! : null;
-                            var oldArgTypeNonList = oldLambda.ReturnType.IsEnumerableOrArray() ? oldLambda.ReturnType.GetEnumerableOrArrayType()! : null;
+                            var argTypeNonList = newArg.ReturnType.IsEnumerableOrArray()
+                                ? newArg.ReturnType.GetEnumerableOrArrayType()!
+                                : null;
+                            var oldArgTypeNonList = oldLambda.ReturnType.IsEnumerableOrArray()
+                                ? oldLambda.ReturnType.GetEnumerableOrArrayType()!
+                                : null;
                             if (oldTypeArgs.Contains(oldLambda.ReturnType))
                                 newTypeArgs.Add(newArg.ReturnType);
-                            else if (argTypeNonList != null && oldTypeArgs.Contains(oldArgTypeNonList))
+                            else if (
+                                argTypeNonList != null
+                                && oldTypeArgs.Contains(oldArgTypeNonList)
+                            )
                                 newTypeArgs.Add(argTypeNonList);
                         }
                         else
@@ -273,12 +323,24 @@ namespace EntityGraphQL.Compiler.Util
                         }
                     }
                     if (oldTypeArgs.Length != newTypeArgs.Count)
-                        throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");
-                    var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), newArgs.ToArray());
+                        throw new EntityGraphQLCompilerException(
+                            $"Post service object selection contains a method call with mismatched generic type arguments."
+                        );
+                    var newCall = Expression.Call(
+                        node.Method.DeclaringType!,
+                        node.Method.Name,
+                        newTypeArgs.ToArray(),
+                        newArgs.ToArray()
+                    );
                     return newCall;
                 }
             }
-            else if (baseCallIsEnumerable && !node.Type.IsEnumerableOrArray() && node.Arguments.Count == 1 && hasNewFieldNameForType)
+            else if (
+                baseCallIsEnumerable
+                && !node.Type.IsEnumerableOrArray()
+                && node.Arguments.Count == 1
+                && hasNewFieldNameForType
+            )
             {
                 // field is going from collection to a single - if execution is split over non service fields and then with
                 // the next context doesn't have the collection to single. It only has the single
@@ -296,7 +358,11 @@ namespace EntityGraphQL.Compiler.Util
                     callOn = base.Visit(callOn);
             }
 
-            return Expression.Call(callOn, node.Method, node.Arguments.Select(base.Visit).ToArray()!);
+            return Expression.Call(
+                callOn,
+                node.Method,
+                node.Arguments.Select(base.Visit).ToArray()!
+            );
         }
     }
 }

@@ -2326,6 +2326,7 @@ namespace EntityGraphQL.Tests
             return new User
             {
                 Id = id,
+                Field2 = "SingleCall"
             };
         }
 

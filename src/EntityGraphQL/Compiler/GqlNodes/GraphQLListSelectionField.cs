@@ -21,7 +21,6 @@ namespace EntityGraphQL.Compiler
     {
         public bool AllowToList { get; set; } = true;
         public Expression ListExpression { get; set; }
-        public GraphQLCollectionToSingleField? ToSingleNode { get; set; }
 
         /// <summary>
         /// Create a new GraphQLQueryNode. Represents both fields in the query as well as the root level fields on the Query type
@@ -32,7 +31,7 @@ namespace EntityGraphQL.Compiler
         /// <param name="nextFieldContext">A context for a field building on this. This will be the list element parameter</param>
         /// <param name="rootParameter">Root parameter used by this nodeExpression (movie in example above).</param>
         /// <param name="nodeExpression">Expression for the list</param>
-        /// <param name="context">Partent node</param>
+        /// <param name="context">Parent node</param>
         /// <param name="arguments"></param>
         public GraphQLListSelectionField(ISchemaProvider schema, IField? field, string name, ParameterExpression? nextFieldContext, ParameterExpression? rootParameter, Expression nodeExpression, IGraphQLNode context, Dictionary<string, object>? arguments)
             : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)

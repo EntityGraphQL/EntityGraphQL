@@ -245,7 +245,7 @@ namespace EntityGraphQL.Compiler
 
         protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
         {
-            if (Field?.BulkResolver != null)
+            if (Field?.BulkResolver != null && (ParentNode as BaseGraphQLQueryField)?.ToSingleNode == null)
             {
                 if (!withoutServiceFields)
                 {

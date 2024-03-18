@@ -56,6 +56,49 @@ public class ServiceFieldBulkTests
     }
 
     [Fact]
+    public void TestServicesBulkResolverWithinToSingle()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = @"{ 
+                project(id: 1) { 
+                    name createdBy { id field2 } 
+                } 
+            }"
+        };
+
+        var context = new TestDataContext
+        {
+            Projects = [
+                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
+                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic project = res.Data["project"];
+        Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
+        Assert.Equal(1, project.createdBy.id);
+        Assert.Equal("SingleCall", project.createdBy.field2);
+    }
+
+    [Fact]
     public void TestServicesBulkResolverFullObjectWithOrderBy()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

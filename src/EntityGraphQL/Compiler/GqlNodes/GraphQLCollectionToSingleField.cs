@@ -40,11 +40,12 @@ namespace EntityGraphQL.Compiler
             : base(schema, collectionNode.Field, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
         {
             CollectionSelectionNode = collectionNode;
-            // do not call tolist as we end up calling First()/etc
+            // do not call ToList as we end up calling First()/etc
             CollectionSelectionNode.AllowToList = false;
-            // we need a way to get back to this object in the heirarchy. Might revisit this later
+            // we need a way to get back to this object in the hierarchy. Might revisit this later
             CollectionSelectionNode.ToSingleNode = this;
             this.ObjectProjectionNode = objectProjectionNode;
+            ObjectProjectionNode.ToSingleNode = this;
             this.CombineExpression = combineExpression;
         }
 
