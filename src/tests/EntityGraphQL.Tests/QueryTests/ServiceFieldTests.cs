@@ -542,6 +542,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
             // Linking a type from a service back to the schema context
+            // basically a service field that contains another service field
             schema.Type<User>().ReplaceField("projects", "Users projects")
                 .Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.CreatedBy == user.Id));
 
