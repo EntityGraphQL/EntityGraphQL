@@ -304,10 +304,10 @@ Here is an example of a function that receives a `HttpRequestData`, from its Bod
 ```cs
 public class GraphQLFunctions
 {
-    private readonly DemoContext _ctx;
-    public GraphQLFunctions(DemoContext ctx)
+    private readonly DemoContext _dbContext;
+    public GraphQLFunctions(DemoContext dbContext)
     {
-        _ctx = ctx;
+        _dbContext = dbContext;
     }
 
     [Function(nameof(GraphQL))]
@@ -315,7 +315,7 @@ public class GraphQLFunctions
     {
         var query = await req.GetJsonBody<QueryRequest>(); //helper method to deserialize QueryRequest from req.Body
         var schemaProvider = SchemaBuilder.FromObject<DemoContext>();
-        var results = await schemaProvider.ExecuteRequestWithContextAsync(query, _ctx, null, null);
+        var results = await schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(results);
