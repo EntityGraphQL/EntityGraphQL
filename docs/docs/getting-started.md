@@ -270,7 +270,7 @@ services.AddSingleton<SchemaProvider<DemoContext>>();
 
 _See the [Schema Creation](./schema-creation) section to learn more about `SchemaBuilder.FromObject<T>>()`_
 
-### Executing a Query
+### Executing a Query in a custom controller
 
 Here is an example of a controller that receives a `QueryRequest` and executes the query. This logic could easily be applied to other web frameworks.
 
@@ -290,9 +290,36 @@ public class QueryController : Controller
     [HttpPost]
     public async Task<object> Post([FromBody]QueryRequest query)
     {
-        var results = await _schemaProvider.ExecuteRequestAsync(query, _dbContext, HttpContext.RequestServices, null);
+        var results = await _schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, HttpContext.RequestServices, null);
         // gql compile errors show up in results.Errors
         return results;
+    }
+}
+```
+
+### Executing a Query in azure functions (isolated)
+
+Here is an example of a function that receives a `HttpRequestData`, from its Body property `QueryRequest` is deserialized and graphQL query is executed.
+
+```cs
+public class GraphQLFunctions
+{
+    private readonly DemoContext _dbContext;
+    public GraphQLFunctions(DemoContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    [Function(nameof(GraphQL))]
+    public async Task<HttpResponseData> GraphQL([HttpTrigger(AuthorizationLevel.Function, "post", Route = "graphql")] HttpRequestData req)
+    {
+        var query = await req.GetJsonBody<QueryRequest>(); //helper method to deserialize QueryRequest from req.Body
+        var schemaProvider = SchemaBuilder.FromObject<DemoContext>();
+        var results = await schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await response.WriteAsJsonAsync(results);
+        return response;
     }
 }
 ```
