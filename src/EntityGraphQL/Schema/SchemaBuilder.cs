@@ -103,7 +103,7 @@ namespace EntityGraphQL.Schema
         private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp, SchemaBuilderOptions options)
         {
             if (fieldProp.ResolveExpression == null)
-                throw new ArgumentException($"Field {fieldProp.Name} does not have a resolve function. This is required for AutoCreateIdArguments to work.");
+                throw new ArgumentException($"Field '{fieldProp.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
             if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
                 return null;
             var returnSchemaType = fieldProp.ReturnType.SchemaType;
@@ -112,7 +112,7 @@ namespace EntityGraphQL.Schema
                 return null;
 
             if (idFieldDef.ResolveExpression == null)
-                throw new ArgumentException($"Field {idFieldDef.Name} does not have a resolve function. This is required for AutoCreateIdArguments to work.");
+                throw new ArgumentException($"Field '{idFieldDef.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
 
             // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
             // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()

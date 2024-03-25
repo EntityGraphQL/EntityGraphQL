@@ -82,11 +82,11 @@ namespace EntityGraphQL.Compiler
             foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
             {
                 if (!schemaType.HasField(item.Name.Value, null))
-                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found of type {schemaType.Name}");
+                    throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found of type '{schemaType.Name}'");
                 var schemaField = schemaType.GetField(item.Name.Value, null);
 
                 if (schemaField.ResolveExpression == null)
-                    throw new EntityGraphQLCompilerException($"Field {item.Name.Value} on type {schemaType.Name} has no resolve expression");
+                    throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' on type '{schemaType.Name}' has no resolve expression");
 
                 var nameFromType = ((MemberExpression)schemaField.ResolveExpression).Member.Name;
                 var prop = argType.GetProperty(nameFromType);
@@ -95,7 +95,7 @@ namespace EntityGraphQL.Compiler
                 {
                     var field = argType.GetField(nameFromType);
                     if (field == null)
-                        throw new EntityGraphQLCompilerException($"Field {item.Name.Value} not found on object argument");
+                        throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found on object argument");
                     field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
                 }
                 else

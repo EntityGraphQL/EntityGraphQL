@@ -158,7 +158,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                         return Expression.Default(enumType.TypeDotnet);
                     }
 
-                    throw new EntityGraphQLCompilerException($"Field {field} not found on type {schemaType.Name}");
+                    throw new EntityGraphQLCompilerException($"Field '{field}' not found on type '{schemaType.Name}'");
                 }
 
                 return enumOrConstantValue;
