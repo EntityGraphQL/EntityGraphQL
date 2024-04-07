@@ -1,3 +1,9 @@
+# 5.2.1
+
+## Fixes
+
+- #355 - make error variable values more distinctive
+
 # 5.2.0
 
 Check release notes for the 5.2.0-beta1 and beta2 below.
