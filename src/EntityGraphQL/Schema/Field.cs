@@ -172,7 +172,7 @@ namespace EntityGraphQL.Schema
             // check if we are taking args from elsewhere (extensions do this)
             if (UseArgumentsFromField != null && compileContext != null)
             {
-                newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field {UseArgumentsFromField.Name} in compile context.");
+                newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{UseArgumentsFromField.Name}' in compile context.");
                 argumentValue = compileContext.ConstantParameters[newArgParam];
             }
             else if (newArgParam != null)
@@ -210,7 +210,7 @@ namespace EntityGraphQL.Schema
                 returnType = ((MethodCallExpression)fieldExpression.Body).Type;
 
             if (typeof(Task).IsAssignableFrom(returnType))
-                throw new EntityGraphQLCompilerException($"Field {Name} is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
+                throw new EntityGraphQLCompilerException($"Field '{Name}' is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
 
             ReturnType = SchemaBuilder.MakeGraphQlType(Schema, returnType, null);
         }

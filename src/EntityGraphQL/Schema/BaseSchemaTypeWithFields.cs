@@ -136,7 +136,7 @@ namespace EntityGraphQL.Schema
         public IField AddField(IField field)
         {
             if (FieldsByName.ContainsKey(field.Name))
-                throw new EntityQuerySchemaException($"Field {field.Name} already exists on type {this.Name}. Use ReplaceField() if this is intended.");
+                throw new EntityQuerySchemaException($"Field '{field.Name}' already exists on type '{this.Name}'. Use ReplaceField() if this is intended.");
 
             OnAddField(field);
 
