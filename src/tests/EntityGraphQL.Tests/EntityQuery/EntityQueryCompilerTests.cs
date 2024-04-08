@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using System;
+using EntityGraphQL.Compiler.Grammar;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
@@ -19,10 +21,10 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         }
 
         [Fact]
-        public void CompilesNegitiveNumberConstant()
+        public void CompilesNegativeNumberConstant()
         {
             var exp = EntityQueryCompiler.Compile("-43");
-            Assert.Equal((long)(-43), exp.Execute());
+            Assert.Equal((long)-43, exp.Execute());
         }
 
         [Fact]
@@ -101,6 +103,20 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         }
 
         [Fact]
+        public void CompilesBinaryExpressionEqualsRoot()
+        {
+            var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>());
+            Assert.False((bool)exp.Execute(new TestSchema()));
+        }
+
+        [Fact]
+        public void CompilesBinaryExpressionEqualsAndAddRoot()
+        {
+            var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>());
+            Assert.True((bool)exp.Execute(new TestSchema()));
+        }
+
+        [Fact]
         public void CompilesBinaryExpressionEqualsAndAdd()
         {
             var exp = EntityQueryCompiler.Compile("someRelation.relation.id == (99 - 32)", SchemaBuilder.FromObject<TestSchema>());
@@ -112,7 +128,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         {
             // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
             var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>()));
-            Assert.Equal("Expected boolean value in conditional test but found '99'", ex.Message);
+            Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
         }
 
         [Fact]
@@ -212,13 +228,13 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
             var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider);
             var list = new List<Entry> {
-                new Entry("First") {
+                new("First") {
                     When = new DateTime(2020, 08, 10)
                 },
-                new Entry("Second") {
+                new("Second") {
                     When = new DateTime(2020, 08, 11)
                 },
-                new Entry("Third") {
+                new("Third") {
                     When = new DateTime(2020, 08, 12)
                 }
             };
@@ -264,13 +280,13 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
             var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider);
             var list = new List<Entry> {
-                new Entry("First") {
+                new("First") {
                     When = new DateTime(2020, 08, 10)
                 },
-                new Entry("Second") {
+                new("Second") {
                     When = new DateTime(2020, 08, 11, 13, 21, 11)
                 },
-                new Entry("Third") {
+                new("Third") {
                     When = new DateTime(2020, 08, 12, 13, 22, 11)
                 }
             };
@@ -282,10 +298,23 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         }
 
         [Fact]
+        public void CompilesEnumSimple()
+        {
+            var schema = SchemaBuilder.FromObject<TestSchema>();
+            var param = Expression.Parameter(typeof(Person));
+            var expressionParser = new EntityQueryParser(param, schema, null, null);
+            var exp = expressionParser.Parse("gender == Female");
+            var res = (bool)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person
+            {
+                Gender = Gender.Female
+            });
+            Assert.True(res);
+        }
+
+        [Fact]
         public void CompilesEnum()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            // schema.AddEnum("Gender", typeof(Gender), "My enum type");
             var exp = EntityQueryCompiler.Compile("people.where(gender == Female)", schema);
             var res = (IEnumerable<Person>)exp.Execute(new TestSchema());
             Assert.Empty(res);
@@ -299,10 +328,10 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var res = (IEnumerable<Person>)exp.Execute(new TestSchema
             {
                 People = new List<Person> {
-                    new Person {
+                    new() {
                         Gender = Gender.Female
                     },
-                    new Person {
+                    new() {
                         Gender = Gender.Other
                     }
 
@@ -375,6 +404,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         private class TestSchema
         {
             public string Hello { get { return "returned value"; } }
+            public int Num { get { return 33; } }
 
             public TestEntity SomeRelation { get { return new TestEntity("bob"); } }
             public IEnumerable<Person> People { get; set; } = new List<Person>();
