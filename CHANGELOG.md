@@ -3,6 +3,7 @@
 ## Fixes
 
 - #355 - make error variable values more distinctive
+- EntityGraphQL is now more specific in which methods it tries to optimize the pattern of a list to single. E.g. If a field has an expression like `ctx => ctx.People.FirstOrDefault(filter)` EntityGraphQL treats that as a ListToSingle field and will build a full expression similar to `ctx => ctx.People.Where(filter).Select(x => new {...}).FirstOrDefault()` to avoid over fetching when using EntityFramework. Previously EntityGraphQL would try to break up and rebuild expressions.methods it didn't know how to. It now correctly only tries this optimization on `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, `Last` & `LastOrDefault` from `Queryable` & `Enumerable`
 
 # 5.2.0
 
