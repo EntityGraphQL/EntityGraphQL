@@ -294,13 +294,14 @@ namespace EntityGraphQL.Tests
                 }",
             };
             var data = new TestDataContext();
-            data.People.Add(new Person { Id = 1, Birthday = new DateTime(2000, 1, 1) });
+            var date = new DateTime(2000, 1, 1);
+            data.People.Add(new Person { Id = 1, Birthday = date });
             var result = schema.ExecuteRequestWithContext(query, data, null, null, null);
             var person = ((dynamic)result.Data["people"])[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.Equal(1, person.id);
-            Assert.Equal("01 Jan 2000", person.birthday);
+            Assert.Equal(date.ToString("dd MMM yyyy"), person.birthday);
         }
     }
 
