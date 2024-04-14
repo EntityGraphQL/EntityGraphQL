@@ -4,7 +4,7 @@
     <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <AssemblyName>EntityGraphQL.AspNet</AssemblyName>
     <PackageId>EntityGraphQL.AspNet</PackageId>
-    <PackageVersion>5.2.0</PackageVersion>
+    <PackageVersion>5.3.0</PackageVersion>
     <Description>Contains ASP.NET extensions and middleware for EntityGraphQL</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>

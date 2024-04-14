@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -11,27 +10,40 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
 {
     private readonly bool isQueryable;
     private readonly Type listType;
-    private readonly List<IFieldExtension> extensions;
-    private readonly ParameterExpression originalFieldParam;
-    private readonly Expression previousItemsExpression;
 
-    public OffsetPagingItemsExtension(bool isQueryable, Type listType, List<IFieldExtension> extensions, ParameterExpression fieldParam, Expression previousItemsExpression)
+    public OffsetPagingItemsExtension(bool isQueryable, Type listType)
     {
         this.isQueryable = isQueryable;
         this.listType = listType;
-        this.extensions = extensions;
-        this.originalFieldParam = fieldParam;
-        this.previousItemsExpression = previousItemsExpression;
+    }
+
+    public override (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode)
+    {
+        // We know we need the arguments from the parent field as that is where they are defined
+        if (compileContext != null && parentNode != null)
+        {
+            newArgParam = compileContext.GetConstantParameterForField(parentNode.Field!) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+            argumentValue = compileContext.ConstantParameters[newArgParam];
+            originalArgParam = parentNode.Field!.ArgumentsParameter;
+        }
+        return (originalArgParam, newArgParam, argumentValue);
     }
 
     public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
     {
-        // other extensions expect to run on the collection not our new shape
-        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(field.ResolveExpression!, this.originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
-        // apply other expressions 
-        foreach (var extension in extensions)
+        // we use the resolveExpression & extensions from our parent extension. We need to figure this out at runtime as the type this Items field
+        // is on may be used in multiple places and have different arguments etc
+        // See OffsetPagingTests.TestMultiUseWithArgs
+        var offsetPagingExtension = (OffsetPagingExtension)parentNode!.Field!.Extensions.Find(e => e is OffsetPagingExtension)!;
+
+        var resolveExpression = offsetPagingExtension.OriginalFieldExpression!;
+        var originalFieldParam = parentNode.Field!.FieldParam!;
+        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(resolveExpression, originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
+        // other extensions defined on the original field need to run on the collection
+
+        foreach (var extension in offsetPagingExtension.Extensions)
         {
-            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
+            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
         }
 
         if (servicesPass)
@@ -41,8 +53,8 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
             throw new EntityGraphQLCompilerException("OffsetPagingItemsExtension requires an argument parameter to be passed in");
 
         // Build our items expression with the paging
-        newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", new Type[] { listType },
-            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", new Type[] { listType },
+        newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", [listType],
+            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", [listType],
                 newItemsExp,
                 Expression.PropertyOrField(argumentParam, "skip")
             ),
@@ -50,10 +62,5 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         );
 
         return newItemsExp;
-    }
-
-    public override Expression GetListExpressionForBulkResolve(Expression listExpression)
-    {
-        return previousItemsExpression;
     }
 }

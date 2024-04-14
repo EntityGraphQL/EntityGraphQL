@@ -13,6 +13,28 @@ namespace EntityGraphQL.Compiler.Util
 {
     public static class ExpressionUtil
     {
+        /// <summary>
+        /// List of methods that take a list and return a single item. We need to handle these differently as we need to 
+        /// add a Select() before the method call to optimize EF queries.
+        /// 
+        /// Any other method we wouldn't specifically know how to handle
+        /// </summary>
+        public static readonly HashSet<Tuple<Type, string>> ListToSingleMethods = [
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.First)),
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.FirstOrDefault)),
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.Last)),
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.LastOrDefault)),
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.Single)),
+            Tuple.Create(typeof(Enumerable), nameof(Enumerable.SingleOrDefault)),
+
+            Tuple.Create(typeof(Queryable), nameof(Queryable.First)),
+            Tuple.Create(typeof(Queryable), nameof(Queryable.FirstOrDefault)),
+            Tuple.Create(typeof(Queryable), nameof(Queryable.Last)),
+            Tuple.Create(typeof(Queryable), nameof(Queryable.LastOrDefault)),
+            Tuple.Create(typeof(Queryable), nameof(Queryable.Single)),
+            Tuple.Create(typeof(Queryable), nameof(Queryable.SingleOrDefault)),
+        ];
+
         public static Expression MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
         {
             var type = typeof(IQueryable).IsAssignableFrom(parameters.First().Type) ? typeof(Queryable) : typeof(Enumerable);
@@ -304,9 +326,7 @@ namespace EntityGraphQL.Compiler.Util
                 // we dot not want db => new {name = db.Entity.First(filter).Name, ...})
 
                 var call = (MethodCallExpression)combineExpression;
-                if (call.Method.Name == "First" || call.Method.Name == "FirstOrDefault" ||
-                    call.Method.Name == "Last" || call.Method.Name == "LastOrDefault" ||
-                    call.Method.Name == "Single" || call.Method.Name == "SingleOrDefault")
+                if (ListToSingleMethods.Contains(Tuple.Create(call.Method.DeclaringType!, call.Method.Name)))
                 {
                     // Get the expression that we can add the Select() too
                     var contextExpression = collectionSelectionNode.ListExpression;
@@ -317,8 +337,8 @@ namespace EntityGraphQL.Compiler.Util
                         var filter = call.Arguments.ElementAt(1);
                         var isQueryable = typeof(IQueryable).IsAssignableFrom(contextExpression.Type);
                         contextExpression = isQueryable ?
-                            MakeCallOnQueryable(nameof(Queryable.Where), new Type[] { combineExpression.Type }, contextExpression, filter) :
-                            MakeCallOnEnumerable(nameof(Enumerable.Where), new Type[] { combineExpression.Type }, contextExpression, filter);
+                            MakeCallOnQueryable(nameof(Queryable.Where), [combineExpression.Type], contextExpression, filter) :
+                            MakeCallOnEnumerable(nameof(Enumerable.Where), [combineExpression.Type], contextExpression, filter);
                         // we can first call ToList() as the data is filtered so risk of over fetching is low
                         capMethod = call.Method.Name;
                         collectionSelectionNode.ListExpression = contextExpression;
@@ -383,9 +403,14 @@ namespace EntityGraphQL.Compiler.Util
                         {
                             endExpression = exp;
                             var mc = (MethodCallExpression)exp;
-                            exp = mc.Object ?? mc.Arguments.First();
-                            if (exp.Type != baseExpression.Type && exp.Type.IsEnumerableOrArray() && exp.Type.GetEnumerableOrArrayType() != baseExpression.Type)
+                            if (ListToSingleMethods.Contains(Tuple.Create(mc.Method.DeclaringType!, mc.Method.Name)))
+                            {
+                                exp = mc.Arguments.First();
+                            }
+                            else
+                            {
                                 exp = null;
+                            }
                             break;
                         }
                     default:

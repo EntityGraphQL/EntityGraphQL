@@ -630,6 +630,59 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Null(result.Errors);
         }
 
+        [Fact]
+        public void TestMultiUseWithArgs()
+        {
+            // Issue #358
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            // make half short and half tall
+            for (var i = 0; i < data.People.Count; i++)
+            {
+                data.People[i].Height = i % 2 == 0 ? 100 : 200;
+            }
+
+            // This will create a ConnectionEdge<Person> type 
+            // the issue was the Field for ConnectionEdge<Person>.Items created once for that type has 
+            // UseArgumentsFromField set to peopleUnder when we want to query with peopleOver args
+            // We can't share the ConnectionEdge<Person> type if the field has other arguments
+
+            schema.Query().AddField("peopleOver", new
+            {
+                over = ArgumentHelper.Required<int>()
+            },
+            (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging();
+            schema.Query().AddField("peopleUnder", new
+            {
+                under = ArgumentHelper.Required<int>()
+            },
+                (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseConnectionPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    peopleOver(over: 120, first: 1) {
+                        totalCount
+                        edges {
+                            node {
+                                name id height
+                            }
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(result.Errors);
+            dynamic results = result.Data["peopleOver"];
+            Assert.Equal(1, Enumerable.Count(results.edges));
+            Assert.Equal(2, results.totalCount);
+            Assert.Equal(200, results.edges[0].node.height);
+        }
+
         private static void FillProjectData(TestDataContext data)
         {
             data.Projects = new List<Project>

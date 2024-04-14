@@ -42,13 +42,13 @@ namespace EntityGraphQL.Schema.Models
 
         // Fields is added dynamically so it is lazily loaded
 
-        public InputValue[] InputFields { get; set; } = Array.Empty<InputValue>();
+        public InputValue[] InputFields { get; set; } = [];
 
-        public TypeElement[] Interfaces { get; set; } = Array.Empty<TypeElement>();
+        public TypeElement[] Interfaces { get; set; } = [];
 
-        public EnumValue[] EnumValues { get; set; } = Array.Empty<EnumValue>();
+        public EnumValue[] EnumValues { get; set; } = [];
 
-        public TypeElement[] PossibleTypes { get; set; } = Array.Empty<TypeElement>();
+        public TypeElement[] PossibleTypes { get; set; } = [];
         public TypeElement? OfType { get; set; }
         public bool OneField { get; set; }
         // may be non-null for custom SCALAR, otherwise null.

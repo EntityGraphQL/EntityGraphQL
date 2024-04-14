@@ -20,7 +20,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public int TotalCount { get; set; }
         [GraphQLNotNull]
         [Description("Information about this page of data")]
-
         public ConnectionPageInfo PageInfo { get; set; }
     }
 }

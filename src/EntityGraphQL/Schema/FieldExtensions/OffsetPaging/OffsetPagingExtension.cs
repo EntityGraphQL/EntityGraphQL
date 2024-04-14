@@ -9,13 +9,12 @@ using EntityGraphQL.Extensions;
 namespace EntityGraphQL.Schema.FieldExtensions;
 
 /// <summary>
-/// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
+/// Sets up a few extensions to modify a collection expression (e.g. db.Movies.OrderBy()) into a paging graph
 /// </summary>
 public class OffsetPagingExtension : BaseFieldExtension
 {
-    private IField? itemsField;
-    private IField? field;
-    private List<IFieldExtension> extensions = new();
+    public Expression? OriginalFieldExpression { get; private set; }
+    public List<IFieldExtension> Extensions { get; private set; } = [];
     private bool isQueryable;
     private Type? listType;
     private Type? returnType;
@@ -45,7 +44,6 @@ public class OffsetPagingExtension : BaseFieldExtension
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
 
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
-        this.field = field;
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -70,28 +68,28 @@ public class OffsetPagingExtension : BaseFieldExtension
         isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
 
         // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
-        extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is OffsetPagingExtension)).ToList();
-        field.Extensions = field.Extensions.Skip(extensions.Count).ToList();
+        Extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is OffsetPagingExtension)).ToList();
+        field.Extensions = field.Extensions.Skip(Extensions.Count).ToList();
 
         // update the Items field before we update the field.Resolve below
-        itemsField = returnSchemaType.GetField("items", null);
-        var previousItemsExpression = itemsField.ResolveExpression!;
-        itemsField.UpdateExpression(field.ResolveExpression);
-        itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!, extensions, field.FieldParam!, previousItemsExpression));
-        itemsField.UseArgumentsFrom(field);
+        var itemsField = returnSchemaType.GetField("items", null);
+        OriginalFieldExpression = field.ResolveExpression!;
+        // if they have 2 fields with the type and paging we don't want to add extension multiple times
+        // See OffsetPagingTests.TestMultiUseWithArgs
+        if (!itemsField.Extensions.Any(e => e is OffsetPagingItemsExtension))
+            itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!));
 
         // set up the field's expression so the types are all good 
-        // rebuilt below if needed
         var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
 
     private MemberInitExpression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
-        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, resolve);
+        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType!], resolve);
 
         var expression = Expression.MemberInit(
-            Expression.New(returnType.GetConstructor(new[] { typeof(int), typeof(int?), typeof(int?) })!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
+            Expression.New(returnType.GetConstructor([typeof(int), typeof(int?), typeof(int?)])!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
         );
         return expression;
     }
@@ -108,9 +106,9 @@ public class OffsetPagingExtension : BaseFieldExtension
             throw new EntityGraphQLArgumentException($"Argument take can not be greater than {maxPageSize}.");
 
         // other extensions expect to run on the collection not our new shape
-        var newItemsExp = itemsField!.ResolveExpression!;
+        var newItemsExp = OriginalFieldExpression!;
         // update the context
-        foreach (var extension in extensions)
+        foreach (var extension in Extensions)
         {
             newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
         }
