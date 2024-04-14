@@ -60,17 +60,23 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesTake()
         {
+            var context = new TestSchema();
             var exp = EntityQueryCompiler.Compile("people.take(1)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
-            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            var result = exp.Execute(context) as IEnumerable<Person>;
             Assert.Single(result);
+            Assert.True(context.People.Count() > 1);
             Assert.Equal("Bob", result.ElementAt(0).Name);
+            Assert.Single(result);
         }
         [Fact]
         public void CompilesSkip()
         {
+            var context = new TestSchema();
             var exp = EntityQueryCompiler.Compile("people.Skip(1)", SchemaBuilder.FromObject<TestSchema>(), new DefaultMethodProvider());
-            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            var result = exp.Execute(context) as IEnumerable<Person>;
             Assert.Equal(3, result.Count());
+            Assert.NotEqual("Luke", context.People.ElementAt(0).Name);
+            Assert.Equal("Luke", context.People.ElementAt(1).Name);
             Assert.Equal("Luke", result.ElementAt(0).Name);
         }
 

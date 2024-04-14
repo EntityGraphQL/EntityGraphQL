@@ -19,8 +19,6 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Antlr4BuildTasks" Version="12.8.0" PrivateAssets="all" />
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
     <PackageReference Include="Parlot" Version="0.0.25" />
     <!-- <ProjectReference Include="/Users/lukemurray/Programming/github/parlot/src/Parlot/Parlot.csproj" /> -->
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
@@ -36,13 +34,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="" />
-  </ItemGroup>
-  <ItemGroup>
-    <Antlr4 Include="Compiler/Grammar/EntityQL.g4">
-      <Package>EntityQL.Grammar</Package>
-      <Listener>false</Listener>
-      <Visitor>True</Visitor>
-      <JavaExec>/usr/bin/java</JavaExec>
-    </Antlr4>
   </ItemGroup>
 </Project>

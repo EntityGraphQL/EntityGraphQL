@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
@@ -31,7 +30,7 @@ public sealed class EntityQueryParser
     private const string AndStr = "&&";
     private const string OrWord = "or";
     private const string OrStr = "||";
-    private readonly Parser<Expression> grammar;
+    private readonly Parser<IExpression> grammar;
 
     private static readonly Parser<string> multiply = Terms.Text(MultiplyChar);
     private static readonly Parser<string> divide = Terms.Text(DivideChar);
@@ -61,93 +60,97 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<Expression> longExp = Terms.Integer(NumberOptions.AllowSign)
-        .Then<Expression>(static d => Expression.Constant(d));
+    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowSign)
+        .Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
     // decimal point is required otherwise we want a long
-    private static readonly Parser<Expression> decimalExp = Terms.Integer(NumberOptions.AllowSign).And(dot).And(Terms.Integer(NumberOptions.None))
-        .Then<Expression>(static d => Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture)));
-    private static readonly Parser<Expression> nullExp = Terms.Text("null")
-        .Then<Expression>(static _ => Expression.Constant(null));
-    private static readonly Parser<Expression> trueExp = Terms.Text("true")
-        .Then<Expression>(static _ => Expression.Constant(true));
-    private static readonly Parser<Expression> falseExp = Terms.Text("false")
-        .Then<Expression>(static _ => Expression.Constant(false));
-    private static readonly Parser<Expression> strExp = Terms.String(StringLiteralQuotes.SingleOrDouble)
-        .Then<Expression>(static s => Expression.Constant(s.ToString()));
+    private static readonly Parser<IExpression> decimalExp = Terms.Integer(NumberOptions.AllowSign).And(dot).And(Terms.Integer(NumberOptions.None))
+        .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
+    private static readonly Parser<IExpression> nullExp = Terms.Text("null")
+        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
+    private static readonly Parser<IExpression> trueExp = Terms.Text("true")
+        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
+    private static readonly Parser<IExpression> falseExp = Terms.Text("false")
+        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
+    private static readonly Parser<IExpression> strExp = Terms.String(StringLiteralQuotes.SingleOrDouble)
+        .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
+    private readonly Expression? context;
+    private readonly ISchemaProvider? schema;
+    private readonly IMethodProvider methodProvider;
 
     public EntityQueryParser(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         // The Deferred helper creates a parser that can be referenced by others before it is defined
-        var expression = Deferred<Expression>();
+        var expression = Deferred<IExpression>();
 
         // "(" expression ")"
         var groupExpression = Between(openParen, expression, closeParen);
 
         var identifier = SkipWhiteSpace(new EqlIdentifier())
-            .Then(x => new IdentifierPart(x.ToString()));
+            .Then(x => new IdentifierOrCall(x.ToString()));
         var call = SkipWhiteSpace(new EqlIdentifier()).And(openParen).And(Separated(comma, expression)).And(closeParen)
-            .Then(x => new IdentifierPart(x.Item1.ToString(), x.Item3.ToList()));
+            .Then(x => new IdentifierOrCall(x.Item1.ToString(), [.. x.Item3]));
 
         var callPath = Separated(dot, OneOf(call, identifier))
-            .Then(d =>
-            {
-                var exp = d.Aggregate(context!, (currentContext, next) =>
-                {
-                    var nextField = next;
-                    try
-                    {
-                        if (nextField.IsCall)
-                        {
-                            if (currentContext == null)
-                                throw new EntityGraphQLCompilerException("CurrentContext is null");
+        .Then<IExpression>(p => new CallPath(p));
+        // .Then(d =>
+        // {
+        //     var exp = d.Aggregate(context!, (currentContext, next) =>
+        //     {
+        //         var nextField = next;
+        //         try
+        //         {
+        //             if (nextField.IsCall)
+        //             {
+        //                 if (currentContext == null)
+        //                     throw new EntityGraphQLCompilerException("CurrentContext is null");
 
-                            var method = nextField.Name;
-                            if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
-                            {
-                                throw new EntityGraphQLCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
-                            }
-                            // Keep the current context
-                            var outerContext = currentContext;
-                            // some methods might have a different inner context (IEnumerable etc)
-                            var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
-                            currentContext = methodArgContext;
-                            // Compile the arguments with the new context
-                            var args = nextField.Arguments?.ToList();
-                            // build our method call
-                            var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, currentContext.Type);
-                            currentContext = call;
-                            return call;
-                        }
-                        else
-                            return Expression.PropertyOrField(currentContext, nextField.Name);
-                    }
-                    catch (Exception)
-                    {
-                        var enumField = schema!.GetEnumTypes()
-                            .Select(e => e.GetFields().FirstOrDefault(f => f.Name == nextField.Name))
-                            .Where(f => f != null)
-                            .FirstOrDefault();
-                        if (enumField != null)
-                        {
-                            var exp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
-                            if (exp != null)
-                                return exp;
-                        }
+        //                 var method = nextField.Name;
+        //                 if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
+        //                 {
+        //                     throw new EntityGraphQLCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
+        //                 }
+        //                 // Keep the current context
+        //                 var outerContext = currentContext;
+        //                 // some methods might have a different inner context (IEnumerable etc)
+        //                 var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
+        //                 currentContext = methodArgContext;
+        //                 // Compile the arguments with the new context
+        //                 var args = nextField.Arguments?.ToList();
+        //                 // build our method call
+        //                 var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, currentContext.Type);
+        //                 currentContext = call;
+        //                 return call;
+        //             }
+        //             else
+        //                 return Expression.PropertyOrField(currentContext, nextField.Name);
+        //         }
+        //         catch (Exception)
+        //         {
+        //             var enumField = schema!.GetEnumTypes()
+        //                 .Select(e => e.GetFields().FirstOrDefault(f => f.Name == nextField.Name))
+        //                 .Where(f => f != null)
+        //                 .FirstOrDefault();
+        //             if (enumField != null)
+        //             {
+        //                 var exp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
+        //                 if (exp != null)
+        //                     return exp;
+        //             }
 
-                        throw new EntityGraphQLCompilerException($"Field '{next}' not found on type '{schema?.GetSchemaType(currentContext.Type, null)?.Name ?? currentContext.Type.Name}'");
-                    }
-                });
-                return exp;
-            });
+        //             throw new EntityGraphQLCompilerException($"Field '{next.Name}' not found on type '{schema?.GetSchemaType(currentContext.Type, null)?.Name ?? currentContext.Type.Name}'");
+        //         }
+        //     });
+        //     return exp;
+        // });
 
         // primary => NUMBER | "(" expression ")";
         var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(groupExpression).Or(callPath);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
-        var unary = Recursive<Expression>((u) =>
+        var unary = Recursive<IExpression>((u) =>
             minus.And(u)
-                .Then<Expression>(static x => Expression.Negate(x.Item2))
+                .Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, methodProvider))))
                 .Or(primary));
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
@@ -155,7 +158,7 @@ public sealed class EntityQueryParser
                             plus, minus,
                             power);
         var mathExp = unary.And(ZeroOrMany(mathOps.And(unary)))
-            .Then(HandleBinary);
+            .Then((x) => HandleBinary(x, context));
 
         // expression => mathExp ( ( "==" | "&&" | ... ) mathExp )* ;
         var logicalOps = OneOf(lessThanOrEqual, greaterThanOrEqual,
@@ -164,7 +167,7 @@ public sealed class EntityQueryParser
                             andWord, andSymbol,
                             orWord, orSymbol);
         var logicalBinary = mathExp.And(ZeroOrMany(logicalOps.And(mathExp)))
-            .Then(HandleBinary);
+            .Then((x) => HandleBinary(x, context));
 
         var conditional = OneOf(
             logicalBinary.And(questionMark).And(logicalBinary).And(colon).And(logicalBinary)
@@ -173,28 +176,31 @@ public sealed class EntityQueryParser
                     var condition = d.Item1;
                     var trueExp = d.Item3;
                     var falseExp = d.Item5;
-                    if (trueExp.Type != falseExp.Type)
-                        throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
-                    return (Expression)Expression.Condition(condition, trueExp, falseExp);
+                    // if (trueExp.Type != falseExp.Type)
+                    //     throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
+                    return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
                 }),
             ifExp.And(logicalBinary).And(thenExp).And(logicalBinary).And(elseExp).And(logicalBinary)
-                .Then(d =>
-                {
-                    var condition = d.Item2;
-                    var trueExp = d.Item4;
-                    var falseExp = d.Item6;
-                    if (trueExp.Type != falseExp.Type)
-                        throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
-                    return (Expression)Expression.Condition(condition, trueExp, falseExp);
-                })
+            .Then(d =>
+            {
+                var condition = d.Item2;
+                var trueExp = d.Item4;
+                var falseExp = d.Item6;
+                // if (trueExp.Type != falseExp.Type)
+                //     throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
+                return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
+            })
             );
 
         expression.Parser = conditional.Or(logicalBinary);
 
         grammar = expression;
+        this.context = context;
+        this.schema = schema;
+        this.methodProvider = methodProvider;
     }
 
-    private static Expression HandleBinary((Expression, List<(string, Expression)>) x)
+    private static IExpression HandleBinary((IExpression, List<(string, IExpression)>) x, Expression? context)
     {
         var left = x.Item1;
         var binaryExp = left;
@@ -225,20 +231,20 @@ public sealed class EntityQueryParser
                 _ => throw new NotSupportedException()
             };
 
-            if (left.Type != right.Type)
-            {
-                // if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
-                // {
-                //     var result = DoObjectComparisonOnDifferentTypes(op, left, right);
+            // if (left.Type != right.Type)
+            // {
+            //     // if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
+            //     // {
+            //     //     var result = DoObjectComparisonOnDifferentTypes(op, left, right);
 
-                //     if (result != null)
-                //         binaryExp = result;
-                // }
-                binaryExp = ConvertLeftOrRight(op, left, right);
-            }
-            else
+            //     //     if (result != null)
+            //     //         binaryExp = result;
+            //     // }
+            //     binaryExp = new EqlExpression(ConvertLeftOrRight(op, left.Compile(context), right.Compile(context)));
+            // }
+            // else
             {
-                binaryExp = Expression.MakeBinary(op, left, right);
+                binaryExp = new Binary(op, left, right);
             }
 
             left = binaryExp;
@@ -246,82 +252,11 @@ public sealed class EntityQueryParser
         return binaryExp;
     }
 
-    private static MethodCallExpression ConvertToDateTime(Expression expression)
-    {
-        return Expression.Call(typeof(DateTime), nameof(DateTime.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
-    }
-    private static MethodCallExpression ConvertToGuid(Expression expression)
-    {
-        return Expression.Call(typeof(Guid), nameof(Guid.Parse), null, Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!));
-    }
-    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
-    {
-        if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-            right = Expression.Convert(right, right.Type.GetNullableType());
-        else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-            left = Expression.Convert(left, left.Type.GetNullableType());
-
-        else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
-            right = Expression.Convert(right, left.Type);
-        else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
-            left = Expression.Convert(left, right.Type);
-
-        if (left.Type != right.Type)
-        {
-            if (left.Type.IsEnum && right.Type.IsEnum)
-                throw new EntityGraphQLCompilerException($"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
-            if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
-                right = ConvertToGuid(right);
-            else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
-                left = ConvertToGuid(left);
-            else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
-                right = ConvertToDateTime(right);
-            else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
-                left = ConvertToDateTime(left);
-            // convert ints "up" to float/decimal
-            else if ((left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong)) &&
-                    (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal)))
-                left = Expression.Convert(left, right.Type);
-            else if ((right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong)) &&
-                    (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal)))
-                right = Expression.Convert(right, left.Type);
-            else // default try to make types match
-                left = Expression.Convert(left, right.Type);
-        }
-
-        if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-            right = Expression.Convert(right, left.Type);
-        else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-            left = Expression.Convert(left, right.Type);
-
-        return Expression.MakeBinary(op, left, right);
-    }
-
     public Expression Parse(string query)
     {
         var result = grammar.Parse(query);
-        return result;
+        return result.Compile(context, schema, methodProvider);
     }
-}
-
-internal sealed class IdentifierPart
-{
-    private List<Expression>? arguments;
-
-    public IdentifierPart(string name)
-    {
-        this.Name = name;
-    }
-
-    public IdentifierPart(string v, List<Expression> arguments) : this(v)
-    {
-        this.arguments = arguments;
-    }
-
-    public bool IsCall => arguments != null;
-
-    public string Name { get; }
-    public IEnumerable<Expression>? Arguments => arguments;
 }
 
 /// <summary>

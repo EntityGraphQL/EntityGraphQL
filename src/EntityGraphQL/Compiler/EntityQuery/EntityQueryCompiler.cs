@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Antlr4.Runtime;
 using EntityGraphQL.Compiler.Grammar;
 using EntityGraphQL.Schema;
-using EntityQL.Grammer;
 
 namespace EntityGraphQL.Compiler.EntityQuery
 {
@@ -69,19 +67,8 @@ namespace EntityGraphQL.Compiler.EntityQuery
 
         private static Expression CompileQuery(string query, Expression? context, ISchemaProvider? schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider)
         {
-            var stream = new AntlrInputStream(query);
-            var lexer = new EntityQLLexer(stream);
-            var tokens = new CommonTokenStream(lexer);
-            var parser = new EntityQLParser(tokens)
-            {
-                BuildParseTree = true
-            };
-            var tree = parser.eqlStart();
-
-            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, requestContext);
-            var expression = visitor.Visit(tree);
-            // var expressionParser = new EntityQueryParser(context, schemaProvider, requestContext, methodProvider);
-            // var expression = expressionParser.Parse(query);
+            var expressionParser = new EntityQueryParser(context, schemaProvider, requestContext, methodProvider);
+            var expression = expressionParser.Parse(query);
             return expression;
         }
     }
