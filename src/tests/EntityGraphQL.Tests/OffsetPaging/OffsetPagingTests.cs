@@ -374,10 +374,62 @@ namespace EntityGraphQL.Tests.OffsetPaging
             Assert.True(tasks.hasNextPage);
             Assert.False(tasks.hasPreviousPage);
         }
+        [Fact]
+        public void TestMultiUseWithArgs()
+        {
+            // Issue #358
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            FillData(data);
+
+            // make half short and half tall
+            for (var i = 0; i < data.People.Count; i++)
+            {
+                data.People[i].Height = i % 2 == 0 ? 100 : 200;
+            }
+
+            // This will create a OffsetPage<Person> type 
+            // the issue was the Field for OffsetPage<Person>.Items created once for that type has 
+            // UseArgumentsFromField set to peopleUnder when we want to query with peopleOver args
+            // We can't share the OffsetPage<Person> type if the field has other arguments
+
+            schema.Query().AddField("peopleOver", new
+            {
+                over = ArgumentHelper.Required<int>()
+            },
+            (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseOffsetPaging();
+            schema.Query().AddField("peopleUnder", new
+            {
+                under = ArgumentHelper.Required<int>()
+            },
+                (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id), "Return list of people with paging metadata")
+                .UseOffsetPaging();
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    peopleOver(over: 120, skip: 0, take: 1) {
+                        hasPreviousPage
+                        hasNextPage
+                        totalItems
+                        items {
+                            name id height
+                        }
+                    }
+                }",
+            };
+
+            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+            Assert.Null(result.Errors);
+            dynamic results = result.Data["peopleOver"];
+            Assert.Equal(1, Enumerable.Count(results.items));
+            Assert.Equal(2, results.totalItems);
+            Assert.Equal(200, results.items[0].height);
+        }
         private class TestDataContext2 : TestDataContext
         {
             [UseOffsetPaging]
-            public override List<Person> People { get; set; } = new List<Person>();
+            public override List<Person> People { get; set; } = [];
         }
         private static void FillData(TestDataContext data)
         {

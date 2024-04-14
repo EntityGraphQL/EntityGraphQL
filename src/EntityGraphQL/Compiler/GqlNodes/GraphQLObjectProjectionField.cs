@@ -123,7 +123,7 @@ namespace EntityGraphQL.Compiler
             var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
             var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
 
-            // do not need to inject serivces here as this expression is used in the call arguments
+            // do not need to inject services here as this expression is used in the call arguments
             var updatedExpression = nextFieldContext;
             // replace with null_wrap
             // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match

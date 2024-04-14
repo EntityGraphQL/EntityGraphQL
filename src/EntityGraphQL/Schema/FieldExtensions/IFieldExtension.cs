@@ -37,6 +37,16 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="listExpression"></param>
         /// <returns></returns>
         Expression GetListExpressionForBulkResolve(Expression listExpression);
+        /// <summary>
+        /// Called when the field is being finalized for execution allowing the extension to modify arguments for example
+        /// to bring arguments from a parent node down to the current field
+        /// </summary>
+        /// <param name="newArgParam"></param>
+        /// <param name="argumentValue"></param>
+        /// <param name="compileContext"></param>
+        /// <param name="parentNode"></param>
+        /// <returns></returns>
+        (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode);
 
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet selected the fields for selection on this expression

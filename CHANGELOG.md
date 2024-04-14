@@ -1,3 +1,30 @@
+# 5.3.0
+
+## Changes
+
+- `IField.UseArgumentsFrom` & `IField.UseArgumentsFromField` is now Obsolete. Using it (typically in a field extension) creates issues. See #358 fix below
+- `IFieldExtension.ProcessArguments` has been added to allow field extensions to handle arguments and add them to the compile context. This interface may merge with the existing `IFieldExtension.GetExpression` in version 6.0. This was introduced to fix #358 and avoid breaking changes
+
+## Fixes
+
+- #358 - `OffsetPaging` and `ConnectionPaging` field extensions can now be used on multiple fields that return the same type. e.g.
+
+```
+// both fields return a list of people but have different expressions
+schema.Query().AddField("peopleOver", new
+  {
+      over = ArgumentHelper.Required<int>()
+  },
+  (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id), "Return list of people with paging metadata")
+  .UseOffsetPaging();
+schema.Query().AddField("peopleUnder", new
+  {
+      under = ArgumentHelper.Required<int>()
+  },
+  (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id), "Return list of people with paging metadata")
+  .UseOffsetPaging();
+```
+
 # 5.2.1
 
 ## Fixes

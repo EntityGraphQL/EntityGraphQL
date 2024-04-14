@@ -32,6 +32,7 @@ namespace EntityGraphQL.Schema
         public bool ArgumentsAreInternal { get; internal set; }
         public List<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
         public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
         public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
 
@@ -102,7 +103,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Update the expression used to resolve this fields value
+        /// Update the expression used to resolve this fields value. Avoid using this for sub fields in field extensions that change the shape (e.g. paging)
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
@@ -142,6 +143,7 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
         public void UseArgumentsFrom(IField field)
         {
             // Move the arguments definition to the new field as it needs them for processing
@@ -152,6 +154,7 @@ namespace EntityGraphQL.Schema
             ArgumentsAreInternal = true;
             UseArgumentsFromField = field;
         }
+
         /// <summary>
         /// To access this field all roles listed here are required
         /// </summary>

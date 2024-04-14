@@ -168,29 +168,37 @@ namespace EntityGraphQL.Schema
             object? argumentValue = null;
             Expression? result = fieldExpression;
             var validationErrors = new List<string>();
-            var newArgParam = ArgumentsParameter;
+            var originalArgParam = ArgumentsParameter;
+            ParameterExpression? newArgParam = null;
+
+            if (originalArgParam != null)
+            {
+                // create a new argument for execution
+                newArgParam = Expression.Parameter(originalArgParam.Type, $"{originalArgParam.Name}_exec");
+                compileContext?.AddArgsToCompileContext(this, args, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
+            }
+
             // check if we are taking args from elsewhere (extensions do this)
+#pragma warning disable CS0618 // Type or member is obsolete
+            // TODO remove in 6.0
             if (UseArgumentsFromField != null && compileContext != null)
             {
                 newArgParam = compileContext.GetConstantParameterForField(UseArgumentsFromField) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{UseArgumentsFromField.Name}' in compile context.");
                 argumentValue = compileContext.ConstantParameters[newArgParam];
             }
-            else if (newArgParam != null)
-            {
-                newArgParam = Expression.Parameter(newArgParam.Type, $"{newArgParam.Name}_exec");
-                compileContext?.AddArgsToCompileContext(this, args, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
-            }
-
+#pragma warning restore CS0618 // Type or member is obsolete
             if (Extensions.Count > 0)
             {
                 foreach (var extension in Extensions)
                 {
+                    // TODO merge with GetExpression below in 6.0
+                    (originalArgParam, newArgParam, argumentValue) = extension.ProcessArguments(originalArgParam, newArgParam, argumentValue, compileContext, parentNode);
                     if (result != null)
                         result = extension.GetExpression(this, result, newArgParam, argumentValue, context, parentNode, servicesPass, replacer);
                 }
             }
 
-            GraphQLHelper.ValidateAndReplaceFieldArgs(this, ArgumentsParameter, replacer, ref argumentValue, ref result!, validationErrors, newArgParam);
+            GraphQLHelper.ValidateAndReplaceFieldArgs(this, originalArgParam, replacer, ref argumentValue, ref result!, validationErrors, newArgParam);
 
             return (result, newArgParam);
         }

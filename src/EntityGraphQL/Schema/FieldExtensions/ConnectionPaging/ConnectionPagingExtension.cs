@@ -13,18 +13,19 @@ namespace EntityGraphQL.Schema.FieldExtensions
     /// </summary>
     public class ConnectionPagingExtension : BaseFieldExtension
     {
-        private readonly int? defaultPageSize;
-        private readonly int? maxPageSize;
-        private IField? edgesField;
         private Type? listType;
         private bool isQueryable;
         private Type? returnType;
-        private List<IFieldExtension> extensionsBeforePaging = new();
+
+        public Expression? OriginalFieldExpression { get; private set; }
+        public int? DefaultPageSize { get; }
+        public int? MaxPageSize { get; }
+        public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];
 
         public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
         {
-            this.defaultPageSize = defaultPageSize;
-            this.maxPageSize = maxPageSize;
+            DefaultPageSize = defaultPageSize;
+            MaxPageSize = maxPageSize;
         }
 
         /// <summary>
@@ -81,22 +82,19 @@ namespace EntityGraphQL.Schema.FieldExtensions
             field.AddArguments(new ConnectionArgs());
 
             // set up Extension on Edges.Node field to handle the Select() insertion
-            edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
-            var previousEdgesExpression = edgesField.ResolveExpression;
-            // move expression
-            // This is the original expression that was defined in the schema - the collection
-            // UseConnectionPaging() basically moves it to originalField.edges
-            edgesField.UpdateExpression(field.ResolveExpression);
-            // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
-            extensionsBeforePaging = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
-            // the remaining extensions expect to be built from the ConnectionPaging shape
-            field.Extensions = field.Extensions.Skip(extensionsBeforePaging.Count).ToList();
+            var edgesField = returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null);
 
+            // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
+            ExtensionsBeforePaging = field.Extensions.Take(field.Extensions.FindIndex(e => e is ConnectionPagingExtension)).ToList();
+            // the remaining extensions expect to be built from the ConnectionPaging shape
+            field.Extensions = field.Extensions.Skip(ExtensionsBeforePaging.Count).ToList();
             // We use this extension to update the Edges context by inserting the Select() which we get from the above extension
-            var edgesExtension = new ConnectionEdgeExtension(listType, isQueryable, extensionsBeforePaging, field.FieldParam!, defaultPageSize, maxPageSize, previousEdgesExpression!);
-            edgesField.AddExtension(edgesExtension);
-            // args on field get used in edges field we inject
-            edgesField.UseArgumentsFrom(field);
+            // if they have 2 fields with the type and paging we don't want to add extension multiple times
+            // See OffsetPagingTests.TestMultiUseWithArgs
+            if (!edgesField.Extensions.Any(e => e is ConnectionEdgeExtension))
+                edgesField.AddExtension(new ConnectionEdgeExtension(listType, isQueryable));
+
+            OriginalFieldExpression = field.ResolveExpression;
 
             // Rebuild expression so all the fields and types are known
             // and get it ready for completion at runtime (we need to know the selection fields to complete)
@@ -133,7 +131,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             //      return .... // does the select of only the Connection fields asked for
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType }, edgesField.ResolveExpression!);
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType], OriginalFieldExpression!);
             var argTypes = new List<Type>
             {
                 totalCountExp.Type,
@@ -163,18 +161,18 @@ namespace EntityGraphQL.Schema.FieldExtensions
 #endif
 
             // totalCountExp gets executed once in the new Connection() {} and we can reuse it
-            var edgeExpression = edgesField!.ResolveExpression;
+            var edgeExpression = OriginalFieldExpression!;
 
-            if (edgesField.Extensions.Count > 0)
+            if (ExtensionsBeforePaging.Count > 0)
             {
                 // if we have other extensions (filter etc) we need to apply them to the totalCount
-                foreach (var extension in extensionsBeforePaging)
+                foreach (var extension in ExtensionsBeforePaging)
                 {
-                    edgeExpression = extension.GetExpression(edgesField, edgeExpression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
+                    edgeExpression = extension.GetExpression(field, edgeExpression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
                 }
             }
-            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", new Type[] { listType! }, edgeExpression!);
-            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor(new[] { totalCountExp.Type, argumentParam.Type })!, totalCountExp, argumentParam));
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], edgeExpression!);
+            expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor([totalCountExp.Type, argumentParam.Type])!, totalCountExp, argumentParam));
 
             return expression;
         }
