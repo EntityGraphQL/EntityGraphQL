@@ -13,12 +13,12 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
 
     public Type Type => parts.Last().Type;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         if (parts.Count == 1)
         {
             var name = parts[0].Name;
-            return MakePropertyCall(context!, schema, name, methodProvider);
+            return MakePropertyCall(context!, schema, name, requestContext, methodProvider);
         }
         var exp = parts.Aggregate(context!, (currentContext, next) =>
         {
@@ -26,17 +26,17 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
             {
                 if (id.IsCall)
                 {
-                    return MakeMethodCall(schema, methodProvider, ref currentContext, id.Name, id.Arguments);
+                    return MakeMethodCall(schema, methodProvider, ref currentContext, id.Name, id.Arguments, requestContext);
                 }
                 else
-                    return MakePropertyCall(currentContext!, schema, id.Name, methodProvider);
+                    return MakePropertyCall(currentContext!, schema, id.Name, requestContext, methodProvider);
             }
             throw new NotImplementedException();
         });
         return exp;
     }
 
-    private static Expression MakeMethodCall(ISchemaProvider? schema, IMethodProvider methodProvider, ref Expression currentContext, string name, List<IExpression>? arguments)
+    private static Expression MakeMethodCall(ISchemaProvider? schema, IMethodProvider methodProvider, ref Expression currentContext, string name, List<IExpression>? arguments, QueryRequestContext requestContext)
     {
         if (currentContext == null)
             throw new EntityGraphQLCompilerException("CurrentContext is null");
@@ -55,36 +55,62 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
         var args = arguments?.ToList();
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
-        var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(a => a.Compile(localContext, schema, methodProvider)), currentContext.Type);
+        var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider)), currentContext.Type);
         currentContext = call;
         return call;
     }
 
-    private static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, IMethodProvider methodProvider)
+    private static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
-        try
+        if (schema == null)
         {
-            return Expression.PropertyOrField(context!, name);
+            try
+            {
+                return Expression.PropertyOrField(context!, name);
+            }
+            catch (Exception)
+            {
+                return MakeConstantFromIdentity(context, schema, name, requestContext);
+            }
         }
-        catch (Exception)
-        {
-            var enumField = schema!.GetEnumTypes()
-                .Select(e => e.GetFields().FirstOrDefault(f => f.Name == name))
-                .Where(f => f != null)
-                .FirstOrDefault();
-            if (enumField != null)
-            {
-                var constExp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
-                if (constExp != null)
-                    return constExp;
-            }
-            // Check for a method because the parser is not always catching empty ()
-            if (methodProvider.EntityTypeHasMethod(context.Type, name))
-            {
-                return MakeMethodCall(schema, methodProvider, ref context, name, []);
-            }
+        // we have a schema we follow it for fields etc
+        var schemaType = schema.GetSchemaType(context.Type, requestContext);
 
-            throw new EntityGraphQLCompilerException($"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, null)?.Name ?? context!.Type.Name}'");
+        if (!schemaType.HasField(name, requestContext))
+        {
+            return MakeConstantFromIdentity(context, schema, name, requestContext);
         }
+
+        if (schemaType.IsEnum)
+        {
+            return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, name));
+        }
+        var gqlField = schemaType.GetField(name, requestContext);
+        (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, context, null, null, null, new Dictionary<string, object>(), null, null, [], false, new Util.ParameterReplacer());
+        return exp!;
+    }
+
+    private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext)
+    {
+        var enumField = schema!.GetEnumTypes()
+                            .Select(e => e.GetFields().FirstOrDefault(f => f.Name == name))
+                            .Where(f => f != null)
+                            .FirstOrDefault();
+        if (enumField != null)
+        {
+            var constExp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
+            if (constExp != null)
+                return constExp;
+        }
+        if (schema.HasType(name))
+        {
+            var type = schema.GetSchemaType(name, requestContext);
+            if (type.IsEnum)
+            {
+                return Expression.Default(type.TypeDotnet);
+            }
+        }
+
+        throw new EntityGraphQLCompilerException($"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, null)?.Name ?? context!.Type.Name}'");
     }
 }

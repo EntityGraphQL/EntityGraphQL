@@ -14,7 +14,7 @@ internal sealed class IdentifierOrCall(string name, List<IExpression>? arguments
     public List<IExpression>? Arguments { get; } = arguments;
     public bool IsCall => Arguments != null;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         throw new NotImplementedException();
     }

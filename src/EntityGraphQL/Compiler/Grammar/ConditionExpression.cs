@@ -13,14 +13,14 @@ internal sealed class ConditionExpression(IExpression condition, IExpression ifT
 
     public Type Type => ifTrue.Type;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
-        var trueExp = ifTrue.Compile(context, schema, methodProvider);
-        var falseExp = ifFalse.Compile(context, schema, methodProvider);
+        var trueExp = ifTrue.Compile(context, schema, requestContext, methodProvider);
+        var falseExp = ifFalse.Compile(context, schema, requestContext, methodProvider);
 
         if (trueExp.Type != falseExp.Type)
             throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
 
-        return Expression.Condition(condition.Compile(context, schema, methodProvider), trueExp, falseExp);
+        return Expression.Condition(condition.Compile(context, schema, requestContext, methodProvider), trueExp, falseExp);
     }
 }

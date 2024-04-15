@@ -15,10 +15,10 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     public IExpression Left { get; } = left;
     public IExpression Right { get; } = right;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
-        var left = Left.Compile(context, schema, methodProvider);
-        var right = Right.Compile(context, schema, methodProvider);
+        var left = Left.Compile(context, schema, requestContext, methodProvider);
+        var right = Right.Compile(context, schema, requestContext, methodProvider);
         if (left.Type != right.Type)
         {
             // if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
@@ -84,4 +84,25 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     {
         return Expression.Call(typeof(Guid), nameof(Guid.Parse), null, Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!));
     }
+
+    // private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
+    // {
+    //     var convertedToSameTypes = false;
+
+    //     // leftGuid == 'asdasd' == null ? (Guid) null : new Guid('asdasdas'.ToString())
+    //     // leftGuid == null
+    //     if (left.Type == typeof(Guid) && right.Type != typeof(Guid))
+    //     {
+    //         right = ConvertToGuid(right);
+    //         convertedToSameTypes = true;
+    //     }
+    //     else if (right.Type == typeof(Guid) && left.Type != typeof(Guid))
+    //     {
+    //         left = ConvertToGuid(left);
+    //         convertedToSameTypes = true;
+    //     }
+
+    //     var result = convertedToSameTypes ? (Expression)Expression.MakeBinary(op, left, right) : null;
+    //     return result;
+    // }
 }

@@ -344,8 +344,6 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesEnum3()
         {
-
-
             var schema = SchemaBuilder.FromObject<TestSchema>();
             var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema);
             var res = (IEnumerable<Person>)exp.Execute(new TestSchema

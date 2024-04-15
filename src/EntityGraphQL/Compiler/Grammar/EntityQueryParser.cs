@@ -74,6 +74,7 @@ public sealed class EntityQueryParser
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
     private readonly Expression? context;
     private readonly ISchemaProvider? schema;
+    private readonly QueryRequestContext requestContext;
     private readonly IMethodProvider methodProvider;
 
     public EntityQueryParser(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
@@ -103,7 +104,7 @@ public sealed class EntityQueryParser
         // ( "-" ) unary | primary;
         var unary = Recursive<IExpression>((u) =>
             minus.And(u)
-                .Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, methodProvider))))
+                .Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, requestContext, methodProvider))))
                 .Or(primary));
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
@@ -146,6 +147,7 @@ public sealed class EntityQueryParser
         grammar = expression;
         this.context = context;
         this.schema = schema;
+        this.requestContext = requestContext;
         this.methodProvider = methodProvider;
     }
 
@@ -189,6 +191,6 @@ public sealed class EntityQueryParser
     public Expression Parse(string query)
     {
         var result = grammar.Parse(query);
-        return result.Compile(context, schema, methodProvider);
+        return result.Compile(context, schema, requestContext, methodProvider);
     }
 }

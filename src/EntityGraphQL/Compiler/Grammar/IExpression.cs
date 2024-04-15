@@ -8,7 +8,7 @@ namespace EntityGraphQL.Compiler.Grammar;
 internal interface IExpression
 {
     Type Type { get; }
-    Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider);
+    Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider);
 }
 
 internal sealed class EqlExpression(Expression value) : IExpression
@@ -17,7 +17,7 @@ internal sealed class EqlExpression(Expression value) : IExpression
 
     public Type Type => value.Type;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         return value;
     }
