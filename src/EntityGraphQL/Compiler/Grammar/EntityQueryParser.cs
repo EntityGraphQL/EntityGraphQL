@@ -4,8 +4,6 @@ using System.Globalization;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
-using Parlot;
-using Parlot.Compilation;
 using Parlot.Fluent;
 using static Parlot.Fluent.Parsers;
 
@@ -70,7 +68,7 @@ public sealed class EntityQueryParser
         .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
     private static readonly Parser<IExpression> falseExp = Terms.Text("false")
         .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
-    private static readonly Parser<IExpression> strExp = Terms.String(StringLiteralQuotes.SingleOrDouble)
+    private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
     private readonly Expression? context;
     private readonly ISchemaProvider? schema;
@@ -115,12 +113,15 @@ public sealed class EntityQueryParser
             .Then((x) => HandleBinary(x, context));
 
         // expression => mathExp ( ( "==" | "&&" | ... ) mathExp )* ;
-        var logicalOps = OneOf(lessThanOrEqual, greaterThanOrEqual,
+        var compareOps = OneOf(lessThanOrEqual, greaterThanOrEqual,
                             lessThan, greaterThan,
-                            equals, notEquals,
-                            andWord, andSymbol,
+                            equals, notEquals);
+        var compareExp = mathExp.And(ZeroOrMany(compareOps.And(mathExp)))
+            .Then((x) => HandleBinary(x, context));
+
+        var logicalOps = OneOf(andWord, andSymbol,
                             orWord, orSymbol);
-        var logicalBinary = mathExp.And(ZeroOrMany(logicalOps.And(mathExp)))
+        var logicalBinary = compareExp.And(ZeroOrMany(logicalOps.And(compareExp)))
             .Then((x) => HandleBinary(x, context));
 
         var conditional = OneOf(
@@ -190,7 +191,7 @@ public sealed class EntityQueryParser
 
     public Expression Parse(string query)
     {
-        var result = grammar.Parse(query);
+        var result = grammar.Parse(query) ?? throw new EntityGraphQLCompilerException("Failed to parse query");
         return result.Compile(context, schema, requestContext, methodProvider);
     }
 }
