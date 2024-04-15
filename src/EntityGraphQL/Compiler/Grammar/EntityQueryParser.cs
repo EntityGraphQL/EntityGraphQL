@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using Parlot;
 using Parlot.Compilation;
@@ -85,66 +84,20 @@ public sealed class EntityQueryParser
         // "(" expression ")"
         var groupExpression = Between(openParen, expression, closeParen);
 
-        var identifier = SkipWhiteSpace(new EqlIdentifier())
-            .Then(x => new IdentifierOrCall(x.ToString()));
-        var call = SkipWhiteSpace(new EqlIdentifier()).And(openParen).And(Separated(comma, expression)).And(closeParen)
-            .Then(x => new IdentifierOrCall(x.Item1.ToString(), [.. x.Item3]));
+        var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
+        var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>());
+
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs))
+            .Then(static x => new IdentifierOrCall(x.Item1.ToString()));
+
+        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs))
+            .Then(static x => new IdentifierOrCall(x.Item1.ToString(), x.Item2));
 
         var callPath = Separated(dot, OneOf(call, identifier))
-        .Then<IExpression>(p => new CallPath(p));
-        // .Then(d =>
-        // {
-        //     var exp = d.Aggregate(context!, (currentContext, next) =>
-        //     {
-        //         var nextField = next;
-        //         try
-        //         {
-        //             if (nextField.IsCall)
-        //             {
-        //                 if (currentContext == null)
-        //                     throw new EntityGraphQLCompilerException("CurrentContext is null");
-
-        //                 var method = nextField.Name;
-        //                 if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
-        //                 {
-        //                     throw new EntityGraphQLCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
-        //                 }
-        //                 // Keep the current context
-        //                 var outerContext = currentContext;
-        //                 // some methods might have a different inner context (IEnumerable etc)
-        //                 var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
-        //                 currentContext = methodArgContext;
-        //                 // Compile the arguments with the new context
-        //                 var args = nextField.Arguments?.ToList();
-        //                 // build our method call
-        //                 var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, currentContext.Type);
-        //                 currentContext = call;
-        //                 return call;
-        //             }
-        //             else
-        //                 return Expression.PropertyOrField(currentContext, nextField.Name);
-        //         }
-        //         catch (Exception)
-        //         {
-        //             var enumField = schema!.GetEnumTypes()
-        //                 .Select(e => e.GetFields().FirstOrDefault(f => f.Name == nextField.Name))
-        //                 .Where(f => f != null)
-        //                 .FirstOrDefault();
-        //             if (enumField != null)
-        //             {
-        //                 var exp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
-        //                 if (exp != null)
-        //                     return exp;
-        //             }
-
-        //             throw new EntityGraphQLCompilerException($"Field '{next.Name}' not found on type '{schema?.GetSchemaType(currentContext.Type, null)?.Name ?? currentContext.Type.Name}'");
-        //         }
-        //     });
-        //     return exp;
-        // });
+            .Then<IExpression>(static p => new CallPath(p));
 
         // primary => NUMBER | "(" expression ")";
-        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(groupExpression).Or(callPath);
+        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
@@ -171,23 +124,19 @@ public sealed class EntityQueryParser
 
         var conditional = OneOf(
             logicalBinary.And(questionMark).And(logicalBinary).And(colon).And(logicalBinary)
-                .Then(d =>
+                .Then(static d =>
                 {
                     var condition = d.Item1;
                     var trueExp = d.Item3;
                     var falseExp = d.Item5;
-                    // if (trueExp.Type != falseExp.Type)
-                    //     throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
                     return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
                 }),
             ifExp.And(logicalBinary).And(thenExp).And(logicalBinary).And(elseExp).And(logicalBinary)
-            .Then(d =>
+            .Then(static d =>
             {
                 var condition = d.Item2;
                 var trueExp = d.Item4;
                 var falseExp = d.Item6;
-                // if (trueExp.Type != falseExp.Type)
-                //     throw new EntityGraphQLCompilerException($"Conditional result types mismatch. Types '{trueExp.Type.Name}' and '{falseExp.Type.Name}' must be the same.");
                 return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
             })
             );
@@ -230,22 +179,7 @@ public sealed class EntityQueryParser
                 OrStr => ExpressionType.Or,
                 _ => throw new NotSupportedException()
             };
-
-            // if (left.Type != right.Type)
-            // {
-            //     // if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
-            //     // {
-            //     //     var result = DoObjectComparisonOnDifferentTypes(op, left, right);
-
-            //     //     if (result != null)
-            //     //         binaryExp = result;
-            //     // }
-            //     binaryExp = new EqlExpression(ConvertLeftOrRight(op, left.Compile(context), right.Compile(context)));
-            // }
-            // else
-            {
-                binaryExp = new Binary(op, left, right);
-            }
+            binaryExp = new Binary(op, left, right);
 
             left = binaryExp;
         }
@@ -256,98 +190,5 @@ public sealed class EntityQueryParser
     {
         var result = grammar.Parse(query);
         return result.Compile(context, schema, methodProvider);
-    }
-}
-
-/// <summary>
-/// From Parlot.Fluent.Identifier so I can ignore keywords.
-/// Better way? Hopefully
-/// </summary>
-internal sealed class EqlIdentifier : Parser<TextSpan>, ICompilable
-{
-    private static readonly HashSet<string> keywords = [
-        "if",
-    ];
-
-    public override bool Parse(ParseContext context, ref ParseResult<TextSpan> result)
-    {
-        context.EnterParser(this);
-
-        var first = context.Scanner.Cursor.Current;
-
-        if (Character.IsIdentifierStart(first))
-        {
-            var start = context.Scanner.Cursor.Offset;
-
-            // At this point we have an identifier, read while it's an identifier part.
-
-            context.Scanner.Cursor.AdvanceNoNewLines(1);
-
-            while (!context.Scanner.Cursor.Eof && Character.IsIdentifierPart(context.Scanner.Cursor.Current))
-            {
-                context.Scanner.Cursor.AdvanceNoNewLines(1);
-            }
-
-            var end = context.Scanner.Cursor.Offset;
-
-            result.Set(start, end, new TextSpan(context.Scanner.Buffer, start, end - start));
-            if (keywords.Contains(result.Value.ToString()))
-                return false;
-            return true;
-        }
-
-        return false;
-    }
-
-    public CompilationResult Compile(CompilationContext context)
-    {
-        var result = new CompilationResult();
-
-        var success = context.DeclareSuccessVariable(result, false);
-        var value = context.DeclareValueVariable(result, Expression.Default(typeof(TextSpan)));
-
-        var first = Expression.Parameter(typeof(char), $"first{context.NextNumber}");
-        result.Body.Add(Expression.Assign(first, context.Current()));
-        result.Variables.Add(first);
-
-        var start = Expression.Parameter(typeof(int), $"start{context.NextNumber}");
-
-        var breakLabel = Expression.Label($"break_{context.NextNumber}");
-
-        var block = Expression.Block(
-            Expression.IfThen(
-                Expression.OrElse(
-                    Expression.Call(typeof(Character).GetMethod(nameof(Character.IsIdentifierStart))!, first),
-                    Expression.Constant(false, typeof(bool))
-                        ),
-                Expression.Block(
-                    [start],
-                    Expression.Assign(start, context.Offset()),
-                    context.AdvanceNoNewLine(Expression.Constant(1)),
-                    Expression.Loop(
-                        Expression.IfThenElse(
-                            /* if */ Expression.AndAlso(
-                                Expression.Not(context.Eof()),
-                                    Expression.OrElse(
-                                        Expression.Call(typeof(Character).GetMethod(nameof(Character.IsIdentifierPart))!, context.Current()),
-                                        Expression.Constant(false, typeof(bool))
-                                        )
-                                ),
-                            /* then */ context.AdvanceNoNewLine(Expression.Constant(1)),
-                            /* else */ Expression.Break(breakLabel)
-                            ),
-                        breakLabel
-                        ),
-                    context.DiscardResult
-                        ? Expression.Empty()
-                        : Expression.Assign(value, context.NewTextSpan(context.Buffer(), start, Expression.Subtract(context.Offset(), start))),
-                    Expression.Assign(success, Expression.Constant(true, typeof(bool)))
-                )
-            )
-        );
-
-        result.Body.Add(block);
-
-        return result;
     }
 }

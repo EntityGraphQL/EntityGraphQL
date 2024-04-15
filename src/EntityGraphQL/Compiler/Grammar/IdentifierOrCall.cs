@@ -6,18 +6,13 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Grammar;
 
-internal sealed class IdentifierOrCall : IExpression
+internal sealed class IdentifierOrCall(string name, List<IExpression>? arguments = null) : IExpression
 {
-    public IdentifierOrCall(string name, List<IExpression>? arguments = null)
-    {
-        Name = name;
-        Arguments = arguments;
-    }
     public Type Type => throw new NotImplementedException();
 
-    public string Name { get; }
-    public List<IExpression>? Arguments { get; }
-    public bool IsCall => Arguments?.Count > 0;
+    public string Name { get; } = name;
+    public List<IExpression>? Arguments { get; } = arguments;
+    public bool IsCall => Arguments != null;
 
     public Expression Compile(Expression? context, ISchemaProvider? schema, IMethodProvider methodProvider)
     {
