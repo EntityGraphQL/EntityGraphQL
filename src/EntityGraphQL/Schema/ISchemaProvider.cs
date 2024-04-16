@@ -48,6 +48,7 @@ namespace EntityGraphQL.Schema
         IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType);
         ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler);
         ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
+        [Obsolete("Use GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext) instead")]
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext);
         bool HasType(string typeName);
