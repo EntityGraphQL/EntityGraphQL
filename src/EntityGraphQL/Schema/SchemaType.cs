@@ -63,7 +63,7 @@ namespace EntityGraphQL.Schema
                     var enumName = Enum.Parse(TypeDotnet, field.Name).ToString()!;
                     var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
                     var nullability = field.GetNullabilityInfo();
-                    var gqlTypeInfo = new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, null), TypeDotnet, nullability);
+                    var gqlTypeInfo = new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, GqlType == GqlTypes.InputObject, null), TypeDotnet, nullability);
                     var schemaField = new Field(Schema, this, enumName, null, description, null, gqlTypeInfo, Schema.AuthorizationService.GetRequiredAuthFromMember(field));
                     var obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
                     schemaField.ApplyAttributes(field.GetCustomAttributes());
@@ -126,7 +126,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -197,7 +197,7 @@ namespace EntityGraphQL.Schema
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             RemoveField(name);
-            return AddField(new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
+            return AddField(new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth));
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Schema
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             RemoveField(name);
-            return AddField(new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, typeof(TReturn), null), requiredAuth));
+            return AddField(new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth));
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace EntityGraphQL.Schema
             ISchemaType? interfaceType = null;
             if (hasInterface)
             {
-                interfaceType = Schema.GetSchemaType(type, null);
+                interfaceType = Schema.GetSchemaType(type, false, null);
 
                 if (!interfaceType.IsInterface)
                     throw new EntityGraphQLCompilerException($"Schema type {type.Name} can not be implemented as it is not an interface. You can only implement interfaces");
@@ -416,7 +416,7 @@ namespace EntityGraphQL.Schema
             }
             else if (hasType && schemaType == null)
             {
-                schemaType = Schema.GetSchemaType(type, null);
+                schemaType = Schema.GetSchemaType(type, false, null);
             }
             if (schemaType == null)
                 throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {type.Name}. Make sure you add the type to the schema. Or use parameter addTypeIfNotInSchema = true");

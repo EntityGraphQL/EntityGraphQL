@@ -99,7 +99,7 @@ public abstract class ControllerType
         {
             SchemaBuilder.CacheType(nonListReturnType, SchemaType.Schema, options, false);
         }
-        var typeName = SchemaType.Schema.GetSchemaType(nonListReturnType, null).Name;
+        var typeName = SchemaType.Schema.GetSchemaType(nonListReturnType, false, null).Name;
 
         var nullability = method.GetNullabilityInfo().Unwrap();
         var returnType = new GqlTypeInfo(() => SchemaType.Schema.Type(typeName), actualReturnType, nullability);

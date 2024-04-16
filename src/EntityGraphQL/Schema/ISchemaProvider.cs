@@ -49,6 +49,7 @@ namespace EntityGraphQL.Schema
         ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler);
         ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
+        ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext);
         bool HasType(string typeName);
         bool HasType(Type type);
         void PopulateFromContext(SchemaBuilderOptions? options = null);

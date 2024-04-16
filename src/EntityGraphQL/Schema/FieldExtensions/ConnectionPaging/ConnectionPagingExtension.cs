@@ -76,7 +76,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
             returnType = returnSchemaType.TypeDotnet;
 
-            field.Returns(SchemaBuilder.MakeGraphQlType(schema, returnType, connectionName));
+            field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, connectionName));
 
             // Update field arguments
             field.AddArguments(new ConnectionArgs());

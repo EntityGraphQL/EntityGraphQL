@@ -7,6 +7,7 @@
 
 ## Fixes
 
+- #356 - Look up the correct field return type for `InputType`s
 - #358 - `OffsetPaging` and `ConnectionPaging` field extensions can now be used on multiple fields that return the same type. e.g.
 
 ```

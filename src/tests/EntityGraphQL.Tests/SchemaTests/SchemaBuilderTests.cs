@@ -19,25 +19,25 @@ namespace EntityGraphQL.Tests
         public void CachesPublicProperties()
         {
             var schema = SchemaBuilder.FromObject<TestEntity>();
-            Assert.True(schema.GetSchemaType(typeof(TestEntity), null).HasField("id", null));
-            Assert.True(schema.GetSchemaType(typeof(TestEntity), null).HasField("field1", null));
-            Assert.True(schema.GetSchemaType(typeof(TestEntity), null).HasField("relation", null));
-            Assert.False(schema.GetSchemaType(typeof(TestEntity), null).HasField("notthere", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("id", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("field1", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("relation", null));
+            Assert.False(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("notthere", null));
         }
         [Fact]
         public void CachesPublicFields()
         {
             var schema = SchemaBuilder.FromObject<Person>();
-            Assert.True(schema.GetSchemaType(typeof(Person), null).HasField("id", null));
-            Assert.True(schema.GetSchemaType(typeof(Person), null).HasField("name", null));
+            Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("id", null));
+            Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("name", null));
         }
         [Fact]
         public void CachesRecursively()
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
-            Assert.True(schema.GetSchemaType(typeof(TestSchema), null).HasField("someRelation", null));
-            Assert.True(schema.GetSchemaType(typeof(Person), null).HasField("name", null));
-            Assert.True(schema.GetSchemaType(typeof(TestEntity), null).HasField("field1", null));
+            Assert.True(schema.GetSchemaType(typeof(TestSchema), false, null).HasField("someRelation", null));
+            Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("name", null));
+            Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("field1", null));
         }
         [Fact]
         public void AllowsExtending()

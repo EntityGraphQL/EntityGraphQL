@@ -274,7 +274,7 @@ namespace EntityGraphQL.Schema
             CacheType(baseReturnType, schema, options, false);
 
             var nullabilityInfo = method.GetNullabilityInfo();
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
@@ -332,11 +332,11 @@ namespace EntityGraphQL.Schema
             var nullabilityInfo = prop.GetNullabilityInfo();
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
-            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
+            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, isInputType, null).GqlType != GqlTypes.InputObject))
             {
                 // add non-plural field with argument of ID
                 var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field, options);
@@ -461,20 +461,20 @@ namespace EntityGraphQL.Schema
                 }
                 else
                 {
-                    var type = schema.GetSchemaType(propType, null);
+                    var type = schema.GetSchemaType(propType, isInputType, null);
                     if (options.AutoCreateInterfaceTypes)
                     {
                         type.ImplementAllBaseTypes(true, true);
                     }
 
-                    var schemaType = schema.GetSchemaType(propType, null);
+                    var schemaType = schema.GetSchemaType(propType, isInputType, null);
                     schemaType.ApplyAttributes(propType.GetCustomAttributes());
 
                     return type;
                 }
             }
             else
-                return schema.GetSchemaType(propType, null);
+                return schema.GetSchemaType(propType, isInputType, null);
         }
 
         internal static string BuildTypeName(Type propType)
@@ -482,11 +482,11 @@ namespace EntityGraphQL.Schema
             return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
         }
 
-        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
+        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, bool isInputType, Type returnType, string? returnSchemaType)
         {
             Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
                                                 ? () => schema.Type(returnSchemaType)
-                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType, null);
+                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType, isInputType, null);
             return new GqlTypeInfo(typeGetter, returnType);
         }
 

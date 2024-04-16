@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema
@@ -137,7 +138,9 @@ namespace EntityGraphQL.Schema
         /// <returns></returns>
         public Field Returns(string schemaTypeName)
         {
-            Returns(new GqlTypeInfo(() => Schema.Type(schemaTypeName), Schema.Type(schemaTypeName).TypeDotnet));
+            var gqlTypeInfo = new GqlTypeInfo(() => Schema.Type(schemaTypeName), Schema.Type(schemaTypeName).TypeDotnet);
+            gqlTypeInfo.IsList = ResolveExpression?.Type.IsEnumerableOrArray() ?? gqlTypeInfo.IsList;
+            Returns(gqlTypeInfo);
             return this;
         }
 
@@ -220,7 +223,7 @@ namespace EntityGraphQL.Schema
             if (typeof(Task).IsAssignableFrom(returnType))
                 throw new EntityGraphQLCompilerException($"Field '{Name}' is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
 
-            ReturnType = SchemaBuilder.MakeGraphQlType(Schema, returnType, null);
+            ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null);
         }
     }
 }

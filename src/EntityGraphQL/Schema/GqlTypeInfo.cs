@@ -34,7 +34,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         /// <param name="schemaTypeGetter">Func to get the ISchemaType. Lookup is func as the type might be added later. It is cached after first look up</param>
         /// <param name="typeDotnet">The dotnet type as it is. E.g. the List<T> etc. </param>
-        /// <param name="nullability">Nullability infomation about the property</param>
+        /// <param name="nullability">Nullability information about the property</param>
         public GqlTypeInfo(Func<ISchemaType> schemaTypeGetter, Type typeDotnet, NullabilityInfo nullability)
         {
             SchemaTypeGetter = schemaTypeGetter;

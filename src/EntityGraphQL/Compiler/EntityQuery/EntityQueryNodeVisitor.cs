@@ -146,7 +146,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
                 throw new EntityGraphQLCompilerException("CurrentContext is null");
 
             var field = context.GetText();
-            var schemaType = schemaProvider.GetSchemaType(currentContext.Type, requestContext);
+            var schemaType = schemaProvider.GetSchemaType(currentContext.Type, false, requestContext);
             if (!schemaType.HasField(field, requestContext))
             {
                 var enumOrConstantValue = constantVisitor.Visit(context);

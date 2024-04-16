@@ -179,11 +179,11 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddScalarType<decimal>("decimal", "");
             schemaProvider.AddScalarType<char>("char", "");
             schemaProvider.PopulateFromContext();
-            schemaProvider.AddInputType<ListOfObjectsWithIds>("ListOfObjectsWithIds", "").AddAllFields();
+            schemaProvider.AddInputType<ListOfObjectsWithIds>(nameof(ListOfObjectsWithIds), "").AddAllFields();
 
             schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-            Assert.Empty(schemaProvider.GetSchemaType("ListOfObjectsWithIds", null).GetFields().Where(x => x.Arguments.Any()));
+            Assert.Empty(schemaProvider.GetSchemaType(nameof(ListOfObjectsWithIds), null).GetFields().Where(x => x.Arguments.Any()));
         }
 
         [Fact]

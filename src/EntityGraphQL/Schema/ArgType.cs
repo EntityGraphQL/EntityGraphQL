@@ -85,7 +85,7 @@ namespace EntityGraphQL.Schema
                 gqlLookupType = gqlLookupType.GetGenericArguments()[0];
             }
 
-            var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(gqlLookupType, null), argType, nullability);
+            var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(gqlLookupType, true, null), argType, nullability);
             var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, memberInfo, type)
             {
                 DefaultValue = defaultValue,

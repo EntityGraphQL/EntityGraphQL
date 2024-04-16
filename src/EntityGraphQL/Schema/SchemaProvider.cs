@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 using Microsoft.Extensions.Logging;
 
@@ -27,8 +28,8 @@ namespace EntityGraphQL.Schema
         public Type SubscriptionType { get { return subscriptionType.SchemaType.TypeDotnet; } }
         public Func<string, string> SchemaFieldNamer { get; }
         public IGqlAuthorizationService AuthorizationService { get; set; }
-        private readonly Dictionary<string, ISchemaType> schemaTypes = new();
-        private readonly Dictionary<string, IDirectiveProcessor> directives = new();
+        private readonly Dictionary<string, ISchemaType> schemaTypes = [];
+        private readonly Dictionary<string, IDirectiveProcessor> directives = [];
         private readonly QueryCache queryCache;
 
         public string QueryContextName { get => queryType.Name; }
@@ -411,7 +412,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The SchemaProvider</returns>
         public ISchemaProvider RemoveType<TType>()
         {
-            return RemoveType(GetSchemaType(typeof(TType), null).Name);
+            return RemoveType(GetSchemaType(typeof(TType), false, null).Name);
         }
 
         /// <summary>
@@ -507,6 +508,11 @@ namespace EntityGraphQL.Schema
             throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
         }
 
+        public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext)
+        {
+            return GetSchemaType(dotnetType, false, requestContext);
+        }
+
         /// <summary>
         /// Search for a GraphQL type with the given name. Lookup is done by DotNet type first.
         /// Then by the type name. Then the customTypeMappings are searched
@@ -514,13 +520,22 @@ namespace EntityGraphQL.Schema
         /// Use the Type<T>() methods for returning typed SchemaType<T> 
         /// </summary>
         /// <param name="dotnetType"></param>
+        /// <param name="typeFilter">Used the filter the search as dotnet type may be shared across Input type and query 
+        /// type with different names in the schema</param>
         /// <returns></returns>
         /// <exception cref="EntityGraphQLCompilerException"></exception>
-        public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext)
+        public ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext)
         {
             // look up by the actual type not the name
-            var schemaType = schemaTypes.Values.FirstOrDefault(t => t.TypeDotnet == dotnetType)
-                ?? schemaTypes.GetValueOrDefault(dotnetType.Name);
+            var schemaType = schemaTypes.Values
+                .WhereWhen(t => t.GqlType == GqlTypes.Scalar || t.GqlType == GqlTypes.Enum || t.GqlType == GqlTypes.InputObject, inputTypeScope)
+                .FirstOrDefault(t => t.TypeDotnet == dotnetType)
+                    ?? schemaTypes.GetValueOrDefault(dotnetType.Name);
+            if (inputTypeScope && schemaType?.GqlType.IsNotValidForInput() == true)
+            {
+                // chance the Type has an input type that inherits from it
+                schemaType = schemaTypes.Values.Where(t => dotnetType.IsAssignableFrom(t.TypeDotnet) && t.GqlType == GqlTypes.InputObject).FirstOrDefault();
+            }
 
             if (schemaType == null && customTypeMappings.TryGetValue(dotnetType, out var typeInfo))
             {
@@ -549,7 +564,7 @@ namespace EntityGraphQL.Schema
         /// <returns>The typed SchemaType<TType> object for configuration</returns>
         public SchemaType<TType> Type<TType>()
         {
-            return (SchemaType<TType>)GetSchemaType(typeof(TType), null);
+            return (SchemaType<TType>)GetSchemaType(typeof(TType), false, null);
         }
         /// <summary>
         /// Get registered type by schema type name
@@ -579,11 +594,11 @@ namespace EntityGraphQL.Schema
 
         public ISchemaType Type(Type type)
         {
-            return GetSchemaType(type, null);
+            return GetSchemaType(type, false, null);
         }
         public SchemaType<TType> Type<TType>(Type type)
         {
-            return (SchemaType<TType>)GetSchemaType(type, null);
+            return (SchemaType<TType>)GetSchemaType(type, false, null);
         }
 
         /// <summary>

@@ -45,7 +45,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             var argSortType = MakeSortType(field);
             // look type reuse type. Type is not recreated if it uses the same fields
             if (schema.HasType(argSortType))
-                schemaSortType = schema.GetSchemaType(argSortType, null);
+                schemaSortType = schema.GetSchemaType(argSortType, false, null);
             else
             {
                 schemaSortType = schema.AddInputType(argSortType, sortInputName, $"Sort arguments for {field.Name}").AddAllFields();

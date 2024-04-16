@@ -163,7 +163,7 @@ namespace EntityGraphQL.Compiler
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
-            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
+            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
@@ -273,7 +273,7 @@ namespace EntityGraphQL.Compiler
             {
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
-                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, requestContext);
+                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, listExp.Item1, returnType, name, context, selection, arguments);
                 return new GraphQLCollectionToSingleField(schemaProvider, collectionNode, graphQLNode, listExp.Item2!);
