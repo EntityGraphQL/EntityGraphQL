@@ -151,6 +151,37 @@ namespace EntityGraphQL.Compiler
             return variablesToUse;
         }
 
+        private static List<ParameterExpression> ExtractConstants(Expression? expression)
+        {
+            var res = new List<ParameterExpression>();
+
+            if (expression == null)
+                return res;
+
+            if (expression is ParameterExpression pe)
+            {
+                res.Add(pe);
+                return res;
+            }
+
+            if (expression is MethodCallExpression mce)
+            {
+                foreach (var a in mce.Arguments) res.AddRange(ExtractConstants(a));
+                res.AddRange(ExtractConstants(mce.Object));
+            }
+            else if (expression is ConditionalExpression ce)
+            {
+                res.AddRange(ExtractConstants(ce.Test));
+            }
+            else if (expression is BinaryExpression be)
+            {
+                res.AddRange(ExtractConstants(be.Left));
+                res.AddRange(ExtractConstants(be.Right));
+            }
+
+            return res;
+        }
+
         protected async Task<(object? result, bool didExecute)> CompileAndExecuteNodeAsync(CompileContext compileContext, object context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, BaseGraphQLField node, ExecutionOptions options, object? docVariables)
         {
             object? runningContext = context;
@@ -168,6 +199,23 @@ namespace EntityGraphQL.Compiler
 
             if (node.HasServicesAtOrBelow(fragments) && options.ExecuteServiceFieldsSeparately == true)
             {
+
+                foreach (var arg in node.Arguments)
+                {
+                    var type = arg.Value.GetType();
+                    if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EntityGraphQL.Schema.EntityQueryType<>))
+                    {
+                        var v = (dynamic)arg.Value;
+                        if (v?.Query?.Body != null)
+                        {
+                            var constants = (List<ParameterExpression>)ExtractConstants(v.Query.Body);
+                            var d = constants.Distinct().ToList();
+                            
+                            compileContext.AddServices(d);
+                        }
+                    }
+                } 
+
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, null, isRoot: true, false, replacer);
@@ -232,7 +280,7 @@ namespace EntityGraphQL.Compiler
                         allArgs.AddRange(compileContext.ConstantParameters.Values);
                     }
 
-                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke([.. allArgs])!;
+                    var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke([..allArgs])!;
                     bulkData[bulkResolver.Name] = dataLoaded;
                 }
             }
