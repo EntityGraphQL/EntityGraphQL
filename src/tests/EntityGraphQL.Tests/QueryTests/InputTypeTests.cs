@@ -152,8 +152,7 @@ public class InputTypeTests
         Assert.Contains("input UserInput {\n\tid: Int!\n\ttasks: [TaskInput!]\n}", result);
     }
 
-    [Fact]
-    public void SupportsQueryTypeAsInputType()
+    private static SchemaProvider<TestDataContext> SetUpSchemaForQueryAsInputTypeTests()
     {
         var schema = SchemaBuilder.Create<TestDataContext>();
 
@@ -181,9 +180,38 @@ public class InputTypeTests
 
         schema.Query().AddField("users", (ctx) => ctx.Users, "Get a users");
         schema.Query().AddField("tasks", (ctx) => ctx.Tasks, "Get a tasks");
+        return schema;
+    }
+    [Fact]
+    public void SupportsQueryTypeAsInputType()
+    {
+        var schema = SetUpSchemaForQueryAsInputTypeTests();
 
         var result = schema.ToGraphQLSchemaString();
         Assert.Contains("input UserInput {\n\tid: Int!\n\ttasks: [TaskInput!]\n}", result);
+    }
+    [Fact]
+    public void SupportsQueryTypeAsInputTypeIntrospection()
+    {
+        var schema = SetUpSchemaForQueryAsInputTypeTests();
+
+        var gql = new QueryRequest
+        {
+            Query = @"query {
+                        __type(name: ""UserInput"") {
+                            name
+                            fields {
+                                name
+                                type { name ofType { kind name } }
+                            }
+                        }
+                    }"
+        };
+        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.Null(result.Errors);
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "id");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "tasks");
+        Assert.Equal("TaskInput", ((dynamic)result.Data["__type"]).fields[1].type.ofType.name);
     }
 
     [Fact]
