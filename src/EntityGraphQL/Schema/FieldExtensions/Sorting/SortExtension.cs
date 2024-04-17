@@ -17,11 +17,16 @@ namespace EntityGraphQL.Schema.FieldExtensions
         private Func<string, string>? fieldNamer;
         private readonly Type? fieldSelectionType;
         private readonly List<ISort> defaultSorts;
+        private readonly ParameterExpression? fieldSelectionParam;
+        private readonly Dictionary<string, Expression>? fieldSelectionExpressions;
 
-        public SortExtension(Type? fieldSelectionType, params ISort[] defaultSorts)
+        public SortExtension(LambdaExpression? fieldSelection, params ISort[] defaultSorts)
         {
-            this.fieldSelectionType = fieldSelectionType;
-            this.defaultSorts = defaultSorts?.ToList() ?? new List<ISort>();
+            this.fieldSelectionType = fieldSelection?.ReturnType;
+            this.defaultSorts = defaultSorts?.ToList() ?? [];
+            this.fieldSelectionParam = fieldSelection?.Parameters.First();
+            if (fieldSelection?.Body is NewExpression newExp)
+                this.fieldSelectionExpressions = newExp.Members?.Select((m, i) => new { m.Name, Expression = newExp.Arguments[i] }).ToDictionary(x => x.Name, x => x.Expression);
         }
 
         public override void Configure(ISchemaProvider schema, IField field)
@@ -128,16 +133,28 @@ namespace EntityGraphQL.Schema.FieldExtensions
                         if (direction.Value == SortDirection.DESC)
                             method += "Descending";
 
-                        var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
-
                         var listParam = Expression.Parameter(listType!);
-                        Expression sortField = listParam;
+
+                        Type sortReturnType;
+                        if (fieldSelectionExpressions != null && fieldSelectionExpressions.TryGetValue(fieldInfo.Name, out var sortExpression))
+                        {
+                            sortReturnType = sortExpression.Type;
+                            sortExpression = parameterReplacer.Replace(sortExpression, fieldSelectionParam!, listParam);
+                        }
+                        else
+                        {
+                            Expression sortField = listParam;
+                            var schemaField = schemaReturnType!.GetField(fieldNamer!(fieldInfo.Name), null);
+                            sortReturnType = schemaField.ReturnType.TypeDotnet;
+                            sortExpression = Expression.PropertyOrField(sortField, fieldInfo.Name);
+                        }
+
                         expression = Expression.Call(
                             methodType!,
                             method,
-                            new Type[] { listType!, schemaField.ReturnType.TypeDotnet },
+                            new Type[] { listType!, sortReturnType },
                             expression,
-                            Expression.Lambda(Expression.PropertyOrField(sortField, fieldInfo.Name), listParam)
+                            Expression.Lambda(sortExpression, listParam)
                         );
                         break;
                     }

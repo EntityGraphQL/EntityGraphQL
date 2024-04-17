@@ -2,10 +2,21 @@
 
 ## Changes
 
+- #362 - The Sort field extension now supports defining more complex sort expressions that will be used. E.g.
+
+```cs
+schema.Type<TestDataContext>().GetField("people", null)
+  .UseSort((Person person) => new
+  {
+    // [{managerName: ASC}] in GQL can be used and the full expression person.Manager.Name will be used in the OrderBy()
+    managerName = person.Manager.Name,
+  });
+```
+
+- #308 - Support a dotnet `Type` being used for an input type and a query type. This may change in future versions but some simple cases are now supported
 - `IField.UseArgumentsFrom` & `IField.UseArgumentsFromField` is now Obsolete. Using it (typically in a field extension) creates issues. See #358 fix below
 - `IFieldExtension.ProcessArguments` has been added to allow field extensions to handle arguments and add them to the compile context. This interface may merge with the existing `IFieldExtension.GetExpression` in version 6.0. This was introduced to fix #358 and avoid breaking changes
 - `GetSchemaType(string typeName, QueryRequestContext? requestContext)` is now Obsolete, use `GetSchemaType(string typeName, bool inputTypeScope, QueryRequestContext? requestContext)` and provide `inputTypeScope = true` if the type is an Input type.
-- #308 - Support a dotnet `Type` being used for an input type and a query type. This may change in future versions but some simple cases are now supported
 
 ## Fixes
 
