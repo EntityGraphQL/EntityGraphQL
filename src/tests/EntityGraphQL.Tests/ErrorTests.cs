@@ -15,9 +15,8 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPerson($name: String) {
-  addPersonError(name: $name)
-}
-",
+                    addPersonError(name: $name)
+                }",
                 Variables = new QueryVariables {
                     {"name", "Bill"}
                 }

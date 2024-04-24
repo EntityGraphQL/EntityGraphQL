@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
         public override Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(TContext? context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, Func<string, string> fieldNamer, ExecutionOptions options, QueryVariables? variables) where TContext : default
         {
             var result = new ConcurrentDictionary<string, object?>();
-            // pass to directvies
+            // pass to directives
             foreach (var directive in Directives)
             {
                 if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)

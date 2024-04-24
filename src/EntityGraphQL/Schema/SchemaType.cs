@@ -126,7 +126,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Schema
         {
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-            var field = new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth);
+            var field = new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this), requiredAuth);
             this.AddField(field);
             return field;
         }
@@ -197,7 +197,7 @@ namespace EntityGraphQL.Schema
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             RemoveField(name);
-            return AddField(new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth));
+            return AddField(new Field(Schema, this, name, fieldSelection, description, null, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this), requiredAuth));
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace EntityGraphQL.Schema
             var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
             RemoveField(name);
-            return AddField(new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null), requiredAuth));
+            return AddField(new Field(Schema, this, name, fieldSelection, description, argTypes, SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this), requiredAuth));
         }
 
         /// <summary>
@@ -414,12 +414,12 @@ namespace EntityGraphQL.Schema
                 if (addAllFieldsOnAddedType)
                     schemaType.AddAllFields();
             }
-            else if (hasType && schemaType == null)
+            else if (hasType)
             {
                 schemaType = Schema.GetSchemaType(type, false, null);
             }
             if (schemaType == null)
-                throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {type.Name}. Make sure you add the type to the schema. Or use parameter addTypeIfNotInSchema = true");
+                throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{type.Name}' while adding it as a possible type for schema type '{Name}'. Make sure you add the type to the schema before calling AddPossibleType. Or use parameter addTypeIfNotInSchema = true");
 
             if (schemaType.GqlType != GqlTypes.QueryObject)
                 throw new EntityGraphQLCompilerException($"The member types of a Union type must all be Object base types");

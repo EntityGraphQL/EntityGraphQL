@@ -223,7 +223,7 @@ namespace EntityGraphQL.Schema
             if (typeof(Task).IsAssignableFrom(returnType))
                 throw new EntityGraphQLCompilerException($"Field '{Name}' is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
 
-            ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null);
+            ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
         }
     }
 }

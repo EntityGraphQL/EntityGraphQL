@@ -14,11 +14,11 @@ public class ServiceLifetimeTests
     {
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         var services = new ServiceCollection();
-        var allContextes = new List<MyDataContext>();
+        var allContexts = new List<MyDataContext>();
         services.AddTransient(sp =>
         {
             var context = new MyDataContext();
-            allContextes.Add(context);
+            allContexts.Add(context);
             return context;
         });
         var provider = services.BuildServiceProvider();
@@ -35,8 +35,8 @@ public class ServiceLifetimeTests
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
         Assert.Null(result.Errors);
-        Assert.Equal(2, allContextes.Count);
-        Assert.NotSame(allContextes[0], allContextes[1]);
+        Assert.Equal(2, allContexts.Count);
+        Assert.NotSame(allContexts[0], allContexts[1]);
     }
 
     [Fact]
@@ -48,11 +48,11 @@ public class ServiceLifetimeTests
                 .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365)
         );
         var services = new ServiceCollection();
-        var allContextes = new List<MyDataContext>();
+        var allContexts = new List<MyDataContext>();
         services.AddTransient(sp =>
         {
             var context = new MyDataContext();
-            allContextes.Add(context);
+            allContexts.Add(context);
             return context;
         });
         var provider = services.BuildServiceProvider();
@@ -70,10 +70,10 @@ public class ServiceLifetimeTests
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
         Assert.Null(result.Errors);
-        Assert.Equal(3, allContextes.Count);
-        Assert.NotSame(allContextes[0], allContextes[1]);
-        Assert.NotSame(allContextes[0], allContextes[2]);
-        Assert.NotSame(allContextes[1], allContextes[2]);
+        Assert.Equal(3, allContexts.Count);
+        Assert.NotSame(allContexts[0], allContexts[1]);
+        Assert.NotSame(allContexts[0], allContexts[2]);
+        Assert.NotSame(allContexts[1], allContexts[2]);
     }
 
     [Fact]
@@ -89,11 +89,11 @@ public class ServiceLifetimeTests
             .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
-        var allContextes = new List<MyDataContext>();
+        var allContexts = new List<MyDataContext>();
         services.AddTransient(sp =>
         {
             var context = new MyDataContext();
-            allContextes.Add(context);
+            allContexts.Add(context);
             return context;
         });
         var provider = services.BuildServiceProvider();
@@ -112,13 +112,13 @@ public class ServiceLifetimeTests
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
         Assert.Null(result.Errors);
-        Assert.Equal(4, allContextes.Count);
-        Assert.NotSame(allContextes[0], allContextes[1]);
-        Assert.NotSame(allContextes[0], allContextes[2]);
-        Assert.NotSame(allContextes[0], allContextes[3]);
-        Assert.NotSame(allContextes[1], allContextes[2]);
-        Assert.NotSame(allContextes[1], allContextes[3]);
-        Assert.NotSame(allContextes[3], allContextes[2]);
+        Assert.Equal(4, allContexts.Count);
+        Assert.NotSame(allContexts[0], allContexts[1]);
+        Assert.NotSame(allContexts[0], allContexts[2]);
+        Assert.NotSame(allContexts[0], allContexts[3]);
+        Assert.NotSame(allContexts[1], allContexts[2]);
+        Assert.NotSame(allContexts[1], allContexts[3]);
+        Assert.NotSame(allContexts[3], allContexts[2]);
     }
 
     [Fact]
@@ -134,11 +134,11 @@ public class ServiceLifetimeTests
             .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
-        var allContextes = new List<MyDataContext>();
+        var allContexts = new List<MyDataContext>();
         services.AddScoped(sp =>
         {
             var context = new MyDataContext();
-            allContextes.Add(context);
+            allContexts.Add(context);
             return context;
         });
         var provider = services.BuildServiceProvider();
@@ -157,7 +157,7 @@ public class ServiceLifetimeTests
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
         Assert.Null(result.Errors);
-        Assert.Single(allContextes);
+        Assert.Single(allContexts);
     }
 
     [Fact]
@@ -173,11 +173,11 @@ public class ServiceLifetimeTests
             .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
-        var allContextes = new List<MyDataContext>();
+        var allContexts = new List<MyDataContext>();
         services.AddSingleton(sp =>
         {
             var context = new MyDataContext();
-            allContextes.Add(context);
+            allContexts.Add(context);
             return context;
         });
         var provider = services.BuildServiceProvider();
@@ -196,7 +196,7 @@ public class ServiceLifetimeTests
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
         Assert.Null(result.Errors);
-        Assert.Single(allContextes);
+        Assert.Single(allContexts);
     }
 }
 

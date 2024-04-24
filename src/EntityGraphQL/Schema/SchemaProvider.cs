@@ -526,8 +526,14 @@ namespace EntityGraphQL.Schema
         /// <exception cref="EntityGraphQLCompilerException"></exception>
         public ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext)
         {
+            if (TryGetSchemaType(dotnetType, inputTypeScope, out var schemaType, requestContext))
+                return schemaType!;
+            throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{dotnetType.Name}'. Make sure you add it or add a type mapping.");
+        }
+        public bool TryGetSchemaType(Type dotnetType, bool inputTypeScope, out ISchemaType? schemaType, QueryRequestContext? requestContext)
+        {
             // look up by the actual type not the name
-            var schemaType = schemaTypes.Values
+            schemaType = schemaTypes.Values
                 .WhereWhen(t => t.GqlType == GqlTypes.Scalar || t.GqlType == GqlTypes.Enum || t.GqlType == GqlTypes.InputObject, inputTypeScope)
                 .FirstOrDefault(t => t.TypeDotnet == dotnetType)
                     ?? schemaTypes.GetValueOrDefault(dotnetType.Name);
@@ -542,8 +548,9 @@ namespace EntityGraphQL.Schema
                 schemaType = typeInfo.SchemaType;
             }
             if (schemaType == null)
-                throw new EntityGraphQLCompilerException($"No schema type found for dotnet type {dotnetType.Name}. Make sure you add it or add a type mapping");
-            return SchemaProvider<TContextType>.CheckTypeAccess(schemaType, requestContext);
+                return false;
+            schemaType = SchemaProvider<TContextType>.CheckTypeAccess(schemaType, requestContext);
+            return true;
         }
 
         private static ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext)
@@ -922,6 +929,26 @@ namespace EntityGraphQL.Schema
         {
             GC.SuppressFinalize(this);
             queryCache.Dispose();
+        }
+
+        public void Validate()
+        {
+            // Check all return types to make sure they are in the schema
+            foreach (var schemaType in schemaTypes.Values)
+            {
+                foreach (var field in schemaType.GetFields())
+                {
+                    try
+                    {
+                        // schema type will throw if if can't look it up
+                        var _ = field.ReturnType.SchemaType;
+                    }
+                    catch (EntityGraphQLCompilerException)
+                    {
+                        throw new EntityGraphQLCompilerException($"Field '{field.Name}' on type '{schemaType.Name}' returns type '{(field.ReturnType.TypeDotnet.IsEnumerableOrArray() ? field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() : field.ReturnType.TypeDotnet)}' that is not in the schema");
+                    }
+                }
+            }
         }
     }
 }

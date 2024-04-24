@@ -2,6 +2,7 @@
 
 ## Changes
 
+- `ISchemaProvider.Validate()` added to allow you to validate the schema is complete to avoid potential errors at runtime/query time. As fields and types can be added to the schema out of dependency order, this checks that all required types are in the schema.
 - #362 - The Sort field extension now supports defining more complex sort expressions that will be used. E.g.
 
 ```cs
@@ -22,6 +23,7 @@ schema.Type<TestDataContext>().GetField("people", null)
 
 - #356 - Look up the correct field return type for `InputType`s
 - #358 - `OffsetPaging` and `ConnectionPaging` field extensions can now be used on multiple fields that return the same type. e.g.
+- #148 - Return a more descriptive error message for a missing type when we know the field we are trying to find the type of
 
 ```
 // both fields return a list of people but have different expressions

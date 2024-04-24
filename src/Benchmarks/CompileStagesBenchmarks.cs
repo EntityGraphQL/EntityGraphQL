@@ -5,29 +5,32 @@ using EntityGraphQL.Schema;
 namespace Benchmarks
 {
     /// <summary>
-    /// Comparing the different stages of compiling.
-    /// Stage 1 - query to Expressions and metadata. This can be cached and reused with different variables
-    /// Stage 2 - the stage1 result into a final LambdaExpression that is executed. This may be built twice and executed twice, 
-    /// once without service fields and then with
+    /// Comparing the speed and allocation of compiling queries with and without caching
+    /// On a Apple M1 Max 64GB ram
     /// 
-    /// 1.2.x
-    /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
-    /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |  FirstStageCompile | 164.9 us | 3.28 us | 4.60 us | 18.0664 |     38 KB |
-    /// | SecondStageCompile | 103.7 us | 1.57 us | 1.40 us | 25.1465 |     52 KB |  
-    ///                Total | 268.6                                        90
+    /// 4.1.2
+    /// |         Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
+    /// |--------------- |----------:|---------:|---------:|--------:|----------:|
+    /// | CompileNoCache | 104.25 us | 0.439 us | 0.389 us | 36.2549 |     74 KB |
+    /// |   CompileCache |  80.00 us | 0.236 us | 0.221 us | 27.5879 |     57 KB | 
+    ///
+    /// 4.3.1 (4.2 was basically the same)
+    /// |         Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
+    /// |--------------- |---------:|--------:|--------:|--------:|----------:|
+    /// | CompileNoCache | 142.4 us | 1.37 us | 1.28 us | 49.8047 |    102 KB |
+    /// |   CompileCache | 109.3 us | 0.47 us | 0.44 us | 38.8184 |     79 KB |
     /// 
-    /// 2.0.x
-    /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
-    /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |     CompileNoCache | 187.3 us | 1.78 us | 1.67 us | 38.0859 |     78 KB |
-    /// |       CompileCache | 150.3 us | 1.25 us | 1.04 us | 29.5410 |     61 KB |
-    /// 
-    /// 4.1.0 - added to the query used
-    /// |             Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
-    /// |------------------- |---------:|--------:|--------:|--------:|----------:|
-    /// |     CompileNoCache | 192.9 us | 0.94 us | 0.88 us | 36.6211 |     75 KB |
-    /// |       CompileCache | 150.4 us | 0.50 us | 0.42 us | 27.8320 |     57 KB |
+    /// 5.2.1 (5.0 & 5.1 were basically the same)
+    /// |         Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
+    /// |--------------- |----------:|---------:|---------:|--------:|----------:|
+    /// | CompileNoCache | 116.21 us | 0.399 us | 0.354 us | 42.4805 |     87 KB |
+    /// |   CompileCache |  95.66 us | 0.388 us | 0.363 us | 33.5693 |     69 KB |
+    ///
+    /// 5.3.0
+    /// |         Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
+    /// |--------------- |----------:|---------:|---------:|--------:|----------:|
+    /// | CompileNoCache | 125.85 us | 0.650 us | 0.543 us | 44.4336 |     91 KB |
+    /// |   CompileCache |  97.15 us | 0.396 us | 0.371 us | 33.9355 |     69 KB |
     /// </summary>
     [MemoryDiagnoser]
     public class CompileStagesBenchmarks : BaseBenchmark

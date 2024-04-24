@@ -188,13 +188,13 @@ namespace EntityGraphQL.Tests
                 Relation = new Person(),
                 NestedRelation = new Task()
             };
-            context.Users = new List<User> { user };
+            context.Users = [user];
 
             var project = new Project
             {
                 Id = 55,
                 Name = "Project 3",
-                Tasks = new List<Task> {
+                Tasks = [
                     new Task
                     {
                         Id = 1,
@@ -214,15 +214,15 @@ namespace EntityGraphQL.Tests
                         Id = 4,
                         Name = "task 4"
                     }
-                },
+                ],
                 Created = DateTimeOffset.Now.AddMonths(-3),
                 Updated = DateTime.Now.AddMonths(-2),
             };
-            context.People = new List<Person> { MakePerson(99, user, project) };
-            context.Projects = new List<Project>
-            {
+            context.People = [MakePerson(99, user, project)];
+            context.Projects =
+            [
                 project
-            };
+            ];
             return context;
         }
 
