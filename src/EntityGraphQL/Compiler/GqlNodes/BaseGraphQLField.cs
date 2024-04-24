@@ -26,6 +26,8 @@ namespace EntityGraphQL.Compiler
         public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
         public ISchemaProvider Schema { get; protected set; }
         protected List<GraphQLDirective> Directives { get; set; } = [];
+        protected string? OpName { get; set; }
+        public virtual bool IsRootField { get; set; }
 
         /// <summary>
         /// Name of the field
@@ -133,7 +135,6 @@ namespace EntityGraphQL.Compiler
         /// <param name="schemaContext">ParameterExpression of the schema's Query context</param>
         /// <param name="withoutServiceFields">If true the expression builds without fields that require services</param>
         /// <param name="replacementNextFieldContext">A replacement context from a selection without service fields</param>
-        /// <param name="isRoot">If this field is a Query root field</param>
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
@@ -147,7 +148,6 @@ namespace EntityGraphQL.Compiler
             bool withoutServiceFields,
             Expression? replacementNextFieldContext,
             List<Type>? possibleNextContextTypes,
-            bool isRoot,
             bool contextChanged,
             ParameterReplacer replacer
         )
@@ -167,7 +167,6 @@ namespace EntityGraphQL.Compiler
                 withoutServiceFields,
                 replacementNextFieldContext,
                 possibleNextContextTypes,
-                isRoot,
                 contextChanged,
                 replacer
             );
@@ -186,7 +185,6 @@ namespace EntityGraphQL.Compiler
             bool withoutServiceFields,
             Expression? replacementNextFieldContext,
             List<Type>? possibleNextContextTypes,
-            bool isRoot,
             bool contextChanged,
             ParameterReplacer replacer
         );
@@ -303,13 +301,7 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        protected Expression ReplaceContext(
-            Expression replacementNextFieldContext,
-            bool isRoot,
-            ParameterReplacer replacer,
-            Expression nextFieldContext,
-            List<Type>? possibleNextContextTypes
-        )
+        protected Expression ReplaceContext(Expression replacementNextFieldContext, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
         {
             var possibleField = replacementNextFieldContext.Type.GetField(Name);
             if (possibleField != null)
@@ -317,7 +309,7 @@ namespace EntityGraphQL.Compiler
             else // need to replace context expressions in the service expression with the new context
             {
                 // If this is a root field, we replace the whole expression unless there is services at the root level
-                if (isRoot && !HasServices)
+                if (IsRootField && !HasServices)
                     nextFieldContext = replacementNextFieldContext;
                 else if (HasServices)
                 {
@@ -333,7 +325,7 @@ namespace EntityGraphQL.Compiler
                         expressionsToReplace,
                         replacementNextFieldContext,
                         ParentNode?.HasServices == true,
-                        isRoot && HasServices,
+                        IsRootField && HasServices,
                         possibleNextContextTypes
                     );
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
@@ -387,6 +379,38 @@ namespace EntityGraphQL.Compiler
         public bool Equals(BaseGraphQLField? obj)
         {
             return obj != null && obj.Name == this.Name && SchemaName == obj.SchemaName && obj.FromType?.Name == this.FromType?.Name;
+        }
+
+        public static void HandleBeforeRootFieldExpressionBuild(
+            CompileContext compileContext,
+            string? opName,
+            string fieldName,
+            bool contextChanged,
+            bool isRootField,
+            ref Expression expression
+        )
+        {
+            if (compileContext.ExecutionOptions.BeforeRootFieldExpressionBuild != null && !contextChanged && isRootField)
+            {
+                var currentReturnType = expression.Type;
+                expression = compileContext.ExecutionOptions.BeforeRootFieldExpressionBuild(expression, opName, fieldName);
+                if (expression.Type != currentReturnType && !expression.Type.IsAssignableFrom(currentReturnType))
+                    throw new EntityGraphQLCompilerException($"BeforeExpressionBuild changed the return type from {currentReturnType} to {expression.Type}");
+            }
+        }
+
+        public static string? GetOperationName(BaseGraphQLField node)
+        {
+            if (node.OpName != null)
+                return node.OpName;
+            if (node.ParentNode is ExecutableGraphQLStatement opNode)
+                return node.OpName = opNode.Name;
+            if (node.ParentNode != null && node.ParentNode is BaseGraphQLField field)
+            {
+                node.OpName = GetOperationName(field);
+                return node.OpName;
+            }
+            return null;
         }
     }
 

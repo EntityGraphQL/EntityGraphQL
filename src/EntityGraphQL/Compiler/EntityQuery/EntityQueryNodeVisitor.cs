@@ -16,14 +16,16 @@ namespace EntityGraphQL.Compiler.EntityQuery
         private readonly ISchemaProvider? schemaProvider;
         private readonly IMethodProvider methodProvider;
         private readonly ConstantVisitor constantVisitor;
+        private readonly CompileContext compileContext;
 
-        public EntityQueryNodeVisitor(Expression? expression, ISchemaProvider? schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext)
+        public EntityQueryNodeVisitor(Expression? expression, ISchemaProvider? schemaProvider, IMethodProvider methodProvider, QueryRequestContext requestContext, CompileContext compileContext)
         {
             this.requestContext = requestContext;
             currentContext = expression ?? null;
             this.schemaProvider = schemaProvider;
             this.methodProvider = methodProvider;
             this.constantVisitor = new ConstantVisitor(schemaProvider);
+            this.compileContext = compileContext;
         }
 
         public override Expression VisitEqlStart(EntityQLParser.EqlStartContext context)
@@ -170,7 +172,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             }
 
             var gqlField = schemaType.GetField(field, requestContext);
-            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, null, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
+            (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, currentContext, null, null, compileContext, new Dictionary<string, object>(), null, null, new List<GraphQLDirective>(), false, new Util.ParameterReplacer());
             return exp!;
         }
 

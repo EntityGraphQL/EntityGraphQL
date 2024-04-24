@@ -69,7 +69,7 @@ namespace EntityGraphQL.Schema
         /// </summary>
         List<ParameterExpression> Services { get; }
         IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
         IField? UseArgumentsFromField { get; }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace EntityGraphQL.Schema
         /// <param name="previousContext"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
+        (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
         Expression? ResolveExpression { get; }
         IField UpdateExpression(Expression expression);
 
@@ -91,7 +91,7 @@ namespace EntityGraphQL.Schema
         /// <param name="args"></param>
         void AddArguments(object args);
         IField Returns(GqlTypeInfo gqlTypeInfo);
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
         void UseArgumentsFrom(IField field);
         IField AddValidator<TValidator>() where TValidator : IArgumentValidator;
         IField AddValidator(Action<ArgumentValidatorContext> callback);

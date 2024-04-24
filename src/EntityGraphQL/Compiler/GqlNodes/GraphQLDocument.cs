@@ -30,7 +30,7 @@ namespace EntityGraphQL.Compiler
         public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; }
         public ParameterExpression? RootParameter { get; }
-        public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
+        public List<BaseGraphQLField> QueryFields { get; } = [];
 
         /// <summary>
         /// A list of GraphQL operations. These could be mutations or queries
@@ -38,6 +38,10 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public List<ExecutableGraphQLStatement> Operations { get; }
         public List<GraphQLFragmentStatement> Fragments { get; set; }
+        /// <summary>
+        /// This is the top level document node. Not a root field
+        /// </summary>
+        public bool IsRootField => false;
         public GraphQLDocument(ISchemaProvider schema)
         {
             Schema = schema;

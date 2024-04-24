@@ -19,11 +19,11 @@ namespace EntityGraphQL.Compiler
             this.SubscriptionField = subscriptionField;
         }
 
-        public Task<object?> ExecuteSubscriptionAsync<TContext>(TContext context, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse)
+        public Task<object?> ExecuteSubscriptionAsync<TContext>(TContext context, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? variablesToUse, ExecutionOptions executionOptions)
         {
             try
             {
-                return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse);
+                return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, executionOptions);
             }
             catch (EntityQuerySchemaException e)
             {
@@ -31,12 +31,12 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
         {
             if (ResultSelection == null)
                 throw new EntityGraphQLCompilerException($"Subscription {Name} should have a result selection");
 
-            return ResultSelection.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
+            return ResultSelection.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, contextChanged, replacer);
         }
     }
 }

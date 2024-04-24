@@ -32,7 +32,7 @@ namespace EntityGraphQL.Schema
         public bool ArgumentsAreInternal { get; internal set; }
         public List<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
         public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
         public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
 
@@ -96,7 +96,7 @@ namespace EntityGraphQL.Schema
             return Arguments[argName];
         }
 
-        public abstract (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext? compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
+        public abstract (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
         public bool HasArgumentByName(string argName)
         {
             return Arguments.ContainsKey(argName);
@@ -143,7 +143,7 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using ProcessArguments")]
+        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
         public void UseArgumentsFrom(IField field)
         {
             // Move the arguments definition to the new field as it needs them for processing

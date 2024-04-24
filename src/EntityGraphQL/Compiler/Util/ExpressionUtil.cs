@@ -71,7 +71,7 @@ namespace EntityGraphQL.Compiler.Util
             return (MemberExpression)exp;
         }
 
-        public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema)
+        public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema, ExecutionOptions? executionOptions = null)
         {
             if (value == null)
             {
@@ -107,11 +107,11 @@ namespace EntityGraphQL.Compiler.Util
                     {
                         var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                         if (prop != null)
-                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema));
+                            prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema, executionOptions));
                         else
                         {
                             var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
-                            field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema));
+                            field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema, executionOptions));
                         }
                     }
                     return value;
@@ -123,7 +123,7 @@ namespace EntityGraphQL.Compiler.Util
                         (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType))
                         ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                     foreach (var item in jsonEle.EnumerateArray())
-                        list.Add(ChangeType(item, eleType, schema));
+                        list.Add(ChangeType(item, eleType, schema, executionOptions));
                     return list;
                 }
                 value = jsonEle.ToString();
@@ -188,11 +188,11 @@ namespace EntityGraphQL.Compiler.Util
                 {
                     var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                     if (toProp != null)
-                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema));
+                        toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema, executionOptions));
                     else
                     {
                         var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
-                        toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema));
+                        toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
                     }
                 }
                 return newValue;
@@ -204,7 +204,7 @@ namespace EntityGraphQL.Compiler.Util
                     (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType))
                     ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in (IEnumerable)value)
-                    list.Add(ChangeType(item, eleType, schema));
+                    list.Add(ChangeType(item, eleType, schema, executionOptions));
                 if (toType.IsArray)
                 {
                     // if toType is array [] we can't use a List<>
@@ -231,11 +231,11 @@ namespace EntityGraphQL.Compiler.Util
                 if (fromType == toType.GetGenericArguments()[0])
                     return Activator.CreateInstance(toType, value);
                 else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
-                    return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema));
+                    return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema, executionOptions));
             }
             if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
             {
-                return ConvertObjectType(schema, value, toType, fromType);
+                return ConvertObjectType(schema, value, toType, fromType, executionOptions);
             }
             if (argumentNonNullType != valueNonNullType)
             {
@@ -252,31 +252,31 @@ namespace EntityGraphQL.Compiler.Util
             return value;
         }
 
-        private static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType)
+        private static object? ConvertObjectType(ISchemaProvider? schema, object? value, Type toType, Type valueObjType, ExecutionOptions? executionOptions)
         {
             var newValue = Activator.CreateInstance(toType);
             foreach (var toField in toType.GetFields())
             {
                 var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
-                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema));
+                    toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema, executionOptions));
                 else
                 {
                     var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
-                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema));
+                        toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema, executionOptions));
                 }
             }
             foreach (var toProperty in toType.GetProperties())
             {
                 var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromProp != null)
-                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema));
+                    toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema, executionOptions));
                 else
                 {
                     var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                     if (fromField != null)
-                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema));
+                        toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema, executionOptions));
                 }
             }
 
@@ -764,7 +764,7 @@ namespace EntityGraphQL.Compiler.Util
                 return null;
 
             var newExp = CreateNewExpression(fieldDescription, fieldExpressions);
-            var args = new List<object?>();
+            var args = new List<object?>(fieldSelectParamValues.Count());
             args.AddRange(fieldSelectParamValues);
             if (schemaContextParam != null)
             {
@@ -785,7 +785,8 @@ namespace EntityGraphQL.Compiler.Util
         public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query)
         {
             var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
-            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null)).ExpressionResult;
+            // TODO we should have the execution options here
+            Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null), new ExecutionOptions()).ExpressionResult;
             expression = Expression.Lambda(expression, contextParam);
             return expression;
         }

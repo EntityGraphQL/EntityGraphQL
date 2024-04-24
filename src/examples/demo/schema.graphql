@@ -3,17 +3,28 @@ schema {
 	mutation: Mutation
 }
 
+"""Boolean scalar"""
 scalar Boolean
+"""Char scalar"""
 scalar Char
+"""Date with time scalar"""
 scalar Date
+"""DateTimeOffset scalar"""
 scalar DateTimeOffset
+"""Float scalar"""
 scalar Float
+"""ID scalar"""
 scalar ID
+"""Int scalar"""
 scalar Int
+"""String scalar"""
 scalar String
+"""Represents a pair of strings"""
 scalar StringKeyValuePair
 
+"""Directs the executor to include this field or fragment only when the `if` argument is true."""
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""Directs the executor to skip this field or fragment when the `if` argument is true."""
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 
 enum Genre {

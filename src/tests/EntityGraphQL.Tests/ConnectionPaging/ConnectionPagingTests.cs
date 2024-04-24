@@ -487,6 +487,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             dynamic projects = result.Data["projects"];
             dynamic tasks = projects[0].tasks;
             Assert.Equal(2, Enumerable.Count(tasks.edges));
+            Assert.Single(data.Projects);
             Assert.Equal(5, tasks.totalCount);
             Assert.True(tasks.pageInfo.hasNextPage);
             Assert.False(tasks.pageInfo.hasPreviousPage);
@@ -685,14 +686,14 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
         private static void FillProjectData(TestDataContext data)
         {
-            data.Projects = new List<Project>
-            {
+            data.Projects =
+            [
                 new Project
                 {
                     Id = 99,
                     Name ="Project 1",
-                    Tasks = new List<Task>
-                    {
+                    Tasks =
+                    [
                         new Task
                         {
                             Id = 0,
@@ -719,9 +720,9 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                             Name = "Task 5"
                         },
 
-                    }
+                    ]
                 }
-            };
+            ];
         }
 
         private static void FillData(TestDataContext data)

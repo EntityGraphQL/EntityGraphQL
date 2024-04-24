@@ -28,14 +28,14 @@ public static class ArgumentUtil
                         val = Expression.Lambda(argExpression, docParam!).Compile().DynamicInvoke(new[] { docVariables });
                     else
                         val = argExpression;
-                    values.Add(argField.Name, ExpressionUtil.ChangeType(val, argField.RawType, schema));
+                    values.Add(argField.Name, ExpressionUtil.ChangeType(val, argField.RawType, schema, null));
                 }
                 else
                 {
                     val = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
-                        val = ExpressionUtil.ChangeType(val, argField.RawType, schema);
+                        val = ExpressionUtil.ChangeType(val, argField.RawType, schema, null);
                     values.Add(argField.Name, val);
                 }
                 argField.Validate(val, fieldName, validationErrors);
@@ -126,7 +126,7 @@ public static class ArgumentUtil
                     var parameters = c.GetParameters();
                     if (parameters.Length == 1)
                     {
-                        item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType, schema);
+                        item = ExpressionUtil.ChangeType(item, parameters[0].ParameterType, schema, null);
                         constructor = memberType.GetConstructor(new[] { item!.GetType() });
                         break;
                     }

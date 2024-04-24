@@ -19,9 +19,9 @@ namespace EntityGraphQL.Compiler.EntityQuery
     ///   not(), !
     public static class EntityQueryCompiler
     {
-        public static CompiledQueryResult Compile(string query)
+        public static CompiledQueryResult Compile(string query, ExecutionOptions executionOptions)
         {
-            return Compile(query, null, new DefaultMethodProvider());
+            return Compile(query, null, executionOptions, new DefaultMethodProvider());
         }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
         /// <param name="schemaProvider"></param>
         /// <param name="methodProvider"></param>
         /// <returns></returns>
-        public static CompiledQueryResult Compile(string query, ISchemaProvider? schemaProvider, IMethodProvider? methodProvider = null)
+        public static CompiledQueryResult Compile(string query, ISchemaProvider? schemaProvider, ExecutionOptions executionOptions, IMethodProvider? methodProvider = null)
         {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(query, nameof(query));
@@ -47,7 +47,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             if (schemaProvider != null)
                 contextParam = Expression.Parameter(schemaProvider.QueryContextType, $"cxt_{schemaProvider.QueryContextType.Name}");
 
-            var expression = CompileQuery(query, contextParam, schemaProvider, new QueryRequestContext(null, null), methodProvider);
+            var expression = CompileQuery(query, contextParam, schemaProvider, new QueryRequestContext(null, null), methodProvider, executionOptions);
 
             var contextParams = new List<ParameterExpression>();
             if (contextParam != null)
@@ -55,10 +55,10 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return new CompiledQueryResult(expression, contextParams);
         }
 
-        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, QueryRequestContext requestContext, IMethodProvider? methodProvider = null)
+        public static CompiledQueryResult CompileWith(string query, Expression context, ISchemaProvider schemaProvider, QueryRequestContext requestContext, ExecutionOptions executionOptions, IMethodProvider? methodProvider = null)
         {
             methodProvider ??= new DefaultMethodProvider();
-            var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider);
+            var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider, executionOptions);
             if (expression == null)
                 throw new EntityGraphQLCompilerException("Failed to compile expression");
 
@@ -66,7 +66,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             return new CompiledQueryResult(expression, parameters);
         }
 
-        private static Expression CompileQuery(string query, Expression? context, ISchemaProvider? schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider)
+        private static Expression CompileQuery(string query, Expression? context, ISchemaProvider? schemaProvider, QueryRequestContext requestContext, IMethodProvider methodProvider, ExecutionOptions executionOptions)
         {
             var stream = new AntlrInputStream(query);
             var lexer = new EntityQLLexer(stream);
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler.EntityQuery
             };
             var tree = parser.eqlStart();
 
-            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, requestContext);
+            var visitor = new EntityQueryNodeVisitor(context, schemaProvider, methodProvider, requestContext, new CompileContext(executionOptions, null));
             var expression = visitor.Visit(tree);
             return expression;
         }

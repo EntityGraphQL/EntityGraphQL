@@ -32,9 +32,20 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
     {
+        private bool isRootField;
         public GraphQLListSelectionField CollectionSelectionNode { get; set; }
         public GraphQLObjectProjectionField ObjectProjectionNode { get; set; }
         public Expression CombineExpression { get; set; }
+        public override bool IsRootField
+        {
+            get => isRootField;
+            set
+            {
+                isRootField = value;
+                CollectionSelectionNode.IsRootField = value;
+                ObjectProjectionNode.IsRootField = value;
+            }
+        }
 
         public GraphQLCollectionToSingleField(ISchemaProvider schema, GraphQLListSelectionField collectionNode, GraphQLObjectProjectionField objectProjectionNode, Expression combineExpression)
             : base(schema, collectionNode.Field, objectProjectionNode.Name, objectProjectionNode.NextFieldContext, objectProjectionNode.RootParameter, objectProjectionNode.ParentNode, null)
@@ -44,9 +55,11 @@ namespace EntityGraphQL.Compiler
             CollectionSelectionNode.AllowToList = false;
             // we need a way to get back to this object in the hierarchy. Might revisit this later
             CollectionSelectionNode.ToSingleNode = this;
-            this.ObjectProjectionNode = objectProjectionNode;
+            CollectionSelectionNode.IsRootField = IsRootField;
+            ObjectProjectionNode = objectProjectionNode;
             ObjectProjectionNode.ToSingleNode = this;
-            this.CombineExpression = combineExpression;
+            ObjectProjectionNode.IsRootField = IsRootField;
+            CombineExpression = combineExpression;
         }
 
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
@@ -55,29 +68,29 @@ namespace EntityGraphQL.Compiler
             return CollectionSelectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements)) == true;
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
         {
             Expression? exp;
             // second / last pass
-            if (contextChanged || (HasServices && isRoot))
-                exp = ObjectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
+            if (contextChanged || (HasServices && IsRootField))
+                exp = ObjectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, contextChanged, replacer);
             else
-                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, isRoot, schemaContext, contextChanged, docParam, docVariables, possibleNextContextTypes, replacer);
+                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, schemaContext, contextChanged, docParam, docVariables, possibleNextContextTypes, replacer);
 
             return exp;
         }
 
-        private Expression? GetCollectionToSingleExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, bool isRoot, ParameterExpression schemaContext, bool contextChanged, ParameterExpression? docParam, object? docVariables, List<Type>? possibleNextContextTypes, ParameterReplacer replacer)
+        private Expression? GetCollectionToSingleExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterExpression? docParam, object? docVariables, List<Type>? possibleNextContextTypes, ParameterReplacer replacer)
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(CollectionSelectionNode, CombineExpression);
-            var result = CollectionSelectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
+            var result = CollectionSelectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, contextChanged, replacer);
             if (result == null)
                 return null;
 
             var genericType = result.Type.GetEnumerableOrArrayType()!;
 
             // ToList() first to get around this https://github.com/dotnet/efcore/issues/20505
-            if (isRoot)
+            if (IsRootField)
                 result = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.ToList), [genericType], result);
 
             // rebuild the .First/FirstOrDefault/etc
