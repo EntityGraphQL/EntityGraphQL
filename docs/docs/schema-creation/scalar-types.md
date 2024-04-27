@@ -23,14 +23,17 @@ schema.AddScalarType<DateTime>("DateTime", "Represents a date and time.");
 EntityGraphQL by default will set up the follow scalar types on schema creation.
 
 ```cs
-new SchemaType<int>(this, "Int", "Int scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<double>(this, "Float", "Float scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<bool>(this, "Boolean", "Boolean scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<string>(this, "String", "String scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<Guid>(this, "ID", "ID scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<char>(this, "Char", "Char scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<DateTime>(this, "Date", "Date with time scalar", null, GqlTypeEnum.Scalar);
-new SchemaType<DateTimeOffset>(this, "DateTimeOffset", "DateTimeOffset scalar", null, GqlTypeEnum.Scalar)
+AddScalarType<int>("Int", "Int scalar");
+AddScalarType<double>("Float", "Float scalar");
+AddScalarType<bool>("Boolean", "Boolean scalar");
+AddScalarType<string>("String", "String scalar");
+AddScalarType<Guid>("ID", "ID scalar");
+AddScalarType<char>("Char", "Char scalar");
+
+AddScalarType<DateTime>("Date", "Date with time scalar");
+AddScalarType<DateTimeOffset>("DateTimeOffset", "DateTimeOffset scalar");
+AddScalarType<DateOnly>("DateOnly", "Date value only scalar");
+AddScalarType<TimeOnly>("TimeOnly", "Time value only scalar");
 ```
 
 It is best to have scalar types added to the schema before adding other fields that reference them. Otherwise EntityGraphQL doesn't know about the scalar types. You can add you're own or make changes to the default when registering your schema.

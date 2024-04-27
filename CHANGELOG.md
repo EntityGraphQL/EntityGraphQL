@@ -20,6 +20,7 @@ schema.Type<TestDataContext>().GetField("people", null)
 - `IField.UseArgumentsFrom` & `IField.UseArgumentsFromField` is now Obsolete. Using it (typically in a field extension) creates issues. See #358 fix below
 - `IFieldExtension.GetExpressionAndArguments` has been added to allow field extensions to handle arguments and add them to the compile context. This interface will merge with the existing (now obsolete) `IFieldExtension.GetExpression` in version 6.0. This was introduced to fix #358 and avoid breaking changes
 - `GetSchemaType(string typeName, QueryRequestContext? requestContext)` is now Obsolete, use `GetSchemaType(string typeName, bool inputTypeScope, QueryRequestContext? requestContext)` and provide `inputTypeScope = true` if the type is an Input type.
+- #359 - For targets .net6 and above `DateOnly` & `TimeOnly` are added as scalar types by default.
 
 ## Fixes
 
