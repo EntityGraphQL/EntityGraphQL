@@ -78,7 +78,8 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                     && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
                 )
                 {
-                    actualNextFieldContext = subField.RootParameter;
+                    // we can do the convert here and avoid have to do a replace later
+                    actualNextFieldContext = Expression.Convert(actualNextFieldContext, subField.RootParameter.Type)!;
                 }
 
                 var fieldExp = subField.GetNodeExpression(
