@@ -7,9 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.AspNet;
+using EntityGraphQL.Extensions;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using EntityGraphQL.Schema;
+using System.Linq.Expressions;
 
 namespace demo
 {
@@ -44,7 +46,7 @@ namespace demo
                 logging.AddConsole(configure => Configuration.GetSection("Logging"));
                 logging.AddDebug();
             });
-            // add schema provider so we don't need to create it everytime
+            // add schema provider so we don't need to create it every time
             // if you want to override json serialization - say PascalCase response
             // You will also need to override the default fieldNamer in SchemaProvider
             // var jsonOptions = new JsonSerializerOptions
@@ -54,7 +56,7 @@ namespace demo
             // };
             // services.AddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer(jsonOptions));
             // services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
-            // Or you could overrise the whole inferface and do something other than JSON
+            // Or you could override the whole interface and do something other than JSON
 
             services.AddGraphQLSchema<DemoContext>(options =>
             {
@@ -94,6 +96,12 @@ namespace demo
                 endpoints.MapControllers();
                 endpoints.MapGraphQL<DemoContext>(options: new ExecutionOptions
                 {
+                    BeforeRootFieldExpressionBuild = (exp, op, field) =>
+                    {
+                        if (exp.Type.IsGenericTypeQueryable())
+                            return Expression.Call(typeof(EntityFrameworkQueryableExtensions), nameof(EntityFrameworkQueryableExtensions.TagWith), [exp.Type.GetGenericArguments()[0]], exp, Expression.Constant($"GQL op: {op ?? "n/a"}, field: {field}"));
+                        return exp;
+                    },
 #if DEBUG
                     IncludeDebugInfo = true
 #endif

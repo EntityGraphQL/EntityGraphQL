@@ -153,3 +153,22 @@ Will extract the `f.SomeRelation.FirstOrDefault().Id` expression. That will be f
 You may encounter some issues with EF depending on how complex you expressions are. For example pre-6.0 [this issue](https://github.com/dotnet/efcore/issues/23205) will be hit if you traverse through a relation.
 
 It is best to keep the expressions used to pass query context data into a service as simple as you can. Remember, your services can also access the DB context or anything else they need via DI.
+
+# Linking EntityFramework queries to GraphQL operations
+
+If you want to better understand which EF query is being run from which GraphQL operation you can use the `ExecutionOptions.BeforeRootFieldExpressionBuild` callback to add the EF [`TagWith`](https://docs.microsoft.com/en-us/ef/core/querying/tags) extension method to the query. Below is an example using the `MapGraphQL` ASP.NET helper.
+
+```c#
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapGraphQL<DemoContext>(options: new ExecutionOptions
+    {
+        BeforeRootFieldExpressionBuild = (exp, op, field) =>
+        {
+            if (exp.Type.IsGenericTypeQueryable())
+                return Expression.Call(typeof(EntityFrameworkQueryableExtensions), nameof(EntityFrameworkQueryableExtensions.TagWith), [exp.Type.GetGenericArguments()[0]], exp, Expression.Constant($"GQL op: {op ?? "n/a"}, field: {field}"));
+            return exp;
+        }
+    });
+});
+```

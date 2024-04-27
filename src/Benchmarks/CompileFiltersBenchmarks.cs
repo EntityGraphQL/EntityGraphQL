@@ -1,13 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using EntityGraphQL.Compiler.Util;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.EntityFrameworkCore;
 using EntityGraphQL.Schema;
 using EntityGraphQL;

@@ -19,7 +19,7 @@ public class GraphQLExtractedField : BaseGraphQLField
         this.FieldExpressions = fieldExpressions;
     }
 
-    protected override Expression GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+    protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
     {
         if (withoutServiceFields)
         {

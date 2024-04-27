@@ -17,20 +17,16 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         this.listType = listType;
     }
 
-    public override (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode)
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer, ParameterExpression? originalArgParam, CompileContext compileContext)
     {
         // We know we need the arguments from the parent field as that is where they are defined
-        if (compileContext != null && parentNode != null)
+        if (parentNode != null)
         {
-            newArgParam = compileContext.GetConstantParameterForField(parentNode.Field!) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
-            argumentValue = compileContext.ConstantParameters[newArgParam];
+            argumentParam = compileContext.GetConstantParameterForField(parentNode.Field!) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+            arguments = compileContext.ConstantParameters[argumentParam];
             originalArgParam = parentNode.Field!.ArgumentsParameter;
         }
-        return (originalArgParam, newArgParam, argumentValue);
-    }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
-    {
         // we use the resolveExpression & extensions from our parent extension. We need to figure this out at runtime as the type this Items field
         // is on may be used in multiple places and have different arguments etc
         // See OffsetPagingTests.TestMultiUseWithArgs
@@ -43,24 +39,32 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
 
         foreach (var extension in offsetPagingExtension.Extensions)
         {
+            var res = extension.GetExpressionAndArguments(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
+            (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
+#pragma warning disable CS0618 // Type or member is obsolete
             newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         if (servicesPass)
-            return newItemsExp; // paging is done already
+            return (newItemsExp, originalArgParam, argumentParam, arguments); // paging is done already
 
         if (argumentParam == null)
             throw new EntityGraphQLCompilerException("OffsetPagingItemsExtension requires an argument parameter to be passed in");
 
         // Build our items expression with the paging
-        newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Take", [listType],
-            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), "Skip", [listType],
+        newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Take), [listType],
+            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Skip), [listType],
                 newItemsExp,
                 Expression.PropertyOrField(argumentParam, "skip")
             ),
             Expression.PropertyOrField(argumentParam, "take")
         );
 
-        return newItemsExp;
+        // we have moved the expression from the parent node to here. We need to call the before callback
+        if (parentNode?.IsRootField == true)
+            BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(compileContext, BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode), parentNode.Name!, servicesPass, parentNode.IsRootField, ref newItemsExp);
+
+        return (newItemsExp, originalArgParam, argumentParam, arguments);
     }
 }

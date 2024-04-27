@@ -444,14 +444,14 @@ namespace EntityGraphQL.Tests.OffsetPaging
         }
         private static void FillProjectData(TestDataContext data)
         {
-            data.Projects = new List<Project>
-            {
+            data.Projects =
+            [
                 new Project
                 {
                     Id = 99,
                     Name ="Project 1",
-                    Tasks = new List<Task>
-                    {
+                    Tasks =
+                    [
                         new Task
                         {
                             Id = 0,
@@ -478,9 +478,9 @@ namespace EntityGraphQL.Tests.OffsetPaging
                             Name = "Task 5"
                         },
 
-                    }
+                    ]
                 }
-            };
+            ];
         }
 
         private static Person MakePerson(string fname, string lname)

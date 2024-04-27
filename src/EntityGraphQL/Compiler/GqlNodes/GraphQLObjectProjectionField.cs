@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler
@@ -61,7 +60,6 @@ namespace EntityGraphQL.Compiler
             bool withoutServiceFields,
             Expression? replacementNextFieldContext,
             List<Type>? possibleNextContextTypes,
-            bool isRoot,
             bool contextChanged,
             ParameterReplacer replacer
         )
@@ -80,14 +78,13 @@ namespace EntityGraphQL.Compiler
                         withoutServiceFields,
                         replacementNextFieldContext,
                         possibleNextContextTypes,
-                        isRoot,
                         contextChanged,
                         replacer
                     );
 
             if (contextChanged && replacementNextFieldContext != null)
             {
-                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!, possibleNextContextTypes);
+                nextFieldContext = ReplaceContext(replacementNextFieldContext!, replacer, nextFieldContext!, possibleNextContextTypes);
             }
             (nextFieldContext, var argumentParam) =
                 Field?.GetExpression(
@@ -105,12 +102,15 @@ namespace EntityGraphQL.Compiler
                 ) ?? (nextFieldContext, null);
             if (nextFieldContext == null)
                 return null;
+
+            HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
+
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
 
             (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
             // if we have services and they don't want service fields, return the expression only for extraction
-            if (withoutServiceFields && HasServices && !isRoot)
+            if (withoutServiceFields && HasServices && !IsRootField)
                 return nextFieldContext;
 
             var selectionFields = GetSelectionFields(
@@ -131,7 +131,7 @@ namespace EntityGraphQL.Compiler
             if (HasServices)
                 compileContext.AddServices(Field!.Services);
 
-            if (needsServiceWrap || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && isRoot))
+            if (needsServiceWrap || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField))
             {
                 nextFieldContext = WrapWithNullCheck(compileContext, selectionFields, serviceProvider, nextFieldContext, schemaContext, argumentParam, contextChanged, replacer);
             }

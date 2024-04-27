@@ -21,20 +21,29 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
     }
 
-    public override (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode)
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
+        IField field,
+        Expression expression,
+        ParameterExpression? argumentParam,
+        dynamic? arguments,
+        Expression context,
+        IGraphQLNode? parentNode,
+        bool servicesPass,
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
+    )
     {
         // We know we need the arguments from the parent field as that is where they are defined
-        if (compileContext != null && parentNode != null)
+        if (parentNode != null)
         {
-            newArgParam = compileContext.GetConstantParameterForField(parentNode.Field!) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
-            argumentValue = compileContext.ConstantParameters[newArgParam];
+            argumentParam =
+                compileContext.GetConstantParameterForField(parentNode.Field!)
+                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+            arguments = compileContext.ConstantParameters[argumentParam];
             originalArgParam = parentNode.Field!.ArgumentsParameter;
         }
-        return (originalArgParam, newArgParam, argumentValue);
-    }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
-    {
         if (argumentParam == null)
             throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
         // field.Resolve will be built with the original field context and needs to be updated
@@ -42,16 +51,33 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // is on may be used in multiple places and have different arguments etc
         // See OffsetConnectionPagingTests.TestMultiUseWithArgs
         var pagingExtension = (ConnectionPagingExtension)parentNode!.Field!.Extensions.Find(e => e is ConnectionPagingExtension)!;
-        expression = servicesPass ? expression : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentNode!.Field!.FieldParam!, parentNode!.ParentNode!.NextFieldContext!);
+        expression = servicesPass
+            ? expression
+            : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentNode!.Field!.FieldParam!, parentNode!.ParentNode!.NextFieldContext!);
 
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in pagingExtension.ExtensionsBeforePaging)
         {
+            var res = extension.GetExpressionAndArguments(
+                field,
+                expression,
+                argumentParam,
+                arguments,
+                context,
+                parentNode,
+                servicesPass,
+                parameterReplacer,
+                originalArgParam,
+                compileContext
+            );
+            (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
+#pragma warning disable CS0618 // Type or member is obsolete
             expression = extension.GetExpression(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         if (servicesPass)
-            return expression; // don't need to do paging as it is done already
+            return (expression, originalArgParam, argumentParam, arguments); // don't need to do paging as it is done already
 
         arguments ??= new { };
 
@@ -78,32 +104,60 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         if (arguments.First == null && arguments.Last == null && pagingExtension.DefaultPageSize != null)
             arguments.First = pagingExtension.DefaultPageSize;
 
-        var edgeExpression = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Take), [listType],
-            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Skip), [listType],
+        Expression? edgeExpression = Expression.Call(
+            isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+            nameof(EnumerableExtensions.Take),
+            [listType],
+            Expression.Call(
+                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+                nameof(EnumerableExtensions.Skip),
+                [listType],
                 expression,
                 Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam)
             ),
             Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetTakeNumber), null, argumentParam)
         );
 
+        // we have moved the expression from the parent node to here. We need to call the before callback
+        if (parentNode?.IsRootField == true)
+            BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(
+                compileContext,
+                BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode),
+                parentNode.Name!,
+                servicesPass,
+                parentNode.IsRootField,
+                ref edgeExpression
+            );
+
         // First we select the edge node as the full object
         // we later change this to a anonymous object to not have the full table returned from EF
         // This happens later as we don't know what the query has selected yet
-        expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Select), [listType, field.ReturnType.SchemaType.TypeDotnet],
+        expression = Expression.Call(
+            isQueryable ? typeof(Queryable) : typeof(Enumerable),
+            nameof(Enumerable.Select),
+            [listType, field.ReturnType.SchemaType.TypeDotnet],
             edgeExpression,
             // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
-            Expression.Lambda(Expression.MemberInit(Expression.New(field.ReturnType.SchemaType.TypeDotnet),
-                new List<MemberBinding>
-                {
-                    Expression.Bind(field.ReturnType.SchemaType.TypeDotnet.GetProperty("Node")!, firstSelectParam)
-                }
-            ), firstSelectParam)
+            Expression.Lambda(
+                Expression.MemberInit(
+                    Expression.New(field.ReturnType.SchemaType.TypeDotnet),
+                    new List<MemberBinding> { Expression.Bind(field.ReturnType.SchemaType.TypeDotnet.GetProperty("Node")!, firstSelectParam) }
+                ),
+                firstSelectParam
+            )
         );
 
-        return expression;
+        return (expression, originalArgParam, argumentParam, arguments);
     }
 
-    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentParam, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(
+        Expression baseExpression,
+        Dictionary<IFieldKey, CompiledField> selectionExpressions,
+        ParameterExpression? selectContextParam,
+        ParameterExpression? argumentParam,
+        bool servicesPass,
+        ParameterReplacer parameterReplacer
+    )
     {
         if (argumentParam == null)
             throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
@@ -124,23 +178,28 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         var edgeParam = Expression.Parameter(edgeType, "newEdgeParam");
         var newNodeExpression = parameterReplacer.ReplaceByType(anonNewExpression, firstSelectParam.Type, firstSelectParam);
 
-        baseExpression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Select), new Type[] { listType, edgeType },
+        baseExpression = Expression.Call(
+            isQueryable ? typeof(Queryable) : typeof(Enumerable),
+            nameof(Enumerable.Select),
+            new Type[] { listType, edgeType },
             baseExpression,
             // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
-            Expression.Lambda(Expression.MemberInit(Expression.New(edgeType),
-                new List<MemberBinding>
-                {
-                    Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression)
-                }
-            ), firstSelectParam)
+            Expression.Lambda(
+                Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }),
+                firstSelectParam
+            )
         );
 
         var idxParam = Expression.Parameter(typeof(int), "cursor_idx");
         // now select with cursor
-        baseExpression = Expression.Call(typeof(Enumerable), "Select", new Type[] { edgeType, edgeType },
+        baseExpression = Expression.Call(
+            typeof(Enumerable),
+            "Select",
+            new Type[] { edgeType, edgeType },
             baseExpression,
             Expression.Lambda(
-                Expression.MemberInit(Expression.New(edgeType),
+                Expression.MemberInit(
+                    Expression.New(edgeType),
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),

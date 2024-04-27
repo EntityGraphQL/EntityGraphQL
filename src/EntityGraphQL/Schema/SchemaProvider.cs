@@ -219,7 +219,7 @@ namespace EntityGraphQL.Schema
                 GraphQLDocument? compiledQuery = null;
                 if (options.EnablePersistedQueries)
                 {
-                    var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null);
+                    var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
                     if (persistedQuery != null && persistedQuery.Version != 1)
                         throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
@@ -244,21 +244,21 @@ namespace EntityGraphQL.Schema
                         // if here they sent query with no hash
                         // persisted queries will not auto cache it (only when you provide the hash) but is QueryCache is enabled we will cache it
                         if (options.EnableQueryCache)
-                            compiledQuery = CompileQueryWithCache(gql, user);
+                            compiledQuery = CompileQueryWithCache(gql, options, user);
                         else
                             compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(AuthorizationService, user));
                     }
                 }
                 else if (options.EnableQueryCache)
                 {
-                    compiledQuery = CompileQueryWithCache(gql, user);
+                    compiledQuery = CompileQueryWithCache(gql, options, user);
                 }
                 else
                 {
                     // no cache
                     if (gql.Query == null)
                     {
-                        string? hash = ((PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
+                        string? hash = ((PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options))?.Sha256Hash;
                         if (hash != null)
                             throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
@@ -310,14 +310,14 @@ namespace EntityGraphQL.Schema
             }
         }
 
-        private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ClaimsPrincipal? user)
+        private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ExecutionOptions executionOptions, ClaimsPrincipal? user)
         {
             GraphQLDocument? compiledQuery;
             // try to get the compiled query from the cache
             // cache the result
             if (gql.Query == null)
             {
-                string? phash = ((PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
+                string? phash = ((PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, executionOptions))?.Sha256Hash;
                 if (phash != null)
                     throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
                 throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");

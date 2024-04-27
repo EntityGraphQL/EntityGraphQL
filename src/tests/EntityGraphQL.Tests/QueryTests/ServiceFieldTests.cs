@@ -1591,7 +1591,7 @@ namespace EntityGraphQL.Tests
             context.People.Clear();
             context.People.Add(new Person
             {
-                Projects = new List<Project>()
+                Projects = []
             });
 
             var serviceCollection = new ServiceCollection();
@@ -1605,7 +1605,7 @@ namespace EntityGraphQL.Tests
             var node = query.QueryFields[0];
 
             // first stage without services
-            var expression = node.GetNodeExpression(new CompileContext(), serviceCollection.BuildServiceProvider(), new List<GraphQLFragmentStatement>(), query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, null, isRoot: true, false, new Compiler.Util.ParameterReplacer());
+            var expression = node.GetNodeExpression(new CompileContext(new ExecutionOptions(), null), serviceCollection.BuildServiceProvider(), [], query.OpVariableParameter, null, Expression.Parameter(typeof(TestDataContext)), withoutServiceFields: true, null, null, false, new Compiler.Util.ParameterReplacer());
 
             Assert.NotNull(expression);
             Assert.Equal("ctx.People.FirstOrDefault().Id", expression.ToString());
