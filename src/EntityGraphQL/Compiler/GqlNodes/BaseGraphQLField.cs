@@ -31,9 +31,13 @@ namespace EntityGraphQL.Compiler
         /// Name of the field
         /// </summary>
         public string Name { get; set; }
-        public string SchemaName { get => Field?.Name ?? Name; }
+        public string SchemaName
+        {
+            get => Field?.Name ?? Name;
+        }
+
         /// <summary>
-        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
+        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name
         /// across types. E.g name field below
         /// {
         ///     animals {
@@ -49,23 +53,39 @@ namespace EntityGraphQL.Compiler
         ///     }
         /// }
         /// </summary>
-        public ISchemaType? FromType { get => Field?.FromType; }
+        public ISchemaType? FromType
+        {
+            get => Field?.FromType;
+        }
         public IField? Field { get; }
         public List<BaseGraphQLField> QueryFields { get; } = [];
         public Expression? NextFieldContext { get; }
         public IGraphQLNode? ParentNode { get; set; }
 
         public ParameterExpression? RootParameter { get; set; }
+
         /// <summary>
         /// Arguments from inline in the query - not $ variables
         /// </summary>
         public IReadOnlyDictionary<string, object> Arguments { get; }
+
         /// <summary>
         /// True if this field directly has services
         /// </summary>
-        public bool HasServices { get => Field?.Services.Count > 0; }
+        public bool HasServices
+        {
+            get => Field?.Services.Count > 0;
+        }
 
-        public BaseGraphQLField(ISchemaProvider schema, IField? field, string name, Expression? nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode? parentNode, IReadOnlyDictionary<string, object>? arguments)
+        public BaseGraphQLField(
+            ISchemaProvider schema,
+            IField? field,
+            string name,
+            Expression? nextFieldContext,
+            ParameterExpression? rootParameter,
+            IGraphQLNode? parentNode,
+            IReadOnlyDictionary<string, object>? arguments
+        )
         {
             Name = name;
             NextFieldContext = nextFieldContext;
@@ -117,22 +137,68 @@ namespace EntityGraphQL.Compiler
         /// <param name="contextChanged">If true the context has changed. This means we are compiling/executing against the result ofa pre-selection without service fields</param>
         /// <param name="replacer">Replace used to make changes to expressions</param>
         /// <returns></returns>
-        public Expression? GetNodeExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        public Expression? GetNodeExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ParameterExpression schemaContext,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            List<Type>? possibleNextContextTypes,
+            bool isRoot,
+            bool contextChanged,
+            ParameterReplacer replacer
+        )
         {
             IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
 
             if (fieldNode == null)
                 return null;
 
-            return ((BaseGraphQLField)fieldNode).GetFieldExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, isRoot, contextChanged, replacer);
+            return ((BaseGraphQLField)fieldNode).GetFieldExpression(
+                compileContext,
+                serviceProvider,
+                fragments,
+                docParam,
+                docVariables,
+                schemaContext,
+                withoutServiceFields,
+                replacementNextFieldContext,
+                possibleNextContextTypes,
+                isRoot,
+                contextChanged,
+                replacer
+            );
         }
 
         /// <summary>
         /// GetNodeExpression but without the directive processing as we do not want to process continuously
         /// </summary>
-        protected abstract Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer);
+        protected abstract Expression? GetFieldExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ParameterExpression schemaContext,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            List<Type>? possibleNextContextTypes,
+            bool isRoot,
+            bool contextChanged,
+            ParameterReplacer replacer
+        );
 
-        public IEnumerable<BaseGraphQLField> Expand(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        public IEnumerable<BaseGraphQLField> Expand(
+            CompileContext compileContext,
+            List<GraphQLFragmentStatement> fragments,
+            bool withoutServiceFields,
+            Expression fieldContext,
+            ParameterExpression? docParam,
+            object? docVariables
+        )
         {
             IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
 
@@ -142,7 +208,14 @@ namespace EntityGraphQL.Compiler
             return ((BaseGraphQLField)fieldNode).ExpandField(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables);
         }
 
-        protected virtual IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        protected virtual IEnumerable<BaseGraphQLField> ExpandField(
+            CompileContext compileContext,
+            List<GraphQLFragmentStatement> fragments,
+            bool withoutServiceFields,
+            Expression fieldContext,
+            ParameterExpression? docParam,
+            object? docVariables
+        )
         {
             return ExpandFromServices(withoutServiceFields, this);
         }
@@ -164,7 +237,11 @@ namespace EntityGraphQL.Compiler
             QueryFields.Add(field);
         }
 
-        protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
+        protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(
+            Expression baseExpression,
+            ParameterExpression? listTypeParam,
+            ParameterReplacer parameterReplacer
+        )
         {
             if (Field == null)
                 return (baseExpression, listTypeParam);
@@ -175,16 +252,31 @@ namespace EntityGraphQL.Compiler
             return (baseExpression, listTypeParam);
         }
 
-        protected (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam, ParameterExpression? argumentParam, bool servicesPass, ParameterReplacer parameterReplacer)
+        protected (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExtensionsSelection(
+            Expression baseExpression,
+            Dictionary<IFieldKey, CompiledField> selectionExpressions,
+            ParameterExpression? selectContextParam,
+            ParameterExpression? argumentParam,
+            bool servicesPass,
+            ParameterReplacer parameterReplacer
+        )
         {
             if (Field == null)
                 return (baseExpression, selectionExpressions, selectContextParam);
             foreach (var extension in Field.Extensions)
             {
-                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(baseExpression, selectionExpressions, selectContextParam, argumentParam, servicesPass, parameterReplacer);
+                (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(
+                    baseExpression,
+                    selectionExpressions,
+                    selectContextParam,
+                    argumentParam,
+                    servicesPass,
+                    parameterReplacer
+                );
             }
             return (baseExpression, selectionExpressions, selectContextParam);
         }
+
         protected Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
         {
             if (Field == null)
@@ -200,6 +292,7 @@ namespace EntityGraphQL.Compiler
         {
             Directives.AddRange(graphQLDirectives);
         }
+
         protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
         {
             IGraphQLNode? result = field;
@@ -210,7 +303,13 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        protected Expression ReplaceContext(Expression replacementNextFieldContext, bool isRoot, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
+        protected Expression ReplaceContext(
+            Expression replacementNextFieldContext,
+            bool isRoot,
+            ParameterReplacer replacer,
+            Expression nextFieldContext,
+            List<Type>? possibleNextContextTypes
+        )
         {
             var possibleField = replacementNextFieldContext.Type.GetField(Name);
             if (possibleField != null)
@@ -227,10 +326,16 @@ namespace EntityGraphQL.Compiler
                     // e.g. given a field like this
                     // (ctx, service) => service.DoSomething(ctx.SomeField)
                     // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
-                    // if ParentNode?.HasServices == true the above has been done and we just need to replace the 
+                    // if ParentNode?.HasServices == true the above has been done and we just need to replace the
                     // expression, not rebuild it with a different name
 
-                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, isRoot && HasServices, possibleNextContextTypes);
+                    var expReplacer = new ExpressionReplacer(
+                        expressionsToReplace,
+                        replacementNextFieldContext,
+                        ParentNode?.HasServices == true,
+                        isRoot && HasServices,
+                        possibleNextContextTypes
+                    );
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
                 // may need to replace the field's original parameter
@@ -251,9 +356,17 @@ namespace EntityGraphQL.Compiler
                 {
                     // we replace the expression with a lookup in the bulk resolver data
                     // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
-                    var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
+                    var expression = Expression.MakeIndex(
+                        compileContext.BulkParameter!,
+                        typeof(Dictionary<string, object>).GetProperty("Item")!,
+                        new[] { Expression.Constant(Field.BulkResolver.Name) }
+                    );
                     var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
-                    nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
+                    nextFieldContext = Expression.MakeIndex(
+                        Expression.Convert(expression, dictType),
+                        dictType.GetProperty("Item")!,
+                        new[] { Field!.BulkResolver.DataSelector.Body }
+                    );
                     nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
                 }
             }
@@ -265,6 +378,7 @@ namespace EntityGraphQL.Compiler
         {
             return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;
         }
+
         public override bool Equals(object? obj)
         {
             return Equals(obj as BaseGraphQLField);
@@ -282,12 +396,14 @@ namespace EntityGraphQL.Compiler
         /// Name of the field. May be an alias
         /// </summary>
         string Name { get; }
+
         /// <summary>
         /// Name of the field as it appears in the schema
         /// </summary>
         string SchemaName { get; }
+
         /// <summary>
-        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name 
+        /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name
         /// across types. E.g name field below
         /// {
         ///     animals {

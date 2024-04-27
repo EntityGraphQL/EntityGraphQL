@@ -24,6 +24,7 @@ schema.Type<TestDataContext>().GetField("people", null)
 - #356 - Look up the correct field return type for `InputType`s
 - #358 - `OffsetPaging` and `ConnectionPaging` field extensions can now be used on multiple fields that return the same type. e.g.
 - #148 - Return a more descriptive error message for a missing type when we know the field we are trying to find the type of
+- #361 - Handle union/interface types when accessed from a object projection
 
 ```
 // both fields return a list of people but have different expressions
