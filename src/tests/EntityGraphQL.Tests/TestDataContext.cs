@@ -4,7 +4,6 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Tests
 {
@@ -16,18 +15,19 @@ namespace EntityGraphQL.Tests
     public class TestDataContext
     {
         [GraphQLIgnore]
-        private List<Project> projects = new();
+        private List<Project> projects = [];
 
         public int TotalPeople => People.Count;
         [Obsolete("This is obsolete, use Projects instead")]
         public IEnumerable<ProjectOld> ProjectsOld { get; set; }
         public List<Project> Projects { get => projects; set => projects = value; }
         public IQueryable<Project> QueryableProjects { get => projects.AsQueryable(); set => projects = value.ToList(); }
-        public virtual IEnumerable<Task> Tasks { get; set; } = new List<Task>();
-        public List<Location> Locations { get; set; } = new List<Location>();
-        public virtual List<Person> People { get; set; } = new List<Person>();
-        public List<User> Users { get; set; } = new List<User>();
+        public virtual IEnumerable<Task> Tasks { get; set; } = [];
+        public List<Location> Locations { get; set; } = [];
+        public virtual List<Person> People { get; set; } = [];
+        public List<User> Users { get; set; } = [];
         public System.Threading.Tasks.Task<int?> FirstUserId => System.Threading.Tasks.Task.FromResult(Users.FirstOrDefault()?.Id);
+        public Project MainProject => projects.FirstOrDefault();
     }
 
     public class TestDataContext2
@@ -63,6 +63,7 @@ namespace EntityGraphQL.Tests
         public string Field2 { get; set; }
         public Person Relation { get; set; }
         public Task NestedRelation { get; set; }
+        public Task[] Tasks { get; set; }
         public int? RelationId { get; set; }
     }
 
@@ -187,13 +188,13 @@ namespace EntityGraphQL.Tests
                 Relation = new Person(),
                 NestedRelation = new Task()
             };
-            context.Users = new List<User> { user };
+            context.Users = [user];
 
             var project = new Project
             {
                 Id = 55,
                 Name = "Project 3",
-                Tasks = new List<Task> {
+                Tasks = [
                     new Task
                     {
                         Id = 1,
@@ -213,15 +214,15 @@ namespace EntityGraphQL.Tests
                         Id = 4,
                         Name = "task 4"
                     }
-                },
+                ],
                 Created = DateTimeOffset.Now.AddMonths(-3),
                 Updated = DateTime.Now.AddMonths(-2),
             };
-            context.People = new List<Person> { MakePerson(99, user, project) };
-            context.Projects = new List<Project>
-            {
+            context.People = [MakePerson(99, user, project)];
+            context.Projects =
+            [
                 project
-            };
+            ];
             return context;
         }
 

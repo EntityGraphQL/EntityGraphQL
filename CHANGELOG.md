@@ -2,12 +2,32 @@
 
 ## Changes
 
+- `ISchemaProvider.Validate()` added to allow you to validate the schema is complete to avoid potential errors at runtime/query time. As fields and types can be added to the schema out of dependency order, this checks that all required types are in the schema.
+- #362 - The Sort field extension now supports defining more complex sort expressions that will be used. E.g.
+
+```cs
+schema.Type<TestDataContext>().GetField("people", null)
+  .UseSort((Person person) => new
+  {
+    // [{managerName: ASC}] in GQL can be used and the full expression person.Manager.Name will be used in the OrderBy()
+    managerName = person.Manager.Name,
+  });
+```
+
+- #169 - `ExecutionOptions` now has a `BeforeRootFieldExpressionBuild` callback you can use to make modifications to a fields expression before it is then used to build the whole query. This is _only_ called for root fields in your GraphQL operation. A common use case for this might be to call the EF `TagWith` extension method passing it the operation name to help with debugging queries.
+
+- #308 - Support a dotnet `Type` being used for an input type and a query type. This may change in future versions but some simple cases are now supported
 - `IField.UseArgumentsFrom` & `IField.UseArgumentsFromField` is now Obsolete. Using it (typically in a field extension) creates issues. See #358 fix below
-- `IFieldExtension.ProcessArguments` has been added to allow field extensions to handle arguments and add them to the compile context. This interface may merge with the existing `IFieldExtension.GetExpression` in version 6.0. This was introduced to fix #358 and avoid breaking changes
+- `IFieldExtension.GetExpressionAndArguments` has been added to allow field extensions to handle arguments and add them to the compile context. This interface will merge with the existing (now obsolete) `IFieldExtension.GetExpression` in version 6.0. This was introduced to fix #358 and avoid breaking changes
+- `GetSchemaType(string typeName, QueryRequestContext? requestContext)` is now Obsolete, use `GetSchemaType(string typeName, bool inputTypeScope, QueryRequestContext? requestContext)` and provide `inputTypeScope = true` if the type is an Input type.
+- #359 - For targets .net6 and above `DateOnly` & `TimeOnly` are added as scalar types by default.
 
 ## Fixes
 
+- #356 - Look up the correct field return type for `InputType`s
 - #358 - `OffsetPaging` and `ConnectionPaging` field extensions can now be used on multiple fields that return the same type. e.g.
+- #148 - Return a more descriptive error message for a missing type when we know the field we are trying to find the type of
+- #361 - Handle union/interface types when accessed from a object projection
 
 ```
 // both fields return a list of people but have different expressions

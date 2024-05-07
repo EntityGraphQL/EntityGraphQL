@@ -72,13 +72,13 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            return ExpressionUtil.ChangeType(argValue, argType, schema);
+            return ExpressionUtil.ChangeType(argValue, argType, schema, null);
         }
 
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
         {
             object argValue;
-            var schemaType = schema.GetSchemaType(argType, null);
+            var schemaType = schema.GetSchemaType(argType, true, null);
             foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
             {
                 if (!schemaType.HasField(item.Name.Value, null))

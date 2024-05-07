@@ -50,9 +50,9 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return expression;
         }
 
-        public virtual (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode)
+        public virtual (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer, ParameterExpression? originalArgParam, CompileContext compileContext)
         {
-            return (originalArgParam, newArgParam, argumentValue);
+            return (expression, originalArgParam, argumentParam, arguments);
         }
     }
 }

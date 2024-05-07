@@ -303,7 +303,7 @@
         {
             var rootFields = new List<Models.Field>();
 
-            foreach (var field in schema.GetSchemaType(schema.MutationType, null).GetFields())
+            foreach (var field in schema.GetSchemaType(schema.MutationType, false, null).GetFields())
             {
                 if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;

@@ -45,7 +45,7 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.HasType(typeof(Dog)));
             Assert.True(schema.HasType(typeof(Cat)));
             Assert.True(schema.HasType(typeof(Animal)));
-            Assert.True(schema.GetSchemaType(typeof(Animal), null).IsInterface);
+            Assert.True(schema.GetSchemaType(typeof(Animal), false, null).IsInterface);
         }
 
 

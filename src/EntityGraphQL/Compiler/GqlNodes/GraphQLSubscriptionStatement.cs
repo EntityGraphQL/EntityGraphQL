@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EntityGraphQL.Compiler
 {
     /// <summary>
-    /// Represents a GraphQL subscription statement and knows how to execue 
+    /// Represents a GraphQL subscription statement and knows how to execute it.
     /// </summary>
     public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     {
@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler
         private ExecutionOptions? options;
         private object? docVariables;
 
-        public GraphQLSubscriptionStatement(ISchemaProvider schema, string name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
+        public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
             : base(schema, name, rootParameter, rootParameter, variables)
         {
         }
@@ -36,14 +36,14 @@ namespace EntityGraphQL.Compiler
             this.docVariables = BuildDocumentVariables(ref variables);
 
             var result = new ConcurrentDictionary<string, object?>();
-            // pass to directvies
+            // pass to directives
             foreach (var directive in Directives)
             {
                 if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
                     return result;
             }
 
-            CompileContext compileContext = new();
+            CompileContext compileContext = new(options, null);
             foreach (var field in QueryFields)
             {
                 try
@@ -58,7 +58,7 @@ namespace EntityGraphQL.Compiler
                             timer.Start();
                         }
 #endif
-                        var data = await ExecuteAsync(node, context, serviceProvider, docVariables);
+                        var data = await ExecuteAsync(node, context, serviceProvider, docVariables, options);
 #if DEBUG
                         if (options.IncludeDebugInfo)
                         {
@@ -85,12 +85,12 @@ namespace EntityGraphQL.Compiler
             return result;
         }
 
-        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables)
+        private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables, ExecutionOptions executionOptions)
         {
             if (context == null)
                 return null;
             // execute the subscription set up method. It returns in IObservable<T>
-            var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables);
+            var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, executionOptions);
 
             if (result == null || node.ResultSelection == null)
                 throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");
@@ -114,7 +114,7 @@ namespace EntityGraphQL.Compiler
 
             var context = (TQueryContext)serviceProvider!.GetRequiredService(typeof(TQueryContext));
 
-            var result = MakeSelectionFromResultAsync(new CompileContext(), node, node.ResultSelection!, context, serviceProvider, fragments!, options!, docVariables, eventValue);
+            var result = MakeSelectionFromResultAsync(new CompileContext(options!, null), node, node.ResultSelection!, context, serviceProvider, fragments!, docVariables, eventValue);
             return result;
         }
 
@@ -122,6 +122,7 @@ namespace EntityGraphQL.Compiler
         {
             if (QueryFields.Count > 0)
                 throw new EntityGraphQLCompilerException($"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation.");
+            field.IsRootField = true;
             QueryFields.Add(field);
         }
     }

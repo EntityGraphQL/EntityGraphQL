@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
-using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -105,6 +104,54 @@ namespace EntityGraphQL.Tests
             Assert.Equal(3, fields.Count);
             Assert.Equal("__typename", fields[0].Name);
             Assert.Equal("height", fields[1].Name);
+            Assert.Equal("name", fields[2].Name);
+        }
+        [Fact]
+        public void SupportUseSortSelectSortFieldsDeepProperty()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            schema.Type<TestDataContext>().GetField("people", null)
+                .UseSort((Person person) => new
+                {
+                    managerName = person.Manager.Name,
+                    person.Name
+                });
+            var gql = new QueryRequest
+            {
+                Query = @"query($sort: [QueryPeopleSortInput]) {
+                    people(sort: $sort) { lastName }
+                }",
+                Variables = new QueryVariables{
+                    {"sort", new [] { new {managerName = "ASC" } } }
+                }
+            };
+            var context = new TestDataContext().FillWithTestData();
+            foreach (var p in context.People)
+            {
+                p.Manager = new Person
+                {
+                    Name = "zbe"
+                };
+            }
+            context.People.Add(new Person
+            {
+                LastName = "Zoo",
+                Manager = new Person
+                {
+                    Name = "Abe"
+                }
+            });
+            var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
+            Assert.Null(tree.Errors);
+            dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+            Assert.Equal(2, Enumerable.Count(people));
+            var person = Enumerable.First(people);
+            Assert.Equal("Zoo", person.lastName);
+            var schemaType = schema.Type("QueryPeopleSortInput");
+            var fields = schemaType.GetFields().ToList();
+            Assert.Equal(3, fields.Count);
+            Assert.Equal("__typename", fields[0].Name);
+            Assert.Equal("managerName", fields[1].Name);
             Assert.Equal("name", fields[2].Name);
         }
         [Fact]

@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler
             return Field?.Services.Count > 0;
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool isRoot, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
         {
             if (HasServices && withoutServiceFields)
                 return null;
@@ -33,8 +33,10 @@ namespace EntityGraphQL.Compiler
             // See test InheritanceTestUsingResolveWithServiceUsingArgs
             if (contextChanged && replacementNextFieldContext != null)
             {
-                nextFieldContext = ReplaceContext(replacementNextFieldContext!, isRoot, replacer, nextFieldContext!, possibleNextContextTypes);
+                nextFieldContext = ReplaceContext(replacementNextFieldContext!, replacer, nextFieldContext!, possibleNextContextTypes);
             }
+
+            HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
 
             (var result, _) = Field!.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
 

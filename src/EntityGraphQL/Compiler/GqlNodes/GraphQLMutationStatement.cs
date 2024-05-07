@@ -17,7 +17,7 @@ namespace EntityGraphQL.Compiler
     /// </summary>
     public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
-        public GraphQLMutationStatement(ISchemaProvider schema, string name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
+        public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
             : base(schema, name, nodeExpression, rootParameter, variables)
         {
         }
@@ -28,16 +28,16 @@ namespace EntityGraphQL.Compiler
                 throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
 
             var result = new ConcurrentDictionary<string, object?>();
-            // pass to directvies
+            // pass to directives
             foreach (var directive in Directives)
             {
                 if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
                     return result;
             }
 
-            // Mutation fields don't directly have services to collect. This is handled after the mutaiton is executed.
+            // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
             // When we are building/executing the selection on the mutation result services are handled
-            CompileContext compileContext = new();
+            CompileContext compileContext = new(options, null);
             foreach (var field in QueryFields)
             {
                 try
@@ -100,15 +100,15 @@ namespace EntityGraphQL.Compiler
             if (context == null)
                 return null;
             // run the mutation to get the context for the query select
-            var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables);
+            var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
 
             if (result == null || // result is null and don't need to do anything more
                 node.ResultSelection == null) // mutation must return a scalar type
                 return result;
-            return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, options, docVariables, result);
+            return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, result);
         }
 
-        protected async Task<object?> MakeSelectionFromResultAsync<TContext>(CompileContext compileContext, BaseGraphQLQueryField node, BaseGraphQLQueryField selection, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ExecutionOptions options, object? docVariables, object? result)
+        protected async Task<object?> MakeSelectionFromResultAsync<TContext>(CompileContext compileContext, BaseGraphQLQueryField node, BaseGraphQLQueryField selection, TContext context, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, object? docVariables, object? result)
         {
             var resultExp = selection;
 
@@ -134,7 +134,7 @@ namespace EntityGraphQL.Compiler
                         // yes we can
                         // rebuild the Expression so we keep any ConstantParameters
                         var item1 = listExp.Item1;
-                        var collectionNode = new GraphQLListSelectionField(Schema, null, Name, resultExp!.RootParameter, resultExp.RootParameter, item1, node, null);
+                        var collectionNode = new GraphQLListSelectionField(Schema, null, resultExp.Name ?? "unknown", resultExp!.RootParameter, resultExp.RootParameter, item1, node, null);
                         foreach (var queryField in resultExp.QueryFields)
                         {
                             collectionNode.AddField(queryField);
@@ -162,9 +162,10 @@ namespace EntityGraphQL.Compiler
                     }
                     SetupConstants(mutationContextExpression, compileContext, resultExp.RootParameter!);
                 }
+                resultExp.IsRootField = node.IsRootField;
                 resultExp.RootParameter = mutationContextParam;
 
-                (result, _) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, resultExp, options, docVariables);
+                (result, _) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, resultExp, docVariables);
                 return result;
             }
             // we now know the context as it is dynamically returned in a mutation
@@ -176,7 +177,7 @@ namespace EntityGraphQL.Compiler
             }
 
             // run the query select against the object they have returned directly from the mutation
-            (result, _) = await CompileAndExecuteNodeAsync(compileContext, result!, serviceProvider, fragments, resultExp, options, docVariables);
+            (result, _) = await CompileAndExecuteNodeAsync(compileContext, result!, serviceProvider, fragments, resultExp, docVariables);
             return result;
         }
 

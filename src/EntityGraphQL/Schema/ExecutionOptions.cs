@@ -30,13 +30,23 @@ namespace EntityGraphQL.Schema
 
         /// <summary>
         /// Allows you to hook into just before an expression is executed and modify it to suit. Note that if 
-        /// <code>ExecuteServiceFieldsSeparately</code> is true, this will be called twice if your query includes fields with serivces.
+        /// <code>ExecuteServiceFieldsSeparately</code> is true, this will be called twice if your query includes fields with services.
         /// Second parameter bool isFinal == true if the expression is the final execution - this means
         ///  - ExecuteServiceFieldsSeparately = false, or
         ///  - The query does not reference any fields with services
         ///  - The query references fields with service and the first execution has completed (isFinal == false) and we are executing again to merge the service results
         /// </summary>
         public Func<Expression, bool, Expression>? BeforeExecuting { get; set; }
+        /// <summary>
+        /// Allows you to hook into just before the expression is built and modify it to suit. This is only called for a field on the Query 
+        /// type. If <code>ExecuteServiceFieldsSeparately</code> is true, this will only be called for the first execution (without services).
+        /// 
+        /// First parameter is the expression of the root Query field that is being queried.
+        /// Second parameter is the operation name being executed. This can be null
+        /// Third parameter is the field name being executed.
+        /// Function must return an expression that returns the same type as the input expression.
+        /// </summary>
+        public Func<Expression, string?, string, Expression>? BeforeRootFieldExpressionBuild { get; set; }
 
 #if DEBUG
         /// <summary>

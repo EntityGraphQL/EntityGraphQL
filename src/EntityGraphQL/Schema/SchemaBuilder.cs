@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using Humanizer;
@@ -271,10 +272,10 @@ namespace EntityGraphQL.Schema
             if (options.IgnoreTypes.Contains(baseReturnType))
                 return null;
 
-            CacheType(baseReturnType, schema, options, false);
+            var schemaType = CacheType(baseReturnType, schema, options, false);
 
             var nullabilityInfo = method.GetNullabilityInfo();
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
@@ -327,16 +328,16 @@ namespace EntityGraphQL.Schema
             if (options.IgnoreTypes.Contains(baseReturnType))
                 yield break;
 
-            CacheType(baseReturnType, schema, options, isInputType);
+            var schemaType = CacheType(baseReturnType, schema, options, isInputType);
 
             var nullabilityInfo = prop.GetNullabilityInfo();
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schema.GetSchemaType(baseReturnType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
-            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, null).GqlType != GqlTypes.InputObject))
+            if (options.AutoCreateFieldWithIdArguments && (!schema.HasType(prop.DeclaringType!) || schema.GetSchemaType(prop.DeclaringType!, isInputType, null).GqlType != GqlTypes.InputObject))
             {
                 // add non-plural field with argument of ID
                 var idArgField = MakeFieldWithIdArgumentIfExists(schema, fromType, prop.ReflectedType!, field, options);
@@ -401,7 +402,7 @@ namespace EntityGraphQL.Schema
             return (name, description);
         }
 
-        internal static ISchemaType CacheType(Type propType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
+        internal static ISchemaType? CacheType(Type propType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
         {
             if (!schema.HasType(propType))
             {
@@ -459,22 +460,12 @@ namespace EntityGraphQL.Schema
                     Type type = Nullable.GetUnderlyingType(propType)!;
                     return schema.AddEnum(type.Name, type, description);
                 }
-                else
-                {
-                    var type = schema.GetSchemaType(propType, null);
-                    if (options.AutoCreateInterfaceTypes)
-                    {
-                        type.ImplementAllBaseTypes(true, true);
-                    }
-
-                    var schemaType = schema.GetSchemaType(propType, null);
-                    schemaType.ApplyAttributes(propType.GetCustomAttributes());
-
-                    return type;
-                }
             }
-            else
-                return schema.GetSchemaType(propType, null);
+            if (schema.TryGetSchemaType(propType, isInputType, out var schemaType, null))
+            {
+                return schemaType;
+            }
+            return null;
         }
 
         internal static string BuildTypeName(Type propType)
@@ -482,11 +473,19 @@ namespace EntityGraphQL.Schema
             return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
         }
 
-        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, Type returnType, string? returnSchemaType)
+        public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, bool isInputType, Type returnType, string? returnSchemaType, string fieldName, ISchemaType fromType)
         {
             Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
+                                                // We can look the type up by it's unique schema name
                                                 ? () => schema.Type(returnSchemaType)
-                                                : () => schema.GetSchemaType(returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType, null);
+                                                // we need to look it up by the dotnet type
+                                                : () =>
+                                                {
+                                                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
+                                                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
+                                                        return schemaType!;
+                                                    throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'");
+                                                };
             return new GqlTypeInfo(typeGetter, returnType);
         }
 

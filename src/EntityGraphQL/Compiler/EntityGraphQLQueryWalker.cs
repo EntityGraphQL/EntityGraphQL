@@ -59,7 +59,7 @@ namespace EntityGraphQL.Compiler
             if (node.Operation == OperationType.Query)
             {
                 var rootParameterContext = Expression.Parameter(schemaProvider.QueryContextType, $"query_ctx");
-                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
+                context = new GraphQLQueryStatement(schemaProvider, node.Name?.Value, rootParameterContext, rootParameterContext, operationVariables);
                 if (node.Directives?.Any() == true)
                     context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.QUERY, node.Directives));
                 currentOperation = (GraphQLQueryStatement)context;
@@ -68,7 +68,7 @@ namespace EntityGraphQL.Compiler
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.MutationType, $"mut_ctx");
-                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, rootParameterContext, operationVariables);
+                context = new GraphQLMutationStatement(schemaProvider, node.Name?.Value, rootParameterContext, rootParameterContext, operationVariables);
                 if (node.Directives?.Any() == true)
                     context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.MUTATION, node.Directives));
                 currentOperation = (GraphQLMutationStatement)context;
@@ -77,7 +77,7 @@ namespace EntityGraphQL.Compiler
             {
                 // we never build expression from this parameter but the type is used to look up the ISchemaType
                 var rootParameterContext = Expression.Parameter(schemaProvider.SubscriptionType, $"sub_ctx");
-                context = new GraphQLSubscriptionStatement(schemaProvider, node.Name?.Value ?? string.Empty, rootParameterContext, operationVariables);
+                context = new GraphQLSubscriptionStatement(schemaProvider, node.Name?.Value, rootParameterContext, operationVariables);
                 if (node.Directives?.Any() == true)
                     context.AddDirectives(ProcessFieldDirectives(ExecutableDirectiveLocation.SUBSCRIPTION, node.Directives));
                 currentOperation = (GraphQLSubscriptionStatement)context;
@@ -163,7 +163,7 @@ namespace EntityGraphQL.Compiler
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
-            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, requestContext);
+            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
             var actualField = schemaType.GetField(node.Name.Value, requestContext);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
@@ -273,7 +273,7 @@ namespace EntityGraphQL.Compiler
             {
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
-                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, requestContext);
+                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, listExp.Item1, returnType, name, context, selection, arguments);
                 return new GraphQLCollectionToSingleField(schemaProvider, collectionNode, graphQLNode, listExp.Item2!);
@@ -369,7 +369,7 @@ namespace EntityGraphQL.Compiler
 
         private List<GraphQLDirective> ProcessFieldDirectives(ExecutableDirectiveLocation location, IEnumerable<DirectiveNode> directives)
         {
-            var result = new List<GraphQLDirective>();
+            var result = new List<GraphQLDirective>(directives.Count());
             foreach (var directive in directives)
             {
                 var processor = schemaProvider.GetDirective(directive.Name.Value);

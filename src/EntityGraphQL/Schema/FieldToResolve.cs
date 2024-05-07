@@ -15,7 +15,7 @@ namespace EntityGraphQL.Schema;
 public class FieldWithContextAndArgs<TContext, TParams> : Field
 {
     public FieldWithContextAndArgs(ISchemaProvider schema, ISchemaType fromType, string name, string? description, TParams argTypes)
-        : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
+        : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, fromType.GqlType == GqlTypes.InputObject, typeof(object), null, name, fromType), null)
     {
     }
 
@@ -38,7 +38,7 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
 public class FieldWithContext<TContext> : Field
 {
     public FieldWithContext(ISchemaProvider schema, ISchemaType fromType, string name, string? description, object? argTypes)
-        : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, typeof(object), null), null)
+        : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, fromType.GqlType == GqlTypes.InputObject, typeof(object), null, name, fromType), null)
     {
     }
 

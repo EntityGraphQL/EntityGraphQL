@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 
@@ -22,6 +21,7 @@ namespace EntityGraphQL.Compiler
         public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
 
         public ISchemaProvider Schema { get; }
+        public bool IsRootField => false;
 
         public GraphQLFragmentStatement(ISchemaProvider schema, string name, ParameterExpression selectContext, ParameterExpression rootParameter)
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
@@ -29,6 +30,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="context">The context of the schema</param>
         /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
         /// <returns></returns>
+        [Obsolete("Use GetExpressionAndArguments")]
         Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer);
 
         /// <summary>
@@ -38,15 +40,25 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         Expression GetListExpressionForBulkResolve(Expression listExpression);
         /// <summary>
-        /// Called when the field is being finalized for execution allowing the extension to modify arguments for example
-        /// to bring arguments from a parent node down to the current field
+        /// Called when the field is used in a query. This is at the compiling of the query stage, it is before the
+        /// field expression is joined with a Select() or built into a new {}.
+        /// Use this as a chance to make any expression changes based on arguments or do rules/error checks on arguments.
+        /// Allowing the extension to modify arguments for example to bring arguments from a parent node down to the current field
+        /// 
+        /// This should be thread safe
         /// </summary>
-        /// <param name="newArgParam"></param>
-        /// <param name="argumentValue"></param>
-        /// <param name="compileContext"></param>
+        /// <param name="field"></param>
+        /// <param name="expression">The current expression for the field</param>
+        /// <param name="argumentParam">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
+        /// <param name="arguments">The value of the arguments. Null if field have no arguments</param>
+        /// <param name="context">The context of the schema</param>
         /// <param name="parentNode"></param>
+        /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
+        /// <param name="parameterReplacer"></param>
+        /// <param name="originalArgParam"></param>
+        /// <param name="compileContext"></param>
         /// <returns></returns>
-        (ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) ProcessArguments(ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue, CompileContext? compileContext, IGraphQLNode? parentNode);
+        (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer, ParameterExpression? originalArgParam, CompileContext compileContext);
 
         /// <summary>
         /// Called when the field is being finalized for execution but we have not yet selected the fields for selection on this expression

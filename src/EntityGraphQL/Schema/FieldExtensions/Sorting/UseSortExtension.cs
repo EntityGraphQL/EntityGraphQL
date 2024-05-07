@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema.FieldExtensions
@@ -17,7 +15,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection)
         {
-            field.AddExtension(new SortExtension(fieldSelection.ReturnType));
+            field.AddExtension(new SortExtension(fieldSelection));
             return field;
         }
         /// <summary>
@@ -32,7 +30,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, Expression<Func<TElementType, object>> defaultSort, SortDirection direction)
         {
-            field.AddExtension(new SortExtension(fieldSelection.ReturnType, new Sort<TElementType>(defaultSort, direction)));
+            field.AddExtension(new SortExtension(fieldSelection, new Sort<TElementType>(defaultSort, direction)));
             return field;
         }
 
@@ -52,7 +50,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public static IField UseSort<TElementType, TReturnType, TSort>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, params Sort<TElementType>[] defaultSorts)
         {
-            field.AddExtension(new SortExtension(fieldSelection.ReturnType, defaultSorts));
+            field.AddExtension(new SortExtension(fieldSelection, defaultSorts));
             return field;
         }
 

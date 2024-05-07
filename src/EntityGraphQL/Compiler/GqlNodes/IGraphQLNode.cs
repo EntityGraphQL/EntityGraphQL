@@ -8,9 +8,9 @@ namespace EntityGraphQL.Compiler
     {
         ISchemaProvider Schema { get; }
         /// <summary>
-        /// Name of the field
+        /// Name of the node
         /// </summary>
-        string Name { get; }
+        string? Name { get; }
         /// <summary>
         /// The expression that represents the field. This will be the context for the next field selection
         /// </summary>
@@ -27,5 +27,9 @@ namespace EntityGraphQL.Compiler
         bool HasServices { get; }
         IReadOnlyDictionary<string, object> Arguments { get; }
         void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
+        /// <summary>
+        /// true if the node is a root level field selection (on query, mutation or subscription type)
+        /// </summary>
+        bool IsRootField { get; }
     }
 }

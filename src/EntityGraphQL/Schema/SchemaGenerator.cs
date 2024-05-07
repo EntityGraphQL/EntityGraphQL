@@ -22,7 +22,7 @@ namespace EntityGraphQL.Schema
 
         internal static string Make(ISchemaProvider schema)
         {
-            var rootQueryType = schema.GetSchemaType(schema.QueryContextType, null);
+            var rootQueryType = schema.GetSchemaType(schema.QueryContextType, false, null);
             var mutationType = schema.Mutation().SchemaType;
             var subscriptionType = schema.Subscription().SchemaType;
 

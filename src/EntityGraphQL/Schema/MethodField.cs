@@ -55,7 +55,7 @@ namespace EntityGraphQL.Schema
             ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
         }
 
-        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables)
+        public virtual async Task<object?> CallAsync(object? context, IReadOnlyDictionary<string, object>? gqlRequestArgs, IServiceProvider? serviceProvider, ParameterExpression? variableParameter, object? docVariables, ExecutionOptions executionOptions)
         {
             if (context == null)
                 return null;
@@ -89,7 +89,7 @@ namespace EntityGraphQL.Schema
                     // this could be int to RequiredField<int>
                     if (value != null && value.GetType() != argField.RawType)
                     {
-                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema);
+                        value = ExpressionUtil.ChangeType(value, argField.RawType, Schema, executionOptions);
                     }
 
                     argField.Validate(value, p.Name!, validationErrors);
