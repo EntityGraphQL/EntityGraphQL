@@ -7,9 +7,10 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Grammar;
 
-internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
+internal sealed class CallPath(List<IdentifierOrCall> parts, CompileContext compileContext) : IExpression
 {
     private readonly List<IdentifierOrCall> parts = parts;
+    private readonly CompileContext compileContext = compileContext;
 
     public Type Type => parts.Last().Type;
 
@@ -20,23 +21,33 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
             var name = parts[0].Name;
             return MakePropertyCall(context!, schema, name, requestContext, methodProvider);
         }
-        var exp = parts.Aggregate(context!, (currentContext, next) =>
-        {
-            if (next is IdentifierOrCall id)
+        var exp = parts.Aggregate(
+            context!,
+            (currentContext, next) =>
             {
-                if (id.IsCall)
+                if (next is IdentifierOrCall id)
                 {
-                    return MakeMethodCall(schema, methodProvider, ref currentContext, id.Name, id.Arguments, requestContext);
+                    if (id.IsCall)
+                    {
+                        return MakeMethodCall(schema, methodProvider, ref currentContext, id.Name, id.Arguments, requestContext);
+                    }
+                    else
+                        return MakePropertyCall(currentContext!, schema, id.Name, requestContext, methodProvider);
                 }
-                else
-                    return MakePropertyCall(currentContext!, schema, id.Name, requestContext, methodProvider);
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        });
+        );
         return exp;
     }
 
-    private static Expression MakeMethodCall(ISchemaProvider? schema, IMethodProvider methodProvider, ref Expression currentContext, string name, List<IExpression>? arguments, QueryRequestContext requestContext)
+    private static Expression MakeMethodCall(
+        ISchemaProvider? schema,
+        IMethodProvider methodProvider,
+        ref Expression currentContext,
+        string name,
+        List<IExpression>? arguments,
+        QueryRequestContext requestContext
+    )
     {
         if (currentContext == null)
             throw new EntityGraphQLCompilerException("CurrentContext is null");
@@ -55,12 +66,18 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
         var args = arguments?.ToList();
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
-        var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider)), outerContext.Type);
+        var call = methodProvider.MakeCall(
+            outerContext,
+            methodArgContext,
+            method,
+            args?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider)),
+            outerContext.Type
+        );
         currentContext = call;
         return call;
     }
 
-    private static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    private Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         if (schema == null)
         {
@@ -74,7 +91,7 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
             }
         }
         // we have a schema we follow it for fields etc
-        var schemaType = schema.GetSchemaType(context.Type, requestContext);
+        var schemaType = schema.GetSchemaType(context.Type, false, requestContext);
 
         if (!schemaType.HasField(name, requestContext))
         {
@@ -86,16 +103,25 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
             return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, name));
         }
         var gqlField = schemaType.GetField(name, requestContext);
-        (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, context, null, null, null, new Dictionary<string, object>(), null, null, [], false, new Util.ParameterReplacer());
+        (var exp, _) = gqlField.GetExpression(
+            gqlField.ResolveExpression!,
+            context,
+            null,
+            null,
+            compileContext,
+            new Dictionary<string, object>(),
+            null,
+            null,
+            [],
+            false,
+            new Util.ParameterReplacer()
+        );
         return exp!;
     }
 
     private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext)
     {
-        var enumField = schema!.GetEnumTypes()
-                            .Select(e => e.GetFields().FirstOrDefault(f => f.Name == name))
-                            .Where(f => f != null)
-                            .FirstOrDefault();
+        var enumField = schema!.GetEnumTypes().Select(e => e.GetFields().FirstOrDefault(f => f.Name == name)).Where(f => f != null).FirstOrDefault();
         if (enumField != null)
         {
             var constExp = Expression.Constant(Enum.Parse(enumField.ReturnType.TypeDotnet, enumField.Name));
@@ -111,6 +137,6 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
             }
         }
 
-        throw new EntityGraphQLCompilerException($"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, null)?.Name ?? context!.Type.Name}'");
+        throw new EntityGraphQLCompilerException($"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'");
     }
 }

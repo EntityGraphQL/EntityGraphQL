@@ -109,14 +109,14 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesBinaryExpressionEqualsRoot()
         {
-            var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>());
+            var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
             Assert.False((bool)exp.Execute(new TestSchema()));
         }
 
         [Fact]
         public void CompilesBinaryExpressionEqualsAndAddRoot()
         {
-            var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>());
+            var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
             Assert.True((bool)exp.Execute(new TestSchema()));
         }
 
@@ -291,7 +291,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         {
             var schema = SchemaBuilder.FromObject<TestSchema>();
             var param = Expression.Parameter(typeof(Person));
-            var expressionParser = new EntityQueryParser(param, schema, null, null);
+            var expressionParser = new EntityQueryParser(param, schema, null, null, new CompileContext(executionOptions, null));
             var exp = expressionParser.Parse("gender == Female");
             var res = (bool)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
             Assert.True(res);

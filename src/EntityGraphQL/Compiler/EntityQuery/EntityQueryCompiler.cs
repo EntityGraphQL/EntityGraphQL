@@ -81,7 +81,8 @@ namespace EntityGraphQL.Compiler.EntityQuery
             ExecutionOptions executionOptions
         )
         {
-            var expressionParser = new EntityQueryParser(context, schemaProvider, requestContext, methodProvider);
+            var compileContext = new CompileContext(executionOptions, null);
+            var expressionParser = new EntityQueryParser(context, schemaProvider, requestContext, methodProvider, compileContext);
             var expression = expressionParser.Parse(query);
             return expression;
         }

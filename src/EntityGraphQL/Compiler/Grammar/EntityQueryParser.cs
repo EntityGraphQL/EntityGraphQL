@@ -57,17 +57,17 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowSign)
-        .Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
+    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowSign).Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
+
     // decimal point is required otherwise we want a long
-    private static readonly Parser<IExpression> decimalExp = Terms.Integer(NumberOptions.AllowSign).And(dot).And(Terms.Integer(NumberOptions.None))
+    private static readonly Parser<IExpression> decimalExp = Terms
+        .Integer(NumberOptions.AllowSign)
+        .And(dot)
+        .And(Terms.Integer(NumberOptions.None))
         .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
-    private static readonly Parser<IExpression> nullExp = Terms.Text("null")
-        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
-    private static readonly Parser<IExpression> trueExp = Terms.Text("true")
-        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
-    private static readonly Parser<IExpression> falseExp = Terms.Text("false")
-        .Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
+    private static readonly Parser<IExpression> nullExp = Terms.Text("null").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
+    private static readonly Parser<IExpression> trueExp = Terms.Text("true").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
+    private static readonly Parser<IExpression> falseExp = Terms.Text("false").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
     private readonly Expression? context;
@@ -75,7 +75,7 @@ public sealed class EntityQueryParser
     private readonly QueryRequestContext requestContext;
     private readonly IMethodProvider methodProvider;
 
-    public EntityQueryParser(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    public EntityQueryParser(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext)
     {
         // The Deferred helper creates a parser that can be referenced by others before it is defined
         var expression = Deferred<IExpression>();
@@ -86,46 +86,38 @@ public sealed class EntityQueryParser
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
         var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>());
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs))
-            .Then(static x => new IdentifierOrCall(x.Item1.ToString()));
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then(static x => new IdentifierOrCall(x.Item1.ToString()));
 
-        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs))
-            .Then(static x => new IdentifierOrCall(x.Item1.ToString(), x.Item2));
+        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then(static x => new IdentifierOrCall(x.Item1.ToString(), x.Item2));
 
-        var callPath = Separated(dot, OneOf(call, identifier))
-            .Then<IExpression>(static p => new CallPath(p));
+        var callPath = Separated(dot, OneOf(call, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
 
         // primary => NUMBER | "(" expression ")";
         var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
-        var unary = Recursive<IExpression>((u) =>
-            minus.And(u)
-                .Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, requestContext, methodProvider))))
-                .Or(primary));
+        var unary = Recursive<IExpression>(
+            (u) => minus.And(u).Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, requestContext, methodProvider)))).Or(primary)
+        );
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
-        var mathOps = OneOf(multiply, divide, mod,
-                            plus, minus,
-                            power);
-        var mathExp = unary.And(ZeroOrMany(mathOps.And(unary)))
-            .Then((x) => HandleBinary(x, context));
+        var mathOps = OneOf(multiply, divide, mod, plus, minus, power);
+        var mathExp = unary.And(ZeroOrMany(mathOps.And(unary))).Then((x) => HandleBinary(x, context));
 
         // expression => mathExp ( ( "==" | "&&" | ... ) mathExp )* ;
-        var compareOps = OneOf(lessThanOrEqual, greaterThanOrEqual,
-                            lessThan, greaterThan,
-                            equals, notEquals);
-        var compareExp = mathExp.And(ZeroOrMany(compareOps.And(mathExp)))
-            .Then((x) => HandleBinary(x, context));
+        var compareOps = OneOf(lessThanOrEqual, greaterThanOrEqual, lessThan, greaterThan, equals, notEquals);
+        var compareExp = mathExp.And(ZeroOrMany(compareOps.And(mathExp))).Then((x) => HandleBinary(x, context));
 
-        var logicalOps = OneOf(andWord, andSymbol,
-                            orWord, orSymbol);
-        var logicalBinary = compareExp.And(ZeroOrMany(logicalOps.And(compareExp)))
-            .Then((x) => HandleBinary(x, context));
+        var logicalOps = OneOf(andWord, andSymbol, orWord, orSymbol);
+        var logicalBinary = compareExp.And(ZeroOrMany(logicalOps.And(compareExp))).Then((x) => HandleBinary(x, context));
 
         var conditional = OneOf(
-            logicalBinary.And(questionMark).And(logicalBinary).And(colon).And(logicalBinary)
+            logicalBinary
+                .And(questionMark)
+                .And(logicalBinary)
+                .And(colon)
+                .And(logicalBinary)
                 .Then(static d =>
                 {
                     var condition = d.Item1;
@@ -133,15 +125,20 @@ public sealed class EntityQueryParser
                     var falseExp = d.Item5;
                     return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
                 }),
-            ifExp.And(logicalBinary).And(thenExp).And(logicalBinary).And(elseExp).And(logicalBinary)
-            .Then(static d =>
-            {
-                var condition = d.Item2;
-                var trueExp = d.Item4;
-                var falseExp = d.Item6;
-                return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
-            })
-            );
+            ifExp
+                .And(logicalBinary)
+                .And(thenExp)
+                .And(logicalBinary)
+                .And(elseExp)
+                .And(logicalBinary)
+                .Then(static d =>
+                {
+                    var condition = d.Item2;
+                    var trueExp = d.Item4;
+                    var falseExp = d.Item6;
+                    return (IExpression)new ConditionExpression(condition, trueExp, falseExp);
+                })
+        );
 
         expression.Parser = conditional.Or(logicalBinary);
 
