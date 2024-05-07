@@ -55,7 +55,7 @@ internal sealed class CallPath(List<IdentifierOrCall> parts) : IExpression
         var args = arguments?.ToList();
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
-        var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider)), currentContext.Type);
+        var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider)), outerContext.Type);
         currentContext = call;
         return call;
     }
