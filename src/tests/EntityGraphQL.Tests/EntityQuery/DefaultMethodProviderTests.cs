@@ -1,21 +1,28 @@
-using Xunit;
-using System.Linq;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
     public class DefaultMethodProviderTests
     {
         private readonly ExecutionOptions executionOptions = new();
+
         [Fact]
         public void CompilesFirst()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.first(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(
+                @"people.first(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")",
+                SchemaBuilder.FromObject<TestSchema>(),
+                executionOptions,
+                new DefaultMethodProvider()
+            );
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
         }
+
         [Fact]
         public void CompilesWhere()
         {
@@ -23,6 +30,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Empty(result);
         }
+
         [Fact]
         public void CompilesWhere2()
         {
@@ -30,16 +38,22 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
         }
+
         [Fact]
         public void FailsWhereNoParameter()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider()));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(
+                () => EntityQueryCompiler.Compile("people.where()", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider())
+            );
             Assert.Equal("Method 'where' expects 1 argument(s) but 0 were supplied", ex.Message);
         }
+
         [Fact]
         public void FailsWhereWrongParameterType()
         {
-            var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider()));
+            var ex = Assert.Throws<EntityGraphQLCompilerException>(
+                () => EntityQueryCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider())
+            );
             Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String'", ex.Message);
         }
 
@@ -50,6 +64,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var result = exp.Execute(new TestSchema()) as Person;
             Assert.Equal("Luke", result.Name);
         }
+
         [Fact]
         public void CompilesFirstNoPredicate()
         {
@@ -61,17 +76,24 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesTake()
         {
+            var context = new TestSchema();
             var exp = EntityQueryCompiler.Compile("people.take(1)", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
-            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            var result = exp.Execute(context) as IEnumerable<Person>;
             Assert.Single(result);
+            Assert.True(context.People.Count() > 1);
             Assert.Equal("Bob", result.ElementAt(0).Name);
+            Assert.Single(result);
         }
+
         [Fact]
         public void CompilesSkip()
         {
+            var context = new TestSchema();
             var exp = EntityQueryCompiler.Compile("people.Skip(1)", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
-            var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
+            var result = exp.Execute(context) as IEnumerable<Person>;
             Assert.Equal(3, result.Count());
+            Assert.NotEqual("Luke", context.People.ElementAt(0).Name);
+            Assert.Equal("Luke", context.People.ElementAt(1).Name);
             Assert.Equal("Luke", result.ElementAt(0).Name);
         }
 
@@ -119,7 +141,12 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesStringToLower()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.where(name.toLower() == ""bob"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(
+                @"people.where(name.toLower() == ""bob"")",
+                SchemaBuilder.FromObject<TestSchema>(),
+                executionOptions,
+                new DefaultMethodProvider()
+            );
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
             Assert.Equal("Bob", result.ElementAt(0).Name);
@@ -128,7 +155,12 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesStringToUpper()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.where(name.toUpper() == ""BOB"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(
+                @"people.where(name.toUpper() == ""BOB"")",
+                SchemaBuilder.FromObject<TestSchema>(),
+                executionOptions,
+                new DefaultMethodProvider()
+            );
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
             Assert.Equal("Bob", result.ElementAt(0).Name);
@@ -137,7 +169,12 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         [Fact]
         public void CompilesAndConvertsStringToGuid()
         {
-            var exp = EntityQueryCompiler.Compile(@"people.where(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
+            var exp = EntityQueryCompiler.Compile(
+                @"people.where(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")",
+                SchemaBuilder.FromObject<TestSchema>(),
+                executionOptions,
+                new DefaultMethodProvider()
+            );
             var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
             Assert.Single(result);
             Assert.Equal("Luke", result.ElementAt(0).Name);
@@ -150,12 +187,28 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             {
                 get
                 {
-                    return new List<Person> {
-                    new Person{ Id = 9, Name = "Bob", Guid = Guid.NewGuid() },
-                    new Person(),
-                    new Person{ Id = 9, Name = "Boba", Guid = Guid.NewGuid() },
-                    new Person{ Id = 9, Name = "Robin", Guid = Guid.NewGuid() },
-                };
+                    return new List<Person>
+                    {
+                        new Person
+                        {
+                            Id = 9,
+                            Name = "Bob",
+                            Guid = Guid.NewGuid()
+                        },
+                        new Person(),
+                        new Person
+                        {
+                            Id = 9,
+                            Name = "Boba",
+                            Guid = Guid.NewGuid()
+                        },
+                        new Person
+                        {
+                            Id = 9,
+                            Name = "Robin",
+                            Guid = Guid.NewGuid()
+                        },
+                    };
                 }
             }
         }
