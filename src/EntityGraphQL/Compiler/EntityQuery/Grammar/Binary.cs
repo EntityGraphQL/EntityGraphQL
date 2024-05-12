@@ -1,11 +1,10 @@
 using System;
 using System.Globalization;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler.Grammar;
+namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 internal sealed class Binary(ExpressionType op, IExpression left, IExpression right) : IExpression
 {
@@ -39,10 +38,15 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             right = Expression.Convert(right, right.Type.GetNullableType());
         else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
             left = Expression.Convert(left, left.Type.GetNullableType());
-
-        else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+        else if (
+            left.Type == typeof(int)
+            && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
+        )
             right = Expression.Convert(right, left.Type);
-        else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+        else if (
+            left.Type == typeof(uint)
+            && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
+        )
             left = Expression.Convert(left, right.Type);
 
         if (left.Type != right.Type)
@@ -58,11 +62,27 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
                 left = ConvertToDateTime(left);
             // convert ints "up" to float/decimal
-            else if ((left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong)) &&
-                    (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal)))
+            else if (
+                (
+                    left.Type == typeof(int)
+                    || left.Type == typeof(uint)
+                    || left.Type == typeof(short)
+                    || left.Type == typeof(ushort)
+                    || left.Type == typeof(long)
+                    || left.Type == typeof(ulong)
+                ) && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
+            )
                 left = Expression.Convert(left, right.Type);
-            else if ((right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong)) &&
-                    (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal)))
+            else if (
+                (
+                    right.Type == typeof(int)
+                    || right.Type == typeof(uint)
+                    || right.Type == typeof(short)
+                    || right.Type == typeof(ushort)
+                    || right.Type == typeof(long)
+                    || right.Type == typeof(ulong)
+                ) && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
+            )
                 right = Expression.Convert(right, left.Type);
             else // default try to make types match
                 left = Expression.Convert(left, right.Type);
@@ -80,6 +100,7 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     {
         return Expression.Call(typeof(DateTime), nameof(DateTime.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
     }
+
     private static MethodCallExpression ConvertToGuid(Expression expression)
     {
         return Expression.Call(typeof(Guid), nameof(Guid.Parse), null, Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!));

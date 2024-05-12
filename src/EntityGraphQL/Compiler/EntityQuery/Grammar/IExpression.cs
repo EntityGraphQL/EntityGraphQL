@@ -1,9 +1,8 @@
 using System;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler.Grammar;
+namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 internal interface IExpression
 {

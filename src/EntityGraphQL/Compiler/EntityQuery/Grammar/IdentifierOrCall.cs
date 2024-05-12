@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler.Grammar;
+namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 internal sealed class IdentifierOrCall(string name, List<IExpression>? arguments = null) : IExpression
 {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler.Grammar;
+using EntityGraphQL.Compiler.EntityQuery.Grammar;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery

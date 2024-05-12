@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 using Parlot.Fluent;
 using static Parlot.Fluent.Parsers;
 
-namespace EntityGraphQL.Compiler.Grammar;
+namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 public sealed class EntityQueryParser
 {
