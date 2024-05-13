@@ -168,6 +168,14 @@ The expression language supports the following methods, these are called against
 }
 ```
 
+- `<scalar>.isAny([])` - Return `true` if the scalar value (`string`, `int`, etc.) equals any of the values provided in the array argument of the method call.
+
+```gql
+{
+  people(filter: "firstName.isAny(\"Bob\", \"Bobby\")") { ... }
+}
+```
+
 The expression language supports ternary and conditional:
 
 - `__ ? __ : __`

@@ -357,6 +357,24 @@ public class EntityQueryCompilerTests
         });
     }
 
+    [Fact]
+    public void CompilesConstantArray()
+    {
+        var schema = SchemaBuilder.FromObject<TestSchema>();
+
+        var res = EntityQueryCompiler.Compile("[1, 4,5]", schema, executionOptions).Execute(new TestSchema());
+        Assert.Collection((IEnumerable<long>)res, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
+    }
+
+    [Fact]
+    public void CompilesConstantArrayString()
+    {
+        var schema = SchemaBuilder.FromObject<TestSchema>();
+
+        var res = EntityQueryCompiler.Compile("[\"Hi\", \"World\"]", schema, executionOptions).Execute(new TestSchema());
+        Assert.Collection((IEnumerable<string>)res, i => Assert.Equal("Hi", i), i => Assert.Equal("World", i));
+    }
+
     public enum Gender
     {
         Female,

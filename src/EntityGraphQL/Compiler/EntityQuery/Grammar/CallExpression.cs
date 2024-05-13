@@ -5,13 +5,12 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
-internal sealed class IdentifierOrCall(string name, List<IExpression>? arguments = null) : IExpression
+internal sealed class CallExpression(string name, List<IExpression>? arguments) : IExpression
 {
     public Type Type => throw new NotImplementedException();
 
     public string Name { get; } = name;
     public List<IExpression>? Arguments { get; } = arguments;
-    public bool IsCall => Arguments != null;
 
     public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {

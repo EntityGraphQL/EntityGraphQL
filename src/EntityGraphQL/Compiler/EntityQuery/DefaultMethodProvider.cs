@@ -45,7 +45,32 @@ public class DefaultMethodProvider : IMethodProvider
                     { "orderby", MakeOrderByMethod },
                     { "orderByDesc", MakeOrderByDescMethod },
                 }
-            }
+            },
+            {
+                (Type t) =>
+                    t == typeof(string)
+                    || t == typeof(long)
+                    || t == typeof(int)
+                    || t == typeof(short)
+                    || t == typeof(byte)
+                    || t == typeof(double)
+                    || t == typeof(float)
+                    || t == typeof(decimal)
+                    || t == typeof(uint)
+                    || t == typeof(ulong)
+                    || t == typeof(ushort)
+                    || t == typeof(sbyte)
+                    || t == typeof(char)
+                    || t == typeof(DateTime)
+                    || t == typeof(Guid)
+                    || t == typeof(DateTimeOffset)
+#if NET5_0_OR_GREATER
+                    || t == typeof(DateOnly)
+                    || t == typeof(TimeOnly)
+#endif
+                ,
+                new(StringComparer.OrdinalIgnoreCase) { { "isAny", MakeIsAnyMethod }, }
+            },
         };
 
     public bool EntityTypeHasMethod(Type context, string methodName)
@@ -174,6 +199,15 @@ public class DefaultMethodProvider : IMethodProvider
         return ExpressionUtil.MakeCallOnQueryable(nameof(Queryable.OrderByDescending), [argContext.Type, column.Type], context, lambda);
     }
 
+    private static Expression MakeIsAnyMethod(Expression context, Expression argContext, string methodName, Expression[] args)
+    {
+        ExpectArgsCount(1, args, methodName);
+        var array = args.First();
+        var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
+
+        return ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, context);
+    }
+
     private static Expression MakeStringContainsMethod(Expression context, Expression argContext, string methodName, Expression[] args) =>
         MakeStringMethod(string.Empty.Contains, context, methodName, args);
 
@@ -207,7 +241,7 @@ public class DefaultMethodProvider : IMethodProvider
     {
         if (context.Type.IsEnumerableOrArray())
         {
-            Type type = context.Type.GetGenericArguments()[0];
+            Type type = context.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
             return Expression.Parameter(type, $"p_{type.Name}");
         }
         var t = context.Type.GetEnumerableOrArrayType();

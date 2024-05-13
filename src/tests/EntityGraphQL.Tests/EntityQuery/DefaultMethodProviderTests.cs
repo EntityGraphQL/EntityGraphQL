@@ -170,6 +170,23 @@ public class DefaultMethodProviderTests
         Assert.Equal("Luke", result.ElementAt(0).Name);
     }
 
+    [Fact]
+    public void SupportUseFilterIsAnyMethod()
+    {
+        var exp = EntityQueryCompiler.Compile(
+            @"people.where(name.isAny([""Bob"", ""Robin""]))",
+            SchemaBuilder.FromObject<TestSchema>(),
+            executionOptions,
+            new DefaultMethodProvider()
+        );
+        var data = new TestSchema();
+        var result = exp.Execute(data) as IEnumerable<Person>;
+        Assert.True(data.People.Count() > 2);
+        Assert.Equal(2, result.Count());
+        Assert.Equal("Bob", result.ElementAt(0).Name);
+        Assert.Equal("Robin", result.ElementAt(1).Name);
+    }
+
     // This would be your Entity/Object graph you use with EntityFramework
     private class TestSchema
     {

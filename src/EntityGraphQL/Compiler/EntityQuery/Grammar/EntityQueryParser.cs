@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using Parlot.Fluent;
@@ -48,6 +49,8 @@ public sealed class EntityQueryParser
 
     private static readonly Parser<char> openParen = Terms.Char('(');
     private static readonly Parser<char> closeParen = Terms.Char(')');
+    private static readonly Parser<char> openArray = Terms.Char('[');
+    private static readonly Parser<char> closeArray = Terms.Char(']');
     private static readonly Parser<char> dot = Terms.Char('.');
     private static readonly Parser<char> comma = Terms.Char(',');
     private static readonly Parser<char> questionMark = Terms.Char('?');
@@ -85,14 +88,21 @@ public sealed class EntityQueryParser
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
         var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>());
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then(static x => new IdentifierOrCall(x.Item1.ToString()));
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(x => new IdentityExpression(x.Item1.ToString(), compileContext));
 
-        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then(static x => new IdentifierOrCall(x.Item1.ToString(), x.Item2));
+        var constArray = openArray
+            .And(Separated(comma, expression))
+            .And(closeArray)
+            .Then<IExpression>(x => new EqlExpression(
+                Expression.NewArrayInit(x.Item2.First().Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))
+            ));
 
-        var callPath = Separated(dot, OneOf(call, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
+        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1.ToString(), x.Item2));
+
+        var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
 
         // primary => NUMBER | "(" expression ")";
-        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression);
+        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;

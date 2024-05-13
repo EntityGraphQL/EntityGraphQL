@@ -3,6 +3,7 @@
 ## Changes
 
 - #367 - Remove Antlr dependency for generating the filter expression parser. Replaced with Parlot, a dotnet only solution to remove a barrier for contributors. This also results in the filter (FilterExpression field extension) expressions being compiled up to twice as fast.
+- #334 - add `isAny([])` method to the filter expression language
 
 # 5.3.0
 
