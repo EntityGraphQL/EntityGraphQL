@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using EntityGraphQL.Compiler.Util;
@@ -54,11 +55,7 @@ namespace EntityGraphQL.Compiler
                         argValue = ProcessListArgument(schema, (List<IValueNode>)argumentValue.Value, argName, argType);
                         break;
                     case SyntaxKind.ObjectValue:
-                        {
-                            // this should be an Input type
-                            var obj = Activator.CreateInstance(argType)!;
-                            argValue = ProcessObjectValue(schema, argumentValue, argName, argType, obj);
-                        }
+                        argValue = ProcessObjectValue(schema, argumentValue, argName, argType);
                         break;
                     case SyntaxKind.FloatValue:
                         argValue = argType switch
@@ -75,11 +72,46 @@ namespace EntityGraphQL.Compiler
             return ExpressionUtil.ChangeType(argValue, argType, schema, null);
         }
 
-        private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType, object obj)
+        private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)
         {
+            // this should be an Input type
+            // see if it has an empty constructor or a constructor that matches the fields
+            var objectValues = argumentValue.Value as List<ObjectFieldNode>;
+            if (objectValues == null)
+                throw new EntityGraphQLCompilerException($"Argument {argName} is not an object");
+
+            var constructor = argType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 0 || c.GetParameters().Length == objectValues.Count);
+            // make object
+            if (constructor == null)
+                throw new EntityGraphQLCompilerException($"No constructor found for object argument {argName}");
+
+            var constructorParameters = constructor.GetParameters();
+            if (constructorParameters.Length > 0)
+            {
+                object[] constructorArgs = new object[constructorParameters.Length];
+
+                // objectValue.Fields can be looked up by the constructor parameter name
+                for (int i = 0; i < constructorParameters.Length; i++)
+                {
+                    var field = objectValues.FirstOrDefault(f => f.Name.Value == constructorParameters[i].Name);
+                    if (field == null)
+                        throw new EntityGraphQLCompilerException($"Field '{constructorParameters[i].Name}' not found in argument object {argName}");
+
+                    constructorArgs[i] =
+                        ProcessArgumentValue(schema, field.Value, argName, constructorParameters[i].ParameterType)
+                        ?? throw new EntityGraphQLCompilerException($"Field '{constructorParameters[i].Name}' is null in argument object {argName}");
+                }
+
+                // Create the object using the specific constructor
+                var argObj = constructor.Invoke(constructorArgs);
+                return argObj;
+            }
+
+            var obj = Activator.CreateInstance(argType)!;
+
             object argValue;
             var schemaType = schema.GetSchemaType(argType, true, null);
-            foreach (var item in (List<ObjectFieldNode>)argumentValue.Value!)
+            foreach (var item in objectValues)
             {
                 if (!schemaType.HasField(item.Name.Value, null))
                     throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found of type '{schemaType.Name}'");
