@@ -19,11 +19,20 @@ namespace EntityGraphQL.Compiler
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
+            var fragment =
+                graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
 
-            return graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name)!.QueryFields.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements));
+            return fragment.QueryFields.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements));
         }
 
-        protected override IEnumerable<BaseGraphQLField> ExpandField(CompileContext compileContext, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression fieldContext, ParameterExpression? docParam, object? docVariables)
+        protected override IEnumerable<BaseGraphQLField> ExpandField(
+            CompileContext compileContext,
+            List<GraphQLFragmentStatement> fragments,
+            bool withoutServiceFields,
+            Expression fieldContext,
+            ParameterExpression? docParam,
+            object? docVariables
+        )
         {
             var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
             var fields = fragment.QueryFields.SelectMany(f => f.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
@@ -62,7 +71,19 @@ namespace EntityGraphQL.Compiler
             }
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ParameterExpression schemaContext,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            List<Type>? possibleNextContextTypes,
+            bool contextChanged,
+            ParameterReplacer replacer
+        )
         {
             throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
         }
