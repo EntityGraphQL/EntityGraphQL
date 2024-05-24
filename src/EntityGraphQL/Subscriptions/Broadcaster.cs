@@ -48,7 +48,10 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
 
     public virtual void Unsubscribe(IObserver<TType> observer)
     {
-        Subscribers.Remove(observer);
+        lock (Subscribers)
+        {
+            Subscribers.Remove(observer);
+        }
         OnUnsubscribe?.Invoke(observer);
     }
 
