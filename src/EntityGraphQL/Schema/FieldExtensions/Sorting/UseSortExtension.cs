@@ -15,9 +15,10 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection)
         {
-            field.AddExtension(new SortExtension(fieldSelection));
+            field.AddExtension(new SortExtension(fieldSelection, false));
             return field;
         }
+
         /// <summary>
         /// Update field to implement a sort argument that takes options to sort a collection
         /// Only call on a field that returns an IEnumerable
@@ -28,9 +29,14 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <param name="defaultSort">Sort to use if no sort argument supplied in query</param>
         /// <param name="direction">Direction of the default sort</param>
         /// <returns></returns>
-        public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, Expression<Func<TElementType, object>> defaultSort, SortDirection direction)
+        public static IField UseSort<TElementType, TReturnType>(
+            this IField field,
+            Expression<Func<TElementType, TReturnType>> fieldSelection,
+            Expression<Func<TElementType, object>> defaultSort,
+            SortDirection direction
+        )
         {
-            field.AddExtension(new SortExtension(fieldSelection, new Sort<TElementType>(defaultSort, direction)));
+            field.AddExtension(new SortExtension(fieldSelection, false, new Sort<TElementType>(defaultSort, direction)));
             return field;
         }
 
@@ -44,20 +50,29 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <returns></returns>
         public static IField UseSort<TElementType>(this IField field, Expression<Func<TElementType, object>> defaultSort, SortDirection direction)
         {
-            field.AddExtension(new SortExtension(null, new Sort<TElementType>(defaultSort, direction)));
+            field.AddExtension(new SortExtension(null, false, new Sort<TElementType>(defaultSort, direction)));
             return field;
         }
 
-        public static IField UseSort<TElementType, TReturnType, TSort>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, params Sort<TElementType>[] defaultSorts)
+        public static IField UseSort<TElementType, TReturnType>(
+            this IField field,
+            Expression<Func<TElementType, TReturnType>> fieldSelection,
+            params Sort<TElementType>[] defaultSorts
+        )
         {
-            field.AddExtension(new SortExtension(fieldSelection, defaultSorts));
+            field.AddExtension(new SortExtension(fieldSelection, false, defaultSorts));
             return field;
         }
-
 
         public static IField UseSort<TElementType>(this IField field, params Sort<TElementType>[] defaultSorts)
         {
-            field.AddExtension(new SortExtension(null, defaultSorts));
+            field.AddExtension(new SortExtension(null, false, defaultSorts));
+            return field;
+        }
+
+        public static IField UseSort<TElementType>(this IField field, bool useSchemaFields, params Sort<TElementType>[] defaultSorts)
+        {
+            field.AddExtension(new SortExtension(null, useSchemaFields, defaultSorts));
             return field;
         }
 
@@ -66,10 +81,11 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// Only call on a field that returns an IEnumerable
         /// </summary>
         /// <param name="field"></param>
+        /// <param name="useSchemaFields">Use the schema fields for sorting. Will use the fields current in the schema only</param>
         /// <returns></returns>
-        public static IField UseSort(this IField field)
+        public static IField UseSort(this IField field, bool useSchemaFields = false)
         {
-            field.AddExtension(new SortExtension(null));
+            field.AddExtension(new SortExtension(null, useSchemaFields));
             return field;
         }
     }
@@ -88,6 +104,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
     {
         public LambdaExpression SortExpression { get; set; }
         public SortDirection Direction { get; set; }
+
         public Sort(Expression<Func<TElementType, object>> sortExpression)
         {
             SortExpression = sortExpression;
