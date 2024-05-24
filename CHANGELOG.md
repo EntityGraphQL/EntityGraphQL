@@ -29,6 +29,7 @@ public class PersonArgConstructor
 ## Fixes
 
 - Fix issue where a subscription execution had access to a disposed `IServiceProvider`
+- `Broadcaster` is thread safe when removing observers
 
 # 5.3.0
 

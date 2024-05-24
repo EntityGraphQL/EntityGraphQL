@@ -32,7 +32,6 @@ namespace EntityGraphQL.Subscriptions;
 public class Broadcaster<TType> : IObservable<TType>, IDisposable
 {
     public List<IObserver<TType>> Subscribers { get; } = [];
-
     public Action<IObserver<TType>>? OnUnsubscribe { get; set; }
 
     /// <summary>
@@ -42,7 +41,10 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
     /// <returns></returns>
     public virtual IDisposable Subscribe(IObserver<TType> observer)
     {
-        Subscribers.Add(observer);
+        lock (Subscribers)
+        {
+            Subscribers.Add(observer);
+        }
         return new GraphQLSubscription<TType>(this, observer);
     }
 
@@ -61,26 +63,35 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
     /// <param name="value"></param>
     public virtual void OnNext(TType value)
     {
-        foreach (var observer in Subscribers)
+        lock (Subscribers)
         {
-            observer.OnNext(value);
+            foreach (var observer in Subscribers)
+            {
+                observer.OnNext(value);
+            }
         }
     }
 
     public virtual void OnError(Exception ex)
     {
-        foreach (var observer in Subscribers)
+        lock (Subscribers)
         {
-            observer.OnError(ex);
+            foreach (var observer in Subscribers)
+            {
+                observer.OnError(ex);
+            }
         }
     }
 
     public virtual void Dispose()
     {
         GC.SuppressFinalize(this);
-        foreach (var observer in Subscribers)
+        lock (Subscribers)
         {
-            observer.OnCompleted();
+            foreach (var observer in Subscribers)
+            {
+                observer.OnCompleted();
+            }
         }
     }
 }
