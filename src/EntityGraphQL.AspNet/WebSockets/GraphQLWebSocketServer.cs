@@ -23,7 +23,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
     /// <summary>
     /// These are the subscriptions/clients that are currently active with this server.
     /// </summary>
-    private readonly Dictionary<Guid, IDisposable> subscriptions = new();
+    private readonly Dictionary<string, IDisposable> subscriptions = new();
     private readonly WebSocket webSocket;
     private readonly ExecutionOptions options;
     private bool initialised;
@@ -94,7 +94,10 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                 await HandleSubscribeAsync(graphQLWSMessage);
                 break;
             case GraphQLWSMessageType.Complete:
-                CompleteSubscription(graphQLWSMessage.Id!.Value);
+                if (graphQLWSMessage.Id == null)
+                    await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid complete message, missing id field.");
+                else
+                    await CompleteSubscriptionAsync(graphQLWSMessage.Id);
                 break;
             case GraphQLWSMessageType.Pong:
                 break; // can come to us but we don't care
@@ -112,7 +115,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
             return;
         }
 
-        if (!graphQLWSMessage.Id.HasValue)
+        if (graphQLWSMessage.Id == null)
             await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid subscribe message, missing id field.");
         else if (graphQLWSMessage.Payload == null)
             await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid subscribe message, missing payload field.");
@@ -128,22 +131,16 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                 return;
             }
 
-            var schemaContext = Context.RequestServices.GetService<TQueryType>();
-            if (schemaContext == null)
-                await CloseConnectionAsync(
-                    (WebSocketCloseStatus)4400,
-                    $"No schema context was found in the service collection. Make sure the {typeof(TQueryType).Name} used with MapGraphQL<{typeof(TQueryType).Name}>() is registered in the service collection."
-                );
-            else if (subscriptions.ContainsKey(graphQLWSMessage.Id.Value))
-                await CloseConnectionAsync((WebSocketCloseStatus)4409, $"Subscriber for {graphQLWSMessage.Id.Value} already exists");
+            if (subscriptions.ContainsKey(graphQLWSMessage.Id))
+                await CloseConnectionAsync((WebSocketCloseStatus)4409, $"Subscriber for {graphQLWSMessage.Id} already exists");
             else
             {
                 var request = graphQLWSMessage.Payload;
                 // executing this sets up the observers etc. We don't return any data until we have an event
-                var result = await schema.ExecuteRequestWithContextAsync(request, schemaContext, Context.RequestServices, Context.User, options)!;
+                var result = await schema.ExecuteRequestAsync(request, Context.RequestServices, Context.User, options)!;
                 if (result.Errors != null)
                 {
-                    await SendErrorAsync(graphQLWSMessage.Id!.Value, result.Errors);
+                    await SendErrorAsync(graphQLWSMessage.Id, result.Errors);
                 }
                 // No error and a successful subscribe operation
                 if (result.Data?.Values.First() is GraphQLSubscribeResult subscribeResult)
@@ -151,34 +148,34 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                     var websocketSubscription = (IDisposable)
                         Activator.CreateInstance(
                             typeof(WebSocketSubscription<,>).MakeGenericType(typeof(TQueryType), subscribeResult!.EventType),
-                            graphQLWSMessage.Id!.Value,
+                            graphQLWSMessage.Id,
                             subscribeResult!.GetObservable(),
                             this,
                             subscribeResult!.SubscriptionStatement,
                             subscribeResult!.Field
                         )!;
-                    subscriptions.Add(graphQLWSMessage.Id!.Value, websocketSubscription);
+                    subscriptions.Add(graphQLWSMessage.Id, websocketSubscription);
                 }
                 else
                 {
                     // Assume it is a query or mutation over websockets
                     if (result.Errors == null)
                     {
-                        await SendNextAsync(graphQLWSMessage.Id!.Value, result);
+                        await SendNextAsync(graphQLWSMessage.Id, result);
                     }
                     // send complete after next or error above
-                    await SendAsync(new WithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id!.Value, });
+                    await SendAsync(new BaseWithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id, });
                 }
             }
         }
     }
 
-    public async Task SendErrorAsync(Guid id, Exception exception)
+    public async Task SendErrorAsync(string id, Exception exception)
     {
         await SendErrorAsync(id, new List<GraphQLError> { new GraphQLError(exception.Message, null) });
     }
 
-    public Task SendErrorAsync(Guid id, IEnumerable<GraphQLError> errors)
+    public Task SendErrorAsync(string id, IEnumerable<GraphQLError> errors)
     {
         return SendAsync(
             new GraphQLWSError
@@ -190,7 +187,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
         );
     }
 
-    public void CompleteSubscription(Guid id)
+    public Task CompleteSubscriptionAsync(string id)
     {
         subscriptions.TryGetValue(id, out var subscription);
         if (subscription != null)
@@ -198,9 +195,10 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
             subscription.Dispose();
             subscriptions.Remove(id);
         }
+        return Task.CompletedTask;
     }
 
-    public async Task SendNextAsync(Guid id, QueryResult result)
+    public async Task SendNextAsync(string id, QueryResult result)
     {
         await SendAsync(
             new GraphQLWSResponse
@@ -214,7 +212,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
 
     private async Task SendSimpleResponseAsync(string type)
     {
-        await SendAsync(new TypeOnlyGraphQLWSResponse { Type = type });
+        await SendAsync(new BaseGraphQLWSResponse { Type = type });
     }
 
     private Task SendAsync(object graphQLWSMessage)

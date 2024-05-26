@@ -10,16 +10,19 @@ namespace EntityGraphQL.AspNet.WebSockets;
 /// <typeparam name="TEventType"></typeparam>
 public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposable, IObserver<TEventType>
 {
-    private readonly Guid id;
+    /// <summary>
+    /// unique-operation-id from the protocol
+    /// </summary>
+    public string OperationId { get; }
     private readonly IObservable<TEventType> observable;
     private readonly IGraphQLWebSocketServer server;
     private readonly IDisposable subscription;
     private readonly GraphQLSubscriptionStatement subscriptionStatement;
     private readonly GraphQLSubscriptionField subscriptionNode;
 
-    public WebSocketSubscription(Guid id, object observable, IGraphQLWebSocketServer server, GraphQLSubscriptionStatement subscriptionStatement, GraphQLSubscriptionField node)
+    public WebSocketSubscription(string id, object observable, IGraphQLWebSocketServer server, GraphQLSubscriptionStatement subscriptionStatement, GraphQLSubscriptionField node)
     {
-        this.id = id;
+        this.OperationId = id;
         if (observable is not IObservable<TEventType>)
             throw new ArgumentException($"{nameof(observable)} must be of type {nameof(IObservable<TEventType>)}");
         this.observable = (IObservable<TEventType>)observable;
@@ -37,7 +40,7 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
             var data = subscriptionStatement.ExecuteSubscriptionEvent<TQueryContext, TEventType>(subscriptionNode, value, server.Context.RequestServices);
             var result = new QueryResult();
             result.SetData(new Dictionary<string, object?> { { subscriptionNode.Name, data } });
-            server.SendNextAsync(id, result).GetAwaiter().GetResult();
+            server.SendNextAsync(OperationId, result).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -47,12 +50,12 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
 
     public void OnError(Exception error)
     {
-        server.SendErrorAsync(id, error).GetAwaiter().GetResult();
+        server.SendErrorAsync(OperationId, error).GetAwaiter().GetResult();
     }
 
     public void OnCompleted()
     {
-        server.CompleteSubscription(id);
+        server.CompleteSubscriptionAsync(OperationId);
     }
 
     public void Dispose()

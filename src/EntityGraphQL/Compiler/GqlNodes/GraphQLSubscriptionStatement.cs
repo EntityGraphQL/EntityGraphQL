@@ -35,6 +35,9 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     )
         where TContext : default
     {
+        if (context == null && serviceProvider == null)
+            throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+
         this.fragments = fragments;
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);
@@ -62,7 +65,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                         timer.Start();
                     }
 #endif
-                    var data = await ExecuteAsync(node, context, serviceProvider, docVariables, options);
+                    var contextToUse = GetContextToUse(context, serviceProvider!, node)!;
+                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {

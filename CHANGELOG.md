@@ -30,6 +30,9 @@ public class PersonArgConstructor
 
 - Fix issue where a subscription execution had access to a disposed `IServiceProvider`
 - `Broadcaster` is thread safe when removing observers
+- Fixes in the implementation of the [GraphQL over Websockets](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
+  - ID is now a `string` as it does not specify that it must be a `Guid`
+  - Better errors on invalid messages
 
 # 5.3.0
 
