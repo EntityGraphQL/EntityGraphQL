@@ -4,6 +4,7 @@
 
 - #367 - Remove Antlr dependency for generating the filter expression parser. Replaced with Parlot, a dotnet only solution to remove a barrier for contributors. This also results in the filter (FilterExpression field extension) expressions being compiled up to twice as fast.
 - #334 - add `isAny([])` method to the filter expression language
+- `Broadcaster` exposes its properties and methods are virtual allowing you to extend its functionality instead of writing your own fully
 - #222 - EntityGraphQL can now build a argument objects via their constructor. The parameter names need to match the field names. E.g.
 
 ```cs
@@ -24,6 +25,14 @@ public class PersonArgConstructor
     public string Name { get; }
 }
 ```
+
+## Fixes
+
+- Fix issue where a subscription execution had access to a disposed `IServiceProvider`
+- `Broadcaster` is thread safe when removing observers
+- Fixes in the implementation of the [GraphQL over Websockets](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
+  - ID is now a `string` as it does not specify that it must be a `Guid`
+  - Better errors on invalid messages
 
 # 5.3.0
 
