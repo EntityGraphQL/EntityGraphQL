@@ -17,12 +17,13 @@ namespace EntityGraphQL.AspNet
         /// <param name="configure">Function to further configure your schema</param>
         /// <typeparam name="TSchemaContext"></typeparam>
         /// <returns></returns>
-        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<SchemaProvider<TSchemaContext>>? configure = null)
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection,
+            Action<SchemaProvider<TSchemaContext>>? configure = null, bool introspectionEnabled = true)
         {
             serviceCollection.AddGraphQLSchema<TSchemaContext>(options =>
             {
                 options.ConfigureSchema = configure;
-            });
+            }, introspectionEnabled);
 
             return serviceCollection;
         }
@@ -34,7 +35,8 @@ namespace EntityGraphQL.AspNet
         /// <param name="serviceCollection"></param>
         /// <param name="configure">Callback to configure the AddGraphQLOptions</param>
         /// <returns></returns>
-        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<AddGraphQLOptions<TSchemaContext>> configure)
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection,
+            Action<AddGraphQLOptions<TSchemaContext>> configure, bool introspectionEnabled = true)
         {
             serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
             serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
@@ -47,9 +49,11 @@ namespace EntityGraphQL.AspNet
             configure(options);
 
             var schema = new SchemaProvider<TSchemaContext>(
-                new PolicyOrRoleBasedAuthorization(authService), options.FieldNamer,
+                new PolicyOrRoleBasedAuthorization(authService),
+                options.FieldNamer,
+                introspectionEnabled: introspectionEnabled,
                 isDevelopment: webHostEnvironment?.IsEnvironment("Development") ?? true
-                );
+            );
             options.PreBuildSchemaFromContext?.Invoke(schema);
             if (options.AutoBuildSchemaFromContext)
                 schema.PopulateFromContext(options);
