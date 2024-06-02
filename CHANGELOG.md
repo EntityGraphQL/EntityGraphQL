@@ -5,6 +5,7 @@
 - #367 - Remove Antlr dependency for generating the filter expression parser. Replaced with Parlot, a dotnet only solution to remove a barrier for contributors. This also results in the filter (FilterExpression field extension) expressions being compiled up to twice as fast.
 - #334 - add `isAny([])` method to the filter expression language
 - `Broadcaster` exposes its properties and methods are virtual allowing you to extend its functionality instead of writing your own fully
+- #374 - Sort field extension now has an `useSchemaFields` option. This will use the fields on the type you are sorting from the schema to build the input argument. Instead of the fields on the dotnet type. Because the input type is build once at the beginning it will only include schema fields currently known at the time you call `.UseSort()`.
 - #375 - Allow specifying `introspectionEnabled` when calling the `AddGraphQLSchema` extension methods
 - #222 - EntityGraphQL can now build a argument objects via their constructor. The parameter names need to match the field names. E.g.
 
