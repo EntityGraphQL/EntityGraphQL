@@ -53,12 +53,16 @@ public class SortTests
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
+        var inputType = schema.GetSchemaType("QueryPeopleSortInput", null);
+        Assert.NotNull(inputType);
+        var fields = inputType.GetFields().ToList();
+        Assert.DoesNotContain("guid", fields.Select(f => f.Name));
     }
 
     private class TestDataContext2 : TestDataContext
     {
         [UseSort]
-        public override List<Person> People { get; set; } = new List<Person>();
+        public override List<Person> People { get; set; } = [];
     }
 
     [Fact]
@@ -182,7 +186,7 @@ public class SortTests
         Assert.Equal("Zoo", person.lastName);
         var schemaType = schema.Type("QueryPeopleSortInput");
         var fields = schemaType.GetFields().ToList();
-        Assert.Equal(13, fields.Count);
+        Assert.Equal(12, fields.Count);
         Assert.Contains("people(sort: [QueryPeopleSortInput!] = [{ height: ASC }]): [Person!]", schema.ToGraphQLSchemaString());
     }
 
@@ -212,7 +216,7 @@ public class SortTests
         Assert.Equal("Abe", person.lastName);
         var schemaType = schema.Type("QueryPeopleSortInput");
         var fields = schemaType.GetFields().ToList();
-        Assert.Equal(13, fields.Count);
+        Assert.Equal(12, fields.Count);
         Assert.Contains("people(sort: [QueryPeopleSortInput!] = [{ height: ASC }, { lastName: ASC }]): [Person!]", schema.ToGraphQLSchemaString());
     }
 

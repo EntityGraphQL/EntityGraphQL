@@ -104,13 +104,13 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 var typeWithSortFields = fieldSelectionType ?? listType!;
                 foreach (var prop in typeWithSortFields.GetProperties())
                 {
-                    if (IsNotInputType(prop.PropertyType))
+                    if (IsNotInputType(prop.PropertyType) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                         continue;
                     fields.Add(prop.Name, directionType);
                 }
                 foreach (var prop in typeWithSortFields.GetFields())
                 {
-                    if (IsNotInputType(prop.FieldType))
+                    if (IsNotInputType(prop.FieldType) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                         continue;
                     fields.Add(prop.Name, directionType);
                 }

@@ -1,3 +1,9 @@
+# 5.4.1
+
+## Fixes
+
+- #370 - Sort field extension (`[UseSort]` or `.UseSort()`), if building the sort argument input type from the dotnet fields/properties will now respect the `[GraphQLIgnore]` attribute on any fields.
+
 # 5.4.0
 
 ## Changes
