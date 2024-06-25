@@ -194,20 +194,23 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately == true)
         {
-            // We need to extract any ParameterExpressions from the query body
+            // We need to extract ParameterExpressions from the query body of any arguments
             // This lets us correctly pass services to the compile context for use in extensions (like filtering)
             foreach (var arg in node.Arguments)
             {
                 var type = arg.Value.GetType();
-                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EntityGraphQL.Schema.EntityQueryType<>))
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
                 {
-                    var v = (dynamic)arg.Value;
-                    if (v?.Query?.Body != null)
+                    var query = type
+                        .GetProperty(nameof(EntityQueryType<object>.Query))
+                        ?.GetValue(arg.Value) as LambdaExpression;
+                    if (query != null)
                     {
-                        var constants = (List<ParameterExpression>)ExtractServiceParameters(v.Query.Body);
-                        var d = constants.Distinct().ToList();
+                        var extractedParameters = ExtractServiceParameters(query.Body)
+                            .Distinct()
+                            .ToList();
 
-                        compileContext.AddServices(d);
+                        compileContext.AddServices(extractedParameters);
                     }
                 }
             } 
