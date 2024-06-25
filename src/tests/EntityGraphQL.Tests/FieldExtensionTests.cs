@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -134,6 +135,41 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Frank", person2.lastName);
             Assert.Equal("Cheryl", person1.name);
             Assert.Equal("Jill", person2.name);
+        }
+
+        [Fact]
+        public void TestOffsetPagingWithOthersAndServicesInFilter()
+        {
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var data = new TestDataContext();
+            data.People.Add(new Person { Id = 1, Name = "Jill", LastName = "Frank", Birthday = DateTime.Now.AddYears(-22) });
+            data.People.Add(new Person { Id = 2, Name = "Cheryl", LastName = "Frank", Birthday = DateTime.Now.AddYears(-10) });
+
+            schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people")
+                .UseFilter();
+            schema.Type<Person>().AddField("age", "Persons age")
+                .ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+            var gql = new QueryRequest
+            {
+                Query = @"{
+                    people(filter: ""age > 21"") {
+                        name id age lastName
+                    }
+                }",
+            };
+
+            var serviceCollection = new ServiceCollection();
+            var ager = new AgeService();
+            serviceCollection.AddSingleton(ager);
+
+            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null); 
+            Assert.Null(result.Errors);
+
+            dynamic people = result.Data["people"];
+            Assert.Equal(1, Enumerable.Count(people));
+            var person1 = Enumerable.ElementAt(people, 0);
+            Assert.Equal("Frank", person1.lastName);
+            Assert.Equal("Jill", person1.name);
         }
 
         [Fact]

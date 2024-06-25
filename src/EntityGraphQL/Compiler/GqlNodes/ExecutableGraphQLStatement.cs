@@ -194,6 +194,27 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately == true)
         {
+            // We need to extract ParameterExpressions from the query body of any arguments
+            // This lets us correctly pass services to the compile context for use in extensions (like filtering)
+            foreach (var arg in node.Arguments)
+            {
+                var type = arg.Value.GetType();
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                {
+                    var query = type
+                        .GetProperty(nameof(EntityQueryType<object>.Query))
+                        ?.GetValue(arg.Value) as LambdaExpression;
+                    if (query != null)
+                    {
+                        var extractedParameters = ExtractServiceParameters(query.Body)
+                            .Distinct()
+                            .ToList();
+
+                        compileContext.AddServices(extractedParameters);
+                    }
+                }
+            } 
+
             // build this first as NodeExpression may modify ConstantParameters
             // this is without fields that require services
             expression = node.GetNodeExpression(
@@ -265,6 +286,37 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true);
         return data;
+    }
+
+    private static List<ParameterExpression> ExtractServiceParameters(Expression? expression)
+    {
+        var res = new List<ParameterExpression>();
+
+        if (expression == null)
+            return res;
+
+        if (expression is ParameterExpression pe)
+        {
+            res.Add(pe);
+            return res;
+        }
+
+        if (expression is MethodCallExpression mce)
+        {
+            foreach (var a in mce.Arguments) res.AddRange(ExtractServiceParameters(a));
+            res.AddRange(ExtractServiceParameters(mce.Object));
+        }
+        else if (expression is ConditionalExpression ce)
+        {
+            res.AddRange(ExtractServiceParameters(ce.Test));
+        }
+        else if (expression is BinaryExpression be)
+        {
+            res.AddRange(ExtractServiceParameters(be.Left));
+            res.AddRange(ExtractServiceParameters(be.Right));
+        }
+
+        return res;
     }
 
     private static Dictionary<string, object> ResolveBulkLoaders(
