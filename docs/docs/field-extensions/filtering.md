@@ -121,8 +121,8 @@ The expression language supports the following methods, these are called against
 }
 ```
 
-- `List.first(filter?)` - Return the first item from a list. Optionally by a filter
-- `List.last(filter?)` - Return the last item from a list. Optionally by a filter
+- `List.first(filter?)` / `List.firstOrDefault(filter?)` - Return the first item from a list. Optionally by a filter
+- `List.last(filter?)` / `List.lastOrDefault(filter?)` - Return the last item from a list. Optionally by a filter
 - `List.take(int)` - Return the first `x` items
 - `List.skip(int)` - Return the items after `x`
 - `List.orderBy(field)` - Order the list by a given field
@@ -165,6 +165,14 @@ The expression language supports the following methods, these are called against
 ```gql
 {
   people(filter: "firstName.toUpper() == \"BOB\"") { ... }
+}
+```
+
+- `<scalar>.isAny([])` - Return `true` if the scalar value (`string`, `int`, etc.) equals any of the values provided in the array argument of the method call.
+
+```gql
+{
+  people(filter: "firstName.isAny(\"Bob\", \"Bobby\")") { ... }
 }
 ```
 

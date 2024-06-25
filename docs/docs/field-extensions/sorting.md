@@ -81,7 +81,7 @@ To sort the collection you set the fields with a direction:
 }
 ```
 
-Multiple fields is supported and are taken as ordered
+Multiple fields are supported and are taken as ordered
 
 ```graphql
 {
@@ -126,7 +126,8 @@ schema.ReplaceField("people",
     .UseSort((Person person) => new
     {
         person.Dob,
-        person.LastName
+        person.LastName,
+        manager = person.Manager.Name
     },
     // Default sort
     (Person person) => person.Dob, SortDirectionEnum.DESC);

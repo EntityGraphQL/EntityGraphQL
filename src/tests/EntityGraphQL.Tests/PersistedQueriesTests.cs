@@ -14,7 +14,8 @@ public class PersistedQueriesTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var query = @"{
+        var query =
+            @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -27,9 +28,12 @@ public class PersistedQueriesTests
         var gql = new QueryRequest
         {
             Query = query,
-            Extensions = new Dictionary<string, Dictionary<string, object>>
+            Extensions = new QueryExtensions
             {
-                { "persistedQuery", new PersistedQueryExtension { Sha256Hash = hash } }
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash }
+                }
             }
         };
 
@@ -57,7 +61,8 @@ public class PersistedQueriesTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var query = @"{
+        var query =
+            @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -70,9 +75,12 @@ public class PersistedQueriesTests
         var gql = new QueryRequest
         {
             Query = null, // assume it is cached
-            Extensions = new Dictionary<string, Dictionary<string, object>>
+            Extensions = new QueryExtensions
             {
-                { "persistedQuery", new PersistedQueryExtension { Sha256Hash = hash } }
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash }
+                }
             }
         };
 
@@ -89,7 +97,8 @@ public class PersistedQueriesTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var query = @"{
+        var query =
+            @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -102,9 +111,12 @@ public class PersistedQueriesTests
         var gql = new QueryRequest
         {
             Query = null, // assume it is cached
-            Extensions = new Dictionary<string, Dictionary<string, object>>
+            Extensions = new QueryExtensions
             {
-                { "persistedQuery", new PersistedQueryExtension { Sha256Hash = hash } }
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash }
+                }
             }
         };
 
@@ -113,6 +125,7 @@ public class PersistedQueriesTests
 
         Assert.Equal("PersistedQueryNotSupported", result.Errors.First().Message);
     }
+
     [Fact]
     public void TestPersistedQueryNotSupportedWrongVersion()
     {
@@ -120,7 +133,8 @@ public class PersistedQueriesTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var query = @"{
+        var query =
+            @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -133,9 +147,12 @@ public class PersistedQueriesTests
         var gql = new QueryRequest
         {
             Query = query,
-            Extensions = new Dictionary<string, Dictionary<string, object>>
+            Extensions = new QueryExtensions
             {
-                { "persistedQuery", new PersistedQueryExtension { Sha256Hash = hash, Version = 2 } }
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash, Version = 2 }
+                }
             }
         };
 
@@ -148,42 +165,20 @@ public class PersistedQueriesTests
     private static void FillProjectData(TestDataContext data)
     {
         data.Projects = new List<Project>
+        {
+            new Project
             {
-                new Project
+                Id = 99,
+                Name = "Project 1",
+                Tasks = new List<Task>
                 {
-                    Id = 99,
-                    Name ="Project 1",
-                    Tasks = new List<Task>
-                    {
-                        new Task
-                        {
-                            Id = 0,
-                            Name = "Task 1"
-                        },
-                        new Task
-                        {
-                            Id = 1,
-                            Name = "Task 2"
-                        },
-                        new Task
-                        {
-                            Id = 2,
-                            Name = "Task 3"
-                        },
-                        new Task
-                        {
-                            Id = 3,
-                            Name = "Task 4"
-                        },
-                        new Task
-                        {
-                            Id = 4,
-                            Name = "Task 5"
-                        },
-
-                    }
+                    new Task { Id = 0, Name = "Task 1" },
+                    new Task { Id = 1, Name = "Task 2" },
+                    new Task { Id = 2, Name = "Task 3" },
+                    new Task { Id = 3, Name = "Task 4" },
+                    new Task { Id = 4, Name = "Task 5" },
                 }
-            };
+            }
+        };
     }
-
 }

@@ -1,9 +1,6 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Collections.ObjectModel;
-using Nullability;
 
 namespace EntityGraphQL.Extensions
 {
@@ -95,6 +92,21 @@ namespace EntityGraphQL.Extensions
             }
 
             return isEnumerable;
+        }
+
+        public static bool IsGenericTypeQueryable(this Type source)
+        {
+            bool isQueryable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
+            if (isQueryable) return isQueryable;
+
+            foreach (var intType in source.GetInterfaces())
+            {
+                isQueryable = IsGenericTypeQueryable(intType);
+                if (isQueryable)
+                    break;
+            }
+
+            return isQueryable;
         }
 
         /// <summary>

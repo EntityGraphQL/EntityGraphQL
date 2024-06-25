@@ -51,6 +51,7 @@ namespace EntityGraphQL.Schema
         [Obsolete("Use GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext) instead")]
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext);
+        bool TryGetSchemaType(Type dotnetType, bool inputTypeScope, out ISchemaType? schemaType, QueryRequestContext? requestContext);
         bool HasType(string typeName);
         bool HasType(Type type);
         void PopulateFromContext(SchemaBuilderOptions? options = null);
@@ -67,5 +68,13 @@ namespace EntityGraphQL.Schema
         void UpdateType<TType>(Action<SchemaType<TType>> configure);
         MutationType Mutation();
         SubscriptionType Subscription();
+        /// <summary>
+        /// Call this to validate that the schema contains all the information it needs. As fields and Types can be added out of 
+        /// order to the schema, this lets you validate that the schema is complete preventing you from getting the errors at 
+        /// runtime during a query.
+        /// 
+        /// Throws an EntityGraphQLCompilerException if the schema is not valid
+        /// </summary>
+        void Validate();
     }
 }

@@ -1,18 +1,19 @@
 using System.Net.WebSockets;
-using EntityGraphQL.Schema;
 using EntityGraphQL.AspNet.WebSockets;
+using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
-namespace EntityGraphQL.AspNet
-{
-    public static class EntityGraphQLWebApplicationExtensions
-    {
-        public static IApplicationBuilder UseGraphQLWebSockets<TQueryType>(this IApplicationBuilder app, string path = "/subscriptions", ExecutionOptions? options = null)
-        {
-            path = path.TrimEnd('/');
+namespace EntityGraphQL.AspNet;
 
-            app.Use(async (context, next) =>
+public static class EntityGraphQLWebApplicationExtensions
+{
+    public static IApplicationBuilder UseGraphQLWebSockets<TQueryType>(this IApplicationBuilder app, string path = "/subscriptions", ExecutionOptions? options = null)
+    {
+        path = path.TrimEnd('/');
+
+        app.Use(
+            async (context, next) =>
             {
                 if (context.Request.Path == path)
                 {
@@ -21,9 +22,7 @@ namespace EntityGraphQL.AspNet
                         using var webSocket = await context.WebSockets.AcceptWebSocketAsync("graphql-transport-ws");
                         if (!context.WebSockets.WebSocketRequestedProtocols.Contains(webSocket.SubProtocol!))
                         {
-                            await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError,
-                                "Server only supports the graphql-ws protocol",
-                                context.RequestAborted);
+                            await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Server only supports the graphql-ws protocol", context.RequestAborted);
 
                             context.Response.StatusCode = StatusCodes.Status400BadRequest;
                             return;
@@ -38,9 +37,9 @@ namespace EntityGraphQL.AspNet
                 {
                     await next(context);
                 }
-            });
+            }
+        );
 
-            return app;
-        }
+        return app;
     }
 }
