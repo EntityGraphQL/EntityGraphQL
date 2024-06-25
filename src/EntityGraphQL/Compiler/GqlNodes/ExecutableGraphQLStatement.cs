@@ -194,6 +194,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately == true)
         {
+            // We need to extract any ParameterExpressions from the query body
+            // This lets us correctly pass services to the compile context for use in extensions (like filtering)
             foreach (var arg in node.Arguments)
             {
                 var type = arg.Value.GetType();
@@ -202,7 +204,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     var v = (dynamic)arg.Value;
                     if (v?.Query?.Body != null)
                     {
-                        var constants = (List<ParameterExpression>)ExtractConstants(v.Query.Body);
+                        var constants = (List<ParameterExpression>)ExtractServiceParameters(v.Query.Body);
                         var d = constants.Distinct().ToList();
 
                         compileContext.AddServices(d);
@@ -283,7 +285,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return data;
     }
 
-    private static List<ParameterExpression> ExtractConstants(Expression? expression)
+    private static List<ParameterExpression> ExtractServiceParameters(Expression? expression)
     {
         var res = new List<ParameterExpression>();
 
@@ -298,17 +300,17 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         if (expression is MethodCallExpression mce)
         {
-            foreach (var a in mce.Arguments) res.AddRange(ExtractConstants(a));
-            res.AddRange(ExtractConstants(mce.Object));
+            foreach (var a in mce.Arguments) res.AddRange(ExtractServiceParameters(a));
+            res.AddRange(ExtractServiceParameters(mce.Object));
         }
         else if (expression is ConditionalExpression ce)
         {
-            res.AddRange(ExtractConstants(ce.Test));
+            res.AddRange(ExtractServiceParameters(ce.Test));
         }
         else if (expression is BinaryExpression be)
         {
-            res.AddRange(ExtractConstants(be.Left));
-            res.AddRange(ExtractConstants(be.Right));
+            res.AddRange(ExtractServiceParameters(be.Left));
+            res.AddRange(ExtractServiceParameters(be.Right));
         }
 
         return res;
