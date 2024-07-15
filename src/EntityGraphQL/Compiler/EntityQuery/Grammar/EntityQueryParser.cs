@@ -182,8 +182,8 @@ public sealed class EntityQueryParser
                 EqualStr => ExpressionType.Equal,
                 NotEqualStr => ExpressionType.NotEqual,
                 PowerChar => ExpressionType.Power,
-                AndWord => ExpressionType.And,
-                AndStr => ExpressionType.And,
+                AndWord => ExpressionType.AndAlso,
+                AndStr => ExpressionType.AndAlso,
                 OrWord => ExpressionType.Or,
                 OrStr => ExpressionType.Or,
                 _ => throw new NotSupportedException()
