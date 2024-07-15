@@ -461,6 +461,34 @@ public class FilterExtensionTests
         Assert.Equal(2, Enumerable.ElementAt(project.tasks, 1).id);
     }
 
+    [Fact]
+    public void SupportUseFilterEnumWithString()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext2>();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query Query($filter: String!) {
+                    people(filter: $filter) { id name gender }
+                }",
+            Variables = new QueryVariables { { "filter", "gender == 'Male'" } }
+        };
+        var data = new TestDataContext2();
+        var person1 = DataFiller.MakePerson(33, null, null);
+        person1.Gender = Gender.Female;
+        data.People.Add(person1);
+        var person2 = DataFiller.MakePerson(34, null, null);
+        person2.Gender = Gender.Male;
+        data.People.Add(person2);
+        Assert.Equal(2, data.People.Count);
+        var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(tree.Errors);
+        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        Assert.Equal(1, Enumerable.Count(people));
+        var person = Enumerable.First(people);
+        Assert.Equal(Gender.Male, person.gender);
+    }
+
     private class TestDataContext2 : TestDataContext
     {
         [UseFilter]

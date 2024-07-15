@@ -61,6 +61,10 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                 right = ConvertToDateTime(right);
             else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
                 left = ConvertToDateTime(left);
+            else if (left.Type.IsEnum && right.Type == typeof(string))
+                right = ConvertToEnum(right, left.Type);
+            else if (right.Type.IsEnum && left.Type == typeof(string))
+                left = ConvertToEnum(left, right.Type);
             // convert ints "up" to float/decimal
             else if (
                 (
@@ -104,6 +108,11 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     private static MethodCallExpression ConvertToGuid(Expression expression)
     {
         return Expression.Call(typeof(Guid), nameof(Guid.Parse), null, Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!));
+    }
+
+    private static UnaryExpression ConvertToEnum(Expression expression, Type enumType)
+    {
+        return Expression.Convert(Expression.Call(typeof(Enum), nameof(Enum.Parse), null, Expression.Constant(enumType), Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!)), enumType);
     }
 
     // private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
