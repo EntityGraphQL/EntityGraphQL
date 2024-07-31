@@ -172,7 +172,7 @@ The expression language supports the following methods, these are called against
 
 ```gql
 {
-  people(filter: "firstName.isAny(\"Bob\", \"Bobby\")") { ... }
+  people(filter: "firstName.isAny([\"Bob\", \"Bobby\"])") { ... }
 }
 ```
 
