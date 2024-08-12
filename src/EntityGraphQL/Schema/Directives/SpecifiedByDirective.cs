@@ -1,6 +1,6 @@
-﻿using EntityGraphQL.Schema.Directives;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -20,7 +20,6 @@ namespace EntityGraphQL.Schema
 
 namespace EntityGraphQL.Schema.Directives
 {
-
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
     public class SpecifiedByDirectiveAttribute : ExtensionAttribute
     {
@@ -37,9 +36,7 @@ namespace EntityGraphQL.Schema.Directives
             this.Url = url;
         }
 
-        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
-            TypeSystemDirectiveLocation.Scalar
-        };
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] { TypeSystemDirectiveLocation.Scalar };
 
         public void ProcessType(Models.TypeElement type)
         {

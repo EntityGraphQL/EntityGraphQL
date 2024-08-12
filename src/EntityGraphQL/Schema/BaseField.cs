@@ -31,8 +31,14 @@ namespace EntityGraphQL.Schema
         public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
         public bool ArgumentsAreInternal { get; internal set; }
         public List<ParameterExpression> Services { get; set; } = new List<ParameterExpression>();
-        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get => ArgumentValidators; }
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
+        public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators
+        {
+            get => ArgumentValidators;
+        }
+
+        [Obsolete(
+            "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
+        )]
         public IField? UseArgumentsFromField { get; set; }
         public Expression? ResolveExpression { get; protected set; }
 
@@ -81,7 +87,7 @@ namespace EntityGraphQL.Schema
         }
 
         /// <summary>
-        /// Add a field extension to this field 
+        /// Add a field extension to this field
         /// </summary>
         /// <param name="extension"></param>
         public IField AddExtension(IFieldExtension extension)
@@ -96,7 +102,20 @@ namespace EntityGraphQL.Schema
             return Arguments[argName];
         }
 
-        public abstract (Expression? expression, ParameterExpression? argumentParam) GetExpression(Expression fieldExpression, Expression? fieldContext, IGraphQLNode? parentNode, ParameterExpression? schemaContext, CompileContext compileContext, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, IEnumerable<GraphQLDirective> directives, bool contextChanged, ParameterReplacer replacer);
+        public abstract (Expression? expression, ParameterExpression? argumentParam) GetExpression(
+            Expression fieldExpression,
+            Expression? fieldContext,
+            IGraphQLNode? parentNode,
+            ParameterExpression? schemaContext,
+            CompileContext compileContext,
+            IReadOnlyDictionary<string, object> args,
+            ParameterExpression? docParam,
+            object? docVariables,
+            IEnumerable<GraphQLDirective> directives,
+            bool contextChanged,
+            ParameterReplacer replacer
+        );
+
         public bool HasArgumentByName(string argName)
         {
             return Arguments.ContainsKey(argName);
@@ -125,8 +144,7 @@ namespace EntityGraphQL.Schema
             // now we need to update the MemberInfo
             foreach (var item in Arguments)
             {
-                item.Value.MemberInfo = (MemberInfo?)newArgType.GetProperty(item.Value.DotnetName) ??
-                    newArgType.GetField(item.Value.DotnetName);
+                item.Value.MemberInfo = (MemberInfo?)newArgType.GetProperty(item.Value.DotnetName) ?? newArgType.GetField(item.Value.DotnetName);
             }
             var parameterReplacer = new ParameterReplacer();
 
@@ -137,17 +155,20 @@ namespace EntityGraphQL.Schema
             ArgumentsParameter = argParam;
             ExpressionArgumentType = newArgType;
         }
+
         public IField Returns(GqlTypeInfo gqlTypeInfo)
         {
             ReturnType = gqlTypeInfo;
             return this;
         }
 
-        [Obsolete("Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments")]
+        [Obsolete(
+            "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
+        )]
         public void UseArgumentsFrom(IField field)
         {
             // Move the arguments definition to the new field as it needs them for processing
-            // don't push field.FieldParam over 
+            // don't push field.FieldParam over
             ExpressionArgumentType = field.ExpressionArgumentType;
             ArgumentsParameter = field.ArgumentsParameter;
             Arguments = field.Arguments;
@@ -213,7 +234,8 @@ namespace EntityGraphQL.Schema
             return this;
         }
 
-        public IField AddValidator<TValidator>() where TValidator : IArgumentValidator
+        public IField AddValidator<TValidator>()
+            where TValidator : IArgumentValidator
         {
             var validator = (IArgumentValidator)Activator.CreateInstance<TValidator>();
             ArgumentValidators.Add((context) => validator.ValidateAsync(context));
@@ -225,6 +247,7 @@ namespace EntityGraphQL.Schema
             ArgumentValidators.Add(callback);
             return this;
         }
+
         public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
         {
             ArgumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
@@ -239,6 +262,5 @@ namespace EntityGraphQL.Schema
             Directives.Add(directive);
             return this;
         }
-
     }
 }

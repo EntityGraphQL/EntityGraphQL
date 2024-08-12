@@ -1,11 +1,11 @@
-using Xunit;
-using EntityGraphQL.Compiler;
-using EntityGraphQL.Tests.ApiVersion1;
-using EntityGraphQL.Schema;
-using System.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
+using EntityGraphQL.Tests.ApiVersion1;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -18,13 +18,15 @@ namespace EntityGraphQL.Tests
         public void TestInheritance()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animals {
                         __typename
                         name
                     }
-                }");
+                }"
+            );
             var context = new TestAbstractDataContext();
             context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
@@ -48,12 +50,12 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.GetSchemaType(typeof(Animal), false, null).IsInterface);
         }
 
-
         [Fact]
         public void TestInheritanceExtraFields()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animals {
                         __typename
@@ -66,8 +68,8 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
-
+            "
+            );
 
             var context = new TestAbstractDataContext();
             context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -90,7 +92,8 @@ namespace EntityGraphQL.Tests
         public void TestInheritancDuplicateFields()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animals {
                         __typename
@@ -103,11 +106,26 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Id = 1, Name = "steve", HasBone = true });
-            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+            context.Animals.Add(
+                new Dog()
+                {
+                    Id = 1,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
+            context.Animals.Add(
+                new Cat()
+                {
+                    Id = 2,
+                    Name = "george",
+                    Lives = 9
+                }
+            );
 
             var qr = gql.ExecuteQuery(context, null, null);
             dynamic animals = qr.Data["animals"];
@@ -124,7 +142,8 @@ namespace EntityGraphQL.Tests
         public void TestInheritanceExtraFieldsOnObjectDog()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animal(id: 9) {
                         __typename
@@ -137,10 +156,18 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Animals.Add(
+                new Dog()
+                {
+                    Id = 9,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
             var qr = gql.ExecuteQuery(context, null, null);
@@ -156,7 +183,8 @@ namespace EntityGraphQL.Tests
         public void TestInheritanceExtraFieldsOnObjectCat()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animal(id: 2) {
                         __typename
@@ -169,11 +197,26 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
-            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+            context.Animals.Add(
+                new Dog()
+                {
+                    Id = 9,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
+            context.Animals.Add(
+                new Cat()
+                {
+                    Id = 2,
+                    Name = "george",
+                    Lives = 9
+                }
+            );
 
             var qr = gql.ExecuteQuery(context, null, null);
             dynamic animal = qr.Data["animal"];
@@ -188,7 +231,8 @@ namespace EntityGraphQL.Tests
         public void TestInheritanceExtraFieldsOnObjectCatUsingFragments()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     animal(id: 2) {
                         ...animalFragment
@@ -205,11 +249,26 @@ namespace EntityGraphQL.Tests
                         hasBone 
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
-            context.Animals.Add(new Cat() { Id = 2, Name = "george", Lives = 9 });
+            context.Animals.Add(
+                new Dog()
+                {
+                    Id = 9,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
+            context.Animals.Add(
+                new Cat()
+                {
+                    Id = 2,
+                    Name = "george",
+                    Lives = 9
+                }
+            );
 
             var qr = gql.ExecuteQuery(context, null, null);
             dynamic animal = qr.Data["animal"];
@@ -220,7 +279,6 @@ namespace EntityGraphQL.Tests
             Assert.Null(animal.GetType().GetField("hasBone"));
         }
 
-
         [Fact]
         public void TestInheritanceReturnFromMutation()
         {
@@ -228,7 +286,8 @@ namespace EntityGraphQL.Tests
 
             schemaProvider.Mutation().AddFrom<TestAbstractDataContext>();
 
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 mutation {
                     testMutation(id: 1) {
                         id
@@ -237,10 +296,18 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Animals.Add(new Dog() { Id = 1, Name = "steve", HasBone = true });
+            context.Animals.Add(
+                new Dog()
+                {
+                    Id = 1,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
             context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
             var qr = gql.ExecuteQuery(context, null, null);
@@ -256,7 +323,8 @@ namespace EntityGraphQL.Tests
         {
             // apollo client inserts __typename everywhere
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     dog(id: 9) {
                         ...animalFragment
@@ -268,10 +336,18 @@ namespace EntityGraphQL.Tests
                     __typename # type name on base Animal type
                     name # also this builds p_animal.Name where we need p_dog.Name
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Dogs.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Dogs.Add(
+                new Dog()
+                {
+                    Id = 9,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
 
             var qr = gql.ExecuteQuery(context, null, null);
             Assert.Null(qr.Errors);
@@ -284,7 +360,8 @@ namespace EntityGraphQL.Tests
         public void SelectFieldFromInheritedType()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     dogs {
                         ...dogFragment
@@ -294,10 +371,18 @@ namespace EntityGraphQL.Tests
                 fragment dogFragment on Dog {
                     name 
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.Dogs.Add(new Dog() { Id = 9, Name = "steve", HasBone = true });
+            context.Dogs.Add(
+                new Dog()
+                {
+                    Id = 9,
+                    Name = "steve",
+                    HasBone = true
+                }
+            );
 
             var qr = gql.ExecuteQuery(context, null, null);
             Assert.Null(qr.Errors);
@@ -309,7 +394,8 @@ namespace EntityGraphQL.Tests
         public void SelectFieldFromInheritedTypeWithServiceField()
         {
             var schemaProvider = new TestAbstractDataGraphSchema();
-            var gql = new GraphQLCompiler(schemaProvider).Compile(@"
+            var gql = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 fragment frag on Dog {
                     name
                 }
@@ -322,16 +408,27 @@ namespace EntityGraphQL.Tests
                         }
                     }
                 }
-            ");
+            "
+            );
 
             var context = new TestAbstractDataContext();
-            context.People.Add(new PersonType()
-            {
-                Id = 1,
-                Name = "emma",
-                Birthday = DateTime.Now.AddYears(-30),
-                Dogs = new List<Dog> { new Dog { Id = 9, Name = "steve", HasBone = true } }
-            });
+            context.People.Add(
+                new PersonType()
+                {
+                    Id = 1,
+                    Name = "emma",
+                    Birthday = DateTime.Now.AddYears(-30),
+                    Dogs = new List<Dog>
+                    {
+                        new Dog
+                        {
+                            Id = 9,
+                            Name = "steve",
+                            HasBone = true
+                        }
+                    }
+                }
+            );
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<AgeService>();
 

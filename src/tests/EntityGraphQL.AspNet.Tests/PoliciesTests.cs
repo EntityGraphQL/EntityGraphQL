@@ -1,8 +1,8 @@
-using Xunit;
-using EntityGraphQL.Schema;
 using System.Security.Claims;
+using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace EntityGraphQL.AspNet.Tests
 {
@@ -14,14 +14,16 @@ namespace EntityGraphQL.AspNet.Tests
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
             var services = serviceCollection.BuildServiceProvider();
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions
-            {
-                AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!),
-                PreBuildSchemaFromContext = (context) =>
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions
                 {
-                    context.AddAttributeHandler(new AuthorizeAttributeHandler());
+                    AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!),
+                    PreBuildSchemaFromContext = (context) =>
+                    {
+                        context.AddAttributeHandler(new AuthorizeAttributeHandler());
+                    }
                 }
-            });
+            );
             Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
             Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
 
@@ -51,7 +53,9 @@ namespace EntityGraphQL.AspNet.Tests
             serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
             var services = serviceCollection.BuildServiceProvider();
 
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            );
 
             Assert.Empty(schema.Type<Task>().RequiredAuthorization!.Policies);
 
@@ -68,7 +72,9 @@ namespace EntityGraphQL.AspNet.Tests
             serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
             var services = serviceCollection.BuildServiceProvider();
 
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            );
 
             Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
             Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
@@ -83,8 +89,7 @@ namespace EntityGraphQL.AspNet.Tests
 
             var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
-            schema.AddType<Project>("Project", "All about the project")
-            .AddField(p => p.Type, "The type info");
+            schema.AddType<Project>("Project", "All about the project").AddField(p => p.Type, "The type info");
 
             Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
             Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
@@ -99,9 +104,7 @@ namespace EntityGraphQL.AspNet.Tests
 
             var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
-            schema.AddType<Task>("Task", "All about tasks")
-            .AddField(p => p.IsActive, "Is it active")
-            .RequiresAllPolicies("admin");
+            schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAllPolicies("admin");
 
             Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies);
             Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
@@ -116,9 +119,7 @@ namespace EntityGraphQL.AspNet.Tests
 
             var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
 
-            schema.AddType<Task>("Task", "All about tasks")
-                .AddField(p => p.IsActive, "Is it active")
-                .RequiresAllPolicies("admin", "can-type");
+            schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAllPolicies("admin", "can-type");
 
             Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.Count());
             Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
@@ -133,12 +134,15 @@ namespace EntityGraphQL.AspNet.Tests
             serviceCollection.AddSingleton<IAuthorizationService>(new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "admin", adminPolicy }, { "can-type", canType } }));
             var services = serviceCollection.BuildServiceProvider();
 
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            );
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects { type }
                 }"
             };
@@ -161,12 +165,15 @@ namespace EntityGraphQL.AspNet.Tests
             serviceCollection.AddSingleton<IAuthorizationService>(new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "admin", adminPolicy } }));
             var services = serviceCollection.BuildServiceProvider();
 
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            );
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects { id }
                 }"
             };
@@ -189,12 +196,15 @@ namespace EntityGraphQL.AspNet.Tests
             serviceCollection.AddSingleton<IAuthorizationService>(new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "admin", adminPolicy } }));
             var services = serviceCollection.BuildServiceProvider();
 
-            var schema = SchemaBuilder.FromObject<PolicyDataContext>(new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) });
+            var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+                new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            );
 
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     tasks {
                         project { id }
                     }
@@ -216,10 +226,12 @@ namespace EntityGraphQL.AspNet.Tests
             public IEnumerable<Project> Projects { get; set; } = new List<Project>();
             public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         }
+
         [Authorize("admin")]
         internal class Project
         {
             public int Id { get; set; }
+
             [GraphQLAuthorizePolicy("can-type")]
             public int Type { get; set; }
             public IEnumerable<Task>? Tasks { get; set; }
@@ -238,13 +250,13 @@ namespace EntityGraphQL.AspNet.Tests
     {
         private readonly Dictionary<string, Func<ClaimsPrincipal, bool>>? policies;
 
-        public DummyAuthService()
-        { }
+        public DummyAuthService() { }
 
         public DummyAuthService(Dictionary<string, Func<ClaimsPrincipal, bool>> policies)
         {
             this.policies = policies;
         }
+
         public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, IEnumerable<IAuthorizationRequirement> requirements)
         {
             throw new NotImplementedException();

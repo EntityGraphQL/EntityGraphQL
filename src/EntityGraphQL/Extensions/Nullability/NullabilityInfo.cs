@@ -10,8 +10,7 @@ namespace Nullability
     /// </summary>
     public sealed class NullabilityInfo
     {
-        internal NullabilityInfo(Type type, NullabilityState readState, NullabilityState writeState,
-            NullabilityInfo? elementType, NullabilityInfo[] typeArguments)
+        internal NullabilityInfo(Type type, NullabilityState readState, NullabilityState writeState, NullabilityInfo? elementType, NullabilityInfo[] typeArguments)
         {
             Type = type;
             ReadState = readState;
@@ -25,18 +24,22 @@ namespace Nullability
         /// to which this NullabilityInfo belongs
         /// </summary>
         public Type Type { get; }
+
         /// <summary>
         /// The nullability read state of the member
         /// </summary>
         public NullabilityState ReadState { get; internal set; }
+
         /// <summary>
         /// The nullability write state of the member
         /// </summary>
         public NullabilityState WriteState { get; internal set; }
+
         /// <summary>
         /// If the member type is an array, gives the <see cref="NullabilityInfo" /> of the elements of the array, null otherwise
         /// </summary>
         public NullabilityInfo? ElementType { get; }
+
         /// <summary>
         /// If the member type is a generic type, gives the array of <see cref="NullabilityInfo" /> for each type parameter
         /// </summary>
@@ -52,10 +55,12 @@ namespace Nullability
         /// Nullability context not enabled (oblivious)
         /// </summary>
         Unknown,
+
         /// <summary>
         /// Non nullable value or reference type
         /// </summary>
         NotNull,
+
         /// <summary>
         /// Nullable value or reference type
         /// </summary>

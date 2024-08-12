@@ -7,14 +7,17 @@ namespace EntityGraphQL.Compiler
     public interface IGraphQLNode
     {
         ISchemaProvider Schema { get; }
+
         /// <summary>
         /// Name of the node
         /// </summary>
         string? Name { get; }
+
         /// <summary>
         /// The expression that represents the field. This will be the context for the next field selection
         /// </summary>
         Expression? NextFieldContext { get; }
+
         /// <summary>
         /// Parent field. e.g. if we have a field manger like in `people { manager }` then the parent is people
         /// </summary>
@@ -27,6 +30,7 @@ namespace EntityGraphQL.Compiler
         bool HasServices { get; }
         IReadOnlyDictionary<string, object> Arguments { get; }
         void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
+
         /// <summary>
         /// true if the node is a root level field selection (on query, mutation or subscription type)
         /// </summary>

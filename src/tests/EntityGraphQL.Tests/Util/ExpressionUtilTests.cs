@@ -8,10 +8,7 @@ namespace EntityGraphQL.Tests.Util
         [Fact]
         public void TestMergeTypesObj1Null()
         {
-            var obj2 = new
-            {
-                hi = "world"
-            };
+            var obj2 = new { hi = "world" };
 
             var result = ExpressionUtil.MergeTypes(null, obj2.GetType());
 
@@ -22,15 +19,9 @@ namespace EntityGraphQL.Tests.Util
         [Fact]
         public void TestMergeTypes()
         {
-            object obj1 = new
-            {
-                world = "hi"
-            };
+            object obj1 = new { world = "hi" };
 
-            var obj2 = new
-            {
-                hi = "world"
-            };
+            var obj2 = new { hi = "world" };
 
             var result = ExpressionUtil.MergeTypes(obj1.GetType(), obj2.GetType());
 

@@ -38,15 +38,9 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             right = Expression.Convert(right, right.Type.GetNullableType());
         else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
             left = Expression.Convert(left, left.Type.GetNullableType());
-        else if (
-            left.Type == typeof(int)
-            && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
-        )
+        else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
             right = Expression.Convert(right, left.Type);
-        else if (
-            left.Type == typeof(uint)
-            && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
-        )
+        else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
             left = Expression.Convert(left, right.Type);
 
         if (left.Type != right.Type)
@@ -67,25 +61,13 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                 left = ConvertToEnum(left, right.Type);
             // convert ints "up" to float/decimal
             else if (
-                (
-                    left.Type == typeof(int)
-                    || left.Type == typeof(uint)
-                    || left.Type == typeof(short)
-                    || left.Type == typeof(ushort)
-                    || left.Type == typeof(long)
-                    || left.Type == typeof(ulong)
-                ) && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
+                (left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong))
+                && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
             )
                 left = Expression.Convert(left, right.Type);
             else if (
-                (
-                    right.Type == typeof(int)
-                    || right.Type == typeof(uint)
-                    || right.Type == typeof(short)
-                    || right.Type == typeof(ushort)
-                    || right.Type == typeof(long)
-                    || right.Type == typeof(ulong)
-                ) && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
+                (right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong))
+                && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
             )
                 right = Expression.Convert(right, left.Type);
             else // default try to make types match
@@ -112,7 +94,10 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
 
     private static UnaryExpression ConvertToEnum(Expression expression, Type enumType)
     {
-        return Expression.Convert(Expression.Call(typeof(Enum), nameof(Enum.Parse), null, Expression.Constant(enumType), Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!)), enumType);
+        return Expression.Convert(
+            Expression.Call(typeof(Enum), nameof(Enum.Parse), null, Expression.Constant(enumType), Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!)),
+            enumType
+        );
     }
 
     // private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)

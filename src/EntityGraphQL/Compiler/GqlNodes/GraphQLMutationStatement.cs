@@ -160,16 +160,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                     // yes we can
                     // rebuild the Expression so we keep any ConstantParameters
                     var item1 = listExp.Item1;
-                    var collectionNode = new GraphQLListSelectionField(
-                        Schema,
-                        null,
-                        resultExp.Name ?? "unknown",
-                        resultExp!.RootParameter,
-                        resultExp.RootParameter,
-                        item1,
-                        node,
-                        null
-                    );
+                    var collectionNode = new GraphQLListSelectionField(Schema, null, resultExp.Name ?? "unknown", resultExp!.RootParameter, resultExp.RootParameter, item1, node, null);
                     foreach (var queryField in resultExp.QueryFields)
                     {
                         collectionNode.AddField(queryField);

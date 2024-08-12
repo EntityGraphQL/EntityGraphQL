@@ -57,21 +57,26 @@ namespace EntityGraphQL.Schema
                 return schemaType;
             }
         }
+
         /// <summary>
         /// Type described as type as a full GraphQL type. e.g. [Int!]!
         /// </summary>
         /// <value></value>
-        public string GqlTypeForReturnOrArgument => $"{(IsList ? "[" : "")}{SchemaType.Name}{((!IsList && TypeNotNullable) || (IsList && !ElementTypeNullable) ? "!" : "")}{(IsList ? "]" : "")}{(IsList && TypeNotNullable ? "!" : "")}";
+        public string GqlTypeForReturnOrArgument =>
+            $"{(IsList ? "[" : "")}{SchemaType.Name}{((!IsList && TypeNotNullable) || (IsList && !ElementTypeNullable) ? "!" : "")}{(IsList ? "]" : "")}{(IsList && TypeNotNullable ? "!" : "")}";
+
         /// <summary>
         /// Typw is not nullable (! in GQL)
         /// </summary>
         /// <value></value>
         public bool TypeNotNullable { get; set; }
+
         /// <summary>
         /// If IsList the element type if nullable or not ([Type!] in gql)
         /// </summary>
         /// <value></value>
         public bool ElementTypeNullable { get; set; }
+
         /// <summary>
         /// The Type is a list/array ([] in gql)
         /// </summary>
@@ -94,11 +99,7 @@ namespace EntityGraphQL.Schema
         public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
         {
             var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
-            var typeInfo = new GqlTypeInfo(() => schema.Type(strippedType), dotnetType)
-            {
-                TypeNotNullable = gqlType.EndsWith('!'),
-                IsList = gqlType.Contains('[', StringComparison.InvariantCulture),
-            };
+            var typeInfo = new GqlTypeInfo(() => schema.Type(strippedType), dotnetType) { TypeNotNullable = gqlType.EndsWith('!'), IsList = gqlType.Contains('[', StringComparison.InvariantCulture), };
             typeInfo.ElementTypeNullable = !(typeInfo.IsList && gqlType.Trim('!').Trim('[').Trim(']').EndsWith('!'));
 
             return typeInfo;

@@ -223,15 +223,7 @@ namespace EntityGraphQL.Compiler
                 f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer)
             );
 
-            updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(
-                Name,
-                updatedExpression,
-                fieldParams,
-                selectionExpressions,
-                fieldParamValues,
-                nullWrapParam,
-                schemaContext
-            );
+            updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
             return updatedExpression;
         }
 

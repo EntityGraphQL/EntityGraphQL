@@ -14,7 +14,6 @@ namespace Benchmarks
             optionsBuilder.UseSqlite("Data Source=movies.db");
         }
 
-
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Person>().HasKey(d => d.Id);

@@ -212,9 +212,7 @@ public class GraphQLWebSocketServerTests
 
         var sendSeq = new MockSequence();
         socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
-        socket
-            .InSequence(sendSeq)
-            .SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"onMessage\":{{\"text\":\"Hello\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
+        socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"onMessage\":{{\"text\":\"Hello\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
 
         socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
 
@@ -244,9 +242,7 @@ public class GraphQLWebSocketServerTests
 
         var sendSeq = new MockSequence();
         socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
-        socket
-            .InSequence(sendSeq)
-            .SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"messages\":[{{\"text\":\"Hello\"}}]}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
+        socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"messages\":[{{\"text\":\"Hello\"}}]}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
         socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
 
         socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
@@ -288,9 +284,7 @@ public class GraphQLWebSocketServerTests
 
         var sendSeq = new MockSequence();
         socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
-        socket
-            .InSequence(sendSeq)
-            .SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"postMessage\":{{\"text\":\"hey\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
+        socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"payload\":{{\"data\":{{\"postMessage\":{{\"text\":\"hey\"}}}}}},\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Next}\"}}");
         socket.InSequence(sendSeq).SetupAndAssertSendAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
 
         socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");

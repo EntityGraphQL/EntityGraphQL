@@ -1,5 +1,5 @@
-using Xunit;
 using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests;
 
@@ -13,7 +13,8 @@ public class SchemaBuilderTests
         schema.Query().AddField("people", ctx => ctx.People, "People");
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 people {
                     name
                 }
@@ -34,7 +35,8 @@ public class SchemaBuilderTests
         schema.AddType<Person>("A person").AddField("tasks", p => p.Tasks, "Tasks");
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 people {
                     tasks { name }
                 }

@@ -74,9 +74,11 @@ namespace EntityGraphQL.Schema
         /// Ignored in generating the schema for Query
         /// </summary>
         Query,
+
         /// <summary>
         /// Ignored in generating/deserialising the input types
         Input,
+
         /// <summary>
         /// Ignored completely by EntityGraphQL
         /// </summary>

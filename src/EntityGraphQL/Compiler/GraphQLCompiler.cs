@@ -1,6 +1,6 @@
+using System.Security.Claims;
 using EntityGraphQL.Schema;
 using HotChocolate.Language;
-using System.Security.Claims;
 
 namespace EntityGraphQL.Compiler
 {
@@ -35,14 +35,17 @@ namespace EntityGraphQL.Compiler
             }
             return Compile(new QueryRequest { Query = query, Variables = variables }, new QueryRequestContext(authService, user));
         }
+
         public GraphQLDocument Compile(QueryRequest query, IGqlAuthorizationService? authService = null, ClaimsPrincipal? user = null)
         {
             return Compile(query, new QueryRequestContext(authService, user));
         }
+
         public GraphQLDocument Compile(string query, QueryRequestContext context)
         {
             return Compile(new QueryRequest { Query = query }, context);
         }
+
         public GraphQLDocument Compile(QueryRequest query, QueryRequestContext context)
         {
             if (query.Query == null)

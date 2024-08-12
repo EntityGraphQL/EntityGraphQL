@@ -1,8 +1,8 @@
-﻿using EntityGraphQL.Compiler;
-using EntityGraphQL.Schema.Directives;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -30,14 +30,12 @@ namespace EntityGraphQL.Schema
                         throw new EntityGraphQLValidationException($"Exactly one field must be specified for argument of type {type.Name}.");
                 }
             };
-
         }
     }
 }
 
 namespace EntityGraphQL.Schema.Directives
 {
-
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
     public class GraphQLOneOfAttribute : ExtensionAttribute
     {
@@ -49,13 +47,9 @@ namespace EntityGraphQL.Schema.Directives
 
     public class OneOfDirective : ISchemaDirective
     {
-        public OneOfDirective()
-        {
-        }
+        public OneOfDirective() { }
 
-        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
-            TypeSystemDirectiveLocation.InputObject
-        };
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] { TypeSystemDirectiveLocation.InputObject };
 
         public void ProcessType(Models.TypeElement type)
         {

@@ -1,5 +1,5 @@
-﻿using EntityGraphQL.Schema.Directives;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
 {
@@ -28,7 +28,5 @@ namespace EntityGraphQL.Schema
                 directive.ProcessEnumValue(enumValue);
             }
         }
-
-
     }
 }

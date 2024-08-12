@@ -61,6 +61,7 @@ public class ExpressionExtractorTests
         Assert.Equal("ctx_Birthday", extracted.First().Key);
         Assert.Equal(((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression.Body).Object).Object).Arguments[0], extracted.First().Value.First());
     }
+
     [Fact]
     public void ExtractExpressionConditional()
     {
@@ -73,8 +74,12 @@ public class ExpressionExtractorTests
         Assert.Equal("project_Updated", extracted.First().Key);
         Assert.Equal(2, extracted.First().Value.Count);
         Assert.Equal(((BinaryExpression)((ConditionalExpression)expression.Body).Test).Left, extracted.First().Value.First());
-        Assert.Equal(((MethodCallExpression)((MemberExpression)((UnaryExpression)((NewExpression)((ConditionalExpression)expression.Body).IfFalse).Arguments[0]).Operand).Expression).Arguments[0], extracted.First().Value.ElementAt(1));
+        Assert.Equal(
+            ((MethodCallExpression)((MemberExpression)((UnaryExpression)((NewExpression)((ConditionalExpression)expression.Body).IfFalse).Arguments[0]).Operand).Expression).Arguments[0],
+            extracted.First().Value.ElementAt(1)
+        );
     }
+
     [Fact]
     public void ExtractExpressionNullableType()
     {
@@ -87,6 +92,9 @@ public class ExpressionExtractorTests
         Assert.Equal("user_RelationId", extracted.First().Key);
         Assert.Equal(2, extracted.First().Value.Count);
         Assert.Equal(((MemberExpression)((ConditionalExpression)expression.Body).Test).Expression, extracted.First().Value.First());
-        Assert.Equal(((MemberExpression)((BinaryExpression)((LambdaExpression)((MethodCallExpression)((ConditionalExpression)expression.Body).IfTrue).Arguments[1]).Body).Right).Expression, extracted.First().Value.ElementAt(1));
+        Assert.Equal(
+            ((MemberExpression)((BinaryExpression)((LambdaExpression)((MethodCallExpression)((ConditionalExpression)expression.Body).IfTrue).Arguments[1]).Body).Right).Expression,
+            extracted.First().Value.ElementAt(1)
+        );
     }
 }

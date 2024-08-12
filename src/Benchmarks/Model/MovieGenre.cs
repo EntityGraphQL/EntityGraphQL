@@ -6,6 +6,7 @@ namespace Benchmarks
         {
             Name = name;
         }
+
         public string Name { get; set; }
     }
 }

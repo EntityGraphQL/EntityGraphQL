@@ -11,66 +11,77 @@ public class ChangeTypeTests
         var res = ExpressionUtil.ChangeType("1.2", typeof(float), null);
         Assert.Equal(1.2f, res);
     }
+
     [Fact]
     public void TestChangeTypeDouble()
     {
         var res = ExpressionUtil.ChangeType("1.2", typeof(double), null);
         Assert.Equal(1.2d, res);
     }
+
     [Fact]
     public void TestChangeTypeDecimal()
     {
         var res = ExpressionUtil.ChangeType("1.2", typeof(decimal), null);
         Assert.Equal(1.2m, res);
     }
+
     [Fact]
     public void TestChangeTypeFloatNoFraction()
     {
         var res = ExpressionUtil.ChangeType("1", typeof(float), null);
         Assert.Equal(1f, res);
     }
+
     [Fact]
     public void TestChangeTypeDoubleNoFraction()
     {
         var res = ExpressionUtil.ChangeType("1", typeof(double), null);
         Assert.Equal(1d, res);
     }
+
     [Fact]
     public void TestChangeTypeDecimalNoFraction()
     {
         var res = ExpressionUtil.ChangeType("1", typeof(decimal), null);
         Assert.Equal(1m, res);
     }
+
     [Fact]
     public void TestChangeTypeFloatNull()
     {
         var res = ExpressionUtil.ChangeType("1.2", typeof(float?), null);
         Assert.Equal(1.2f, res);
     }
+
     [Fact]
     public void TestChangeTypeDoubleNull()
     {
         var res = ExpressionUtil.ChangeType("1.2", typeof(double?), null);
         Assert.Equal(1.2d, res);
     }
+
     [Fact]
     public void TestChangeTypeDecimalNull()
     {
         var res = ExpressionUtil.ChangeType("1.2", typeof(decimal?), null);
         Assert.Equal(1.2m, res);
     }
+
     [Fact]
     public void TestChangeTypeFloatNullValue()
     {
         var res = ExpressionUtil.ChangeType(null, typeof(float?), null);
         Assert.Equal((float?)null, res);
     }
+
     [Fact]
     public void TestChangeTypeDoubleNullValue()
     {
         var res = ExpressionUtil.ChangeType(null, typeof(double?), null);
         Assert.Equal((double?)null, res);
     }
+
     [Fact]
     public void TestChangeTypeDecimalNullValue()
     {

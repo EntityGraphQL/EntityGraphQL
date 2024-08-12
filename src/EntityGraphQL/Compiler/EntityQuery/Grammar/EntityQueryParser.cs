@@ -93,9 +93,7 @@ public sealed class EntityQueryParser
         var constArray = openArray
             .And(Separated(comma, expression))
             .And(closeArray)
-            .Then<IExpression>(x => new EqlExpression(
-                Expression.NewArrayInit(x.Item2.First().Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))
-            ));
+            .Then<IExpression>(x => new EqlExpression(Expression.NewArrayInit(x.Item2.First().Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))));
 
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1.ToString(), x.Item2));
 

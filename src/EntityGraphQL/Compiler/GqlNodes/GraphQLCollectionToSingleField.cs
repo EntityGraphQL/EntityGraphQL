@@ -65,25 +65,87 @@ namespace EntityGraphQL.Compiler
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-            return CollectionSelectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.HasServicesAtOrBelow(graphQlFragmentStatements) || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements)) == true;
+            return CollectionSelectionNode.HasServicesAtOrBelow(graphQlFragmentStatements)
+                || ObjectProjectionNode.HasServicesAtOrBelow(graphQlFragmentStatements)
+                || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements)) == true;
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ParameterExpression schemaContext,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            List<Type>? possibleNextContextTypes,
+            bool contextChanged,
+            ParameterReplacer replacer
+        )
         {
             Expression? exp;
             // second / last pass
             if (contextChanged || (HasServices && IsRootField))
-                exp = ObjectProjectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, contextChanged, replacer);
+                exp = ObjectProjectionNode.GetNodeExpression(
+                    compileContext,
+                    serviceProvider,
+                    fragments,
+                    docParam,
+                    docVariables,
+                    schemaContext,
+                    withoutServiceFields,
+                    replacementNextFieldContext,
+                    possibleNextContextTypes,
+                    contextChanged,
+                    replacer
+                );
             else
-                exp = GetCollectionToSingleExpression(compileContext, serviceProvider, fragments, withoutServiceFields, replacementNextFieldContext, schemaContext, contextChanged, docParam, docVariables, possibleNextContextTypes, replacer);
+                exp = GetCollectionToSingleExpression(
+                    compileContext,
+                    serviceProvider,
+                    fragments,
+                    withoutServiceFields,
+                    replacementNextFieldContext,
+                    schemaContext,
+                    contextChanged,
+                    docParam,
+                    docVariables,
+                    possibleNextContextTypes,
+                    replacer
+                );
 
             return exp;
         }
 
-        private Expression? GetCollectionToSingleExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, bool withoutServiceFields, Expression? replacementNextFieldContext, ParameterExpression schemaContext, bool contextChanged, ParameterExpression? docParam, object? docVariables, List<Type>? possibleNextContextTypes, ParameterReplacer replacer)
+        private Expression? GetCollectionToSingleExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            ParameterExpression schemaContext,
+            bool contextChanged,
+            ParameterExpression? docParam,
+            object? docVariables,
+            List<Type>? possibleNextContextTypes,
+            ParameterReplacer replacer
+        )
         {
             var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(CollectionSelectionNode, CombineExpression);
-            var result = CollectionSelectionNode.GetNodeExpression(compileContext, serviceProvider, fragments, docParam, docVariables, schemaContext, withoutServiceFields, replacementNextFieldContext, possibleNextContextTypes, contextChanged, replacer);
+            var result = CollectionSelectionNode.GetNodeExpression(
+                compileContext,
+                serviceProvider,
+                fragments,
+                docParam,
+                docVariables,
+                schemaContext,
+                withoutServiceFields,
+                replacementNextFieldContext,
+                possibleNextContextTypes,
+                contextChanged,
+                replacer
+            );
             if (result == null)
                 return null;
 

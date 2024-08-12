@@ -51,25 +51,12 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // is on may be used in multiple places and have different arguments etc
         // See OffsetConnectionPagingTests.TestMultiUseWithArgs
         var pagingExtension = (ConnectionPagingExtension)parentNode!.Field!.Extensions.Find(e => e is ConnectionPagingExtension)!;
-        expression = servicesPass
-            ? expression
-            : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentNode!.Field!.FieldParam!, parentNode!.ParentNode!.NextFieldContext!);
+        expression = servicesPass ? expression : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentNode!.Field!.FieldParam!, parentNode!.ParentNode!.NextFieldContext!);
 
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in pagingExtension.ExtensionsBeforePaging)
         {
-            var res = extension.GetExpressionAndArguments(
-                field,
-                expression,
-                argumentParam,
-                arguments,
-                context,
-                parentNode,
-                servicesPass,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
-            );
+            var res = extension.GetExpressionAndArguments(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
 #pragma warning disable CS0618 // Type or member is obsolete
             expression = extension.GetExpression(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
@@ -184,10 +171,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
             new Type[] { listType, edgeType },
             baseExpression,
             // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
-            Expression.Lambda(
-                Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }),
-                firstSelectParam
-            )
+            Expression.Lambda(Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }), firstSelectParam)
         );
 
         var idxParam = Expression.Parameter(typeof(int), "cursor_idx");

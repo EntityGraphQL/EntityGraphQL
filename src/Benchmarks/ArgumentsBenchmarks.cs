@@ -7,7 +7,7 @@ namespace Benchmarks
 {
     /// <summary>
     /// Was testing the performance of using reflection to build the correct types from variables or using System.Text.Json
-    /// 
+    ///
     /// Reflection wins
     /// |                      Method |        Job |              Toolchain | IterationCount | LaunchCount | WarmupCount |        Mean |        Error |     StdDev |
     /// |---------------------------- |----------- |----------------------- |--------------- |------------ |------------ |------------:|-------------:|-----------:|
@@ -51,9 +51,7 @@ namespace Benchmarks
         [Benchmark]
         public static void ObjectWithReflection()
         {
-            var variables = new QueryVariables {
-                { "names", new { Name = "Lisa", LastName = "Simpson" } }
-            };
+            var variables = new QueryVariables { { "names", new { Name = "Lisa", LastName = "Simpson" } } };
 
             for (int i = 0; i < 10000; i++)
             {
@@ -64,8 +62,15 @@ namespace Benchmarks
         [Benchmark]
         public static void ListWithReflection()
         {
-            var variables = new QueryVariables {
-                { "names", new List<InputType2>{new InputType2{ Name = "Lisa", LastName = "Simpson" } }}
+            var variables = new QueryVariables
+            {
+                {
+                    "names",
+                    new List<InputType2>
+                    {
+                        new InputType2 { Name = "Lisa", LastName = "Simpson" }
+                    }
+                }
             };
 
             for (int i = 0; i < 10000; i++)

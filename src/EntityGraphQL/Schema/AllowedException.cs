@@ -17,7 +17,8 @@ namespace EntityGraphQL.Schema
 
         public bool IsAllowed(Exception ex)
         {
-            if (exactMatch) return ex.GetType() == exceptionType;
+            if (exactMatch)
+                return ex.GetType() == exceptionType;
             return exceptionType.IsInstanceOfType(ex);
         }
     }

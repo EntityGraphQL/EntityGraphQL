@@ -7,7 +7,6 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class QueryRequestContext
     {
-
         public QueryRequestContext(IGqlAuthorizationService? authorizationService, ClaimsPrincipal? user)
         {
             AuthorizationService = authorizationService;

@@ -33,9 +33,7 @@ namespace Benchmarks
 
         private void ConfigureServices(IServiceCollection services)
         {
-            services
-                .AddDbContext<BenchmarkContext>()
-                .AddSingleton(BuildSchema());
+            services.AddDbContext<BenchmarkContext>().AddSingleton(BuildSchema());
         }
 
         protected BenchmarkContext GetContext()

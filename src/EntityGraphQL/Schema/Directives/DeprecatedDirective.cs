@@ -1,7 +1,7 @@
-﻿using EntityGraphQL.Schema.Directives;
-using EntityGraphQL.Schema.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using EntityGraphQL.Schema.Directives;
+using EntityGraphQL.Schema.Models;
 
 namespace EntityGraphQL.Schema
 {
@@ -37,12 +37,14 @@ namespace EntityGraphQL.Schema.Directives
 
         public string? Reason { get; }
 
-        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
-            TypeSystemDirectiveLocation.FieldDefinition,
-            TypeSystemDirectiveLocation.ArgumentDefinition,
-            TypeSystemDirectiveLocation.InputFieldDefinition,
-            TypeSystemDirectiveLocation.EnumValue
-        };
+        public IEnumerable<TypeSystemDirectiveLocation> Location =>
+            new[]
+            {
+                TypeSystemDirectiveLocation.FieldDefinition,
+                TypeSystemDirectiveLocation.ArgumentDefinition,
+                TypeSystemDirectiveLocation.InputFieldDefinition,
+                TypeSystemDirectiveLocation.EnumValue
+            };
 
         public void ProcessField(Models.Field field)
         {

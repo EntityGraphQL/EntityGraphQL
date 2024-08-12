@@ -56,7 +56,7 @@ namespace EntityGraphQL.Schema.Validators
         }
 
         /// <summary>
-        /// Validate the values of the object recursively against the validation attributes on the object itself 
+        /// Validate the values of the object recursively against the validation attributes on the object itself
         /// </summary>
         /// <param name="context"></param>
         /// <param name="obj"></param>
@@ -87,8 +87,7 @@ namespace EntityGraphQL.Schema.Validators
                     });
                 }
 
-                var properties = obj!.GetType().GetProperties().Where(prop => prop.CanRead
-                    && prop.GetIndexParameters().Length == 0).ToList();
+                var properties = obj!.GetType().GetProperties().Where(prop => prop.CanRead && prop.GetIndexParameters().Length == 0).ToList();
 
                 foreach (var property in properties)
                 {
@@ -117,7 +116,6 @@ namespace EntityGraphQL.Schema.Validators
                     {
                         continue;
                     }
-
 
                     ValidateObjectRecursive(context, value);
                 }

@@ -1,6 +1,6 @@
 using System;
-using Xunit;
 using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -14,12 +14,11 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($name: String) {
+                Query =
+                    @"mutation AddPerson($name: String) {
                     addPersonError(name: $name)
                 }",
-                Variables = new QueryVariables {
-                    {"name", "Bill"}
-                }
+                Variables = new QueryVariables { { "name", "Bill" } }
             };
 
             var testSchema = new TestDataContext();
@@ -37,7 +36,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error }
 }",
             };
@@ -55,7 +55,8 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     locations { id }
                 }"
             };
@@ -74,7 +75,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people { error }
                 }"
             };
@@ -99,13 +101,12 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($name: String) {
+                Query =
+                    @"mutation AddPerson($name: String) {
   addPersonErrorUnexposedException(name: $name)
 }
 ",
-                Variables = new QueryVariables {
-                    {"name", "Bill"}
-                }
+                Variables = new QueryVariables { { "name", "Bill" } }
             };
 
             var testSchema = new TestDataContext();
@@ -124,13 +125,12 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson($name: String) {
+                Query =
+                    @"mutation AddPerson($name: String) {
   addPersonErrorUnexposedException(name: $name)
 }
 ",
-                Variables = new QueryVariables {
-                    {"name", "Bill"}
-                }
+                Variables = new QueryVariables { { "name", "Bill" } }
             };
 
             var testSchema = new TestDataContext();
@@ -148,7 +148,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedException }
 }",
             };
@@ -166,7 +167,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedException }
 }",
             };
@@ -185,7 +187,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -204,7 +207,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -223,7 +227,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -242,7 +247,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -261,7 +267,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -280,7 +287,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_UnexposedArgumentException }
 }",
             };
@@ -297,7 +305,8 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
     people { error_AggregateException }
 }",
             };
@@ -316,7 +325,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people { error_Allowed }
                 }",
             };

@@ -9,7 +9,17 @@ namespace EntityGraphQL.Schema
     {
         public override GraphQLQueryFieldType FieldType { get; } = GraphQLQueryFieldType.Subscription;
 
-        public SubscriptionField(ISchemaProvider schema, ISchemaType fromType, string methodName, GqlTypeInfo returnType, MethodInfo method, string description, RequiredAuthorization requiredAuth, bool isAsync, SchemaBuilderOptions options)
+        public SubscriptionField(
+            ISchemaProvider schema,
+            ISchemaType fromType,
+            string methodName,
+            GqlTypeInfo returnType,
+            MethodInfo method,
+            string description,
+            RequiredAuthorization requiredAuth,
+            bool isAsync,
+            SchemaBuilderOptions options
+        )
             : base(schema, fromType, methodName, returnType, method, description, requiredAuth, isAsync, options)
         {
             if (!method.ReturnType.ImplementsGenericInterface(typeof(IObservable<>)))

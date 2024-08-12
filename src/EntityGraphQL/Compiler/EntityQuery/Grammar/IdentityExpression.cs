@@ -45,19 +45,7 @@ public class IdentityExpression(string name, CompileContext compileContext) : IE
             return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, name));
         }
         var gqlField = schemaType.GetField(name, requestContext);
-        (var exp, _) = gqlField.GetExpression(
-            gqlField.ResolveExpression!,
-            context,
-            null,
-            null,
-            compileContext,
-            new Dictionary<string, object>(),
-            null,
-            null,
-            [],
-            false,
-            new Util.ParameterReplacer()
-        );
+        (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, context, null, null, compileContext, new Dictionary<string, object>(), null, null, [], false, new Util.ParameterReplacer());
         return exp!;
     }
 

@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
-using subscriptions.Services;
 using EntityGraphQL.Schema;
+using subscriptions.Services;
 
 namespace subscriptions.Subscriptions
 {
@@ -12,6 +12,7 @@ namespace subscriptions.Subscriptions
         {
             return chat.Subscribe();
         }
+
         [GraphQLSubscription("Example of a subscription that allows querying relations back on the main context")]
         public IObservable<Expression<Func<ChatContext, MessageEvent>>> OnMessageEvent(ChatEventService chat)
         {

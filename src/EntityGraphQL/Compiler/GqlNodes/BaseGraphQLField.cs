@@ -235,11 +235,7 @@ namespace EntityGraphQL.Compiler
             QueryFields.Add(field);
         }
 
-        protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(
-            Expression baseExpression,
-            ParameterExpression? listTypeParam,
-            ParameterReplacer parameterReplacer
-        )
+        protected (Expression, ParameterExpression?) ProcessExtensionsPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
         {
             if (Field == null)
                 return (baseExpression, listTypeParam);
@@ -321,13 +317,7 @@ namespace EntityGraphQL.Compiler
                     // if ParentNode?.HasServices == true the above has been done and we just need to replace the
                     // expression, not rebuild it with a different name
 
-                    var expReplacer = new ExpressionReplacer(
-                        expressionsToReplace,
-                        replacementNextFieldContext,
-                        ParentNode?.HasServices == true,
-                        IsRootField && HasServices,
-                        possibleNextContextTypes
-                    );
+                    var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, IsRootField && HasServices, possibleNextContextTypes);
                     nextFieldContext = expReplacer.Replace(nextFieldContext!);
                 }
                 // may need to replace the field's original parameter
@@ -354,11 +344,7 @@ namespace EntityGraphQL.Compiler
                         new[] { Expression.Constant(Field.BulkResolver.Name) }
                     );
                     var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
-                    nextFieldContext = Expression.MakeIndex(
-                        Expression.Convert(expression, dictType),
-                        dictType.GetProperty("Item")!,
-                        new[] { Field!.BulkResolver.DataSelector.Body }
-                    );
+                    nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
                     nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
                 }
             }
@@ -381,14 +367,7 @@ namespace EntityGraphQL.Compiler
             return obj != null && obj.Name == this.Name && SchemaName == obj.SchemaName && obj.FromType?.Name == this.FromType?.Name;
         }
 
-        public static void HandleBeforeRootFieldExpressionBuild(
-            CompileContext compileContext,
-            string? opName,
-            string fieldName,
-            bool contextChanged,
-            bool isRootField,
-            ref Expression expression
-        )
+        public static void HandleBeforeRootFieldExpressionBuild(CompileContext compileContext, string? opName, string fieldName, bool contextChanged, bool isRootField, ref Expression expression)
         {
             if (compileContext.ExecutionOptions.BeforeRootFieldExpressionBuild != null && !contextChanged && isRootField)
             {

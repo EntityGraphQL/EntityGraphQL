@@ -13,12 +13,7 @@ public class DefaultMethodProviderTests
     [Fact]
     public void CompilesFirst()
     {
-        var exp = EntityQueryCompiler.Compile(
-            @"people.first(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")",
-            SchemaBuilder.FromObject<TestSchema>(),
-            executionOptions,
-            new DefaultMethodProvider()
-        );
+        var exp = EntityQueryCompiler.Compile(@"people.first(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
         var result = exp.Execute(new TestSchema()) as Person;
         Assert.Equal(new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67"), result.Guid);
     }
@@ -159,12 +154,7 @@ public class DefaultMethodProviderTests
     [Fact]
     public void CompilesAndConvertsStringToGuid()
     {
-        var exp = EntityQueryCompiler.Compile(
-            @"people.where(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")",
-            SchemaBuilder.FromObject<TestSchema>(),
-            executionOptions,
-            new DefaultMethodProvider()
-        );
+        var exp = EntityQueryCompiler.Compile(@"people.where(guid == ""6492f5fe-0869-4279-88df-7f82f8e87a67"")", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
         var result = exp.Execute(new TestSchema()) as IEnumerable<Person>;
         Assert.Single(result);
         Assert.Equal("Luke", result.ElementAt(0).Name);
@@ -173,12 +163,7 @@ public class DefaultMethodProviderTests
     [Fact]
     public void SupportUseFilterIsAnyMethod()
     {
-        var exp = EntityQueryCompiler.Compile(
-            @"people.where(name.isAny([""Bob"", ""Robin""]))",
-            SchemaBuilder.FromObject<TestSchema>(),
-            executionOptions,
-            new DefaultMethodProvider()
-        );
+        var exp = EntityQueryCompiler.Compile(@"people.where(name.isAny([""Bob"", ""Robin""]))", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
         var data = new TestSchema();
         var result = exp.Execute(data) as IEnumerable<Person>;
         Assert.True(data.People.Count() > 2);

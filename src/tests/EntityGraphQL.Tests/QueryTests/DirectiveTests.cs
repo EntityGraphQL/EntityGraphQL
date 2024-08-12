@@ -1,11 +1,11 @@
-using Xunit;
-using EntityGraphQL.Schema;
-using System.Collections.Generic;
-using EntityGraphQL.Directives;
-using System.Linq.Expressions;
 using System;
-using EntityGraphQL.Compiler;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Directives;
+using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -20,7 +20,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     people {
                         id
                         name @include(if: true)
@@ -32,13 +33,15 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
+
         [Fact]
         public void TestIncludeIfFalseConstant()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     people {
                         id
                         name @include(if: false)
@@ -58,7 +61,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     person(id:99) @include(if: false) {
                         id
                         name 
@@ -76,7 +80,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     people @include(if: false) {
                         id
                         name 
@@ -89,14 +94,14 @@ namespace EntityGraphQL.Tests
             Assert.False(result.Data.ContainsKey("people"));
         }
 
-
         [Fact]
         public void TestIncludeIfTrueVariable()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($include: Boolean!){
+                Query =
+                    @"query MyQuery($include: Boolean!){
     people {
         id
         name @include(if: $include)
@@ -116,7 +121,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
     people {
         id
         name @skip(if: true)
@@ -128,13 +134,15 @@ namespace EntityGraphQL.Tests
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("id"));
         }
+
         [Fact]
         public void TestSkipIfFalseConstant()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
     people {
         id
         name @skip(if: false)
@@ -146,13 +154,15 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
+
         [Fact]
         public void TestSkipIfFalseVariable()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($skip: Boolean!){
+                Query =
+                    @"query MyQuery($skip: Boolean!){
     people {
         id
         name @skip(if: $skip)
@@ -172,7 +182,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($skip: Boolean!){
+                Query =
+                    @"query MyQuery($skip: Boolean!){
                     people @skip(if: $skip) {
                         id
                         name 
@@ -191,7 +202,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($skip: Boolean!){
+                Query =
+                    @"query MyQuery($skip: Boolean!){
     people {
         id
         name 
@@ -215,7 +227,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var query = new QueryRequest
             {
-                Query = @"query MyQuery($skip: Boolean!){
+                Query =
+                    @"query MyQuery($skip: Boolean!){
     people {
         id
         name 
@@ -238,14 +251,26 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var mutationCalled = false;
-            schema.Mutation().Add("addPerson", (PeopleMutationsArgs args) =>
-            {
-                mutationCalled = true;
-                return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
-            }, new SchemaBuilderOptions { AutoCreateInputTypes = true });
+            schema
+                .Mutation()
+                .Add(
+                    "addPerson",
+                    (PeopleMutationsArgs args) =>
+                    {
+                        mutationCalled = true;
+                        return new Person
+                        {
+                            Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name,
+                            Id = 555,
+                            Projects = new List<Project>()
+                        };
+                    },
+                    new SchemaBuilderOptions { AutoCreateInputTypes = true }
+                );
             var query = new QueryRequest
             {
-                Query = @"mutation MyQuery($skip: Boolean!){
+                Query =
+                    @"mutation MyQuery($skip: Boolean!){
                     addPerson(name: ""test"") @skip(if: $skip) {
                         id
                         name 
@@ -287,7 +312,8 @@ namespace EntityGraphQL.Tests
             var dateFormat = "dd MMM yyyy";
             var query = new QueryRequest
             {
-                Query = $@"query {{
+                Query =
+                    $@"query {{
                     people {{
                         id
                         birthday @format(as: ""{dateFormat}"")

@@ -6,7 +6,5 @@ using System.Threading.Tasks;
 
 namespace EntityGraphQL.Tests
 {
-    public class IMutations
-    {
-    }
+    public class IMutations { }
 }

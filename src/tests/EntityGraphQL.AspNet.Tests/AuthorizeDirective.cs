@@ -46,10 +46,7 @@ namespace EntityGraphQL.AspNet.Tests
             Policies = authorize.Policies;
         }
 
-        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] {
-            TypeSystemDirectiveLocation.QueryObject,
-            TypeSystemDirectiveLocation.FieldDefinition
-        };
+        public IEnumerable<TypeSystemDirectiveLocation> Location => new[] { TypeSystemDirectiveLocation.QueryObject, TypeSystemDirectiveLocation.FieldDefinition };
 
         public string? Roles { get; }
         public List<string> Policies { get; }

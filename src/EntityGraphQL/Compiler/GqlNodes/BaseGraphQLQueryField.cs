@@ -204,11 +204,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                 listExpression = replacer.Replace(listExpression, rootParameter!, parentObjectNode.NextFieldContext!);
                 if (isList)
                 {
-                    var nullCheck = Expression.MakeBinary(
-                        ExpressionType.Equal,
-                        parentObjectNode.NextFieldContext!,
-                        Expression.Constant(null, parentObjectNode.NextFieldContext!.Type)
-                    );
+                    var nullCheck = Expression.MakeBinary(ExpressionType.Equal, parentObjectNode.NextFieldContext!, Expression.Constant(null, parentObjectNode.NextFieldContext!.Type));
                     listExpression = Expression.Condition(nullCheck, Expression.NewArrayInit(typeDotnet), listExpression, typeof(IEnumerable<>).MakeGenericType(typeDotnet));
                 }
                 rootParameter = parentNode.RootParameter!;

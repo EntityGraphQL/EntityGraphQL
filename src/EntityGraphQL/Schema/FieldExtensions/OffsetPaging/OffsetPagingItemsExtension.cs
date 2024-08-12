@@ -17,12 +17,25 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         this.listType = listType;
     }
 
-    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer, ParameterExpression? originalArgParam, CompileContext compileContext)
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
+        IField field,
+        Expression expression,
+        ParameterExpression? argumentParam,
+        dynamic? arguments,
+        Expression context,
+        IGraphQLNode? parentNode,
+        bool servicesPass,
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
+    )
     {
         // We know we need the arguments from the parent field as that is where they are defined
         if (parentNode != null)
         {
-            argumentParam = compileContext.GetConstantParameterForField(parentNode.Field!) ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+            argumentParam =
+                compileContext.GetConstantParameterForField(parentNode.Field!)
+                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
             arguments = compileContext.ConstantParameters[argumentParam];
             originalArgParam = parentNode.Field!.ArgumentsParameter;
         }
@@ -53,8 +66,14 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
             throw new EntityGraphQLCompilerException("OffsetPagingItemsExtension requires an argument parameter to be passed in");
 
         // Build our items expression with the paging
-        newItemsExp = Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Take), [listType],
-            Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Skip), [listType],
+        newItemsExp = Expression.Call(
+            isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+            nameof(EnumerableExtensions.Take),
+            [listType],
+            Expression.Call(
+                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+                nameof(EnumerableExtensions.Skip),
+                [listType],
                 newItemsExp,
                 Expression.PropertyOrField(argumentParam, "skip")
             ),
@@ -63,7 +82,14 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
 
         // we have moved the expression from the parent node to here. We need to call the before callback
         if (parentNode?.IsRootField == true)
-            BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(compileContext, BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode), parentNode.Name!, servicesPass, parentNode.IsRootField, ref newItemsExp);
+            BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(
+                compileContext,
+                BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode),
+                parentNode.Name!,
+                servicesPass,
+                parentNode.IsRootField,
+                ref newItemsExp
+            );
 
         return (newItemsExp, originalArgParam, argumentParam, arguments);
     }

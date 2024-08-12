@@ -1,8 +1,8 @@
-using EntityGraphQL.AspNet.Extensions;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using EntityGraphQL.AspNet.Extensions;
 
 namespace EntityGraphQL.AspNet
 {
@@ -19,11 +19,7 @@ namespace EntityGraphQL.AspNet
                 this.jsonOptions = jsonOptions;
             else
             {
-                this.jsonOptions = new JsonSerializerOptions
-                {
-                    IncludeFields = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                };
+                this.jsonOptions = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
                 this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
                 this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter());
             }

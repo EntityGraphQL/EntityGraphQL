@@ -1,10 +1,10 @@
-using Xunit;
-using System.Linq;
-using EntityGraphQL.Schema;
-using System.Linq.Expressions;
 using System;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -19,12 +19,15 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("hiddenField", schema);
             // this exists as it is available for querying
-            Assert.Contains(@"type Album {
+            Assert.Contains(
+                @"type Album {
 	genre: Genre!
 	hiddenInputField: String
 	id: Int!
 	name: String!
-}", schema);
+}",
+                schema
+            );
             // doesn't include the hidden input fields
             Assert.Contains("addAlbum(name: String!, genre: Genre!): Album", schema);
         }
@@ -36,6 +39,7 @@ namespace EntityGraphQL.Tests
             var schema = schemaProvider.ToGraphQLSchemaString();
             Assert.DoesNotContain("album", schema);
         }
+
         [Fact]
         public void TestIgnoreEnumWithSchemaBuilder()
         {
@@ -61,12 +65,15 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
-            Assert.Contains(@"type Album {
+            Assert.Contains(
+                @"type Album {
 	genre: Genre!
 	hiddenInputField: String
 	id: Int!
 	name: String!
-}", schema);
+}",
+                schema
+            );
         }
 
         [Fact]
@@ -75,10 +82,13 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
-            Assert.Contains(@"type Artist {
+            Assert.Contains(
+                @"type Artist {
 	id: Int!
 	type: ArtistType
-}", schema);
+}",
+                schema
+            );
         }
 
         [Fact]
@@ -100,6 +110,7 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("albums: [Album!]", schema);
         }
+
         [Fact]
         public void TestNullEnumerableElement()
         {
@@ -118,6 +129,7 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("old: Int! @deprecated(reason: \"because\")", schema);
         }
+
         [Fact]
         public void TestDeprecatedMutationField()
         {
@@ -127,6 +139,7 @@ namespace EntityGraphQL.Tests
             // this exists as it is not null
             Assert.Contains("addAlbumOld(name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
         }
+
         [Fact]
         public void TestDeprecatedEnumField()
         {
@@ -151,7 +164,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                   query {
                     __type(name: ""Mutation"") {                        
                         fields {
@@ -329,11 +343,7 @@ namespace EntityGraphQL.Tests
         [Fact]
         public void TestGetArgDefaultValue_Object()
         {
-            Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new Album
-            {
-                Id = 5,
-                Name = "Test",
-            }, (e) => e));
+            Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new Album { Id = 5, Name = "Test", }, (e) => e));
         }
     }
 
@@ -342,11 +352,7 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
@@ -354,11 +360,7 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation("Test correct generation of return type for a list")]
         public Expression<Func<IgnoreTestSchema, IEnumerable<Album>>> AddAlbum2(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums;
         }
@@ -367,15 +369,10 @@ namespace EntityGraphQL.Tests
         [Obsolete("This is obsolete")]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbumOld(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
-
     }
 
     public class NullableRefTypeMutations
@@ -383,11 +380,7 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
@@ -396,44 +389,33 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbum2(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
 
-
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album?>> AddAlbum3(IgnoreTestSchema db, Album args)
         {
-            var newAlbum = new Album
-            {
-                Id = new Random().Next(100),
-                Name = args.Name,
-            };
+            var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
 #nullable restore
     }
 
-
     public class MovieArgs
     {
         [GraphQLNotNull]
         public string Name { get; set; }
+
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public string Hidden { get; set; }
     }
 
-
     public class AbstractClassTestSchema
     {
         public List<Animal> Animals { get; set; }
-
 
         public interface ISwim
         {
@@ -456,7 +438,6 @@ namespace EntityGraphQL.Tests
         }
     }
 
-
     public class IgnoreTestSchema
     {
         public IgnoreTestSchema()
@@ -469,6 +450,7 @@ namespace EntityGraphQL.Tests
         [GraphQLIgnore(GraphQLIgnoreType.Query)]
         public List<Movie> Movies { get; set; }
         public List<Album> Albums { get; set; }
+
         [GraphQLElementTypeNullableAttribute]
         public List<Album> NullAlbums { get; set; }
         public List<Artist> Artists { get; set; }
@@ -481,6 +463,7 @@ namespace EntityGraphQL.Tests
         Jazz,
         Alternitive,
         Pop,
+
         [Obsolete("This is an obsolete genre")]
         Obsolete
     }
@@ -490,14 +473,19 @@ namespace EntityGraphQL.Tests
     {
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public int Id { get; set; }
+
         [GraphQLNotNull]
         public string Name { get; set; }
+
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public string HiddenInputField { get; set; }
+
         [GraphQLIgnore(GraphQLIgnoreType.All)] // default
         public string HiddenAllField { get; set; }
+
         [GraphQLNotNull]
         public Genre Genre { get; set; }
+
         [Obsolete("because")]
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
         public int Old { get; set; }
@@ -515,6 +503,7 @@ namespace EntityGraphQL.Tests
         Band,
         Supergroup,
     }
+
     public class Artist
     {
         public int Id { get; set; }

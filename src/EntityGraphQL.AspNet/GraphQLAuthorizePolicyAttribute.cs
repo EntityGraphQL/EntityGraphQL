@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +8,13 @@ namespace EntityGraphQL.AspNet
     public class GraphQLAuthorizePolicyAttribute : Attribute
     {
         /// <summary>
-        /// Initializes a new instance of the GraphQLAuthorizeAttribute class 
+        /// Initializes a new instance of the GraphQLAuthorizeAttribute class
         /// </summary>
         public GraphQLAuthorizePolicyAttribute()
         {
             Policies = new List<string>();
         }
+
         /// <summary>
         /// Initializes a new instance of the GraphQLAuthorizePolicyAttribute class with the specified policies.
         /// </summary>

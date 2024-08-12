@@ -54,11 +54,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             return field;
         }
 
-        public static IField UseSort<TElementType, TReturnType>(
-            this IField field,
-            Expression<Func<TElementType, TReturnType>> fieldSelection,
-            params Sort<TElementType>[] defaultSorts
-        )
+        public static IField UseSort<TElementType, TReturnType>(this IField field, Expression<Func<TElementType, TReturnType>> fieldSelection, params Sort<TElementType>[] defaultSorts)
         {
             field.AddExtension(new SortExtension(fieldSelection, false, defaultSorts));
             return field;

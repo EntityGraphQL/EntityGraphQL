@@ -19,18 +19,15 @@
         {
             var types = new List<TypeElement>
             {
-                new TypeElement("OBJECT", schema.QueryContextName)
-                {
-                    Description = "The query type, represents all of the entry points into our object graph",
-                    OfType = null,
-                },
+                new TypeElement("OBJECT", schema.QueryContextName) { Description = "The query type, represents all of the entry points into our object graph", OfType = null, },
             };
             types.AddRange(BuildQueryTypes(schema));
             types.AddRange(BuildInputTypes(schema));
             types.AddRange(BuildEnumTypes(schema));
             types.AddRange(BuildScalarTypes(schema));
 
-            var schemaDescription = new Schema(new TypeElement(null, schema.QueryContextName),
+            var schemaDescription = new Schema(
+                new TypeElement(null, schema.QueryContextName),
                 schema.HasType(schema.Mutation().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Mutation().SchemaType.Name) : null,
                 schema.HasType(schema.Subscription().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Subscription().SchemaType.Name) : null,
                 types.OrderBy(x => x.Name).ToList(),
@@ -46,10 +43,7 @@
 
             foreach (var customScalar in schema.GetScalarTypes())
             {
-                var typeElement = new TypeElement("SCALAR", customScalar.Name)
-                {
-                    Description = customScalar.Description
-                };
+                var typeElement = new TypeElement("SCALAR", customScalar.Name) { Description = customScalar.Description };
 
                 customScalar.Directives.ProcessType(typeElement);
 
@@ -75,9 +69,7 @@
                 var typeElement = new TypeElement(kind, st.Name)
                 {
                     Description = st.Description,
-                    PossibleTypes = st.PossibleTypesReadOnly
-                                    .Select(i => new TypeElement("OBJECT", i.Name))
-                                    ?.ToArray() ?? Array.Empty<TypeElement>()
+                    PossibleTypes = st.PossibleTypesReadOnly.Select(i => new TypeElement("OBJECT", i.Name))?.ToArray() ?? Array.Empty<TypeElement>()
                 };
 
                 if (st.BaseTypesReadOnly != null && st.BaseTypesReadOnly.Count > 0)
@@ -127,17 +119,10 @@
                     if (field.ReturnType.TypeDotnet.IsEnum)
                         continue;
 
-                    inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true))
-                    {
-                        Description = field.Description,
-                    });
+                    inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true)) { Description = field.Description, });
                 }
 
-                var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name)
-                {
-                    Description = schemaType.Description,
-                    InputFields = inputValues.ToArray()
-                };
+                var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name) { Description = schemaType.Description, InputFields = inputValues.ToArray() };
 
                 schemaType.Directives.ProcessType(typeElement);
 
@@ -154,11 +139,7 @@
             // filter to ENUM type ONLY!
             foreach (ISchemaType schemaType in schema.GetNonContextTypes().Where(s => s.IsEnum))
             {
-                var typeElement = new TypeElement("ENUM", schemaType.Name)
-                {
-                    Description = schemaType.Description,
-                    EnumValues = Array.Empty<EnumValue>()
-                };
+                var typeElement = new TypeElement("ENUM", schemaType.Name) { Description = schemaType.Description, EnumValues = Array.Empty<EnumValue>() };
                 if (schemaType.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
@@ -169,10 +150,7 @@
                     if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                         continue;
 
-                    var e = new EnumValue(field.Name)
-                    {
-                        Description = field.Description,
-                    };
+                    var e = new EnumValue(field.Name) { Description = field.Description, };
 
                     field.DirectivesReadOnly.ProcessEnumValue(e);
 
@@ -221,10 +199,7 @@
             }
             if (typeInfo.TypeNotNullable)
             {
-                return new TypeElement("NON_NULL", null)
-                {
-                    OfType = type
-                };
+                return new TypeElement("NON_NULL", null) { OfType = type };
             }
 
             return type;
@@ -286,11 +261,7 @@
                     continue;
 
                 //== Fields ==//
-                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
-                {
-                    Args = BuildArgs(schema, field).ToArray(),
-                    Description = field.Description
-                };
+                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet)) { Args = BuildArgs(schema, field).ToArray(), Description = field.Description };
 
                 field.DirectivesReadOnly.ProcessField(f);
 
@@ -309,11 +280,7 @@
                     continue;
 
                 var args = BuildArgs(schema, field).ToArray();
-                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
-                {
-                    Args = args,
-                    Description = field.Description
-                };
+                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet)) { Args = args, Description = field.Description };
 
                 field.DirectivesReadOnly.ProcessField(f);
 
@@ -335,11 +302,7 @@
                 var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer)?.Trim('"');
                 var defaultValue = string.IsNullOrEmpty(stringValue) ? null : stringValue;
 
-                args.Add(new InputValue(arg.Key, type)
-                {
-                    DefaultValue = defaultValue,
-                    Description = arg.Value.Description,
-                });
+                args.Add(new InputValue(arg.Key, type) { DefaultValue = defaultValue, Description = arg.Value.Description, });
             }
 
             return args;
@@ -347,19 +310,20 @@
 
         private static List<Directive> BuildDirectives(ISchemaProvider schema)
         {
-            var directives = schema.GetDirectives().Select(directive => new Directive(directive.Name)
-            {
-                Description = directive.Description,
-                Locations = directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i))!,
-                Args = directive.GetArguments(schema).Values.Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true))
+            var directives = schema
+                .GetDirectives()
+                .Select(directive => new Directive(directive.Name)
                 {
-                    Description = arg.Description,
-                    DefaultValue = null,
-                }).ToArray()
-            }).ToList();
+                    Description = directive.Description,
+                    Locations = directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i))!,
+                    Args = directive
+                        .GetArguments(schema)
+                        .Values.Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true)) { Description = arg.Description, DefaultValue = null, })
+                        .ToArray()
+                })
+                .ToList();
 
             return directives;
         }
-
     }
 }

@@ -30,7 +30,8 @@ namespace EntityGraphQL.Schema
         ISchemaType AddUnion(Type type, string name, string? description);
         SchemaType<TBaseType> AddInputType<TBaseType>(string name, string? description);
         ISchemaType AddInputType(Type type, string name, string? description);
-        void AddMutationsFrom<TType>(SchemaBuilderOptions? options = null) where TType : class;
+        void AddMutationsFrom<TType>(SchemaBuilderOptions? options = null)
+            where TType : class;
         ISchemaType AddScalarType(Type clrType, string gqlTypeName, string? description);
         SchemaType<TType> AddScalarType<TType>(string gqlTypeName, string? description);
         SchemaType<TBaseType> AddType<TBaseType>(string name, string? description);
@@ -48,6 +49,7 @@ namespace EntityGraphQL.Schema
         IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType);
         ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler);
         ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
+
         [Obsolete("Use GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext) instead")]
         ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
         ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext);
@@ -68,11 +70,12 @@ namespace EntityGraphQL.Schema
         void UpdateType<TType>(Action<SchemaType<TType>> configure);
         MutationType Mutation();
         SubscriptionType Subscription();
+
         /// <summary>
-        /// Call this to validate that the schema contains all the information it needs. As fields and Types can be added out of 
-        /// order to the schema, this lets you validate that the schema is complete preventing you from getting the errors at 
+        /// Call this to validate that the schema contains all the information it needs. As fields and Types can be added out of
+        /// order to the schema, this lets you validate that the schema is complete preventing you from getting the errors at
         /// runtime during a query.
-        /// 
+        ///
         /// Throws an EntityGraphQLCompilerException if the schema is not valid
         /// </summary>
         void Validate();

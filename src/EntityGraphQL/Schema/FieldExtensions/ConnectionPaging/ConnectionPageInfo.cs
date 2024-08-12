@@ -48,17 +48,12 @@ namespace EntityGraphQL.Schema.FieldExtensions
         }
 
         [Description("If there is more data after this page")]
-        public bool HasNextPage => arguments.First != null ?
-            ((arguments.AfterNum ?? 0) + arguments.First) < totalCount :
-            arguments.BeforeNum < totalCount;
+        public bool HasNextPage => arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : arguments.BeforeNum < totalCount;
 
         [Description("If there is data previous to this page")]
         public bool HasPreviousPage
         {
-            get
-            {
-                return (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? totalCount) - (arguments.Last ?? totalCount) > 1;
-            }
+            get { return (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? totalCount) - (arguments.Last ?? totalCount) > 1; }
         }
     }
 }

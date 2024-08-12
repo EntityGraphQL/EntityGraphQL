@@ -75,11 +75,7 @@ namespace demo.Mutations
                 LastName = args.LastName,
             };
             db.People.Add(person);
-            var actor = new Actor
-            {
-                MovieId = args.MovieId,
-                Person = person,
-            };
+            var actor = new Actor { MovieId = args.MovieId, Person = person, };
             db.Actors.Add(actor);
             db.SaveChanges();
 
@@ -102,16 +98,13 @@ namespace demo.Mutations
                 LastName = args.LastName,
             };
             db.People.Add(person);
-            var actor = new Actor
-            {
-                MovieId = args.MovieId,
-                Person = person,
-            };
+            var actor = new Actor { MovieId = args.MovieId, Person = person, };
             db.Actors.Add(actor);
             db.SaveChanges();
 
             return (ctx) => ctx.People.Where(p => p.FirstName == person.FirstName);
         }
+
         [GraphQLMutation]
         public Expression<Func<DemoContext, IEnumerable<Person>>> AddActor3(DemoContext db, [GraphQLArguments] AddActor3Args args)
         {
@@ -122,11 +115,7 @@ namespace demo.Mutations
                 LastName = args.Names.Last(),
             };
             db.People.Add(person);
-            var actor = new Actor
-            {
-                MovieId = args.MovieId,
-                Person = person,
-            };
+            var actor = new Actor { MovieId = args.MovieId, Person = person, };
             db.Actors.Add(actor);
             db.SaveChanges();
 
@@ -143,6 +132,7 @@ namespace demo.Mutations
     public class AddMovieArgs
     {
         public Genre Genre;
+
         [Required(AllowEmptyStrings = false, ErrorMessage = "Movie Name is required")]
         public string Name { get; set; }
         public double Rating { get; set; }

@@ -17,9 +17,12 @@ public class SubscriptionTests
         schema.Subscription().AddFrom<TestSubscriptions>();
         var res = schema.ToGraphQLSchemaString();
         Assert.Contains("subscription: Subscription", res);
-        Assert.Contains(@"type Subscription {
+        Assert.Contains(
+            @"type Subscription {
 	onMessage: Message
-}", res);
+}",
+            res
+        );
     }
 
     [Fact]
@@ -30,9 +33,12 @@ public class SubscriptionTests
         // add NO subscriptions
         var res = schema.ToGraphQLSchemaString();
         Assert.DoesNotContain("subscription: Subscription", res);
-        Assert.DoesNotContain(@"type Subscription {
+        Assert.DoesNotContain(
+            @"type Subscription {
 	onMessage: Message
-}", res);
+}",
+            res
+        );
     }
 
     [Fact]
@@ -43,7 +49,8 @@ public class SubscriptionTests
         schema.Subscription().AddFrom<TestSubscriptions>();
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                   sub: __type(name: ""Subscription"") {
                     name fields { name }
                   }
@@ -66,7 +73,8 @@ public class SubscriptionTests
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
-            Query = @"subscription {
+            Query =
+                @"subscription {
                   onMessage { id text }
                 }",
         };
@@ -75,6 +83,7 @@ public class SubscriptionTests
         Assert.Single(res.Operations[0].QueryFields);
         Assert.Equal("onMessage", res.Operations[0].QueryFields[0].Name);
     }
+
     [Fact]
     public void TestOnlySingleRootField()
     {
@@ -82,11 +91,20 @@ public class SubscriptionTests
         var schema = new SchemaProvider<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        schema.Subscription().Add("secondOne", (ChatService chat) => { return chat.Subscribe(); });
+        schema
+            .Subscription()
+            .Add(
+                "secondOne",
+                (ChatService chat) =>
+                {
+                    return chat.Subscribe();
+                }
+            );
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
-            Query = @"subscription {
+            Query =
+                @"subscription {
                   onMessage { id text }
                   secondOne { text }
                 }",
@@ -97,16 +115,26 @@ public class SubscriptionTests
         Assert.NotNull(res.Errors);
         Assert.Equal("Subscription operations may only have a single root field. Field 'secondOne' should be used in another operation.", res.Errors[0].Message);
     }
+
     [Fact]
     public void TestArguments()
     {
         var schema = new SchemaProvider<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
-        schema.Subscription().Add("onMessage", (ChatService chat, string user) => { return chat.Subscribe(); });
+        schema
+            .Subscription()
+            .Add(
+                "onMessage",
+                (ChatService chat, string user) =>
+                {
+                    return chat.Subscribe();
+                }
+            );
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
-            Query = @"subscription {
+            Query =
+                @"subscription {
                   onMessage(user: ""Joe"") { id text }
                 }",
         };
@@ -138,11 +166,7 @@ internal class ChatService
 
     public Message PostMessage(string message)
     {
-        var msg = new Message
-        {
-            Id = 2,
-            Text = message,
-        };
+        var msg = new Message { Id = 2, Text = message, };
 
         broadcaster.OnNext(msg);
 

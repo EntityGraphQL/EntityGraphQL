@@ -8,17 +8,35 @@ namespace EntityGraphQL.Compiler
 {
     public class GraphQLScalarField : BaseGraphQLField
     {
-        public GraphQLScalarField(ISchemaProvider schema, IField field, string name, Expression nextFieldContext, ParameterExpression? rootParameter, IGraphQLNode parentNode, IReadOnlyDictionary<string, object>? arguments)
-            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments)
-        {
-        }
+        public GraphQLScalarField(
+            ISchemaProvider schema,
+            IField field,
+            string name,
+            Expression nextFieldContext,
+            ParameterExpression? rootParameter,
+            IGraphQLNode parentNode,
+            IReadOnlyDictionary<string, object>? arguments
+        )
+            : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments) { }
 
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             return Field?.Services.Count > 0;
         }
 
-        protected override Expression? GetFieldExpression(CompileContext compileContext, IServiceProvider? serviceProvider, List<GraphQLFragmentStatement> fragments, ParameterExpression? docParam, object? docVariables, ParameterExpression schemaContext, bool withoutServiceFields, Expression? replacementNextFieldContext, List<Type>? possibleNextContextTypes, bool contextChanged, ParameterReplacer replacer)
+        protected override Expression? GetFieldExpression(
+            CompileContext compileContext,
+            IServiceProvider? serviceProvider,
+            List<GraphQLFragmentStatement> fragments,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ParameterExpression schemaContext,
+            bool withoutServiceFields,
+            Expression? replacementNextFieldContext,
+            List<Type>? possibleNextContextTypes,
+            bool contextChanged,
+            ParameterReplacer replacer
+        )
         {
             if (HasServices && withoutServiceFields)
                 return null;
@@ -38,7 +56,19 @@ namespace EntityGraphQL.Compiler
 
             HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
 
-            (var result, _) = Field!.GetExpression(nextFieldContext, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer);
+            (var result, _) = Field!.GetExpression(
+                nextFieldContext,
+                replacementNextFieldContext,
+                ParentNode!,
+                schemaContext,
+                compileContext,
+                Arguments,
+                docParam,
+                docVariables,
+                Directives,
+                contextChanged,
+                replacer
+            );
 
             if (result == null)
                 return null;

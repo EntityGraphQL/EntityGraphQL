@@ -3,11 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using subscriptions.Services;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions()
-{
-    WebRootPath = "wwwroot/dist",
-    Args = args
-});
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions() { WebRootPath = "wwwroot/dist", Args = args });
 
 var connectionString = "DataSource=chat;mode=memory;cache=shared";
 var keepAliveConnection = new SqliteConnection(connectionString);

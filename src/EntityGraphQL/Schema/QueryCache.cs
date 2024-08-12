@@ -9,6 +9,7 @@ namespace EntityGraphQL.Schema
     public class QueryCache : IDisposable
     {
         private readonly MemoryCache cache;
+
         public QueryCache()
         {
             cache = new MemoryCache("EntityGraphQL.QueryCache");
@@ -35,7 +36,7 @@ namespace EntityGraphQL.Schema
         public static string ComputeHash(string data)
         {
             using SHA256 sha256Hash = SHA256.Create();
-            // ComputeHash - returns byte array  
+            // ComputeHash - returns byte array
 #if NET8_0_OR_GREATER
             byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));
 #else

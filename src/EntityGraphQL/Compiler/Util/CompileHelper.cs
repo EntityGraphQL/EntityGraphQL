@@ -9,7 +9,14 @@ namespace EntityGraphQL.Compiler
 {
     public static class GraphQLHelper
     {
-        public static Expression InjectServices(IServiceProvider serviceProvider, IEnumerable<ParameterExpression> services, List<object?> allArgs, Expression expression, List<ParameterExpression> parameters, ParameterReplacer replacer)
+        public static Expression InjectServices(
+            IServiceProvider serviceProvider,
+            IEnumerable<ParameterExpression> services,
+            List<object?> allArgs,
+            Expression expression,
+            List<ParameterExpression> parameters,
+            ParameterReplacer replacer
+        )
         {
             foreach (var serviceParam in services)
             {
@@ -32,7 +39,15 @@ namespace EntityGraphQL.Compiler
             return source.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
         }
 
-        public static void ValidateAndReplaceFieldArgs(IField field, ParameterExpression? argsParam, ParameterReplacer replacer, ref object? argumentValue, ref Expression result, List<string> validationErrors, ParameterExpression? newArgParam)
+        public static void ValidateAndReplaceFieldArgs(
+            IField field,
+            ParameterExpression? argsParam,
+            ParameterReplacer replacer,
+            ref object? argumentValue,
+            ref Expression result,
+            List<string> validationErrors,
+            ParameterExpression? newArgParam
+        )
         {
             // replace the arg param after extensions (don't rely on extensions to do this)
             if (argsParam != null && newArgParam != null && argsParam != newArgParam)

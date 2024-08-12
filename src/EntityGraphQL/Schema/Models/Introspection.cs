@@ -28,6 +28,7 @@ namespace EntityGraphQL.Schema.Models
     public partial class TypeElement
     {
         public TypeElement() { }
+
         public TypeElement(string? kind, string? name)
         {
             Kind = kind;
@@ -51,6 +52,7 @@ namespace EntityGraphQL.Schema.Models
         public TypeElement[] PossibleTypes { get; set; } = [];
         public TypeElement? OfType { get; set; }
         public bool OneField { get; set; }
+
         // may be non-null for custom SCALAR, otherwise null.
         public string? SpecifiedByURL { get; set; }
     }

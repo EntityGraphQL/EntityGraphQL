@@ -34,6 +34,7 @@ namespace Benchmarks
         }
 
         public List<string> Directors { get; set; }
+
         [JsonPropertyName("release_date")]
         public DateTime ReleaseDate { get; set; }
         public float Rating { get; set; }
@@ -41,6 +42,7 @@ namespace Benchmarks
         public string ImageUrl { get; set; }
         public string Plot { get; set; }
         public int Rank { get; set; }
+
         [JsonPropertyName("running_time_secs")]
         public int RunningTimeSecs { get; set; }
         public List<string> Actors { get; set; }

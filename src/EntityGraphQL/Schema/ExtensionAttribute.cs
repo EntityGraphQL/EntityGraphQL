@@ -14,9 +14,14 @@ namespace EntityGraphQL.Schema
     /// Used to handle other Attributes found in the schema where you can not extend from ExtensionAttribute
     /// </summary>
     /// <typeparam name="TAttribute"></typeparam>
-    public abstract class AbstractExtensionAttributeHandler<TAttribute> : IExtensionAttributeHandler where TAttribute : Attribute
+    public abstract class AbstractExtensionAttributeHandler<TAttribute> : IExtensionAttributeHandler
+        where TAttribute : Attribute
     {
-        public IEnumerable<Type> AttributeTypes { get => new List<Type> { typeof(TAttribute) }; }
+        public IEnumerable<Type> AttributeTypes
+        {
+            get => new List<Type> { typeof(TAttribute) };
+        }
+
         public virtual void ApplyExtension(IField field, Attribute attribute)
         {
             if (attribute is TAttribute tAttribute)
@@ -24,6 +29,7 @@ namespace EntityGraphQL.Schema
             else
                 throw new ArgumentException($"Attribute must be of type {typeof(TAttribute).Name}");
         }
+
         public virtual void ApplyExtension(ISchemaType type, Attribute attribute)
         {
             if (attribute is TAttribute tAttribute)
@@ -33,8 +39,10 @@ namespace EntityGraphQL.Schema
         }
 
         public virtual void ApplyExtension(IField field, TAttribute attribute) { }
+
         public virtual void ApplyExtension(ISchemaType type, TAttribute attribute) { }
     }
+
     public interface IExtensionAttributeHandler
     {
         /// <summary>

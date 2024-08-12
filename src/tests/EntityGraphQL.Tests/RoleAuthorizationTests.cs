@@ -1,9 +1,9 @@
-using Xunit;
 using System.Collections.Generic;
-using EntityGraphQL.Schema;
 using System.Linq;
-using EntityGraphQL.Authorization;
 using System.Security.Claims;
+using EntityGraphQL.Authorization;
+using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -54,8 +54,7 @@ namespace EntityGraphQL.Tests
         public void TestAttributeOnFieldAddField()
         {
             var schema = new SchemaProvider<object>();
-            schema.AddType<Project>("Project", "All about the project")
-            .AddField(p => p.Type, "The type info");
+            schema.AddType<Project>("Project", "All about the project").AddField(p => p.Type, "The type info");
 
             Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization.Roles);
             Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization.Roles.ElementAt(0).ElementAt(0));
@@ -66,9 +65,7 @@ namespace EntityGraphQL.Tests
         {
             var schema = new SchemaProvider<object>();
 
-            schema.AddType<Task>("Task", "All about tasks")
-            .AddField(p => p.IsActive, "Is it active")
-            .RequiresAnyRole("admin");
+            schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAnyRole("admin");
 
             Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Roles);
             Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization.Roles.ElementAt(0).ElementAt(0));
@@ -82,7 +79,8 @@ namespace EntityGraphQL.Tests
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects { type }
                 }"
             };
@@ -105,7 +103,8 @@ namespace EntityGraphQL.Tests
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects { id }
                 }"
             };
@@ -127,7 +126,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects { id }
                 }"
             };
@@ -146,7 +146,8 @@ namespace EntityGraphQL.Tests
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     tasks {
                         project { id }
                     }
@@ -171,7 +172,8 @@ namespace EntityGraphQL.Tests
             var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     tasks {
                         id description
                     }
@@ -193,10 +195,12 @@ namespace EntityGraphQL.Tests
             public IEnumerable<Project> Projects { get; set; } = new List<Project>();
             public IEnumerable<Task> Tasks { get; set; } = new List<Task>();
         }
+
         [GraphQLAuthorize("admin")]
         internal class Project
         {
             public int Id { get; set; }
+
             [GraphQLAuthorize("can-type")]
             public int Type { get; set; }
             public IEnumerable<Task> Tasks { get; set; }

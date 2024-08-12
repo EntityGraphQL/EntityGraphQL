@@ -70,7 +70,11 @@ namespace EntityGraphQL.Schema
         /// <param name="logger">A logger to use in the schema</param>
         /// <typeparam name="TContextType"></typeparam>
         /// <returns></returns>
-        public static SchemaProvider<TContextType> FromObject<TContextType>(SchemaBuilderSchemaOptions? schemaOptions, SchemaBuilderOptions? buildOptions = null, ILogger<SchemaProvider<TContextType>>? logger = null)
+        public static SchemaProvider<TContextType> FromObject<TContextType>(
+            SchemaBuilderSchemaOptions? schemaOptions,
+            SchemaBuilderOptions? buildOptions = null,
+            ILogger<SchemaProvider<TContextType>>? logger = null
+        )
         {
             if (buildOptions == null)
                 buildOptions = new SchemaBuilderOptions();
@@ -143,7 +147,16 @@ namespace EntityGraphQL.Schema
                 // If we can't singularize it (or it returns the same name) just use the name plus something as GraphQL doesn't support field overloads
                 name = $"{fieldProp.Name}ById";
             }
-            var f = new Field(schema, schemaType, name, selectionExpression, $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id", argTypesValue, new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type), fieldProp.RequiredAuthorization);
+            var f = new Field(
+                schema,
+                schemaType,
+                name,
+                selectionExpression,
+                $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id",
+                argTypesValue,
+                new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type),
+                fieldProp.RequiredAuthorization
+            );
             options.OnFieldCreated?.Invoke(f);
             return f;
         }
@@ -247,7 +260,9 @@ namespace EntityGraphQL.Schema
                         {
                             propExpressions.Add(arg.ArgType!.DotnetName, Expression.PropertyOrField(argTypeParam!, arg.ArgName));
                         }
-                        var newExpArg = ExpressionUtil.CreateNewExpression(propExpressions, item.FlattenType!, true) ?? throw new EntityQuerySchemaException($"Could not create expression for argument {item.ArgName} of type {item.ArgType!.RawType.Name}");
+                        var newExpArg =
+                            ExpressionUtil.CreateNewExpression(propExpressions, item.FlattenType!, true)
+                            ?? throw new EntityQuerySchemaException($"Could not create expression for argument {item.ArgName} of type {item.ArgType!.RawType.Name}");
                         argsForCallExpression.Add(item.ArgName, newExpArg);
                     }
                     else
@@ -255,7 +270,6 @@ namespace EntityGraphQL.Schema
                         argsForCallExpression.Add(item.ArgName, Expression.PropertyOrField(argTypeParam!, item.ArgName));
                     }
                 }
-
 
                 var call = Expression.Call(method.IsStatic ? null : param, method, argsForCallExpression.Values);
                 var lambdaParams = new[] { param, argTypeParam }.Concat(fieldServices.Values);
@@ -275,7 +289,9 @@ namespace EntityGraphQL.Schema
             var schemaType = CacheType(baseReturnType, schema, options, false);
 
             var nullabilityInfo = method.GetNullabilityInfo();
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo =
+                schema.GetCustomTypeMapping(le.ReturnType)
+                ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
@@ -298,8 +314,7 @@ namespace EntityGraphQL.Schema
             if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
                 return false;
 
-            if (prop is PropertyInfo propertyInfo &&
-                propertyInfo.GetIndexParameters().Length > 0)
+            if (prop is PropertyInfo propertyInfo && propertyInfo.GetIndexParameters().Length > 0)
             {
                 return false;
             }
@@ -307,7 +322,14 @@ namespace EntityGraphQL.Schema
             return true;
         }
 
-        private static IEnumerable<Field>? ProcessFieldOrPropertyIntoField(ISchemaType fromType, MemberInfo prop, ParameterExpression param, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
+        private static IEnumerable<Field>? ProcessFieldOrPropertyIntoField(
+            ISchemaType fromType,
+            MemberInfo prop,
+            ParameterExpression param,
+            ISchemaProvider schema,
+            SchemaBuilderOptions options,
+            bool isInputType
+        )
         {
             if (!ShouldIncludeMember(prop, options, isInputType))
                 yield break;
@@ -333,7 +355,9 @@ namespace EntityGraphQL.Schema
             var nullabilityInfo = prop.GetNullabilityInfo();
             // see if there is a direct type mapping from the expression return to to something.
             // otherwise build the type info
-            var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+            var returnTypeInfo =
+                schema.GetCustomTypeMapping(le.ReturnType)
+                ?? new GqlTypeInfo(() => schemaType != null ? schemaType : schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
             var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
             options.OnFieldCreated?.Invoke(field);
 
@@ -368,7 +392,11 @@ namespace EntityGraphQL.Schema
                     Type[] genericTypeArguments = returnType.GenericTypeArguments;
                     returnType = typeof(KeyValuePair<,>).MakeGenericType(genericTypeArguments);
                     if (!schema.HasType(returnType))
-                        schema.AddScalarType(returnType, $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair", $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}");
+                        schema.AddScalarType(
+                            returnType,
+                            $"{genericTypeArguments[0].Name}{genericTypeArguments[1].Name}KeyValuePair",
+                            $"Key value pair of {genericTypeArguments[0].Name} & {genericTypeArguments[1].Name}"
+                        );
                 }
             }
             else
@@ -444,7 +472,6 @@ namespace EntityGraphQL.Schema
                     var fields = GetFieldsFromObject(propType, typeAdded, schema, options, isInputType);
                     typeAdded.AddFields(fields);
 
-
                     if (options.AutoCreateInterfaceTypes)
                     {
                         typeAdded.ImplementAllBaseTypes(true, true);
@@ -476,20 +503,27 @@ namespace EntityGraphQL.Schema
         public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, bool isInputType, Type returnType, string? returnSchemaType, string fieldName, ISchemaType fromType)
         {
             Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
-                                                // We can look the type up by it's unique schema name
-                                                ? () => schema.Type(returnSchemaType)
-                                                // we need to look it up by the dotnet type
-                                                : () =>
-                                                {
-                                                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
-                                                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
-                                                        return schemaType!;
-                                                    throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'");
-                                                };
+                // We can look the type up by it's unique schema name
+                ? () => schema.Type(returnSchemaType)
+                // we need to look it up by the dotnet type
+                : () =>
+                {
+                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
+                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
+                        return schemaType!;
+                    throw new EntityGraphQLCompilerException(
+                        $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
+                    );
+                };
             return new GqlTypeInfo(typeGetter, returnType);
         }
 
-        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(ISchemaProvider schema, MethodInfo method, SchemaBuilderOptions options, out Dictionary<string, Type> flattenArgumentTypes)
+        public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(
+            ISchemaProvider schema,
+            MethodInfo method,
+            SchemaBuilderOptions options,
+            out Dictionary<string, Type> flattenArgumentTypes
+        )
         {
             flattenArgumentTypes = [];
             var arguments = new List<FieldArgInfo>();
@@ -509,7 +543,8 @@ namespace EntityGraphQL.Schema
                 }
 
                 // primitive types are arguments or types already known in the schema
-                var shouldBeAddedAsArg = item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));
+                var shouldBeAddedAsArg =
+                    item.ParameterType.IsPrimitive || (schema.HasType(inputType) && (schema.Type(inputType).IsInput || schema.Type(inputType).IsScalar || schema.Type(inputType).IsEnum));
 
                 // if hasServices then we expect attributes
                 var argumentsAttr = item.GetCustomAttribute<GraphQLArgumentsAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLArgumentsAttribute>();
@@ -547,7 +582,11 @@ namespace EntityGraphQL.Schema
                     continue;
 
                 yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
-                var inputType = item.PropertyType.IsEnumerableOrArray() ? item.PropertyType.GetEnumerableOrArrayType()! : item.PropertyType.IsNullableType() ? item.PropertyType.GetGenericArguments()[0] : item.PropertyType;
+                var inputType = item.PropertyType.IsEnumerableOrArray()
+                    ? item.PropertyType.GetEnumerableOrArrayType()!
+                    : item.PropertyType.IsNullableType()
+                        ? item.PropertyType.GetGenericArguments()[0]
+                        : item.PropertyType;
                 if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                 {
                     CacheType(inputType, schema, options, true);
@@ -558,7 +597,11 @@ namespace EntityGraphQL.Schema
                 if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                     continue;
                 yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
-                var inputType = item.FieldType.IsEnumerableOrArray() ? item.FieldType.GetEnumerableOrArrayType()! : item.FieldType.IsNullableType() ? item.FieldType.GetGenericArguments()[0] : item.FieldType;
+                var inputType = item.FieldType.IsEnumerableOrArray()
+                    ? item.FieldType.GetEnumerableOrArrayType()!
+                    : item.FieldType.IsNullableType()
+                        ? item.FieldType.GetGenericArguments()[0]
+                        : item.FieldType;
                 if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                 {
                     CacheType(inputType, schema, options, true);
@@ -591,11 +634,13 @@ namespace EntityGraphQL.Schema
         public string ArgName { get; }
         public Type? FlattenType { get; }
         public ArgType? ArgType { get; }
+
         /// <summary>
         /// This argument is a service
         /// </summary>
         public bool IsService => ServiceType != null;
         public Type? ServiceType { get; }
+
         /// <summary>
         /// This argument should be flatten in the GraphQL schema. But not in the method call
         /// </summary>

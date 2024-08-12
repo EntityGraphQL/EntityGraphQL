@@ -25,7 +25,8 @@ public class ServiceLifetimeTests
 
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 name
                 movies {
                     title
@@ -44,7 +45,8 @@ public class ServiceLifetimeTests
     {
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         schema.UpdateType<MyMovie>(movie =>
-            movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
+            movie
+                .AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
                 .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365)
         );
         var services = new ServiceCollection();
@@ -59,7 +61,8 @@ public class ServiceLifetimeTests
 
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 name
                 movies {
                     title
@@ -82,11 +85,13 @@ public class ServiceLifetimeTests
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         schema.UpdateType<MyMovie>(movie =>
         {
-            movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
+            movie
+                .AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
                 .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
-            movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            movie
+                .AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContexts = new List<MyDataContext>();
@@ -100,7 +105,8 @@ public class ServiceLifetimeTests
 
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 name
                 movies {
                     title
@@ -127,11 +133,13 @@ public class ServiceLifetimeTests
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         schema.UpdateType<MyMovie>(movie =>
         {
-            movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
+            movie
+                .AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
                 .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
-            movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            movie
+                .AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContexts = new List<MyDataContext>();
@@ -145,7 +153,8 @@ public class ServiceLifetimeTests
 
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 name
                 movies {
                     title
@@ -166,11 +175,13 @@ public class ServiceLifetimeTests
         var schema = SchemaBuilder.FromObject<MyDataContext>();
         schema.UpdateType<MyMovie>(movie =>
         {
-            movie.AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
+            movie
+                .AddField("directorAgeOnRelease", "Age of the director on release date of the movie")
                 .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalDays / 365);
 
-            movie.AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
-            .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
+            movie
+                .AddField("hoursOld", "Reusing the same Transient service should be a new service instance")
+                .Resolve<MyDataContext>((movie, context) => (int)(context.Directors.First(d => d.Id == movie.DirectorId).Dob - movie.Released).TotalHours);
         });
         var services = new ServiceCollection();
         var allContexts = new List<MyDataContext>();
@@ -184,7 +195,8 @@ public class ServiceLifetimeTests
 
         var gql = new QueryRequest
         {
-            Query = @"{
+            Query =
+                @"{
                 name
                 movies {
                     title
@@ -203,8 +215,27 @@ public class ServiceLifetimeTests
 internal class MyDataContext
 {
     public string Name { get; set; } = "Test";
-    public List<MyMovie> Movies { get; set; } = new List<MyMovie> { new MyMovie { Id = 1, Title = "Movie 1", DirectorId = 11, Released = new DateTime(1999, 6, 19) } };
-    public List<MyDirector> Directors { get; set; } = new List<MyDirector> { new MyDirector { Id = 11, Name = "Director 1", Dob = new DateTime(1978, 4, 6) } };
+    public List<MyMovie> Movies { get; set; } =
+        new List<MyMovie>
+        {
+            new MyMovie
+            {
+                Id = 1,
+                Title = "Movie 1",
+                DirectorId = 11,
+                Released = new DateTime(1999, 6, 19)
+            }
+        };
+    public List<MyDirector> Directors { get; set; } =
+        new List<MyDirector>
+        {
+            new MyDirector
+            {
+                Id = 11,
+                Name = "Director 1",
+                Dob = new DateTime(1978, 4, 6)
+            }
+        };
 }
 
 internal class MyDirector

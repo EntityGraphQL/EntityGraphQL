@@ -35,14 +35,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
         // Add a argument field with a require parameter
-        schema
-            .Query()
-            .AddField(
-                "user",
-                new { id = ArgumentHelper.Required<int>(), something = true },
-                (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(),
-                "Return a user by ID"
-            );
+        schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
         var tree = new GraphQLCompiler(schema).Compile(
             @"query {
         	user(id: 100, something: false) { id }
@@ -256,9 +249,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         MakePersonIdGuid(schema);
-        schema
-            .Type<Person>()
-            .AddField("project", new { pid = ArgumentHelper.Required<int>() }, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
+        schema.Type<Person>().AddField("project", new { pid = ArgumentHelper.Required<int>() }, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
         // Add a argument field with a require parameter
         var tree = new GraphQLCompiler(schema)
             .Compile(
@@ -317,9 +308,7 @@ public class ArgumentTests
     public void StringArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema
-            .Query()
-            .ReplaceField("users", new { str = (string)null, }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str), !string.IsNullOrEmpty(p.str)), "Testing string");
+        schema.Query().ReplaceField("users", new { str = (string)null, }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str), !string.IsNullOrEmpty(p.str)), "Testing string");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -338,9 +327,7 @@ public class ArgumentTests
     public void ListArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema
-            .Query()
-            .ReplaceField("people", new { names = (List<string>)null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+        schema.Query().ReplaceField("people", new { names = (List<string>)null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -371,9 +358,7 @@ public class ArgumentTests
     public void ArrayArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema
-            .Query()
-            .ReplaceField("people", new { names = (string[])null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+        schema.Query().ReplaceField("people", new { names = (string[])null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -447,9 +432,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PersonArg>("PersonArg", "PersonArgs").AddAllFields();
-        schema
-            .Query()
-            .ReplaceField("people", new { options = (PersonArg)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options.name, p.options != null), "Testing list");
+        schema.Query().ReplaceField("people", new { options = (PersonArg)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options.name, p.options != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -624,14 +607,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PersonArgConstructor>("PersonArgConstructor", "PersonArgConstructors").AddAllFields();
-        schema
-            .Query()
-            .ReplaceField(
-                "people",
-                new { options = (PersonArgConstructor)null },
-                (db, p) => db.People.WhereWhen(per => per.Name == p.options.Name, p.options != null),
-                "Testing list"
-            );
+        schema.Query().ReplaceField("people", new { options = (PersonArgConstructor)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options.Name, p.options != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"query {

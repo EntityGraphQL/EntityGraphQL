@@ -1,6 +1,6 @@
-using Xunit;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 using static EntityGraphQL.Tests.ServiceFieldTests;
 
 namespace EntityGraphQL.Tests
@@ -20,7 +20,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson {
+                Query =
+                    @"mutation AddPerson {
                   addPerson(name: ""Herb"" others: { age: 43 })
                 }",
             };
@@ -33,10 +34,7 @@ namespace EntityGraphQL.Tests
         public void SupportsGenericClassArgAsInputType()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Mutation().Add("addPerson", ([GraphQLInputType] Partial<Human> args) => 65, new SchemaBuilderOptions
-            {
-                AutoCreateInputTypes = true,
-            });
+            schema.Mutation().Add("addPerson", ([GraphQLInputType] Partial<Human> args) => 65, new SchemaBuilderOptions { AutoCreateInputTypes = true, });
 
             var sdl = schema.ToGraphQLSchemaString();
             Assert.Contains("addPerson(args: PartialHuman): Int!", sdl);
@@ -45,7 +43,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson {
+                Query =
+                    @"mutation AddPerson {
                   addPerson(args: { name: ""Herb"", others: { age: 43 } })
                 }",
             };
@@ -58,16 +57,19 @@ namespace EntityGraphQL.Tests
         public void TestMethodWithScalarComplexAndServiceArgs()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Mutation().Add("addPerson", (string token, [GraphQLArguments] InputArgs args, ConfigService service) =>
-                {
-                    Assert.Equal("123", token);
-                    Assert.Equal("Herb", args.Name);
-                    Assert.NotNull(service);
-                    return args.Age;
-                }, new SchemaBuilderOptions
-                {
-                    AutoCreateInputTypes = true,
-                });
+            schema
+                .Mutation()
+                .Add(
+                    "addPerson",
+                    (string token, [GraphQLArguments] InputArgs args, ConfigService service) =>
+                    {
+                        Assert.Equal("123", token);
+                        Assert.Equal("Herb", args.Name);
+                        Assert.NotNull(service);
+                        return args.Age;
+                    },
+                    new SchemaBuilderOptions { AutoCreateInputTypes = true, }
+                );
 
             var sdl = schema.ToGraphQLSchemaString();
             Assert.Contains("addPerson(token: String, name: String!, age: Int!): Int!", sdl);
@@ -75,7 +77,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson {
+                Query =
+                    @"mutation AddPerson {
                   addPerson( name: ""Herb"", age: 43, token: ""123"")
                 }",
             };
@@ -93,16 +96,19 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             // Note the Argument not Argument_s_
-            schema.Mutation().Add("addPerson", (string token, [GraphQLInputType] InputArgs args, ConfigService service) =>
-                {
-                    Assert.Equal("123", token);
-                    Assert.Equal("Herb", args.Name);
-                    Assert.NotNull(service);
-                    return args.Age;
-                }, new SchemaBuilderOptions
-                {
-                    AutoCreateInputTypes = true,
-                });
+            schema
+                .Mutation()
+                .Add(
+                    "addPerson",
+                    (string token, [GraphQLInputType] InputArgs args, ConfigService service) =>
+                    {
+                        Assert.Equal("123", token);
+                        Assert.Equal("Herb", args.Name);
+                        Assert.NotNull(service);
+                        return args.Age;
+                    },
+                    new SchemaBuilderOptions { AutoCreateInputTypes = true, }
+                );
 
             var sdl = schema.ToGraphQLSchemaString();
             Assert.Contains("addPerson(token: String, args: InputArgs): Int!", sdl);
@@ -111,7 +117,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson {
+                Query =
+                    @"mutation AddPerson {
                   addPerson( args: { name: ""Herb"", age: 43 }, token: ""123"")
                 }",
             };
@@ -128,16 +135,19 @@ namespace EntityGraphQL.Tests
         public void TestMethodWithMultipleFlattenArguments()
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
-            schema.Mutation().Add("addPerson", ([GraphQLArguments] InputArgs args, [GraphQLArguments] InputExtraArgs extra, ConfigService service) =>
-                {
-                    Assert.Equal("123", extra.Token);
-                    Assert.Equal("Herb", args.Name);
-                    Assert.NotNull(service);
-                    return args.Age;
-                }, new SchemaBuilderOptions
-                {
-                    AutoCreateInputTypes = true,
-                });
+            schema
+                .Mutation()
+                .Add(
+                    "addPerson",
+                    ([GraphQLArguments] InputArgs args, [GraphQLArguments] InputExtraArgs extra, ConfigService service) =>
+                    {
+                        Assert.Equal("123", extra.Token);
+                        Assert.Equal("Herb", args.Name);
+                        Assert.NotNull(service);
+                        return args.Age;
+                    },
+                    new SchemaBuilderOptions { AutoCreateInputTypes = true, }
+                );
 
             var sdl = schema.ToGraphQLSchemaString();
             Assert.Contains("addPerson(name: String!, age: Int!, token: String): Int!", sdl);
@@ -145,7 +155,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation AddPerson {
+                Query =
+                    @"mutation AddPerson {
                   addPerson( name: ""Herb"", age: 43, token: ""123"")
                 }",
             };

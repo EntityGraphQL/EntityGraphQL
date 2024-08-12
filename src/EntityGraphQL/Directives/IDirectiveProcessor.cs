@@ -10,12 +10,14 @@ namespace EntityGraphQL.Directives
         string Name { get; }
         string Description { get; }
         List<ExecutableDirectiveLocation> Location { get; }
+
         /// <summary>
         /// Return the Type used for the directive arguments
         /// </summary>
         /// <returns></returns>
         Type GetArgumentsType();
         IDictionary<string, ArgType> GetArguments(ISchemaProvider schema);
+
         /// <summary>
         /// Called when the graphql node is first visited. Before any execution and expression building.
         /// You can use this is make a decision to include the field in the result or not

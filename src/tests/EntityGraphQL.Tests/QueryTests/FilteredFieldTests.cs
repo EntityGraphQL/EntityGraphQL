@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -47,12 +48,7 @@ public class FilteredFieldTests
 
         schema
             .Type<Project>()
-            .ReplaceField(
-                "tasks",
-                new { like = (string)null },
-                (project, args) => project.Tasks.WhereWhen(t => t.Name.Contains(args.like), !string.IsNullOrEmpty(args.like)),
-                "List of project tasks"
-            );
+            .ReplaceField("tasks", new { like = (string)null }, (project, args) => project.Tasks.WhereWhen(t => t.Name.Contains(args.like), !string.IsNullOrEmpty(args.like)), "List of project tasks");
 
         var gql = new QueryRequest
         {
@@ -88,7 +84,7 @@ public class FilteredFieldTests
         Assert.Equal("tasks", projectType.GetFields()[0].Name);
     }
 
-    [Fact(Skip = "Not implemented yet. Need to know that the filter uses the service field age")]
+    [Fact(Skip = "Not implemented")]
     public void TestOffsetPagingWithOthersAndServices()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -129,6 +125,58 @@ public class FilteredFieldTests
         serviceCollection.AddSingleton(ager);
 
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(result.Errors);
+
+        dynamic people = result.Data["people"];
+        Assert.Equal(1, Enumerable.Count(people));
+        var person1 = Enumerable.ElementAt(people, 0);
+        Assert.Equal("Frank", person1.lastName);
+        Assert.Equal("Jill", person1.name);
+    }
+
+    [Theory(Skip = "Not implemented")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestFilterWithServiceReference(bool separateServices)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        data.People.Add(
+            new Person
+            {
+                Id = 1,
+                Name = "Jill",
+                LastName = "Frank",
+                Birthday = DateTime.Now.AddYears(-22)
+            }
+        );
+        data.People.Add(
+            new Person
+            {
+                Id = 2,
+                Name = "Cheryl",
+                LastName = "Frank",
+                Birthday = DateTime.Now.AddYears(-10)
+            }
+        );
+
+        schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people").UseFilter();
+        schema.Type<Person>().AddField("age", "Persons age").ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(filter: ""age > 21"") {
+                        name id age lastName
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        var ager = new AgeService();
+        serviceCollection.AddSingleton(ager);
+
+        var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = separateServices });
         Assert.Null(result.Errors);
 
         dynamic people = result.Data["people"];

@@ -10,7 +10,17 @@ namespace EntityGraphQL.Compiler;
 
 public static class ArgumentUtil
 {
-    public static object? BuildArgumentsObject(ISchemaProvider schema, string fieldName, IField? field, IReadOnlyDictionary<string, object> args, IEnumerable<ArgType> argumentDefinitions, Type? argumentsType, ParameterExpression? docParam, object? docVariables, List<string> validationErrors)
+    public static object? BuildArgumentsObject(
+        ISchemaProvider schema,
+        string fieldName,
+        IField? field,
+        IReadOnlyDictionary<string, object> args,
+        IEnumerable<ArgType> argumentDefinitions,
+        Type? argumentsType,
+        ParameterExpression? docParam,
+        object? docVariables,
+        List<string> validationErrors
+    )
     {
         // get the values for the argument anonymous type object constructor
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -105,7 +115,14 @@ public static class ArgumentUtil
         }
     }
 
-    internal static object? BuildArgumentFromMember(ISchemaProvider schema, IReadOnlyDictionary<string, object>? args, string memberName, Type memberType, object? defaultValue, IList<string> validationErrors)
+    internal static object? BuildArgumentFromMember(
+        ISchemaProvider schema,
+        IReadOnlyDictionary<string, object>? args,
+        string memberName,
+        Type memberType,
+        object? defaultValue,
+        IList<string> validationErrors
+    )
     {
         string argName = memberName;
         // check we have required arguments

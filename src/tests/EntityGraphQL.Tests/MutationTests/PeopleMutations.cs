@@ -1,55 +1,69 @@
-using System.Collections.Generic;
-using System.Linq;
-using EntityGraphQL.Schema;
-using System.Linq.Expressions;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Tests
 {
     public class PeopleMutations : IMutations
     {
         private static int idCount = 0;
-        [GraphQLMutation]
 
+        [GraphQLMutation]
         public Person AddPerson(PeopleMutationsArgs args)
         {
-            return new Person { Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
 
-
         [GraphQLMutation]
-
         public int DefaultValueTest(int valueWithDefault = 8)
         {
             return valueWithDefault;
         }
 
         [GraphQLMutation]
-
         public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
         {
-            return new Person { Name = string.IsNullOrEmpty(name) ? "Default" : name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(name) ? "Default" : name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
 
         [GraphQLMutation]
-
         public Person AddPersonPrimitive(int id, string name, DateTime birthday, decimal weight, Gender? gender)
         {
-            return new Person { Name = string.IsNullOrEmpty(name) ? "Default" : name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(name) ? "Default" : name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
 
         [GraphQLMutation]
-
         public Person AddPersonSingleArgument([GraphQLInputType] InputObject nameInput)
         {
-            return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
 
         [GraphQLMutation]
-
         public Person AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
         {
             return null;
@@ -57,69 +71,90 @@ namespace EntityGraphQL.Tests
 
 #nullable enable
         [GraphQLMutation]
-
         public Person AddPersonNullableNestedType([GraphQLInputType] NestedInputObject required, [GraphQLInputType] NestedInputObject? optional)
         {
-            return new Person { Name = string.IsNullOrEmpty(required.Name) ? "Default" : required.Name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(required.Name) ? "Default" : required.Name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
+
 #nullable restore
 
         [GraphQLMutation]
-
         public Person AddPersonSingleArgumentNestedType(NestedInputObject nameInput)
         {
-            return new Person { Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name, Id = 555, Projects = new List<Project>() };
+            return new Person
+            {
+                Name = string.IsNullOrEmpty(nameInput.Name) ? "Default" : nameInput.Name,
+                Id = 555,
+                Projects = new List<Project>()
+            };
         }
 
         [GraphQLMutation]
-
         public Expression<Func<TestDataContext, Person>> AddPersonNames(TestDataContext db, PeopleMutationsArgs args)
         {
             var id = 11;
-            var newPerson = new Person { Id = id, Name = args.Names[0], LastName = args.Names[1] };
+            var newPerson = new Person
+            {
+                Id = id,
+                Name = args.Names[0],
+                LastName = args.Names[1]
+            };
             db.People.Add(newPerson);
             return ctx => ctx.People.First(p => p.Id == id);
         }
-        [GraphQLMutation]
 
+        [GraphQLMutation]
         public async Task<Expression<Func<TestDataContext, Person>>> AddPersonNamesAsync(TestDataContext db, PeopleMutationsArgs args)
         {
             var id = 11;
-            var newPerson = new Person { Id = id, Name = args.Names[0], LastName = args.Names[1] };
+            var newPerson = new Person
+            {
+                Id = id,
+                Name = args.Names[0],
+                LastName = args.Names[1]
+            };
             db.People.Add(newPerson);
             await System.Threading.Tasks.Task.Delay(1);
             return ctx => ctx.People.First(p => p.Id == id);
         }
-        [GraphQLMutation]
 
+        [GraphQLMutation]
         public Expression<Func<TestDataContext, Person>> AddPersonNamesExpression(TestDataContext db, PeopleMutationsArgs args)
         {
-            var newPerson = new Person { Id = idCount++, Name = args.Names[0], LastName = args.Names[1] };
+            var newPerson = new Person
+            {
+                Id = idCount++,
+                Name = args.Names[0],
+                LastName = args.Names[1]
+            };
             db.People.Add(newPerson);
             return ctx => ctx.People.First(p => p.Id == newPerson.Id);
         }
 
         [GraphQLMutation]
-
         public Person AddPersonInput(PeopleMutationsArgs args)
         {
             return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };
         }
 
         [GraphQLMutation]
-
         public float AddFloat(FloatInput args)
         {
             return args.Float;
         }
-        [GraphQLMutation]
 
+        [GraphQLMutation]
         public double AddDouble(DoubleInput args)
         {
             return args.Double;
         }
-        [GraphQLMutation]
 
+        [GraphQLMutation]
         public decimal AddDecimal(DecimalInput args)
         {
             return args.Decimal;
@@ -138,6 +173,7 @@ namespace EntityGraphQL.Tests
             };
             return ctx => person;
         }
+
         [GraphQLMutation]
         public Expression<Func<TestDataContext, IEnumerable<Person>>> AddPersonAdvList(PeopleMutationsArgs args)
         {
@@ -186,8 +222,10 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+
         [GraphQLMutation]
         public Task<bool> DoGreatThingWithoutAsyncKeyword() => DoGreatThing();
+
         [GraphQLMutation]
         public static async Task<bool> DoGreatThingStaticly()
         {
@@ -205,6 +243,7 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+
         [GraphQLMutation]
         public async Task<bool> NeedsGuidNonNull(GuidNonNullArgs args)
         {
@@ -213,6 +252,7 @@ namespace EntityGraphQL.Tests
                 return true;
             });
         }
+
         [GraphQLMutation]
         public bool TaskWithList(ListArgs args)
         {
@@ -220,6 +260,7 @@ namespace EntityGraphQL.Tests
                 throw new Exception("Inputs can not be null");
             return true;
         }
+
         [GraphQLMutation]
         public bool TaskWithListSeparateArg(List<InputObject> inputs) => true;
 
@@ -239,7 +280,7 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        static public bool NullableGuidArgs(NullableGuidArgs args)
+        public static bool NullableGuidArgs(NullableGuidArgs args)
         {
             if (args.Id != null)
                 throw new ArgumentException("Guid can not be a value");
@@ -255,8 +296,9 @@ namespace EntityGraphQL.Tests
                 throw new ArgumentException("Enum can not be a value");
             return true;
         }
+
         [GraphQLMutation]
-        static public string[] ListOfGuidArgs(ListOfGuidArgs args)
+        public static string[] ListOfGuidArgs(ListOfGuidArgs args)
         {
             if (args.Ids == null)
                 throw new ArgumentException("Ids can not be null");
@@ -266,7 +308,7 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        static public int DescriptionArgs(DescriptionArgs args)
+        public static int DescriptionArgs(DescriptionArgs args)
         {
             return args.X;
         }
@@ -300,6 +342,7 @@ namespace EntityGraphQL.Tests
         public InputObject NameInput { get; set; }
         public Gender? Gender { get; set; }
     }
+
     [GraphQLArguments]
     public class NullableGuidArgs
     {
@@ -317,6 +360,7 @@ namespace EntityGraphQL.Tests
         [Required]
         public Guid Id { get; set; }
     }
+
     [GraphQLArguments]
     public class GuidNonNullArgs
     {
@@ -328,9 +372,11 @@ namespace EntityGraphQL.Tests
     {
         [RegularExpression("[^a]+", ErrorMessage = "Title does not match required format")]
         public string Title { get; set; }
+
         [RegularExpression("steve", ErrorMessage = "Author does not match required format")]
         public string Author { get; set; }
     }
+
     public class InputObject
     {
         public string Name { get; set; }
@@ -355,12 +401,14 @@ namespace EntityGraphQL.Tests
         public float Float { get; set; }
         public float? Float2 { get; set; }
     }
+
     [GraphQLArguments]
     public class DoubleInput
     {
         public double Double { get; set; }
         public double? Double2 { get; set; }
     }
+
     [GraphQLArguments]
     public class DecimalInput
     {

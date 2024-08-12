@@ -272,10 +272,7 @@ public class DefaultMethodProvider : IMethodProvider
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLCompilerException(
-                    $"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'",
-                    ex
-                );
+                throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'", ex);
             }
         }
         return argExp;

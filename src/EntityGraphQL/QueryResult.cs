@@ -9,21 +9,31 @@ namespace EntityGraphQL
         private static readonly string ErrorsKey = "errors";
         internal static readonly string ExtensionsKey = "extensions";
         public List<GraphQLError>? Errors => (List<GraphQLError>?)this.GetValueOrDefault(ErrorsKey);
-        public Dictionary<string, object?>? Data { get => (Dictionary<string, object?>?)this.GetValueOrDefault(DataKey); }
+        public Dictionary<string, object?>? Data
+        {
+            get => (Dictionary<string, object?>?)this.GetValueOrDefault(DataKey);
+        }
+
         /// <summary>
         /// Use Extensions to add any custom data for the result
         /// </summary>
-        public Dictionary<string, object>? Extensions { get => (Dictionary<string, object>?)this.GetValueOrDefault(ExtensionsKey); }
+        public Dictionary<string, object>? Extensions
+        {
+            get => (Dictionary<string, object>?)this.GetValueOrDefault(ExtensionsKey);
+        }
 
         public QueryResult() { }
+
         public QueryResult(GraphQLError error)
         {
             this[ErrorsKey] = new List<GraphQLError> { error };
         }
+
         public QueryResult(IEnumerable<GraphQLError> errors)
         {
             this[ErrorsKey] = errors.ToList();
         }
+
         public bool HasErrors() => Errors?.Count > 0;
 
         public void AddError(string error, IDictionary<string, object>? extensions = null)

@@ -13,19 +13,26 @@ namespace EntityGraphQL.Compiler.EntityQuery
     {
         private readonly List<ParameterExpression> contextParams;
 
-        public LambdaExpression LambdaExpression { get { return Expression.Lambda(ExpressionResult, ContextParams.Concat(ConstantParameters.Keys).ToArray()); } }
+        public LambdaExpression LambdaExpression
+        {
+            get { return Expression.Lambda(ExpressionResult, ContextParams.Concat(ConstantParameters.Keys).ToArray()); }
+        }
 
         public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; } = new Dictionary<ParameterExpression, object>();
 
         public Expression ExpressionResult { get; private set; }
 
-        public List<ParameterExpression> ContextParams { get { return contextParams; } }
+        public List<ParameterExpression> ContextParams
+        {
+            get { return contextParams; }
+        }
 
         public CompiledQueryResult(Expression expressionResult, List<ParameterExpression> contextParams)
         {
             this.ExpressionResult = expressionResult;
             this.contextParams = contextParams;
         }
+
         public object? Execute(params object[] args)
         {
             var allArgs = new List<object>(args);

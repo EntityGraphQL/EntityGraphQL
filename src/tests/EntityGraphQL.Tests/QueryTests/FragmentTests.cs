@@ -1,8 +1,8 @@
-using Xunit;
-using System.Linq;
-using EntityGraphQL.Schema;
-using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using System.Linq;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -13,14 +13,16 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider).Compile(@"
+            var tree = new GraphQLCompiler(schemaProvider).Compile(
+                @"
                 query {
                     people { ...info projects { id name } }
                 }
                 fragment info on Person {
                     id name
                 }
-            ");
+            "
+            );
 
             Assert.Single(tree.Operations.First().QueryFields);
             var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -37,7 +39,8 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider).Compile(@"
+            var tree = new GraphQLCompiler(schemaProvider).Compile(
+                @"
 query {
     people {
         ...info @skip(if: true)
@@ -46,7 +49,8 @@ query {
 fragment info on Person {
     id name
 }
-");
+"
+            );
 
             Assert.Single(tree.Operations.First().QueryFields);
             var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -61,16 +65,27 @@ fragment info on Person {
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.Query().AddField("activeProjects",
-                ctx => ctx.Projects, // pretent you id some filtering here
-                "Active projects").IsNullable(false);
-            schema.Query().AddField("oldProjects",
-                ctx => ctx.Projects, // pretent you id some filtering here
-                "Old projects").IsNullable(false);
+            schema
+                .Query()
+                .AddField(
+                    "activeProjects",
+                    ctx => ctx.Projects, // pretent you id some filtering here
+                    "Active projects"
+                )
+                .IsNullable(false);
+            schema
+                .Query()
+                .AddField(
+                    "oldProjects",
+                    ctx => ctx.Projects, // pretent you id some filtering here
+                    "Old projects"
+                )
+                .IsNullable(false);
 
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     activeProjects {
                         ...frag
                     }
@@ -101,7 +116,8 @@ fragment info on Person {
 
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     projects {
                         ...frag
                     }
@@ -124,10 +140,7 @@ fragment info on Person {
                         Owner = new Person
                         {
                             Name = "Bill",
-                            Manager = new Person
-                            {
-                                Name = "Jill"
-                            }
+                            Manager = new Person { Name = "Jill" }
                         },
                         Tasks = new List<Task> { new Task() }
                     },
@@ -142,14 +155,19 @@ fragment info on Person {
         public void TestIntrospectionDoubleFragment()
         {
             var schema = new SchemaProvider<TestDataContext>();
-            schema.AddType<Person>("Person", "Person details", type =>
-            {
-                type.AddField("id", p => p.Id, "ID");
-            });
+            schema.AddType<Person>(
+                "Person",
+                "Person details",
+                type =>
+                {
+                    type.AddField("id", p => p.Id, "ID");
+                }
+            );
 
             var gql = new QueryRequest
             {
-                Query = @"query IntrospectionQuery {
+                Query =
+                    @"query IntrospectionQuery {
                     __type(name: ""Person"") {
                         ...FullType
                     }

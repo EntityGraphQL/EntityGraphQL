@@ -8,7 +8,5 @@ namespace EntityGraphQL.Schema;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public class AllowedExceptionAttribute : Attribute
 {
-    public AllowedExceptionAttribute()
-    {
-    }
+    public AllowedExceptionAttribute() { }
 }

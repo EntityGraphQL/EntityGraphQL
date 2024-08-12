@@ -1,13 +1,13 @@
-using Xunit;
-using System.Linq;
-using EntityGraphQL.Schema;
-using System.Reflection;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using System.Text.Json;
-using EntityGraphQL.Tests;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.Json;
+using EntityGraphQL.Schema;
+using EntityGraphQL.Tests;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace EntityGraphQL.AspNet.Tests
 {
@@ -26,7 +26,8 @@ namespace EntityGraphQL.AspNet.Tests
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             // Simulate a JSON request with JSON.NET
             // variables will end up having JObjects
-            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(
+                @"
             {
                 ""query"": ""mutation AddPerson($names: InputObject) {
                     addPersonInput(nameInput: $names) {
@@ -36,7 +37,8 @@ namespace EntityGraphQL.AspNet.Tests
                 ""variables"": {
                     ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDate"": null  }
                 }
-            }");
+            }"
+            );
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
@@ -60,7 +62,8 @@ namespace EntityGraphQL.AspNet.Tests
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
 
-            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(
+                @"
             {
                 ""query"": ""mutation AddPerson($ids: [ID]) {
                     listOfGuidArgs(ids: $ids)
@@ -68,7 +71,8 @@ namespace EntityGraphQL.AspNet.Tests
                 ""variables"": {
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
-            }");
+            }"
+            );
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
@@ -85,7 +89,8 @@ namespace EntityGraphQL.AspNet.Tests
             schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
 
-            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(
+                @"
             {
                 ""query"": ""mutation AddPerson($ids: [ID!]!) {
                     listOfGuidArgs(ids: $ids)
@@ -93,7 +98,8 @@ namespace EntityGraphQL.AspNet.Tests
                 ""variables"": {
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
-            }");
+            }"
+            );
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
@@ -110,7 +116,8 @@ namespace EntityGraphQL.AspNet.Tests
             schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
             schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());
 
-            var gql = JsonConvert.DeserializeObject<QueryRequest>(@"
+            var gql = JsonConvert.DeserializeObject<QueryRequest>(
+                @"
             {
                 ""query"": ""mutation AddPerson($name: String! $gender: Gender!) {
                     addPerson(name: $name gender: $gender) { gender }
@@ -119,7 +126,8 @@ namespace EntityGraphQL.AspNet.Tests
                     ""name"": ""Alex"",
                     ""gender"": ""Male""
                 }
-            }");
+            }"
+            );
 
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -134,7 +142,8 @@ namespace EntityGraphQL.AspNet.Tests
             schemaProvider.AddMutationsFrom<PeopleMutations>();
             // Simulate a JSON request with System.Text.Json
             // variables will end up having JsonElements
-            var q = @"{
+            var q =
+                @"{
                 ""query"": ""mutation AddPerson($names: InputObject) { addPersonInput(nameInput: $names) { id name lastName birthday } }"",
                 ""variables"": {
                     ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDay"": null }
@@ -154,7 +163,6 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Equal("Simpson", addPersonResult.lastName);
             Assert.Equal((string)null, addPersonResult.birthday);
         }
-
     }
 
     internal class JObjectTypeConverter : ICustomTypeConverter
@@ -167,6 +175,7 @@ namespace EntityGraphQL.AspNet.Tests
             return ((JObject)value).ToObject(toType);
         }
     }
+
     internal class JTokenTypeConverter : ICustomTypeConverter
     {
         public Type Type => typeof(JToken);
@@ -177,6 +186,7 @@ namespace EntityGraphQL.AspNet.Tests
             return ((JToken)value).ToObject(toType);
         }
     }
+
     internal class JValueTypeConverter : ICustomTypeConverter
     {
         public Type Type => typeof(JValue);

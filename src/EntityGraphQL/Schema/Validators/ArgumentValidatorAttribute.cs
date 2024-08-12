@@ -6,6 +6,7 @@ namespace EntityGraphQL.Schema;
 public class ArgumentValidatorAttribute : Attribute
 {
     public IArgumentValidator Validator { get; }
+
     public ArgumentValidatorAttribute(Type validatorType)
     {
         if (!typeof(IArgumentValidator).IsAssignableFrom(validatorType))

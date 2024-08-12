@@ -483,14 +483,7 @@ public class OffsetPagingTests
 
     private static void FillData(TestDataContext data)
     {
-        data.People = new()
-        {
-            MakePerson("Bill", "Murray"),
-            MakePerson("John", "Frank"),
-            MakePerson("Cheryl", "Crow"),
-            MakePerson("Jill", "Castle"),
-            MakePerson("Jack", "Snider"),
-        };
+        data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
     }
 
     private static void FillProjectData(TestDataContext data)

@@ -17,9 +17,24 @@ public class UserService
     {
         return new List<User>
         {
-            new User { Id = 1, Name = "John", Email = "john@example.com" },
-            new User { Id = 2, Name = "Jane", Email = "jane@example.com" },
-            new User { Id = 3, Name = "Bob", Email = "bob@example.com" },
+            new User
+            {
+                Id = 1,
+                Name = "John",
+                Email = "john@example.com"
+            },
+            new User
+            {
+                Id = 2,
+                Name = "Jane",
+                Email = "jane@example.com"
+            },
+            new User
+            {
+                Id = 3,
+                Name = "Bob",
+                Email = "bob@example.com"
+            },
         };
     }
 

@@ -30,15 +30,7 @@ public class EqlBenchmarks : BaseBenchmark
     public void SimpleExpression()
     {
         var expressionStr = "name == \"foo\"";
-        var data = new Movie(
-            Guid.NewGuid(),
-            "foo",
-            3,
-            new DateTime(2021, 1, 1),
-            new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []),
-            [],
-            new MovieGenre("Action")
-        );
+        var data = new Movie(Guid.NewGuid(), "foo", 3, new DateTime(2021, 1, 1), new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []), [], new MovieGenre("Action"));
         var context = Expression.Parameter(data.GetType(), "m");
         var expression = EntityQueryCompiler.CompileWith(expressionStr, context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
     }
@@ -47,15 +39,7 @@ public class EqlBenchmarks : BaseBenchmark
     public void ComplexExpression()
     {
         var expressionStr = "name == \"foo\" && director.name == \"Jimmy\" && director.dob > \"1978-02-04\" && genre.name == \"Action\" && rating > 3";
-        var data = new Movie(
-            Guid.NewGuid(),
-            "foo",
-            3,
-            new DateTime(2021, 1, 1),
-            new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []),
-            [],
-            new MovieGenre("Action")
-        );
+        var data = new Movie(Guid.NewGuid(), "foo", 3, new DateTime(2021, 1, 1), new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []), [], new MovieGenre("Action"));
         var context = Expression.Parameter(data.GetType(), "m");
         var expression = EntityQueryCompiler.CompileWith(expressionStr, context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
     }
@@ -65,15 +49,7 @@ public class EqlBenchmarks : BaseBenchmark
     {
         var expressionStr =
             "name.contains(\"fo\") && director.name.toLower().startsWith(\"ji\") && director.dob > \"1978-01-01\" && actors.orderBy(name).first().name.startsWith(\"bob\") && rating > 3";
-        var data = new Movie(
-            Guid.NewGuid(),
-            "foo",
-            3,
-            new DateTime(2021, 1, 1),
-            new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []),
-            [],
-            new MovieGenre("Action")
-        );
+        var data = new Movie(Guid.NewGuid(), "foo", 3, new DateTime(2021, 1, 1), new Person(Guid.NewGuid(), "Jimmy", "Rum", new DateTime(1978, 2, 4), []), [], new MovieGenre("Action"));
         var context = Expression.Parameter(data.GetType(), "m");
         var expression = EntityQueryCompiler.CompileWith(expressionStr, context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
     }

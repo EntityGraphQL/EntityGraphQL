@@ -1,9 +1,9 @@
-﻿using BenchmarkDotNet.Attributes;
-using EntityGraphQL.Compiler.Util;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using BenchmarkDotNet.Attributes;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,20 +35,12 @@ namespace Benchmarks
         {
             _node = (ctx) => ctx.Movies;
 
-            _node2 = (ctx) => ctx.Movies
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true)
-                   .Where(x => true);
+            _node2 = (ctx) =>
+                ctx.Movies.Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true).Where(x => true);
 
-            _node3 = (ctx, args) => ctx.Movies
-                    .WhereWhen(i => i.Name == args.Name, !string.IsNullOrWhiteSpace(args.Name))
+            _node3 = (ctx, args) =>
+                ctx
+                    .Movies.WhereWhen(i => i.Name == args.Name, !string.IsNullOrWhiteSpace(args.Name))
                     .WhereWhen(i => i.Director.FirstName == args.DirectorName, !string.IsNullOrWhiteSpace(args.DirectorName))
                     .WhereWhen(i => i.Actors.Any(x => x.FirstName == args.ActorName), !string.IsNullOrWhiteSpace(args.ActorName))
                     .WhereWhen(i => i.Rating > args.RatingMin, args.RatingMin.HasValue)
@@ -56,11 +48,11 @@ namespace Benchmarks
                     .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
                     .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
                     .WhereWhen(i => i.Name == args.Name, !string.IsNullOrWhiteSpace(args.Name))
-                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres != null)
-                    ;
+                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres != null);
 
-            _node4 = (ctx, args) => ctx.Set<Movie>()
-                      .AsSplitQuery()
+            _node4 = (ctx, args) =>
+                ctx.Set<Movie>()
+                    .AsSplitQuery()
                     .AsNoTracking()
                     .IgnoreQueryFilters()
                     .WhereWhen(i => i.Name == args.Name, !string.IsNullOrWhiteSpace(args.Name))
@@ -82,8 +74,7 @@ namespace Benchmarks
                     .WhereWhen(i => i.Rating < args.RatingMax, args.RatingMax.HasValue)
                     .WhereWhen(i => i.Released > args.ReleasedAfter, args.ReleasedAfter.HasValue)
                     .WhereWhen(i => i.Released < args.ReleasedBefore, args.ReleasedBefore.HasValue)
-                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0)
-                    ;
+                    .WhereWhen(i => args.Genres.Contains(i.Genre.Name), args.Genres.Length > 0);
         }
 
         [Benchmark]
@@ -95,7 +86,6 @@ namespace Benchmarks
 
             replacer.Replace(_node, _node.Parameters.First(), newParam);
         }
-
 
         [Benchmark]
         public void SetOfBasicWhereStatements()

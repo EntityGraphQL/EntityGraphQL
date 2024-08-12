@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -19,7 +18,8 @@ public class ValidationTests
         schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addMovie(price: 150 rating: ""this is too long"", cast: [{ actor: """" character: ""Barney"" }]) {
                     id
                 }
@@ -46,7 +46,8 @@ public class ValidationTests
         schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addMovie(title: ""movie name"" releaseDate: ""2020-01-01"" genre: ""Comedy"" price: 99 rating: ""short"", cast: [{ actor: """" character: ""Barney"" }]) {
                     id
                 }
@@ -65,12 +66,11 @@ public class ValidationTests
     public void TestCustomValidationOnMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Mutation()
-        .Add(AddPerson)
-        .AddValidator<PersonValidator>();
+        schema.Mutation().Add(AddPerson).AddValidator<PersonValidator>();
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addPerson(name: ""Luke"")
             }",
         };
@@ -91,13 +91,11 @@ public class ValidationTests
 
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate($arg: CastMemberArg) {
+            Query =
+                @"mutation Mutate($arg: CastMemberArg) {
                 updateCastMemberWithGraphQLValidator(arg: $arg)
             }",
-            Variables = new QueryVariables()
-            {
-                { "arg", new { Actor = "Neil", Character = "Barn" } }
-            }
+            Variables = new QueryVariables() { { "arg", new { Actor = "Neil", Character = "Barn" } } }
         };
 
         var serviceCollection = new ServiceCollection();
@@ -113,19 +111,21 @@ public class ValidationTests
     public void TestCustomValidationDelegateOnMutation()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Mutation()
-        .Add(AddPerson)
-        .AddValidator(context =>
-        {
-            if (context.Arguments is PersonArgs args)
+        schema
+            .Mutation()
+            .Add(AddPerson)
+            .AddValidator(context =>
             {
-                if (args.Name == "Luke")
-                    context.AddError("Name can't be Luke");
-            }
-        });
+                if (context.Arguments is PersonArgs args)
+                {
+                    if (args.Name == "Luke")
+                        context.AddError("Name can't be Luke");
+                }
+            });
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addPerson(name: ""Luke"")
             }",
         };
@@ -144,7 +144,8 @@ public class ValidationTests
         schema.Mutation().AddFrom<ValidationTestsMutations>();
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addPersonValidatorAttribute(name: ""Luke"")
             }",
         };
@@ -160,13 +161,19 @@ public class ValidationTests
     public void TestCustomValidationAttributeOnMutationMethodArgType()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Mutation().Add("addPersonValidatorOnArgs", (PersonArgsWithValidator args) =>
-        {
-            return true;
-        });
+        schema
+            .Mutation()
+            .Add(
+                "addPersonValidatorOnArgs",
+                (PersonArgsWithValidator args) =>
+                {
+                    return true;
+                }
+            );
         var gql = new QueryRequest
         {
-            Query = @"mutation Mutate {
+            Query =
+                @"mutation Mutate {
                 addPersonValidatorOnArgs(name: ""Luke"")
             }",
         };
@@ -185,7 +192,8 @@ public class ValidationTests
         schema.Query().ReplaceField("movies", new MovieQueryArgsWithAttributes(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)), "Movies");
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies(price: 150 title: ""this is too long"") {
                     id
                 }
@@ -205,13 +213,11 @@ public class ValidationTests
     public void TestCustomValidationValidatorOnQueryFieldArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Query().ReplaceField("movies",
-            new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
-            "Get a list of Movies")
-            .AddValidator<MovieValidator>();
+        schema.Query().ReplaceField("movies", new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)), "Get a list of Movies").AddValidator<MovieValidator>();
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies(price: 150) {
                     id
                 }
@@ -230,18 +236,20 @@ public class ValidationTests
     public void TestCustomValidationValidatorOnQueryFieldAnonArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Query().ReplaceField("movies",
-            // use anonymous type args
-            new
-            {
-                search = (string)null
-            },
-            (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.search)),
-            "Movies")
+        schema
+            .Query()
+            .ReplaceField(
+                "movies",
+                // use anonymous type args
+                new { search = (string)null },
+                (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.search)),
+                "Movies"
+            )
             .AddValidator<MovieValidatorAnon>();
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies {
                     id
                 }
@@ -259,22 +267,25 @@ public class ValidationTests
     public void TestCustomValidationValidatorDelegateOnQueryFieldArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Query().ReplaceField("movies",
-            new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
-            "Get a list of Movies")
-            .AddValidator((context) =>
-            {
-                if (context.Arguments is MovieQueryArgs args)
+        schema
+            .Query()
+            .ReplaceField("movies", new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)), "Get a list of Movies")
+            .AddValidator(
+                (context) =>
                 {
-                    if (args.Price == 150)
-                        context.AddError("You can't use 150 for the price");
-                    if (string.IsNullOrEmpty(args.Title))
-                        context.AddError("Empty or null Title is an invalid search term");
+                    if (context.Arguments is MovieQueryArgs args)
+                    {
+                        if (args.Price == 150)
+                            context.AddError("You can't use 150 for the price");
+                        if (string.IsNullOrEmpty(args.Title))
+                            context.AddError("Empty or null Title is an invalid search term");
+                    }
                 }
-            });
+            );
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies(price: 150) {
                     id
                 }
@@ -288,13 +299,14 @@ public class ValidationTests
         Assert.Equal("Field 'movies' - You can't use 150 for the price", results.Errors[0].Message);
         Assert.Equal("Field 'movies' - Empty or null Title is an invalid search term", results.Errors[1].Message);
     }
+
     [Fact]
     public void TestCustomValidationValidatorDelegateAsyncOnQueryFieldArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
-        schema.Query().ReplaceField("movies",
-            new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)),
-            "Get a list of Movies")
+        schema
+            .Query()
+            .ReplaceField("movies", new MovieQueryArgs(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)), "Get a list of Movies")
             .AddValidator(async context =>
             {
                 // pretend await
@@ -311,7 +323,8 @@ public class ValidationTests
             });
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies(price: 150) {
                     id
                 }
@@ -333,7 +346,8 @@ public class ValidationTests
         schema.Query().ReplaceField("movies", new MovieQueryArgsWithValidator(), (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.Title)), "Movies");
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                 movies(title: """") {
                     id
                 }
@@ -416,11 +430,14 @@ internal class MovieQueryArgsWithAttributes
 {
     [StringLength(5, ErrorMessage = "Title must be less than 5 characters")]
     public string Title { get; set; }
+
     [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")]
     public decimal Price { get; set; }
+
     [Required(ErrorMessage = "Genre is required")]
     public string Genre { get; set; }
 }
+
 [ArgumentValidator(typeof(MovieValidator))]
 internal class MovieQueryArgsWithValidator
 {
@@ -430,7 +447,7 @@ internal class MovieQueryArgsWithValidator
 
 internal class ValidationTestsContext
 {
-    public DbSet<Movie> Movies { get; set; }
+    public List<Movie> Movies { get; set; }
 }
 
 internal class ValidationTestsMutations
@@ -438,11 +455,7 @@ internal class ValidationTestsMutations
     [GraphQLMutation]
     public static Expression<Func<ValidationTestsContext, Movie>> AddMovie(MovieArg movie)
     {
-        var newMovie = new Movie
-        {
-            Id = new Random().Next(),
-            Title = movie.Title,
-        };
+        var newMovie = new Movie { Id = new Random().Next(), Title = movie.Title, };
         return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
     }
 
@@ -452,7 +465,6 @@ internal class ValidationTestsMutations
     {
         return true;
     }
-
 
     [GraphQLMutation]
     public static bool UpdateCastMemberWithGraphQLValidator(CastMemberArg arg, IGraphQLValidator validator)
@@ -488,6 +500,7 @@ internal class CastMemberArg
     [Required(ErrorMessage = "Actor is required")]
     [StringLength(20, ErrorMessage = "Actor Name must be less than 20 characters")]
     public string Actor { get; set; }
+
     [StringLength(5, ErrorMessage = "Character must be less than 5 characters")]
     public string Character { get; set; }
 }

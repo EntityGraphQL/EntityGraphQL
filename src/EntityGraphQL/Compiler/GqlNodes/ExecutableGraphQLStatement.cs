@@ -130,8 +130,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
     {
         if (context == null)
-            return serviceProvider.GetService<TContext>()!
-                ?? throw new EntityGraphQLCompilerException($"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
+            return serviceProvider.GetService<TContext>()! ?? throw new EntityGraphQLCompilerException($"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
 
         return context;
     }
@@ -196,19 +195,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         {
             // build this first as NodeExpression may modify ConstantParameters
             // this is without fields that require services
-            expression = node.GetNodeExpression(
-                compileContext,
-                serviceProvider,
-                fragments,
-                OpVariableParameter,
-                docVariables,
-                contextParam,
-                withoutServiceFields: true,
-                null,
-                null,
-                false,
-                replacer
-            );
+            expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, null, false, replacer);
             if (expression != null)
             {
                 // execute expression now and get a result that we will then perform a full select over
@@ -248,19 +235,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (expression == null)
         {
             // just do things normally
-            expression = node.GetNodeExpression(
-                compileContext,
-                serviceProvider,
-                fragments,
-                OpVariableParameter,
-                docVariables,
-                contextParam,
-                false,
-                null,
-                null,
-                contextChanged: false,
-                replacer
-            );
+            expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
         }
 
         var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true);

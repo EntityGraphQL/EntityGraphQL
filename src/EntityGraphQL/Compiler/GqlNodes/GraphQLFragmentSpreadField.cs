@@ -19,8 +19,7 @@ namespace EntityGraphQL.Compiler
         public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
         {
             var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-            var fragment =
-                graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+            var fragment = graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
 
             return fragment.QueryFields.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements));
         }

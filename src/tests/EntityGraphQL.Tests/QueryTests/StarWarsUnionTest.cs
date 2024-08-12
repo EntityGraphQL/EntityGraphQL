@@ -1,15 +1,12 @@
-﻿using EntityGraphQL.Schema;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests
 {
     public class StarWarsUnionTest
     {
-        public abstract class Character
-        {
-
-        }
+        public abstract class Character { }
 
         public class Human : Character
         {
@@ -31,7 +28,6 @@ namespace EntityGraphQL.Tests
         {
             public IList<Character> Characters { get; set; }
         }
-
 
         [Fact]
         public void StarWarsUnionTest_ManualCreation()

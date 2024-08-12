@@ -14,12 +14,12 @@ public class AsyncTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Expression have no concept of async/await as it is a compiler feature so you need to use
         // .GetAwaiter().GetResult() on your async methods
-        schema.Type<Person>().AddField("age", "Returns persons age")
-            .Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday).GetAwaiter().GetResult());
+        schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday).GetAwaiter().GetResult());
 
         var gql = new QueryRequest
         {
-            Query = @"query {
+            Query =
+                @"query {
                     people {
                         age
                     }
@@ -28,10 +28,7 @@ public class AsyncTests
 
         var context = new TestDataContext();
         context.People.Clear();
-        context.People.Add(new Person
-        {
-            Birthday = DateTime.Now.AddYears(-2)
-        });
+        context.People.Add(new Person { Birthday = DateTime.Now.AddYears(-2) });
 
         var serviceCollection = new ServiceCollection();
         AgeService service = new();
@@ -48,8 +45,7 @@ public class AsyncTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Error as we return a Task<>
-        Assert.Throws<EntityGraphQLCompilerException>(() => schema.Type<Person>().AddField("age", "Returns persons age")
-            .Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday)));
+        Assert.Throws<EntityGraphQLCompilerException>(() => schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday)));
     }
 
     [Fact]

@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using EntityGraphQL.AspNet;
+using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using EntityGraphQL.AspNet;
-using EntityGraphQL.Extensions;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using EntityGraphQL.Schema;
-using System.Linq.Expressions;
 
 namespace demo
 {
@@ -32,9 +32,8 @@ namespace demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DemoContext>(opt => opt
-                .UseLazyLoadingProxies()
-                .UseSqlite("Filename=demo.db")
+            services.AddDbContext<DemoContext>(opt =>
+                opt.UseLazyLoadingProxies().UseSqlite("Filename=demo.db")
             // .UseProjectables()
             );
 
@@ -58,21 +57,23 @@ namespace demo
             // services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
             // Or you could override the whole interface and do something other than JSON
 
-            services.AddGraphQLSchema<DemoContext>(options =>
-            {
-                options.PreBuildSchemaFromContext = schema =>
+            services
+                .AddGraphQLSchema<DemoContext>(options =>
                 {
-                    // add in needed mappings for our context
-                    schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
-                };
-                options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
-                // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
-                // builder.FieldNamer = name => name;
-            })
-            .AddGraphQLValidator();
+                    options.PreBuildSchemaFromContext = schema =>
+                    {
+                        // add in needed mappings for our context
+                        schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
+                    };
+                    options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
+                    // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
+                    // builder.FieldNamer = name => name;
+                })
+                .AddGraphQLValidator();
 
             services.AddRouting();
-            services.AddControllers()
+            services
+                .AddControllers()
                 .AddJsonOptions(opts =>
                 {
                     // configure JSON serializer like this if you are return GraphQL execution results in your own controller
@@ -94,18 +95,26 @@ namespace demo
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapGraphQL<DemoContext>(options: new ExecutionOptions
-                {
-                    BeforeRootFieldExpressionBuild = (exp, op, field) =>
+                endpoints.MapGraphQL<DemoContext>(
+                    options: new ExecutionOptions
                     {
-                        if (exp.Type.IsGenericTypeQueryable())
-                            return Expression.Call(typeof(EntityFrameworkQueryableExtensions), nameof(EntityFrameworkQueryableExtensions.TagWith), [exp.Type.GetGenericArguments()[0]], exp, Expression.Constant($"GQL op: {op ?? "n/a"}, field: {field}"));
-                        return exp;
-                    },
+                        BeforeRootFieldExpressionBuild = (exp, op, field) =>
+                        {
+                            if (exp.Type.IsGenericTypeQueryable())
+                                return Expression.Call(
+                                    typeof(EntityFrameworkQueryableExtensions),
+                                    nameof(EntityFrameworkQueryableExtensions.TagWith),
+                                    [exp.Type.GetGenericArguments()[0]],
+                                    exp,
+                                    Expression.Constant($"GQL op: {op ?? "n/a"}, field: {field}")
+                                );
+                            return exp;
+                        },
 #if DEBUG
-                    IncludeDebugInfo = true
+                        IncludeDebugInfo = true
 #endif
-                });
+                    }
+                );
             });
         }
 
@@ -128,15 +137,18 @@ namespace demo
                     LastName = "Darabont",
                     Dob = new DateTime(1959, 1, 28),
                 },
-                Actors = new List<Actor> {
-                new Actor {
-                    Person = new Person {
-                        Dob = new DateTime(1958, 10, 16),
-                        FirstName = "Tim",
-                        LastName = "Robbins",
+                Actors = new List<Actor>
+                {
+                    new Actor
+                    {
+                        Person = new Person
+                        {
+                            Dob = new DateTime(1958, 10, 16),
+                            FirstName = "Tim",
+                            LastName = "Robbins",
+                        },
                     },
-                },
-            }
+                }
             };
             db.Movies.Add(shawshank);
             var francis = new Person
@@ -153,28 +165,29 @@ namespace demo
                 Rating = 9.2,
                 Director = francis,
             };
-            godfather.Actors = new List<Actor> {
-                new Actor {
-                    Person = new Person {
+            godfather.Actors = new List<Actor>
+            {
+                new Actor
+                {
+                    Person = new Person
+                    {
                         Dob = new DateTime(1924, 4, 3),
                         Died = new DateTime(2004, 7, 1),
                         FirstName = "Marlon",
                         LastName = "Brando",
                     },
                 },
-                new Actor {
-                    Person = new Person {
+                new Actor
+                {
+                    Person = new Person
+                    {
                         Dob = new DateTime(1940, 4, 25),
                         FirstName = "Al",
                         LastName = "Pacino",
                     },
                 },
             };
-            godfather.Writers = new List<Writer> {
-                new Writer {
-                    Person = francis,
-                }
-            };
+            godfather.Writers = new List<Writer> { new Writer { Person = francis, } };
 
             db.Movies.Add(godfather);
 

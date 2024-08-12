@@ -137,10 +137,7 @@ public class SortTests
     public void SupportUseSortDefaultWithSelectSortFields()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema
-            .Type<TestDataContext>()
-            .GetField("people", null)
-            .UseSort((Person person) => new { person.Height, person.Name }, (Person person) => person.LastName, SortDirection.DESC);
+        schema.Type<TestDataContext>().GetField("people", null).UseSort((Person person) => new { person.Height, person.Name }, (Person person) => person.LastName, SortDirection.DESC);
         var gql = new QueryRequest
         {
             Query =

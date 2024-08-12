@@ -16,7 +16,7 @@ namespace EntityGraphQL.Compiler.Util
         private readonly Dictionary<Expression, GraphQLExtractedField> expressionsToReplace = new();
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="expressionsToReplace"></param>
         /// <param name="newContext"></param>
@@ -115,6 +115,7 @@ namespace EntityGraphQL.Compiler.Util
             }
             return base.VisitMethodCall(node);
         }
+
         protected override Expression VisitBinary(BinaryExpression node)
         {
             if (expressionsToReplace.ContainsKey(node))

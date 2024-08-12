@@ -93,13 +93,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         return result;
     }
 
-    private async Task<object?> ExecuteAsync<TContext>(
-        GraphQLSubscriptionField node,
-        TContext context,
-        IServiceProvider? serviceProvider,
-        object? docVariables,
-        ExecutionOptions executionOptions
-    )
+    private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables, ExecutionOptions executionOptions)
     {
         if (context == null)
             return null;

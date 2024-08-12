@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL.Extensions
 {
@@ -34,7 +34,6 @@ namespace EntityGraphQL.Extensions
                 return type;
         }
 
-
         public static Type GetNonNullableOrEnumerableType(this Type source)
         {
             return source.GetNonNullableType().GetEnumerableOrArrayType() ?? source.GetNonNullableType();
@@ -48,7 +47,8 @@ namespace EntityGraphQL.Extensions
         private static bool IsGenericTypeDictionary(Type source)
         {
             var isDictionary = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IDictionary<,>);
-            if (isDictionary) return isDictionary;
+            if (isDictionary)
+                return isDictionary;
 
             foreach (var intType in source.GetInterfaces())
             {
@@ -82,7 +82,8 @@ namespace EntityGraphQL.Extensions
         public static bool IsGenericTypeEnumerable(this Type source)
         {
             bool isEnumerable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IEnumerable<>) || source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
-            if (isEnumerable) return isEnumerable;
+            if (isEnumerable)
+                return isEnumerable;
 
             foreach (var intType in source.GetInterfaces())
             {
@@ -97,7 +98,8 @@ namespace EntityGraphQL.Extensions
         public static bool IsGenericTypeQueryable(this Type source)
         {
             bool isQueryable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
-            if (isQueryable) return isQueryable;
+            if (isQueryable)
+                return isQueryable;
 
             foreach (var intType in source.GetInterfaces())
             {
@@ -166,7 +168,6 @@ namespace EntityGraphQL.Extensions
                     return genericArg;
             }
             return null;
-
         }
     }
 }

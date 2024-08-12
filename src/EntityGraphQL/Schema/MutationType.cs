@@ -11,9 +11,7 @@ namespace EntityGraphQL.Schema;
 public class MutationType : ControllerType
 {
     public MutationType(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
-        : base(new MutationSchemaType(schema, name, description, requiredAuthorization))
-    {
-    }
+        : base(new MutationSchemaType(schema, name, description, requiredAuthorization)) { }
 
     protected override Type GetTypeFromMethodReturn(Type type, bool isAsync)
     {
@@ -29,7 +27,15 @@ public class MutationType : ControllerType
         return type;
     }
 
-    protected override BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType)
+    protected override BaseField MakeField(
+        string name,
+        MethodInfo method,
+        string? description,
+        SchemaBuilderOptions? options,
+        bool isAsync,
+        RequiredAuthorization requiredClaims,
+        GqlTypeInfo returnType
+    )
     {
         options ??= new SchemaBuilderOptions();
         return new MutationField(SchemaType.Schema, SchemaType, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, options);

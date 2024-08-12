@@ -1,18 +1,15 @@
-using System;
-using Microsoft.EntityFrameworkCore;
-using System.Data.Common;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
-namespace EntityGraphQL.Tests.IQueryableTests;
+namespace EntityGraphQL.EF.Tests;
 
 internal class TestDbContextFactory : IDisposable
 {
-    private DbConnection connection;
+    private SqliteConnection? connection;
 
     private DbContextOptions<TestDbContext> CreateOptions()
     {
-        return new DbContextOptionsBuilder<TestDbContext>()
-            .UseSqlite(connection).Options;
+        return new DbContextOptionsBuilder<TestDbContext>().UseSqlite(connection!).Options;
     }
 
     public TestDbContext CreateContext()

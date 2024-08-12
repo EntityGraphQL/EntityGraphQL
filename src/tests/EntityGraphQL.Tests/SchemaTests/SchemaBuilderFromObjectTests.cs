@@ -1,9 +1,9 @@
-using Xunit;
-using System.Collections.Generic;
 using System;
-using EntityGraphQL.Schema;
-using System.Linq;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using EntityGraphQL.Schema;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -16,6 +16,7 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestEntity>();
             Assert.Equal(typeof(TestEntity), schema.QueryContextType);
         }
+
         [Fact]
         public void CachesPublicProperties()
         {
@@ -25,6 +26,7 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("relation", null));
             Assert.False(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("notthere", null));
         }
+
         [Fact]
         public void CachesPublicFields()
         {
@@ -32,6 +34,7 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("id", null));
             Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("name", null));
         }
+
         [Fact]
         public void CachesRecursively()
         {
@@ -40,6 +43,7 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.GetSchemaType(typeof(Person), false, null).HasField("name", null));
             Assert.True(schema.GetSchemaType(typeof(TestEntity), false, null).HasField("field1", null));
         }
+
         [Fact]
         public void AllowsExtending()
         {
@@ -48,6 +52,7 @@ namespace EntityGraphQL.Tests
             Assert.True(schema.Type<Person>().HasField("name", null));
             Assert.True(schema.Type<Person>().HasField("idAndName", null));
         }
+
         [Fact]
         public void CanNotOverrideExistingType()
         {
@@ -72,6 +77,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(typeof(int), argumentTypes.First().Value.Type.TypeDotnet);
             Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
+
         [Fact]
         public void AutoAddArgumentForIdBase()
         {
@@ -82,6 +88,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal(typeof(Guid), argumentTypes.First().Value.Type.TypeDotnet);
             Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
+
         [Fact]
         public void AutoAddArgumentForIdGuid()
         {
@@ -92,13 +99,19 @@ namespace EntityGraphQL.Tests
             Assert.Equal(typeof(Guid), argumentTypes.First().Value.Type.TypeDotnet);
             Assert.True(argumentTypes.First().Value.Type.TypeNotNullable);
         }
+
         [Fact]
         public void DoesNotSupportSameFieldDifferentArguments()
         {
             // Graphql doesn't support "field overloading"
             var schemaProvider = SchemaBuilder.FromObject<TestSchema>();
             // user(id: ID) already created
-            var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.Query().AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID"));
+            var ex = Assert.Throws<EntityQuerySchemaException>(
+                () =>
+                    schemaProvider
+                        .Query()
+                        .AddField("people", new { monkey = ArgumentHelper.Required<int>() }, (ctx, param) => ctx.People.Where(u => u.Id == param.monkey).FirstOrDefault(), "Return a user by ID")
+            );
             Assert.Equal("Field 'people' already exists on type 'Query'. Use ReplaceField() if this is intended.", ex.Message);
         }
 
@@ -121,7 +134,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                 query IntrospectionQuery {
                     __type(name: ""AbstractClass"") {
                         name
@@ -137,7 +151,6 @@ namespace EntityGraphQL.Tests
             Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).kind);
         }
 
-
         [Fact]
         public void InheritedClassesBecomeObjectsIntrospection()
         {
@@ -148,7 +161,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     query IntrospectionQuery {
                       __type(name: ""InheritedClass"") {
                         name
@@ -178,7 +192,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
         query IntrospectionQuery {
           __type(name: ""Property"") {
             name
@@ -248,7 +263,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
         query IntrospectionQuery {
           __type(name: ""IUnion"") {
             name
@@ -272,7 +288,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
         query IntrospectionQuery {
           __type(name: ""IUnion"") {
             name
@@ -296,13 +313,11 @@ namespace EntityGraphQL.Tests
             var schemaProvider = SchemaBuilder.FromObject<TestSchema4>(new SchemaBuilderOptions() { AutoCreateInterfaceTypes = true });
             Assert.Throws<InvalidOperationException>(() => schemaProvider.Type<IUnion>().AddField("test", "description"));
         }
+
         [Fact]
         public void TestIgnoreReferencedTypes()
         {
-            var schemaBuilderOptions = new SchemaBuilderOptions
-            {
-                IgnoreTypes = new HashSet<Type> { typeof(C) }
-            };
+            var schemaBuilderOptions = new SchemaBuilderOptions { IgnoreTypes = new HashSet<Type> { typeof(C) } };
 
             var schemaProvider = new SchemaProvider<TestIgnoreTypesSchema>();
             schemaProvider.AddType<B>(typeof(B).Name, null).AddAllFields(schemaBuilderOptions);
@@ -323,16 +338,16 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = """
-                        query IntrospectionQuery {
-                          __type(name: "Article") {
+                    query IntrospectionQuery {
+                      __type(name: "Article") {
+                        name
+                        fields
+                        {
                             name
-                            fields
-                            {
-                                name
-                            }
-                          }
                         }
-                        """
+                      }
+                    }
+                    """
             };
 
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema5(), null, null);
@@ -340,10 +355,12 @@ namespace EntityGraphQL.Tests
 
             dynamic typeDef = res.Data["__type"];
             Assert.Equal("Article", typeDef.name);
-            Assert.Collection((IEnumerable<dynamic>)typeDef.fields,
+            Assert.Collection(
+                (IEnumerable<dynamic>)typeDef.fields,
                 item => Assert.Equal("title", item.name),
                 item => Assert.Equal("contents", item.name),
-                item => Assert.Equal("searchVector", item.name));
+                item => Assert.Equal("searchVector", item.name)
+            );
         }
 
         [Fact]
@@ -351,23 +368,18 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             // Add a argument field with a require parameter
-            var gql = new QueryRequest
-            {
-                Query = @"query Test { movies { id } }",
-            };
+            var gql = new QueryRequest { Query = @"query Test { movies { id } }", };
             dynamic results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null).Errors;
             var err = Enumerable.First(results);
             Assert.Equal("Field 'movies' not found on type 'Query'", err.Message);
         }
+
         [Fact]
         public void TestIgnoreQueryPasses()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
             // Add a argument field with a require parameter
-            var gql = new QueryRequest
-            {
-                Query = @"query Test { albums { id } }",
-            };
+            var gql = new QueryRequest { Query = @"query Test { albums { id } }", };
             var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Empty((IEnumerable)results.Data["albums"]);
         }
@@ -376,20 +388,17 @@ namespace EntityGraphQL.Tests
         public void TestIgnoreInputFails()
         {
             var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
-            schemaProvider.
-            AddMutationsFrom<IgnoreTestMutations>();
+            schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation Test($name: String, $hiddenInputField: String) {
+                Query =
+                    @"mutation Test($name: String, $hiddenInputField: String) {
                     addAlbum(name: $name, hiddenInputField: $hiddenInputField) {
                         id
                     }
                 }",
-                Variables = new QueryVariables {
-                    {"name", "Balance, Not Symmetry"},
-                    {"hiddenInputField", "yeh"},
-                }
+                Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenInputField", "yeh" }, }
             };
             var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
@@ -404,14 +413,13 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation Test($name: String) {
+                Query =
+                    @"mutation Test($name: String) {
                     addAlbum(name: $name genre: ""Rock"") {
                         id name hiddenInputField
                     }
                 }",
-                Variables = new QueryVariables {
-                    {"name", "Balance, Not Symmetry"},
-                }
+                Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, }
             };
             var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Null(results.Errors);
@@ -429,15 +437,13 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"mutation Test($name: String, $hiddenField: String) {
+                Query =
+                    @"mutation Test($name: String, $hiddenField: String) {
                     addAlbum(name: $name, hiddenField: $hiddenField) {
                         id
                     }
                 }",
-                Variables = new QueryVariables {
-                    {"name", "Balance, Not Symmetry"},
-                    {"hiddenField", "yeh"},
-                }
+                Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenField", "yeh" }, }
             };
             var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             var error = results.Errors.First();
@@ -451,7 +457,8 @@ namespace EntityGraphQL.Tests
             // Add a argument field with a require parameter
             var gql = new QueryRequest
             {
-                Query = @"query Test {
+                Query =
+                    @"query Test {
                     albums {
                         id hiddenInputField hiddenField
                     }
@@ -467,19 +474,23 @@ namespace EntityGraphQL.Tests
         {
             public IEnumerable<A> As { get; }
         }
+
         private class A
         {
             public int I = 0;
         }
+
         private class B
         {
             public int I = 0;
             public C C = new();
         }
+
         private class C
         {
             public D D = new();
         }
+
         private class D
         {
             public int I = 0;
@@ -493,14 +504,9 @@ namespace EntityGraphQL.Tests
             public IEnumerable<IdInherited> Projects { get; }
         }
 
-        private class IdInherited : HasId, ISomething
-        {
+        private class IdInherited : HasId, ISomething { }
 
-        }
-
-        private interface IUnion
-        {
-        }
+        private interface IUnion { }
 
         private interface ISomething
         {

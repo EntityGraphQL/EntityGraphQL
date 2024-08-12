@@ -12,9 +12,7 @@ namespace EntityGraphQL.Schema
     /// </summary>
     public class RoleBasedAuthorization : IGqlAuthorizationService
     {
-        public RoleBasedAuthorization()
-        {
-        }
+        public RoleBasedAuthorization() { }
 
         /// <summary>
         /// Check if this user has the right security claims, roles or policies to access the request type/field
@@ -56,6 +54,7 @@ namespace EntityGraphQL.Schema
 
             return requiredAuth;
         }
+
         public virtual RequiredAuthorization GetRequiredAuthFromMember(MemberInfo field)
         {
             var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();

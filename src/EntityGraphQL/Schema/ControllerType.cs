@@ -26,13 +26,11 @@ public abstract class ControllerType
     /// </summary>
     /// <param name="options">Options for the schema builder</param>
     /// <typeparam name="TType"></typeparam>
-    public ControllerType AddFrom<TType>(SchemaBuilderOptions? options = null) where TType : class
+    public ControllerType AddFrom<TType>(SchemaBuilderOptions? options = null)
+        where TType : class
     {
         options ??= new SchemaBuilderOptions();
-        var types = typeof(TType).Assembly
-                                .GetTypes()
-                                .Where(x => x.IsClass && !x.IsAbstract)
-                                .Where(x => typeof(TType).IsAssignableFrom(x));
+        var types = typeof(TType).Assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract).Where(x => typeof(TType).IsAssignableFrom(x));
 
         foreach (Type type in types)
         {
@@ -51,7 +49,7 @@ public abstract class ControllerType
     }
 
     /// <summary>
-    /// Add a single field to the schema. Field name will be generated from the method 
+    /// Add a single field to the schema. Field name will be generated from the method
     /// name using the SchemaFieldNamer. Use the [Description] attribute on the method to set the description.
     /// </summary>
     /// <param name="delegate">A method to execute the logic</param>
@@ -115,7 +113,15 @@ public abstract class ControllerType
         return field;
     }
 
-    protected abstract BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType);
+    protected abstract BaseField MakeField(
+        string name,
+        MethodInfo method,
+        string? description,
+        SchemaBuilderOptions? options,
+        bool isAsync,
+        RequiredAuthorization requiredClaims,
+        GqlTypeInfo returnType
+    );
 
     /// <summary>
     /// Return the actual return type of the field - may strip out the Expression<Func<>> etc depedning on the implementation

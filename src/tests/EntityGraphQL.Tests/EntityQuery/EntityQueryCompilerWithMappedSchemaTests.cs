@@ -1,9 +1,9 @@
-using Xunit;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using EntityGraphQL.Tests.ApiVersion1;
-using System;
 using EntityGraphQL.Tests;
+using EntityGraphQL.Tests.ApiVersion1;
+using Xunit;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Tests
 {
@@ -25,6 +25,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             dynamic result = exp.Execute(GetDataContext());
             Assert.Equal(1, Enumerable.Count(result));
         }
+
         [Fact]
         public void CompilesIdentityCallFullPath()
         {
@@ -34,6 +35,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var exp2 = EntityQueryCompiler.Compile("privateProjects.count()", schema, null);
             Assert.Equal(1, exp2.Execute(GetDataContext()));
         }
+
         [Fact]
         public void CompilesTypeBuiltFromObject()
         {
@@ -41,18 +43,21 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
             var exp = EntityQueryCompiler.Compile("defaultLocation.id == 10", new TestObjectGraphSchema(), null);
             Assert.True((bool)exp.Execute(GetDataContext()));
         }
+
         [Fact]
         public void CompilesIfThenElseInlineFalseBrackets()
         {
             var exp = EntityQueryCompiler.Compile("(publicProjects.Count(id == 90) == 1) ? \"Yes\" : \"No\"", new TestObjectGraphSchema(), null);
             Assert.Equal("Yes", exp.Execute(GetDataContext()));
         }
+
         [Fact]
         public void CompilesIfThenElseTrue()
         {
             var exp = EntityQueryCompiler.Compile("if publicProjects.Count() > 1 then \"Yes\" else \"No\"", new TestObjectGraphSchema(), null);
             Assert.Equal("No", exp.Execute(GetDataContext()));
         }
+
         [Fact]
         public void CompilesAny()
         {
@@ -65,8 +70,15 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests
         {
             var db = new TestDataContext
             {
-                Projects = new List<Project> { new Project { Id = 90, Type = 2 }, new Project { Id = 91, Type = 1 } },
-                People = new List<Person> { new Person { Id = 4, Guid = new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67") } },
+                Projects = new List<Project>
+                {
+                    new Project { Id = 90, Type = 2 },
+                    new Project { Id = 91, Type = 1 }
+                },
+                People = new List<Person>
+                {
+                    new Person { Id = 4, Guid = new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67") }
+                },
                 Locations = new List<Location> { new Location { Id = 10 } }
             };
             return db;

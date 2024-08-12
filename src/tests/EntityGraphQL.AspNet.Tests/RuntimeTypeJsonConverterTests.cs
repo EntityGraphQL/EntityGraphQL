@@ -1,12 +1,12 @@
-﻿using EntityGraphQL.AspNet.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using EntityGraphQL.AspNet.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
 
 namespace EntityGraphQL.AspNet.Tests
@@ -34,7 +34,12 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void SerializeSubTypes()
         {
-            BaseClass item = new SubClass() { Id = 1, Name = "Fred", NameField = "Included" };
+            BaseClass item = new SubClass()
+            {
+                Id = 1,
+                Name = "Fred",
+                NameField = "Included"
+            };
             var result = System.Text.Json.JsonSerializer.Serialize(item);
             Assert.Equal("{\"Id\":1,\"E\":0}", result);
 
@@ -104,7 +109,13 @@ namespace EntityGraphQL.AspNet.Tests
         [Fact]
         public void SerializeDictionary()
         {
-            dynamic item = new Dictionary<string, object>() { { "test", new Test { items = new List<SubClass>(), hasNextPage = false } } };
+            dynamic item = new Dictionary<string, object>()
+            {
+                {
+                    "test",
+                    new Test { items = new List<SubClass>(), hasNextPage = false }
+                }
+            };
 
             var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
             var memoryStream = new MemoryStream();
@@ -119,11 +130,7 @@ namespace EntityGraphQL.AspNet.Tests
         {
             var item = new { value = false };
 
-            var options = new JsonSerializerOptions
-            {
-                IncludeFields = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            };
+            var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
             options.Converters.Add(new JsonStringEnumConverter());
             options.Converters.Add(new RuntimeTypeJsonConverter());
 
@@ -131,17 +138,12 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Equal("{\"value\":false}", result);
         }
 
-
         [Fact]
         public void SerializeNestedObject()
         {
             var item = new { child = new { value = 3.4 } };
 
-            var options = new JsonSerializerOptions
-            {
-                IncludeFields = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            };
+            var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
             options.Converters.Add(new JsonStringEnumConverter());
             options.Converters.Add(new RuntimeTypeJsonConverter());
             options.IncludeFields = true;
@@ -154,16 +156,30 @@ namespace EntityGraphQL.AspNet.Tests
         public void SerializeQueryResult()
         {
             var item = new QueryResult();
-            item.SetData(new Dictionary<string, object?>()
-            {
+            item.SetData(
+                new Dictionary<string, object?>()
                 {
-                    "users",
-                    new List<SubClass>() {
-                          new SubClass() { Id = 1, Name = "Fred", NameField = "Included" },
-                          new SubClass() { Id = 2, Name = "Wilma", NameField = null, E = Enum.Second }
+                    {
+                        "users",
+                        new List<SubClass>()
+                        {
+                            new SubClass()
+                            {
+                                Id = 1,
+                                Name = "Fred",
+                                NameField = "Included"
+                            },
+                            new SubClass()
+                            {
+                                Id = 2,
+                                Name = "Wilma",
+                                NameField = null,
+                                E = Enum.Second
+                            }
+                        }
                     }
                 }
-            });
+            );
 
             var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
             var memoryStream = new MemoryStream();
@@ -171,7 +187,5 @@ namespace EntityGraphQL.AspNet.Tests
             var result = Encoding.ASCII.GetString(memoryStream.ToArray());
             Assert.Equal("{\"data\":{\"users\":[{\"Name\":\"Fred\",\"Id\":1,\"E\":\"First\",\"NameField\":\"Included\"},{\"Name\":\"Wilma\",\"Id\":2,\"E\":\"Second\"}]}}", result);
         }
-
     }
 }
-

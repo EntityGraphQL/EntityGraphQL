@@ -16,9 +16,15 @@ namespace EntityGraphQL.Schema
         /// [Authorize(Roles = "Blah2")] is both of those roles
         /// </summary>
         private readonly List<List<string>> requiredPolicies;
-        public IEnumerable<IEnumerable<string>> Policies { get => requiredPolicies; }
+        public IEnumerable<IEnumerable<string>> Policies
+        {
+            get => requiredPolicies;
+        }
         private readonly List<List<string>> requiredRoles;
-        public IEnumerable<IEnumerable<string>> Roles { get => requiredRoles; }
+        public IEnumerable<IEnumerable<string>> Roles
+        {
+            get => requiredRoles;
+        }
 
         public RequiredAuthorization()
         {

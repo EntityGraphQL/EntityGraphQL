@@ -1,5 +1,5 @@
-﻿using EntityGraphQL.Schema;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests
@@ -28,21 +28,16 @@ namespace EntityGraphQL.Tests
             public IList<Character> Characters { get; set; }
         }
 
-
         [Fact]
         public void StarWarsInterfaceTest_ManualCreation()
         {
             var schema = new SchemaProvider<StarWarsContext>();
 
-            schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy")
-            .AddAllFields();
+            schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy").AddAllFields();
 
-            schema.AddType<Human>("")
-                .AddAllFields()
-                .Implements<Character>();
+            schema.AddType<Human>("").AddAllFields().Implements<Character>();
 
-            schema.AddType<Droid>("")
-                .Implements<Character>();
+            schema.AddType<Droid>("").Implements<Character>();
 
             var sdl = schema.ToGraphQLSchemaString();
 

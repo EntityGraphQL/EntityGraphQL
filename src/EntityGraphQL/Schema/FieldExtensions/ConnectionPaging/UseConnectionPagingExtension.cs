@@ -19,9 +19,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
     public class UseConnectionPagingAttribute : ExtensionAttribute
     {
-        public UseConnectionPagingAttribute()
-        {
-        }
+        public UseConnectionPagingAttribute() { }
 
         public UseConnectionPagingAttribute(int defaultPageSize)
         {
@@ -36,6 +34,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
 
         public int? DefaultPageSize { get; set; }
         public int? MaxPageSize { get; set; }
+
         public override void ApplyExtension(IField field)
         {
             field.UseConnectionPaging(DefaultPageSize, MaxPageSize);

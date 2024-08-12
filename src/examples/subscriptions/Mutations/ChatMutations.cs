@@ -13,6 +13,7 @@ namespace subscriptions.Mutations
             // using the expression allows us to join back to the main schema if we want
             return ctx => ctx.Messages.First(message => message.Id == postedMessage.Id);
         }
+
         [GraphQLMutation]
         public static Expression<Func<ChatContext, Message>> PostMessageEvent(string message, string user, ChatContext db, ChatEventService chatEvents)
         {

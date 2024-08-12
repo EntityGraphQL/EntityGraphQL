@@ -354,11 +354,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ user { id projects { id } } }" };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>(),
-            People = new List<Person> { new Person { Projects = new List<Project>() } },
-        };
+        var context = new TestDataContext { Projects = [], People = [new Person { Projects = [] }], };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
         serviceCollection.AddSingleton(userService);
@@ -384,11 +380,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ users { id projects { id } } }" };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>(),
-            People = new List<Person> { new Person { Projects = new List<Project>() } },
-        };
+        var context = new TestDataContext { Projects = [], People = [new() { Projects = [] }], };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
         serviceCollection.AddSingleton(userService);
@@ -507,9 +499,7 @@ public class ServiceFieldTests
         schema
             .Type<User>()
             .AddField("indirectTasksWithExplicitJoin", "Tasks assigned to people managed by user")
-            .Resolve<TestDataContext2>(
-                (user, db) => from task in db.Tasks join person in db.People on task.Assignee equals person where person.Manager == user.Relation select task
-            );
+            .Resolve<TestDataContext2>((user, db) => from task in db.Tasks join person in db.People on task.Assignee equals person where person.Manager == user.Relation select task);
 
         var gql = new QueryRequest
         {
@@ -1370,9 +1360,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("currentUser", "Returns current user").Resolve<UserService>((ctx, srv) => srv.GetUserById(ctx.People.FirstOrDefault().Id));
 
-        schema.UpdateType<User>(type =>
-            type.AddField("projectNames", "Get project names").Resolve<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id))
-        );
+        schema.UpdateType<User>(type => type.AddField("projectNames", "Get project names").Resolve<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id)));
         var gql = new QueryRequest
         {
             Query =
@@ -1471,10 +1459,7 @@ public class ServiceFieldTests
                 "project",
                 new { id = (int?)null, search = (string)null, },
                 (ctx, args) =>
-                    ctx
-                        .Projects.WhereWhen(c => c.Id == args.id, args.id != null)
-                        .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
-                        .SingleOrDefault(),
+                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
             );
 
@@ -1518,10 +1503,7 @@ public class ServiceFieldTests
                 "project",
                 new { id = (int?)null, search = (string)null, },
                 (ctx, args) =>
-                    ctx
-                        .Projects.WhereWhen(c => c.Id == args.id, args.id != null)
-                        .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
-                        .SingleOrDefault(),
+                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
             );
 
@@ -1758,10 +1740,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
-        schema
-            .Type<Project>()
-            .AddField("someService", "Get project configs if they exists")
-            .Resolve<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
+        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
 
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();

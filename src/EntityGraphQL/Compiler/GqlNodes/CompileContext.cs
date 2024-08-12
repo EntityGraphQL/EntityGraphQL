@@ -13,7 +13,6 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
         private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
-
         public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData)
         {
             BulkData = bulkData;
@@ -21,8 +20,14 @@ namespace EntityGraphQL.Compiler
             ExecutionOptions = options;
         }
 
-        public List<ParameterExpression> Services { get => servicesCollected; }
-        public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters { get => constantParameters; }
+        public List<ParameterExpression> Services
+        {
+            get => servicesCollected;
+        }
+        public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters
+        {
+            get => constantParameters;
+        }
         public List<CompiledBulkFieldResolver> BulkResolvers { get; private set; } = new();
         public Dictionary<string, object>? BulkData { get; }
         public ParameterExpression? BulkParameter { get; }
@@ -55,7 +60,15 @@ namespace EntityGraphQL.Compiler
             BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, listExpression, extractedFields));
         }
 
-        public void AddArgsToCompileContext(IField field, IReadOnlyDictionary<string, object> args, ParameterExpression? docParam, object? docVariables, ref object? argumentValue, List<string> validationErrors, ParameterExpression? newArgParam)
+        public void AddArgsToCompileContext(
+            IField field,
+            IReadOnlyDictionary<string, object> args,
+            ParameterExpression? docParam,
+            object? docVariables,
+            ref object? argumentValue,
+            List<string> validationErrors,
+            ParameterExpression? newArgParam
+        )
         {
             if (field.FieldParam != null && field.ArgumentsParameter != null)
             {

@@ -53,7 +53,9 @@ namespace EntityGraphQL.Schema
             {
                 if (!string.IsNullOrEmpty(directive.Description))
                     schemaBuilder.AppendLine($"\"\"\"{EscapeString(directive.Description)}\"\"\"");
-                schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}");
+                schemaBuilder.AppendLine(
+                    $"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}"
+                );
             }
             schemaBuilder.AppendLine();
 
@@ -92,7 +94,6 @@ namespace EntityGraphQL.Schema
                         types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
                     types.AppendLine($"\t{field.Name}{GetDirectives(field.DirectivesReadOnly)}");
-
                 }
                 types.AppendLine("}");
                 types.AppendLine();
@@ -106,7 +107,13 @@ namespace EntityGraphQL.Schema
             var types = new StringBuilder();
             foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
             {
-                if (typeItem.Name.StartsWith("__", StringComparison.InvariantCulture) || typeItem.IsEnum || typeItem.IsScalar || typeItem.Name == schema.Mutation().SchemaType.Name || typeItem.Name == schema.Subscription().SchemaType.Name)
+                if (
+                    typeItem.Name.StartsWith("__", StringComparison.InvariantCulture)
+                    || typeItem.IsEnum
+                    || typeItem.IsScalar
+                    || typeItem.Name == schema.Mutation().SchemaType.Name
+                    || typeItem.Name == schema.Subscription().SchemaType.Name
+                )
                     continue;
 
                 if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture)) && typeItem.GqlType != GqlTypes.Union && typeItem.BaseTypesReadOnly.Count == 0)
@@ -183,24 +190,36 @@ namespace EntityGraphQL.Schema
             else if (value is object o)
             {
                 ret += "{ ";
-                ret += string.Join(", ", valueType.GetProperties().Select(property =>
-                {
-                    var propValue = property.GetValue(o);
-                    var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
-                    if (string.IsNullOrEmpty(propertyValue))
-                        return null;
+                ret += string.Join(
+                    ", ",
+                    valueType
+                        .GetProperties()
+                        .Select(property =>
+                        {
+                            var propValue = property.GetValue(o);
+                            var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
+                            if (string.IsNullOrEmpty(propertyValue))
+                                return null;
 
-                    return $"{fieldNamer(property.Name)}: {propertyValue}";
-                }).Where(i => i != null));
-                ret += string.Join(", ", valueType.GetFields().Select(property =>
-                {
-                    var propValue = property.GetValue(o);
-                    var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
-                    if (string.IsNullOrEmpty(propertyValue))
-                        return null;
+                            return $"{fieldNamer(property.Name)}: {propertyValue}";
+                        })
+                        .Where(i => i != null)
+                );
+                ret += string.Join(
+                    ", ",
+                    valueType
+                        .GetFields()
+                        .Select(property =>
+                        {
+                            var propValue = property.GetValue(o);
+                            var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
+                            if (string.IsNullOrEmpty(propertyValue))
+                                return null;
 
-                    return $"{fieldNamer(property.Name)}: {propertyValue}";
-                }).Where(i => i != null));
+                            return $"{fieldNamer(property.Name)}: {propertyValue}";
+                        })
+                        .Where(i => i != null)
+                );
                 ret += " }";
             }
 
@@ -223,7 +242,6 @@ namespace EntityGraphQL.Schema
 
             if (!string.IsNullOrEmpty(schemaType.Description))
                 sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
-
 
             if (schemaType.GqlType == GqlTypes.Union)
             {

@@ -23,6 +23,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         public int? MaxPageSize { get; set; }
 
         public UseOffsetPagingAttribute() { }
+
         public UseOffsetPagingAttribute(int defaultPageSize)
         {
             DefaultPageSize = defaultPageSize;

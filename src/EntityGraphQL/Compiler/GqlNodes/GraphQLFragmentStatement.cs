@@ -12,7 +12,10 @@ namespace EntityGraphQL.Compiler
         public ParameterExpression? RootParameter { get; }
 
         public IField? Field { get; }
-        public bool HasServices { get => Field?.Services.Count > 0; }
+        public bool HasServices
+        {
+            get => Field?.Services.Count > 0;
+        }
 
         public IReadOnlyDictionary<string, object> Arguments { get; }
 

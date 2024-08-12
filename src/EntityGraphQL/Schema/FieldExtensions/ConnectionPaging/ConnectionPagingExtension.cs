@@ -132,22 +132,23 @@ namespace EntityGraphQL.Schema.FieldExtensions
             // need to set this up here as the types are needed as we visiting the query tree
             // we build the real one below in GetExpression()
             var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType], OriginalFieldExpression!);
-            var argTypes = new List<Type>
-            {
-                totalCountExp.Type,
-                field.ArgumentsParameter!.Type
-            };
-            var paramsArgs = new List<Expression>
-            {
-                totalCountExp,
-                field.ArgumentsParameter
-            };
+            var argTypes = new List<Type> { totalCountExp.Type, field.ArgumentsParameter!.Type };
+            var paramsArgs = new List<Expression> { totalCountExp, field.ArgumentsParameter };
             var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(argTypes.ToArray())!, paramsArgs));
 
             field.UpdateExpression(fieldExpression);
         }
 
-        public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+        public override Expression? GetExpression(
+            IField field,
+            Expression expression,
+            ParameterExpression? argumentParam,
+            dynamic? arguments,
+            Expression context,
+            IGraphQLNode? parentNode,
+            bool servicesPass,
+            ParameterReplacer parameterReplacer
+        )
         {
             // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
             if (servicesPass)

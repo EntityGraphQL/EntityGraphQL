@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using EntityGraphQL.Schema;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -23,7 +23,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     name createdBy { id field2 } 
                 } 
@@ -32,9 +33,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = new List<Project> {
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects = new List<Project>
+            {
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             },
         };
         var serviceCollection = new ServiceCollection();
@@ -68,7 +80,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 project(id: 1) { 
                     name createdBy { id field2 } 
                 } 
@@ -77,9 +90,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -102,15 +126,14 @@ public class ServiceFieldBulkTests
     public void TestServicesBulkResolverFullObjectWithOrderBy()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("projects",
-            new
-            {
-                like = (string)null,
-            },
-            (ctx, args) => ctx.QueryableProjects
-                .WhereWhen(f => f.Name.ToLower().Contains(args.like.ToLower()), !string.IsNullOrEmpty(args.like))
-                .OrderBy(f => f.Name),
-            "Get projects");
+        schema
+            .Query()
+            .ReplaceField(
+                "projects",
+                new { like = (string)null, },
+                (ctx, args) => ctx.QueryableProjects.WhereWhen(f => f.Name.ToLower().Contains(args.like.ToLower()), !string.IsNullOrEmpty(args.like)).OrderBy(f => f.Name),
+                "Get projects"
+            );
         schema.UpdateType<Project>(type =>
         {
             type.ReplaceField("createdBy", "Get user that created it")
@@ -120,7 +143,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     id
                     name createdBy { id field2 } 
@@ -130,9 +154,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -167,7 +202,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     name createdByName
                 } 
@@ -176,9 +212,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -211,7 +258,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     name assignedUsers { name }
                 } 
@@ -220,9 +268,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -255,7 +314,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     name assignedUser(id: 1) { name }
                 } 
@@ -264,9 +324,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -299,7 +370,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     name assignedUsers(name: ""1"") { name }
                 } 
@@ -308,9 +380,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1 , Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -342,7 +425,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     id
                     tasks {
@@ -354,15 +438,22 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = [
-                    new() { Id = 1, Name = "Task 1" },
-                    new() { Id = 2, Name = "Task 2" },
-                ] },
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2", Tasks = [
-                    new() { Id = 3, Name = "Task 3" },
-                    new() { Id = 4, Name = "Task 4" },
-                ] }
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks = [new() { Id = 1, Name = "Task 1" }, new() { Id = 2, Name = "Task 2" },]
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2",
+                    Tasks = [new() { Id = 3, Name = "Task 3" }, new() { Id = 4, Name = "Task 4" },]
+                }
             ]
         };
         var serviceCollection = new ServiceCollection();
@@ -396,7 +487,8 @@ public class ServiceFieldBulkTests
         //                   project -> tasks -> assignee -> projects -> createdBy
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 project(id: 1) { 
                     id
                     tasks {
@@ -412,15 +504,50 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = [
-                    new() { Id = 1, Name = "Task 1", Assignee = new Person { Id = 1 } },
-                    new() { Id = 2, Name = "Task 2", Assignee = new Person { Id = 2 }  },
-                ] },
-                new Project { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = [
-                    new() { Id = 3, Name = "Task 3", Assignee = new Person { Id = 3 }  },
-                    new() { Id = 4, Name = "Task 4", Assignee = new Person { Id = 1 }  },
-                ] }
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 1 }
+                        },
+                        new()
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 2 }
+                        },
+                    ]
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 1,
+                    Name = "Project 2",
+                    Tasks =
+                    [
+                        new()
+                        {
+                            Id = 3,
+                            Name = "Task 3",
+                            Assignee = new Person { Id = 3 }
+                        },
+                        new()
+                        {
+                            Id = 4,
+                            Name = "Task 4",
+                            Assignee = new Person { Id = 1 }
+                        },
+                    ]
+                }
             ]
         };
         // set up fake data with no null paths (normally this is done with EF and the null paths are handled by the compiler)
@@ -459,7 +586,8 @@ public class ServiceFieldBulkTests
         //                   project -> tasks -> assignee -> projects -> createdBy
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 project(id: 1) { 
                     id
                     tasks {
@@ -475,15 +603,22 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = [
-                    new() { Id = 1, Name = "Task 1" },
-                    new() { Id = 2, Name = "Task 2" },
-                ] },
-                new() { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = [
-                    new() { Id = 3, Name = "Task 3" },
-                    new() { Id = 4, Name = "Task 4" },
-                ] }
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks = [new() { Id = 1, Name = "Task 1" }, new() { Id = 2, Name = "Task 2" },]
+                },
+                new()
+                {
+                    Id = 2,
+                    CreatedBy = 1,
+                    Name = "Project 2",
+                    Tasks = [new() { Id = 3, Name = "Task 3" }, new() { Id = 4, Name = "Task 4" },]
+                }
             ]
         };
         // assignee is null in the data - bulk selector should handle this
@@ -519,7 +654,8 @@ public class ServiceFieldBulkTests
         //                projects -> tasks -> assignee -> createdBy
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     id
                     tasks {
@@ -533,15 +669,50 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new() { Id = 1, CreatedBy = 1 , Name = "Project 1", Tasks = [
-                    new() { Id = 1, Name = "Task 1", Assignee = new Person { Id = 1 } },
-                    new() { Id = 2, Name = "Task 2", Assignee = new Person { Id = 2 }  },
-                ] },
-                new Project { Id = 2, CreatedBy = 1, Name = "Project 2", Tasks = [
-                    new() { Id = 3, Name = "Task 3", Assignee = new Person { Id = 3 }  },
-                    new() { Id = 4, Name = "Task 4", Assignee = new Person { Id = 1 }  },
-                ] }
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 1 }
+                        },
+                        new()
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 2 }
+                        },
+                    ]
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 1,
+                    Name = "Project 2",
+                    Tasks =
+                    [
+                        new()
+                        {
+                            Id = 3,
+                            Name = "Task 3",
+                            Assignee = new Person { Id = 3 }
+                        },
+                        new()
+                        {
+                            Id = 4,
+                            Name = "Task 4",
+                            Assignee = new Person { Id = 1 }
+                        },
+                    ]
+                }
             ]
         };
 
@@ -583,7 +754,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     edges {
                         node {
@@ -596,9 +768,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1, Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();
@@ -628,7 +811,8 @@ public class ServiceFieldBulkTests
 
         var gql = new QueryRequest
         {
-            Query = @"{ 
+            Query =
+                @"{ 
                 projects { 
                     items {
                         name createdBy { id field2 } 
@@ -639,9 +823,20 @@ public class ServiceFieldBulkTests
 
         var context = new TestDataContext
         {
-            Projects = [
-                new Project { Id = 1, CreatedBy = 1, Name = "Project 1"},
-                new Project { Id = 2, CreatedBy = 2, Name = "Project 2"},
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1"
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2"
+                },
             ],
         };
         var serviceCollection = new ServiceCollection();

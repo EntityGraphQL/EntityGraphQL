@@ -192,12 +192,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
         Query().ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema").Returns("__Schema");
         Query()
-            .ReplaceField(
-                "__type",
-                new { name = ArgumentHelper.Required<string>() },
-                (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(),
-                "Query a type by name"
-            )
+            .ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(), "Query a type by name")
             .Returns("__Type");
     }
 
@@ -252,24 +247,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <param name="options"></param>
     /// <typeparam name="TContextType"></typeparam>
     /// <returns></returns>
-    public async Task<QueryResult> ExecuteRequestWithContextAsync(
-        QueryRequest gql,
-        TContextType context,
-        IServiceProvider? serviceProvider,
-        ClaimsPrincipal? user,
-        ExecutionOptions? options = null
-    )
+    public async Task<QueryResult> ExecuteRequestWithContextAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
     {
         return await DoExecuteRequestAsync(gql, context, serviceProvider, user, options);
     }
 
-    private async Task<QueryResult> DoExecuteRequestAsync(
-        QueryRequest gql,
-        TContextType? overwriteContext,
-        IServiceProvider? serviceProvider,
-        ClaimsPrincipal? user,
-        ExecutionOptions? options
-    )
+    private async Task<QueryResult> DoExecuteRequestAsync(QueryRequest gql, TContextType? overwriteContext, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options)
     {
         QueryResult result;
         try
@@ -278,8 +261,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             GraphQLDocument? compiledQuery = null;
             if (options.EnablePersistedQueries)
             {
-                var persistedQuery = (PersistedQueryExtension?)
-                    ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
+                var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
                 if (persistedQuery != null && persistedQuery.Version != 1)
                     throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 

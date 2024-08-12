@@ -43,7 +43,9 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (field.FieldType == GraphQLQueryFieldType.Mutation)
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
 
-        listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+        listType =
+            field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
+            ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -79,7 +81,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (!itemsField.Extensions.Any(e => e is OffsetPagingItemsExtension))
             itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!));
 
-        // set up the field's expression so the types are all good 
+        // set up the field's expression so the types are all good
         var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
@@ -89,12 +91,26 @@ public class OffsetPagingExtension : BaseFieldExtension
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType!], resolve);
 
         var expression = Expression.MemberInit(
-            Expression.New(returnType.GetConstructor([typeof(int), typeof(int?), typeof(int?)])!, totalCountExp, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take"))
+            Expression.New(
+                returnType.GetConstructor([typeof(int), typeof(int?), typeof(int?)])!,
+                totalCountExp,
+                Expression.PropertyOrField(argumentParam!, "skip"),
+                Expression.PropertyOrField(argumentParam!, "take")
+            )
         );
         return expression;
     }
 
-    public override Expression? GetExpression(IField field, Expression expression, ParameterExpression? argumentParam, dynamic? arguments, Expression context, IGraphQLNode? parentNode, bool servicesPass, ParameterReplacer parameterReplacer)
+    public override Expression? GetExpression(
+        IField field,
+        Expression expression,
+        ParameterExpression? argumentParam,
+        dynamic? arguments,
+        Expression context,
+        IGraphQLNode? parentNode,
+        bool servicesPass,
+        ParameterReplacer parameterReplacer
+    )
     {
         if (servicesPass)
             return expression; // we don't need to do anything. items field is there to handle it now

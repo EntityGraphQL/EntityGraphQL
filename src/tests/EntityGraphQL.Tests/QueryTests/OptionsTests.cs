@@ -1,7 +1,7 @@
-using Xunit;
+using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -13,7 +13,8 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<OptionsContext>();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     customers {
                         name
                         orders {
@@ -31,6 +32,7 @@ namespace EntityGraphQL.Tests
             Assert.Single(customers[0].orders);
             Assert.Equal(4, customers[0].orders[0].id);
         }
+
         [Fact]
         public void Test_ExecuteServiceFieldsSeparately_False_WithListNavigation()
         {
@@ -38,7 +40,8 @@ namespace EntityGraphQL.Tests
             schema.UpdateType<Customer>(type => type.ReplaceField("orders", null).Resolve<AgeService>((customer, ageService) => customer.Orders).IsNullable(false));
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     customers {
                         name
                         orders {
@@ -68,10 +71,7 @@ namespace EntityGraphQL.Tests
 
         internal OptionsContext AddCustomerWithOrder(string customerName, int orderId)
         {
-            var customer = new Customer
-            {
-                Name = customerName,
-            };
+            var customer = new Customer { Name = customerName, };
             customer.Orders.Add(new Order { Id = orderId });
             Customers.Add(customer);
             return this;

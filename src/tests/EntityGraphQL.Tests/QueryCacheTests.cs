@@ -17,10 +17,10 @@ public class QueryCacheTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-            .UseConnectionPaging(defaultPageSize: 2);
+        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
 
-        var query = @"query This($project: Int!){
+        var query =
+            @"query This($project: Int!){
                     project(id: $project) {
                         name id
                         tasks {
@@ -44,10 +44,7 @@ public class QueryCacheTests
         var gql = new QueryRequest
         {
             Query = query,
-            Variables = new QueryVariables
-                {
-                    { "project", 99 }
-                }
+            Variables = new QueryVariables { { "project", 99 } }
         };
 
         // cache the query
@@ -55,10 +52,7 @@ public class QueryCacheTests
         CheckResults(result, 99);
 
         // will be from cache
-        gql.Variables = new QueryVariables
-        {
-            { "project", 1 }
-        };
+        gql.Variables = new QueryVariables { { "project", 1 } };
         result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
         CheckResults(result, 1);
 
@@ -91,10 +85,10 @@ public class QueryCacheTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-            .UseConnectionPaging(defaultPageSize: 2);
+        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
 
-        var query = @"query This($project: Int!){
+        var query =
+            @"query This($project: Int!){
                     project(id: $project) {
                         name id
                         tasks {
@@ -117,33 +111,34 @@ public class QueryCacheTests
         var gql = new QueryRequest
         {
             Query = query,
-            Variables = new QueryVariables
-                {
-                    { "project", 99 }
-                }
+            Variables = new QueryVariables { { "project", 99 } }
         };
 
         var total = 1000;
         var failed = new List<string>();
         var writeLock = new object();
 
-        Parallel.For(0, total, _ =>
-        {
-            try
+        Parallel.For(
+            0,
+            total,
+            _ =>
             {
-                // cache the query
-                var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
-                CheckResults(result, 99);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                lock (writeLock)
+                try
                 {
-                    failed.Add(e.Message);
+                    // cache the query
+                    var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnableQueryCache = true });
+                    CheckResults(result, 99);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    lock (writeLock)
+                    {
+                        failed.Add(e.Message);
+                    }
                 }
             }
-        });
+        );
 
         Assert.Empty(failed);
 
@@ -173,48 +168,26 @@ public class QueryCacheTests
     {
         var tasks = new List<Task>
         {
-            new Task
-            {
-                Id = 0,
-                Name = "Task 1"
-            },
-            new Task
-            {
-                Id = 1,
-                Name = "Task 2"
-            },
-            new Task
-            {
-                Id = 2,
-                Name = "Task 3"
-            },
-            new Task
-            {
-                Id = 3,
-                Name = "Task 4"
-            },
-            new Task
-            {
-                Id = 4,
-                Name = "Task 5"
-            },
-
+            new Task { Id = 0, Name = "Task 1" },
+            new Task { Id = 1, Name = "Task 2" },
+            new Task { Id = 2, Name = "Task 3" },
+            new Task { Id = 3, Name = "Task 4" },
+            new Task { Id = 4, Name = "Task 5" },
         };
         data.Projects = new List<Project>
         {
             new Project
             {
                 Id = 99,
-                Name ="Project 1",
+                Name = "Project 1",
                 Tasks = tasks
             },
             new Project
             {
                 Id = 1,
-                Name ="Project 1",
+                Name = "Project 1",
                 Tasks = tasks
             }
         };
     }
-
 }

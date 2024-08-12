@@ -14,6 +14,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new FloatValueNode(1.2), "arg", typeof(float));
         Assert.Equal(1.2f, res);
     }
+
     [Fact]
     public void TestParseArgumentDouble()
     {
@@ -21,6 +22,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new FloatValueNode(1.2), "arg", typeof(double));
         Assert.Equal(1.2d, res);
     }
+
     [Fact]
     public void TestParseArgumentDecimal()
     {
@@ -28,6 +30,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new FloatValueNode(1.2), "arg", typeof(decimal));
         Assert.Equal(1.2m, res);
     }
+
     [Fact]
     public void TestParseArgumentFloatNoFraction()
     {
@@ -35,6 +38,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new IntValueNode(1), "arg", typeof(float));
         Assert.Equal(1f, res);
     }
+
     [Fact]
     public void TestParseArgumentDoubleNoFraction()
     {
@@ -42,6 +46,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new IntValueNode(1), "arg", typeof(double));
         Assert.Equal(1d, res);
     }
+
     [Fact]
     public void TestParseArgumentDecimalNoFraction()
     {
@@ -49,6 +54,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new IntValueNode(1), "arg", typeof(decimal));
         Assert.Equal(1m, res);
     }
+
     [Fact]
     public void TestParseArgumentFloatNull()
     {
@@ -56,6 +62,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new FloatValueNode(1.2), "arg", typeof(float?));
         Assert.Equal(1.2f, res);
     }
+
     [Fact]
     public void TestParseArgumentDoubleNull()
     {
@@ -63,6 +70,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new FloatValueNode(1.2), "arg", typeof(double?));
         Assert.Equal(1.2d, res);
     }
+
     [Fact]
     public void TestParseArgumentDecimalNull()
     {
@@ -78,6 +86,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new NullValueNode(null), "arg", typeof(float?));
         Assert.Equal((float?)null, res);
     }
+
     [Fact]
     public void TestParseArgumentDoubleNullValue()
     {
@@ -85,6 +94,7 @@ public class ProcessArgumentValueTests
         var res = QueryWalkerHelper.ProcessArgumentValue(schema, new NullValueNode(null), "arg", typeof(double?));
         Assert.Equal((double?)null, res);
     }
+
     [Fact]
     public void TestParseArgumentDecimalNullValue()
     {

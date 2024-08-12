@@ -12,9 +12,7 @@ namespace EntityGraphQL.Schema
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class GraphQLNotNullAttribute : Attribute
     {
-        public GraphQLNotNullAttribute()
-        {
-        }
+        public GraphQLNotNullAttribute() { }
 
         /// <summary>
         /// Check if property is marked as being not null
@@ -25,10 +23,10 @@ namespace EntityGraphQL.Schema
         {
             return IsMemberMarkedNotNull(prop.GetCustomAttributes(false).Cast<Attribute>());
         }
+
         public static bool IsMemberMarkedNotNull(IEnumerable<Attribute> attributes)
         {
-            if (attributes.Any(a => a is GraphQLNotNullAttribute) ||
-                attributes.Any(a => a is RequiredAttribute))
+            if (attributes.Any(a => a is GraphQLNotNullAttribute) || attributes.Any(a => a is RequiredAttribute))
             {
                 return true;
             }
@@ -43,9 +41,7 @@ namespace EntityGraphQL.Schema
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
     public class GraphQLElementTypeNullableAttribute : Attribute
     {
-        public GraphQLElementTypeNullableAttribute()
-        {
-        }
+        public GraphQLElementTypeNullableAttribute() { }
 
         /// <summary>
         /// Check if property is marked as being not null

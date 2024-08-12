@@ -10,9 +10,7 @@ namespace EntityGraphQL.Schema;
 public class SubscriptionType : ControllerType
 {
     public SubscriptionType(ISchemaProvider schema, string name)
-        : base(new SchemaType<SubscriptionType>(schema, name, null, null))
-    {
-    }
+        : base(new SchemaType<SubscriptionType>(schema, name, null, null)) { }
 
     protected override Type GetTypeFromMethodReturn(Type type, bool isAsync)
     {
@@ -32,10 +30,17 @@ public class SubscriptionType : ControllerType
         return type;
     }
 
-    protected override BaseField MakeField(string name, MethodInfo method, string? description, SchemaBuilderOptions? options, bool isAsync, RequiredAuthorization requiredClaims, GqlTypeInfo returnType)
+    protected override BaseField MakeField(
+        string name,
+        MethodInfo method,
+        string? description,
+        SchemaBuilderOptions? options,
+        bool isAsync,
+        RequiredAuthorization requiredClaims,
+        GqlTypeInfo returnType
+    )
     {
         options ??= new SchemaBuilderOptions();
         return new SubscriptionField(SchemaType.Schema, SchemaType, name, returnType, method, description ?? string.Empty, requiredClaims, isAsync, options);
-
     }
 }

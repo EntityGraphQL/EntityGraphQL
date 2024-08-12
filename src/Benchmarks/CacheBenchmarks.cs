@@ -7,13 +7,14 @@ namespace Benchmarks
 {
     /// <summary>
     /// Was testing the difference between always doing the first stage compile vs. a hash and look up for caching purposes
-    /// 
+    ///
     /// Hash and look up is quicker of course
     /// </summary>
     [ShortRunJob]
     public class CacheBenchmarks : BaseBenchmark
     {
-        private readonly string query = @"{
+        private readonly string query =
+            @"{
                     movie(id: ""077b3041-307a-42ba-9ffe-1121fcfc918b"") {
                         id name released
                         director {
@@ -31,10 +32,7 @@ namespace Benchmarks
         public CacheBenchmarks()
         {
             graphQLCompiler = new GraphQLCompiler(Schema);
-            gql = new QueryRequest
-            {
-                Query = query
-            };
+            gql = new QueryRequest { Query = query };
 
             queryCache = new QueryCache();
             queryCache.AddCompiledQuery(query, new GraphQLDocument(Schema));

@@ -1,7 +1,7 @@
-﻿using System.Collections.Concurrent;
-using System;
-using System.Reflection;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Compiler;
 
 namespace Nullability
@@ -79,11 +79,14 @@ namespace Nullability
 
         public static NullabilityInfo GetNullabilityInfo(this FieldInfo info)
         {
-            return fieldCache.GetOrAdd(info, inner =>
-            {
-                var nullabilityContext = new NullabilityInfoContext();
-                return nullabilityContext.Create(inner);
-            });
+            return fieldCache.GetOrAdd(
+                info,
+                inner =>
+                {
+                    var nullabilityContext = new NullabilityInfoContext();
+                    return nullabilityContext.Create(inner);
+                }
+            );
         }
 
         public static NullabilityState GetNullability(this FieldInfo info)
@@ -99,11 +102,14 @@ namespace Nullability
 
         public static NullabilityInfo GetNullabilityInfo(this EventInfo info)
         {
-            return eventCache.GetOrAdd(info, inner =>
-            {
-                var nullabilityContext = new NullabilityInfoContext();
-                return nullabilityContext.Create(inner);
-            });
+            return eventCache.GetOrAdd(
+                info,
+                inner =>
+                {
+                    var nullabilityContext = new NullabilityInfoContext();
+                    return nullabilityContext.Create(inner);
+                }
+            );
         }
 
         public static NullabilityState GetNullability(this EventInfo info)
@@ -119,11 +125,14 @@ namespace Nullability
 
         public static NullabilityInfo GetNullabilityInfo(this PropertyInfo info)
         {
-            return propertyCache.GetOrAdd(info, inner =>
-            {
-                var nullabilityContext = new NullabilityInfoContext();
-                return nullabilityContext.Create(inner);
-            });
+            return propertyCache.GetOrAdd(
+                info,
+                inner =>
+                {
+                    var nullabilityContext = new NullabilityInfoContext();
+                    return nullabilityContext.Create(inner);
+                }
+            );
         }
 
         public static NullabilityState GetNullability(this PropertyInfo info)
@@ -139,11 +148,14 @@ namespace Nullability
 
         public static NullabilityInfo GetNullabilityInfo(this ParameterInfo info)
         {
-            return parameterCache.GetOrAdd(info, inner =>
-            {
-                var nullabilityContext = new NullabilityInfoContext();
-                return nullabilityContext.Create(inner);
-            });
+            return parameterCache.GetOrAdd(
+                info,
+                inner =>
+                {
+                    var nullabilityContext = new NullabilityInfoContext();
+                    return nullabilityContext.Create(inner);
+                }
+            );
         }
 
         public static NullabilityState GetNullability(this ParameterInfo info)
@@ -207,8 +219,7 @@ namespace Nullability
         //https://github.com/dotnet/runtime/issues/23493
         public static bool IsGenericMethodParameter(this Type target)
         {
-            return target.IsGenericParameter &&
-                   target.DeclaringMethod != null;
+            return target.IsGenericParameter && target.DeclaringMethod != null;
         }
     }
 }

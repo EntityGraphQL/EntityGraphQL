@@ -29,6 +29,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 return base64String;
             }
         }
+
         /// <summary>
         /// Deserialize a base64 string index/row number into a an int
         /// </summary>
@@ -60,7 +61,6 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
         }
 
-
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
@@ -78,6 +78,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
             }
             return SerializeCursor(index);
         }
+
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
@@ -89,6 +90,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 return (arguments.BeforeNum ?? arguments.TotalCount) - arguments.Last;
             return 0;
         }
+
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>

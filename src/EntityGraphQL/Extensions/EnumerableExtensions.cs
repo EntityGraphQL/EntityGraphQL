@@ -18,6 +18,7 @@ namespace EntityGraphQL.Extensions
 
             return Enumerable.Take(source, count.Value);
         }
+
         public static IEnumerable<TSource> Skip<TSource>(this IEnumerable<TSource> source, int? count)
         {
             if (!count.HasValue)
@@ -25,6 +26,7 @@ namespace EntityGraphQL.Extensions
 
             return Enumerable.Skip(source, count.Value);
         }
+
         public static IEnumerable<TSource> WhereWhen<TSource>(this IEnumerable<TSource> source, Expression<Func<TSource, bool>> wherePredicate, bool applyPredicate)
         {
             if (applyPredicate)

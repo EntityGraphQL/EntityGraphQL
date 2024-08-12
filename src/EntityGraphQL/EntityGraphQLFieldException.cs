@@ -6,7 +6,8 @@ namespace EntityGraphQL
     {
         public readonly string FieldName;
 
-        public EntityGraphQLFieldException(string fieldName, Exception innerException) : base(null, innerException)
+        public EntityGraphQLFieldException(string fieldName, Exception innerException)
+            : base(null, innerException)
         {
             FieldName = fieldName;
         }

@@ -10,15 +10,13 @@ namespace demo
 {
     public class DemoContext : DbContext
     {
-        public DemoContext(DbContextOptions<DemoContext> opts) : base(opts)
-        {
-        }
+        public DemoContext(DbContextOptions<DemoContext> opts)
+            : base(opts) { }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
         }
-
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -31,15 +29,19 @@ namespace demo
 
         [Description("Collection of Movies")]
         public DbSet<Movie> Movies { get; set; }
+
         [Description("Collection of Peoples")]
         public DbSet<Person> People { get; set; }
+
         [Description("Collection of Actors")]
         public DbSet<Actor> Actors { get; set; }
-        public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>{
-            {"key1", "value1"},
-            {"key2", "value2"},
-            {"key3", "value3"},
-        };
+        public Dictionary<string, string> Attributes { get; set; } =
+            new Dictionary<string, string>
+            {
+                { "key1", "value1" },
+                { "key2", "value2" },
+                { "key3", "value3" },
+            };
     }
 
     public class Movie
@@ -64,6 +66,7 @@ namespace demo
         public uint MovieId { get; set; }
         public Movie Movie { get; set; }
     }
+
     public class Writer
     {
         public uint PersonId { get; set; }
@@ -76,12 +79,16 @@ namespace demo
     {
         [Description("Action movie type")]
         Action,
+
         [Description("Drama movie type")]
         Drama,
+
         [Description("Comedy movie type")]
         Comedy,
+
         [Description("Horror movie type")]
         Horror,
+
         [Description("Scifi movie type")]
         Scifi,
     }
@@ -89,8 +96,10 @@ namespace demo
     public class Person
     {
         public uint Id { get; set; }
+
         [GraphQLNotNull]
         public string FirstName { get; set; }
+
         [GraphQLNotNull]
         public string LastName { get; set; }
         public DateTime Dob { get; set; }

@@ -27,6 +27,7 @@ internal class AssertExpression
     {
         return new AssertExpression(AssertExpressionType.Any);
     }
+
     internal static AssertExpression AnyOfType(Type type)
     {
         return new AssertExpression(AssertExpressionType.Any, type);

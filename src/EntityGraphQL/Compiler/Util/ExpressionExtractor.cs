@@ -20,10 +20,12 @@ namespace EntityGraphQL.Compiler.Util
         private readonly Regex pattern = new("[\\.\\(\\)\\!]");
 
         private Expression? rootContext;
+
         // We extract all expression - which may repeat - and we then replace them by matching the expression object
         private Dictionary<string, List<Expression>>? extractedExpressions;
+
         /// <summary>
-        /// Current expression we might extract. 
+        /// Current expression we might extract.
         /// </summary>
         private readonly Stack<Expression> currentExpression = new();
         private bool matchByType;
@@ -59,6 +61,7 @@ namespace EntityGraphQL.Compiler.Util
             }
             return base.VisitParameter(node);
         }
+
         protected override Expression VisitMember(MemberExpression node)
         {
             // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value

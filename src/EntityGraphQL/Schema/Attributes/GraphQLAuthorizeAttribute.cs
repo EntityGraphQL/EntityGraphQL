@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +8,10 @@ namespace EntityGraphQL.Authorization
     public class GraphQLAuthorizeAttribute : Attribute
     {
         /// <summary>
-        /// Initializes a new instance of the GraphQLAuthorizeAttribute class 
+        /// Initializes a new instance of the GraphQLAuthorizeAttribute class
         /// </summary>
-        public GraphQLAuthorizeAttribute()
-        { }
+        public GraphQLAuthorizeAttribute() { }
+
         /// <summary>
         /// Initializes a new instance of the GraphQLAuthorizeAttribute class with the specified roles.
         /// </summary>

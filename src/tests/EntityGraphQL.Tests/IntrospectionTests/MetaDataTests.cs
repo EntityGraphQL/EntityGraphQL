@@ -1,10 +1,10 @@
-using Xunit;
 using System.Linq;
-using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
-using static EntityGraphQL.Tests.ServiceFieldTests;
-using Microsoft.Extensions.DependencyInjection;
+using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+using static EntityGraphQL.Tests.ServiceFieldTests;
 
 namespace EntityGraphQL.Tests
 {
@@ -18,9 +18,11 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
             // Add a argument field with a require parameter
-            var tree = new GraphQLCompiler(schemaProvider).Compile(@"query {
+            var tree = new GraphQLCompiler(schemaProvider).Compile(
+                @"query {
 	users { __typename id }
-}");
+}"
+            );
 
             var users = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
             var user = Enumerable.First((dynamic)users.Data["users"]);
@@ -35,13 +37,12 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
-            schema.Type<Project>().AddField("settings", "Return settings")
-                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
-                .IsNullable(false);
+            schema.Type<Project>().AddField("settings", "Return settings").Resolve<ConfigService>((p, c) => c.Get(p.Id)).IsNullable(false);
 
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     projects {
                         settings {
                             type
@@ -68,13 +69,12 @@ namespace EntityGraphQL.Tests
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
-            schema.Type<Project>().AddField("settings", "Return settings")
-                .Resolve<ConfigService>((p, c) => c.Get(p.Id))
-                .IsNullable(false);
+            schema.Type<Project>().AddField("settings", "Return settings").Resolve<ConfigService>((p, c) => c.Get(p.Id)).IsNullable(false);
 
             var gql = new QueryRequest
             {
-                Query = @"query {
+                Query =
+                    @"query {
                     projects {
                         # on list
                         __typename
@@ -111,11 +111,11 @@ namespace EntityGraphQL.Tests
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             var data = new TestDataContext().FillWithTestData();
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people {
                         edges {
                             node {

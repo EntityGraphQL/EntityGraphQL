@@ -18,7 +18,12 @@ public class BulkFieldResolver<TContext, TService, TKey, TResult> : IBulkFieldRe
 
     public ParameterExpression? BulkArgParam => null;
 
-    public BulkFieldResolver(string name, Expression<Func<IEnumerable<TKey>, TService, IDictionary<TKey, TResult>>> fieldExpression, Expression<Func<TContext, TKey>> dataSelector, IEnumerable<Compiler.GraphQLExtractedField> extractedFields)
+    public BulkFieldResolver(
+        string name,
+        Expression<Func<IEnumerable<TKey>, TService, IDictionary<TKey, TResult>>> fieldExpression,
+        Expression<Func<TContext, TKey>> dataSelector,
+        IEnumerable<Compiler.GraphQLExtractedField> extractedFields
+    )
     {
         this.fieldExpression = fieldExpression;
         this.dataSelector = dataSelector;
@@ -39,7 +44,12 @@ public class BulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResul
     public string Name { get; }
     public ParameterExpression? BulkArgParam => fieldExpression.Parameters[1];
 
-    public BulkFieldResolverWithArgs(string name, Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression, Expression<Func<TContext, TKey>> dataSelector, IEnumerable<Compiler.GraphQLExtractedField> extractedFields)
+    public BulkFieldResolverWithArgs(
+        string name,
+        Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression,
+        Expression<Func<TContext, TKey>> dataSelector,
+        IEnumerable<Compiler.GraphQLExtractedField> extractedFields
+    )
     {
         this.fieldExpression = fieldExpression;
         this.dataSelector = dataSelector;

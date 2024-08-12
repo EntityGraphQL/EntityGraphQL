@@ -26,7 +26,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     query IntrospectionQuery {
                       __type(name: ""InputObject"") {
                         name
@@ -65,7 +66,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     query IntrospectionQuery {
                       __type(name: ""InputObject"") {
                         name
@@ -82,6 +84,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data["__type"]).kind);
             Assert.True(((dynamic)res.Data["__type"]).oneField);
         }
+
         [Fact]
         public void TestOneOfAttributeCanNotBeUsedOnNonInputTypes()
         {
@@ -114,7 +117,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     mutation Test {
                         createOneOfInputType(input: { one: 1, two: 2 })
                     }"
@@ -125,7 +129,6 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Exactly one field must be specified for argument of type InputObject.", res.Errors[0].Message);
         }
 
-
         [Fact]
         public void TestOneOfWorksWithInlineParameters()
         {
@@ -135,7 +138,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     mutation Test {
                         createOneOfInputType(input: { one: 1 })
                     }"
@@ -151,11 +155,14 @@ namespace EntityGraphQL.Tests
         {
             var schemaProvider = SchemaBuilder.Create<TestDataContext>();
             schemaProvider.AddInputType<OneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields();
-            schemaProvider.Query().AddField("createOneOfInputType", new { input = ArgumentHelper.Required<OneOfInputType>() }, (ctx, args) => args.input.Value.One ?? args.input.Value.Two, "Descrption");
+            schemaProvider
+                .Query()
+                .AddField("createOneOfInputType", new { input = ArgumentHelper.Required<OneOfInputType>() }, (ctx, args) => args.input.Value.One ?? args.input.Value.Two, "Descrption");
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     query Test {
                         createOneOfInputType(input: { one: 1 })
                     }"
@@ -164,7 +171,6 @@ namespace EntityGraphQL.Tests
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
             Assert.Equal(1, (int)res.Data["createOneOfInputType"]);
-
         }
     }
 }

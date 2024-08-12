@@ -63,7 +63,8 @@ namespace EntityGraphQL.AspNet.Extensions
             foreach (var key in value.Keys)
             {
                 var propVal = value[key];
-                if (propVal == null) continue; //don't include null values in the final graph
+                if (propVal == null)
+                    continue; //don't include null values in the final graph
 
                 writer.WritePropertyName(key);
                 Write(writer, propVal, options);
@@ -101,7 +102,8 @@ namespace EntityGraphQL.AspNet.Extensions
                     propVal = f.GetValue(value);
                 }
 
-                if (propVal == null) continue; //don't include null values in the final graph
+                if (propVal == null)
+                    continue; //don't include null values in the final graph
 
                 writer.WritePropertyName(member.Name);
                 Write(writer, propVal, options);

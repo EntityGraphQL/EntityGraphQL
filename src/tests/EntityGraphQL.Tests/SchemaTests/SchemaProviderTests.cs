@@ -1,8 +1,8 @@
-using Xunit;
-using EntityGraphQL.Tests.ApiVersion1;
-using System.Linq;
 using System;
+using System.Linq;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Tests.ApiVersion1;
+using Xunit;
 
 namespace EntityGraphQL.Tests
 {
@@ -14,6 +14,7 @@ namespace EntityGraphQL.Tests
             var provider = new TestObjectGraphSchema();
             Assert.Equal(typeof(TestDataContext), provider.QueryContextType);
         }
+
         [Fact]
         public void ExposesFieldsFromObjectWhenNotDefined()
         {
@@ -24,6 +25,7 @@ namespace EntityGraphQL.Tests
             Assert.True(provider.Type("Location").HasField("country", null));
             Assert.True(provider.Type("Location").HasField("planet", null));
         }
+
         [Fact]
         public void ExposesDefinedFields()
         {
@@ -33,6 +35,7 @@ namespace EntityGraphQL.Tests
             // Not exposed in our schema
             Assert.True(provider.Type("Person").HasField("fullName", null));
         }
+
         [Fact]
         public void ReturnsActualName()
         {
@@ -40,6 +43,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("id", schema.Type("Project").GetField("id", null).Name);
             Assert.Equal("name", schema.Type("Project").GetField("name", null).Name);
         }
+
         [Fact]
         public void SupportsEnum()
         {
@@ -50,6 +54,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("__typename", schema.Type("Gender").GetFields().ElementAt(0).Name);
             Assert.Equal("Female", schema.Type("Gender").GetFields().ElementAt(1).Name);
         }
+
         [Fact]
         public void RemovesTypeAndFields()
         {
@@ -58,6 +63,7 @@ namespace EntityGraphQL.Tests
             schema.RemoveTypeAndAllFields<Project>();
             Assert.Empty(schema.Query().GetFields().Where(s => s.ReturnType.SchemaType.Name == "project"));
         }
+
         [Fact]
         public void RemovesTypeAndFields2()
         {
@@ -82,6 +88,7 @@ namespace EntityGraphQL.Tests
             Assert.False(schema.Type("Cat").IsInterface);
             Assert.Equal("Animal", schema.Type("Cat").BaseTypesReadOnly[0].Name);
         }
+
         [Fact]
         public void HasTypeChecksMappings()
         {
@@ -100,7 +107,8 @@ namespace EntityGraphQL.Tests
 
             var gql = new QueryRequest
             {
-                Query = @"
+                Query =
+                    @"
                     query IntrospectionQuery {
                         __type(name: ""Int"") {
                             name
@@ -124,7 +132,10 @@ namespace EntityGraphQL.Tests
         {
             var schema = new TestObjectGraphSchema();
 
-            var ex = Assert.Throws<EntityQuerySchemaException>(() => { schema.Type<Person>().SpecifiedBy("https://www.example.com"); });
+            var ex = Assert.Throws<EntityQuerySchemaException>(() =>
+            {
+                schema.Type<Person>().SpecifiedBy("https://www.example.com");
+            });
 
             Assert.Equal("@specifiedBy can only be used on scalars", ex.Message);
         }

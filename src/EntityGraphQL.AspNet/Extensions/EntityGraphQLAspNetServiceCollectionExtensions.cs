@@ -17,13 +17,19 @@ namespace EntityGraphQL.AspNet
         /// <param name="configure">Function to further configure your schema</param>
         /// <typeparam name="TSchemaContext"></typeparam>
         /// <returns></returns>
-        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection,
-            Action<SchemaProvider<TSchemaContext>>? configure = null, bool introspectionEnabled = true)
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(
+            this IServiceCollection serviceCollection,
+            Action<SchemaProvider<TSchemaContext>>? configure = null,
+            bool introspectionEnabled = true
+        )
         {
-            serviceCollection.AddGraphQLSchema<TSchemaContext>(options =>
-            {
-                options.ConfigureSchema = configure;
-            }, introspectionEnabled);
+            serviceCollection.AddGraphQLSchema<TSchemaContext>(
+                options =>
+                {
+                    options.ConfigureSchema = configure;
+                },
+                introspectionEnabled
+            );
 
             return serviceCollection;
         }
@@ -35,8 +41,11 @@ namespace EntityGraphQL.AspNet
         /// <param name="serviceCollection"></param>
         /// <param name="configure">Callback to configure the AddGraphQLOptions</param>
         /// <returns></returns>
-        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection,
-            Action<AddGraphQLOptions<TSchemaContext>> configure, bool introspectionEnabled = true)
+        public static IServiceCollection AddGraphQLSchema<TSchemaContext>(
+            this IServiceCollection serviceCollection,
+            Action<AddGraphQLOptions<TSchemaContext>> configure,
+            bool introspectionEnabled = true
+        )
         {
             serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
             serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
@@ -62,6 +71,7 @@ namespace EntityGraphQL.AspNet
 
             return serviceCollection;
         }
+
         /// <summary>
         /// Registers the default IGraphQLValidator implementation to use as a service in your method fields to report a colletion of errors
         /// </summary>

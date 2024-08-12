@@ -67,13 +67,7 @@ public class GraphQLDocument : IGraphQLNode
 
     public ISchemaProvider Schema { get; }
 
-    public QueryResult ExecuteQuery<TContext>(
-        TContext context,
-        IServiceProvider? services,
-        QueryVariables? variables,
-        string? operationName = null,
-        ExecutionOptions? options = null
-    )
+    public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
     {
         return ExecuteQueryAsync(context, services, variables, operationName, options).GetAwaiter().GetResult();
     }

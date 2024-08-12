@@ -1,11 +1,11 @@
-using System.Linq;
-using EntityGraphQL.Schema;
-using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
-using Xunit;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 
 namespace EntityGraphQL.Tests.ConnectionPaging
 {
@@ -20,11 +20,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people {
                         edges {
                             node {
@@ -70,11 +70,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(first: 1) {
                         edges {
                             node {
@@ -112,6 +112,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
         }
+
         [Fact]
         public void TestFirstAfter()
         {
@@ -119,11 +120,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(first: 2 after: ""MQ=="") {
                         edges {
                             node {
@@ -161,6 +162,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
         }
+
         [Fact]
         public void TestLast()
         {
@@ -168,11 +170,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(last: 2) {
                         edges {
                             node {
@@ -210,6 +212,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
         }
+
         [Fact]
         public void TestLastBefore()
         {
@@ -217,11 +220,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging();
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(last: 3 before: ""NA=="") {
                         edges {
                             node {
@@ -267,21 +270,20 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField(
-                "people",
-                new
-                {
-                    search = (string)null
-                },
-                (ctx, args) => ctx.People
-                    .WhereWhen(p => p.Name.Contains(args.search) || p.LastName.Contains(args.search), !string.IsNullOrEmpty(args.search))
-                    .OrderBy(p => p.Id),
-                "Return list of people with paging metadata")
-            .UseConnectionPaging();
+            schema
+                .Query()
+                .ReplaceField(
+                    "people",
+                    new { search = (string)null },
+                    (ctx, args) => ctx.People.WhereWhen(p => p.Name.Contains(args.search) || p.LastName.Contains(args.search), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Id),
+                    "Return list of people with paging metadata"
+                )
+                .UseConnectionPaging();
 
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(first: 1, search: ""ill"") {
                         edges {
                             node {
@@ -325,11 +327,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging(defaultPageSize: 2);
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(defaultPageSize: 2);
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people {
                         edges {
                             node {
@@ -375,11 +377,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging(maxPageSize: 2);
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(first: 5) {
                         edges {
                             node {
@@ -395,6 +397,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.NotNull(result.Errors);
             Assert.Equal("Field 'people' - first argument can not be greater than 2.", result.Errors[0].Message);
         }
+
         [Fact]
         public void TestMaxPageSizeLast()
         {
@@ -402,11 +405,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillData(data);
 
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata")
-                .UseConnectionPaging(maxPageSize: 2);
+            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(last: 5) {
                         edges {
                             node {
@@ -422,6 +425,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.NotNull(result.Errors);
             Assert.Equal("Field 'people' - last argument can not be greater than 2.", result.Errors[0].Message);
         }
+
         [Fact]
         public void TestAttribute()
         {
@@ -431,7 +435,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     people(first: 4) {
                         edges {
                             node {
@@ -455,11 +460,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillProjectData(data);
 
-            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-                .UseConnectionPaging(defaultPageSize: 2);
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     projects {
                         name
                         tasks {
@@ -502,6 +507,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(expectedFirstCursor, Enumerable.First(tasks.edges).cursor);
             Assert.Equal(expectedLastCursor, Enumerable.Last(tasks.edges).cursor);
         }
+
         [Fact]
         public void TestOnNonRoot2()
         {
@@ -509,11 +515,11 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             var data = new TestDataContext();
             FillProjectData(data);
 
-            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-                .UseConnectionPaging(defaultPageSize: 2);
+            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -560,8 +566,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-                .UseConnectionPaging(defaultPageSize: 2);
+            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
             schema.UpdateType<Project>(type =>
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
@@ -570,7 +575,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             });
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     tasks {
                         edges {
                             node {
@@ -598,8 +604,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
         {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata")
-                .UseConnectionPaging(defaultPageSize: 2);
+            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
             schema.UpdateType<Project>(type =>
             {
                 type.AddField("lastUpdated", "Return last updated timestamp")
@@ -608,7 +613,8 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             });
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     A: tasks {
                         B: edges {
                             C: node {
@@ -645,26 +651,33 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 data.People[i].Height = i % 2 == 0 ? 100 : 200;
             }
 
-            // This will create a ConnectionEdge<Person> type 
-            // the issue was the Field for ConnectionEdge<Person>.Items created once for that type has 
+            // This will create a ConnectionEdge<Person> type
+            // the issue was the Field for ConnectionEdge<Person>.Items created once for that type has
             // UseArgumentsFromField set to peopleUnder when we want to query with peopleOver args
             // We can't share the ConnectionEdge<Person> type if the field has other arguments
 
-            schema.Query().AddField("peopleOver", new
-            {
-                over = ArgumentHelper.Required<int>()
-            },
-            (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema
+                .Query()
+                .AddField(
+                    "peopleOver",
+                    new { over = ArgumentHelper.Required<int>() },
+                    (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id),
+                    "Return list of people with paging metadata"
+                )
                 .UseConnectionPaging();
-            schema.Query().AddField("peopleUnder", new
-            {
-                under = ArgumentHelper.Required<int>()
-            },
-                (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id), "Return list of people with paging metadata")
+            schema
+                .Query()
+                .AddField(
+                    "peopleUnder",
+                    new { under = ArgumentHelper.Required<int>() },
+                    (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id),
+                    "Return list of people with paging metadata"
+                )
                 .UseConnectionPaging();
             var gql = new QueryRequest
             {
-                Query = @"{
+                Query =
+                    @"{
                     peopleOver(over: 120, first: 1) {
                         totalCount
                         edges {
@@ -691,35 +704,14 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                 new Project
                 {
                     Id = 99,
-                    Name ="Project 1",
+                    Name = "Project 1",
                     Tasks =
                     [
-                        new Task
-                        {
-                            Id = 0,
-                            Name = "Task 1"
-                        },
-                        new Task
-                        {
-                            Id = 1,
-                            Name = "Task 2"
-                        },
-                        new Task
-                        {
-                            Id = 2,
-                            Name = "Task 3"
-                        },
-                        new Task
-                        {
-                            Id = 3,
-                            Name = "Task 4"
-                        },
-                        new Task
-                        {
-                            Id = 4,
-                            Name = "Task 5"
-                        },
-
+                        new Task { Id = 0, Name = "Task 1" },
+                        new Task { Id = 1, Name = "Task 2" },
+                        new Task { Id = 2, Name = "Task 3" },
+                        new Task { Id = 3, Name = "Task 4" },
+                        new Task { Id = 4, Name = "Task 5" },
                     ]
                 }
             ];
@@ -727,14 +719,7 @@ namespace EntityGraphQL.Tests.ConnectionPaging
 
         private static void FillData(TestDataContext data)
         {
-            data.People = new()
-            {
-                MakePerson("Bill", "Murray"),
-                MakePerson("John", "Frank"),
-                MakePerson("Cheryl", "Crow"),
-                MakePerson("Jill", "Castle"),
-                MakePerson("Jack", "Snider"),
-            };
+            data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
         }
 
         private static Person MakePerson(string fname, string lname)

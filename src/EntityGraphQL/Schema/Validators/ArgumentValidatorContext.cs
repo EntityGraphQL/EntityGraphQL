@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Reflection;
 
 namespace EntityGraphQL.Schema;
+
 public class ArgumentValidatorContext
 {
     private readonly List<string> errors = new();
+
     public ArgumentValidatorContext(IField field, object? argumentValues, MethodInfo? method = null)
     {
         Field = field;
@@ -26,10 +28,14 @@ public class ArgumentValidatorContext
     /// Information about the field as defined in the schema.
     /// </summary>
     public IField Field { get; }
+
     /// <summary>
     /// List of error messages that will be added to the result
     /// </summary>
-    public IReadOnlyList<string> Errors { get => errors; }
+    public IReadOnlyList<string> Errors
+    {
+        get => errors;
+    }
 
     /// <summary>
     /// Add an error message to the result. This will prevent execution of the query

@@ -68,7 +68,7 @@ namespace EntityGraphQL.Schema
             {
                 markedRequired = true;
                 argType = gqlLookupType = gqlLookupType.GetGenericArguments()[0];
-                // default value will often be the default value of the non-null type (e.g. 0 for int). 
+                // default value will often be the default value of the non-null type (e.g. 0 for int).
                 // We are saying here it must be provided by the query
                 defaultValue = null;
             }
