@@ -1,3 +1,9 @@
+# 5.4.2
+
+## Fixes
+
+- #393 - handle `DateTimeOffset` in filter expressions
+
 # 5.4.1
 
 ## Fixes

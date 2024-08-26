@@ -55,6 +55,10 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                 right = ConvertToDateTime(right);
             else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
                 left = ConvertToDateTime(left);
+            else if (left.Type == typeof(DateTimeOffset) || left.Type == typeof(DateTimeOffset?) && right.Type == typeof(string))
+                right = ConvertToDateTimeOffset(right);
+            else if (right.Type == typeof(DateTimeOffset) || right.Type == typeof(DateTimeOffset?) && left.Type == typeof(string))
+                left = ConvertToDateTimeOffset(left);
             else if (left.Type.IsEnum && right.Type == typeof(string))
                 right = ConvertToEnum(right, left.Type);
             else if (right.Type.IsEnum && left.Type == typeof(string))
@@ -80,6 +84,11 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             left = Expression.Convert(left, right.Type);
 
         return Expression.MakeBinary(op, left, right);
+    }
+
+    private static MethodCallExpression ConvertToDateTimeOffset(Expression expression)
+    {
+        return Expression.Call(typeof(DateTimeOffset), nameof(DateTimeOffset.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
     }
 
     private static MethodCallExpression ConvertToDateTime(Expression expression)

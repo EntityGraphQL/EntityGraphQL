@@ -268,19 +268,40 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryWorksWithDateTimes(string dateValue)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
-        schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
         var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, executionOptions);
         var list = new List<Entry>
         {
-            new("First") { When = new DateTime(2020, 08, 10) },
+            new("First") { When = new DateTime(2020, 08, 10, 0, 0, 0) },
             new("Second") { When = new DateTime(2020, 08, 11, 13, 21, 11) },
-            new("Third") { When = new DateTime(2020, 08, 12, 13, 22, 11) }
+            new("Third") { When = new DateTime(2020, 08, 12, 13, 22, 11) },
         };
-        Assert.Equal(3, list.Count());
+        Assert.Equal(3, list.Count);
         var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
 
         Assert.Single(results);
         Assert.Equal("Third", results.ElementAt(0).Message);
+    }
+
+    [Theory]
+    // If <Offset> is missing, its default value is the offset of the local time zone. so running them locally will fail
+    [InlineData("\"2020-08-11T13:22:11+0000\"", 1)]
+    [InlineData("\"2020-08-11 13:22:11.3000003+0000\"", 1)]
+    public void TestEntityQueryWorksWithDateTimeOffsets(string dateValue, int count)
+    {
+        var schemaProvider = SchemaBuilder.FromObject<Entry>();
+        var compiledResult = EntityQueryCompiler.Compile($"whenOffset >= {dateValue}", schemaProvider, executionOptions);
+        var list = new List<Entry>
+        {
+            new("First") { WhenOffset = new DateTimeOffset(2020, 08, 10, 0, 0, 0, TimeSpan.FromTicks(0)) },
+            new("Second") { WhenOffset = new DateTimeOffset(2020, 08, 11, 13, 21, 11, TimeSpan.FromTicks(0)) },
+            new("Third") { WhenOffset = new DateTimeOffset(2020, 08, 12, 13, 22, 11, TimeSpan.FromTicks(0)) }
+        };
+        Assert.Equal(3, list.Count);
+        var filter = (Func<Entry, bool>)compiledResult.LambdaExpression.Compile();
+        var results = list.Where(filter);
+
+        Assert.Equal(count, results.Count());
+        Assert.Equal("Third", results.Last().Message);
     }
 
     [Fact]
@@ -397,6 +418,7 @@ public class EntityQueryCompilerTests
         }
 
         public DateTime When { get; set; }
+        public DateTimeOffset WhenOffset { get; set; }
         public string Message { get; set; }
     }
 
