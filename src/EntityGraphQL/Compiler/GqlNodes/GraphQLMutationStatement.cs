@@ -26,7 +26,8 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         List<GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
-        QueryVariables? variables
+        QueryVariables? variables,
+        QueryRequestContext requestContext
     )
         where TContext : default
     {
@@ -43,7 +44,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
         // When we are building/executing the selection on the mutation result services are handled
-        CompileContext compileContext = new(options, null);
+        CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
             try

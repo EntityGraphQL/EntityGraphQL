@@ -3,6 +3,7 @@
 ## Fixes
 
 - #393 - handle `DateTimeOffset` in filter expressions
+- #398 - make sure user credentials are not cached if using the compiled query cache
 
 # 5.4.1
 

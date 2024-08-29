@@ -19,7 +19,8 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         List<GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
-        QueryVariables? variables
+        QueryVariables? variables,
+        QueryRequestContext requestContext
     )
         where TContext : default
     {
@@ -30,6 +31,6 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
             if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)
                 return Task.FromResult(result);
         }
-        return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables);
+        return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext);
     }
 }

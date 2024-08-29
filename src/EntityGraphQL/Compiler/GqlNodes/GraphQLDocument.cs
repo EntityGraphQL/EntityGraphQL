@@ -67,9 +67,16 @@ public class GraphQLDocument : IGraphQLNode
 
     public ISchemaProvider Schema { get; }
 
-    public QueryResult ExecuteQuery<TContext>(TContext context, IServiceProvider? services, QueryVariables? variables, string? operationName = null, ExecutionOptions? options = null)
+    public QueryResult ExecuteQuery<TContext>(
+        TContext context,
+        IServiceProvider? services,
+        QueryVariables? variables,
+        string? operationName = null,
+        QueryRequestContext? requestContext = null,
+        ExecutionOptions? options = null
+    )
     {
-        return ExecuteQueryAsync(context, services, variables, operationName, options).GetAwaiter().GetResult();
+        return ExecuteQueryAsync(context, services, variables, operationName, requestContext, options).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -88,6 +95,7 @@ public class GraphQLDocument : IGraphQLNode
         IServiceProvider? serviceProvider,
         QueryVariables? variables,
         string? operationName,
+        QueryRequestContext? requestContext,
         ExecutionOptions? options = null
     )
     {
@@ -102,7 +110,17 @@ public class GraphQLDocument : IGraphQLNode
         // execute the selected operation
         options ??= new ExecutionOptions(); // defaults
 
-        result.SetData(await op.ExecuteAsync(overwriteContext, serviceProvider, Fragments, Schema.SchemaFieldNamer, options, variables));
+        result.SetData(
+            await op.ExecuteAsync(
+                overwriteContext,
+                serviceProvider,
+                Fragments,
+                Schema.SchemaFieldNamer,
+                options,
+                variables,
+                requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
+            )
+        );
 
         if (validator?.Errors.Count > 0)
             result.AddErrors(validator.Errors);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.AspNet.WebSockets;
 
@@ -37,7 +38,12 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
     {
         try
         {
-            var data = subscriptionStatement.ExecuteSubscriptionEvent<TQueryContext, TEventType>(subscriptionNode, value, server.Context.RequestServices);
+            var data = subscriptionStatement.ExecuteSubscriptionEvent<TQueryContext, TEventType>(
+                subscriptionNode,
+                value,
+                server.Context.RequestServices,
+                new QueryRequestContext(subscriptionStatement.Schema.AuthorizationService, server.Context.User)
+            );
             var result = new QueryResult();
             result.SetData(new Dictionary<string, object?> { { subscriptionNode.Name, data } });
             server.SendNextAsync(OperationId, result).GetAwaiter().GetResult();

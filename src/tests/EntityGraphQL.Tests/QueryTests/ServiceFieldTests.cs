@@ -1348,7 +1348,7 @@ public class ServiceFieldTests
         var context = new TestDataContext();
         context.FillWithTestData();
 
-        var doc = new GraphQLCompiler(schema).Compile(gql, new QueryRequestContext(null, null));
+        var doc = new GraphQLCompiler(schema).Compile(gql);
 
         Assert.Single(doc.Operations);
         Assert.Single(doc.Operations[0].QueryFields);
@@ -1381,13 +1381,13 @@ public class ServiceFieldTests
 
         // what we want to test here is that ctx.People.FirstOrDefault().Id is pulled up into the pre-services expression
         var graphQLCompiler = new GraphQLCompiler(schema);
-        var compiledQuery = graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
+        var compiledQuery = graphQLCompiler.Compile(gql);
         var query = compiledQuery.Operations[0];
         var node = query.QueryFields[0];
 
         // first stage without services
         var expression = node.GetNodeExpression(
-            new CompileContext(new ExecutionOptions(), null),
+            new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)),
             serviceCollection.BuildServiceProvider(),
             [],
             query.OpVariableParameter,

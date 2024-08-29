@@ -69,7 +69,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         List<GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
-        QueryVariables? variables
+        QueryVariables? variables,
+        QueryRequestContext requestContext
     )
     {
         if (context == null && serviceProvider == null)
@@ -99,7 +100,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #endif
                 var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(options, null), contextToUse, serviceProvider, fragments, fieldNode, docVariables);
+                (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(options, null, requestContext), contextToUse, serviceProvider, fragments, fieldNode, docVariables);
 #if DEBUG
                 if (options.IncludeDebugInfo)
                 {
@@ -211,7 +212,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var bulkData = ResolveBulkLoaders(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                 // new context
-                compileContext = new(compileContext.ExecutionOptions, bulkData);
+                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext);
 
                 // we now know the selection type without services and need to build the full select on that type
                 // need to rebuild the full query

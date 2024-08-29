@@ -138,7 +138,7 @@ namespace EntityGraphQL.AspNet.Tests
                 new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
             );
 
-            var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
+            var claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
             var gql = new QueryRequest
             {
                 Query =
@@ -149,7 +149,8 @@ namespace EntityGraphQL.AspNet.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'type' field on type 'Project'.", result.Errors!.First().Message);
+            Assert.NotNull(result.Errors);
+            Assert.Equal("Field 'projects' - You are not authorized to access the 'type' field on type 'Project'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
@@ -180,7 +181,7 @@ namespace EntityGraphQL.AspNet.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors!.First().Message);
+            Assert.Equal("Field 'projects' - You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
@@ -213,7 +214,7 @@ namespace EntityGraphQL.AspNet.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors!.First().Message);
+            Assert.Equal("Field 'tasks' - You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors!.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, new ClaimsPrincipal(claims));

@@ -31,7 +31,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         List<GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
-        QueryVariables? variables
+        QueryVariables? variables,
+        QueryRequestContext requestContext
     )
         where TContext : default
     {
@@ -50,7 +51,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                 return result;
         }
 
-        CompileContext compileContext = new(options, null);
+        CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
             try
@@ -110,16 +111,16 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         return new GraphQLSubscribeResult(returnType, result, this, node);
     }
 
-    public object? ExecuteSubscriptionEvent<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue, IServiceProvider serviceProvider)
+    public object? ExecuteSubscriptionEvent<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue, IServiceProvider serviceProvider, QueryRequestContext requestContext)
     {
-        return ExecuteSubscriptionEventAsync<TQueryContext, TType>(node, eventValue, serviceProvider).GetAwaiter().GetResult();
+        return ExecuteSubscriptionEventAsync<TQueryContext, TType>(node, eventValue, serviceProvider, requestContext).GetAwaiter().GetResult();
     }
 
-    public Task<object?> ExecuteSubscriptionEventAsync<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue, IServiceProvider serviceProvider)
+    public Task<object?> ExecuteSubscriptionEventAsync<TQueryContext, TType>(GraphQLSubscriptionField node, TType eventValue, IServiceProvider serviceProvider, QueryRequestContext requestContext)
     {
         var context = (TQueryContext)serviceProvider.GetRequiredService(typeof(TQueryContext));
 
-        var result = MakeSelectionFromResultAsync(new CompileContext(options!, null), node, node.ResultSelection!, context, serviceProvider, fragments!, docVariables, eventValue);
+        var result = MakeSelectionFromResultAsync(new CompileContext(options!, null, requestContext), node, node.ResultSelection!, context, serviceProvider, fragments!, docVariables, eventValue);
         return result;
     }
 

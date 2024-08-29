@@ -13,11 +13,12 @@ namespace EntityGraphQL.Compiler
         private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
         private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
 
-        public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData)
+        public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData, QueryRequestContext requestContext)
         {
             BulkData = bulkData;
             BulkParameter = bulkData != null ? Expression.Parameter(bulkData.GetType(), "bulkData") : null;
             ExecutionOptions = options;
+            RequestContext = requestContext;
         }
 
         public List<ParameterExpression> Services
@@ -32,6 +33,7 @@ namespace EntityGraphQL.Compiler
         public Dictionary<string, object>? BulkData { get; }
         public ParameterExpression? BulkParameter { get; }
         public ExecutionOptions ExecutionOptions { get; }
+        public QueryRequestContext RequestContext { get; }
 
         public void AddServices(IEnumerable<ParameterExpression> services)
         {

@@ -41,7 +41,7 @@ namespace Benchmarks
         [Benchmark]
         public void FirstStageCompile()
         {
-            graphQLCompiler.Compile(gql, new QueryRequestContext(null, null));
+            graphQLCompiler.Compile(gql);
         }
 
         [Benchmark]
