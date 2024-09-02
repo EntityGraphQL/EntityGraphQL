@@ -157,6 +157,8 @@ namespace EntityGraphQL.Compiler
             if (fieldNode == null)
                 return null;
 
+            CheckFieldAccess(compileContext.RequestContext);
+
             return ((BaseGraphQLField)fieldNode).GetFieldExpression(
                 compileContext,
                 serviceProvider,
@@ -390,6 +392,23 @@ namespace EntityGraphQL.Compiler
                 return node.OpName;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Throws exception if the user does not have access to the field or the return type
+        /// </summary>
+        /// <param name="requestContext"></param>
+        internal void CheckFieldAccess(QueryRequestContext requestContext)
+        {
+            if (Field == null || ParentNode == null)
+                return;
+
+            var field = Field.FromType?.GetField(Field.Name, requestContext);
+            if (field != null)
+            {
+                // check type
+                Schema.CheckTypeAccess(field.ReturnType.SchemaType, requestContext);
+            }
         }
     }
 

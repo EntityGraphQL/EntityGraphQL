@@ -18,7 +18,6 @@ namespace EntityGraphQL.Compiler
     {
         private readonly ISchemaProvider schemaProvider;
         private readonly QueryVariables variables;
-        private readonly QueryRequestContext requestContext;
         private ExecutableGraphQLStatement? currentOperation;
 
         /// <summary>
@@ -27,9 +26,8 @@ namespace EntityGraphQL.Compiler
         /// <value></value>
         public GraphQLDocument? Document { get; private set; }
 
-        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryVariables? variables, QueryRequestContext context)
+        public EntityGraphQLQueryWalker(ISchemaProvider schemaProvider, QueryVariables? variables)
         {
-            this.requestContext = context;
             this.schemaProvider = schemaProvider;
             variables ??= new QueryVariables();
             this.variables = variables;
@@ -176,9 +174,8 @@ namespace EntityGraphQL.Compiler
             if (context.NextFieldContext == null)
                 throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
 
-            var schemaType =
-                context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
-            var actualField = schemaType.GetField(node.Name.Value, requestContext);
+            var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, context.Field?.FromType.GqlType == GqlTypes.InputObject, null);
+            var actualField = schemaType.GetField(node.Name.Value, null);
 
             var args = node.Arguments != null ? ProcessArguments(actualField, node.Arguments) : null;
             var resultName = node.Alias?.Value ?? actualField.Name;
@@ -305,7 +302,7 @@ namespace EntityGraphQL.Compiler
             {
                 // yes we can
                 // rebuild the Expression so we keep any ConstantParameters
-                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, context.Field?.FromType.GqlType == GqlTypes.InputObject, requestContext);
+                var returnType = schemaProvider.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, context.Field?.FromType.GqlType == GqlTypes.InputObject, null);
                 // TODO this doubles the field visit
                 var collectionNode = BuildDynamicSelectOnCollection(fieldContext, listExp.Item1, returnType, name, context, selection, arguments);
                 return new GraphQLCollectionToSingleField(schemaProvider, collectionNode, graphQLNode, listExp.Item2!);
@@ -465,7 +462,7 @@ namespace EntityGraphQL.Compiler
 
             if (node.TypeCondition is not null && context is not null)
             {
-                var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, requestContext);
+                var type = schemaProvider.GetSchemaType(node.TypeCondition.Name.Value, null);
                 if (type != null)
                 {
                     var fragParameter = Expression.Parameter(type.TypeDotnet, $"frag_{type.Name}");

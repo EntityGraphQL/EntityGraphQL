@@ -89,13 +89,9 @@ namespace EntityGraphQL.Schema
         {
             if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
+                if (requestContext != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
-                if (
-                    requestContext != null
-                    && requestContext.AuthorizationService != null
-                    && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization)
-                )
+                if (requestContext != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
                     throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
 
                 return FieldsByName[identifier];
@@ -133,7 +129,7 @@ namespace EntityGraphQL.Schema
         {
             if (FieldsByName.TryGetValue(identifier, out var field))
             {
-                if (requestContext != null && requestContext.AuthorizationService != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
+                if (requestContext != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
                     return false;
 
                 return true;

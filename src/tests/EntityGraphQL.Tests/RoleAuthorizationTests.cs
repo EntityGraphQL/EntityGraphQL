@@ -87,7 +87,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'type' field on type 'Project'.", result.Errors.First().Message);
+            Assert.Equal("Field 'projects' - You are not authorized to access the 'type' field on type 'Project'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
@@ -111,7 +111,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
+            Assert.Equal("Field 'projects' - You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
@@ -135,7 +135,7 @@ namespace EntityGraphQL.Tests
             var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, null);
 
             Assert.NotNull(result.Errors);
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
+            Assert.Equal("Field 'projects' - You are not authorized to access the 'Project' type returned by field 'projects'.", result.Errors.First().Message);
         }
 
         [Fact]
@@ -156,7 +156,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors.First().Message);
+            Assert.Equal("Field 'tasks' - You are not authorized to access the 'Project' type returned by field 'project'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "admin") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
@@ -182,7 +182,7 @@ namespace EntityGraphQL.Tests
 
             var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
-            Assert.Equal("You are not authorized to access the 'description' field on type 'Task'.", result.Errors.First().Message);
+            Assert.Equal("Field 'tasks' - You are not authorized to access the 'description' field on type 'Task'.", result.Errors.First().Message);
 
             claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "can-description") }, "authed");
             result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));

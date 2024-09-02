@@ -256,14 +256,13 @@ namespace EntityGraphQL.Tests
         public void TestAliasDeep()
         {
             var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
-                @"
-        {
-        people { id
-        		projects {
-        			n: name
-        		}
-        	}
-        }"
+                @"{
+                people { id
+                        projects {
+                            n: name
+                        }
+                    }
+                }"
             );
 
             Assert.Single(tree.Operations.First().QueryFields);

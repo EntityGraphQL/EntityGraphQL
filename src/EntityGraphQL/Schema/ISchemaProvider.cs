@@ -79,5 +79,6 @@ namespace EntityGraphQL.Schema
         /// Throws an EntityGraphQLCompilerException if the schema is not valid
         /// </summary>
         void Validate();
+        ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext);
     }
 }
