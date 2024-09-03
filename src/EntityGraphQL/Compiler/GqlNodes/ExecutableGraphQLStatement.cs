@@ -183,7 +183,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var replacer = new ParameterReplacer();
         // For root/top level fields we need to first select the whole graph without fields that require services
-        // so that EF Core 3.1+ can run and optimise the query against the DB
+        // so that EF Core can run and optimize the query against the DB
         // We then select the full graph from that context
 
         if (node.RootParameter == null)

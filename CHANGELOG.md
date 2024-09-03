@@ -1,9 +1,15 @@
+# 5.4.3
+
+## Fixes
+
+- #399 - Serialize `null` values if the field is requested as per the GraphQL spec
+
 # 5.4.2
 
 ## Fixes
 
-- #393 - handle `DateTimeOffset` in filter expressions
-- #398 - make sure user credentials are not cached if using the compiled query cache
+- #393 - Handle `DateTimeOffset` in filter expressions
+- #398 - Make sure user credentials are not cached if using the compiled query cache
 
 # 5.4.1
 

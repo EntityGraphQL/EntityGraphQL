@@ -9,6 +9,8 @@ scalar Boolean
 scalar Char
 """Date with time scalar"""
 scalar Date
+"""Date value only scalar"""
+scalar DateOnly
 """DateTimeOffset scalar"""
 scalar DateTimeOffset
 """Float scalar"""
@@ -21,6 +23,8 @@ scalar Int
 scalar String
 """Represents a pair of strings"""
 scalar StringKeyValuePair
+"""Time value only scalar"""
+scalar TimeOnly
 
 """Directs the executor to include this field or fragment only when the `if` argument is true."""
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
