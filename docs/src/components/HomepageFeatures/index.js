@@ -9,8 +9,8 @@ const FeatureList = [
     title: '1. Define your schema',
     description: (
       <>
-      <p>EntityGraphQL was designed to get you up and running quickly. Expose your existing object graph (include an EF <code>DbContext</code>) or build your own schema.</p>
-      <p>EntityGraphQL can use reflection to generate your schema from your existing object graph - you can use attributes and options to control what is generated. Or you can create one from scratch only adding the types and fields you require.</p>
+      <p>EntityGraphQL was designed to get you up and running quickly. Expose your existing object graph (EF <code>DbContext</code> is supported) or build your own schema.</p>
+      <p>EntityGraphQL uses reflection to generate your schema from your existing object graph - you can use attributes and options to control what is generated. Or you can create one from scratch only adding the types and fields you require.</p>
       <p><Link className="button button--secondary" to="/docs/schema-creation">Learn more about schema creation</Link></p>
       </>
     ),
