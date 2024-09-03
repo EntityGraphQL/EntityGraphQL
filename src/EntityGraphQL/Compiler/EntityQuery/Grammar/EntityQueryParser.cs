@@ -59,11 +59,11 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowSign).Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
+    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowLeadingSign).Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
 
     // decimal point is required otherwise we want a long
     private static readonly Parser<IExpression> decimalExp = Terms
-        .Integer(NumberOptions.AllowSign)
+        .Integer(NumberOptions.AllowLeadingSign)
         .And(dot)
         .And(Terms.Integer(NumberOptions.None))
         .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
@@ -86,16 +86,16 @@ public sealed class EntityQueryParser
         var groupExpression = Between(openParen, expression, closeParen);
 
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
-        var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>());
+        var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>() as IReadOnlyList<IExpression>);
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(x => new IdentityExpression(x.Item1.ToString(), compileContext));
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(x => new IdentityExpression(x.Item1.ToString()!, compileContext));
 
         var constArray = openArray
             .And(Separated(comma, expression))
             .And(closeArray)
-            .Then<IExpression>(x => new EqlExpression(Expression.NewArrayInit(x.Item2.First().Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))));
+            .Then<IExpression>(x => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))));
 
-        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1.ToString(), x.Item2));
+        var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
 
         var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
 
@@ -156,7 +156,7 @@ public sealed class EntityQueryParser
         this.methodProvider = methodProvider;
     }
 
-    private static IExpression HandleBinary((IExpression, List<(string, IExpression)>) x, Expression? context)
+    private static IExpression HandleBinary((IExpression, IReadOnlyList<(string, IExpression)>) x, Expression? context)
     {
         var left = x.Item1;
         var binaryExp = left;

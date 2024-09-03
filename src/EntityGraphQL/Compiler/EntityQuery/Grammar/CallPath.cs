@@ -6,12 +6,12 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
-internal sealed class CallPath(List<IExpression> parts, CompileContext compileContext) : IExpression
+internal sealed class CallPath(IReadOnlyList<IExpression> parts, CompileContext compileContext) : IExpression
 {
-    private readonly List<IExpression> parts = parts;
+    private readonly IReadOnlyList<IExpression> parts = parts;
     private readonly CompileContext compileContext = compileContext;
 
-    public Type Type => parts.Last().Type;
+    public Type Type => parts[-1].Type;
 
     public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
@@ -42,7 +42,7 @@ internal sealed class CallPath(List<IExpression> parts, CompileContext compileCo
         IMethodProvider methodProvider,
         ref Expression currentContext,
         string name,
-        List<IExpression>? arguments,
+        IReadOnlyList<IExpression>? arguments,
         QueryRequestContext requestContext
     )
     {
