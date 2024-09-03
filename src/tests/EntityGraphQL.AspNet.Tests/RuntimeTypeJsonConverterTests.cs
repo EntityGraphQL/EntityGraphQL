@@ -36,38 +36,39 @@ public class RuntimeTypeJsonConverterTests
             Name = "Fred",
             NameField = "Included"
         };
-        var result = System.Text.Json.JsonSerializer.Serialize(item);
+        var result = JsonSerializer.Serialize(item);
         Assert.Equal("{\"Id\":1,\"E\":0}", result);
 
         var options = new JsonSerializerOptions();
         options.Converters.Add(new RuntimeTypeJsonConverter());
-        result = System.Text.Json.JsonSerializer.Serialize(item, options);
+        result = JsonSerializer.Serialize(item, options);
         Assert.Equal("{\"Name\":\"Fred\",\"Id\":1,\"E\":0}", result);
 
         options = new JsonSerializerOptions();
         options.Converters.Add(new RuntimeTypeJsonConverter());
         options.IncludeFields = true;
-        result = System.Text.Json.JsonSerializer.Serialize(item, options);
+        result = JsonSerializer.Serialize(item, options);
         Assert.Equal("{\"Name\":\"Fred\",\"Id\":1,\"E\":0,\"NameField\":\"Included\"}", result);
 
+        // DefaultGraphQLResponseSerializer sets camelCase and includes fields
         var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
         var memoryStream = new MemoryStream();
         graphqlResponseSerializer.SerializeAsync(memoryStream, item);
         result = Encoding.ASCII.GetString(memoryStream.ToArray());
-        Assert.Equal("{\"Name\":\"Fred\",\"Id\":1,\"E\":\"First\",\"NameField\":\"Included\"}", result);
+        Assert.Equal("{\"name\":\"Fred\",\"id\":1,\"e\":\"First\",\"nameField\":\"Included\"}", result);
     }
 
     [Fact]
     public void SerializeOffsetPage()
     {
-        var item = new OffsetPage<SubClass>(0, 0, 10) { Items = new List<SubClass>() };
+        var item = new OffsetPage<SubClass>(0, 0, 10) { Items = [] };
 
         var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
         var memoryStream = new MemoryStream();
         graphqlResponseSerializer.SerializeAsync(memoryStream, item);
         var result = Encoding.ASCII.GetString(memoryStream.ToArray());
 
-        Assert.Equal("{\"Items\":[],\"HasPreviousPage\":false,\"HasNextPage\":false,\"TotalItems\":0}", result);
+        Assert.Equal("{\"items\":[],\"hasPreviousPage\":false,\"hasNextPage\":false,\"totalItems\":0}", result);
     }
 
     [Fact]
@@ -144,7 +145,7 @@ public class RuntimeTypeJsonConverterTests
         options.Converters.Add(new RuntimeTypeJsonConverter());
         options.IncludeFields = true;
 
-        var result = System.Text.Json.JsonSerializer.Serialize(item, options);
+        var result = JsonSerializer.Serialize(item, options);
         Assert.Equal("{\"child\":{\"value\":3.4}}", result);
     }
 
@@ -181,6 +182,6 @@ public class RuntimeTypeJsonConverterTests
         var memoryStream = new MemoryStream();
         graphqlResponseSerializer.SerializeAsync(memoryStream, item);
         var result = Encoding.ASCII.GetString(memoryStream.ToArray());
-        Assert.Equal("{\"data\":{\"users\":[{\"Name\":\"Fred\",\"Id\":1,\"E\":\"First\",\"NameField\":\"Included\"},{\"Name\":\"Wilma\",\"Id\":2,\"E\":\"Second\",\"NameField\":null}]}}", result);
+        Assert.Equal("{\"data\":{\"users\":[{\"name\":\"Fred\",\"id\":1,\"e\":\"First\",\"nameField\":\"Included\"},{\"name\":\"Wilma\",\"id\":2,\"e\":\"Second\",\"nameField\":null}]}}", result);
     }
 }

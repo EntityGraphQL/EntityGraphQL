@@ -37,14 +37,14 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
             // if the value is an IEnumerable of any sorts, serialize it as a JSON array. Note that none of the properties of the IEnumerable are written, it is simply iterated over and serializes each object in the IEnumerable
             WriteIEnumerable(writer, value, options);
         }
-        else if (isNotString && value.GetType().IsClass)
+        else if (isNotString && value.GetType().IsClass && value is not IEnumerable)
         {
             // if the value is a reference type and not null, serialize it as a JSON object.
             WriteObject(writer, value, ref options);
         }
         else
         {
-            // otherwise just call the default serializer implementation of this Converter is asked to serialize anything not handled in the other two cases
+            // otherwise just call the default serializer implementation of this Converter is asked to serialize anything not handled in the other cases
             JsonSerializer.Serialize(writer, value, value.GetType(), options);
         }
     }
@@ -55,15 +55,25 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     /// <param name="writer">The writer to write to.</param>
     /// <param name="value">The value to convert to Json.</param>
     /// <param name="options">An object that specifies the serialization options to use.</param>
-    private void WriteDictionary(Utf8JsonWriter writer, IDictionary<string, object> value, ref JsonSerializerOptions options)
+    private static void WriteDictionary(Utf8JsonWriter writer, IDictionary<string, object> value, ref JsonSerializerOptions options)
     {
         writer.WriteStartObject();
 
         foreach (var key in value.Keys)
         {
             var propVal = value[key];
-            writer.WritePropertyName(key);
-            Write(writer, propVal, options);
+            var name = key;
+            if (options.PropertyNamingPolicy != null)
+            {
+                name = options.PropertyNamingPolicy.ConvertName(name);
+            }
+            writer.WritePropertyName(name);
+            if (propVal == null)
+            {
+                writer.WriteNullValue();
+                continue;
+            }
+            JsonSerializer.Serialize(writer, propVal, propVal.GetType(), options);
         }
 
         writer.WriteEndObject();
@@ -75,7 +85,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     /// <param name="writer">The writer to write to.</param>
     /// <param name="value">The value to convert to Json.</param>
     /// <param name="options">An object that specifies the serialization options to use.</param>
-    private void WriteObject(Utf8JsonWriter writer, object value, ref JsonSerializerOptions options)
+    private static void WriteObject(Utf8JsonWriter writer, object value, ref JsonSerializerOptions options)
     {
         var type = value.GetType();
 
@@ -84,8 +94,13 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
         foreach (var member in type.GetProperties())
         {
             object? propVal = member.GetValue(value);
-            writer.WritePropertyName(member.Name);
-            Write(writer, propVal, options);
+            var name = member.Name;
+            if (options.PropertyNamingPolicy != null)
+            {
+                name = options.PropertyNamingPolicy.ConvertName(name);
+            }
+            writer.WritePropertyName(name);
+            JsonSerializer.Serialize(writer, propVal, member.PropertyType, options);
         }
 
         if (options.IncludeFields)
@@ -93,8 +108,13 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
             foreach (var member in type.GetFields())
             {
                 object? propVal = member.GetValue(value);
-                writer.WritePropertyName(member.Name);
-                Write(writer, propVal, options);
+                var name = member.Name;
+                if (options.PropertyNamingPolicy != null)
+                {
+                    name = options.PropertyNamingPolicy.ConvertName(name);
+                }
+                writer.WritePropertyName(name);
+                JsonSerializer.Serialize(writer, propVal, member.FieldType, options);
             }
         }
 

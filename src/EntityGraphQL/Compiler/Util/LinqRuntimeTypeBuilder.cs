@@ -13,6 +13,7 @@ namespace EntityGraphQL.Compiler.Util;
 public static class LinqRuntimeTypeBuilder
 {
     public static readonly string DynamicAssemblyName = "EntityGraphQL.DynamicTypes";
+    public static readonly string DynamicTypePrefix = "Dynamic_";
     private static readonly AssemblyName assemblyName = new() { Name = DynamicAssemblyName };
     private static readonly ModuleBuilder moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(assemblyName.Name);
     private static readonly Dictionary<string, Type> builtTypes = [];
@@ -22,10 +23,7 @@ public static class LinqRuntimeTypeBuilder
     private static readonly Dictionary<string, string> typesByFullName = [];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetTypeKey(Dictionary<string, Type> fields)
-    {
-        return fields.OrderBy(f => f.Key).Aggregate("Dynamic_", (current, field) => current + field.Key + field.Value.GetHashCode());
-    }
+    private static string GetTypeKey(Dictionary<string, Type> fields) => fields.OrderBy(f => f.Key).Aggregate(DynamicTypePrefix, (current, field) => current + field.Key + field.Value.GetHashCode());
 
     /// <summary>
     /// Build a dynamic type based on the fields. Types are cached so they only are created once
@@ -50,7 +48,7 @@ public static class LinqRuntimeTypeBuilder
         {
             if (!typesByFullName.TryGetValue(classFullName, out var classId))
             {
-                classId = $"Dynamic_{(description != null ? $"{description}_" : "")}{Guid.NewGuid()}";
+                classId = $"{DynamicTypePrefix}{(description != null ? $"{description}_" : "")}{Guid.NewGuid()}";
                 typesByFullName[classFullName] = classId;
             }
 

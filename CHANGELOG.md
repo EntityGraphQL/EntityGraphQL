@@ -3,6 +3,7 @@
 ## Fixes
 
 - #399 - Serialize `null` values if the field is requested as per the GraphQL spec
+- Make sure the naming policy set in `DefaultGraphQLResponseSerializer` is used for all fields
 
 # 5.4.2
 

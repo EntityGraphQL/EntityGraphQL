@@ -122,7 +122,9 @@ var jsonOptions = new JsonSerializerOptions
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // match common JSON style and fits with many GraphQL tools
 };
 // Convert ENUMs to their string names
-var jsonOptions.Converters.Add(new JsonStringEnumConverter());
+jsonOptions.Converters.Add(new JsonStringEnumConverter());
+// this handles the dynamic/runtime types created when compiling queries
+jsonOptions.Converters.Add(new RuntimeTypeJsonConverter());
 ```
 
 You can quickly overwrite the default JSON options without implementing your own `IGraphQLResponseSerializer` and/or `IGraphQLRequestDeserializer`.
