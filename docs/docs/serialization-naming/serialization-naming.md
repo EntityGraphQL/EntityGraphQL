@@ -1,27 +1,27 @@
 # Serialization & Field Naming
 
-_GraphQL is case-sensitive_. Currently EntityGraphQL will automatically turn field and argument names from `UpperCase` to `camelCase` when you use the helper methods to create a schema with the default options. This means your C# code matches what C# code typically looks like and your GraphQL matches the GraphQL norm too.
+_GraphQL is case-sensitive_. EntityGraphQL will automatically turn field and argument names from `UpperCase` to `camelCase` when you use the helper methods to create a schema with the default options. This means your C# code matches what C# code typically looks like and your GraphQL matches the GraphQL norm.
 
 Examples:
 
 - A mutation method in C# named `AddMovie` will be `addMovie` in the schema
-- A root field entity named `Movie` will be named `movie` in the schema
+- A field entity named `Movie` will be named `movie` in the schema
 - A mutation arguments class (`ActorArgs`) with fields `FirstName` & `Id` will be arguments in the schema as `firstName` & `id`
 - If you're using the schema builder manually, the names you give will be the names used. E.g. `schemaProvider.AddField("someField", ...)` is different to `schemaProvider.AddField("SomeField", ...)`
 
 ## Serializing Inherited Types
 
-In versions prior to .NET 7, System.Text.Json doesn't support the serialization of polymorphic type hierarchies. For example, if a property's type is an interface or an abstract class, only the properties defined on the interface or abstract/union class are serialized, even if the runtime type has additional properties.
+In versions prior to .NET 7, `System.Text.Json` doesn't support the serialization of polymorphic type hierarchies. For example, if a property's type is an interface or an abstract class, only the properties defined on the interface or abstract/union class are serialized, even if the runtime type has additional properties.
 
-For this reason EntityGraphQL registers a RuntimeTypeJsonConverter class as part of the DefaultGraphQLResponseSerializer (credit to litleAndroidMan from https://stackoverflow.com/a/71074354/629083).
+For this reason EntityGraphQL registers a `RuntimeTypeJsonConverter` class as part of the `DefaultGraphQLResponseSerializer` (credit to litleAndroidMan from https://stackoverflow.com/a/71074354/629083).
 
-If you're overriding the DefaultGraphQLResponseSerializer or using System.Text.Json directly you can still use this class by registering it yourself.
+If you're overriding the `DefaultGraphQLResponseSerializer` or using `System.Text.Json` directly you can still use this class by registering it yourself.
 
 ```cs
-this.jsonOptions.Converters.Add(new RuntimeTypeJsonConverter<object>());
+jsonOptions.Converters.Add(new RuntimeTypeJsonConverter<object>());
 ```
 
-You can also disable it by passing in your own jsonOptions when you register/create DefaultGraphQLResponseSerializer.
+You can also disable it by passing in your own jsonOptions when you register/create `DefaultGraphQLResponseSerializer`.
 
 ## Override default naming
 
@@ -149,7 +149,8 @@ var jsonOptions = new JsonSerializerOptions
     // the internal generated types use fields so include this
     IncludeFields = true,
 };
-var jsonOptions.Converters.Add(new JsonStringEnumConverter());
+jsonOptions.Converters.Add(new JsonStringEnumConverter());
+jsonOptions.Converters.Add(new RuntimeTypeJsonConverter());
 services.AddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer(jsonOptions));
 services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer(jsonOptions));
 

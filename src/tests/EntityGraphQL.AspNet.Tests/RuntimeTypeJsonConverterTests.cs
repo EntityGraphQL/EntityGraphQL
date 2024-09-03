@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EntityGraphQL.AspNet.Extensions;
@@ -131,8 +132,39 @@ public class RuntimeTypeJsonConverterTests
         options.Converters.Add(new JsonStringEnumConverter());
         options.Converters.Add(new RuntimeTypeJsonConverter());
 
-        var result = System.Text.Json.JsonSerializer.Serialize(item, options);
+        var result = JsonSerializer.Serialize(item, options);
         Assert.Equal("{\"value\":false}", result);
+    }
+
+    [Fact]
+    public void SerializeStringWithDifferentEncoder()
+    {
+        var item = new { value = "Nick's coffee" };
+
+        var options = new JsonSerializerOptions
+        {
+            IncludeFields = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.Converters.Add(new RuntimeTypeJsonConverter());
+
+        var result = JsonSerializer.Serialize(item, options);
+        Assert.Equal("{\"value\":\"Nick's coffee\"}", result);
+    }
+
+    [Fact]
+    public void SerializeString()
+    {
+        var item = new { value = "Nick's coffee" };
+
+        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.Converters.Add(new RuntimeTypeJsonConverter());
+
+        var result = JsonSerializer.Serialize(item, options);
+        Assert.Equal("{\"value\":\"Nick\\u0027s coffee\"}", result);
     }
 
     [Fact]
