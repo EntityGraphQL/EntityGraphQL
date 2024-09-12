@@ -65,6 +65,11 @@ namespace EntityGraphQL.Schema
         /// </summary>
         public bool AddNonAttributedMethodsInControllers { get; set; }
 
+        /// <summary>
+        /// List of DataAnnotation types to ignore when reflecting members.
+        /// </summary>
+        public HashSet<Type> IgnoreDataAnnotations { get; set; } = new();
+
         public OnFieldCreated? OnFieldCreated { get; set; }
     }
 

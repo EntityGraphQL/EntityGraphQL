@@ -319,6 +319,12 @@ namespace EntityGraphQL.Schema
                 return false;
             }
 
+            foreach (var attribute in prop.GetCustomAttributes())
+            {
+                if (options.IgnoreDataAnnotations.Contains(attribute.GetType()))
+                    return false;
+            }
+
             return true;
         }
 

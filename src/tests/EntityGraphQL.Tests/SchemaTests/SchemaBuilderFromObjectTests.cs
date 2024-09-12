@@ -470,6 +470,30 @@ namespace EntityGraphQL.Tests
             Assert.Equal("Field 'hiddenField' not found on type 'Album'", error.Message);
         }
 
+        [Fact]
+        public void TestIgnoreDataAnnotations()
+        {
+            var options = new SchemaBuilderOptions
+            {
+                IgnoreDataAnnotations = new HashSet<Type> { typeof(CustomIgnoreAttribute) }
+            };
+            var schema = SchemaBuilder.FromObject<TestClassWithIgnoredAnnotation>(options);
+
+            Assert.True(schema.Type<TestClassWithIgnoredAnnotation>().HasField("normalField", null));
+            Assert.False(schema.Type<TestClassWithIgnoredAnnotation>().HasField("ignoredField", null));
+        }
+
+        private class CustomIgnoreAttribute : Attribute { }
+
+        private class TestClassWithIgnoredAnnotation
+        {
+            public string NormalField { get; set; }
+
+            [CustomIgnore]
+            public string IgnoredField { get; set; }
+        }
+
+
         private class TestIgnoreTypesSchema
         {
             public IEnumerable<A> As { get; }
