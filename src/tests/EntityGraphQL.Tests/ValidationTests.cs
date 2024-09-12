@@ -40,6 +40,30 @@ public class ValidationTests
     }
 
     [Fact]
+    public void TestValidationAttributesOnMutationArgsInline()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation Mutate {
+                addMovieInline(price: 150 rating: ""this is too long"") {
+                    id
+                }
+            }",
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
+        Assert.NotNull(results.Errors);
+        Assert.Equal(3, results.Errors.Count);
+        Assert.Equal("Field 'addMovieInline' - Title is required", results.Errors[0].Message);
+        Assert.Equal("Field 'addMovieInline' - Price must be between $1 and $100", results.Errors[1].Message);
+        Assert.Equal("Field 'addMovieInline' - Rating must be less than 5 characters", results.Errors[2].Message);
+    }
+
+    [Fact]
     public void TestValidationAttributesOnNestedMutationArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
@@ -456,6 +480,17 @@ internal class ValidationTestsMutations
     public static Expression<Func<ValidationTestsContext, Movie>> AddMovie(MovieArg movie)
     {
         var newMovie = new Movie { Id = new Random().Next(), Title = movie.Title, };
+        return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
+    }
+
+    [GraphQLMutation]
+    public static Expression<Func<ValidationTestsContext, Movie>> AddMovieInline(
+        [Required(ErrorMessage = "Title is required")] string title,
+        [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")] decimal price,
+        [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")] string rating
+    )
+    {
+        var newMovie = new Movie { Id = new Random().Next(), Title = title, };
         return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
     }
 

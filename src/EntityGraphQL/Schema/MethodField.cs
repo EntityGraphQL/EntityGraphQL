@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
-using EntityGraphQL.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Schema;
@@ -79,7 +77,7 @@ public abstract class MethodField : BaseField
 
         // args in the mutation method - may be arguments in the graphql schema, services injected
         var allArgs = new List<object>();
-        var argsToValidate = new List<object>();
+        var argsToValidate = new Dictionary<string, object>();
         object? argInstance = null;
         var validationErrors = new List<string>();
 
@@ -122,7 +120,7 @@ public abstract class MethodField : BaseField
                 argField.Validate(value, p.Name!, validationErrors);
 
                 allArgs.Add(value!);
-                argsToValidate.Add(value!);
+                argsToValidate.Add(p.Name!, value!);
             }
             else if (p.ParameterType == context.GetType())
             {

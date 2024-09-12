@@ -1,3 +1,10 @@
+# 5.4.4
+
+## Fixes
+
+- Argument validator was incorrectly traversing types and properties it shouldn't which could cause stack overflows for some types
+- Fix validating inline arguments for mutation methods
+
 # 5.4.3
 
 ## Fixes
