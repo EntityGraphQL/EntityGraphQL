@@ -1,3 +1,9 @@
+# 5.4.5
+
+## Fixes
+
+- Fix auth not correctly being checked for mutations or subscriptions. Issue was introduced in 5.4.2
+
 # 5.4.4
 
 ## Fixes

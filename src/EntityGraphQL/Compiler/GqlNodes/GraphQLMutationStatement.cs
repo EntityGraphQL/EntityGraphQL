@@ -112,6 +112,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         object? docVariables
     )
     {
+        BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
         if (context == null)
             return null;
         // run the mutation to get the context for the query select

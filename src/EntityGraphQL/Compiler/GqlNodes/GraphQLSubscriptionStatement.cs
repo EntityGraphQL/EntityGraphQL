@@ -67,7 +67,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                     }
 #endif
                     var contextToUse = GetContextToUse(context, serviceProvider!, node)!;
-                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options);
+                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options, requestContext);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -94,10 +94,20 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         return result;
     }
 
-    private async Task<object?> ExecuteAsync<TContext>(GraphQLSubscriptionField node, TContext context, IServiceProvider? serviceProvider, object? docVariables, ExecutionOptions executionOptions)
+    private async Task<object?> ExecuteAsync<TContext>(
+        GraphQLSubscriptionField node,
+        TContext context,
+        IServiceProvider? serviceProvider,
+        object? docVariables,
+        ExecutionOptions executionOptions,
+        QueryRequestContext requestContext
+    )
     {
         if (context == null)
             return null;
+
+        BaseGraphQLField.CheckFieldAccess(Schema, node.Field, requestContext);
+
         // execute the subscription set up method. It returns in IObservable<T>
         var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, executionOptions);
 

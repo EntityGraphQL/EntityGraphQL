@@ -60,8 +60,8 @@ namespace EntityGraphQL.Schema
         public bool AutoCreateInputTypes { get; set; } = true;
 
         /// <summary>
-        /// If true (default = false) Any public method in the mutation/subscription class will be added to the schema as a mutation/subsscription.
-        /// If false only methodds with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.
+        /// If true (default = false) Any public method in the mutation/subscription class will be added to the schema as a mutation/subscription.
+        /// If false only methods with GraphQLMutationAttribute/GraphQLSubscriptionAttribute will be added.
         /// </summary>
         public bool AddNonAttributedMethodsInControllers { get; set; }
 

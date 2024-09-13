@@ -190,6 +190,26 @@ namespace EntityGraphQL.Tests
             Assert.Null(result.Errors);
         }
 
+        [Fact]
+        public void TestMutationAuth()
+        {
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
+            schema.AddMutationsFrom<RolesMutations>();
+
+            var claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "not-admin")], "authed");
+            var gql = new QueryRequest { Query = @"mutation T { needsAuth }" };
+
+            var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.NotNull(result.Errors);
+            Assert.Equal("Field 'needsAuth' - You are not authorized to access the 'needsAuth' field on type 'Mutation'.", result.Errors.First().Message);
+
+            claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "can-mutate")], "authed");
+            result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.Null(result.Errors);
+        }
+
         internal class RolesDataContext
         {
             public IEnumerable<Project> Projects { get; set; } = new List<Project>();
@@ -218,6 +238,16 @@ namespace EntityGraphQL.Tests
             public string GetDescription()
             {
                 return "This is a description";
+            }
+        }
+
+        internal class RolesMutations
+        {
+            [GraphQLAuthorize("can-mutate")]
+            [GraphQLMutation]
+            public static bool NeedsAuth()
+            {
+                return true;
             }
         }
     }
