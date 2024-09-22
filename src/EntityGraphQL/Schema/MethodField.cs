@@ -100,9 +100,8 @@ public abstract class MethodField : BaseField
                 )!;
                 allArgs.Add(argInstance);
             }
-            else if (gqlRequestArgs != null && gqlRequestArgs.ContainsKey(p.Name!))
+            else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
-                var argField = Arguments[p.Name!];
                 var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {
@@ -117,7 +116,7 @@ public abstract class MethodField : BaseField
                     value = ExpressionUtil.ChangeType(value, argField.RawType, Schema, executionOptions);
                 }
 
-                argField.Validate(value, p.Name!, validationErrors);
+                argField.Validate(value, Name, validationErrors);
 
                 allArgs.Add(value!);
                 argsToValidate.Add(p.Name!, value!);
@@ -135,7 +134,7 @@ public abstract class MethodField : BaseField
             }
             else
             {
-                var argField = Arguments[p.Name!];
+                argField = Arguments[p.Name!];
                 if (argField.DefaultValue != null)
                 {
                     allArgs.Add(argField.DefaultValue);

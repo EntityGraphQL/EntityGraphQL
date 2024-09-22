@@ -1,3 +1,18 @@
+# 5.4.6
+
+## Fixes
+
+- Fix issue with inline arguments for mutation methods not being validated or trying to look for a service. e.g.
+
+```cs
+[GraphQLMutation]
+public static Expression<Func<MyContext, Movie>> AddMovie(
+    [Required(ErrorMessage = "Title is required")] string title,
+    [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")] decimal price,
+    [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")] string rating
+)
+```
+
 # 5.4.5
 
 ## Fixes

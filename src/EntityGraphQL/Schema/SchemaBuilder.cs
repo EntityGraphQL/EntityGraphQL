@@ -562,7 +562,7 @@ namespace EntityGraphQL.Schema
                 }
                 else
                 {
-                    arguments.Add(new FieldArgInfo(schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.DefaultValue)));
+                    arguments.Add(new FieldArgInfo(schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.HasDefaultValue ? item.DefaultValue : null)));
 
                     if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                     {

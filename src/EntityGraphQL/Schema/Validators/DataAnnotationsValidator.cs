@@ -32,7 +32,8 @@ namespace EntityGraphQL.Schema.Validators
                     if (param == null)
                         continue;
 
-                    if (asDict.TryGetValue(arg.Key, out var value))
+                    asDict.TryGetValue(arg.Key, out var value);
+                    if (value != null)
                     {
                         var customAttributes = param.GetCustomAttributes(typeof(ValidationAttribute), true).OfType<ValidationAttribute>();
                         if (customAttributes.Any())
@@ -48,18 +49,6 @@ namespace EntityGraphQL.Schema.Validators
                                     }
                                 });
                             }
-                        }
-                    }
-                    else
-                    {
-                        var reqAttr = param.GetCustomAttributes(typeof(RequiredAttribute), true).FirstOrDefault() as RequiredAttribute;
-                        if (reqAttr != null)
-                        {
-                            context.AddError(reqAttr.ErrorMessage ?? $"missing required argument '{param.Name}'");
-                        }
-                        else if (arg.Value.IsRequired && arg.Value.DefaultValue == null)
-                        {
-                            context.AddError($"missing required argument '{param.Name}'");
                         }
                     }
                 }
