@@ -183,6 +183,8 @@ public List<AllowedException> AllowedExceptions { get; set; } = new List<Allowed
     }
    ```
 
+   - `.IgnoreAttributes` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
+
 ### Adding all fields on a type
 
 `AddAllFields()` on the schema type will automatically add all the fields on that .NET type.
