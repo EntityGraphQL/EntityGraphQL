@@ -1,3 +1,9 @@
+# 5.5.0
+
+## Changes
+
+- Add `IgnoreAttributes` to `SchemaBuilderOptions` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
+
 # 5.4.6
 
 ## Fixes

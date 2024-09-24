@@ -321,7 +321,7 @@ namespace EntityGraphQL.Schema
 
             foreach (var attribute in prop.GetCustomAttributes())
             {
-                if (options.IgnoreDataAnnotations.Contains(attribute.GetType()))
+                if (options.IgnoreAttributes.Contains(attribute.GetType()))
                     return false;
             }
 
