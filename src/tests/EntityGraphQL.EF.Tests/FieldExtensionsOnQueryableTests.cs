@@ -42,7 +42,7 @@ public class FieldExtensionsOnQueryableTests
         var data = factory.CreateContext();
         serviceCollection.AddSingleton(data);
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        data.Movies.AddRange(new Movie { Id = 1, Name = "A New Hope" }, new Movie { Id = 2, Name = "The Empire Strike Back" }, new Movie { Id = 3, Name = "Return of the Jedi" });
+        data.Movies.AddRange(new Movie("A New Hope") { Id = 1 }, new Movie("The Empire Strike Back") { Id = 2 }, new Movie("Return of the Jedi") { Id = 3 });
         data.SaveChanges();
         var result = schema.ExecuteRequest(gql, serviceProvider, null);
         Assert.Null(result.Errors);
@@ -60,9 +60,9 @@ internal class ActorService
 {
     private static readonly IDictionary<int, IEnumerable<Actor>> peopleByMovies = new Dictionary<int, IEnumerable<Actor>>()
     {
-        [1] = [new() { Id = 1, Name = "Alec Guinness" }, new() { Id = 2, Name = "Mark Hamill" },],
-        [2] = [new() { Id = 1, Name = "Carrie Fisher" }, new() { Id = 2, Name = "Mark Hamill" },],
-        [3] = [new() { Id = 1, Name = "Harrison Ford" }, new() { Id = 2, Name = "Mark Hamill" },]
+        [1] = [new("Alec Guinness") { Id = 1 }, new("Mark Hamill") { Id = 2 },],
+        [2] = [new("Carrie Fisher") { Id = 1 }, new("Mark Hamill") { Id = 2 },],
+        [3] = [new("Harrison Ford") { Id = 1 }, new("Mark Hamill") { Id = 2 },]
     };
 
     public static IEnumerable<Actor> GetByMovie(int movieId)

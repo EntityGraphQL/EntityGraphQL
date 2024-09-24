@@ -1,9 +1,9 @@
 namespace EntityGraphQL.EF.Tests;
 
-public class ProjectConfig
+public class ProjectConfig(string type)
 {
     public int Id { get; set; }
-    public string Type { get; set; }
+    public string Type { get; set; } = type;
 }
 
 public class AgeService
@@ -40,7 +40,7 @@ public class ConfigService
     public ProjectConfig Get(int id)
     {
         CallCount += 1;
-        return new ProjectConfig { Type = "Something" };
+        return new ProjectConfig("Something");
     }
 
     public ProjectConfig[] GetList(int count, int from = 0)
@@ -49,7 +49,7 @@ public class ConfigService
         var configs = new List<ProjectConfig>();
         for (int i = from; i < from + count; i++)
         {
-            configs.Add(new ProjectConfig { Id = i, Type = $"Something {i}" });
+            configs.Add(new ProjectConfig($"Something {i}") { Id = i });
         }
         return configs.ToArray();
     }

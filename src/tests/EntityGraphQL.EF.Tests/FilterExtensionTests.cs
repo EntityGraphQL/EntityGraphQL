@@ -21,19 +21,9 @@ public class FilterExtensionTests
         };
         using var factory = new TestDbContextFactory();
         var data = factory.CreateContext();
-        var actor1 = new Actor
-        {
-            Id = 33,
-            Name = "Actor1",
-            Birthday = new DateTime(2024, 9, 9)
-        };
+        var actor1 = new Actor("Actor1") { Id = 33, Birthday = new DateTime(2024, 9, 9) };
         data.Add(actor1);
-        var actor2 = new Actor
-        {
-            Id = 98,
-            Name = "Actor2",
-            Birthday = new DateTime(2024, 9, 7)
-        };
+        var actor2 = new Actor("Actor2") { Id = 98, Birthday = new DateTime(2024, 9, 7) };
         data.Add(actor2);
         data.SaveChanges();
         Assert.Equal(2, data.Actors.Count());

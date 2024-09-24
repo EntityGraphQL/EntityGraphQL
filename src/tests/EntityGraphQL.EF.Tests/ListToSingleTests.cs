@@ -32,14 +32,7 @@ public class ListToSingleTests
         var data = factory.CreateContext();
         serviceCollection.AddSingleton(data);
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        data.Movies.AddRange(
-            new Movie
-            {
-                Id = 10,
-                Name = "A New Hope",
-                Actors = [new() { Id = 1, Name = "Alec Guinness" }, new() { Id = 2, Name = "Mark Hamill" }]
-            }
-        );
+        data.Movies.AddRange(new Movie("A New Hope") { Id = 10, Actors = [new("Alec Guinness") { Id = 1 }, new("Mark Hamill") { Id = 2 }] });
         data.SaveChanges();
         var result = schema.ExecuteRequest(gql, serviceProvider, null);
         Assert.Null(result.Errors);
@@ -77,8 +70,8 @@ public class ListToSingleTests
         data.Actors.AddRange(
             new List<Actor>
             {
-                new() { Id = 1, Name = "Alec Guinness" },
-                new() { Id = 2, Name = "Mark Hamill" }
+                new("Alec Guinness") { Id = 1 },
+                new("Mark Hamill") { Id = 2 }
             }
         );
         data.SaveChanges();

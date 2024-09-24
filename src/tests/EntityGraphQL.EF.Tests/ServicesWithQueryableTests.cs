@@ -38,14 +38,13 @@ public class ServicesWithQueryableTests
         var serviceProvider = serviceCollection.BuildServiceProvider();
         data.Database.EnsureCreated();
         data.Movies.AddRange(
-            new Movie
+            new Movie("A New Hope")
             {
                 Id = 10,
-                Name = "A New Hope",
                 Actors = new List<Actor>
                 {
-                    new() { Id = 1, Name = "Alec Guinness" },
-                    new() { Id = 2, Name = "Mark Hamill" }
+                    new("Alec Guinness") { Id = 1 },
+                    new("Mark Hamill") { Id = 2 }
                 }
             }
         );
@@ -88,14 +87,13 @@ public class ServicesWithQueryableTests
         serviceCollection.AddSingleton(data);
         var serviceProvider = serviceCollection.BuildServiceProvider();
         data.Movies.AddRange(
-            new Movie
+            new Movie("A New Hope")
             {
                 Id = 10,
-                Name = "A New Hope",
                 Actors = new List<Actor>
                 {
-                    new Actor { Id = 1, Name = "Alec Guinness" },
-                    new Actor { Id = 2, Name = "Mark Hamill" }
+                    new Actor("Alec Guinness") { Id = 1 },
+                    new Actor("Mark Hamill") { Id = 2 }
                 }
             }
         );
@@ -139,27 +137,8 @@ public class ServicesWithQueryableTests
         serviceCollection.AddTransient((sp) => factory.CreateContext());
         serviceCollection.AddSingleton(new ConfigService());
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        data.Directors.AddRange(new Director { Id = 31, Name = "George Lucas" }, new Director { Id = 32, Name = "George Lucas1" }, new Director { Id = 33, Name = "George Lucas2" });
-        data.Movies.AddRange(
-            new Movie
-            {
-                Id = 100,
-                Name = "A New Hope",
-                DirectorId = 31
-            },
-            new Movie
-            {
-                Id = 101,
-                Name = "A New Hope1",
-                DirectorId = 32
-            },
-            new Movie
-            {
-                Id = 102,
-                Name = "A New Hope2",
-                DirectorId = 33
-            }
-        );
+        data.Directors.AddRange(new Director("George Lucas") { Id = 31 }, new Director("George Lucas1") { Id = 32 }, new Director("George Lucas2") { Id = 33 });
+        data.Movies.AddRange(new Movie("A New Hope") { Id = 100, DirectorId = 31 }, new Movie("A New Hope1") { Id = 101, DirectorId = 32 }, new Movie("A New Hope2") { Id = 102, DirectorId = 33 });
         data.SaveChanges();
 
         var res = schema.ExecuteRequest(gql, serviceProvider, null);
@@ -192,22 +171,8 @@ public class ServicesWithQueryableTests
         var schema = SchemaBuilder.FromObject<TestDbContext>();
         using var factory = new TestDbContextFactory();
         var data = factory.CreateContext();
-        data.Actors.Add(
-            new Actor
-            {
-                Id = 1,
-                Name = "Jill",
-                Birthday = DateTime.Now.AddYears(-22)
-            }
-        );
-        data.Actors.Add(
-            new Actor
-            {
-                Id = 2,
-                Name = "Cheryl",
-                Birthday = DateTime.Now.AddYears(-10)
-            }
-        );
+        data.Actors.Add(new Actor("Jill") { Id = 1, Birthday = DateTime.Now.AddYears(-22) });
+        data.Actors.Add(new Actor("Cheryl") { Id = 2, Birthday = DateTime.Now.AddYears(-10) });
         data.SaveChanges();
 
         schema.Query().ReplaceField("actors", ctx => ctx.Actors, "Return list of people").UseFilter();
