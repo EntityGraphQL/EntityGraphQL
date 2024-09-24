@@ -7,24 +7,24 @@ using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace EntityGraphQL.Tests.ConnectionPaging
+namespace EntityGraphQL.Tests.ConnectionPaging;
+
+public class ConnectionPagingTests
 {
-    public class ConnectionPagingTests
+    private static int peopleCnt;
+
+    [Fact]
+    public void TestGetsAll()
     {
-        private static int peopleCnt;
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
 
-        [Fact]
-        public void TestGetsAll()
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people {
                         edges {
                             node {
@@ -41,40 +41,40 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(data.People.Count, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.False(people.pageInfo.hasNextPage);
-            Assert.False(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(data.People.Count, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.False(people.pageInfo.hasNextPage);
+        Assert.False(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(Enumerable.Count(people.edges));
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(Enumerable.Count(people.edges));
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestFirst()
+    [Fact]
+    public void TestFirst()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(first: 1) {
                         edges {
                             node {
@@ -91,40 +91,40 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(1, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.True(people.pageInfo.hasNextPage);
-            Assert.False(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(1, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.True(people.pageInfo.hasNextPage);
+        Assert.False(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = expectedFirstCursor;
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = expectedFirstCursor;
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestFirstAfter()
+    [Fact]
+    public void TestFirstAfter()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(first: 2 after: ""MQ=="") {
                         edges {
                             node {
@@ -141,40 +141,40 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.True(people.pageInfo.hasNextPage);
-            Assert.True(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(2, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.True(people.pageInfo.hasNextPage);
+        Assert.True(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(2);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(2);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestLast()
+    [Fact]
+    public void TestLast()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(last: 2) {
                         edges {
                             node {
@@ -191,40 +191,40 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.False(people.pageInfo.hasNextPage);
-            Assert.True(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(2, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.False(people.pageInfo.hasNextPage);
+        Assert.True(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(4);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(5);
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(4);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(5);
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestLastBefore()
+    [Fact]
+    public void TestLastBefore()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(last: 3 before: ""NA=="") {
                         edges {
                             node {
@@ -241,49 +241,49 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(3, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.True(people.pageInfo.hasNextPage);
-            Assert.False(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(3, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.True(people.pageInfo.hasNextPage);
+        Assert.False(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(3);
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestMergeArguments()
+    [Fact]
+    public void TestMergeArguments()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema
+            .Query()
+            .ReplaceField(
+                "people",
+                new { search = (string?)null },
+                (ctx, args) => ctx.People.WhereWhen(p => p.Name.Contains(args.search!) || p.LastName.Contains(args.search!), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Id),
+                "Return list of people with paging metadata"
+            )
+            .UseConnectionPaging();
+
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema
-                .Query()
-                .ReplaceField(
-                    "people",
-                    new { search = (string)null },
-                    (ctx, args) => ctx.People.WhereWhen(p => p.Name.Contains(args.search) || p.LastName.Contains(args.search), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Id),
-                    "Return list of people with paging metadata"
-                )
-                .UseConnectionPaging();
-
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(first: 1, search: ""ill"") {
                         edges {
                             node {
@@ -300,38 +300,38 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(1, Enumerable.Count(people.edges));
-            Assert.Equal(2, people.totalCount); // 2 "ill" matches
-            Assert.True(people.pageInfo.hasNextPage);
-            Assert.False(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(1, Enumerable.Count(people.edges));
+        Assert.Equal(2, people.totalCount); // 2 "ill" matches
+        Assert.True(people.pageInfo.hasNextPage);
+        Assert.False(people.pageInfo.hasPreviousPage);
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(1);
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(1);
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestDefaultPageSize()
+    [Fact]
+    public void TestDefaultPageSize()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(defaultPageSize: 2);
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(defaultPageSize: 2);
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people {
                         edges {
                             node {
@@ -348,40 +348,40 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         totalCount
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic people = result.Data["people"];
-            Assert.Equal(2, Enumerable.Count(people.edges));
-            Assert.Equal(data.People.Count, people.totalCount);
-            Assert.True(people.pageInfo.hasNextPage);
-            Assert.False(people.pageInfo.hasPreviousPage);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(2, Enumerable.Count(people.edges));
+        Assert.Equal(data.People.Count, people.totalCount);
+        Assert.True(people.pageInfo.hasNextPage);
+        Assert.False(people.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
-            Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+        Assert.Equal(expectedFirstCursor, people.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, people.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(people.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(people.edges).cursor);
+    }
 
-        [Fact]
-        public void TestMaxPageSizeFirst()
+    [Fact]
+    public void TestMaxPageSizeFirst()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(first: 5) {
                         edges {
                             node {
@@ -391,25 +391,25 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.NotNull(result.Errors);
-            Assert.Equal("Field 'people' - first argument can not be greater than 2.", result.Errors[0].Message);
-        }
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.NotNull(result.Errors);
+        Assert.Equal("Field 'people' - first argument can not be greater than 2.", result.Errors[0].Message);
+    }
 
-        [Fact]
-        public void TestMaxPageSizeLast()
+    [Fact]
+    public void TestMaxPageSizeLast()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging(maxPageSize: 2);
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(last: 5) {
                         edges {
                             node {
@@ -419,24 +419,24 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.NotNull(result.Errors);
-            Assert.Equal("Field 'people' - last argument can not be greater than 2.", result.Errors[0].Message);
-        }
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.NotNull(result.Errors);
+        Assert.Equal("Field 'people' - last argument can not be greater than 2.", result.Errors[0].Message);
+    }
 
-        [Fact]
-        public void TestAttribute()
+    [Fact]
+    public void TestAttribute()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext2>();
+        var data = new TestDataContext2();
+        FillData(data);
+
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext2>();
-            var data = new TestDataContext2();
-            FillData(data);
-
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     people(first: 4) {
                         edges {
                             node {
@@ -445,26 +445,26 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
-            dynamic people = result.Data["people"];
-            Assert.Equal(4, Enumerable.Count(people.edges));
-        }
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(4, Enumerable.Count(people.edges));
+    }
 
-        [Fact]
-        public void TestOnNonRoot()
+    [Fact]
+    public void TestOnNonRoot()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillProjectData(data);
+
+        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillProjectData(data);
-
-            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     projects {
                         name
                         tasks {
@@ -484,42 +484,42 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic projects = result.Data["projects"];
-            dynamic tasks = projects[0].tasks;
-            Assert.Equal(2, Enumerable.Count(tasks.edges));
-            Assert.Single(data.Projects);
-            Assert.Equal(5, tasks.totalCount);
-            Assert.True(tasks.pageInfo.hasNextPage);
-            Assert.False(tasks.pageInfo.hasPreviousPage);
+        dynamic projects = result.Data!["projects"]!;
+        dynamic tasks = projects[0].tasks;
+        Assert.Equal(2, Enumerable.Count(tasks.edges));
+        Assert.Single(data.Projects);
+        Assert.Equal(5, tasks.totalCount);
+        Assert.True(tasks.pageInfo.hasNextPage);
+        Assert.False(tasks.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
-            Assert.Equal(expectedFirstCursor, tasks.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, tasks.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(tasks.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(tasks.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+        Assert.Equal(expectedFirstCursor, tasks.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, tasks.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(tasks.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(tasks.edges).cursor);
+    }
 
-        [Fact]
-        public void TestOnNonRoot2()
+    [Fact]
+    public void TestOnNonRoot2()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillProjectData(data);
+
+        schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
+        var gql = new QueryRequest
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillProjectData(data);
-
-            schema.Type<Project>().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     project(id: 99) {
                         name
                         tasks {
@@ -539,44 +539,44 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
 
-            dynamic project = result.Data["project"];
-            Assert.Equal(2, Enumerable.Count(project.tasks.edges));
-            Assert.Equal(5, project.tasks.totalCount);
-            Assert.True(project.tasks.pageInfo.hasNextPage);
-            Assert.False(project.tasks.pageInfo.hasPreviousPage);
+        dynamic project = result.Data!["project"]!;
+        Assert.Equal(2, Enumerable.Count(project.tasks.edges));
+        Assert.Equal(5, project.tasks.totalCount);
+        Assert.True(project.tasks.pageInfo.hasNextPage);
+        Assert.False(project.tasks.pageInfo.hasPreviousPage);
 
-            // cursors MQ, Mg, Mw, NA, NQ
+        // cursors MQ, Mg, Mw, NA, NQ
 
-            // we have tests for (de)serialization of cursor we're checking the correct ones are used
-            var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
-            var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
-            Assert.Equal(expectedFirstCursor, project.tasks.pageInfo.startCursor);
-            Assert.Equal(expectedLastCursor, project.tasks.pageInfo.endCursor);
-            Assert.Equal(expectedFirstCursor, Enumerable.First(project.tasks.edges).cursor);
-            Assert.Equal(expectedLastCursor, Enumerable.Last(project.tasks.edges).cursor);
-        }
+        // we have tests for (de)serialization of cursor we're checking the correct ones are used
+        var expectedFirstCursor = ConnectionHelper.SerializeCursor(1);
+        var expectedLastCursor = ConnectionHelper.SerializeCursor(2);
+        Assert.Equal(expectedFirstCursor, project.tasks.pageInfo.startCursor);
+        Assert.Equal(expectedLastCursor, project.tasks.pageInfo.endCursor);
+        Assert.Equal(expectedFirstCursor, Enumerable.First(project.tasks.edges).cursor);
+        Assert.Equal(expectedLastCursor, Enumerable.Last(project.tasks.edges).cursor);
+    }
 
-        [Fact]
-        public void TestPagingOnObjectProjectThatHasServiceField()
+    [Fact]
+    public void TestPagingOnObjectProjectThatHasServiceField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
+        schema.UpdateType<Project>(type =>
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-
-            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
-            schema.UpdateType<Project>(type =>
-            {
-                type.AddField("lastUpdated", "Return last updated timestamp")
-                    // just need any service here to build the relation testing the use case
-                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
-            });
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            type.AddField("lastUpdated", "Return last updated timestamp")
+                // just need any service here to build the relation testing the use case
+                .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+        });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
                     tasks {
                         edges {
                             node {
@@ -587,34 +587,34 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var serviceCollection = new ServiceCollection();
-            var ager = new AgeService();
-            serviceCollection.AddSingleton(ager);
-            var data = new TestDataContext();
-            FillProjectData(data);
+        var serviceCollection = new ServiceCollection();
+        var ager = new AgeService();
+        serviceCollection.AddSingleton(ager);
+        var data = new TestDataContext();
+        FillProjectData(data);
 
-            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
-            Assert.Null(result.Errors);
-        }
+        var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(result.Errors);
+    }
 
-        [Fact]
-        public void TestPagingOnObjectProjectThatHasServiceField_WithAliases()
+    [Fact]
+    public void TestPagingOnObjectProjectThatHasServiceField_WithAliases()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
+        schema.UpdateType<Project>(type =>
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-
-            schema.Query().ReplaceField("tasks", ctx => ctx.Tasks.OrderBy(p => p.Id), "Return list of task with paging metadata").UseConnectionPaging(defaultPageSize: 2);
-            schema.UpdateType<Project>(type =>
-            {
-                type.AddField("lastUpdated", "Return last updated timestamp")
-                    // just need any service here to build the relation testing the use case
-                    .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
-            });
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            type.AddField("lastUpdated", "Return last updated timestamp")
+                // just need any service here to build the relation testing the use case
+                .Resolve<AgeService>((project, ageSrv) => project.Updated == null ? DateTime.MinValue : new DateTime(ageSrv.GetAgeAsync(project.Updated).Result));
+        });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
                     A: tasks {
                         B: edges {
                             C: node {
@@ -625,59 +625,59 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var serviceCollection = new ServiceCollection();
-            var ager = new AgeService();
-            serviceCollection.AddSingleton(ager);
-            var data = new TestDataContext();
-            FillProjectData(data);
+        var serviceCollection = new ServiceCollection();
+        var ager = new AgeService();
+        serviceCollection.AddSingleton(ager);
+        var data = new TestDataContext();
+        FillProjectData(data);
 
-            var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
-            Assert.Null(result.Errors);
+        var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(result.Errors);
+    }
+
+    [Fact]
+    public void TestMultiUseWithArgs()
+    {
+        // Issue #358
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        // make half short and half tall
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Height = i % 2 == 0 ? 100 : 200;
         }
 
-        [Fact]
-        public void TestMultiUseWithArgs()
+        // This will create a ConnectionEdge<Person> type
+        // the issue was the Field for ConnectionEdge<Person>.Items created once for that type has
+        // UseArgumentsFromField set to peopleUnder when we want to query with peopleOver args
+        // We can't share the ConnectionEdge<Person> type if the field has other arguments
+
+        schema
+            .Query()
+            .AddField(
+                "peopleOver",
+                new { over = ArgumentHelper.Required<int>() },
+                (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id),
+                "Return list of people with paging metadata"
+            )
+            .UseConnectionPaging();
+        schema
+            .Query()
+            .AddField(
+                "peopleUnder",
+                new { under = ArgumentHelper.Required<int>() },
+                (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id),
+                "Return list of people with paging metadata"
+            )
+            .UseConnectionPaging();
+        var gql = new QueryRequest
         {
-            // Issue #358
-            var schema = SchemaBuilder.FromObject<TestDataContext>();
-            var data = new TestDataContext();
-            FillData(data);
-
-            // make half short and half tall
-            for (var i = 0; i < data.People.Count; i++)
-            {
-                data.People[i].Height = i % 2 == 0 ? 100 : 200;
-            }
-
-            // This will create a ConnectionEdge<Person> type
-            // the issue was the Field for ConnectionEdge<Person>.Items created once for that type has
-            // UseArgumentsFromField set to peopleUnder when we want to query with peopleOver args
-            // We can't share the ConnectionEdge<Person> type if the field has other arguments
-
-            schema
-                .Query()
-                .AddField(
-                    "peopleOver",
-                    new { over = ArgumentHelper.Required<int>() },
-                    (ctx, args) => ctx.People.Where(p => p.Height > args.over).OrderBy(p => p.Id),
-                    "Return list of people with paging metadata"
-                )
-                .UseConnectionPaging();
-            schema
-                .Query()
-                .AddField(
-                    "peopleUnder",
-                    new { under = ArgumentHelper.Required<int>() },
-                    (ctx, args) => ctx.People.Where(p => p.Height < args.under).OrderBy(p => p.Id),
-                    "Return list of people with paging metadata"
-                )
-                .UseConnectionPaging();
-            var gql = new QueryRequest
-            {
-                Query =
-                    @"{
+            Query =
+                @"{
                     peopleOver(over: 120, first: 1) {
                         totalCount
                         edges {
@@ -687,62 +687,61 @@ namespace EntityGraphQL.Tests.ConnectionPaging
                         }
                     }
                 }",
-            };
+        };
 
-            var result = schema.ExecuteRequestWithContext(gql, data, null, null);
-            Assert.Null(result.Errors);
-            dynamic results = result.Data["peopleOver"];
-            Assert.Equal(1, Enumerable.Count(results.edges));
-            Assert.Equal(2, results.totalCount);
-            Assert.Equal(200, results.edges[0].node.height);
-        }
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+        dynamic results = result.Data!["peopleOver"]!;
+        Assert.Equal(1, Enumerable.Count(results.edges));
+        Assert.Equal(2, results.totalCount);
+        Assert.Equal(200, results.edges[0].node.height);
+    }
 
-        private static void FillProjectData(TestDataContext data)
-        {
-            data.Projects =
-            [
-                new Project
-                {
-                    Id = 99,
-                    Name = "Project 1",
-                    Tasks =
-                    [
-                        new Task { Id = 0, Name = "Task 1" },
-                        new Task { Id = 1, Name = "Task 2" },
-                        new Task { Id = 2, Name = "Task 3" },
-                        new Task { Id = 3, Name = "Task 4" },
-                        new Task { Id = 4, Name = "Task 5" },
-                    ]
-                }
-            ];
-        }
-
-        private static void FillData(TestDataContext data)
-        {
-            data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
-        }
-
-        private static Person MakePerson(string fname, string lname)
-        {
-            return new Person
+    private static void FillProjectData(TestDataContext data)
+    {
+        data.Projects =
+        [
+            new Project
             {
-                Id = peopleCnt++,
-                Name = fname,
-                LastName = lname
-            };
-        }
+                Id = 99,
+                Name = "Project 1",
+                Tasks =
+                [
+                    new Task { Id = 0, Name = "Task 1" },
+                    new Task { Id = 1, Name = "Task 2" },
+                    new Task { Id = 2, Name = "Task 3" },
+                    new Task { Id = 3, Name = "Task 4" },
+                    new Task { Id = 4, Name = "Task 5" },
+                ]
+            }
+        ];
+    }
 
-        private class TestDataContext2 : TestDataContext
-        {
-            [UseConnectionPaging]
-            public override List<Person> People { get; set; } = new List<Person>();
-        }
+    private static void FillData(TestDataContext data)
+    {
+        data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
+    }
 
-        [Fact]
-        public void IdPropertyStillGenerated()
+    private static Person MakePerson(string fname, string lname)
+    {
+        return new Person
         {
-            var schema = SchemaBuilder.FromObject<TestDataContext2>();
-            Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
-        }
+            Id = peopleCnt++,
+            Name = fname,
+            LastName = lname
+        };
+    }
+
+    private class TestDataContext2 : TestDataContext
+    {
+        [UseConnectionPaging]
+        public override List<Person> People { get; set; } = new List<Person>();
+    }
+
+    [Fact]
+    public void IdPropertyStillGenerated()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext2>();
+        Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
     }
 }

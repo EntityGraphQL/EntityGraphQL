@@ -20,7 +20,7 @@ public class TestDataContext
     public int TotalPeople => People.Count;
 
     [Obsolete("This is obsolete, use Projects instead")]
-    public IEnumerable<ProjectOld> ProjectsOld { get; set; }
+    public IEnumerable<ProjectOld> ProjectsOld { get; set; } = [];
     public List<Project> Projects
     {
         get => projects;
@@ -36,7 +36,7 @@ public class TestDataContext
     public virtual List<Person> People { get; set; } = [];
     public List<User> Users { get; set; } = [];
     public System.Threading.Tasks.Task<int?> FirstUserId => System.Threading.Tasks.Task.FromResult(Users.FirstOrDefault()?.Id);
-    public Project MainProject => projects.FirstOrDefault();
+    public Project MainProject => projects.First();
 }
 
 public class TestDataContext2
@@ -65,12 +65,12 @@ public enum UserType
 public class User
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public int Field1 { get; set; }
-    public string Field2 { get; set; }
-    public Person Relation { get; set; }
-    public Task NestedRelation { get; set; }
-    public Task[] Tasks { get; set; }
+    public string Field2 { get; set; } = string.Empty;
+    public Person? Relation { get; set; }
+    public Task? NestedRelation { get; set; }
+    public Task[] Tasks { get; set; } = [];
     public int? RelationId { get; set; }
 }
 
@@ -80,16 +80,16 @@ public class Person
 
     [GraphQLIgnore(GraphQLIgnoreType.Input)]
     public Guid Guid { get; set; }
-    public string Name { get; set; }
-    public string LastName { get; set; }
-    public Person Manager { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public Person? Manager { get; set; }
     public Gender Gender { get; set; }
-    public List<Project> Projects { get; set; }
-    public List<Task> Tasks { get; set; }
+    public List<Project> Projects { get; set; } = [];
+    public List<Task> Tasks { get; set; } = [];
     public DateTime? Birthday { get; set; }
-    public User User { get; set; }
+    public User? User { get; set; }
     public double Height { get; set; }
-    public byte[] Image { get; set; }
+    public byte[]? Image { get; set; }
 
     // fake an error
     public string Error
@@ -143,17 +143,17 @@ public class Project
 {
     public int Id { get; set; }
     public char Code { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public int Type { get; set; }
-    public Location Location { get; set; }
-    public IEnumerable<Task> Tasks { get; set; }
-    public Person Owner { get; set; }
+    public Location? Location { get; set; }
+    public IEnumerable<Task> Tasks { get; set; } = [];
+    public Person? Owner { get; set; }
     public int CreatedBy { get; set; }
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTimeOffset? Created { get; set; }
     public DateTime? Updated { get; set; }
-    public IEnumerable<Project> Children { get; set; }
+    public IEnumerable<Project> Children { get; set; } = [];
 
     [GraphQLField]
     public IEnumerable<Task> SearchTasks(string name)
@@ -165,10 +165,10 @@ public class Project
 public class Task
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
-    public Person Assignee { get; set; }
-    public Project Project { get; set; }
+    public Person? Assignee { get; set; }
+    public Project? Project { get; set; }
     public float HoursEstimated { get; set; }
     public float HoursCompleted { get; set; }
 }
@@ -176,10 +176,10 @@ public class Task
 public class Location
 {
     public int Id { get; set; }
-    public string Address { get; set; }
-    public string State { get; set; }
-    public string Country { get; set; }
-    public string Planet { get; set; }
+    public string Address { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+    public string Planet { get; set; } = string.Empty;
 }
 
 public enum HeightUnit
@@ -217,7 +217,7 @@ internal static class DataFiller
         return context;
     }
 
-    public static Person MakePerson(int id, User user, Project project)
+    public static Person MakePerson(int id, User? user, Project? project)
     {
         return new Person
         {

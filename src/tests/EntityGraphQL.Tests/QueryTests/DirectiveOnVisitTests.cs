@@ -408,7 +408,7 @@ internal class MyDirecitive : DirectiveProcessor<object>
         this.location = location;
     }
 
-    public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode node, object arguments)
+    public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {
         WasVisited = location;
         Calls += 1;

@@ -29,7 +29,7 @@ namespace EntityGraphQL.Tests
                 }"
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("id"));
         }
@@ -71,6 +71,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
+            Assert.NotNull(result.Data);
             Assert.False(result.Data.ContainsKey("person"));
         }
 
@@ -90,7 +91,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
-
+            Assert.NotNull(result.Data);
             Assert.False(result.Data.ContainsKey("people"));
         }
 
@@ -110,7 +111,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "include", true } }
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
@@ -130,7 +131,7 @@ namespace EntityGraphQL.Tests
 }"
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Single(person.GetType().GetFields());
             Assert.NotNull(person.GetType().GetField("id"));
         }
@@ -150,7 +151,7 @@ namespace EntityGraphQL.Tests
 }"
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
         }
@@ -171,7 +172,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            dynamic person = ((dynamic)result.Data["people"])[0];
+            dynamic person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
         }
@@ -193,6 +194,7 @@ namespace EntityGraphQL.Tests
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.Null(result.Errors);
+            Assert.NotNull(result.Data);
             Assert.Empty(result.Data);
         }
 
@@ -215,7 +217,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            var person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));
@@ -240,7 +242,7 @@ namespace EntityGraphQL.Tests
                 Variables = new QueryVariables { { "skip", true } }
             };
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-            var person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.NotNull(person.GetType().GetField("name"));
@@ -281,6 +283,7 @@ namespace EntityGraphQL.Tests
             var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
             Assert.False(mutationCalled);
             Assert.Null(result.Errors);
+            Assert.NotNull(result.Data);
             Assert.Empty(result.Data);
         }
 
@@ -323,7 +326,7 @@ namespace EntityGraphQL.Tests
             var data = new TestDataContext();
             data.People.Add(new Person { Id = 1, Birthday = date });
             var result = schema.ExecuteRequestWithContext(query, data, null, null, null);
-            var person = ((dynamic)result.Data["people"])[0];
+            var person = ((dynamic)result.Data!["people"]!)[0];
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
             Assert.Equal(1, person.id);
@@ -346,29 +349,29 @@ namespace EntityGraphQL.Tests
         public override string Description => "Formats DateTime scalar values";
         public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD };
 
-        public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode node, object arguments)
+        public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
         {
             if (location == ExecutableDirectiveLocation.FIELD && arguments is FormatDirectiveArgs args)
             {
                 if (node is GraphQLScalarField fieldNode)
                 {
-                    var expression = fieldNode.NextFieldContext;
+                    var expression = fieldNode.NextFieldContext!;
                     if (expression.Type != typeof(DateTime) && expression.Type != typeof(DateTime?))
                         throw new EntityGraphQLException("The format directive can only be used on DateTime fields");
 
                     if (expression.Type == typeof(DateTime?))
                         expression = Expression.Property(expression, "Value");
                     expression = Expression.Call(expression, "ToString", null, Expression.Constant(args.As));
-                    return new GraphQLScalarField(fieldNode.Schema, fieldNode.Field, fieldNode.Name, expression, fieldNode.RootParameter, fieldNode.ParentNode, fieldNode.Arguments);
+                    return new GraphQLScalarField(fieldNode.Schema, fieldNode.Field!, fieldNode.Name, expression, fieldNode.RootParameter, fieldNode.ParentNode!, fieldNode.Arguments);
                 }
             }
-            return node;
+            return node!;
         }
     }
 
     internal class FormatDirectiveArgs
     {
         [GraphQLField("as", "The format to use")]
-        public string As { get; set; }
+        public string As { get; set; } = "";
     }
 }

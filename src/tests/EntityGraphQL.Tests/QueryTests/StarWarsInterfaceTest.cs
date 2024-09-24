@@ -9,8 +9,8 @@ namespace EntityGraphQL.Tests
         public abstract class Character
         {
             public int Id { get; set; }
-            public string Name { get; set; }
-            public IEnumerable<Character> Friends { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public IEnumerable<Character> Friends { get; set; } = [];
         }
 
         public class Human : Character
@@ -20,12 +20,12 @@ namespace EntityGraphQL.Tests
 
         public class Droid : Character
         {
-            public string PrimaryFunction { get; set; }
+            public string PrimaryFunction { get; set; } = string.Empty;
         }
 
         public class StarWarsContext
         {
-            public IList<Character> Characters { get; set; }
+            public IList<Character> Characters { get; set; } = [];
         }
 
         [Fact]

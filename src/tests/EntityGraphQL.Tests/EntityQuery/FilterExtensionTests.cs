@@ -27,7 +27,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -49,7 +49,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(2, Enumerable.Count(users));
     }
 
@@ -69,7 +69,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(2, Enumerable.Count(users));
     }
 
@@ -90,7 +90,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -114,7 +114,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(2, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -140,7 +140,7 @@ public class FilterExtensionTests
         context.Users.Add(new User { Field2 = "99" });
         var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(2, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -163,7 +163,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -184,7 +184,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -205,7 +205,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -226,7 +226,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic users = ((IDictionary<string, object>)tree.Data)["users"];
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
         Assert.Equal(1, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal("2", user.field2);
@@ -249,7 +249,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+        dynamic projects = ((IDictionary<string, object>)tree.Data!)["projects"];
         Assert.Equal(1, Enumerable.Count(projects));
         var project = Enumerable.First(projects);
         Assert.Equal(2, Enumerable.Count(project.tasks));
@@ -272,7 +272,7 @@ public class FilterExtensionTests
         };
         var tree = schema.ExecuteRequestWithContext(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var user = Enumerable.First(people);
         Assert.Equal("Luke", user.name);
@@ -313,7 +313,7 @@ public class FilterExtensionTests
         data.People.First().Projects.Add(new Project { Name = "Home" });
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Lisa", person.name);
@@ -336,7 +336,7 @@ public class FilterExtensionTests
         data.People.First().Projects.Add(new Project { Name = "Home" });
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Lisa", person.name);
@@ -360,7 +360,7 @@ public class FilterExtensionTests
         data.People.Last().Projects.Add(new Project { Name = "Plane" });
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Bob", person.name);
@@ -388,7 +388,7 @@ public class FilterExtensionTests
         Assert.Equal(2, data.People.Count);
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal(180, person.height);
@@ -416,7 +416,7 @@ public class FilterExtensionTests
         Assert.Equal(2, data.People.Count);
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Кирил", person.name);
@@ -454,7 +454,7 @@ public class FilterExtensionTests
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
 
         Assert.Null(tree.Errors);
-        dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+        dynamic projects = ((IDictionary<string, object>)tree.Data!)["projects"];
         Assert.Equal(1, Enumerable.Count(projects));
         var project = Enumerable.First(projects);
         Assert.Equal(2, Enumerable.Count(project.tasks));
@@ -484,7 +484,7 @@ public class FilterExtensionTests
         Assert.Equal(2, data.People.Count);
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal(Gender.Male, person.gender);
@@ -512,7 +512,7 @@ public class FilterExtensionTests
         Assert.Equal(2, data.People.Count);
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal(33, person.id);

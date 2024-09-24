@@ -40,9 +40,9 @@ namespace EntityGraphQL.Tests
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
 
-            Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
-            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data["__type"]).kind);
-            Assert.False(((dynamic)res.Data["__type"]).oneField);
+            Assert.Equal("InputObject", ((dynamic)res.Data!["__type"]!).name);
+            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data!["__type"]!).kind);
+            Assert.False(((dynamic)res.Data!["__type"]!).oneField);
         }
 
         [GraphQLOneOf]
@@ -80,9 +80,9 @@ namespace EntityGraphQL.Tests
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
 
-            Assert.Equal("InputObject", ((dynamic)res.Data["__type"]).name);
-            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data["__type"]).kind);
-            Assert.True(((dynamic)res.Data["__type"]).oneField);
+            Assert.Equal("InputObject", ((dynamic)res.Data!["__type"]!).name);
+            Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data!["__type"]!).kind);
+            Assert.True(((dynamic)res.Data!["__type"]!).oneField);
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace EntityGraphQL.Tests
 
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
-            Assert.True((bool)res.Data["createOneOfInputType"]);
+            Assert.True((bool)res.Data!["createOneOfInputType"]!);
         }
 
         [Fact]
@@ -157,7 +157,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddInputType<OneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields();
             schemaProvider
                 .Query()
-                .AddField("createOneOfInputType", new { input = ArgumentHelper.Required<OneOfInputType>() }, (ctx, args) => args.input.Value.One ?? args.input.Value.Two, "Descrption");
+                .AddField("createOneOfInputType", new { input = ArgumentHelper.Required<OneOfInputType>() }, (ctx, args) => args.input.Value!.One ?? args.input.Value.Two, "Descrption");
 
             var gql = new QueryRequest
             {
@@ -170,7 +170,7 @@ namespace EntityGraphQL.Tests
 
             var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
-            Assert.Equal(1, (int)res.Data["createOneOfInputType"]);
+            Assert.Equal(1, (int)res.Data!["createOneOfInputType"]!);
         }
     }
 }

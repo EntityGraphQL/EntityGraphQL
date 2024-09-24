@@ -13,7 +13,7 @@ public class InputTypeTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PeopleArgs>("PeopleArgs", "people filter args").AddAllFields();
-        schema.Query().ReplaceField("people", new { args = (PeopleArgs)null }, (p, param) => p.People, "Return people");
+        schema.Query().ReplaceField("people", new { args = (PeopleArgs?)null }, (p, param) => p.People, "Return people");
         var gql = new QueryRequest
         {
             Query =
@@ -28,9 +28,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class InputTypeTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PeopleArgs>("PeopleArgs", "people filter args").AddAllFields();
-        schema.Query().ReplaceField("people", new { args = (List<PeopleArgs>)null }, (p, param) => p.People, "Return people");
+        schema.Query().ReplaceField("people", new { args = (List<PeopleArgs>?)null }, (p, param) => p.People, "Return people");
         var gql = new QueryRequest
         {
             Query =
@@ -53,9 +53,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
     }
 
     [Fact]
@@ -87,9 +87,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
     }
 
     [Fact]
@@ -121,9 +121,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
     }
 
     class TaskInput : Task { }
@@ -147,7 +147,7 @@ public class InputTypeTests
         schema.UpdateType<Task>(type =>
         {
             type.AddField("id", x => x.Id, null);
-            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project.CreatedBy));
+            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project!.CreatedBy));
         });
 
         var taskInput = schema.AddInputType<TaskInput>("TaskInput");
@@ -181,7 +181,7 @@ public class InputTypeTests
         schema.UpdateType<Task>(type =>
         {
             type.AddField("id", x => x.Id, null);
-            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project.CreatedBy));
+            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project!.CreatedBy));
         });
 
         var taskInput = schema.AddInputType<Task>("TaskInput");
@@ -225,9 +225,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "id");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data["__type"]).fields, f => f.name == "tasks");
-        Assert.Equal("TaskInput", ((dynamic)result.Data["__type"]).fields[1].type.ofType.name);
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "id");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "tasks");
+        Assert.Equal("TaskInput", ((dynamic)result.Data!["__type"]!).fields[1].type.ofType.name);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public class InputTypeTests
         schema.UpdateType<Task>(type =>
         {
             type.AddField("id", x => x.Id, null);
-            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project.CreatedBy));
+            type.AddField("user", null).Resolve<TestDataContext>((p, ctx) => ctx.Users.FirstOrDefault(u => u.Id == p.Project!.CreatedBy));
         });
 
         var taskInput = schema.AddInputType<Task>("TaskInput");
@@ -278,6 +278,6 @@ public class InputTypeTests
         // System enum
         public DayOfWeek DayOfWeek { get; set; }
         public HeightUnit Unit { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 }

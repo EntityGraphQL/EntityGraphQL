@@ -37,7 +37,7 @@ public class AsyncTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
 
         Assert.NotNull(res.Data);
-        Assert.Equal(2, ((dynamic)res.Data["people"])[0].age);
+        Assert.Equal(2, ((dynamic)res.Data!["people"]!)[0].age);
     }
 
     [Fact]

@@ -27,7 +27,7 @@ public class ArgumentTests
 
         Assert.Single(tree.Operations.First().QueryFields);
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-        Assert.Equal("Project 3", ((dynamic)result.Data["project"]).name);
+        Assert.Equal("Project 3", ((dynamic)result.Data!["project"]!).name);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class ArgumentTests
         }"
         );
         // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
-        dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data["user"];
+        dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data!["user"]!;
         // we only have the fields requested
         Assert.Equal(1, result.GetType().GetFields().Length);
         Assert.NotNull(result.GetType().GetField("id"));
@@ -53,7 +53,7 @@ public class ArgumentTests
 
     private class UserInputObject
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     [Fact]
@@ -81,6 +81,7 @@ public class ArgumentTests
                 }"
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
         Assert.Equal("Field 'user' - missing required argument 'id'", result.Errors[0].Message);
     }
@@ -106,6 +107,7 @@ public class ArgumentTests
                     }"
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.NotNull(result.Errors);
         Assert.Equal("Field 'user' - missing required argument 'id'", result.Errors[0].Message);
     }
 
@@ -121,7 +123,7 @@ public class ArgumentTests
                     }"
         );
 
-        dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data["me"];
+        dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data!["me"]!;
         // we only have the fields requested
         Assert.Equal(1, result.GetType().GetFields().Length);
         Assert.NotNull(result.GetType().GetField("id"));
@@ -144,8 +146,9 @@ public class ArgumentTests
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
+        Assert.NotNull(result.Data);
         Assert.Single(result.Data);
-        var person = Enumerable.First((dynamic)result.Data["people"]);
+        var person = Enumerable.First((dynamic)result.Data!["people"]!);
         // we only have the fields requested
         Assert.Equal(2, person.GetType().GetFields().Length);
         Assert.NotNull(person.GetType().GetField("id"));
@@ -169,7 +172,7 @@ public class ArgumentTests
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
-        dynamic result = tree.Data["people"];
+        dynamic result = tree.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(result));
         var person = Enumerable.First(result);
         // we only have the fields requested
@@ -193,7 +196,7 @@ public class ArgumentTests
         };
         var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables, null);
 
-        dynamic result = tree.Data["people"];
+        dynamic result = tree.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(result));
         var person = Enumerable.First(result);
         // we only have the fields requested
@@ -214,7 +217,7 @@ public class ArgumentTests
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
-        dynamic user = tree.Data["person"];
+        dynamic user = tree.Data!["person"]!;
         // we only have the fields requested
         Assert.Equal(2, user.GetType().GetFields().Length);
         Assert.NotNull(user.GetType().GetField("id"));
@@ -237,7 +240,7 @@ public class ArgumentTests
         };
         var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables);
 
-        dynamic user = tree.Data["person"];
+        dynamic user = tree.Data!["person"]!;
         // we only have the fields requested
         Assert.Equal(2, user.GetType().GetFields().Length);
         Assert.NotNull(user.GetType().GetField("id"));
@@ -259,7 +262,7 @@ public class ArgumentTests
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
-        dynamic user = tree.Data["person"];
+        dynamic user = tree.Data!["person"]!;
         // we only have the fields requested
         Assert.Equal(2, user.GetType().GetFields().Length);
         Assert.NotNull(user.GetType().GetField("id"));
@@ -299,7 +302,7 @@ public class ArgumentTests
         );
         var context = new TestDataContext().FillWithTestData();
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic users = (dynamic)qr.Data["users"];
+        dynamic users = (dynamic)qr.Data!["users"]!;
         // we only have the fields requested
         Assert.Equal(1, Enumerable.Count(users));
     }
@@ -308,7 +311,7 @@ public class ArgumentTests
     public void StringArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("users", new { str = (string)null, }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str), !string.IsNullOrEmpty(p.str)), "Testing string");
+        schema.Query().ReplaceField("users", new { str = (string?)null, }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str!), !string.IsNullOrEmpty(p.str)), "Testing string");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -318,7 +321,7 @@ public class ArgumentTests
         );
         var context = new TestDataContext().FillWithTestData();
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic users = (dynamic)qr.Data["users"];
+        dynamic users = (dynamic)qr.Data!["users"]!;
         // we only have the fields requested
         Assert.Equal(0, Enumerable.Count(users));
     }
@@ -327,7 +330,7 @@ public class ArgumentTests
     public void ListArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("people", new { names = (List<string>)null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+        schema.Query().ReplaceField("people", new { names = (List<string>?)null }, (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -348,7 +351,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -358,7 +361,7 @@ public class ArgumentTests
     public void ArrayArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("people", new { names = (string[])null }, (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null), "Testing list");
+        schema.Query().ReplaceField("people", new { names = (string[]?)null }, (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -379,7 +382,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -396,9 +399,9 @@ public class ArgumentTests
                 new
                 {
                     // EntityGraphQL will automatically use a List<string>
-                    names = (IEnumerable<string>)null
+                    names = (IEnumerable<string>?)null
                 },
-                (db, p) => db.People.WhereWhen(per => p.names.Any(a => a == per.Name), p.names != null),
+                (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null),
                 "Testing list"
             );
 
@@ -421,7 +424,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -432,7 +435,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PersonArg>("PersonArg", "PersonArgs").AddAllFields();
-        schema.Query().ReplaceField("people", new { options = (PersonArg)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options.name, p.options != null), "Testing list");
+        schema.Query().ReplaceField("people", new { options = (PersonArg?)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options!.name, p.options != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -453,7 +456,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -494,7 +497,7 @@ public class ArgumentTests
         );
         var qr = gql.ExecuteQuery(context, null, null);
         Assert.Null(qr.Errors);
-        dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+        dynamic person = Enumerable.First((dynamic)qr.Data!["people"]!);
         // make sure we get task 1 and project 2 - i.e. the args were passed to the correct field
         Assert.Equal("Task 1", person.task.name);
         Assert.Equal(1, person.task.id);
@@ -531,8 +534,8 @@ public class ArgumentTests
         };
         var qr = gql.ExecuteQuery(context, null, null);
         Assert.Null(qr.Errors);
-        dynamic task = qr.Data["task"];
-        dynamic project = qr.Data["project"];
+        dynamic task = qr.Data!["task"]!;
+        dynamic project = qr.Data!["project"]!;
         // make sure we get task 1 and project 2 - i.e. the args were passed to the correct field
         Assert.Equal("Task 1", task.name);
         Assert.Equal(1, task.id);
@@ -570,7 +573,7 @@ public class ArgumentTests
         );
         var qr = gql.ExecuteQuery(context, null, null);
         Assert.Null(qr.Errors);
-        dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+        dynamic person = Enumerable.First((dynamic)qr.Data!["people"]!);
         Assert.Equal("Task 1", person.task.name);
         Assert.Equal(1, person.task.id);
         Assert.Equal("Task 2", person.task2.name);
@@ -594,8 +597,8 @@ public class ArgumentTests
         var context = new TestDataContext { Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" }] };
         var qr = gql.ExecuteQuery(context, null, null);
         Assert.Null(qr.Errors);
-        dynamic task = qr.Data["task"];
-        dynamic task2 = qr.Data["task2"];
+        dynamic task = qr.Data!["task"]!;
+        dynamic task2 = qr.Data!["task2"]!;
         Assert.Equal("Task 1", task.name);
         Assert.Equal(1, task.id);
         Assert.Equal("Task 2", task2.name);
@@ -607,7 +610,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<PersonArgConstructor>("PersonArgConstructor", "PersonArgConstructors").AddAllFields();
-        schema.Query().ReplaceField("people", new { options = (PersonArgConstructor)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options.Name, p.options != null), "Testing list");
+        schema.Query().ReplaceField("people", new { options = (PersonArgConstructor?)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options!.Name, p.options != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"query {
@@ -627,7 +630,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -642,7 +645,7 @@ public class ArgumentTests
 
 public class PersonArg
 {
-    public string name { get; set; }
+    public string name { get; set; } = string.Empty;
 }
 
 public class PersonArgConstructor

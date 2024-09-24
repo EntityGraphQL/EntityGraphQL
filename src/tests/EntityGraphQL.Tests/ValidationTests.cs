@@ -265,8 +265,8 @@ public class ValidationTests
             .ReplaceField(
                 "movies",
                 // use anonymous type args
-                new { search = (string)null },
-                (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.search)),
+                new { search = (string?)null },
+                (ctx, args) => ctx.Movies.Where(m => m.Title.Contains(args.search!)),
                 "Movies"
             )
             .AddValidator<MovieValidatorAnon>();
@@ -436,8 +436,8 @@ internal class MovieValidatorAnon : IArgumentValidator
 {
     public System.Threading.Tasks.Task ValidateAsync(ArgumentValidatorContext context)
     {
-        dynamic args = context.Arguments;
-        if (string.IsNullOrEmpty(args.search))
+        dynamic? args = context.Arguments;
+        if (string.IsNullOrEmpty(args?.search))
             context.AddError("search arg cannot be empty or null");
         return System.Threading.Tasks.Task.CompletedTask;
     }
@@ -445,46 +445,46 @@ internal class MovieValidatorAnon : IArgumentValidator
 
 internal class MovieQueryArgs
 {
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
     public decimal Price { get; set; }
-    public string Genre { get; set; }
+    public string Genre { get; set; } = string.Empty;
 }
 
 internal class MovieQueryArgsWithAttributes
 {
     [StringLength(5, ErrorMessage = "Title must be less than 5 characters")]
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
     [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")]
     public decimal Price { get; set; }
 
     [Required(ErrorMessage = "Genre is required")]
-    public string Genre { get; set; }
+    public string Genre { get; set; } = string.Empty;
 }
 
 [ArgumentValidator(typeof(MovieValidator))]
 internal class MovieQueryArgsWithValidator
 {
-    public string Title { get; set; }
-    public string Genre { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Genre { get; set; } = string.Empty;
 }
 
 internal class ValidationTestsContext
 {
-    public List<Movie> Movies { get; set; }
+    public List<Movie> Movies { get; set; } = [];
 }
 
 internal class ValidationTestsMutations
 {
     [GraphQLMutation]
-    public static Expression<Func<ValidationTestsContext, Movie>> AddMovie(MovieArg movie)
+    public static Expression<Func<ValidationTestsContext, Movie?>> AddMovie(MovieArg movie)
     {
         var newMovie = new Movie { Id = new Random().Next(), Title = movie.Title, };
         return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
     }
 
     [GraphQLMutation]
-    public static Expression<Func<ValidationTestsContext, Movie>> AddMovieInline(
+    public static Expression<Func<ValidationTestsContext, Movie?>> AddMovieInline(
         [Required(ErrorMessage = "Title is required")] string title,
         [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")] decimal price,
         [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")] string rating
@@ -513,42 +513,42 @@ internal class ValidationTestsMutations
 internal class MovieArg
 {
     [Required(ErrorMessage = "Title is required")]
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Date is required")]
     public DateTime ReleaseDate { get; set; }
 
     [Required(ErrorMessage = "Genre must be specified")]
-    public string Genre { get; set; }
+    public string Genre { get; set; } = string.Empty;
 
     [Range(1, 100, ErrorMessage = "Price must be between $1 and $100")]
     public decimal Price { get; set; }
 
     [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")]
-    public string Rating { get; set; }
+    public string Rating { get; set; } = string.Empty;
 
-    public IList<CastMemberArg> Cast { get; set; }
+    public IList<CastMemberArg> Cast { get; set; } = [];
 }
 
 internal class CastMemberArg
 {
     [Required(ErrorMessage = "Actor is required")]
     [StringLength(20, ErrorMessage = "Actor Name must be less than 20 characters")]
-    public string Actor { get; set; }
+    public string Actor { get; set; } = string.Empty;
 
     [StringLength(5, ErrorMessage = "Character must be less than 5 characters")]
-    public string Character { get; set; }
+    public string Character { get; set; } = string.Empty;
 }
 
 [GraphQLArguments]
 internal class PersonArgs
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 [GraphQLArguments]
 [ArgumentValidator(typeof(PersonValidator))]
 internal class PersonArgsWithValidator
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

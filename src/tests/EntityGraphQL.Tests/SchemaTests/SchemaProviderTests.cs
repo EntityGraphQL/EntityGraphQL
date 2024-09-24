@@ -123,7 +123,7 @@ namespace EntityGraphQL.Tests
             var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
 
-            var schemaType = (dynamic)((dynamic)res.Data["__type"]);
+            var schemaType = (dynamic)res.Data!["__type"]!;
             Assert.Equal("https://www.example.com", schemaType.specifiedByURL);
         }
 

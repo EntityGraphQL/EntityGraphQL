@@ -21,26 +21,26 @@ namespace EntityGraphQL.Tests
 
         public class Order : Entity
         {
-            public string Name { get; set; }
-            public Status Status { get; set; }
-            public ICollection<OrderItem> OrderItems { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public Status? Status { get; set; }
+            public ICollection<OrderItem> OrderItems { get; set; } = [];
         }
 
         public abstract class OrderItem : Entity
         {
-            public Status Status { get; set; }
+            public Status? Status { get; set; }
         }
 
         public class BookOrderItem : OrderItem
         {
-            public Book Book { get; set; }
+            public Book? Book { get; set; }
         }
 
         public class TShirtOrderItem : OrderItem
         {
             public int Size { get; set; }
             public int Colour { get; set; }
-            public TShirt TShirt { get; set; }
+            public TShirt? TShirt { get; set; }
 
             public static string FormatTShirtPropertiesAsString(int size, int colour)
             {
@@ -51,28 +51,28 @@ namespace EntityGraphQL.Tests
         public class Status
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
             public bool IsDeleted { get; set; }
         }
 
         public abstract class Product : Entity
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
         }
 
         public class Book : Product
         {
             public int Pages { get; set; }
-            public string Author { get; set; }
+            public string Author { get; set; } = string.Empty;
         }
 
         public class TShirt : Product { }
 
         public class TestContext
         {
-            public IList<Order> Orders { get; set; }
-            public IList<Product> Products { get; set; }
-            public IList<Status> Statuses { get; set; }
+            public IList<Order> Orders { get; set; } = [];
+            public IList<Product> Products { get; set; } = [];
+            public IList<Status> Statuses { get; set; } = [];
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace EntityGraphQL.Tests
             var gql = System.Text.Json.JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
-            var order = (dynamic)results.Data["order"];
+            var order = (dynamic)results.Data!["order"]!;
 
             Assert.Equal(4, order.GetType().GetFields().Length);
             Assert.Equal(1, order.id);
@@ -265,7 +265,7 @@ namespace EntityGraphQL.Tests
             var gql = JsonSerializer.Deserialize<QueryRequest>(q, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             var results = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
             Assert.False(results.HasErrors());
-            var order = (dynamic)results.Data["order"];
+            var order = (dynamic)results.Data!["order"]!;
 
             Assert.Equal(4, order.GetType().GetFields().Length);
             Assert.Equal(1, order.id);
@@ -371,12 +371,12 @@ namespace EntityGraphQL.Tests
 
             if (results.HasErrors())
             {
-                throw new Exception(results.Errors.First().Message);
+                throw new Exception(results.Errors!.First().Message);
             }
 
             //Uncomment these guys to have the test fail properly
             Assert.False(results.HasErrors());
-            var order = (dynamic)results.Data["order"];
+            var order = (dynamic)results.Data!["order"]!;
         }
 
         public class TestService
@@ -473,12 +473,12 @@ namespace EntityGraphQL.Tests
 
             if (results.HasErrors())
             {
-                throw new Exception(results.Errors.First().Message);
+                throw new Exception(results.Errors!.First().Message);
             }
 
             //Uncomment these guys to have the test fail properly
             Assert.False(results.HasErrors());
-            var order = (dynamic)results.Data["order"];
+            var order = (dynamic)results.Data!["order"]!;
 
             Assert.Equal("colour: 1 - size: 7", order.orderItems[0].statusAsString);
         }
@@ -565,12 +565,12 @@ namespace EntityGraphQL.Tests
 
             if (results.HasErrors())
             {
-                throw new Exception(results.Errors.First().Message);
+                throw new Exception(results.Errors!.First().Message);
             }
 
             //Uncomment these guys to have the test fail properly
             Assert.False(results.HasErrors());
-            var order = (dynamic)results.Data["order"];
+            var order = (dynamic)results.Data!["order"]!;
 
             Assert.Equal("colour: 1 - size: 7 - length: 2", order.orderItems[0].statusAsString);
         }

@@ -41,7 +41,7 @@ public class UnionTests
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic animals = qr.Data["animals"];
+        dynamic animals = qr.Data!["animals"]!;
         // we only have the fields requested
         Assert.Equal(2, animals.Count);
 
@@ -85,7 +85,7 @@ public class UnionTests
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic animals = qr.Data["animals"];
+        dynamic animals = qr.Data!["animals"]!;
         // we only have the fields requested
         Assert.Equal(2, animals.Count);
 
@@ -125,7 +125,7 @@ public class UnionTests
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic animals = qr.Data["animals"];
+        dynamic animals = qr.Data!["animals"]!;
         // we only have the fields requested
         Assert.Equal(2, animals.Count);
 
@@ -165,7 +165,7 @@ public class UnionTests
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic animals = qr.Data["animals"];
+        dynamic animals = qr.Data!["animals"]!;
         // we only have the fields requested
         Assert.Equal(2, animals.Count);
 
@@ -201,7 +201,7 @@ public class UnionTests
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic animals = qr.Data["animals"];
+        dynamic animals = qr.Data!["animals"]!;
         // we only have the fields requested
         Assert.Equal(2, animals.Count);
 
@@ -272,9 +272,9 @@ public class UnionTests
         );
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic petOwner = qr.Data["petOwner"];
+        dynamic petOwner = qr.Data!["petOwner"]!;
         Assert.Equal("Dog", petOwner.favoritePet.__typename);
-        dynamic petOwner2 = qr.Data["owner2"];
+        dynamic petOwner2 = qr.Data!["owner2"]!;
         Assert.Equal("Cat", petOwner2.favoritePet.__typename);
     }
 
@@ -327,7 +327,7 @@ public class UnionTests
         );
 
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic petOwners = qr.Data["petOwners"];
+        dynamic petOwners = qr.Data!["petOwners"]!;
 
         Assert.Equal(2, petOwners.Count);
         Assert.Equal("Dog", petOwners[0].favoritePet.__typename);
@@ -348,5 +348,5 @@ public class PetOwner
 {
     public int Id { get; set; }
 
-    public IAnimal FavoritePet { get; set; }
+    public IAnimal? FavoritePet { get; set; }
 }

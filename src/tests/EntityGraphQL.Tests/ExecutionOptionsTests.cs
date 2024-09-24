@@ -33,13 +33,13 @@ public class ExecutionOptionsTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { });
         Assert.Null(result.Errors);
 
-        dynamic project = result.Data["project"];
+        dynamic project = result.Data!["project"]!;
         Assert.Equal(5, Enumerable.Count(project.tasks));
 
         result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { BeforeExecuting = (e, isFinal) => Expression.Constant(null) });
         Assert.Null(result.Errors);
 
-        project = result.Data["project"];
+        project = result.Data!["project"]!;
         Assert.Null(project);
     }
 
@@ -179,7 +179,7 @@ public class ExecutionOptionsTests
             "ConnectionOp"
         );
 
-    private void TestBeforeExpressionBuildExpression(string query, AssertExpression expectedExpression, string fieldName, string opName)
+    private void TestBeforeExpressionBuildExpression(string query, AssertExpression expectedExpression, string fieldName, string? opName)
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("projectsPaged", ctx => ctx.Projects, "Paged projects").UseConnectionPaging();

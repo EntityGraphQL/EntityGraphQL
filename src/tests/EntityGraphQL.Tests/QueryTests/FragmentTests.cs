@@ -26,7 +26,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(tree.Operations.First().QueryFields);
             var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+            dynamic person = Enumerable.First((dynamic)qr.Data!["people"]!);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("id"));
@@ -54,7 +54,7 @@ fragment info on Person {
 
             Assert.Single(tree.Operations.First().QueryFields);
             var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            dynamic person = Enumerable.First((dynamic)qr.Data["people"]);
+            dynamic person = Enumerable.First((dynamic)qr.Data!["people"]!);
             // we only have the fields requested
             Assert.Equal(1, person.GetType().GetFields().Length);
             Assert.NotNull(person.GetType().GetField("projects"));
@@ -111,7 +111,7 @@ fragment info on Person {
             var schema = SchemaBuilder.FromObject<TestDataContext>();
             schema.UpdateType<Project>(projectType =>
             {
-                projectType.AddField("manager", p => p.Owner.Manager, "The manager of the owner");
+                projectType.AddField("manager", p => p.Owner!.Manager, "The manager of the owner");
             });
 
             var gql = new QueryRequest
@@ -197,7 +197,7 @@ fragment info on Person {
 
             var res = schema.ExecuteRequestWithContext(gql, context, null, null);
             Assert.Null(res.Errors);
-            dynamic typeData = res.Data["__type"];
+            dynamic typeData = res.Data!["__type"]!;
             Assert.Equal("Person", typeData.name);
             Assert.Single(typeData.fields);
             var field = typeData.fields[0];

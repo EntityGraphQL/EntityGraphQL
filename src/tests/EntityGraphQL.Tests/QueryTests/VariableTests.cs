@@ -34,7 +34,7 @@ public class VariableTests
             context.People.Add(new Person());
         }
         var qr = tree.ExecuteQuery(context, null, gql.Variables);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(5, Enumerable.Count(people));
     }
@@ -60,7 +60,7 @@ public class VariableTests
             context.People.Add(new Person());
         }
         var qr = tree.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(10, Enumerable.Count(people));
     }
@@ -88,7 +88,7 @@ public class VariableTests
             context.People.Add(new Person());
         }
         var qr = tree.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data["people"];
+        dynamic people = (dynamic)qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(6, Enumerable.Count(people));
     }
@@ -124,7 +124,7 @@ public class VariableTests
     public void QueryVariableArrayGetsAList()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().AddField("test", new { ids = (Guid[])null }, (db, args) => db.People.Where(p => args.ids.Any(a => a == p.Guid)), "test field");
+        schema.Query().AddField("test", new { ids = (Guid[]?)null }, (db, args) => db.People.Where(p => args.ids!.Any(a => a == p.Guid)), "test field");
         var gql = new QueryRequest
         {
             Query =

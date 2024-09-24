@@ -42,7 +42,7 @@ namespace EntityGraphQL.Tests
     public abstract class Animal : IAnimal
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     public class Cat : Animal
@@ -58,8 +58,8 @@ namespace EntityGraphQL.Tests
     public class PersonType
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public DateTime? Birthday { get; set; }
-        public IEnumerable<Dog> Dogs { get; set; }
+        public IEnumerable<Dog> Dogs { get; set; } = [];
     }
 }

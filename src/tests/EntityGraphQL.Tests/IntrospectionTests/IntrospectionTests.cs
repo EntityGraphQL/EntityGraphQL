@@ -165,7 +165,7 @@ public class IntrospectionTests
 
         schema.UpdateType<Project>(t =>
         {
-            t.GetField(p => p.Owner).Deprecate("This is deprecated");
+            t.GetField(p => p.Owner!).Deprecate("This is deprecated");
         });
 
         var gql = new QueryRequest
@@ -187,7 +187,7 @@ public class IntrospectionTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
+        var fields = (IEnumerable<dynamic>)((dynamic)res.Data!["__type"]!).fields;
         Assert.True(Enumerable.Any(fields));
         Assert.DoesNotContain(fields, f => f.name == "owner");
 
@@ -219,12 +219,12 @@ public class IntrospectionTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        var fields = (IEnumerable<dynamic>)((dynamic)res.Data["__type"]).fields;
+        var fields = (IEnumerable<dynamic>)((dynamic)res.Data!["__type"]!).fields;
         Assert.True(Enumerable.Any(fields));
         Assert.DoesNotContain(fields, f => f.name == "projectsOld");
 
         var sdl = schema.ToGraphQLSchemaString();
-        Assert.Contains("projectsOld: [ProjectOld!] @deprecated(reason: \"This is obsolete, use Projects instead\")", sdl);
+        Assert.Contains("projectsOld: [ProjectOld!]! @deprecated(reason: \"This is obsolete, use Projects instead\")", sdl);
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class IntrospectionTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        var type = (dynamic)res.Data["__type"];
+        var type = (dynamic)res.Data!["__type"]!;
         Assert.Equal("Date with time scalar", type.description);
     }
 }

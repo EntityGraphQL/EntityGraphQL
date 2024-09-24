@@ -38,7 +38,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""names"": { ""name"": ""Lisa"", ""lastName"": ""Simpson"", ""birthDate"": null  }
                 }
             }"
-            );
+            )!;
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["addPersonInput"]!;
@@ -50,7 +50,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
-            Assert.Equal((string)null, addPersonResult.birthday);
+            Assert.Equal((string?)null, addPersonResult.birthday);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
             }"
-            );
+            )!;
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
@@ -99,7 +99,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""ids"": [ ""cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da"" ]
                 }
             }"
-            );
+            )!;
             var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(result.Errors);
             dynamic addPersonResult = result.Data!["listOfGuidArgs"]!;
@@ -127,7 +127,7 @@ namespace EntityGraphQL.AspNet.Tests
                     ""gender"": ""Male""
                 }
             }"
-            );
+            )!;
 
             var testSchema = new TestDataContext();
             var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -161,7 +161,7 @@ namespace EntityGraphQL.AspNet.Tests
             Assert.Contains("name", resultFields);
             Assert.Equal("Lisa", addPersonResult.name);
             Assert.Equal("Simpson", addPersonResult.lastName);
-            Assert.Equal((string)null, addPersonResult.birthday);
+            Assert.Equal((string?)null, addPersonResult.birthday);
         }
     }
 
@@ -172,7 +172,7 @@ namespace EntityGraphQL.AspNet.Tests
         public object ChangeType(object value, Type toType, ISchemaProvider schema)
         {
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            return ((JObject)value).ToObject(toType);
+            return ((JObject)value).ToObject(toType)!;
         }
     }
 
@@ -183,7 +183,7 @@ namespace EntityGraphQL.AspNet.Tests
         public object ChangeType(object value, Type toType, ISchemaProvider schema)
         {
             // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
-            return ((JToken)value).ToObject(toType);
+            return ((JToken)value).ToObject(toType)!;
         }
     }
 

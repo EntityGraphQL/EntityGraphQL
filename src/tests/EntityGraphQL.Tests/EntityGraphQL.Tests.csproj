@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
     <LangVersion>12.0</LangVersion>
-    <!-- <nullable>enable</nullable> -->
+    <nullable>enable</nullable>
   </PropertyGroup>
 
   <ItemGroup>

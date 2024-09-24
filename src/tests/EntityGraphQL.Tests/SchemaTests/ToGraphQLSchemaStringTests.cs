@@ -137,7 +137,7 @@ namespace EntityGraphQL.Tests
             schemaProvider.AddMutationsFrom<IgnoreTestMutations>();
             var schema = schemaProvider.ToGraphQLSchemaString();
             // this exists as it is not null
-            Assert.Contains("addAlbumOld(name: String!, genre: Genre!): Album @deprecated(reason: \"This is obsolete\")", schema);
+            Assert.Contains("addAlbumOld(name: String!, genre: Genre!): Album! @deprecated(reason: \"This is obsolete\")", schema);
         }
 
         [Fact]
@@ -191,19 +191,19 @@ namespace EntityGraphQL.Tests
             var res = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
             Assert.Null(res.Errors);
 
-            var mutation = (dynamic)res.Data["__type"];
+            var mutation = (dynamic)res.Data!["__type"]!;
 
             Assert.Equal("addAlbum", mutation.fields[0].name);
             Assert.Equal("Album", mutation.fields[0].type.name);
             Assert.Equal("OBJECT", mutation.fields[0].type.kind);
-            Assert.Equal((string)null, mutation.fields[0].type.ofType);
+            Assert.Equal((string?)null, mutation.fields[0].type.ofType);
             Assert.Equal("name", mutation.fields[0].args[0].name);
             Assert.Equal("NON_NULL", mutation.fields[0].args[0].type.kind);
             Assert.Equal("genre", mutation.fields[0].args[1].name);
             Assert.Equal("NON_NULL", mutation.fields[0].args[1].type.kind);
 
             Assert.Equal("addAlbum2", mutation.fields[1].name);
-            Assert.Equal((string)null, mutation.fields[1].type.name);
+            Assert.Equal((string?)null, mutation.fields[1].type.name);
             Assert.Equal("NON_NULL", mutation.fields[1].type.kind);
             Assert.Equal("Album", mutation.fields[1].type.ofType.name);
             Assert.Equal("name", mutation.fields[1].args[0].name);
@@ -214,7 +214,7 @@ namespace EntityGraphQL.Tests
             Assert.Equal("addAlbum3", mutation.fields[2].name);
             Assert.Equal("Album", mutation.fields[2].type.name);
             Assert.Equal("OBJECT", mutation.fields[2].type.kind);
-            Assert.Equal((string)null, mutation.fields[2].type.ofType);
+            Assert.Equal((string?)null, mutation.fields[2].type.ofType);
             Assert.Equal("name", mutation.fields[2].args[0].name);
             Assert.Equal("NON_NULL", mutation.fields[2].args[0].type.kind);
             Assert.Equal("genre", mutation.fields[2].args[1].name);
@@ -378,14 +378,13 @@ namespace EntityGraphQL.Tests
     public class NullableRefTypeMutations
     {
         [GraphQLMutation]
-        public Expression<Func<IgnoreTestSchema, Album>> AddAlbum(IgnoreTestSchema db, Album args)
+        public Expression<Func<IgnoreTestSchema, Album?>> AddAlbum(IgnoreTestSchema db, Album args)
         {
             var newAlbum = new Album { Id = new Random().Next(100), Name = args.Name, };
             db.Albums.Add(newAlbum);
-            return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
+            return ctx => ctx.Albums.FirstOrDefault(a => a.Id == newAlbum.Id);
         }
 
-#nullable enable
         [GraphQLMutation]
         public Expression<Func<IgnoreTestSchema, Album>> AddAlbum2(IgnoreTestSchema db, Album args)
         {
@@ -401,21 +400,20 @@ namespace EntityGraphQL.Tests
             db.Albums.Add(newAlbum);
             return ctx => ctx.Albums.First(a => a.Id == newAlbum.Id);
         }
-#nullable restore
     }
 
     public class MovieArgs
     {
         [GraphQLNotNull]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
-        public string Hidden { get; set; }
+        public string Hidden { get; set; } = string.Empty;
     }
 
     public class AbstractClassTestSchema
     {
-        public List<Animal> Animals { get; set; }
+        public List<Animal> Animals { get; set; } = [];
 
         public interface ISwim
         {
@@ -445,6 +443,7 @@ namespace EntityGraphQL.Tests
             Movies = new List<Movie>();
             Albums = new List<Album>();
             NullAlbums = new List<Album>();
+            Artists = new List<Artist>();
         }
 
         [GraphQLIgnore(GraphQLIgnoreType.Query)]
@@ -475,13 +474,13 @@ namespace EntityGraphQL.Tests
         public int Id { get; set; }
 
         [GraphQLNotNull]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [GraphQLIgnore(GraphQLIgnoreType.Input)]
-        public string HiddenInputField { get; set; }
+        public string? HiddenInputField { get; set; }
 
         [GraphQLIgnore(GraphQLIgnoreType.All)] // default
-        public string HiddenAllField { get; set; }
+        public string? HiddenAllField { get; set; }
 
         [GraphQLNotNull]
         public Genre Genre { get; set; }
@@ -494,7 +493,7 @@ namespace EntityGraphQL.Tests
     public class Movie
     {
         public int Id { get; set; }
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
     }
 
     public enum ArtistType

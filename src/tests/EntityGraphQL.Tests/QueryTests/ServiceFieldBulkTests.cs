@@ -59,7 +59,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         var project = projects[0];
         Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
@@ -116,7 +116,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic project = res.Data["project"];
+        dynamic project = res.Data!["project"]!;
         Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
         Assert.Equal(1, project.createdBy.id);
         Assert.Equal("SingleCall", project.createdBy.field2);
@@ -130,8 +130,8 @@ public class ServiceFieldBulkTests
             .Query()
             .ReplaceField(
                 "projects",
-                new { like = (string)null, },
-                (ctx, args) => ctx.QueryableProjects.WhereWhen(f => f.Name.ToLower().Contains(args.like.ToLower()), !string.IsNullOrEmpty(args.like)).OrderBy(f => f.Name),
+                new { like = (string?)null, },
+                (ctx, args) => ctx.QueryableProjects.WhereWhen(f => f.Name.ToLower().Contains(args.like!.ToLower()), !string.IsNullOrEmpty(args.like)).OrderBy(f => f.Name),
                 "Get projects"
             );
         schema.UpdateType<Project>(type =>
@@ -180,7 +180,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         var project = projects[0];
         Assert.Equal(2, project.createdBy.GetType().GetFields().Length);
@@ -238,7 +238,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         Assert.Equal("Name_1", projects[0].createdByName);
         Assert.Equal("Name_2", projects[1].createdByName);
@@ -294,7 +294,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         Assert.Equal("Name_1", projects[0].assignedUsers[0].name);
         Assert.Equal("Name_2", projects[1].assignedUsers[0].name);
@@ -309,7 +309,7 @@ public class ServiceFieldBulkTests
         {
             type.AddField("assignedUser", new { id = ArgumentHelper.Required<int>() }, "Get user assigned to project by ID")
                 .Resolve<UserService>((proj, args, users) => users.GetUserByProjectId(proj.Id, args.id))
-                .ResolveBulk<UserService, int, User>(proj => proj.Id, (ids, args, srv) => srv.GetUserByIdForProjectId(ids, args.id));
+                .ResolveBulk<UserService, int, User?>(proj => proj.Id, (ids, args, srv) => srv.GetUserByIdForProjectId(ids, args.id));
         });
 
         var gql = new QueryRequest
@@ -350,7 +350,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         Assert.Equal("Name_1", projects[0].assignedUser.name);
         Assert.Null(projects[1].assignedUser);
@@ -363,7 +363,7 @@ public class ServiceFieldBulkTests
 
         schema.UpdateType<Project>(type =>
         {
-            type.AddField("assignedUsers", new { name = (string)null }, "Get users assigned to project")
+            type.AddField("assignedUsers", new { name = (string?)null }, "Get users assigned to project")
                 .Resolve<UserService>((proj, args, users) => users.GetUsersByProjectId(proj.Id, args.name))
                 .ResolveBulk<UserService, int, List<User>>(proj => proj.Id, (ids, args, srv) => srv.GetUsersByProjectId(ids, args.name));
         });
@@ -406,7 +406,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         Assert.Equal("Name_1", projects[0].assignedUsers[0].name);
         Assert.Empty(projects[1].assignedUsers);
@@ -466,7 +466,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         var project = projects[0];
         Assert.Equal(2, project.tasks.Count);
@@ -551,8 +551,8 @@ public class ServiceFieldBulkTests
             ]
         };
         // set up fake data with no null paths (normally this is done with EF and the null paths are handled by the compiler)
-        context.Projects[0].Tasks.ElementAt(0).Assignee.Projects = context.Projects;
-        context.Projects[0].Tasks.ElementAt(1).Assignee.Projects = [];
+        context.Projects[0].Tasks.ElementAt(0).Assignee!.Projects = context.Projects;
+        context.Projects[0].Tasks.ElementAt(1).Assignee!.Projects = [];
 
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
@@ -564,7 +564,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic project = res.Data["project"];
+        dynamic project = res.Data!["project"]!;
         Assert.Equal(1, project.id);
         Assert.Equal(2, project.tasks.Count);
         Assert.Equal(2, project.tasks[0].assignee.projects.Count);
@@ -633,7 +633,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic project = res.Data["project"];
+        dynamic project = res.Data!["project"]!;
         Assert.Equal(1, project.id);
         Assert.Equal(2, project.tasks.Count);
         Assert.Null(project.tasks[0].assignee);
@@ -717,8 +717,8 @@ public class ServiceFieldBulkTests
         };
 
         // set up fake data with no null paths (normally this is done with EF and the null paths are handled by the compiler)
-        context.Projects[0].Tasks.ElementAt(0).Assignee.Projects = context.Projects;
-        context.Projects[0].Tasks.ElementAt(1).Assignee.Projects = [];
+        context.Projects[0].Tasks.ElementAt(0).Assignee!.Projects = context.Projects;
+        context.Projects[0].Tasks.ElementAt(1).Assignee!.Projects = [];
 
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
@@ -730,7 +730,7 @@ public class ServiceFieldBulkTests
         Assert.Null(res.Errors);
         // called once not for each project
         Assert.Equal(1, userService.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         var project = projects[0];
         Assert.Equal(2, project.tasks.Count);

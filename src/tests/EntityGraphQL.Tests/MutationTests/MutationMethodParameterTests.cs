@@ -132,7 +132,7 @@ public class MutationMethodParameterTests
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
-        Assert.Equal("Frank", ((dynamic)res.Data["addPersonSingleArgument"]).name);
+        Assert.Equal("Frank", ((dynamic)res.Data!["addPersonSingleArgument"]!).name);
     }
 
     [Fact]

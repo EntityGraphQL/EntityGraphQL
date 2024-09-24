@@ -38,7 +38,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(1, ((dynamic)res.Data["fields"])[0].methodField);
+        Assert.Equal(1, ((dynamic)res.Data!["fields"]!)[0].methodField);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithArgs);
+        Assert.Equal(13, ((dynamic)res.Data!["fields"]!)[0].methodFieldWithArgs);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(20, ((dynamic)res.Data["fields"])[0].methodFieldWithOptionalArgs);
+        Assert.Equal(20, ((dynamic)res.Data!["fields"]!)[0].methodFieldWithOptionalArgs);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(13, ((dynamic)res.Data["fields"])[0].methodFieldWithTwoArgs);
+        Assert.Equal(13, ((dynamic)res.Data!["fields"]!)[0].methodFieldWithTwoArgs);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(27, ((dynamic)res.Data["fields"])[0].methodFieldWithDefaultArgs);
+        Assert.Equal(27, ((dynamic)res.Data!["fields"]!)[0].methodFieldWithDefaultArgs);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(33, ((dynamic)res.Data["fields"])[0].renamedMethod);
+        Assert.Equal(33, ((dynamic)res.Data!["fields"]!)[0].renamedMethod);
     }
 
     [Fact]
@@ -229,7 +229,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(23, (dynamic)res.Data["testMethod"]);
+        Assert.Equal(23, (dynamic)res.Data!["testMethod"]!);
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(88, ((dynamic)res.Data["fields"])[0].staticMethodField);
+        Assert.Equal(88, ((dynamic)res.Data!["fields"]!)[0].staticMethodField);
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public class GraphQLFieldAttributeTests
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        Assert.Equal(44, (dynamic)res.Data["methodFieldWithService"]);
+        Assert.Equal(44, (dynamic)res.Data!["methodFieldWithService"]!);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class GraphQLFieldAttributeTests
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        Assert.Equal(44, (dynamic)res.Data["methodFieldWithServiceStatic"]);
+        Assert.Equal(44, (dynamic)res.Data!["methodFieldWithServiceStatic"]!);
     }
 
     [Fact]
@@ -327,7 +327,7 @@ public class GraphQLFieldAttributeTests
 
         var sdl = schema.ToGraphQLSchemaString();
 
-        Assert.Contains("methodFieldWithArgs(name: String): String", sdl);
+        Assert.Contains("methodFieldWithArgs(name: String!): String", sdl);
 
         var gql = new QueryRequest
         {
@@ -343,7 +343,7 @@ public class GraphQLFieldAttributeTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithArgs);
+        Assert.Equal("Superman", ((dynamic)res.Data!["complex"]!)[0].methodFieldWithArgs);
     }
 
     [Fact]
@@ -353,7 +353,7 @@ public class GraphQLFieldAttributeTests
 
         var sdl = schema.ToGraphQLSchemaString();
 
-        Assert.Contains("methodFieldWithInput(props: MyArgs): String", sdl);
+        Assert.Contains("methodFieldWithInput(props: MyArgs!): String!", sdl);
         Assert.Contains("input MyArgs {", sdl);
 
         var gql = new QueryRequest
@@ -370,7 +370,7 @@ public class GraphQLFieldAttributeTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        Assert.Equal("Superman", ((dynamic)res.Data["complex"])[0].methodFieldWithInput);
+        Assert.Equal("Superman", ((dynamic)res.Data!["complex"]!)[0].methodFieldWithInput);
     }
 
     [Fact]
@@ -400,7 +400,7 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(8, ((dynamic)res.Data["getMyTask"]).id);
+        Assert.Equal(8, ((dynamic)res.Data!["getMyTask"]!).id);
     }
 
     [Fact]
@@ -413,7 +413,7 @@ public class GraphQLFieldAttributeTests
 
         var sdl = schemaProvider.ToGraphQLSchemaString();
 
-        Assert.Contains("searchTasks(name: String): [Task!]", sdl);
+        Assert.Contains("searchTasks(name: String!): [Task!]", sdl);
 
         var gql = new QueryRequest
         {
@@ -447,8 +447,8 @@ public class GraphQLFieldAttributeTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal(1, ((dynamic)res.Data["projects"])[0].searchTasks.Count);
-        Assert.Equal("abba", ((dynamic)res.Data["projects"])[0].searchTasks[0].name);
+        Assert.Equal(1, ((dynamic)res.Data!["projects"]!)[0].searchTasks.Count);
+        Assert.Equal("abba", ((dynamic)res.Data!["projects"]!)[0].searchTasks[0].name);
     }
 
     [Fact(Skip = "Not implemented yet - See explanation in other-data-sources.md")]
@@ -480,16 +480,16 @@ public class GraphQLFieldAttributeTests
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        Assert.Equal(88, ((dynamic)res.Data["fields"])[0].fieldWithService);
+        Assert.Equal(88, ((dynamic)res.Data!["fields"]!)[0].fieldWithService);
     }
 }
 
 public class ContextFieldWithMethod
 {
-    public IEnumerable<TypeWithMethod> Fields { get; set; }
-    public IEnumerable<TypeWithMethodArgs> Complex { get; set; }
+    public IEnumerable<TypeWithMethod> Fields { get; set; } = [];
+    public IEnumerable<TypeWithMethodArgs> Complex { get; set; } = [];
 
-    public IEnumerable<Project> Projects { get; set; }
+    public IEnumerable<Project> Projects { get; set; } = [];
 
     [GraphQLField]
     public int TestMethod() => 23;
@@ -518,7 +518,7 @@ public class ContextFieldWithMethodService
 
 public class ContextFieldWithMethod3
 {
-    public IEnumerable<TypeWithMethodInput> Complex { get; set; }
+    public IEnumerable<TypeWithMethodInput> Complex { get; set; } = [];
 }
 
 public class TypeWithMethodInput
@@ -533,7 +533,7 @@ public class TypeWithMethodInput
 
 public class ContextFieldWithMethod2
 {
-    public IEnumerable<TypeWithMethodArgs> Complex { get; set; }
+    public IEnumerable<TypeWithMethodArgs> Complex { get; set; } = [];
 }
 
 public class TypeWithMethodArgs
@@ -548,7 +548,7 @@ public class TypeWithMethodArgs
 
 public class MyArgs
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 public class TypeWithMethod
@@ -574,7 +574,7 @@ public class TypeWithMethod
     }
 
     [GraphQLField]
-    public int methodFieldWithOptionalArgs(string value)
+    public int methodFieldWithOptionalArgs(string? value)
     {
         return 20;
     }

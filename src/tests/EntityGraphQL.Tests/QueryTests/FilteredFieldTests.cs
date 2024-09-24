@@ -15,7 +15,7 @@ public class FilteredFieldTests
     public void TestUseConstFilter()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("projects", new { search = (string)null }, (ctx, args) => ctx.Projects.OrderBy(p => p.Id), "List of projects");
+        schema.Query().ReplaceField("projects", new { search = (string?)null }, (ctx, args) => ctx.Projects.OrderBy(p => p.Id), "List of projects");
 
         Func<Task, bool> TaskFilter = t => t.IsActive == true;
         schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(TaskFilter), "Active tasks");
@@ -34,7 +34,7 @@ public class FilteredFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("tasks", projectType.GetFields()[0].Name);
@@ -47,7 +47,12 @@ public class FilteredFieldTests
 
         schema
             .Type<Project>()
-            .ReplaceField("tasks", new { like = (string)null }, (project, args) => project.Tasks.WhereWhen(t => t.Name.Contains(args.like), !string.IsNullOrEmpty(args.like)), "List of project tasks");
+            .ReplaceField(
+                "tasks",
+                new { like = (string?)null },
+                (project, args) => project.Tasks.WhereWhen(t => t.Name.Contains(args.like!), !string.IsNullOrEmpty(args.like)),
+                "List of project tasks"
+            );
 
         var gql = new QueryRequest
         {
@@ -77,7 +82,7 @@ public class FilteredFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
+        dynamic project = Enumerable.First((dynamic)res.Data!["projects"]!);
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("tasks", projectType.GetFields()[0].Name);
@@ -126,7 +131,7 @@ public class FilteredFieldTests
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(people));
         var person1 = Enumerable.ElementAt(people, 0);
         Assert.Equal("Frank", person1.lastName);
@@ -178,7 +183,7 @@ public class FilteredFieldTests
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = separateServices });
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(people));
         var person1 = Enumerable.ElementAt(people, 0);
         Assert.Equal("Frank", person1.lastName);

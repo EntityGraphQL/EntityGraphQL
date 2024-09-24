@@ -59,8 +59,8 @@ public class ListEdgeCasesTests
         );
         // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-        Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
-        var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+        Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));
+        var person = Enumerable.ElementAt((dynamic)result.Data!["people"]!, 0);
         // we only have the fields requested
         Assert.Equal(3, person.GetType().GetFields().Length);
         Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -89,8 +89,8 @@ public class ListEdgeCasesTests
         }"
         );
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-        Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
-        var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+        Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));
+        var person = Enumerable.ElementAt((dynamic)result.Data!["people"]!, 0);
         // we only have the fields requested
         Assert.Equal(2, person.GetType().GetFields().Length);
         Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");

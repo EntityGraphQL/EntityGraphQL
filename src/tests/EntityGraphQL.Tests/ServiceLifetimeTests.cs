@@ -241,13 +241,13 @@ internal class MyDataContext
 internal class MyDirector
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public DateTime Dob { get; set; }
 }
 
 internal class MyMovie
 {
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
     public int Id { get; set; }
 
     public DateTime Released { get; set; }

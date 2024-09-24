@@ -49,7 +49,7 @@ public class MutationTests
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
-        dynamic addPersonResult = res.Data["addPerson"];
+        dynamic addPersonResult = res.Data!["addPerson"]!;
         // we only have the fields requested
         var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
         Assert.Equal(2, resultFields.Count());
@@ -78,7 +78,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data["addPersonNames"];
+        dynamic addPersonResult = results.Data!["addPersonNames"]!;
         // we only have the fields requested
         var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -108,7 +108,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data["addPersonNamesAsync"];
+        dynamic addPersonResult = results.Data!["addPersonNamesAsync"]!;
         // we only have the fields requested
         var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -138,7 +138,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(new QueryRequest { Query = query, Variables = vars1 }, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data["addPersonNamesExpression"];
+        dynamic addPersonResult = results.Data!["addPersonNamesExpression"]!;
         // we only have the fields requested
         var resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -160,7 +160,7 @@ public class MutationTests
             null
         );
         Assert.Null(results.Errors);
-        addPersonResult = results.Data["addPersonNamesExpression"];
+        addPersonResult = results.Data!["addPersonNamesExpression"]!;
         // we only have the fields requested
         resultFields = ((FieldInfo[])addPersonResult.GetType().GetFields()).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -190,6 +190,7 @@ public class MutationTests
             Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } }
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
         Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
     }
@@ -213,6 +214,7 @@ public class MutationTests
             Variables = new QueryVariables { { "names", new[] { "Lisa", "Simpson" } } }
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
         Assert.Equal("Variable or value used for argument 'nameInput' does not match argument type 'InputObject' on field 'addPersonInput'", result.Errors.First().Message);
     }
@@ -237,7 +239,7 @@ public class MutationTests
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
+        dynamic addPersonResult = (dynamic)result.Data!["addPersonInput"]!;
         // we only have the fields requested
         var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -274,7 +276,7 @@ public class MutationTests
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        dynamic addPersonResult = result.Data["addPersonInput"];
+        dynamic addPersonResult = result.Data!["addPersonInput"]!;
         // we only have the fields requested
         var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -311,7 +313,7 @@ public class MutationTests
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        dynamic addPersonResult = (dynamic)result.Data["addPersonInput"];
+        dynamic addPersonResult = (dynamic)result.Data!["addPersonInput"]!;
         // we only have the fields requested
         var resultFields = ((List<FieldInfo>)Enumerable.ToList(addPersonResult.GetType().GetFields())).Select(f => f.Name);
         Assert.Equal(3, resultFields.Count());
@@ -341,7 +343,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data["addPersonAdv"];
+        dynamic addPersonResult = results.Data!["addPersonAdv"]!;
         // we only have the fields requested
         Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
         Assert.NotNull(addPersonResult.GetType().GetField("id"));
@@ -369,7 +371,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResults = results.Data["addPersonAdvList"];
+        dynamic addPersonResults = results.Data!["addPersonAdvList"]!;
         var addPersonResult = Enumerable.First(addPersonResults);
         // we only have the fields requested
         Assert.Equal(3, addPersonResult.GetType().GetFields().Length);
@@ -409,7 +411,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data;
+        dynamic addPersonResult = results.Data!;
         addPersonResult = Enumerable.First(addPersonResult);
         addPersonResult = addPersonResult.Value;
         // we only have the fields requested
@@ -445,7 +447,7 @@ public class MutationTests
         var testSchema = new TestDataContext().FillWithTestData();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data;
+        dynamic addPersonResult = results.Data!;
         addPersonResult = Enumerable.First(addPersonResult);
         addPersonResult = addPersonResult.Value;
         Assert.Equal(2, Enumerable.Count(addPersonResult));
@@ -477,7 +479,7 @@ public class MutationTests
         var testSchema = new TestDataContext().FillWithTestData();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic addPersonResult = results.Data;
+        dynamic addPersonResult = results.Data!;
         addPersonResult = Enumerable.First(addPersonResult);
         addPersonResult = addPersonResult.Value;
         Assert.Equal(2, Enumerable.Count(addPersonResult));
@@ -505,7 +507,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["doGreatThing"];
+        dynamic result = results.Data!["doGreatThing"]!;
         Assert.True((bool)result);
     }
 
@@ -525,7 +527,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["doGreatThingWithoutAsyncKeyword"];
+        dynamic result = results.Data!["doGreatThingWithoutAsyncKeyword"]!;
         Assert.True((bool)result);
     }
 
@@ -547,7 +549,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["doGreatThing"];
+        dynamic result = results.Data!["doGreatThing"]!;
         Assert.True((bool)result);
     }
 
@@ -569,7 +571,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["defaultValueTest"];
+        dynamic result = results.Data!["defaultValueTest"]!;
         Assert.Equal(8, result);
 
         //check default value in SDL
@@ -599,7 +601,7 @@ public class MutationTests
         results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
 
         Assert.Null(results.Errors);
-        result = results.Data["__schema"];
+        result = results.Data!["__schema"]!;
 
         var field = ((IEnumerable<dynamic>)result.mutationType.fields).Where(x => x.name == "defaultValueTest");
         Assert.Contains("8", field.First().args[0].defaultValue as string);
@@ -706,7 +708,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(true, results.Data["taskWithList"]);
+        Assert.Equal(true, results.Data!["taskWithList"]);
         Assert.Equal(true, results.Data["taskWithListSeparateArg"]);
     }
 
@@ -728,7 +730,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(true, results.Data["taskWithList"]);
+        Assert.Equal(true, results.Data!["taskWithList"]);
     }
 
     [Fact]
@@ -748,7 +750,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(true, results.Data["taskWithListInt"]);
+        Assert.Equal(true, results.Data!["taskWithListInt"]);
     }
 
     [Fact]
@@ -769,7 +771,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(1.3f, results.Data["addFloat"]);
+        Assert.Equal(1.3f, results.Data!["addFloat"]);
     }
 
     [Fact]
@@ -789,7 +791,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(1.3d, results.Data["addDouble"]);
+        Assert.Equal(1.3d, results.Data!["addDouble"]);
     }
 
     [Fact]
@@ -810,7 +812,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(1.3m, results.Data["addDecimal"]);
+        Assert.Equal(1.3m, results.Data!["addDecimal"]);
     }
 
     [Fact]
@@ -830,7 +832,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        var person = (dynamic)results.Data["addPerson"];
+        var person = (dynamic)results.Data!["addPerson"]!;
         Assert.NotNull(person);
     }
 
@@ -851,7 +853,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["doGreatThingStaticly"];
+        dynamic result = results.Data!["doGreatThingStaticly"]!;
         Assert.True((bool)result);
     }
 
@@ -873,7 +875,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        dynamic result = results.Data["doGreatThingsHere"];
+        dynamic result = results.Data!["doGreatThingsHere"]!;
         Assert.True((bool)result);
     }
 
@@ -908,7 +910,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schema.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(results.Errors);
-        Assert.Equal(true, results.Data["noArgsWithService"]);
+        Assert.Equal(true, results.Data!["noArgsWithService"]);
         Assert.Empty(schema.Mutation().SchemaType.GetField("noArgsWithService", null).Arguments);
     }
 
@@ -925,12 +927,12 @@ public class MutationTests
                 }",
             Variables = new QueryVariables
             {
-                { "id", (object)null },
-                { "float", (object)null },
-                { "double", (object)null },
-                { "int", (object)null },
-                { "bool", (object)null },
-                { "enum", (object)null },
+                { "id", (object?)null },
+                { "float", (object?)null },
+                { "double", (object?)null },
+                { "int", (object?)null },
+                { "bool", (object?)null },
+                { "enum", (object?)null },
             },
         };
 
@@ -941,7 +943,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(results.Errors);
-        Assert.Equal(true, results.Data["nullableGuidArgs"]);
+        Assert.Equal(true, results.Data!["nullableGuidArgs"]);
     }
 
     [Fact]
@@ -986,7 +988,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
+        IEnumerable<string> result = (IEnumerable<string>)results.Data!["listOfGuidArgs"]!;
         Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
     }
 
@@ -1008,7 +1010,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        IEnumerable<string> result = (IEnumerable<string>)results.Data["listOfGuidArgs"];
+        IEnumerable<string> result = (IEnumerable<string>)results.Data!["listOfGuidArgs"]!;
         Assert.True(new List<string> { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" }.All(i => result.Contains(i)));
     }
 
@@ -1029,7 +1031,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        var result = (int)results.Data["descriptionArgs"];
+        var result = (int)results.Data!["descriptionArgs"]!;
         Assert.Equal(3, result);
     }
 
@@ -1052,14 +1054,14 @@ public class MutationTests
 
     private class ArgsWithConst
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public const bool IsConst = true;
-        public InputWithConst Input { get; set; }
+        public InputWithConst? Input { get; set; }
     }
 
     private class InputWithConst
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public const bool InputConst = true;
     }
 
@@ -1142,7 +1144,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.Equal(0, results.Data["getValue"]);
+        Assert.Equal(0, results.Data!["getValue"]);
     }
 
     [Fact]

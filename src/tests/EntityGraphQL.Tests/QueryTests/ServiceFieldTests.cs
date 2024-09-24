@@ -93,7 +93,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, pager.CallCount);
-        dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        dynamic person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Single(person.GetType().GetFields());
         Assert.NotNull(person.GetType().GetField("projects"));
     }
@@ -135,7 +135,8 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        Assert.NotNull(res.Data);
+        dynamic person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Single(person.GetType().GetFields());
         Assert.NotNull(person.GetType().GetField("projects"));
         dynamic project = Enumerable.ElementAt(person.projects, 0);
@@ -167,7 +168,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        dynamic person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Single(person.GetType().GetFields());
         Assert.NotNull(person.GetType().GetField("projects"));
         dynamic project = Enumerable.ElementAt(person.projects, 0);
@@ -204,7 +205,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, pager.CallCount);
-        var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        var person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Equal(2, person.GetType().GetFields().Length);
         Assert.NotNull(person.GetType().GetField("projects"));
         Assert.NotNull(person.GetType().GetField("name"));
@@ -244,7 +245,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, pager.CallCount);
-        var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        var person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Equal(2, person.GetType().GetFields().Length);
         Assert.NotNull(person.GetType().GetField("projects"));
         Assert.NotNull(person.GetType().GetField("manager"));
@@ -287,7 +288,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, ager.CallCount);
-        var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        var person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Assert.Equal(2, person.GetType().GetFields().Length);
         Assert.NotNull(person.GetType().GetField("age"));
         Assert.NotNull(person.GetType().GetField("manager"));
@@ -334,7 +335,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, ager.CallCount);
-        var person = Enumerable.ElementAt((dynamic)res.Data["people"], 0);
+        var person = Enumerable.ElementAt((dynamic)res.Data!["people"]!, 0);
         Type resultType = person.GetType();
         Assert.Single(resultType.GetFields());
         Assert.Equal("manager", resultType.GetFields()[0].Name);
@@ -348,7 +349,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
         // Linking a type from a service back to the schema context
-        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner!.Id == user.Id));
 
         schema.Query().ReplaceField("user", "Get current user").Resolve<UserService>((ctx, users) => users.GetUser());
 
@@ -362,10 +363,11 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
         Assert.Equal(1, userService.CallCount);
-        Assert.Equal(2, res.Data["user"].GetType().GetFields().Length);
-        Assert.Equal("id", res.Data["user"].GetType().GetFields().ElementAt(0).Name);
-        Assert.Equal("projects", res.Data["user"].GetType().GetFields().ElementAt(1).Name);
+        Assert.Equal(2, res.Data["user"]!.GetType().GetFields().Length);
+        Assert.Equal("id", res.Data["user"]!.GetType().GetFields().ElementAt(0).Name);
+        Assert.Equal("projects", res.Data["user"]!.GetType().GetFields().ElementAt(1).Name);
     }
 
     [Fact]
@@ -374,7 +376,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
         // Linking a type from a service back to the schema context
-        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner!.Id == user.Id));
 
         schema.Query().ReplaceField("users", "Get current user").Resolve<UserService>((ctx, users) => users.GetUsers(3));
 
@@ -389,7 +391,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, userService.CallCount);
-        dynamic users = res.Data["users"];
+        dynamic users = res.Data!["users"]!;
         Assert.Equal(2, users[0].GetType().GetFields().Length);
         Assert.Equal("id", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
         Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
@@ -401,7 +403,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
         // Linking a type from a service back to the schema context
-        schema.Type<User>().ReplaceField("project", "Peoples project").Resolve<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner.Id == user.Id));
+        schema.Type<User>().ReplaceField("project", "Peoples project").Resolve<TestDataContext>((user, db) => db.Projects.FirstOrDefault(p => p.Owner!.Id == user.Id));
 
         schema.Query().ReplaceField("user", "Get current user").Resolve<UserService>((ctx, users) => users.GetUser());
 
@@ -420,7 +422,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, userService.CallCount);
-        dynamic user = res.Data["user"];
+        dynamic user = res.Data!["user"]!;
         Assert.Equal(2, user.GetType().GetFields().Length);
         Assert.Equal("id", Enumerable.ElementAt(user.GetType().GetFields(), 0).Name);
         Assert.Equal("project", Enumerable.ElementAt(user.GetType().GetFields(), 1).Name);
@@ -472,7 +474,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, userService.CallCount);
-        dynamic project = res.Data["project"];
+        dynamic project = res.Data!["project"]!;
         Assert.Equal(2, project.GetType().GetFields().Length);
         Assert.Equal("name", Enumerable.ElementAt(project.GetType().GetFields(), 0).Name);
         Assert.Equal("createdBy", Enumerable.ElementAt(project.GetType().GetFields(), 1).Name);
@@ -487,14 +489,14 @@ public class ServiceFieldTests
         schema.Query().ReplaceField("users", "Get current user").Resolve<UserService>((_, users) => users.GetUsers(10));
 
         // connect back to a entity in the DB context
-        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner.Id == user.Id));
+        schema.Type<User>().ReplaceField("projects", "Peoples projects").Resolve<TestDataContext>((user, db) => db.Projects.Where(p => p.Owner!.Id == user.Id));
 
-        schema.Type<User>().AddField("currentTask", "Peoples current task").Resolve<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee.Id == user.Id));
+        schema.Type<User>().AddField("currentTask", "Peoples current task").Resolve<TestDataContext>((user, db) => db.Tasks.FirstOrDefault(t => t.Assignee!.Id == user.Id));
 
         schema
             .Type<User>()
             .AddField("indirectTasks", "Tasks assigned to people managed by user")
-            .Resolve<TestDataContext2>((user, db) => from task in db.Tasks where task.Assignee.Manager == user.Relation select task);
+            .Resolve<TestDataContext2>((user, db) => from task in db.Tasks where task.Assignee!.Manager == user.Relation select task);
 
         schema
             .Type<User>()
@@ -544,7 +546,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, userService.CallCount);
-        dynamic users = res.Data["users"];
+        dynamic users = res.Data!["users"]!;
         Assert.Equal(5, users[0].GetType().GetFields().Length);
         Assert.Equal("field1", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
         Assert.Equal("projects", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
@@ -583,7 +585,7 @@ public class ServiceFieldTests
         serviceCollection.AddSingleton(settings);
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Null(res.Errors);
         Assert.Equal(1, settings.CallCount);
@@ -621,7 +623,7 @@ public class ServiceFieldTests
         serviceCollection.AddSingleton(settings);
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Null(res.Errors);
         Assert.Equal(1, settings.CallCount);
@@ -639,7 +641,7 @@ public class ServiceFieldTests
         schema.AddType<Settings>("Settings", "The settings").AddAllFields();
         schema.Type<Project>().AddField("settings", "Project settings").Resolve<SettingsService>((t, settings) => settings.Get(t.Id, false)).IsNullable(false);
         schema.Type<Project>().AddField("totalTasks", p => p.Tasks.Count(), "Total tasks");
-        schema.Type<Person>().AddField("managerId", p => p.Manager.Id, "Persons managers ID");
+        schema.Type<Person>().AddField("managerId", p => p.Manager!.Id, "Persons managers ID");
 
         var gql = new QueryRequest
         {
@@ -677,7 +679,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Equal(1, settings.CallCount);
         Assert.Equal(2, projectType.GetFields().Length);
@@ -717,7 +719,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Equal(2, projectType.GetFields().Length);
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -754,7 +756,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Equal(2, projectType.GetFields().Length);
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -804,7 +806,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Equal(2, projectType.GetFields().Length);
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -854,7 +856,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.ElementAt((dynamic)res.Data["projects"], 0);
+        dynamic project = Enumerable.ElementAt((dynamic)res.Data!["projects"]!, 0);
         Type projectType = project.GetType();
         Assert.Equal(2, projectType.GetFields().Length);
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -872,8 +874,8 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "projects",
-                new { search = (string)null, },
-                (ctx, args) => ctx.Projects.WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Description),
+                new { search = (string?)null, },
+                (ctx, args) => ctx.Projects.WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Description),
                 "List of projects"
             );
 
@@ -891,17 +893,11 @@ public class ServiceFieldTests
         }"
         };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>
-            {
-                new Project { Tasks = null, Description = "Hello" }
-            },
-        };
+        var context = new TestDataContext { Projects = new List<Project> { new Project { Description = "Hello" } }, };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = Enumerable.First((dynamic)res.Data["projects"]);
+        dynamic project = Enumerable.First((dynamic)res.Data!["projects"]!);
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("configType", projectType.GetFields()[0].Name);
@@ -928,17 +924,11 @@ public class ServiceFieldTests
                 }"
         };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>
-            {
-                new Project { Tasks = null, Description = "Hello" }
-            },
-        };
+        var context = new TestDataContext { Projects = new List<Project> { new Project { Description = "Hello" } }, };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        dynamic project = (dynamic)res.Data["project"];
+        dynamic project = (dynamic)res.Data!["project"]!;
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("configType", projectType.GetFields()[0].Name);
@@ -951,7 +941,7 @@ public class ServiceFieldTests
 
         schema.Type<Project>().AddField("configType", "Get project config").Resolve<ConfigService>((p, srv) => srv.Get(0).Type);
 
-        schema.Type<Task>().AddField("assigneeProjects", t => t.Assignee.Projects, "All projects for assignee");
+        schema.Type<Task>().AddField("assigneeProjects", t => t.Assignee!.Projects, "All projects for assignee");
         schema
             .Type<Person>()
             .AddField("age", "Persons age")
@@ -1013,7 +1003,7 @@ public class ServiceFieldTests
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
         Assert.Equal(1, ageSrv.CallCount);
-        dynamic project = res.Data["project"];
+        dynamic project = res.Data!["project"]!;
     }
 
     [Fact]
@@ -1054,7 +1044,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
-        dynamic project = res.Data["task"];
+        dynamic project = res.Data!["task"]!;
     }
 
     [Fact]
@@ -1098,7 +1088,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
-        dynamic project = (dynamic)res.Data["task"];
+        dynamic project = (dynamic)res.Data!["task"]!;
     }
 
     [Fact]
@@ -1142,7 +1132,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
-        dynamic project = (dynamic)res.Data["task"];
+        dynamic project = (dynamic)res.Data!["task"]!;
     }
 
     [Fact]
@@ -1186,7 +1176,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var project = (dynamic)res.Data["task"];
+        var project = (dynamic)res.Data!["task"]!;
     }
 
     [Fact]
@@ -1227,7 +1217,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var project = (dynamic)res.Data["project"];
+        var project = (dynamic)res.Data!["project"]!;
     }
 
     [Fact]
@@ -1273,7 +1263,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
-        dynamic project = (dynamic)res.Data["project"];
+        dynamic project = (dynamic)res.Data!["project"]!;
     }
 
     [Fact]
@@ -1309,7 +1299,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, service.CallCount);
-        dynamic projects = res.Data["projects"];
+        dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects[0].tasks[0].assignee.GetType().GetFields().Length);
     }
 
@@ -1358,7 +1348,7 @@ public class ServiceFieldTests
     public void TestRootServiceFieldBackToContext()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().AddField("currentUser", "Returns current user").Resolve<UserService>((ctx, srv) => srv.GetUserById(ctx.People.FirstOrDefault().Id));
+        schema.Query().AddField("currentUser", "Returns current user").Resolve<UserService>((ctx, srv) => srv.GetUserById(ctx.People.First().Id));
 
         schema.UpdateType<User>(type => type.AddField("projectNames", "Get project names").Resolve<TestDataContext>((user, ctx) => ctx.Projects.Select(u => u.CreatedBy == user.Id)));
         var gql = new QueryRequest
@@ -1401,7 +1391,7 @@ public class ServiceFieldTests
         );
 
         Assert.NotNull(expression);
-        Assert.Equal("ctx.People.FirstOrDefault().Id", expression.ToString());
+        Assert.Equal("ctx.People.First().Id", expression.ToString());
     }
 
     [Fact]
@@ -1439,7 +1429,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, userService.CallCount);
-        dynamic users = res.Data["users"];
+        dynamic users = res.Data!["users"]!;
         Assert.Equal(2, users[0].GetType().GetFields().Length);
         Assert.Equal("field2", Enumerable.ElementAt(users[0].GetType().GetFields(), 0).Name);
         Assert.Equal("relation", Enumerable.ElementAt(users[0].GetType().GetFields(), 1).Name);
@@ -1457,9 +1447,9 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "project",
-                new { id = (int?)null, search = (string)null, },
+                new { id = (int?)null, search = (string?)null, },
                 (ctx, args) =>
-                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
+                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
             );
 
@@ -1481,7 +1471,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var project = (dynamic)res.Data["project"];
+        var project = (dynamic)res.Data!["project"]!;
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("configs", projectType.GetFields()[0].Name);
@@ -1501,9 +1491,9 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "project",
-                new { id = (int?)null, search = (string)null, },
+                new { id = (int?)null, search = (string?)null, },
                 (ctx, args) =>
-                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
+                    ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
             );
 
@@ -1525,7 +1515,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var project = (dynamic)res.Data["project"];
+        var project = (dynamic)res.Data!["project"]!;
         Type projectType = project.GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("configs", projectType.GetFields()[0].Name);
@@ -1547,11 +1537,11 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "projects",
-                new { id = (int?)null, search = (string)null, },
+                new { id = (int?)null, search = (string?)null, },
                 (ctx, args) =>
                     ctx
                         .QueryableProjects.WhereWhen(c => c.Id == args.id, args.id != null)
-                        .WhereWhen(p => p.Description.ToLower().Contains(args.search), !string.IsNullOrEmpty(args.search))
+                        .WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search))
                         .OrderBy(c => c.Id)
                         .ThenBy(p => p.Description),
                 "projects"
@@ -1588,7 +1578,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var projects = (dynamic)res.Data["projects"];
+        var projects = (dynamic)res.Data!["projects"]!;
         Type projectType = Enumerable.First(projects).GetType();
         Assert.Equal(2, projectType.GetFields().Length);
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -1632,7 +1622,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var projects = (dynamic)res.Data["projects"];
+        var projects = (dynamic)res.Data!["projects"]!;
         Type projectType = Enumerable.First(projects).GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -1674,7 +1664,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var projects = (dynamic)res.Data["projects"];
+        var projects = (dynamic)res.Data!["projects"]!;
         Type projectType = Enumerable.First(projects).GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("config", projectType.GetFields()[0].Name);
@@ -1690,7 +1680,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
-        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((p, srv) => srv.Get(p.Name, p.Children.FirstOrDefault().Name));
+        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((p, srv) => srv.Get(p.Name, p.Children.First().Name));
 
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
@@ -1725,7 +1715,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var projects = (dynamic)res.Data["projects"];
+        var projects = (dynamic)res.Data!["projects"]!;
         Type projectType = Enumerable.First(projects).GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("someService", projectType.GetFields()[0].Name);
@@ -1740,7 +1730,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
-        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.FirstOrDefault().Name));
+        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((p, srv) => srv.GetCollection(p.Name, p.Children.First().Name));
 
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
@@ -1775,7 +1765,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var projects = (dynamic)res.Data["projects"];
+        var projects = (dynamic)res.Data!["projects"]!;
         Type projectType = Enumerable.First(projects).GetType();
         Assert.Single(projectType.GetFields());
         Assert.Equal("someService", projectType.GetFields()[0].Name);
@@ -1827,7 +1817,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var data = (dynamic)res.Data["projects"];
+        var data = (dynamic)res.Data!["projects"]!;
         Assert.Equal(1, srv.CallCount);
     }
 
@@ -1858,7 +1848,7 @@ public class ServiceFieldTests
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
-        var data = (dynamic)res.Data["someService"];
+        var data = (dynamic)res.Data!["someService"]!;
         Assert.Equal(1, srv.CallCount);
     }
 
@@ -1896,7 +1886,7 @@ public class ServiceFieldTests
             };
         }
 
-        public ProjectConfig[] GetNullList(int id)
+        public ProjectConfig[]? GetNullList(int id)
         {
             CallCount += 1;
             return null;
@@ -1989,7 +1979,7 @@ public class ServiceFieldTests
     public class Pagination<TEntity>
     {
         [GraphQLNotNull]
-        public IEnumerable<TEntity> Items { get; set; }
+        public IEnumerable<TEntity> Items { get; set; } = [];
 
         [GraphQLNotNull]
         public int Total { get; set; }
@@ -2065,16 +2055,15 @@ public class UserService
         return new User { Id = id, Field2 = "SingleCall" };
     }
 
-    internal List<User> GetUsersByProjectId(int id, string nameFilter)
+    internal List<User> GetUsersByProjectId(int id, string? nameFilter)
     {
         CallCount += 1;
         Calls.Add(nameof(GetUsersByProjectId));
-        return new List<User>
+        var users = new List<User>
         {
             new User { Id = id, Name = "Blah" }
-        }
-            .Where(u => u.Name.Contains(nameFilter))
-            .ToList();
+        };
+        return string.IsNullOrEmpty(nameFilter) ? users : users.Where(u => u.Name.Contains(nameFilter)).ToList();
     }
 
     internal IDictionary<int, User> GetUsersByProjectId(IEnumerable<int> ids)
@@ -2095,7 +2084,7 @@ public class UserService
             .ToDictionary(u => u.ProjectId, u => u.User);
     }
 
-    internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids, string nameFilter)
+    internal IDictionary<int, List<User>> GetUsersByProjectId(IEnumerable<int> ids, string? nameFilter)
     {
         CallCount += 1;
         Calls.Add(nameof(GetUsersByProjectId));
@@ -2119,7 +2108,7 @@ public class UserService
         return new User { Id = userId, Name = $"Name_{userId}" };
     }
 
-    internal IDictionary<int, User> GetUserByIdForProjectId(IEnumerable<int> ids, int id)
+    internal IDictionary<int, User?> GetUserByIdForProjectId(IEnumerable<int> ids, int id)
     {
         CallCount += 1;
         Calls.Add(nameof(GetUserByIdForProjectId));
@@ -2153,5 +2142,5 @@ public class AgeService
 public class ProjectConfig
 {
     public int Id { get; set; }
-    public string Type { get; set; }
+    public string Type { get; set; } = "";
 }

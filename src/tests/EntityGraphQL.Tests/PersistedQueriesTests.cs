@@ -49,7 +49,7 @@ public class PersistedQueriesTests
         {
             Assert.Null(result.Errors);
 
-            dynamic project = result.Data["project"];
+            dynamic project = result.Data!["project"]!;
             Assert.Equal(5, Enumerable.Count(project.tasks));
         }
     }
@@ -85,6 +85,7 @@ public class PersistedQueriesTests
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotFound", result.Errors.First().Message);
@@ -121,6 +122,7 @@ public class PersistedQueriesTests
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = false });
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotSupported", result.Errors.First().Message);
@@ -157,6 +159,7 @@ public class PersistedQueriesTests
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
+        Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
 
         Assert.Equal("PersistedQueryNotSupported", result.Errors.First().Message);

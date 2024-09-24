@@ -24,8 +24,9 @@ namespace EntityGraphQL.Tests
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+            Assert.NotNull(result.Data);
             Assert.Single(result.Data);
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            var person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -48,7 +49,7 @@ namespace EntityGraphQL.Tests
                 null,
                 null
             );
-            Assert.Equal(100, (int?)result.Data["firstUserId"]);
+            Assert.Equal(100, (int?)result.Data!["firstUserId"]);
         }
 
         [Fact]
@@ -65,8 +66,9 @@ namespace EntityGraphQL.Tests
             Assert.Single(tree.Operations);
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+            Assert.NotNull(result.Data);
             Assert.Single(result.Data);
-            object person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            object person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -123,15 +125,15 @@ namespace EntityGraphQL.Tests
             Assert.Single(tree.Operations);
             Assert.Equal(2, tree.Operations.First().QueryFields.Count);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));
+            var person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
             // we only have the fields requested
             Assert.Equal(2, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "name");
 
-            Assert.Equal(1, Enumerable.Count((dynamic)result.Data["users"]));
-            var user = Enumerable.ElementAt((dynamic)result.Data["users"], 0);
+            Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["users"]!));
+            var user = Enumerable.ElementAt((dynamic)result.Data!["users"]!, 0);
             // we only have the fields requested
             Assert.Single(user.GetType().GetFields());
             Assert.NotNull(user.GetType().GetField("id"));
@@ -148,8 +150,8 @@ namespace EntityGraphQL.Tests
             );
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));
+            var person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -178,8 +180,8 @@ namespace EntityGraphQL.Tests
             );
             // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal(1, Enumerable.Count((dynamic)result.Data["people"]));
-            var person = Enumerable.ElementAt((dynamic)result.Data["people"], 0);
+            Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));
+            var person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
             // we only have the fields requested
             Assert.Equal(3, person.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)person.GetType().GetFields(), f => f.Name == "id");
@@ -249,7 +251,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal("Project 3", ((dynamic)result.Data["projects"])[0].n);
+            Assert.Equal("Project 3", ((dynamic)result.Data!["projects"]!)[0].n);
         }
 
         [Fact]
@@ -267,7 +269,7 @@ namespace EntityGraphQL.Tests
 
             Assert.Single(tree.Operations.First().QueryFields);
             var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
-            Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data["people"]).projects).n);
+            Assert.Equal("Project 3", Enumerable.First(Enumerable.First((dynamic)result.Data!["people"]!).projects).n);
         }
 
         [Fact]
@@ -309,8 +311,8 @@ namespace EntityGraphQL.Tests
             var testSchema = new TestDataContext().FillWithTestData();
             var result = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
             Assert.Null(result.Errors);
-            Assert.NotNull(((dynamic)result.Data["projects"])[0].created);
-            Assert.NotNull(((dynamic)result.Data["projects"])[0].updated);
+            Assert.NotNull(((dynamic)result.Data!["projects"]!)[0].created);
+            Assert.NotNull(((dynamic)result.Data!["projects"]!)[0].updated);
         }
 
         [Fact]
@@ -331,7 +333,7 @@ query {
                 context.People.Add(new Person());
             }
             var qr = gql.ExecuteQuery(context, null, null);
-            dynamic totalPeople = (dynamic)qr.Data["totalPeople"];
+            dynamic totalPeople = qr.Data!["totalPeople"]!;
             // we only have the fields requested
             Assert.Equal(15, totalPeople);
         }
@@ -377,7 +379,7 @@ query {
             schema.UpdateType<Project>(x =>
             {
                 x.AddField("sum", "").Resolve(y => y.Tasks.Count());
-                x.AddField("test", "").Resolve<TestDataContext>((y, db) => y.Updated.Value.AddDays(3));
+                x.AddField("test", "").Resolve<TestDataContext>((y, db) => y.Updated!.Value.AddDays(3));
             });
 
             var testSchema = new TestDataContext()
@@ -395,12 +397,12 @@ query {
             var gql = new QueryRequest { Query = @"query deep { projects { sum }}", };
 
             var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-            Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
+            Assert.Equal(3, ((dynamic)results.Data!)["projects"][0].sum);
 
             gql = new QueryRequest { Query = @"query deep { projects { test }}", };
 
             results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
+            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data!)["projects"][0].test);
 
             gql = new QueryRequest
             {
@@ -413,8 +415,8 @@ query {
 
             results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
 
-            Assert.Equal(3, ((dynamic)results.Data)["projects"][0].sum);
-            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data)["projects"][0].test);
+            Assert.Equal(3, ((dynamic)results.Data!)["projects"][0].sum);
+            Assert.Equal(new System.DateTime(2001, 1, 4), ((dynamic)results.Data!)["projects"][0].test);
         }
 
         [Fact]
@@ -460,7 +462,7 @@ query {
 
         public class UserDbContextNullable
         {
-            public List<string> UserIds { get; set; }
+            public List<string>? UserIds { get; set; } = null;
         }
 
         /// <summary>
@@ -476,13 +478,13 @@ query {
             var gql = new QueryRequest { Query = @"query deep { userIds }", };
 
             var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-            Assert.Null(((dynamic)results.Data)["userIds"]);
+            Assert.Null(((dynamic)results.Data!)["userIds"]);
         }
 
         public class UserDbContextNonNullable
         {
             [GraphQLNotNull]
-            public List<string> UserIds { get; set; }
+            public List<string> UserIds { get; set; } = [];
         }
 
         /// <summary>
@@ -498,8 +500,8 @@ query {
             var gql = new QueryRequest { Query = @"query deep { userIds }", };
 
             var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-            Assert.NotNull(((dynamic)results.Data)["userIds"]);
-            Assert.Empty(((dynamic)results.Data)["userIds"]);
+            Assert.NotNull(((dynamic)results.Data!)["userIds"]);
+            Assert.Empty(((dynamic)results.Data!)["userIds"]);
         }
     }
 
@@ -509,7 +511,7 @@ query {
 
         public class LevelOne
         {
-            public LevelTwo LevelTwo { get; set; }
+            public LevelTwo? LevelTwo { get; set; }
         }
 
         public class LevelTwo
@@ -519,7 +521,7 @@ query {
 
         public class LevelThree
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
         }
     }
 }

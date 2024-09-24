@@ -96,7 +96,7 @@ public class EntityQueryCompilerTests
     public void CompilesBinaryExpressionEquals()
     {
         var exp = EntityQueryCompiler.Compile("someRelation.relation.id == 99", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
-        Assert.True((bool)exp.Execute(new TestSchema()));
+        Assert.True((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
@@ -110,21 +110,21 @@ public class EntityQueryCompilerTests
     public void CompilesBinaryExpressionEqualsRoot()
     {
         var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
-        Assert.False((bool)exp.Execute(new TestSchema()));
+        Assert.False((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
     public void CompilesBinaryExpressionEqualsAndAddRoot()
     {
         var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
-        Assert.True((bool)exp.Execute(new TestSchema()));
+        Assert.True((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
     public void CompilesBinaryExpressionEqualsAndAdd()
     {
         var exp = EntityQueryCompiler.Compile("someRelation.relation.id == (99 - 32)", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
-        Assert.False((bool)exp.Execute(new TestSchema()));
+        Assert.False((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
@@ -309,9 +309,16 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var param = Expression.Parameter(typeof(Person));
-        var expressionParser = new EntityQueryParser(param, schema, null, null, new CompileContext(executionOptions, null, new QueryRequestContext(null, null)));
+        var expressionParser = new EntityQueryParser(
+            param,
+            schema,
+            new QueryRequestContext(null, null),
+            new DefaultMethodProvider(),
+            new CompileContext(executionOptions, null, new QueryRequestContext(null, null))
+        );
         var exp = expressionParser.Parse("gender == Female");
-        var res = (bool)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
+        var res = (bool?)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
+        Assert.NotNull(res);
         Assert.True(res);
     }
 
@@ -320,7 +327,8 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var exp = EntityQueryCompiler.Compile("people.where(gender == Female)", schema, executionOptions);
-        var res = (IEnumerable<Person>)exp.Execute(new TestSchema());
+        var res = (IEnumerable<Person>?)exp.Execute(new TestSchema());
+        Assert.NotNull(res);
         Assert.Empty(res);
     }
 
@@ -329,18 +337,18 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var exp = EntityQueryCompiler.Compile("people.where(gender == Other)", schema, executionOptions);
-        var res =
-            (IEnumerable<Person>)
-                exp.Execute(
-                    new TestSchema
+        var res = (IEnumerable<Person>?)
+            exp.Execute(
+                new TestSchema
+                {
+                    People = new List<Person>
                     {
-                        People = new List<Person>
-                        {
-                            new() { Gender = Gender.Female },
-                            new() { Gender = Gender.Other }
-                        }
+                        new() { Gender = Gender.Female },
+                        new() { Gender = Gender.Other }
                     }
-                );
+                }
+            );
+        Assert.NotNull(res);
         Assert.Single(res);
         Assert.Equal(Gender.Other, res.First().Gender);
     }
@@ -350,18 +358,18 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema, executionOptions);
-        var res =
-            (IEnumerable<Person>)
-                exp.Execute(
-                    new TestSchema
+        var res = (IEnumerable<Person>?)
+            exp.Execute(
+                new TestSchema
+                {
+                    People = new List<Person>
                     {
-                        People = new List<Person>
-                        {
-                            new Person { Gender = Gender.Female },
-                            new Person { Gender = Gender.Other }
-                        }
+                        new Person { Gender = Gender.Female },
+                        new Person { Gender = Gender.Other }
                     }
-                );
+                }
+            );
+        Assert.NotNull(res);
         Assert.Single(res);
         Assert.Equal(Gender.Other, res.First().Gender);
     }
@@ -384,7 +392,7 @@ public class EntityQueryCompilerTests
         var schema = SchemaBuilder.FromObject<TestSchema>();
 
         var res = EntityQueryCompiler.Compile("[1, 4,5]", schema, executionOptions).Execute(new TestSchema());
-        Assert.Collection((IEnumerable<long>)res, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
+        Assert.Collection((IEnumerable<long>)res!, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
     }
 
     [Fact]
@@ -393,7 +401,7 @@ public class EntityQueryCompilerTests
         var schema = SchemaBuilder.FromObject<TestSchema>();
 
         var res = EntityQueryCompiler.Compile("[\"Hi\", \"World\"]", schema, executionOptions).Execute(new TestSchema());
-        Assert.Collection((IEnumerable<string>)res, i => Assert.Equal("Hi", i), i => Assert.Equal("World", i));
+        Assert.Collection((IEnumerable<string>)res!, i => Assert.Equal("Hi", i), i => Assert.Equal("World", i));
     }
 
     public enum Gender

@@ -37,7 +37,7 @@ public class FieldExtensionTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.edges));
         // filtered
         Assert.Equal(3, people.totalCount);
@@ -73,7 +73,7 @@ public class FieldExtensionTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.items));
         // filtered
         Assert.Equal(3, people.totalItems);
@@ -122,7 +122,7 @@ public class FieldExtensionTests
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = separateServices });
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.items));
         // filtered
         Assert.Equal(3, people.totalItems);
@@ -172,7 +172,7 @@ public class FieldExtensionTests
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.edges));
         // filtered
         Assert.Equal(3, people.totalCount);
@@ -227,7 +227,7 @@ public class FieldExtensionTests
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(result.Errors);
 
-        dynamic projects = result.Data["projects"];
+        dynamic projects = result.Data!["projects"]!;
         dynamic tasks = projects[0].tasks;
         Assert.Equal(2, Enumerable.Count(tasks.edges));
         Assert.Equal(3, tasks.totalCount); // filtered 1 out

@@ -14,8 +14,8 @@ namespace EntityGraphQL.Tests.Util
         {
             public int NonNullableInt { get; set; }
             public int? NullableInt { get; set; }
-            public string Nullable { get; set; }
-            public IEnumerable<Test> Tests { get; set; }
+            public string Nullable { get; set; } = string.Empty;
+            public IEnumerable<Test> Tests { get; set; } = [];
 
             public IEnumerable<Test> NullableMethod()
             {
@@ -111,7 +111,7 @@ namespace EntityGraphQL.Tests.Util
             var res = schema.ExecuteRequestWithContext(gql, new WithNullableRefEnabled(), null, null);
             Assert.Null(res.Errors);
 
-            var type = (dynamic)res.Data["__type"];
+            var type = (dynamic)res.Data!["__type"]!;
 
             Assert.Equal(
                 @"{""name"":""nonNullableInt"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""Int"",""kind"":""SCALAR""}},""args"":[]}",

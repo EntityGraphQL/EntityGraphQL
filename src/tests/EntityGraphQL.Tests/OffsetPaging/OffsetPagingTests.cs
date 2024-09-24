@@ -37,7 +37,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(data.People.Count, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.False(people.hasNextPage);
@@ -70,7 +70,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["A"];
+        dynamic people = result.Data!["A"]!;
         Assert.Equal(data.People.Count, Enumerable.Count(people.B));
         Assert.Equal(data.People.Count, people.H);
         Assert.False(people.E);
@@ -103,7 +103,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.True(people.hasNextPage);
@@ -136,7 +136,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.True(people.hasNextPage);
@@ -169,7 +169,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(3, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.False(people.hasNextPage);
@@ -187,8 +187,8 @@ public class OffsetPagingTests
             .Query()
             .ReplaceField(
                 "people",
-                new { search = (string)null },
-                (ctx, args) => ctx.People.WhereWhen(p => p.Name.Contains(args.search) || p.LastName.Contains(args.search), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Id),
+                new { search = (string?)null },
+                (ctx, args) => ctx.People.WhereWhen(p => p.Name.Contains(args.search!) || p.LastName.Contains(args.search!), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Id),
                 "Return list of people with paging metadata"
             )
             .UseOffsetPaging();
@@ -211,7 +211,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(people.items));
         Assert.Equal(2, people.totalItems); // 2 "ill" matches
         Assert.True(people.hasNextPage);
@@ -244,7 +244,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(3, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.True(people.hasNextPage);
@@ -304,7 +304,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic people = result.Data["people"];
+        dynamic people = result.Data!["people"]!;
         Assert.Equal(2, Enumerable.Count(people.items));
         Assert.Equal(data.People.Count, people.totalItems);
         Assert.True(people.hasNextPage);
@@ -339,7 +339,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic projects = result.Data["projects"];
+        dynamic projects = result.Data!["projects"]!;
         var tasks = projects[0].tasks;
         Assert.Equal(5, tasks.totalItems);
         Assert.True(tasks.hasNextPage);
@@ -374,7 +374,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic project = result.Data["project"];
+        dynamic project = result.Data!["project"]!;
         var tasks = project.tasks;
         Assert.Equal(5, tasks.totalItems);
         Assert.True(tasks.hasNextPage);
@@ -435,7 +435,7 @@ public class OffsetPagingTests
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
-        dynamic results = result.Data["peopleOver"];
+        dynamic results = result.Data!["peopleOver"]!;
         Assert.Equal(1, Enumerable.Count(results.items));
         Assert.Equal(2, results.totalItems);
         Assert.Equal(200, results.items[0].height);
@@ -469,7 +469,7 @@ public class OffsetPagingTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic projects = result.Data["projects"];
+        dynamic projects = result.Data!["projects"]!;
         Assert.Equal(1, projects.totalItems);
         var tasks = projects.items[0].tasks;
         Assert.Equal(5, tasks.totalItems);

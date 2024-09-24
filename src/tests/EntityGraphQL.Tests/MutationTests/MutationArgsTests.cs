@@ -27,7 +27,7 @@ namespace EntityGraphQL.Tests
             };
             var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
-            Assert.Equal(65, res.Data["addPerson"]);
+            Assert.Equal(65, res.Data!["addPerson"]!);
         }
 
         [Fact]
@@ -37,7 +37,7 @@ namespace EntityGraphQL.Tests
             schema.Mutation().Add("addPerson", ([GraphQLInputType] Partial<Human> args) => 65, new SchemaBuilderOptions { AutoCreateInputTypes = true, });
 
             var sdl = schema.ToGraphQLSchemaString();
-            Assert.Contains("addPerson(args: PartialHuman): Int!", sdl);
+            Assert.Contains("addPerson(args: PartialHuman!): Int!", sdl);
             Assert.Contains("input PartialHuman {", sdl);
 
             // Add a argument field with a require parameter
@@ -50,7 +50,7 @@ namespace EntityGraphQL.Tests
             };
             var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
             Assert.Null(res.Errors);
-            Assert.Equal(65, res.Data["addPerson"]);
+            Assert.Equal(65, res.Data!["addPerson"]!);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace EntityGraphQL.Tests
                 );
 
             var sdl = schema.ToGraphQLSchemaString();
-            Assert.Contains("addPerson(token: String, name: String!, age: Int!): Int!", sdl);
+            Assert.Contains("addPerson(token: String!, name: String!, age: Int!): Int!", sdl);
 
             // Add a argument field with a require parameter
             var gql = new QueryRequest
@@ -88,7 +88,7 @@ namespace EntityGraphQL.Tests
 
             var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
-            Assert.Equal(43, res.Data["addPerson"]);
+            Assert.Equal(43, res.Data!["addPerson"]!);
         }
 
         [Fact]
@@ -111,7 +111,7 @@ namespace EntityGraphQL.Tests
                 );
 
             var sdl = schema.ToGraphQLSchemaString();
-            Assert.Contains("addPerson(token: String, args: InputArgs): Int!", sdl);
+            Assert.Contains("addPerson(token: String!, args: InputArgs!): Int!", sdl);
             Assert.Contains("input InputArgs {", sdl);
 
             // Add a argument field with a require parameter
@@ -128,7 +128,7 @@ namespace EntityGraphQL.Tests
 
             var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
-            Assert.Equal(43, res.Data["addPerson"]);
+            Assert.Equal(43, res.Data!["addPerson"]!);
         }
 
         [Fact]
@@ -166,20 +166,20 @@ namespace EntityGraphQL.Tests
 
             var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
-            Assert.Equal(43, res.Data["addPerson"]);
+            Assert.Equal(43, res.Data!["addPerson"]!);
         }
     }
 
     internal class InputArgs
     {
         [GraphQLNotNull]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int Age { get; set; }
     }
 
     internal class InputExtraArgs
     {
-        public string Token { get; set; }
+        public string? Token { get; set; }
     }
 
     internal class Human
@@ -189,7 +189,7 @@ namespace EntityGraphQL.Tests
 
     internal class Partial<T>
     {
-        public T Others { get; set; }
-        public string Name { get; set; }
+        public T? Others { get; set; }
+        public string? Name { get; set; }
     }
 }

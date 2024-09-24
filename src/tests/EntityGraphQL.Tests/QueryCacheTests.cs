@@ -60,7 +60,7 @@ public class QueryCacheTests
         {
             Assert.Null(result.Errors);
 
-            dynamic project = result.Data["project"];
+            dynamic project = result.Data!["project"]!;
             Assert.Equal(projectId, project.id);
             Assert.Equal(2, Enumerable.Count(project.tasks.edges));
             Assert.Equal(5, project.tasks.totalCount);
@@ -146,7 +146,7 @@ public class QueryCacheTests
         {
             Assert.Null(result.Errors);
 
-            dynamic project = result.Data["project"];
+            dynamic project = result.Data!["project"]!;
             Assert.Equal(projectId, project.id);
             Assert.Equal(2, Enumerable.Count(project.tasks.edges));
             Assert.Equal(5, project.tasks.totalCount);

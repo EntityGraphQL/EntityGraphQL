@@ -25,7 +25,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Zoo" });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -49,7 +49,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Zoo" });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -82,7 +82,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Zoo", Height = 1 });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -98,7 +98,7 @@ public class SortTests
     public void SupportUseSortSelectSortFieldsDeepProperty()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Type<TestDataContext>().GetField("people", null).UseSort((Person person) => new { managerName = person.Manager.Name, person.Name });
+        schema.Type<TestDataContext>().GetField("people", null).UseSort((Person person) => new { managerName = person.Manager!.Name, person.Name });
         var gql = new QueryRequest
         {
             Query =
@@ -121,7 +121,7 @@ public class SortTests
         );
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -149,7 +149,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Zoo", Height = 1 });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -177,7 +177,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Zoo", Height = 1 });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
@@ -207,7 +207,7 @@ public class SortTests
         context.People.Add(new Person { LastName = "Abe", Height = 10 });
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["people"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
         Assert.Equal(3, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Abe", person.lastName);
@@ -235,7 +235,7 @@ public class SortTests
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+        dynamic projects = ((IDictionary<string, object>)tree.Data!)["projects"];
         Assert.Equal(1, Enumerable.Count(projects));
         var project = Enumerable.First(projects);
         Assert.Equal(4, Enumerable.Count(project.tasks));
@@ -269,7 +269,7 @@ public class SortTests
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic projects = ((IDictionary<string, object>)tree.Data)["projects"];
+        dynamic projects = ((IDictionary<string, object>)tree.Data!)["projects"];
         Assert.Equal(1, Enumerable.Count(projects));
         var project = Enumerable.First(projects);
         Assert.Equal(4, Enumerable.Count(project.tasks));
@@ -297,7 +297,7 @@ public class SortTests
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(tree.Errors);
-        dynamic project = ((IDictionary<string, object>)tree.Data)["project"];
+        dynamic project = ((IDictionary<string, object>)tree.Data!)["project"];
         Assert.Equal(4, Enumerable.Count(project.tasks));
         Assert.Equal(4, Enumerable.ElementAt(project.tasks, 0).id);
         Assert.Equal(3, Enumerable.ElementAt(project.tasks, 1).id);
@@ -330,7 +330,7 @@ public class SortTests
         var result = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(result.Errors);
 
-        dynamic projects = result.Data["projects"];
+        dynamic projects = result.Data!["projects"]!;
     }
 }
 

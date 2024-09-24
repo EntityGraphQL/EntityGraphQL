@@ -147,8 +147,8 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).name);
-        Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).kind);
+        Assert.Equal("AbstractClass", ((dynamic)res.Data!["__type"]!).name);
+        Assert.Equal("INTERFACE", ((dynamic)res.Data!["__type"]!).kind);
     }
 
     [Fact]
@@ -178,11 +178,11 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal("InheritedClass", ((dynamic)res.Data["__type"]).name);
-        Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
+        Assert.Equal("InheritedClass", ((dynamic)res.Data!["__type"]!).name);
+        Assert.Equal("OBJECT", ((dynamic)res.Data!["__type"]!).kind);
 
-        Assert.Equal("INTERFACE", ((dynamic)res.Data["__type"]).interfaces[0].kind);
-        Assert.Equal("AbstractClass", ((dynamic)res.Data["__type"]).interfaces[0].name);
+        Assert.Equal("INTERFACE", ((dynamic)res.Data!["__type"]!).interfaces[0].kind);
+        Assert.Equal("AbstractClass", ((dynamic)res.Data!["__type"]!).interfaces[0].name);
     }
 
     [Fact]
@@ -205,8 +205,8 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema2(), null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal("Property", ((dynamic)res.Data["__type"]).name);
-        Assert.Equal("OBJECT", ((dynamic)res.Data["__type"]).kind);
+        Assert.Equal("Property", ((dynamic)res.Data!["__type"]!).name);
+        Assert.Equal("OBJECT", ((dynamic)res.Data!["__type"]!).kind);
     }
 
     [Fact]
@@ -276,8 +276,8 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
-        Assert.Equal("UNION", ((dynamic)res.Data["__type"]).kind);
+        Assert.Equal("IUnion", ((dynamic)res.Data!["__type"]!).name);
+        Assert.Equal("UNION", ((dynamic)res.Data!["__type"]!).kind);
     }
 
     [Fact]
@@ -302,9 +302,9 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
         Assert.Null(res.Errors);
 
-        Assert.Equal("IUnion", ((dynamic)res.Data["__type"]).name);
-        Assert.Equal("UNION", ((dynamic)res.Data["__type"]).kind);
-        Assert.Equal("Person", ((dynamic)res.Data["__type"]).possibleTypes[0].name);
+        Assert.Equal("IUnion", ((dynamic)res.Data!["__type"]!).name);
+        Assert.Equal("UNION", ((dynamic)res.Data!["__type"]!).kind);
+        Assert.Equal("Person", ((dynamic)res.Data!["__type"]!).possibleTypes[0].name);
     }
 
     [Fact]
@@ -353,7 +353,7 @@ public class SchemaBuilderFromObjectTests
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema5(), null, null);
         Assert.Null(res.Errors);
 
-        dynamic typeDef = res.Data["__type"];
+        dynamic typeDef = res.Data!["__type"]!;
         Assert.Equal("Article", typeDef.name);
         Assert.Collection((IEnumerable<dynamic>)typeDef.fields, item => Assert.Equal("title", item.name), item => Assert.Equal("contents", item.name), item => Assert.Equal("searchVector", item.name));
     }
@@ -364,7 +364,7 @@ public class SchemaBuilderFromObjectTests
         var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
         // Add a argument field with a require parameter
         var gql = new QueryRequest { Query = @"query Test { movies { id } }", };
-        dynamic results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null).Errors;
+        dynamic results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null).Errors!;
         var err = Enumerable.First(results);
         Assert.Equal("Field 'movies' not found on type 'Query'", err.Message);
     }
@@ -376,7 +376,7 @@ public class SchemaBuilderFromObjectTests
         // Add a argument field with a require parameter
         var gql = new QueryRequest { Query = @"query Test { albums { id } }", };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
-        Assert.Empty((IEnumerable)results.Data["albums"]);
+        Assert.Empty((IEnumerable)results.Data!["albums"]!);
     }
 
     [Fact]
@@ -396,7 +396,7 @@ public class SchemaBuilderFromObjectTests
             Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenInputField", "yeh" }, }
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
-        var error = results.Errors.First();
+        var error = results.Errors!.First();
         Assert.Equal("No argument 'hiddenInputField' found on field 'addAlbum'", error.Message);
     }
 
@@ -418,7 +418,7 @@ public class SchemaBuilderFromObjectTests
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         Assert.Null(results.Errors);
-        dynamic data = results.Data["addAlbum"];
+        dynamic data = results.Data!["addAlbum"]!;
         Assert.Equal("Balance, Not Symmetry", data.name);
         Assert.Null(data.hiddenInputField); // not hidden from query
         Assert.InRange(data.id, 0, 100);
@@ -441,7 +441,7 @@ public class SchemaBuilderFromObjectTests
             Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenField", "yeh" }, }
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
-        var error = results.Errors.First();
+        var error = results.Errors!.First();
         Assert.Equal("No argument 'hiddenField' found on field 'addAlbum'", error.Message);
     }
 
@@ -461,6 +461,7 @@ public class SchemaBuilderFromObjectTests
             Variables = new QueryVariables { }
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
+        Assert.NotNull(results.Errors);
         var error = results.Errors.First();
         Assert.Equal("Field 'hiddenField' not found on type 'Album'", error.Message);
     }
@@ -479,15 +480,15 @@ public class SchemaBuilderFromObjectTests
 
     private class TestClassWithIgnoredAnnotation
     {
-        public string NormalField { get; set; }
+        public string NormalField { get; set; } = string.Empty;
 
         [CustomIgnore]
-        public string IgnoredField { get; set; }
+        public string IgnoredField { get; set; } = string.Empty;
     }
 
     private class TestIgnoreTypesSchema
     {
-        public IEnumerable<A> As { get; }
+        public IEnumerable<A> As { get; } = [];
     }
 
     private class A
@@ -514,9 +515,9 @@ public class SchemaBuilderFromObjectTests
     // This would be your Entity/Object graph you use with EntityFramework
     private class TestSchema
     {
-        public TestEntity SomeRelation { get; }
-        public IEnumerable<Person> People { get; }
-        public IEnumerable<IdInherited> Projects { get; }
+        public TestEntity? SomeRelation { get; }
+        public IEnumerable<Person> People { get; } = [];
+        public IEnumerable<IdInherited> Projects { get; } = [];
     }
 
     private class IdInherited : HasId, ISomething { }
@@ -531,27 +532,27 @@ public class SchemaBuilderFromObjectTests
     private abstract class HasId
     {
         public Guid Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     private class TestSchema2
     {
-        public IEnumerable<Property> Properties { get; }
+        public IEnumerable<Property> Properties { get; } = [];
     }
 
     private class TestSchema3
     {
-        public IEnumerable<AbstractClass> AbstractClasses { get; }
+        public IEnumerable<AbstractClass> AbstractClasses { get; } = [];
     }
 
     private class TestSchema4
     {
-        public IEnumerable<IUnion> Union { get; }
+        public IEnumerable<IUnion> Union { get; } = [];
     }
 
     private class TestSchema5
     {
-        public IEnumerable<Article> Articles { get; }
+        public IEnumerable<Article> Articles { get; } = [];
 
         public class TsVector
         {
@@ -560,9 +561,9 @@ public class SchemaBuilderFromObjectTests
 
         public class Article
         {
-            public string Title { get; }
-            public string Contents { get; }
-            public TsVector SearchVector { get; }
+            public string Title { get; } = string.Empty;
+            public string Contents { get; } = string.Empty;
+            public TsVector? SearchVector { get; }
         }
     }
 
@@ -580,7 +581,7 @@ public class SchemaBuilderFromObjectTests
     {
         public int Id { get; }
         public int Field1 { get; }
-        public Person Relation { get; }
+        public Person? Relation { get; }
     }
 
     private class Person : IUnion

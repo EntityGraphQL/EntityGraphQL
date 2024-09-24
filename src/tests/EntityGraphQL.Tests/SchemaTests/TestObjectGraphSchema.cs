@@ -41,7 +41,7 @@ namespace EntityGraphQL.Tests
 
                 var project = AddType<Project>("Project", "Details of a project");
                 project.AddField(p => p.Id, "Unique identifier for the project");
-                project.AddField("name", p => p.Owner.Name + "'s Project", "Project's name");
+                project.AddField("name", p => p.Owner!.Name + "'s Project", "Project's name");
 
                 // Returning a Location type object will automatically map to the defined location schema above as it is the only one
                 project.AddField(p => p.Location, "The location of the project");

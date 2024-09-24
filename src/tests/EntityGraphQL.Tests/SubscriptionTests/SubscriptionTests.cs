@@ -17,12 +17,7 @@ public class SubscriptionTests
         schema.Subscription().AddFrom<TestSubscriptions>();
         var res = schema.ToGraphQLSchemaString();
         Assert.Contains("subscription: Subscription", res);
-        Assert.Contains(
-            @"type Subscription {
-	onMessage: Message
-}",
-            res
-        );
+        Assert.Contains("type Subscription {\n\tonMessage: Message!\n}", res);
     }
 
     [Fact]
@@ -58,7 +53,7 @@ public class SubscriptionTests
         };
         var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
-        dynamic data = res.Data["sub"];
+        dynamic data = res.Data!["sub"]!;
         Assert.Single(data.fields);
         Assert.Equal("Subscription", data.name);
         Assert.Equal("onMessage", data.fields[0].name);
@@ -157,7 +152,7 @@ internal class TestSubscriptions
 internal class Message
 {
     public int Id { get; set; }
-    public string Text { get; set; }
+    public string Text { get; set; } = string.Empty;
 }
 
 internal class ChatService

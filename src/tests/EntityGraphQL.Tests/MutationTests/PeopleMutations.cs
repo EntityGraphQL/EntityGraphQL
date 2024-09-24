@@ -31,7 +31,7 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        public Person AddPersonSeparateArguments(string name, List<string> names, InputObject nameInput, Gender? gender)
+        public Person AddPersonSeparateArguments(string? name, List<string>? names, InputObject? nameInput, Gender? gender)
         {
             return new Person
             {
@@ -64,7 +64,7 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
-        public Person AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
+        public Person? AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
         {
             return null;
         }
@@ -101,7 +101,7 @@ namespace EntityGraphQL.Tests
             var newPerson = new Person
             {
                 Id = id,
-                Name = args.Names[0],
+                Name = args.Names![0],
                 LastName = args.Names[1]
             };
             db.People.Add(newPerson);
@@ -115,7 +115,7 @@ namespace EntityGraphQL.Tests
             var newPerson = new Person
             {
                 Id = id,
-                Name = args.Names[0],
+                Name = args.Names![0],
                 LastName = args.Names[1]
             };
             db.People.Add(newPerson);
@@ -129,7 +129,7 @@ namespace EntityGraphQL.Tests
             var newPerson = new Person
             {
                 Id = idCount++,
-                Name = args.Names[0],
+                Name = args.Names![0],
                 LastName = args.Names[1]
             };
             db.People.Add(newPerson);
@@ -139,7 +139,7 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Person AddPersonInput(PeopleMutationsArgs args)
         {
-            return new Person { Name = args.NameInput.Name, LastName = args.NameInput.LastName };
+            return new Person { Name = args.NameInput!.Name!, LastName = args.NameInput.LastName! };
         }
 
         [GraphQLMutation]
@@ -167,7 +167,7 @@ namespace EntityGraphQL.Tests
             // Ie. in the mutation query you can select any valid fields in the schema from Person
             var person = new Person
             {
-                Name = args.Name,
+                Name = args.Name!,
                 Tasks = new List<Task> { new Task { Name = "A" } },
                 Projects = new List<Project> { new Project { Id = 123 } }
             };
@@ -181,7 +181,7 @@ namespace EntityGraphQL.Tests
             // Ie. in the mutation query you can select any valid fields in the schema from Person
             var person = new Person
             {
-                Name = args.Name,
+                Name = args.Name!,
                 Tasks = new List<Task> { new Task { Name = "A" } },
                 Projects = new List<Project> { new Project { Id = 123 } }
             };
@@ -191,14 +191,14 @@ namespace EntityGraphQL.Tests
         [GraphQLMutation]
         public Expression<Func<TestDataContext, IEnumerable<Person>>> AddPersonReturnAll(TestDataContext db, PeopleMutationsArgs args)
         {
-            db.People.Add(new Person { Id = 11, Name = args.Name });
+            db.People.Add(new Person { Id = 11, Name = args.Name! });
             return ctx => ctx.People;
         }
 
         [GraphQLMutation]
         public IEnumerable<Person> AddPersonReturnAllConst(TestDataContext db, PeopleMutationsArgs args)
         {
-            db.People.Add(new Person { Id = 11, Name = args.Name });
+            db.People.Add(new Person { Id = 11, Name = args.Name! });
             return db.People.ToList();
         }
 
@@ -316,30 +316,30 @@ namespace EntityGraphQL.Tests
 
     public class NestedInputObject
     {
-        public string Name { get; set; }
-        public string LastName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
         public DateTime? Birthday { get; set; }
     }
 
     [GraphQLArguments]
     public class ListArgs
     {
-        public List<InputObject> Inputs { get; set; }
+        public List<InputObject> Inputs { get; set; } = [];
     }
 
     [GraphQLArguments]
     public class ListIntArgs
     {
-        public List<InputObjectId> Inputs { get; set; }
+        public List<InputObjectId> Inputs { get; set; } = [];
     }
 
     [GraphQLArguments]
     public class PeopleMutationsArgs
     {
-        public string Name { get; set; }
-        public List<string> Names { get; set; }
+        public string? Name { get; set; }
+        public List<string>? Names { get; set; }
 
-        public InputObject NameInput { get; set; }
+        public InputObject? NameInput { get; set; }
         public Gender? Gender { get; set; }
     }
 
@@ -371,22 +371,22 @@ namespace EntityGraphQL.Tests
     public class RegexArgs
     {
         [RegularExpression("[^a]+", ErrorMessage = "Title does not match required format")]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [RegularExpression("steve", ErrorMessage = "Author does not match required format")]
-        public string Author { get; set; }
+        public string Author { get; set; } = string.Empty;
     }
 
     public class InputObject
     {
-        public string Name { get; set; }
-        public string LastName { get; set; }
+        public string? Name { get; set; }
+        public string? LastName { get; set; }
         public DateTime? Birthday { get; set; }
     }
 
     public class ListOfObjectsWithIds
     {
-        public IList<InputObjectId> InputObjects { get; set; }
+        public IList<InputObjectId>? InputObjects { get; set; }
     }
 
     public class InputObjectId
@@ -419,7 +419,7 @@ namespace EntityGraphQL.Tests
     [GraphQLArguments]
     public class ListOfGuidArgs
     {
-        public List<Guid> Ids { get; set; }
+        public List<Guid>? Ids { get; set; }
     }
 
     [GraphQLArguments]
