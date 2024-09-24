@@ -138,44 +138,44 @@ public class FieldToResolve<TContext> : FieldWithContext<TContext>
     public FieldToResolve(ISchemaProvider schema, ISchemaType fromType, string name, string? description, object? argTypes)
         : base(schema, fromType, name, description, argTypes) { }
 
-    public Field Resolve(Expression<Func<TContext, object>> fieldExpression)
+    public Field Resolve(Expression<Func<TContext, object?>> fieldExpression)
     {
         SetUpField(fieldExpression, false, false);
         return this;
     }
 
-    public FieldWithContext<TContext> Resolve<TService>(Expression<Func<TContext, TService, object>> fieldExpression) => ResolveWithService(fieldExpression);
+    public FieldWithContext<TContext> Resolve<TService>(Expression<Func<TContext, TService, object?>> fieldExpression) => ResolveWithService(fieldExpression);
 
-    public FieldWithContext<TContext> ResolveWithService<TService>(Expression<Func<TContext, TService, object>> fieldExpression)
+    public FieldWithContext<TContext> ResolveWithService<TService>(Expression<Func<TContext, TService, object?>> fieldExpression)
     {
         SetUpField(fieldExpression, true, false);
         Services = new List<ParameterExpression> { fieldExpression.Parameters[1] };
         return this;
     }
 
-    public FieldWithContext<TContext> Resolve<TService1, TService2>(Expression<Func<TContext, TService1, TService2, object>> fieldExpression) => ResolveWithServices(fieldExpression);
+    public FieldWithContext<TContext> Resolve<TService1, TService2>(Expression<Func<TContext, TService1, TService2, object?>> fieldExpression) => ResolveWithServices(fieldExpression);
 
-    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2>(Expression<Func<TContext, TService1, TService2, object>> fieldExpression)
+    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2>(Expression<Func<TContext, TService1, TService2, object?>> fieldExpression)
     {
         SetUpField(fieldExpression, true, false);
         Services = new List<ParameterExpression> { fieldExpression.Parameters[1], fieldExpression.Parameters[2] };
         return this;
     }
 
-    public FieldWithContext<TContext> Resolve<TService1, TService2, TService3>(Expression<Func<TContext, TService1, TService2, TService3, object>> fieldExpression) =>
+    public FieldWithContext<TContext> Resolve<TService1, TService2, TService3>(Expression<Func<TContext, TService1, TService2, TService3, object?>> fieldExpression) =>
         ResolveWithServices(fieldExpression);
 
-    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2, TService3>(Expression<Func<TContext, TService1, TService2, TService3, object>> fieldExpression)
+    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2, TService3>(Expression<Func<TContext, TService1, TService2, TService3, object?>> fieldExpression)
     {
         SetUpField(fieldExpression, true, false);
         Services = new List<ParameterExpression> { fieldExpression.Parameters[1], fieldExpression.Parameters[2], fieldExpression.Parameters[3] };
         return this;
     }
 
-    public FieldWithContext<TContext> Resolve<TService1, TService2, TService3, TService4>(Expression<Func<TContext, TService1, TService2, TService3, TService4, object>> fieldExpression) =>
+    public FieldWithContext<TContext> Resolve<TService1, TService2, TService3, TService4>(Expression<Func<TContext, TService1, TService2, TService3, TService4, object?>> fieldExpression) =>
         ResolveWithServices(fieldExpression);
 
-    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2, TService3, TService4>(Expression<Func<TContext, TService1, TService2, TService3, TService4, object>> fieldExpression)
+    public FieldWithContext<TContext> ResolveWithServices<TService1, TService2, TService3, TService4>(Expression<Func<TContext, TService1, TService2, TService3, TService4, object?>> fieldExpression)
     {
         SetUpField(fieldExpression, true, false);
         Services = new List<ParameterExpression> { fieldExpression.Parameters[1], fieldExpression.Parameters[2], fieldExpression.Parameters[3], fieldExpression.Parameters[4] };
@@ -183,11 +183,11 @@ public class FieldToResolve<TContext> : FieldWithContext<TContext>
     }
 
     public FieldWithContext<TContext> Resolve<TService1, TService2, TService3, TService4, TService5>(
-        Expression<Func<TContext, TService1, TService2, TService3, TService4, TService5, object>> fieldExpression
+        Expression<Func<TContext, TService1, TService2, TService3, TService4, TService5, object?>> fieldExpression
     ) => ResolveWithServices(fieldExpression);
 
     public FieldWithContext<TContext> ResolveWithServices<TService1, TService2, TService3, TService4, TService5>(
-        Expression<Func<TContext, TService1, TService2, TService3, TService4, TService5, object>> fieldExpression
+        Expression<Func<TContext, TService1, TService2, TService3, TService4, TService5, object?>> fieldExpression
     )
     {
         SetUpField(fieldExpression, true, false);

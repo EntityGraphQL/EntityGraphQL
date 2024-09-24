@@ -39,7 +39,7 @@ public class FilterExtensionTests
         Assert.Equal(2, data.Actors.Count());
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
         Assert.Null(tree.Errors);
-        dynamic people = ((IDictionary<string, object>)tree.Data)["actors"];
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["actors"]!;
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal(33, person.id);

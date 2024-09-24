@@ -10,7 +10,7 @@ namespace Benchmarks.Migrations
 {
     [DbContext(typeof(BenchmarkContext))]
     [Migration("20210823055744_init")]
-    partial class init
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

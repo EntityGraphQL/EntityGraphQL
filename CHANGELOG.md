@@ -3,6 +3,7 @@
 ## Changes
 
 - Add `IgnoreAttributes` to `SchemaBuilderOptions` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
+- `.Resolve<>()` method on field changes return type to `object?` to avoid warnings when returning a valid nullable service call etc.
 
 # 5.4.6
 
