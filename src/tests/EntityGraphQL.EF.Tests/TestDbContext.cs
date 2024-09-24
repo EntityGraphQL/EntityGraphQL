@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EntityGraphQL.EF.Tests;
 
-internal class TestDbContext : DbContext
+public class TestDbContext : DbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options)
         : base(options) { }
@@ -21,25 +21,25 @@ public class ExternalIdentifier
     public int EntityId { get; set; }
 }
 
-internal interface IEntityWithId
+public interface IEntityWithId
 {
     int Id { get; set; }
 }
 
-internal class Actor : IEntityWithId
+public class Actor : IEntityWithId
 {
     public int Id { get; set; }
     public string Name { get; set; }
     public DateTime Birthday { get; set; }
 }
 
-internal class Director : IEntityWithId
+public class Director : IEntityWithId
 {
     public int Id { get; set; }
     public string Name { get; set; }
 }
 
-internal class Movie : IEntityWithId
+public class Movie : IEntityWithId
 {
     public int Id { get; set; }
     public string Name { get; set; }
