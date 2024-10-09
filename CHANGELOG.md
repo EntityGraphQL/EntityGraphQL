@@ -1,3 +1,9 @@
+# 5.5.1
+
+## Fixes
+
+- Make sure top level types have access checked (Query, Mutation and Subscription)
+
 # 5.5.0
 
 ## Changes
