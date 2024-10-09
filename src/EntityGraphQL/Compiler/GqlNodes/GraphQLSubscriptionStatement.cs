@@ -39,6 +39,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         if (context == null && serviceProvider == null)
             throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
 
+        Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.SubscriptionType, false, null), requestContext);
+
         this.fragments = fragments;
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);

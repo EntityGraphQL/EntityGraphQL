@@ -34,6 +34,8 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         if (context == null && serviceProvider == null)
             throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
 
+        Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
+
         var result = new ConcurrentDictionary<string, object?>();
         // pass to directives
         foreach (var directive in Directives)

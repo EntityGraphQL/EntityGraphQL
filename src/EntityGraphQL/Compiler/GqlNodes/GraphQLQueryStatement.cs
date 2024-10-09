@@ -24,6 +24,8 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
     )
         where TContext : default
     {
+        Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.QueryContextType, false, null), requestContext);
+
         var result = new ConcurrentDictionary<string, object?>();
         // pass to directives
         foreach (var directive in Directives)

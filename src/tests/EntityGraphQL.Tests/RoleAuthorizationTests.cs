@@ -165,6 +165,33 @@ namespace EntityGraphQL.Tests
         }
 
         [Fact]
+        public void TestQueryType()
+        {
+            var schema = SchemaBuilder.FromObject<RolesDataContext>();
+            schema.Query().RequiresAnyRole("admin");
+
+            var claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "not-admin")], "authed");
+            var gql = new QueryRequest
+            {
+                Query =
+                    @"{
+                        tasks {
+                            project { id }
+                        }
+                    }"
+            };
+
+            var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.Equal("You are not authorized to access the 'Query' type.", result.Errors!.First().Message);
+
+            claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+            result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+            Assert.Null(result.Errors);
+        }
+
+        [Fact]
         public void TestGraphQLFieldAttributeSecure()
         {
             var schema = SchemaBuilder.FromObject<RolesDataContext>();
