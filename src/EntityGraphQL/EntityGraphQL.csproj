@@ -21,7 +21,7 @@
   <ItemGroup>
     <PackageReference Include="Parlot" Version="1.0.2" />
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-    <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
+    <PackageReference Include="System.Runtime.Caching" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="HotChocolate.Language" Version="13.9.11" />
