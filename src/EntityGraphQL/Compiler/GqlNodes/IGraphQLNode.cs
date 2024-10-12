@@ -2,38 +2,37 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler;
+
+public interface IGraphQLNode
 {
-    public interface IGraphQLNode
-    {
-        ISchemaProvider Schema { get; }
+    ISchemaProvider Schema { get; }
 
-        /// <summary>
-        /// Name of the node
-        /// </summary>
-        string? Name { get; }
+    /// <summary>
+    /// Name of the node
+    /// </summary>
+    string? Name { get; }
 
-        /// <summary>
-        /// The expression that represents the field. This will be the context for the next field selection
-        /// </summary>
-        Expression? NextFieldContext { get; }
+    /// <summary>
+    /// The expression that represents the field. This will be the context for the next field selection
+    /// </summary>
+    Expression? NextFieldContext { get; }
 
-        /// <summary>
-        /// Parent field. e.g. if we have a field manger like in `people { manager }` then the parent is people
-        /// </summary>
-        IGraphQLNode? ParentNode { get; }
-        ParameterExpression? RootParameter { get; }
+    /// <summary>
+    /// Parent field. e.g. if we have a field manger like in `people { manager }` then the parent is people
+    /// </summary>
+    IGraphQLNode? ParentNode { get; }
+    ParameterExpression? RootParameter { get; }
 
-        List<BaseGraphQLField> QueryFields { get; }
-        void AddField(BaseGraphQLField field);
-        IField? Field { get; }
-        bool HasServices { get; }
-        IReadOnlyDictionary<string, object> Arguments { get; }
-        void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
+    List<BaseGraphQLField> QueryFields { get; }
+    void AddField(BaseGraphQLField field);
+    IField? Field { get; }
+    bool HasServices { get; }
+    IReadOnlyDictionary<string, object> Arguments { get; }
+    void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
 
-        /// <summary>
-        /// true if the node is a root level field selection (on query, mutation or subscription type)
-        /// </summary>
-        bool IsRootField { get; }
-    }
+    /// <summary>
+    /// true if the node is a root level field selection (on query, mutation or subscription type)
+    /// </summary>
+    bool IsRootField { get; }
 }

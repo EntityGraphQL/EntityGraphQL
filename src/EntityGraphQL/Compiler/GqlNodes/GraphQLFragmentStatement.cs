@@ -3,46 +3,45 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 
-namespace EntityGraphQL.Compiler
+namespace EntityGraphQL.Compiler;
+
+public class GraphQLFragmentStatement : IGraphQLNode
 {
-    public class GraphQLFragmentStatement : IGraphQLNode
+    public Expression? NextFieldContext { get; }
+    public IGraphQLNode? ParentNode { get; }
+    public ParameterExpression? RootParameter { get; }
+
+    public IField? Field { get; }
+    public bool HasServices
     {
-        public Expression? NextFieldContext { get; }
-        public IGraphQLNode? ParentNode { get; }
-        public ParameterExpression? RootParameter { get; }
+        get => Field?.Services.Count > 0;
+    }
 
-        public IField? Field { get; }
-        public bool HasServices
-        {
-            get => Field?.Services.Count > 0;
-        }
+    public IReadOnlyDictionary<string, object> Arguments { get; }
 
-        public IReadOnlyDictionary<string, object> Arguments { get; }
+    public string Name { get; }
 
-        public string Name { get; }
+    public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
 
-        public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
+    public ISchemaProvider Schema { get; }
+    public bool IsRootField => false;
 
-        public ISchemaProvider Schema { get; }
-        public bool IsRootField => false;
+    public GraphQLFragmentStatement(ISchemaProvider schema, string name, ParameterExpression selectContext, ParameterExpression rootParameter)
+    {
+        Name = name;
+        NextFieldContext = selectContext;
+        RootParameter = rootParameter;
+        Arguments = new Dictionary<string, object>();
+        Schema = schema;
+    }
 
-        public GraphQLFragmentStatement(ISchemaProvider schema, string name, ParameterExpression selectContext, ParameterExpression rootParameter)
-        {
-            Name = name;
-            NextFieldContext = selectContext;
-            RootParameter = rootParameter;
-            Arguments = new Dictionary<string, object>();
-            Schema = schema;
-        }
+    public void AddField(BaseGraphQLField field)
+    {
+        QueryFields.Add(field);
+    }
 
-        public void AddField(BaseGraphQLField field)
-        {
-            QueryFields.Add(field);
-        }
-
-        public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
-        {
-            throw new NotImplementedException();
-        }
+    public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
+    {
+        throw new NotImplementedException();
     }
 }
