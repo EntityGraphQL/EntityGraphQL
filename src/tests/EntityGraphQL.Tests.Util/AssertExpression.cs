@@ -1,59 +1,53 @@
-using System;
 using System.Linq.Expressions;
 
-namespace EntityGraphQL.Tests;
+namespace EntityGraphQL.Tests.Util;
 
-internal enum AssertExpressionType
+public enum AssertExpressionType
 {
     Call,
     Conditional,
     MemberInit,
     Any,
-    MemberBinding
+    MemberBinding,
+    Constant
 }
 
-internal class AssertExpression
+public class AssertExpression(AssertExpressionType type, params object?[] arguments)
 {
-    public AssertExpressionType Type { get; }
-    public object?[] Arguments { get; }
+    public AssertExpressionType Type { get; } = type;
+    public object?[] Arguments { get; } = arguments;
 
-    public AssertExpression(AssertExpressionType type, params object?[] arguments)
-    {
-        Type = type;
-        Arguments = arguments;
-    }
-
-    internal static AssertExpression Any()
+    public static AssertExpression Any()
     {
         return new AssertExpression(AssertExpressionType.Any);
     }
 
-    internal static AssertExpression AnyOfType(Type type)
+    public static AssertExpression AnyOfType(Type type)
     {
         return new AssertExpression(AssertExpressionType.Any, type);
     }
 
-    internal static AssertExpression Call(AssertExpression? calledOn, string methodName, params AssertExpression[] arguments)
+    public static AssertExpression Call(AssertExpression? calledOn, string methodName, params AssertExpression[] arguments)
     {
         return new AssertExpression(AssertExpressionType.Call, [calledOn, methodName, arguments]);
     }
 
-    internal static AssertExpression Conditional(AssertExpression test, AssertExpression ifTrue, AssertExpression ifFalse)
+    public static AssertExpression Conditional(AssertExpression test, AssertExpression ifTrue, AssertExpression ifFalse)
     {
         return new AssertExpression(AssertExpressionType.Conditional, [test, ifTrue, ifFalse]);
     }
 
-    internal static AssertExpression MemberInit(params AssertExpression[] value)
+    public static AssertExpression MemberInit(params AssertExpression[] value)
     {
         return new AssertExpression(AssertExpressionType.MemberInit, [.. value]);
     }
 
-    internal static AssertExpression MemberBinding(string memberName, AssertExpression assertExpression)
+    public static AssertExpression MemberBinding(string memberName, AssertExpression assertExpression)
     {
         return new AssertExpression(AssertExpressionType.MemberBinding, [memberName, assertExpression]);
     }
 
-    internal static void Matches(AssertExpression expected, Expression e)
+    public static void Matches(AssertExpression expected, Expression e)
     {
         if (expected.Type == AssertExpressionType.Any)
         {
@@ -123,6 +117,19 @@ internal class AssertExpression
                 }
             }
         }
+        else if (expected.Type == AssertExpressionType.Constant)
+        {
+            if (e.NodeType != ExpressionType.Constant)
+                throw new Exception($"Expected Constant expression found {e.NodeType}");
+            var constantExp = (ConstantExpression)e;
+            if ((constantExp.Value == null && expected.Arguments[0] == null) || constantExp.Value?.Equals(expected.Arguments[0]) == false)
+                throw new Exception($"Constant value mismatch expected {expected.Arguments[0]} found {constantExp.Value}");
+        }
         return;
+    }
+
+    public static AssertExpression Constant(bool value)
+    {
+        return new AssertExpression(AssertExpressionType.Constant, [value]);
     }
 }

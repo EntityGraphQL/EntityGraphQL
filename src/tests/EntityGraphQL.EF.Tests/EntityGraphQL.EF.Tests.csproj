@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../EntityGraphQL/EntityGraphQL.csproj" />
+    <ProjectReference Include="../EntityGraphQL.Tests.Util/EntityGraphQL.Tests.Util.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">

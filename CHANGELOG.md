@@ -3,6 +3,7 @@
 ## Fixes
 
 - Make sure top level types have access checked (Query, Mutation and Subscription)
+- Fix #392 - Better handle `null` checks when executing against in-memory data
 
 # 5.5.0
 

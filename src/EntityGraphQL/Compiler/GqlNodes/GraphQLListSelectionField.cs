@@ -126,6 +126,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             }
         }
 
+        var useSelectWithNullCheck = contextChanged || !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || HasServices;
         // have this return both the dynamic types so we can use them next, post-service
         if (resultExpression == null)
             (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
@@ -133,7 +134,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 nextFieldContext!,
                 listContext,
                 selectionFields,
-                false,
+                useSelectWithNullCheck,
                 withoutServiceFields || !contextChanged
             );
 
@@ -152,8 +153,9 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
 
         // make sure we null check the object we are calling. Only needed if this is not the final call as
         // otherwise we use a SelectWithNullCheck to avoid double service call if we are coming from a service
-        // if (withoutServiceFields || compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
+        // if (!useSelectWithNullCheck)
         // {
+        //     // could be EF context, needs to be something it can handle
         //     Expression nullResult = Expression.Constant(null, resultExpression.Type);
         //     var nullCheckResultType = resultExpression.Type;
         //     if (Field?.ReturnType.TypeNotNullable == true)

@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using EntityGraphQL.Tests.Util;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
