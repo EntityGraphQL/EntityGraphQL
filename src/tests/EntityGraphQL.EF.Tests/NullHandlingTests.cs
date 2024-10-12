@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Tests.Util;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,8 +35,8 @@ public class NullHandlingTests
                 {
                     var compiledExpr = AssertExpression.Call(
                         null,
-                        "ToListWithNullCheck",
-                        AssertExpression.Call(null, "SelectWithNullCheck", AssertExpression.MemberBinding("Tests", AssertExpression.Any()), AssertExpression.Any()),
+                        nameof(EnumerableExtensions.ToListWithNullCheck),
+                        AssertExpression.Call(null, nameof(EnumerableExtensions.SelectWithNullCheck), AssertExpression.MemberBinding("Tests", AssertExpression.Any()), AssertExpression.Any()),
                         AssertExpression.Constant(false)
                     );
                     AssertExpression.Matches(compiledExpr, expr);
@@ -77,7 +78,7 @@ public class NullHandlingTests
                 {
                     var compiledExpr = AssertExpression.Call(
                         null,
-                        "ToListWithNullCheck",
+                        nameof(EnumerableExtensions.ToListWithNullCheck),
                         AssertExpression.Call(null, "Select", AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any()),
                         AssertExpression.Constant(true)
                     );
@@ -127,8 +128,13 @@ public class NullHandlingTests
                 {
                     var compiledExpr = AssertExpression.Call(
                         null,
-                        "ToListWithNullCheck",
-                        AssertExpression.Call(null, isFinal ? "SelectWithNullCheck" : "Select", AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any()),
+                        nameof(EnumerableExtensions.ToListWithNullCheck),
+                        AssertExpression.Call(
+                            null,
+                            isFinal ? nameof(EnumerableExtensions.SelectWithNullCheck) : nameof(Enumerable.Select),
+                            AssertExpression.MemberBinding("movies", AssertExpression.Any()),
+                            AssertExpression.Any()
+                        ),
                         AssertExpression.Constant(true)
                     );
                     AssertExpression.Matches(compiledExpr, expr);
