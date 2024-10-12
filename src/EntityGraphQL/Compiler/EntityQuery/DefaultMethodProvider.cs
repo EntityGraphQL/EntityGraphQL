@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace EntityGraphQL.Compiler.EntityQuery;
 
@@ -81,6 +83,10 @@ public class DefaultMethodProvider : IMethodProvider
                 return true;
         }
 
+        //Look for extension methods
+        if(context.HasExtensionMethod(methodName)) 
+            return true;
+        
         return false;
     }
 
@@ -102,6 +108,19 @@ public class DefaultMethodProvider : IMethodProvider
             }
         }
 
+        //Call an extension method, if it exists
+        var method = type.GetExtensionMethod(methodName);
+        if(method != null)
+        {
+            //add context to the args because extension method
+            List<Expression> extensionArgs = new List<Expression>() { context };
+            if(args != null)
+            {
+                extensionArgs.AddRange(args);
+            }
+            return Expression.Call(method, extensionArgs);
+        }
+       
         throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
     }
 
@@ -276,5 +295,77 @@ public class DefaultMethodProvider : IMethodProvider
             }
         }
         return argExp;
+    }
+}
+
+
+/// <summary>
+/// Reflection helper to get extension methods
+/// </summary>
+public static class ExtensionMethodChecker
+{
+    // Static cache to store extension method lookups
+    private static readonly ConcurrentDictionary<(Type, string), MethodInfo?> MethodCache = new();
+
+    /// <summary>
+    /// checks to see if named extension method exists
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="methodName"></param>
+    /// <returns></returns>
+    public static bool HasExtensionMethod(this Type type, string methodName)
+    {
+        // Use the cache to check if the method exists
+        return type.GetExtensionMethod(methodName) != null;
+    }
+
+    /// <summary>
+    /// Gets the named extension method
+    /// </summary>
+    /// <param name="targetType"></param>
+    /// <param name="methodName"></param>
+    /// <returns></returns>
+    public static MethodInfo? GetExtensionMethod(this Type targetType, string methodName)
+    {
+        // Check the cache first
+        if (MethodCache.TryGetValue((targetType, methodName), out var cachedMethod))
+        {
+            return cachedMethod;
+        }
+
+        // Get all assemblies in the current domain (or restrict to specific assemblies if needed)
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+        foreach (var assembly in assemblies)
+        {
+            // Get all static classes in the assembly
+            var staticClasses = assembly.GetTypes()
+                .Where(t => t.IsSealed && t.IsAbstract && t.IsClass);
+
+            foreach (var staticClass in staticClasses)
+            {
+                // Get all static methods in the static class
+                var methods = staticClass.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                foreach (var method in methods)
+                {
+                    // Check if the method is an extension method (first parameter has 'this' modifier)
+                    if (method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
+                    {
+                        // Check if the method name matches and the first parameter is of the target type
+                        var parameters = method.GetParameters();
+                        if (string.Equals(method.Name, methodName, StringComparison.OrdinalIgnoreCase) && parameters.Length > 0 && parameters[0].ParameterType == targetType)
+                        {
+                            // Create a delegate for the method
+                            MethodCache[(targetType, methodName)] = method;
+                            return method;
+                        }
+                    }
+                }
+            }
+        }
+        // No matching extension method found
+        MethodCache[(targetType, methodName)] = null;
+        return null; 
     }
 }
