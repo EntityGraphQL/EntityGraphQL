@@ -126,7 +126,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             }
         }
 
-        var useSelectWithNullCheck = contextChanged || !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || HasServices;
+        var useNullCheckMethods = contextChanged || !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || HasServices;
         // have this return both the dynamic types so we can use them next, post-service
         if (resultExpression == null)
             (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
@@ -134,26 +134,28 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 nextFieldContext!,
                 listContext,
                 selectionFields,
-                useSelectWithNullCheck,
+                useNullCheckMethods,
                 withoutServiceFields || !contextChanged
             );
 
         var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
 
         // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
-        // root level is handled in ExecutableGraphQLStatement with a null check
-        if (AllowToList && !IsRootField && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
-            resultExpression = Expression.Call(
-                typeof(EnumerableExtensions),
-                nameof(EnumerableExtensions.ToListWithNullCheck),
-                [resultElementType],
-                resultExpression,
-                Expression.Constant(Field!.ReturnType.TypeNotNullable)
-            );
+        if (AllowToList && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+            resultExpression = useNullCheckMethods
+                ? Expression.Call(
+                    typeof(EnumerableExtensions),
+                    nameof(EnumerableExtensions.ToListWithNullCheck),
+                    [resultElementType],
+                    resultExpression,
+                    Expression.Constant(Field!.ReturnType.TypeNotNullable)
+                )
+                : Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [resultElementType], resultExpression);
 
-        // make sure we null check the object we are calling. Only needed if this is not the final call as
+        // TODO: not sure this is required as if you don't use EF, you should turn off ExecuteServiceFieldsSeparately
+        // null check the object we are calling. Only needed if this is not the final call as
         // otherwise we use a SelectWithNullCheck to avoid double service call if we are coming from a service
-        // if (!useSelectWithNullCheck)
+        // if (!useNullCheckMethods)
         // {
         //     // could be EF context, needs to be something it can handle
         //     Expression nullResult = Expression.Constant(null, resultExpression.Type);
@@ -167,7 +169,6 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         //     }
         //     resultExpression = Expression.Condition(Expression.Equal(listContext, Expression.Constant(null, listContext.Type)), nullResult, resultExpression, nullCheckResultType);
         // }
-
         return resultExpression;
     }
 

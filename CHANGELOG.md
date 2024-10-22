@@ -9,6 +9,7 @@
 
 - Make sure top level types have access checked (Query, Mutation and Subscription)
 - Fix #392 - Better handle `null` checks when executing against in-memory data
+- #363 - Only use `ToListWithNullCheck` when we know we are executing with services, or have been told not to separate the execution.
 
 # 5.4.6
 

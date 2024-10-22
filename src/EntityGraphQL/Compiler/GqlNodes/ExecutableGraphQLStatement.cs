@@ -317,19 +317,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             allArgs.AddRange(compileContext.ConstantParameters.Values);
         }
 
-        // evaluate everything using ToList(). But handle null result
-        if (expression.Type.IsEnumerableOrArray() && !expression.Type.IsDictionary())
-        {
-            var returnType = typeof(List<>).MakeGenericType(expression.Type.GetEnumerableOrArrayType()!);
-            expression = Expression.Call(
-                typeof(EnumerableExtensions),
-                nameof(EnumerableExtensions.ToListWithNullCheck),
-                new[] { expression.Type.GetEnumerableOrArrayType()! },
-                expression,
-                Expression.Constant(node.Field!.ReturnType.TypeNotNullable)
-            );
-        }
-
         if (compileContext.BulkData != null)
         {
             parameters.Add(compileContext.BulkParameter!);

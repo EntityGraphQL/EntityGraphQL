@@ -78,9 +78,8 @@ public class NullHandlingTests
                 {
                     var compiledExpr = AssertExpression.Call(
                         null,
-                        nameof(EnumerableExtensions.ToListWithNullCheck),
-                        AssertExpression.Call(null, "Select", AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any()),
-                        AssertExpression.Constant(true)
+                        nameof(Enumerable.ToList),
+                        AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any())
                     );
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
@@ -126,17 +125,18 @@ public class NullHandlingTests
                 ExecuteServiceFieldsSeparately = true,
                 BeforeExecuting = (Expression expr, bool isFinal) =>
                 {
-                    var compiledExpr = AssertExpression.Call(
-                        null,
-                        nameof(EnumerableExtensions.ToListWithNullCheck),
-                        AssertExpression.Call(
+                    var compiledExpr = isFinal
+                        ? AssertExpression.Call(
                             null,
-                            isFinal ? nameof(EnumerableExtensions.SelectWithNullCheck) : nameof(Enumerable.Select),
-                            AssertExpression.MemberBinding("movies", AssertExpression.Any()),
-                            AssertExpression.Any()
-                        ),
-                        AssertExpression.Constant(true)
-                    );
+                            nameof(EnumerableExtensions.ToListWithNullCheck),
+                            AssertExpression.Call(null, nameof(EnumerableExtensions.SelectWithNullCheck), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any()),
+                            AssertExpression.Constant(true)
+                        )
+                        : AssertExpression.Call(
+                            null,
+                            nameof(Enumerable.ToList),
+                            AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any())
+                        );
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
                 }

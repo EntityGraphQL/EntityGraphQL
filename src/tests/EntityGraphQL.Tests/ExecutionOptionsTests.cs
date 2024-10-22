@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 using EntityGraphQL.Tests.Util;
@@ -117,14 +116,13 @@ public class ExecutionOptionsTests
                             "items",
                             AssertExpression.Call(
                                 null,
-                                nameof(EnumerableExtensions.ToListWithNullCheck),
+                                nameof(Enumerable.ToList),
                                 AssertExpression.Call(
                                     null,
                                     "Select",
                                     AssertExpression.Call(null, "TagWith", AssertExpression.Any(), AssertExpression.AnyOfType(typeof(Action))),
                                     AssertExpression.Any()
-                                ),
-                                AssertExpression.Any()
+                                )
                             )
                         )
                     ]
@@ -153,7 +151,7 @@ public class ExecutionOptionsTests
                             "edges",
                             AssertExpression.Call(
                                 null,
-                                nameof(EnumerableExtensions.ToListWithNullCheck),
+                                nameof(Enumerable.ToList),
                                 AssertExpression.Call(
                                     null,
                                     "Select",
@@ -169,8 +167,7 @@ public class ExecutionOptionsTests
                                         AssertExpression.Any()
                                     ),
                                     AssertExpression.Any()
-                                ),
-                                AssertExpression.Any()
+                                )
                             )
                         )
                     ]
