@@ -1,16 +1,14 @@
-# 5.5.1
-
-## Fixes
-
-- Make sure top level types have access checked (Query, Mutation and Subscription)
-- Fix #392 - Better handle `null` checks when executing against in-memory data
-
 # 5.5.0
 
 ## Changes
 
 - Add `IgnoreAttributes` to `SchemaBuilderOptions` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
 - `.Resolve<>()` method on field changes return type to `object?` to avoid warnings when returning a valid nullable service call etc.
+
+## Fixes
+
+- Make sure top level types have access checked (Query, Mutation and Subscription)
+- Fix #392 - Better handle `null` checks when executing against in-memory data
 
 # 5.4.6
 
