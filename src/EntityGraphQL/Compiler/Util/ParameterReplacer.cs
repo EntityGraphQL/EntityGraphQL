@@ -147,6 +147,9 @@ namespace EntityGraphQL.Compiler.Util
                     {
                         try
                         {
+                            // If the field is a nullable type we need to get the value
+                            if (nodeExp.Type.IsValueType && nodeExp.Type.IsNullableType())
+                                nodeExp = Expression.PropertyOrField(nodeExp, nameof(Nullable<int>.Value));
                             // extracted fields get flatten as they are selected in the first pass. The new expression can be built
                             nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
                         }

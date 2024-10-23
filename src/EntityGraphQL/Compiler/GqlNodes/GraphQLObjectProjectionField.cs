@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler;
@@ -118,7 +119,8 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
             (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
             // build a new {...} - returning a single object {}
             var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType);
-            if (nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
+            var isNullable = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
+            if (isNullable && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
             {
                 // make a null check from this new expression
                 nextFieldContext = Expression.Condition(
