@@ -149,7 +149,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             {
                 try
                 {
-                    var argValue = ExpressionUtil.ChangeType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema, null);
+                    var argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema, null);
                     if (argValue == null && argType.IsRequired)
                         throw new EntityGraphQLCompilerException(
                             $"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value."

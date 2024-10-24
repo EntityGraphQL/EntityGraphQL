@@ -69,7 +69,7 @@ namespace EntityGraphQL.Compiler
                 }
             }
 
-            return ExpressionUtil.ChangeType(argValue, argType, schema, null);
+            return ExpressionUtil.ConvertObjectType(argValue, argType, schema, null);
         }
 
         private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)

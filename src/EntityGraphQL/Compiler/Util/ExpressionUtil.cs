@@ -71,7 +71,7 @@ public static class ExpressionUtil
         return (MemberExpression)exp;
     }
 
-    public static object? ChangeType(object? value, Type toType, ISchemaProvider? schema, ExecutionOptions? executionOptions = null)
+    public static object? ConvertObjectType(object? value, Type toType, ISchemaProvider? schema, ExecutionOptions? executionOptions = null)
     {
         if (value == null)
         {
@@ -107,11 +107,11 @@ public static class ExpressionUtil
                 {
                     var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                     if (prop != null)
-                        prop.SetValue(value, ChangeType(item.Value, prop.PropertyType, schema, executionOptions));
+                        prop.SetValue(value, ConvertObjectType(item.Value, prop.PropertyType, schema, executionOptions));
                     else
                     {
                         var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
-                        field?.SetValue(value, ChangeType(item.Value, field.FieldType, schema, executionOptions));
+                        field?.SetValue(value, ConvertObjectType(item.Value, field.FieldType, schema, executionOptions));
                     }
                 }
                 return value;
@@ -121,7 +121,7 @@ public static class ExpressionUtil
                 var eleType = toType.GetEnumerableOrArrayType()!;
                 var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
                 foreach (var item in jsonEle.EnumerateArray())
-                    list.Add(ChangeType(item, eleType, schema, executionOptions));
+                    list.Add(ConvertObjectType(item, eleType, schema, executionOptions));
                 return list;
             }
             value = jsonEle.ToString();
@@ -186,11 +186,11 @@ public static class ExpressionUtil
             {
                 var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                 if (toProp != null)
-                    toProp.SetValue(newValue, ChangeType(((IDictionary)value)[key], toProp.PropertyType, schema, executionOptions));
+                    toProp.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toProp.PropertyType, schema, executionOptions));
                 else
                 {
                     var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
-                    toField?.SetValue(newValue, ChangeType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
+                    toField?.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
                 }
             }
             return newValue;
@@ -200,7 +200,7 @@ public static class ExpressionUtil
             var eleType = toType.GetEnumerableOrArrayType()!;
             var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
             foreach (var item in (IEnumerable)value)
-                list.Add(ChangeType(item, eleType, schema, executionOptions));
+                list.Add(ConvertObjectType(item, eleType, schema, executionOptions));
             if (toType.IsArray)
             {
                 // if toType is array [] we can't use a List<>
@@ -222,7 +222,7 @@ public static class ExpressionUtil
             if (fromType == toType.GetGenericArguments()[0])
                 return Activator.CreateInstance(toType, value);
             else if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(RequiredField<>))
-                return Activator.CreateInstance(toType, ChangeType(value, toType.GetGenericArguments()[0], schema, executionOptions));
+                return Activator.CreateInstance(toType, ConvertObjectType(value, toType.GetGenericArguments()[0], schema, executionOptions));
         }
         if (argumentNonNullType.IsClass && typeof(string) != argumentNonNullType && !fromType.IsEnumerableOrArray())
         {
@@ -250,24 +250,24 @@ public static class ExpressionUtil
         {
             var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
             if (fromProp != null)
-                toField.SetValue(newValue, ChangeType(fromProp.GetValue(value), toField.FieldType, schema, executionOptions));
+                toField.SetValue(newValue, ConvertObjectType(fromProp.GetValue(value), toField.FieldType, schema, executionOptions));
             else
             {
                 var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toField.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromField != null)
-                    toField.SetValue(newValue, ChangeType(fromField.GetValue(value), toField.FieldType, schema, executionOptions));
+                    toField.SetValue(newValue, ConvertObjectType(fromField.GetValue(value), toField.FieldType, schema, executionOptions));
             }
         }
         foreach (var toProperty in toType.GetProperties())
         {
             var fromProp = valueObjType.GetProperties().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
             if (fromProp != null)
-                toProperty.SetValue(newValue, ChangeType(fromProp.GetValue(value), toProperty.PropertyType, schema, executionOptions));
+                toProperty.SetValue(newValue, ConvertObjectType(fromProp.GetValue(value), toProperty.PropertyType, schema, executionOptions));
             else
             {
                 var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromField != null)
-                    toProperty.SetValue(newValue, ChangeType(fromField.GetValue(value), toProperty.PropertyType, schema, executionOptions));
+                    toProperty.SetValue(newValue, ConvertObjectType(fromField.GetValue(value), toProperty.PropertyType, schema, executionOptions));
             }
         }
 

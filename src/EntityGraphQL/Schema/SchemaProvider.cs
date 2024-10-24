@@ -261,7 +261,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             GraphQLDocument? compiledQuery = null;
             if (options.EnablePersistedQueries)
             {
-                var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
+                var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
                 if (persistedQuery != null && persistedQuery.Version != 1)
                     throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
@@ -301,7 +301,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 if (gql.Query == null)
                 {
                     string? hash = (
-                        (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options)
+                        (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options)
                     )?.Sha256Hash;
                     if (hash != null)
                         throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
@@ -362,7 +362,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         if (gql.Query == null)
         {
             string? phash = (
-                (PersistedQueryExtension?)ExpressionUtil.ChangeType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, executionOptions)
+                (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, executionOptions)
             )?.Sha256Hash;
             if (phash != null)
                 throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");

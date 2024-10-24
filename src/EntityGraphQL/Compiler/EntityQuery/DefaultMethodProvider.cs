@@ -50,23 +50,40 @@ public class DefaultMethodProvider : IMethodProvider
                 (Type t) =>
                     t == typeof(string)
                     || t == typeof(long)
+                    || t == typeof(long?)
                     || t == typeof(int)
+                    || t == typeof(int?)
                     || t == typeof(short)
+                    || t == typeof(short?)
                     || t == typeof(byte)
+                    || t == typeof(byte?)
                     || t == typeof(double)
+                    || t == typeof(double?)
                     || t == typeof(float)
+                    || t == typeof(float?)
                     || t == typeof(decimal)
+                    || t == typeof(decimal?)
                     || t == typeof(uint)
+                    || t == typeof(uint?)
                     || t == typeof(ulong)
+                    || t == typeof(ulong?)
                     || t == typeof(ushort)
+                    || t == typeof(ushort?)
                     || t == typeof(sbyte)
+                    || t == typeof(sbyte?)
                     || t == typeof(char)
+                    || t == typeof(char?)
                     || t == typeof(DateTime)
+                    || t == typeof(DateTime?)
                     || t == typeof(Guid)
+                    || t == typeof(Guid?)
                     || t == typeof(DateTimeOffset)
+                    || t == typeof(DateTimeOffset?)
 #if NET5_0_OR_GREATER
                     || t == typeof(DateOnly)
+                    || t == typeof(DateOnly?)
                     || t == typeof(TimeOnly)
+                    || t == typeof(TimeOnly?)
 #endif
                 ,
                 new(StringComparer.OrdinalIgnoreCase) { { "isAny", MakeIsAnyMethod }, }
@@ -204,6 +221,12 @@ public class DefaultMethodProvider : IMethodProvider
         ExpectArgsCount(1, args, methodName);
         var array = args.First();
         var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
+
+        if (context.Type.IsNullableType())
+        {
+            var call = ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType));
+            return Expression.Condition(Expression.Equal(context, Expression.Constant(null, context.Type)), Expression.Constant(false), call);
+        }
 
         return ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, context);
     }

@@ -113,7 +113,7 @@ public abstract class MethodField : BaseField
                 // this could be int to RequiredField<int>
                 if (value != null && value.GetType() != argField.RawType)
                 {
-                    value = ExpressionUtil.ChangeType(value, argField.RawType, Schema, executionOptions);
+                    value = ExpressionUtil.ConvertObjectType(value, argField.RawType, Schema, executionOptions);
                 }
 
                 argField.Validate(value, Name, validationErrors);

@@ -5,6 +5,7 @@
 - Add `IgnoreAttributes` to `SchemaBuilderOptions` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
 - `.Resolve<>()` method on field changes return type to `object?` to avoid warnings when returning a valid nullable service call etc.
 - Add support for using a `struct` type as an object type in the schema, allowing you to query the fields on it. Previously it only worked if you added the `struct` as a Scalar Type
+- #419 - Add support for using `isAny([])` on nullable types
 
 ## Fixes
 

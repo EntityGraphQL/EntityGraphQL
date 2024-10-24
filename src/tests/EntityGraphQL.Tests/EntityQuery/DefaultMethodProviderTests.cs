@@ -187,6 +187,18 @@ public class DefaultMethodProviderTests
         Assert.Equal("Robin", result.ElementAt(1).Name);
     }
 
+    [Fact]
+    public void SupportUseFilterIsAnyMethodOnNullable()
+    {
+        var exp = EntityQueryCompiler.Compile(@"people.where(age.isAny([99, 44]))", SchemaBuilder.FromObject<TestSchema>(), executionOptions, new DefaultMethodProvider());
+        var data = new TestSchema();
+        Assert.Equal(4, data.People.Count());
+        var result = exp.Execute(data) as IEnumerable<Person>;
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("Robin", result.ElementAt(0).Name);
+    }
+
     // This would be your Entity/Object graph you use with EntityFramework
     private class TestSchema
     {
@@ -213,7 +225,8 @@ public class DefaultMethodProviderTests
                     {
                         Id = 9,
                         Name = "Robin",
-                        Guid = Guid.NewGuid()
+                        Guid = Guid.NewGuid(),
+                        Age = 44
                     },
                 ];
             }
@@ -226,5 +239,6 @@ public class DefaultMethodProviderTests
         public string Name { get; set; } = "Luke";
         public string LastName { get; set; } = "Lasty";
         public Guid Guid { get; set; } = new Guid("6492f5fe-0869-4279-88df-7f82f8e87a67");
+        public int? Age { get; set; }
     }
 }
