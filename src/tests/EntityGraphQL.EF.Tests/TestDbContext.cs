@@ -28,6 +28,7 @@ public class Actor(string name) : IEntityWithId
     public int Id { get; set; }
     public string Name { get; set; } = name;
     public DateTime Birthday { get; set; }
+    public List<Movie> Movies { get; set; } = [];
 }
 
 public class Director(string name) : IEntityWithId
