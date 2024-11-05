@@ -478,7 +478,7 @@ namespace EntityGraphQL.Schema
                     var fields = GetFieldsFromObject(propType, typeAdded, schema, options, isInputType);
                     typeAdded.AddFields(fields);
 
-                    if (options.AutoCreateInterfaceTypes)
+                    if (options.AutoCreateInterfaceTypes && !typeAdded.IsInput)
                     {
                         typeAdded.ImplementAllBaseTypes(true, true);
                     }
