@@ -28,7 +28,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/examples/subscriptions/bin/Debug/net6.0/subscriptions.dll",
+            "program": "${workspaceFolder}/src/examples/subscriptions/bin/Debug/net8.0/subscriptions.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/examples/subscriptions",
             "stopAtEntry": false,
@@ -44,7 +44,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net6.0/Benchmarks.dll",
+            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net8.0/Benchmarks.dll",
             "args": [
                 "--filter",
                 "*QueryBenchmarks*"
