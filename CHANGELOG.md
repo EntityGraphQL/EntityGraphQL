@@ -1,3 +1,9 @@
+# 5.5.1
+
+## Fixes
+
+- #425 - As per GraphQL Spec, Interfaces are not supported for Input Types
+
 # 5.5.0
 
 ## Changes
