@@ -22,6 +22,11 @@ public static class ArgumentUtil
         List<string> validationErrors
     )
     {
+        if (argumentsType == null)
+        {
+            return new();
+        }
+        
         // get the values for the argument anonymous type object constructor
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
