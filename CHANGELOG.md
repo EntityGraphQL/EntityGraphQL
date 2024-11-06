@@ -3,6 +3,7 @@
 ## Fixes
 
 - #425 - As per GraphQL Spec, Interfaces are not supported for Input Types
+- #426 - Fix custom directives with no arguments.
 
 # 5.5.0
 
