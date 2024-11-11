@@ -64,7 +64,7 @@ namespace EntityGraphQL.Schema.FieldExtensions
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
-        public static string GetCursor(dynamic arguments, int idx)
+        public static string GetCursor(dynamic arguments, int idx, int? offset = null)
         {
             var index = idx + 1;
             if (arguments.AfterNum != null)
@@ -76,29 +76,43 @@ namespace EntityGraphQL.Schema.FieldExtensions
                 else
                     index += arguments.TotalCount - (arguments.Last ?? 0);
             }
+
+            if (offset < 0) index = idx + 1;
+
             return SerializeCursor(index);
         }
 
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
-        public static int? GetSkipNumber(dynamic arguments)
+        public static int? GetSkipNumber(dynamic arguments, bool fixNegativeOffset = true)
         {
             if (arguments.AfterNum != null)
                 return arguments.AfterNum;
             if (arguments.Last != null)
-                return (arguments.BeforeNum ?? arguments.TotalCount) - arguments.Last;
+            {
+                var c = ((arguments.BeforeNum-1) ?? arguments.TotalCount) - arguments.Last;
+                
+                // Enumerable.Skip does not accept negative numbers. 
+                if (fixNegativeOffset)
+                    c = c > 0 ? c : 0;
+                return c;
+            }
             return 0;
         }
 
         /// <summary>
         /// Used at runtime in the expression built above
         /// </summary>
-        public static int? GetTakeNumber(dynamic arguments)
+        public static int? GetTakeNumber(dynamic arguments, int? offset = 0)
         {
-            if (arguments.First == null && arguments.Last == null && arguments.BeforeNum == null)
+            if (arguments.First == null && arguments.Last == null && arguments.BeforeNum == null || offset == null)
                 return null;
-            return arguments.First ?? arguments.Last ?? (arguments.BeforeNum - 1);
+
+            // In cases where we have Last > BeforeNum, we need to take fewer results than Last says to
+            // See SkipTakeTests.TestLastAndBefore_WhenLastGreaterThanBeforeNum
+            var offsetAdjustedLast = offset >= 0 ? arguments.Last : arguments.Last + offset;
+            return arguments.First ?? offsetAdjustedLast ?? (arguments.BeforeNum - 1);
         }
     }
 }
