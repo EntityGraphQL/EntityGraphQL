@@ -264,6 +264,78 @@ public class ConnectionPagingTests
     }
 
     [Fact]
+    public void TestCursorFirstAfterMatchesLastBefore()
+    {
+        // Issue #427
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        schema.Query().ReplaceField("people", ctx => ctx.People.OrderBy(p => p.Id), "Return list of people with paging metadata").UseConnectionPaging();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(first: 2 after: ""MQ=="") {
+                        edges {
+                            node {
+                                name id
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            startCursor
+                            endCursor
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                        totalCount
+                    }
+                }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic firstPeople = result.Data!["people"]!;
+
+        var gql2 = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(last: 2 before: ""NA=="") {
+                        edges {
+                            node {
+                                name id
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            startCursor
+                            endCursor
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                        totalCount
+                    }
+                }",
+        };
+
+        result = schema.ExecuteRequestWithContext(gql2, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic lastPeople = result.Data!["people"]!;
+
+        // cursors MQ, Mg, Mw, NA, NQ
+        // first       Mg, Mw 
+        // last        Mg, Mw 
+
+        Assert.Equal(firstPeople.pageInfo.startCursor, lastPeople.pageInfo.startCursor);
+        Assert.Equal(Enumerable.First(firstPeople.edges).cursor, Enumerable.First(lastPeople.edges).cursor);
+        Assert.Equal(Enumerable.First(firstPeople.edges).node.id, Enumerable.First(lastPeople.edges).node.id);
+    }
+
+    [Fact]
     public void TestMergeArguments()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

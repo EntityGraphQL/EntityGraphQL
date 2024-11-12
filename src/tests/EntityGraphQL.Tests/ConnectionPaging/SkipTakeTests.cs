@@ -57,7 +57,22 @@ namespace EntityGraphQL.Tests.ConnectionPaging
             Assert.Equal(4, take);
 
             var skip = ConnectionHelper.GetSkipNumber(args);
-            Assert.Equal(3, skip);
+            Assert.Equal(2, skip);
+        }
+
+        [Fact]
+        public void TestLastAndBefore_WhenLastGreaterThanBeforeNum()
+        {
+            var args = new ConnectionArgs { Last = 4, BeforeNum = 2, };
+
+            var skip = ConnectionHelper.GetSkipNumber(args);
+            Assert.Equal(0, skip);
+            
+            var offset = ConnectionHelper.GetSkipNumber(args, false);
+
+            var take = ConnectionHelper.GetTakeNumber(args, offset);
+            Assert.Equal(1, take);
+
         }
 
         [Fact]

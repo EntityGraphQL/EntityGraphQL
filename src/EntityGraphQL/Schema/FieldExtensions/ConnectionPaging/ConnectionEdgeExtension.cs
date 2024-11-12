@@ -100,9 +100,10 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                 nameof(EnumerableExtensions.Skip),
                 [listType],
                 expression,
-                Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam)
+                Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(true))
             ),
-            Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetTakeNumber), null, argumentParam)
+            Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetTakeNumber), null, argumentParam,
+                Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false)))
         );
 
         // we have moved the expression from the parent node to here. We need to call the before callback
@@ -175,6 +176,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         );
 
         var idxParam = Expression.Parameter(typeof(int), "cursor_idx");
+        var offsetParam = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false));
         // now select with cursor
         baseExpression = Expression.Call(
             typeof(Enumerable),
@@ -187,7 +189,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam))
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam, offsetParam))
                     }
                 ),
                 edgeParam,
