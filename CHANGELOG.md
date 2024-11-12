@@ -4,6 +4,7 @@
 
 - #425 - As per GraphQL Spec, Interfaces are not supported for Input Types
 - #426 - Fix custom directives with no arguments.
+- #427/#428 - Fix issue with connection style paging field extension when using last and before arguments
 
 # 5.5.0
 
