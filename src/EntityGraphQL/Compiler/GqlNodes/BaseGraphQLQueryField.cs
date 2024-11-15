@@ -33,7 +33,11 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments) { }
 
     protected BaseGraphQLQueryField(BaseGraphQLQueryField context, Expression? nextFieldContext)
-        : base(context, nextFieldContext) { }
+        : base(context, nextFieldContext)
+    {
+        PossibleNextContextTypes = [.. context.PossibleNextContextTypes ?? []];
+        // we don't populate ToSingleNode as GraphQLCollectionToSingleField handles that
+    }
 
     protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && HasServices;
 
@@ -107,7 +111,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                     {
                         continue;
                     }
-                    if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType) == true)
+                    if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType))
                     {
                         // replace - use the non-base type field
                         selectionFields.Remove(potentialMatch);

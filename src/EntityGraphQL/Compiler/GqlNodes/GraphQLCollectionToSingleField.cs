@@ -32,16 +32,14 @@ namespace EntityGraphQL.Compiler;
 /// </summary>
 public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
 {
-    private bool isRootField;
     public GraphQLListSelectionField CollectionSelectionNode { get; set; }
     public GraphQLObjectProjectionField ObjectProjectionNode { get; set; }
     public Expression CombineExpression { get; set; }
     public override bool IsRootField
     {
-        get => isRootField;
         set
         {
-            isRootField = value;
+            base.IsRootField = value;
             CollectionSelectionNode.IsRootField = value;
             ObjectProjectionNode.IsRootField = value;
         }
@@ -132,8 +130,8 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         ParameterReplacer replacer
     )
     {
-        var capMethod = ExpressionUtil.UpdateCollectionNodeFieldExpression(CollectionSelectionNode, CombineExpression);
-        var result = CollectionSelectionNode.GetNodeExpression(
+        var (capMethod, listSelection) = ExpressionUtil.UpdateCollectionNodeFieldExpression(CollectionSelectionNode, CombineExpression);
+        var result = listSelection.GetNodeExpression(
             compileContext,
             serviceProvider,
             fragments,

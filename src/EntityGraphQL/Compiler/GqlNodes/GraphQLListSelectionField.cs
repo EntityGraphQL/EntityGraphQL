@@ -45,13 +45,13 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
     )
         : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
     {
-        this.ListExpression = nodeExpression;
+        ListExpression = nodeExpression;
     }
 
     public GraphQLListSelectionField(GraphQLListSelectionField context, ParameterExpression? nextFieldContext)
         : base(context, nextFieldContext)
     {
-        this.ListExpression = context.ListExpression;
+        ListExpression = context.ListExpression;
         AllowToList = context.AllowToList;
     }
 

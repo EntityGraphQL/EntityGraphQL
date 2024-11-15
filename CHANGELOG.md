@@ -1,3 +1,10 @@
+# 5.5.2
+
+## Fixes
+
+- #418 - Fix issue where field expressions using `ctx.Entities.FirstOrDefault(<filter>)` (`First*`, `Last*`, `Single*` methods with a filter) would duplicate the filter expression on each execution (e.g. making `ctx.Entities.Where(<filter>).Where(<filter>).FirstOrDefault()`). This also caused EntityFramework not to use it's cache for the expression
+- Fix issue with `RequiresAnyRole()` being called on a field with multiple roles added them as requiring all those roles vs. any role. This did not effect the `[GraphQLAuthorize]` attribute
+
 # 5.5.1
 
 ## Fixes

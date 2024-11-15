@@ -33,10 +33,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// Name of the field
     /// </summary>
     public string Name { get; set; }
-    public string SchemaName
-    {
-        get => Field?.Name ?? Name;
-    }
+    public string SchemaName => Field?.Name ?? Name;
 
     /// <summary>
     /// The GraphQL type this field belongs to. Useful with union types and inline fragments and we may have the same name
@@ -55,10 +52,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     ///     }
     /// }
     /// </summary>
-    public ISchemaType? FromType
-    {
-        get => Field?.FromType;
-    }
+    public ISchemaType? FromType => Field?.FromType;
     public IField? Field { get; }
     public List<BaseGraphQLField> QueryFields { get; } = [];
     public Expression? NextFieldContext { get; }
@@ -74,10 +68,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <summary>
     /// True if this field directly has services
     /// </summary>
-    public bool HasServices
-    {
-        get => Field?.Services.Count > 0;
-    }
+    public bool HasServices => Field?.Services.Count > 0;
 
     public BaseGraphQLField(
         ISchemaProvider schema,
@@ -101,7 +92,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     public BaseGraphQLField(BaseGraphQLField context, Expression? nextFieldContext)
     {
         Name = context.Name;
-        NextFieldContext = nextFieldContext;
+        NextFieldContext = nextFieldContext ?? context.NextFieldContext;
         RootParameter = context.RootParameter;
         ParentNode = context.ParentNode;
         Arguments = context.Arguments.ToDictionary(k => k.Key, v => v.Value);
@@ -110,6 +101,8 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         LocationForDirectives = context.LocationForDirectives;
         Directives.AddRange(context.Directives);
         QueryFields.AddRange(context.QueryFields);
+        OpName = context.OpName;
+        IsRootField = context.IsRootField;
     }
 
     /// <summary>
@@ -119,7 +112,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <value></value>
     public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
     {
-        return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
+        return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
     }
 
     /// <summary>

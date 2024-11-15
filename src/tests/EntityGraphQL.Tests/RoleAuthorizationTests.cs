@@ -78,9 +78,9 @@ public class RoleAuthorizationTests
 
         schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAnyRole("admin", "something-else");
 
-        Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.Count());
+        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles);
         Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
-        Assert.Equal("something-else", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(1).ElementAt(0));
+        Assert.Equal("something-else", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(1));
     }
 
     [Fact]
@@ -196,6 +196,37 @@ public class RoleAuthorizationTests
         var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
 
         Assert.Equal("You are not authorized to access the 'Query' type.", result.Errors!.First().Message);
+
+        claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+        result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+        Assert.Null(result.Errors);
+
+        claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "half-admin")], "authed");
+        result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+        Assert.Null(result.Errors);
+    }
+
+    [Fact]
+    public void TestFieldIsSecuredWithAnyRole()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.Type<Task>().ReplaceField("name", t => t.Name, "Task name").RequiresAnyRole("admin", "half-admin");
+
+        var claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "not-admin")], "authed");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    tasks {
+                        id
+                        name
+                    }
+                }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
+
+        Assert.Equal("Field 'tasks' - You are not authorized to access the 'name' field on type 'Task'.", result.Errors!.First().Message);
 
         claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
         result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));

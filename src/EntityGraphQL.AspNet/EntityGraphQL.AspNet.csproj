@@ -5,7 +5,7 @@
     <AssemblyName>EntityGraphQL.AspNet</AssemblyName>
     <PackageId>EntityGraphQL.AspNet</PackageId>
     <LangVersion>12</LangVersion>
-    <PackageVersion>5.5.1</PackageVersion>
+    <PackageVersion>5.5.2</PackageVersion>
     <Description>Contains ASP.NET extensions and middleware for EntityGraphQL</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>

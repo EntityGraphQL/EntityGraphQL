@@ -4,7 +4,7 @@
     <LangVersion>12.0</LangVersion>
     <AssemblyName>EntityGraphQL</AssemblyName>
     <PackageId>EntityGraphQL</PackageId>
-    <PackageVersion>5.5.1</PackageVersion>
+    <PackageVersion>5.5.2</PackageVersion>
     <Description>A GraphQL library for .NET Core. Compiles queries into .NET Expressions (LinqProvider) for runtime execution against object graphs. E.g. against an ORM data model (EntityFramework or others) or just an in-memory object.</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>

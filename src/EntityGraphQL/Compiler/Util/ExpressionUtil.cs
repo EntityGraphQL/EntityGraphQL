@@ -326,9 +326,10 @@ public static class ExpressionUtil
     /// </summary>
     /// <param name="collectionSelectionNode"></param>
     /// <param name="combineExpression"></param>
-    public static string? UpdateCollectionNodeFieldExpression(GraphQLListSelectionField collectionSelectionNode, Expression combineExpression)
+    public static (string? capMethod, GraphQLListSelectionField listSelection) UpdateCollectionNodeFieldExpression(GraphQLListSelectionField collectionSelectionNode, Expression combineExpression)
     {
         string? capMethod = null;
+        GraphQLListSelectionField listSelection = new(collectionSelectionNode, null);
         if (combineExpression.NodeType == ExpressionType.Call)
         {
             // In the case of a First() we need to insert that select before the first
@@ -340,23 +341,23 @@ public static class ExpressionUtil
             if (ListToSingleMethods.Contains(Tuple.Create(call.Method.DeclaringType!, call.Method.Name)))
             {
                 // Get the expression that we can add the Select() too
-                var contextExpression = collectionSelectionNode.ListExpression;
-                if (contextExpression != null && call.Arguments.Count == 2)
+                var listExpression = listSelection.ListExpression;
+                if (call.Arguments.Count == 2)
                 {
                     // this is a ctx.Something.First(f => ...)
                     // move the filter to a Where call so we can use .Select() to get the fields requested
                     var filter = call.Arguments.ElementAt(1);
-                    var isQueryable = typeof(IQueryable).IsAssignableFrom(contextExpression.Type);
-                    contextExpression = isQueryable
-                        ? MakeCallOnQueryable(nameof(Queryable.Where), [combineExpression.Type], contextExpression, filter)
-                        : MakeCallOnEnumerable(nameof(Enumerable.Where), [combineExpression.Type], contextExpression, filter);
-                    // we can first call ToList() as the data is filtered so risk of over fetching is low
+                    var isQueryable = typeof(IQueryable).IsAssignableFrom(listExpression.Type);
+                    listExpression = isQueryable
+                        ? MakeCallOnQueryable(nameof(Queryable.Where), [combineExpression.Type], listExpression, filter)
+                        : MakeCallOnEnumerable(nameof(Enumerable.Where), [combineExpression.Type], listExpression, filter);
+                    // update our new listSelection with the filter shifted to the Where() call
                     capMethod = call.Method.Name;
-                    collectionSelectionNode.ListExpression = contextExpression;
+                    listSelection.ListExpression = listExpression;
                 }
             }
         }
-        return capMethod;
+        return (capMethod, listSelection);
     }
 
     /// <summary>
@@ -450,7 +451,7 @@ public static class ExpressionUtil
             MemberExpression me => me.Expression?.Type,
             ConditionalExpression ce => ExpressionRootType(ce.Test),
             BinaryExpression be => ExpressionRootType(be.Left),
-            _ => null
+            _ => null,
         };
     }
 
@@ -517,8 +518,8 @@ public static class ExpressionUtil
                 call = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.SelectWithNullCheck), [currentContextParam.Type, baseDynamicType], baseExp, selector);
             else
                 call = isQueryable
-                    ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector)
-                    : MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, baseDynamicType }, baseExp, selector);
+                    ? MakeCallOnQueryable(nameof(Enumerable.Select), [currentContextParam.Type, baseDynamicType], baseExp, selector)
+                    : MakeCallOnEnumerable(nameof(Queryable.Select), [currentContextParam.Type, baseDynamicType], baseExp, selector);
             return (call, allNonBaseDynamicTypes);
         }
         else
@@ -540,8 +541,8 @@ public static class ExpressionUtil
                 );
             else
                 call = isQueryable
-                    ? MakeCallOnQueryable(nameof(Enumerable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector)
-                    : MakeCallOnEnumerable(nameof(Queryable.Select), new Type[] { currentContextParam.Type, dynamicType }, baseExp, selector);
+                    ? MakeCallOnQueryable(nameof(Enumerable.Select), [currentContextParam.Type, dynamicType], baseExp, selector)
+                    : MakeCallOnEnumerable(nameof(Queryable.Select), [currentContextParam.Type, dynamicType], baseExp, selector);
             return (call, new List<Type> { dynamicType });
         }
     }

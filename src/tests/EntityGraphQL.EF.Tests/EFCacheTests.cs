@@ -23,7 +23,7 @@ public class EFCacheTests
                     name
                     movies { id }
                 }
-            }"
+            }",
         };
 
         loggerProvider.Logger.ResetCounts();
@@ -58,7 +58,7 @@ public class EFCacheTests
                     name
                     movie(id: 10) { name }
                 }
-            }"
+            }",
         };
 
         loggerProvider.Logger.ResetCounts();
@@ -95,7 +95,81 @@ public class EFCacheTests
                     movie(id: 10) { name }
                 }
             }",
-            Variables = new QueryVariables { ["id"] = 1 }
+            Variables = new QueryVariables { ["id"] = 1 },
+        };
+
+        loggerProvider.Logger.ResetCounts();
+        var result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+
+        Assert.Null(result.Errors);
+        // Assert that query compilation occurred only once
+        Assert.Equal(1, loggerProvider.Logger.QueryCompilationCount);
+        Assert.Equal(5, loggerProvider.Logger.QueryExecutionCount);
+    }
+
+    [Fact]
+    public void TestEfCoreQueryCacheWithListToSingleNodeNotFromSchemaBuilder()
+    {
+        using var factory = Setup(out TestLoggerProvider loggerProvider, out ServiceProvider serviceProvider, out SchemaProvider<TestDbContext> schema);
+
+        schema.UpdateQuery(c =>
+        {
+            c.ReplaceField("actor", new { id = (int?)null }, (c, args) => c.Actors.FirstOrDefault(x => x.Id == args.id), "");
+        });
+
+        // GraphQL query
+        var query = new QueryRequest
+        {
+            Query =
+                @"query ($id: Int!) {
+                actor(id: $id) {
+                    id
+                    name
+                    birthday
+                }
+            }",
+            Variables = new QueryVariables { ["id"] = 1 },
+        };
+
+        loggerProvider.Logger.ResetCounts();
+        var result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+        result = schema.ExecuteRequest(query, serviceProvider, null);
+
+        Assert.Null(result.Errors);
+        // Assert that query compilation occurred only once
+        Assert.Equal(1, loggerProvider.Logger.QueryCompilationCount);
+        Assert.Equal(5, loggerProvider.Logger.QueryExecutionCount);
+    }
+
+    [Fact]
+    public void TestEfCoreQueryCacheWithListToSingleNodeNotFromSchemaBuilderNotRootField()
+    {
+        using var factory = Setup(out TestLoggerProvider loggerProvider, out ServiceProvider serviceProvider, out SchemaProvider<TestDbContext> schema);
+
+        schema.UpdateType<Actor>(c =>
+        {
+            c.ReplaceField("movie", new { id = (int?)null }, (c, args) => c.Movies.FirstOrDefault(x => x.Id == args.id), "");
+        });
+
+        // GraphQL query
+        var query = new QueryRequest
+        {
+            Query =
+                @"query ($id: Int!) {
+                actors {
+                    id
+                    name
+                    movie(id: 10) { name }
+                }
+            }",
+            Variables = new QueryVariables { ["id"] = 1 },
         };
 
         loggerProvider.Logger.ResetCounts();
