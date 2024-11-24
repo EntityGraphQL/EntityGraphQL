@@ -182,8 +182,8 @@ public sealed class EntityQueryParser
                 PowerChar => ExpressionType.Power,
                 AndWord => ExpressionType.AndAlso,
                 AndStr => ExpressionType.AndAlso,
-                OrWord => ExpressionType.Or,
-                OrStr => ExpressionType.Or,
+                OrWord => ExpressionType.OrElse,
+                OrStr => ExpressionType.OrElse,
                 _ => throw new NotSupportedException()
             };
             binaryExp = new Binary(op, left, right);
