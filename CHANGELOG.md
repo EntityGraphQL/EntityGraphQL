@@ -1,3 +1,9 @@
+# 5.5.3
+
+## Fixes
+
+- #432 - filter expression was incorrectly using bit-wise OR or OrElse
+
 # 5.5.2
 
 ## Fixes

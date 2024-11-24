@@ -258,6 +258,30 @@ public class FilterExtensionTests
     }
 
     [Fact]
+    public void SupportUseFilterOnNonRootOrTest()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Project>().GetField("tasks", null).UseFilter();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query Query($filter: String!) {
+                    projects {
+                        tasks(filter: $filter) { id name }
+                    }
+                }",
+            Variables = new QueryVariables { { "filter", "(name == \"task 2\") || (name == \"task not there\")" } }
+        };
+        var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
+        Assert.Null(tree.Errors);
+        dynamic projects = ((IDictionary<string, object>)tree.Data!)["projects"];
+        Assert.Equal(1, Enumerable.Count(projects));
+        var project = Enumerable.First(projects);
+        Assert.Single(project.tasks);
+        Assert.Equal("task 2", Enumerable.ElementAt(project.tasks, 0).name);
+    }
+
+    [Fact]
     public void TestAttribute()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext2>();
