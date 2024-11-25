@@ -44,7 +44,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net8.0/Benchmarks.dll",
+            "program": "${workspaceFolder}/src/Benchmarks/bin/Debug/net9.0/Benchmarks.dll",
             "args": [
                 "--filter",
                 "*QueryBenchmarks*"

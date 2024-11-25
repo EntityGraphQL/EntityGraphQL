@@ -691,7 +691,7 @@ public static class ExpressionUtil
     /// This wraps the field expression that does the call once
     /// </summary>
     internal static Expression WrapObjectProjectionFieldForNullCheck(
-        string fieldDescription,
+        string fieldName,
         Expression nullCheckExpression,
         IEnumerable<ParameterExpression> paramsForFieldExpressions,
         Dictionary<string, Expression> fieldExpressions,
@@ -702,7 +702,7 @@ public static class ExpressionUtil
     {
         var arguments = new Expression[]
         {
-            Expression.Constant(fieldDescription),
+            Expression.Constant(fieldName),
             nullCheckExpression,
             Expression.Constant(nullWrapParam, typeof(ParameterExpression)),
             Expression.Constant(paramsForFieldExpressions.ToList()),

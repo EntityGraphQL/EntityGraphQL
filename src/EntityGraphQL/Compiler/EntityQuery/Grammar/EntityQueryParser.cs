@@ -110,14 +110,14 @@ public sealed class EntityQueryParser
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
         var mathOps = OneOf(multiply, divide, mod, plus, minus, power);
-        var mathExp = unary.And(ZeroOrMany(mathOps.And(unary))).Then((x) => HandleBinary(x, context));
+        var mathExp = unary.And(ZeroOrMany(mathOps.And(unary))).Then(HandleBinary);
 
         // expression => mathExp ( ( "==" | "&&" | ... ) mathExp )* ;
         var compareOps = OneOf(lessThanOrEqual, greaterThanOrEqual, lessThan, greaterThan, equals, notEquals);
-        var compareExp = mathExp.And(ZeroOrMany(compareOps.And(mathExp))).Then((x) => HandleBinary(x, context));
+        var compareExp = mathExp.And(ZeroOrMany(compareOps.And(mathExp))).Then(HandleBinary);
 
         var logicalOps = OneOf(andWord, andSymbol, orWord, orSymbol);
-        var logicalBinary = compareExp.And(ZeroOrMany(logicalOps.And(compareExp))).Then((x) => HandleBinary(x, context));
+        var logicalBinary = compareExp.And(ZeroOrMany(logicalOps.And(compareExp))).Then(HandleBinary);
 
         var conditional = OneOf(
             logicalBinary
@@ -156,7 +156,7 @@ public sealed class EntityQueryParser
         this.methodProvider = methodProvider;
     }
 
-    private static IExpression HandleBinary((IExpression, IReadOnlyList<(string, IExpression)>) x, Expression? context)
+    private static IExpression HandleBinary((IExpression, IReadOnlyList<(string, IExpression)>) x)
     {
         var left = x.Item1;
         var binaryExp = left;

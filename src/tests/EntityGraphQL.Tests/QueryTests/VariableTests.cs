@@ -23,7 +23,7 @@ public class VariableTests
                         people(limit: $limit) { id name }
                     }
                 ",
-            Variables = new QueryVariables { { "limit", 5 } }
+            Variables = new QueryVariables { { "limit", 5 } },
         };
         var tree = new GraphQLCompiler(schema).Compile(gql);
 

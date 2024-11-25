@@ -327,8 +327,8 @@ public class ConnectionPagingTests
         dynamic lastPeople = result.Data!["people"]!;
 
         // cursors MQ, Mg, Mw, NA, NQ
-        // first       Mg, Mw 
-        // last        Mg, Mw 
+        // first       Mg, Mw
+        // last        Mg, Mw
 
         Assert.Equal(firstPeople.pageInfo.startCursor, lastPeople.pageInfo.startCursor);
         Assert.Equal(Enumerable.First(firstPeople.edges).cursor, Enumerable.First(lastPeople.edges).cursor);
@@ -784,14 +784,14 @@ public class ConnectionPagingTests
                     new Task { Id = 2, Name = "Task 3" },
                     new Task { Id = 3, Name = "Task 4" },
                     new Task { Id = 4, Name = "Task 5" },
-                ]
-            }
+                ],
+            },
         ];
     }
 
     private static void FillData(TestDataContext data)
     {
-        data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
+        data.People = [MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider")];
     }
 
     private static Person MakePerson(string fname, string lname)
@@ -800,20 +800,20 @@ public class ConnectionPagingTests
         {
             Id = peopleCnt++,
             Name = fname,
-            LastName = lname
+            LastName = lname,
         };
     }
 
     private class TestDataContext2 : TestDataContext
     {
         [UseConnectionPaging]
-        public override List<Person> People { get; set; } = new List<Person>();
+        public override List<Person> People { get; set; } = [];
     }
 
     [Fact]
     public void IdPropertyStillGenerated()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext2>();
-        Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
+        Assert.Contains(schema.Query().GetFields(), x => x.Name == "person");
     }
 }

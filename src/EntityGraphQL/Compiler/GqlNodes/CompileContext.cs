@@ -9,9 +9,8 @@ namespace EntityGraphQL.Compiler;
 /// </summary>
 public class CompileContext
 {
-    private readonly List<ParameterExpression> servicesCollected = new();
-    private readonly Dictionary<ParameterExpression, object?> constantParameters = new();
-    private readonly Dictionary<IField, ParameterExpression> constantParametersForField = new();
+    private readonly Dictionary<ParameterExpression, object?> constantParameters = [];
+    private readonly Dictionary<IField, ParameterExpression> constantParametersForField = [];
 
     public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData, QueryRequestContext requestContext)
     {
@@ -21,15 +20,9 @@ public class CompileContext
         RequestContext = requestContext;
     }
 
-    public List<ParameterExpression> Services
-    {
-        get => servicesCollected;
-    }
-    public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters
-    {
-        get => constantParameters;
-    }
-    public List<CompiledBulkFieldResolver> BulkResolvers { get; private set; } = new();
+    public List<ParameterExpression> Services { get; } = [];
+    public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters => constantParameters;
+    public List<CompiledBulkFieldResolver> BulkResolvers { get; private set; } = [];
     public Dictionary<string, object>? BulkData { get; }
     public ParameterExpression? BulkParameter { get; }
     public ExecutionOptions ExecutionOptions { get; }
@@ -39,7 +32,7 @@ public class CompileContext
     {
         foreach (var service in services)
         {
-            servicesCollected.Add(service);
+            Services.Add(service);
         }
     }
 

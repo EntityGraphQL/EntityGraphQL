@@ -26,7 +26,7 @@ public class ServicesWithQueryableTests
                          config { type }
                          mainActor { name }
                      }
-                 }"
+                 }",
         };
 
         var serviceCollection = new ServiceCollection();
@@ -37,17 +37,7 @@ public class ServicesWithQueryableTests
         serviceCollection.AddSingleton(data);
         var serviceProvider = serviceCollection.BuildServiceProvider();
         data.Database.EnsureCreated();
-        data.Movies.AddRange(
-            new Movie("A New Hope")
-            {
-                Id = 10,
-                Actors = new List<Actor>
-                {
-                    new("Alec Guinness") { Id = 1 },
-                    new("Mark Hamill") { Id = 2 }
-                }
-            }
-        );
+        data.Movies.AddRange(new Movie("A New Hope") { Id = 10, Actors = [new("Alec Guinness") { Id = 1 }, new("Mark Hamill") { Id = 2 }] });
         data.SaveChanges();
 
         var res = schema.ExecuteRequest(gql, serviceProvider, null);
@@ -78,7 +68,7 @@ public class ServicesWithQueryableTests
                             entityName
                         }
                     }
-                 }"
+                 }",
         };
 
         var serviceCollection = new ServiceCollection();
@@ -86,17 +76,7 @@ public class ServicesWithQueryableTests
         var data = factory.CreateContext();
         serviceCollection.AddSingleton(data);
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        data.Movies.AddRange(
-            new Movie("A New Hope")
-            {
-                Id = 10,
-                Actors = new List<Actor>
-                {
-                    new Actor("Alec Guinness") { Id = 1 },
-                    new Actor("Mark Hamill") { Id = 2 }
-                }
-            }
-        );
+        data.Movies.AddRange(new Movie("A New Hope") { Id = 10, Actors = [new Actor("Alec Guinness") { Id = 1 }, new Actor("Mark Hamill") { Id = 2 }] });
         data.SaveChanges();
 
         var res = schema.ExecuteRequest(gql, serviceProvider, null);
@@ -114,10 +94,10 @@ public class ServicesWithQueryableTests
         schema.UpdateType<ProjectConfig>(config =>
         {
             // connect back to the main query types
-            config.AddField("movie", "Get movie").ResolveWithService<TestDbContext>((c, db) => db.Movies.Where(m => m.Id == c.Id).FirstOrDefault());
+            config.AddField("movie", "Get movie").Resolve<TestDbContext>((c, db) => db.Movies.Where(m => m.Id == c.Id).FirstOrDefault());
         });
 
-        schema.Query().AddField("configs", "Get configs").ResolveWithService<ConfigService>((p, srv) => srv.GetList(3, 100)).IsNullable(false);
+        schema.Query().AddField("configs", "Get configs").Resolve<ConfigService>((p, srv) => srv.GetList(3, 100)).IsNullable(false);
         var gql = new QueryRequest
         {
             Query =
@@ -128,7 +108,7 @@ public class ServicesWithQueryableTests
                             director { name }
                         }
                     }
-                 }"
+                 }",
         };
 
         var serviceCollection = new ServiceCollection();
@@ -176,7 +156,7 @@ public class ServicesWithQueryableTests
         data.SaveChanges();
 
         schema.Query().ReplaceField("actors", ctx => ctx.Actors, "Return list of people").UseFilter();
-        schema.Type<Actor>().AddField("age", "Persons age").ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+        schema.Type<Actor>().AddField("age", "Persons age").Resolve<AgeService>((person, ager) => ager.GetAge(person.Birthday));
         var gql = new QueryRequest
         {
             Query =

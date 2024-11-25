@@ -49,7 +49,7 @@ public enum MessageEventType
 {
     New,
     Edit,
-    Delete
+    Delete,
 }
 
 public class MessageEvent

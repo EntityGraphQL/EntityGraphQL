@@ -86,7 +86,7 @@ public class DefaultMethodProvider : IMethodProvider
                     || t == typeof(TimeOnly?)
 #endif
                 ,
-                new(StringComparer.OrdinalIgnoreCase) { { "isAny", MakeIsAnyMethod }, }
+                new(StringComparer.OrdinalIgnoreCase) { { "isAny", MakeIsAnyMethod } }
             },
         };
 

@@ -84,7 +84,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
-            Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
+            Variables = new QueryVariables { { "filter", "field2 == \"2\"" } },
         };
         var context = new TestDataContext().FillWithTestData();
         context.Users.Add(new User { Field2 = "99" });
@@ -108,7 +108,7 @@ public class FilterExtensionTests
                     users(filter: $filter) { field2 }
                 }",
             // do not pass any values. p.filter.HasValue will be false (and work)
-            Variables = new QueryVariables()
+            Variables = [],
         };
         var context = new TestDataContext().FillWithTestData();
         context.Users.Add(new User { Field2 = "99" });
@@ -134,7 +134,7 @@ public class FilterExtensionTests
                     users { field2 }
                 }",
             // do not pass any values. p.filter.HasValue will be false (and work)
-            Variables = new QueryVariables()
+            Variables = [],
         };
         var context = new TestDataContext().FillWithTestData();
         context.Users.Add(new User { Field2 = "99" });
@@ -159,7 +159,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
-            Variables = new QueryVariables { { "filter", "field2 == \"2\"" } }
+            Variables = new QueryVariables { { "filter", "field2 == \"2\"" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -180,7 +180,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
-            Variables = new QueryVariables { { "filter", "field2 == \"2\" or field2 == \"3\"" } }
+            Variables = new QueryVariables { { "filter", "field2 == \"2\" or field2 == \"3\"" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -201,7 +201,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
-            Variables = new QueryVariables { { "filter", "field2 == \"2\" and field2 == \"2\"" } }
+            Variables = new QueryVariables { { "filter", "field2 == \"2\" and field2 == \"2\"" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -222,7 +222,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     users(filter: $filter) { field2 }
                 }",
-            Variables = new QueryVariables { { "filter", "field2 != \"3\"" } }
+            Variables = new QueryVariables { { "filter", "field2 != \"3\"" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -245,7 +245,7 @@ public class FilterExtensionTests
                         tasks(filter: $filter) { id }
                     }
                 }",
-            Variables = new QueryVariables { { "filter", "(id == 2) || (id == 4)" } }
+            Variables = new QueryVariables { { "filter", "(id == 2) || (id == 4)" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -292,7 +292,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { name }
                 }",
-            Variables = new QueryVariables { { "filter", "name == \"Luke\"" } }
+            Variables = new QueryVariables { { "filter", "name == \"Luke\"" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, (TestDataContext2)new TestDataContext2().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -314,7 +314,11 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     tasks(filter: $filter) { name }
                 }",
-            Variables = new QueryVariables { { "filter", "isActive == true)" } } // extra ) bracket
+            Variables = new QueryVariables
+            {
+                { "filter", "isActive == true)" },
+            } // extra ) bracket
+            ,
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext2().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);
@@ -330,7 +334,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name }
                 }",
-            Variables = new QueryVariables { { "filter", "projects.any(name == \"Home\")" } }
+            Variables = new QueryVariables { { "filter", "projects.any(name == \"Home\")" } },
         };
         var data = new TestDataContext2().FillWithTestData();
         data.People.First().Name = "Lisa";
@@ -353,7 +357,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name }
                 }",
-            Variables = new QueryVariables { { "filter", "projects.count() == 2" } }
+            Variables = new QueryVariables { { "filter", "projects.count() == 2" } },
         };
         var data = new TestDataContext2().FillWithTestData();
         data.People.First().Name = "Lisa";
@@ -376,7 +380,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name }
                 }",
-            Variables = new QueryVariables { { "filter", "projects.count(name.startsWith(\"Plan\")) > 0" } }
+            Variables = new QueryVariables { { "filter", "projects.count(name.startsWith(\"Plan\")) > 0" } },
         };
         var data = new TestDataContext2().FillWithTestData();
         data.People.Add(DataFiller.MakePerson(33, null, null));
@@ -400,7 +404,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name height }
                 }",
-            Variables = new QueryVariables { { "filter", "height > 170" } }
+            Variables = new QueryVariables { { "filter", "height > 170" } },
         };
         var data = new TestDataContext2();
         var person1 = DataFiller.MakePerson(33, null, null);
@@ -428,7 +432,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name height }
                 }",
-            Variables = new QueryVariables { { "filter", "name == \"Кирил\"" } }
+            Variables = new QueryVariables { { "filter", "name == \"Кирил\"" } },
         };
         var data = new TestDataContext2();
         var person1 = DataFiller.MakePerson(33, null, null);
@@ -464,15 +468,15 @@ public class FilterExtensionTests
                         tasks { id }
                     }
                 }",
-            Variables = new QueryVariables { { "filter", "tasks.orderByDesc(hoursEstimated).first().hoursEstimated > 1" } }
+            Variables = new QueryVariables { { "filter", "tasks.orderByDesc(hoursEstimated).first().hoursEstimated > 1" } },
         };
         var data = new TestDataContext
         {
             Projects =
             [
                 new Project { Name = "Project 1", Tasks = [new Task { Id = 1, HoursEstimated = 0 }, new Task { Id = 2, HoursEstimated = 1 }] },
-                new Project { Name = "Project 2", Tasks = [new Task { Id = 1, HoursEstimated = 0 }, new Task { Id = 2, HoursEstimated = 2 }] }
-            ]
+                new Project { Name = "Project 2", Tasks = [new Task { Id = 1, HoursEstimated = 0 }, new Task { Id = 2, HoursEstimated = 2 }] },
+            ],
         };
 
         var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
@@ -496,7 +500,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name gender }
                 }",
-            Variables = new QueryVariables { { "filter", "gender == 'Male'" } }
+            Variables = new QueryVariables { { "filter", "gender == 'Male'" } },
         };
         var data = new TestDataContext2();
         var person1 = DataFiller.MakePerson(33, null, null);
@@ -524,7 +528,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     people(filter: $filter) { id name gender }
                 }",
-            Variables = new QueryVariables { { "filter", "birthday > \"2024-09-08T07:00:00.000Z\"" } }
+            Variables = new QueryVariables { { "filter", "birthday > \"2024-09-08T07:00:00.000Z\"" } },
         };
         var data = new TestDataContext2();
         var person1 = DataFiller.MakePerson(33, null, null);
@@ -545,7 +549,7 @@ public class FilterExtensionTests
     private class TestDataContext2 : TestDataContext
     {
         [UseFilter]
-        public override List<Person> People { get; set; } = new List<Person>();
+        public override List<Person> People { get; set; } = [];
 
         [UseFilter]
         public override IEnumerable<Task> Tasks { get; set; } = new List<Task>();

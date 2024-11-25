@@ -1,21 +1,20 @@
-﻿namespace EntityGraphQL.Schema
-{
-    public enum GqlTypes
-    {
-        Scalar,
-        Enum,
-        QueryObject,
-        Interface,
-        InputObject,
-        Mutation,
-        Union
-    }
+﻿namespace EntityGraphQL.Schema;
 
-    public static class GqlTypesExtensions
+public enum GqlTypes
+{
+    Scalar,
+    Enum,
+    QueryObject,
+    Interface,
+    InputObject,
+    Mutation,
+    Union,
+}
+
+public static class GqlTypesExtensions
+{
+    public static bool IsNotValidForInput(this GqlTypes type)
     {
-        public static bool IsNotValidForInput(this GqlTypes type)
-        {
-            return type == GqlTypes.Interface || type == GqlTypes.Mutation || type == GqlTypes.QueryObject || type == GqlTypes.Union;
-        }
+        return type == GqlTypes.Interface || type == GqlTypes.Mutation || type == GqlTypes.QueryObject || type == GqlTypes.Union;
     }
 }

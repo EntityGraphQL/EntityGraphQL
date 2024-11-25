@@ -26,7 +26,7 @@ public static class ArgumentUtil
         {
             return new();
         }
-        
+
         // get the values for the argument anonymous type object constructor
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 

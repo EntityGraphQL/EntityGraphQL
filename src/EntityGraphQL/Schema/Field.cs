@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
-using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema;
 
@@ -76,7 +75,7 @@ public class Field : BaseField
         : base(schema, fromType, name, description, returnType)
     {
         RequiredAuthorization = requiredAuth;
-        Extensions = new List<IFieldExtension>();
+        Extensions = [];
 
         if (resolve != null)
         {
@@ -114,7 +113,7 @@ public class Field : BaseField
         : base(schema, fromType, name, description, returnType)
     {
         RequiredAuthorization = requiredAuth;
-        Extensions = new List<IFieldExtension>();
+        Extensions = [];
 
         if (resolve != null)
         {

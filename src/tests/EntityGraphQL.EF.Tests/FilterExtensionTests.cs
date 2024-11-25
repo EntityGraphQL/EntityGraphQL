@@ -17,7 +17,7 @@ public class FilterExtensionTests
                 @"query Query($filter: String!) {
                     actors(filter: $filter) { id name }
                 }",
-            Variables = new QueryVariables { { "filter", "birthday > \"2024-09-08T07:00:00.000Z\"" } }
+            Variables = new QueryVariables { { "filter", "birthday > \"2024-09-08T07:00:00.000Z\"" } },
         };
         using var factory = new TestDbContextFactory();
         var data = factory.CreateContext();

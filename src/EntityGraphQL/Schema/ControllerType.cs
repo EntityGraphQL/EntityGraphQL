@@ -35,9 +35,9 @@ public abstract class ControllerType
         foreach (Type type in types)
         {
             var classLevelRequiredAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromType(type);
-            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
-                var attribute = method.GetCustomAttribute(typeof(GraphQLMethodAttribute)) as GraphQLMethodAttribute;
+                var attribute = method.GetCustomAttribute<GraphQLMethodAttribute>();
                 if (attribute != null || options.AddNonAttributedMethodsInControllers)
                 {
                     string name = SchemaType.Schema.SchemaFieldNamer(method.Name);
@@ -67,7 +67,7 @@ public abstract class ControllerType
     /// <param name="options">Options for the schema builder</param>
     public BaseField Add(string fieldName, Delegate @delegate, SchemaBuilderOptions? options = null)
     {
-        var description = (@delegate.Method.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description ?? string.Empty;
+        var description = @delegate.Method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? string.Empty;
         return Add(fieldName, description, @delegate, options);
     }
 
@@ -86,7 +86,7 @@ public abstract class ControllerType
     private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderOptions? options)
     {
         options ??= new SchemaBuilderOptions();
-        var isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+        var isAsync = method.GetCustomAttribute<AsyncStateMachineAttribute>() != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)

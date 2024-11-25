@@ -1,87 +1,86 @@
 using System;
 using System.Reflection;
 
-namespace EntityGraphQL.Schema
+namespace EntityGraphQL.Schema;
+
+/// <summary>
+/// Tell the Schema Builder to ignore this field or property
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
+public class GraphQLIgnoreAttribute : Attribute
+{
+    public GraphQLIgnoreAttribute(GraphQLIgnoreType from = GraphQLIgnoreType.All)
+    {
+        IgnoreFrom = from;
+    }
+
+    public GraphQLIgnoreType IgnoreFrom { get; }
+
+    /// <summary>
+    /// Property is marked as being ignored for inclusion in the Query schema
+    /// </summary>
+    /// <param name="prop"></param>
+    /// <returns></returns>
+    public static bool ShouldIgnoreMemberFromQuery(MemberInfo prop)
+    {
+        if (prop.GetCustomAttribute<GraphQLIgnoreAttribute>() is GraphQLIgnoreAttribute attribute)
+        {
+            if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Query)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Property is marked as being ignored for inclusion in the Mutation Input types
+    /// </summary>
+    /// <param name="prop"></param>
+    /// <returns></returns>
+    public static bool ShouldIgnoreMemberFromInput(MemberInfo prop)
+    {
+        if (prop.GetCustomAttribute<GraphQLIgnoreAttribute>() is GraphQLIgnoreAttribute attribute)
+        {
+            if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Input)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Parameter is marked as being ignored for inclusion in the Mutation Input types
+    /// </summary>
+    /// <param name="prop"></param>
+    /// <returns></returns>
+    public static bool ShouldIgnoreMemberFromInput(ParameterInfo prop)
+    {
+        if (prop.GetCustomAttribute<GraphQLIgnoreAttribute>() is GraphQLIgnoreAttribute attribute)
+        {
+            if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Input)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+public enum GraphQLIgnoreType
 {
     /// <summary>
-    /// Tell the Schema Builder to ignore this field or property
+    /// Ignored in generating the schema for Query
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-    public class GraphQLIgnoreAttribute : Attribute
-    {
-        public GraphQLIgnoreAttribute(GraphQLIgnoreType from = GraphQLIgnoreType.All)
-        {
-            IgnoreFrom = from;
-        }
+    Query,
 
-        public GraphQLIgnoreType IgnoreFrom { get; }
+    /// <summary>
+    /// Ignored in generating/deserialising the input types
+    Input,
 
-        /// <summary>
-        /// Property is marked as being ignored for inclusion in the Query schema
-        /// </summary>
-        /// <param name="prop"></param>
-        /// <returns></returns>
-        public static bool ShouldIgnoreMemberFromQuery(MemberInfo prop)
-        {
-            if (prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) is GraphQLIgnoreAttribute attribute)
-            {
-                if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Query)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Property is marked as being ignored for inclusion in the Mutation Input types
-        /// </summary>
-        /// <param name="prop"></param>
-        /// <returns></returns>
-        public static bool ShouldIgnoreMemberFromInput(MemberInfo prop)
-        {
-            if (prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) is GraphQLIgnoreAttribute attribute)
-            {
-                if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Input)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Parameter is marked as being ignored for inclusion in the Mutation Input types
-        /// </summary>
-        /// <param name="prop"></param>
-        /// <returns></returns>
-        public static bool ShouldIgnoreMemberFromInput(ParameterInfo prop)
-        {
-            if (prop.GetCustomAttribute(typeof(GraphQLIgnoreAttribute)) is GraphQLIgnoreAttribute attribute)
-            {
-                if (attribute.IgnoreFrom == GraphQLIgnoreType.All || attribute.IgnoreFrom == GraphQLIgnoreType.Input)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    public enum GraphQLIgnoreType
-    {
-        /// <summary>
-        /// Ignored in generating the schema for Query
-        /// </summary>
-        Query,
-
-        /// <summary>
-        /// Ignored in generating/deserialising the input types
-        Input,
-
-        /// <summary>
-        /// Ignored completely by EntityGraphQL
-        /// </summary>
-        All,
-    }
+    /// <summary>
+    /// Ignored completely by EntityGraphQL
+    /// </summary>
+    All,
 }

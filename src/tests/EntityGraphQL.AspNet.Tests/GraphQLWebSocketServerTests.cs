@@ -26,7 +26,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestConnectionInitGetAcknowledgement()
+    public async Task TestConnectionInitGetAcknowledgement()
     {
         var (server, socket, _) = Setup();
 
@@ -43,7 +43,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestTooManyConnectionInitError()
+    public async Task TestTooManyConnectionInitError()
     {
         var (server, socket, _) = Setup();
 
@@ -60,7 +60,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestPingSendsPong()
+    public async Task TestPingSendsPong()
     {
         var (server, socket, _) = Setup();
 
@@ -77,7 +77,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestSubscribeNoAck()
+    public async Task TestSubscribeNoAck()
     {
         var (server, socket, _) = Setup();
 
@@ -89,7 +89,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestSubscribeInvalidNoId()
+    public async Task TestSubscribeInvalidNoId()
     {
         var (server, socket, _) = Setup();
 
@@ -105,7 +105,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestSubscribeInvalidNoPayload()
+    public async Task TestSubscribeInvalidNoPayload()
     {
         var (server, socket, _) = Setup();
 
@@ -121,7 +121,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestSubscribeSuccess()
+    public async Task TestSubscribeSuccess()
     {
         var (server, socket, _) = Setup();
 
@@ -134,7 +134,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = Guid.NewGuid().ToString(),
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" }
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
                 }
             );
         socket.InSequence(sequence).SetupReceiveCloseAsync();
@@ -147,7 +147,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestSubscribeSameId()
+    public async Task TestSubscribeSameId()
     {
         var (server, socket, _) = Setup();
         var id = Guid.NewGuid().ToString();
@@ -161,7 +161,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = id,
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" }
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
                 }
             );
         socket
@@ -171,7 +171,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = id,
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" }
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
                 }
             );
 
@@ -183,7 +183,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestNextIsSent()
+    public async Task TestNextIsSent()
     {
         var (server, socket, httpContext) = Setup();
         var id = Guid.NewGuid().ToString();
@@ -198,7 +198,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = id,
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" }
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
                 },
                 async () =>
                 {
@@ -220,7 +220,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestQueryOverWebsocket()
+    public async Task TestQueryOverWebsocket()
     {
         var (server, socket, httpContext) = Setup();
         httpContext.Object.RequestServices.GetRequiredService<TestQueryContext>().Messages.Add(new Message { Text = "Hello" });
@@ -235,7 +235,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = id,
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "query GetIt { messages { text } }" }
+                    Payload = new QueryRequest { Query = "query GetIt { messages { text } }" },
                 }
             );
         socket.InSequence(recvSeq).SetupReceiveCloseAsync();
@@ -251,7 +251,7 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
-    public async void TestMutationOverWebsocket()
+    public async Task TestMutationOverWebsocket()
     {
         var (server, socket, httpContext) = Setup();
         httpContext
@@ -276,7 +276,7 @@ public class GraphQLWebSocketServerTests
                 {
                     Id = id,
                     Type = GraphQLWSMessageType.Subscribe,
-                    Payload = new QueryRequest { Query = "mutation MutateIt { postMessage(text: \"hey\") { text } }" }
+                    Payload = new QueryRequest { Query = "mutation MutateIt { postMessage(text: \"hey\") { text } }" },
                 }
             );
 

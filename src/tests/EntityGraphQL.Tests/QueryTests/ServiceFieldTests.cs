@@ -27,7 +27,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ projects { total items { id } } }" };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
         var serviceCollection = new ServiceCollection();
         var pager = new EntityPager();
         serviceCollection.AddSingleton(pager);
@@ -52,7 +52,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ projects { total items { id } } }" };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
         var serviceCollection = new ServiceCollection();
         var pager = new EntityPager();
         serviceCollection.AddSingleton(pager);
@@ -76,11 +76,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ people { projects { total items { id } } } }" };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>(),
-            People = new List<Person> { new Person { Projects = new List<Project>() } }
-        };
+        var context = new TestDataContext { Projects = [], People = [new Person { Projects = [] }] };
         var serviceCollection = new ServiceCollection();
         var pager = new EntityPager();
         serviceCollection.AddSingleton(pager);
@@ -112,10 +108,10 @@ public class ServiceFieldTests
             Query =
                 @"{ people { projects { 
                     config { type } 
-                } } }"
+                } } }",
         };
 
-        var context = new TestDataContext { People = new List<Person> { new Person { Projects = new List<Project> { new Project { Id = 4, } } } } };
+        var context = new TestDataContext { People = [new Person { Projects = [new Project { Id = 4 }] }] };
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
         serviceCollection.AddSingleton(srv);
@@ -158,10 +154,10 @@ public class ServiceFieldTests
             Query =
                 @"{ people { projects { 
                     config { type } 
-                } } }"
+                } } }",
         };
 
-        var context = new TestDataContext { People = new List<Person> { new Person { Projects = new List<Project> { new Project { Id = 4, } } } } };
+        var context = new TestDataContext { People = [new Person { Projects = [new Project { Id = 4 }] }] };
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
         serviceCollection.AddSingleton(srv);
@@ -190,14 +186,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ people { projects { total items { id } } name } }" };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>(),
-            People = new List<Person>
-            {
-                new Person { Name = "Alyssa", Projects = new List<Project>() }
-            }
-        };
+        var context = new TestDataContext { Projects = [], People = [new Person { Name = "Alyssa", Projects = [] }] };
         var serviceCollection = new ServiceCollection();
         EntityPager pager = new();
         serviceCollection.AddSingleton(pager);
@@ -227,16 +216,16 @@ public class ServiceFieldTests
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>(),
-            People = new List<Person>
-            {
+            Projects = [],
+            People =
+            [
                 new Person
                 {
                     Name = "Alyssa",
-                    Projects = new List<Project>(),
-                    Manager = new Person { Name = "Jennifer" }
-                }
-            }
+                    Projects = [],
+                    Manager = new Person { Name = "Jennifer" },
+                },
+            ],
         };
         var serviceCollection = new ServiceCollection();
         EntityPager pager = new();
@@ -270,16 +259,16 @@ public class ServiceFieldTests
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>(),
-            People = new List<Person>
-            {
+            Projects = [],
+            People =
+            [
                 new Person
                 {
                     Name = "Alyssa",
-                    Projects = new List<Project>(),
-                    Manager = new Person { Name = "Jennifer" }
-                }
-            }
+                    Projects = [],
+                    Manager = new Person { Name = "Jennifer" },
+                },
+            ],
         };
         var serviceCollection = new ServiceCollection();
         var ager = new AgeService();
@@ -312,21 +301,21 @@ public class ServiceFieldTests
         var gql = new QueryRequest
         {
             // the service field (age) is on a 1-1 relation not 1-Many so we don't build a .Select
-            Query = @"{ people { manager { name age } } }"
+            Query = @"{ people { manager { name age } } }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>(),
-            People = new List<Person>
-            {
+            Projects = [],
+            People =
+            [
                 new Person
                 {
                     Name = "Alyssa",
-                    Projects = new List<Project>(),
-                    Manager = new Person { Name = "Jennifer" }
-                }
-            }
+                    Projects = [],
+                    Manager = new Person { Name = "Jennifer" },
+                },
+            ],
         };
         var serviceCollection = new ServiceCollection();
         var ager = new AgeService();
@@ -355,7 +344,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ user { id projects { id } } }" };
 
-        var context = new TestDataContext { Projects = [], People = [new Person { Projects = [] }], };
+        var context = new TestDataContext { Projects = [], People = [new Person { Projects = [] }] };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
         serviceCollection.AddSingleton(userService);
@@ -382,7 +371,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ users { id projects { id } } }" };
 
-        var context = new TestDataContext { Projects = [], People = [new() { Projects = [] }], };
+        var context = new TestDataContext { Projects = [], People = [new() { Projects = [] }] };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
         serviceCollection.AddSingleton(userService);
@@ -409,11 +398,7 @@ public class ServiceFieldTests
 
         var gql = new QueryRequest { Query = @"{ user { id project { __typename id } } }" };
 
-        var context = new TestDataContext
-        {
-            Projects = new List<Project>(),
-            People = new List<Person> { new Person { Projects = new List<Project>() } },
-        };
+        var context = new TestDataContext { Projects = [], People = [new Person { Projects = [] }] };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
         serviceCollection.AddSingleton(userService);
@@ -450,21 +435,21 @@ public class ServiceFieldTests
                             projects { id name }
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 1,
                     Name = "Project 1",
-                    CreatedBy = 1
-                }
-            },
-            People = new List<Person> { new Person { Projects = new List<Project>() } },
+                    CreatedBy = 1,
+                },
+            ],
+            People = [new Person { Projects = [] }],
         };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
@@ -515,27 +500,27 @@ public class ServiceFieldTests
                         indirectTasks { name }
                         indirectTasksWithExplicitJoin { name }
                     } 
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Name = "Project 1",
-                    Owner = new Person { Id = 10, }
-                }
-            },
+                    Owner = new Person { Id = 10 },
+                },
+            ],
             Tasks = new List<Task>
             {
                 new Task
                 {
                     Name = "Task 1",
-                    Assignee = new Person { Id = 10, }
-                }
-            }
+                    Assignee = new Person { Id = 10 },
+                },
+            },
         };
         var serviceCollection = new ServiceCollection();
         UserService userService = new();
@@ -576,10 +561,10 @@ public class ServiceFieldTests
               id # the service field below requires id. Make sure we don't select it twice
             }
           }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Tasks = new List<Task> { new Task() } } }, };
+        var context = new TestDataContext { Projects = [new Project { Tasks = new List<Task> { new Task() } }] };
         var serviceCollection = new ServiceCollection();
         var settings = new SettingsService();
         serviceCollection.AddSingleton(settings);
@@ -614,10 +599,10 @@ public class ServiceFieldTests
                             allowComments
                         }
                     }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Tasks = new List<Task> { new Task() } } }, };
+        var context = new TestDataContext { Projects = [new Project { Tasks = new List<Task> { new Task() } }] };
         var serviceCollection = new ServiceCollection();
         var settings = new SettingsService();
         serviceCollection.AddSingleton(settings);
@@ -655,23 +640,23 @@ public class ServiceFieldTests
               allowComments
             }
           }
-        }"
+        }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Tasks = new List<Task> { new Task() },
                     Owner = new Person
                     {
                         Id = 77,
-                        Manager = new Person { Id = 99 }
-                    }
-                }
-            },
+                        Manager = new Person { Id = 99 },
+                    },
+                },
+            ],
         };
         var serviceCollection = new ServiceCollection();
         var settings = new SettingsService();
@@ -712,10 +697,10 @@ public class ServiceFieldTests
             config { type }
             tasks { id }
           }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Tasks = new List<Task> { new Task { Id = 98 } } } }, };
+        var context = new TestDataContext { Projects = [new Project { Tasks = new List<Task> { new Task { Id = 98 } } }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -749,10 +734,10 @@ public class ServiceFieldTests
             config { type }
             tasks { id isActive }
           }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Tasks = new List<Task> { new Task { Id = 98 } } } }, };
+        var context = new TestDataContext { Projects = [new Project { Tasks = new List<Task> { new Task { Id = 98 } } }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -786,21 +771,21 @@ public class ServiceFieldTests
             config { type }
             tasks { isActive project { isActive } }
           }
-        }"
+        }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Tasks = new List<Task>
                     {
-                        new Task { Id = 98, IsActive = true }
-                    }
-                }
-            },
+                        new Task { Id = 98, IsActive = true },
+                    },
+                },
+            ],
         };
         context.Projects.First().Tasks.First().Project = context.Projects.First();
 
@@ -836,21 +821,21 @@ public class ServiceFieldTests
             config { type }
             tasks { isActive }
           }
-        }"
+        }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Tasks = new List<Task>
                     {
-                        new Task { Id = 98, IsActive = true }
-                    }
-                }
-            },
+                        new Task { Id = 98, IsActive = true },
+                    },
+                },
+            ],
         };
         context.Projects.First().Tasks.First().Project = context.Projects.First();
 
@@ -874,7 +859,7 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "projects",
-                new { search = (string?)null, },
+                new { search = (string?)null },
                 (ctx, args) => ctx.Projects.WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).OrderBy(p => p.Description),
                 "List of projects"
             );
@@ -890,10 +875,10 @@ public class ServiceFieldTests
             projects {
                 configType
             }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Description = "Hello" } }, };
+        var context = new TestDataContext { Projects = [new Project { Description = "Hello" }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -921,10 +906,10 @@ public class ServiceFieldTests
                     project(id: 0) {
                         configType
                     }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Description = "Hello" } }, };
+        var context = new TestDataContext { Projects = [new Project { Description = "Hello" }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -977,13 +962,13 @@ public class ServiceFieldTests
                     ...taskFrag
                 }
             }
-        }"
+        }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
@@ -992,11 +977,11 @@ public class ServiceFieldTests
                     {
                         new Task
                         {
-                            Assignee = new Person { Name = "Billy", Projects = new List<Project>() }
-                        }
+                            Assignee = new Person { Name = "Billy", Projects = [] },
+                        },
                     },
-                }
-            },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1026,7 +1011,7 @@ public class ServiceFieldTests
                             configType
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
@@ -1036,8 +1021,8 @@ public class ServiceFieldTests
                 new Task
                 {
                     Id = 1,
-                    Project = new Project { Id = 0, Description = "Hello", }
-                }
+                    Project = new Project { Id = 0, Description = "Hello" },
+                },
             },
         };
 
@@ -1070,7 +1055,7 @@ public class ServiceFieldTests
                     }
                 }
             }
-        }"
+        }",
         };
 
         var context = new TestDataContext
@@ -1080,8 +1065,8 @@ public class ServiceFieldTests
                 new Task
                 {
                     Id = 1,
-                    Project = new Project { Id = 0, Description = "Hello", }
-                }
+                    Project = new Project { Id = 0, Description = "Hello" },
+                },
             },
         };
 
@@ -1114,7 +1099,7 @@ public class ServiceFieldTests
                     }
                 }
             }
-        }"
+        }",
         };
 
         var context = new TestDataContext
@@ -1124,8 +1109,8 @@ public class ServiceFieldTests
                 new Task
                 {
                     Id = 1,
-                    Project = new Project { Id = 0, Description = "Hello", }
-                }
+                    Project = new Project { Id = 0, Description = "Hello" },
+                },
             },
         };
 
@@ -1159,7 +1144,7 @@ public class ServiceFieldTests
                             arrayField
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
@@ -1169,8 +1154,8 @@ public class ServiceFieldTests
                 new Task
                 {
                     Id = 1,
-                    Project = new Project { Id = 0, Description = "Hello", }
-                }
+                    Project = new Project { Id = 0, Description = "Hello" },
+                },
             },
         };
 
@@ -1200,19 +1185,19 @@ public class ServiceFieldTests
                     project(id: 1) {
                         serviceField
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 1,
-                    Tasks = new List<Task> { new Task { Id = 0, } }
-                }
-            },
+                    Tasks = new List<Task> { new Task { Id = 0 } },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1244,20 +1229,20 @@ public class ServiceFieldTests
                             }
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
                     Description = "Hello",
-                    Tasks = new List<Task> { new Task { Id = 1, } },
-                }
-            }
+                    Tasks = new List<Task> { new Task { Id = 1 } },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1289,7 +1274,7 @@ public class ServiceFieldTests
                             }
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();
@@ -1332,7 +1317,7 @@ public class ServiceFieldTests
                             type
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();
@@ -1358,7 +1343,7 @@ public class ServiceFieldTests
                     currentUser {
                         projectNames
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();
@@ -1417,7 +1402,7 @@ public class ServiceFieldTests
                         field2 
                         relation { id } 
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();
@@ -1447,7 +1432,7 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "project",
-                new { id = (int?)null, search = (string?)null, },
+                new { id = (int?)null, search = (string?)null },
                 (ctx, args) =>
                     ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
@@ -1464,10 +1449,10 @@ public class ServiceFieldTests
                     project(id: 0) {
                         configs { type }
                     }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Id = 0, } }, };
+        var context = new TestDataContext { Projects = [new Project { Id = 0 }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -1491,7 +1476,7 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "project",
-                new { id = (int?)null, search = (string?)null, },
+                new { id = (int?)null, search = (string?)null },
                 (ctx, args) =>
                     ctx.Projects.WhereWhen(c => c.Id == args.id, args.id != null).WhereWhen(p => p.Description.ToLower().Contains(args.search!), !string.IsNullOrEmpty(args.search)).SingleOrDefault(),
                 "project details"
@@ -1508,10 +1493,10 @@ public class ServiceFieldTests
                     project(id: 0) {
                         configs { type }
                     }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Id = 0, } }, };
+        var context = new TestDataContext { Projects = [new Project { Id = 0 }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
@@ -1537,7 +1522,7 @@ public class ServiceFieldTests
             .Query()
             .ReplaceField(
                 "projects",
-                new { id = (int?)null, search = (string?)null, },
+                new { id = (int?)null, search = (string?)null },
                 (ctx, args) =>
                     ctx
                         .QueryableProjects.WhereWhen(c => c.Id == args.id, args.id != null)
@@ -1561,19 +1546,19 @@ public class ServiceFieldTests
                             id
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
-                    Tasks = new List<Task> { new Task { Id = 1, } }
-                }
-            },
+                    Tasks = new List<Task> { new Task { Id = 1 } },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1605,19 +1590,19 @@ public class ServiceFieldTests
                     projects {
                         config { type __typename }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
-                    Tasks = new List<Task> { new Task { Id = 1, } }
-                }
-            },
+                    Tasks = new List<Task> { new Task { Id = 1 } },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1647,19 +1632,19 @@ public class ServiceFieldTests
                     projects {
                         config { type __typename }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
-                    Tasks = new List<Task> { new Task { Id = 1, } }
-                }
-            },
+                    Tasks = new List<Task> { new Task { Id = 1 } },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1693,13 +1678,13 @@ public class ServiceFieldTests
                      projects {
                          someService 
                      }
-                 }"
+                 }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
@@ -1707,10 +1692,10 @@ public class ServiceFieldTests
                     Children = new List<Project>
                     {
                         new Project { Id = 1, Name = "Child1" },
-                        new Project { Id = 2, Name = "Child2" }
+                        new Project { Id = 2, Name = "Child2" },
                     },
-                }
-            },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1743,13 +1728,13 @@ public class ServiceFieldTests
                      projects {
                          someService { id }
                      }
-                 }"
+                 }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
@@ -1757,10 +1742,10 @@ public class ServiceFieldTests
                     Children = new List<Project>
                     {
                         new Project { Id = 1, Name = "Child1" },
-                        new Project { Id = 2, Name = "Child2" }
+                        new Project { Id = 2, Name = "Child2" },
                     },
-                }
-            },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1780,10 +1765,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
-        schema
-            .Type<Project>()
-            .AddField("someService", "Get project configs if they exists")
-            .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.Name, ctx.Description).FirstOrDefault());
+        schema.Type<Project>().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((ctx, srv) => srv.GetCollection(ctx.Name, ctx.Description).FirstOrDefault());
 
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
@@ -1796,13 +1778,13 @@ public class ServiceFieldTests
                     projects {
                         someService { type }
                     }
-                 }"
+                 }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Id = 0,
@@ -1811,8 +1793,8 @@ public class ServiceFieldTests
                     {
                         new Project { Id = 1, Name = "Child1" },
                     },
-                }
-            },
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
@@ -1827,10 +1809,7 @@ public class ServiceFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
 
-        schema
-            .Query()
-            .AddField("someService", "Get project configs if they exists")
-            .ResolveWithService<ConfigService>((ctx, srv) => srv.GetCollection(ctx.TotalPeople.ToString(), "b").FirstOrDefault());
+        schema.Query().AddField("someService", "Get project configs if they exists").Resolve<ConfigService>((ctx, srv) => srv.GetCollection(ctx.TotalPeople.ToString(), "b").FirstOrDefault());
 
         var serviceCollection = new ServiceCollection();
         var srv = new ConfigService();
@@ -1841,7 +1820,7 @@ public class ServiceFieldTests
             Query =
                 @"{
                     someService { type }
-                 }"
+                 }",
         };
 
         var context = new TestDataContext();
@@ -1882,7 +1861,7 @@ public class ServiceFieldTests
             {
                 new Project { Id = 1, Name = str1 },
                 new Project { Id = 2, Name = str2 },
-                new Project { Id = 3, Name = str1 + str2 }
+                new Project { Id = 3, Name = str1 + str2 },
             };
         }
 
@@ -1949,7 +1928,7 @@ public class ServiceFieldTests
             {
                 Total = total,
                 PageCount = pagecount,
-                Items = projects
+                Items = projects,
             };
         }
 
@@ -1971,7 +1950,7 @@ public class ServiceFieldTests
             {
                 Total = total,
                 PageCount = pagecount,
-                Items = newProjects
+                Items = newProjects,
             };
         }
     }
@@ -2031,7 +2010,7 @@ public class UserService
     {
         CallCount += 1;
         Calls.Add(nameof(GetUsers));
-        return [new User { Id = id ?? 0, }];
+        return [new User { Id = id ?? 0 }];
     }
 
     public IDictionary<int, User> GetAllUsers(IEnumerable<int> data)
@@ -2043,7 +2022,7 @@ public class UserService
             {
                 Id = id,
                 Field2 = "Hello",
-                Name = $"Name_{id}"
+                Name = $"Name_{id}",
             })
             .ToDictionary(u => u.Id, u => u);
     }
@@ -2061,7 +2040,7 @@ public class UserService
         Calls.Add(nameof(GetUsersByProjectId));
         var users = new List<User>
         {
-            new User { Id = id, Name = "Blah" }
+            new User { Id = id, Name = "Blah" },
         };
         return string.IsNullOrEmpty(nameFilter) ? users : users.Where(u => u.Name.Contains(nameFilter)).ToList();
     }
@@ -2078,8 +2057,8 @@ public class UserService
                 {
                     Id = id,
                     Name = "Blah",
-                    Field2 = "Hello"
-                }
+                    Field2 = "Hello",
+                },
             })
             .ToDictionary(u => u.ProjectId, u => u.User);
     }
@@ -2094,7 +2073,7 @@ public class UserService
             id =>
                 new List<User>
                 {
-                    new() { Id = id, Name = $"Name_{id}" }
+                    new() { Id = id, Name = $"Name_{id}" },
                 }
                     .Where(u => string.IsNullOrEmpty(nameFilter) ? true : u.Name.Contains(nameFilter))
                     .ToList()

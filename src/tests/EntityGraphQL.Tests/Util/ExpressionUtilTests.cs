@@ -1,32 +1,31 @@
 using EntityGraphQL.Compiler.Util;
 using Xunit;
 
-namespace EntityGraphQL.Tests.Util
+namespace EntityGraphQL.Tests.Util;
+
+public class ExpressionUtilTests
 {
-    public class ExpressionUtilTests
+    [Fact]
+    public void TestMergeTypesObj1Null()
     {
-        [Fact]
-        public void TestMergeTypesObj1Null()
-        {
-            var obj2 = new { hi = "world" };
+        var obj2 = new { hi = "world" };
 
-            var result = ExpressionUtil.MergeTypes(null, obj2.GetType());
+        var result = ExpressionUtil.MergeTypes(null, obj2.GetType());
 
-            Assert.NotNull(result);
-            Assert.Single(result.GetProperties());
-        }
+        Assert.NotNull(result);
+        Assert.Single(result.GetProperties());
+    }
 
-        [Fact]
-        public void TestMergeTypes()
-        {
-            object obj1 = new { world = "hi" };
+    [Fact]
+    public void TestMergeTypes()
+    {
+        object obj1 = new { world = "hi" };
 
-            var obj2 = new { hi = "world" };
+        var obj2 = new { hi = "world" };
 
-            var result = ExpressionUtil.MergeTypes(obj1.GetType(), obj2.GetType());
+        var result = ExpressionUtil.MergeTypes(obj1.GetType(), obj2.GetType());
 
-            Assert.NotNull(result);
-            Assert.Equal(2, result.GetFields().Length);
-        }
+        Assert.NotNull(result);
+        Assert.Equal(2, result.GetFields().Length);
     }
 }

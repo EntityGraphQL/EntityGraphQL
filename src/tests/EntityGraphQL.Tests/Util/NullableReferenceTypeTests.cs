@@ -104,7 +104,7 @@ public class NullableReferenceTypeTests
                         }
                     }
                   }
-                "
+                ",
         };
 
         var res = schema.ExecuteRequestWithContext(gql, new WithNullableRefEnabled(), null, null);

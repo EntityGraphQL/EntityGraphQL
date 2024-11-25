@@ -1,15 +1,14 @@
 ﻿using System;
 
-namespace EntityGraphQL
-{
-    internal sealed class EntityGraphQLFieldException : Exception
-    {
-        public readonly string FieldName;
+namespace EntityGraphQL;
 
-        public EntityGraphQLFieldException(string fieldName, Exception innerException)
-            : base(null, innerException)
-        {
-            FieldName = fieldName;
-        }
+internal sealed class EntityGraphQLFieldException : Exception
+{
+    public readonly string FieldName;
+
+    public EntityGraphQLFieldException(string fieldName, Exception innerException)
+        : base(null, innerException)
+    {
+        FieldName = fieldName;
     }
 }

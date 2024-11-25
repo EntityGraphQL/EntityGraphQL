@@ -1,33 +1,35 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
-    <LangVersion>12.0</LangVersion>
+    <TargetFrameworks>netstandard2.1;net6.0;net8.0;net9.0</TargetFrameworks>
+    <LangVersion>13.0</LangVersion>
     <AssemblyName>EntityGraphQL</AssemblyName>
     <PackageId>EntityGraphQL</PackageId>
-    <PackageVersion>5.5.3</PackageVersion>
+    <PackageVersion>5.6.0</PackageVersion>
     <Description>A GraphQL library for .NET Core. Compiles queries into .NET Expressions (LinqProvider) for runtime execution against object graphs. E.g. against an ORM data model (EntityFramework or others) or just an in-memory object.</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityGraphQL</RepositoryUrl>
     <PackageTags>GraphQL;data query;expression;language</PackageTags>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Nullable>enable</Nullable>
     <AnalysisMode>Recommended</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- this enables enable IDE0005 (Remove unnecessary usings/imports) -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="1.0.2" />
+    <PackageReference Include="Parlot" Version="1.1.0" />
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
     <PackageReference Include="System.Runtime.Caching" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="HotChocolate.Language" Version="13.9.11" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>

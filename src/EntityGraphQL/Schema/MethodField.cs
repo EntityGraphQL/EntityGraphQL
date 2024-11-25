@@ -160,15 +160,11 @@ public abstract class MethodField : BaseField
             throw new EntityGraphQLValidationException(validationErrors);
         }
 
-        object? instance = null;
         // we create an instance _per request_ injecting any parameters to the constructor
         // We kind of treat a mutation class like an asp.net controller
         // and we do not want to register them in the service provider to avoid the same issues controllers would have
         // with different lifetime objects
-        if (instance == null)
-        {
-            instance = serviceProvider != null ? ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) : Activator.CreateInstance(Method.DeclaringType!);
-        }
+        object? instance = serviceProvider != null ? ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) : Activator.CreateInstance(Method.DeclaringType!);
 
         object? result;
         if (IsAsync)

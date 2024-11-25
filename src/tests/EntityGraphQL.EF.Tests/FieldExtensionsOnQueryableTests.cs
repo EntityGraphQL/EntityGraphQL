@@ -60,9 +60,9 @@ internal class ActorService
 {
     private static readonly IDictionary<int, IEnumerable<Actor>> peopleByMovies = new Dictionary<int, IEnumerable<Actor>>()
     {
-        [1] = [new("Alec Guinness") { Id = 1 }, new("Mark Hamill") { Id = 2 },],
-        [2] = [new("Carrie Fisher") { Id = 1 }, new("Mark Hamill") { Id = 2 },],
-        [3] = [new("Harrison Ford") { Id = 1 }, new("Mark Hamill") { Id = 2 },]
+        [1] = [new("Alec Guinness") { Id = 1 }, new("Mark Hamill") { Id = 2 }],
+        [2] = [new("Carrie Fisher") { Id = 1 }, new("Mark Hamill") { Id = 2 }],
+        [3] = [new("Harrison Ford") { Id = 1 }, new("Mark Hamill") { Id = 2 }],
     };
 
     public static IEnumerable<Actor> GetByMovie(int movieId)

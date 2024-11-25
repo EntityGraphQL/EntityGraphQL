@@ -115,7 +115,7 @@ public class InheritanceTests
             {
                 Id = 1,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
         context.Animals.Add(
@@ -123,7 +123,7 @@ public class InheritanceTests
             {
                 Id = 2,
                 Name = "george",
-                Lives = 9
+                Lives = 9,
             }
         );
 
@@ -165,7 +165,7 @@ public class InheritanceTests
             {
                 Id = 9,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
@@ -206,7 +206,7 @@ public class InheritanceTests
             {
                 Id = 9,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
         context.Animals.Add(
@@ -214,7 +214,7 @@ public class InheritanceTests
             {
                 Id = 2,
                 Name = "george",
-                Lives = 9
+                Lives = 9,
             }
         );
 
@@ -258,7 +258,7 @@ public class InheritanceTests
             {
                 Id = 9,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
         context.Animals.Add(
@@ -266,7 +266,7 @@ public class InheritanceTests
             {
                 Id = 2,
                 Name = "george",
-                Lives = 9
+                Lives = 9,
             }
         );
 
@@ -305,7 +305,7 @@ public class InheritanceTests
             {
                 Id = 1,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
@@ -345,7 +345,7 @@ public class InheritanceTests
             {
                 Id = 9,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
 
@@ -380,7 +380,7 @@ public class InheritanceTests
             {
                 Id = 9,
                 Name = "steve",
-                HasBone = true
+                HasBone = true,
             }
         );
 
@@ -424,9 +424,9 @@ public class InheritanceTests
                     {
                         Id = 9,
                         Name = "steve",
-                        HasBone = true
-                    }
-                }
+                        HasBone = true,
+                    },
+                },
             }
         );
         var serviceCollection = new ServiceCollection();

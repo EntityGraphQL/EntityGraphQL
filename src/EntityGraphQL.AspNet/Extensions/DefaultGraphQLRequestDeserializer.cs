@@ -19,7 +19,7 @@ public class DefaultGraphQLRequestDeserializer : IGraphQLRequestDeserializer
             this.jsonOptions = jsonOptions;
         else
         {
-            this.jsonOptions = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+            this.jsonOptions = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
             this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
         }
     }

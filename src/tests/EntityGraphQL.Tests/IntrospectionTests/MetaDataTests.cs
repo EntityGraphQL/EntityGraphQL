@@ -49,7 +49,7 @@ public class MetadataTests
                             __typename
                         }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext().FillWithTestData();
@@ -90,7 +90,7 @@ public class MetadataTests
                     project(id: 1) {
                         __typename
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext().FillWithTestData();

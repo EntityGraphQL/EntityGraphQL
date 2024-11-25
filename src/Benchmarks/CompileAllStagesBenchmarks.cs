@@ -7,19 +7,7 @@ namespace Benchmarks;
 /// <summary>
 /// Comparing the speed and allocation of compiling queries with and without caching
 /// On a Apple M1 Max 64GB ram
-/// Command: `dotnet run -c Release`
-///
-/// 4.1.2
-/// |         Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
-/// |--------------- |----------:|---------:|---------:|--------:|----------:|
-/// | CompileNoCache | 104.25 us | 0.439 us | 0.389 us | 36.2549 |     74 KB |
-/// |   CompileCache |  80.00 us | 0.236 us | 0.221 us | 27.5879 |     57 KB |
-///
-/// 4.3.1 (4.2 was basically the same)
-/// |         Method |     Mean |   Error |  StdDev |   Gen 0 | Allocated |
-/// |--------------- |---------:|--------:|--------:|--------:|----------:|
-/// | CompileNoCache | 142.4 us | 1.37 us | 1.28 us | 49.8047 |    102 KB |
-/// |   CompileCache | 109.3 us | 0.47 us | 0.44 us | 38.8184 |     79 KB |
+/// Command: `dotnet run -c Debug --framework net8.0` to skip execution
 ///
 /// 5.2.1 (5.0 & 5.1 were basically the same)
 /// |         Method |      Mean |    Error |   StdDev |   Gen 0 | Allocated |
@@ -32,30 +20,39 @@ namespace Benchmarks;
 /// |--------------- |----------:|---------:|---------:|--------:|----------:|
 /// | CompileNoCache | 125.85 us | 0.650 us | 0.543 us | 44.4336 |     91 KB |
 /// |   CompileCache |  97.15 us | 0.396 us | 0.371 us | 33.9355 |     69 KB |
+///
+/// 5.6.0 with net9.0
+/// On a Apple M1 Max 64GB ram
+/// Command: `dotnet run -c Debug --framework net8.0` to skip execution
+///
+/// | Method         | Mean     | Error    | StdDev   | Gen0    | Gen1   | Allocated |
+/// |--------------- |---------:|---------:|---------:|--------:|-------:|----------:|
+/// | CompileNoCache | 97.04 us | 0.795 us | 0.744 us | 15.6250 | 0.9766 |  95.79 KB |
+/// | CompileCache   | 80.42 us | 0.190 us | 0.177 us | 12.5732 | 0.4883 |  77.08 KB |
 /// </summary>
 [MemoryDiagnoser]
-public class CompileStagesBenchmarks : BaseBenchmark
+public class CompileAllStagesBenchmarks : BaseBenchmark
 {
     private readonly string query =
         @"{
-                    movie(id: ""077b3041-307a-42ba-9ffe-1121fcfc918b"") {
+            movie(id: ""077b3041-307a-42ba-9ffe-1121fcfc918b"") {
+                id name released
+                director {
+                    id name dob
+                    directorOf {
                         id name released
-                        director {
-                            id name dob
-                            directorOf {
-                                id name released
-                            }
-                        }
-                        actors {
-                            id name dob
-                        }
                     }
-                }";
+                }
+                actors {
+                    id name dob
+                }
+            }
+        }";
 
     private readonly QueryRequest gql;
     private readonly BenchmarkContext context;
 
-    public CompileStagesBenchmarks()
+    public CompileAllStagesBenchmarks()
     {
         gql = new QueryRequest { Query = query };
         context = GetContext();

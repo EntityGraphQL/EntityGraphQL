@@ -22,7 +22,7 @@ public class MutationTests
                 @"mutation AddPerson($name: String!) {
                   addPerson(name: $name) { id name }
                 }",
-            Variables = new QueryVariables { { "na", "Frank" } }
+            Variables = new QueryVariables { { "na", "Frank" } },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(res.Errors);
@@ -45,7 +45,7 @@ public class MutationTests
                     id name
                   }
                 }",
-            Variables = new QueryVariables { }
+            Variables = [],
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -73,7 +73,7 @@ public class MutationTests
     id name lastName
   }
 }",
-            Variables = new QueryVariables { { "names", new[] { "Bill", "Frank" } } }
+            Variables = new QueryVariables { { "names", new[] { "Bill", "Frank" } } },
         };
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -103,7 +103,7 @@ public class MutationTests
     id name lastName
   }
 }",
-            Variables = new QueryVariables { { "names", new[] { "Bill", "Frank" } } }
+            Variables = new QueryVariables { { "names", new[] { "Bill", "Frank" } } },
         };
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -153,7 +153,7 @@ public class MutationTests
             new QueryRequest
             {
                 Query = query,
-                Variables = new QueryVariables { { "names", new[] { "Mary", "Joe" } } }
+                Variables = new QueryVariables { { "names", new[] { "Mary", "Joe" } } },
             },
             testSchema,
             null,
@@ -187,7 +187,7 @@ public class MutationTests
           }
         }",
             // Object does not match the var definition in the AddPerson operation
-            Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } }
+            Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } },
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
@@ -211,7 +211,7 @@ public class MutationTests
           }
         }",
             // variable matches the var definition but does not match the field expected type
-            Variables = new QueryVariables { { "names", new[] { "Lisa", "Simpson" } } }
+            Variables = new QueryVariables { { "names", new[] { "Lisa", "Simpson" } } },
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
@@ -235,7 +235,7 @@ public class MutationTests
           }
         }",
             // object will come through as json in the request
-            Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } }
+            Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } },
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -271,8 +271,8 @@ public class MutationTests
                 {
                     "names",
                     new InputObject { Name = "Lisa", LastName = "Simpson" }
-                }
-            }
+                },
+            },
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -308,8 +308,8 @@ public class MutationTests
                 {
                     "names",
                     new Dictionary<string, object> { { "name", "Lisa" }, { "lastName", "Simpson" } }
-                }
-            }
+                },
+            },
         };
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -338,7 +338,7 @@ public class MutationTests
             id name projects { id }
           }
         }",
-            Variables = new QueryVariables { { "name", "Bill" } }
+            Variables = new QueryVariables { { "name", "Bill" } },
         };
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -366,7 +366,7 @@ public class MutationTests
             id name projects { id }
           }
         }",
-            Variables = new QueryVariables { { "name", "Bill" } }
+            Variables = new QueryVariables { { "name", "Bill" } },
         };
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -402,7 +402,7 @@ public class MutationTests
                 fragment frag on Person {
                     id age
                 }",
-            Variables = new QueryVariables { { "name", "Bill" } }
+            Variables = new QueryVariables { { "name", "Bill" } },
         };
         var serviceCollection = new ServiceCollection();
         var service = new AgeService();
@@ -438,7 +438,7 @@ public class MutationTests
                         id age
                     }
                 }",
-            Variables = new QueryVariables { { "name", "Bill" } }
+            Variables = new QueryVariables { { "name", "Bill" } },
         };
         var serviceCollection = new ServiceCollection();
         var service = new AgeService();
@@ -473,7 +473,7 @@ public class MutationTests
           }
         }
         ",
-            Variables = new QueryVariables { { "name", "Bill" } }
+            Variables = new QueryVariables { { "name", "Bill" } },
         };
 
         var testSchema = new TestDataContext().FillWithTestData();
@@ -595,7 +595,7 @@ public class MutationTests
                             }
                         }
                     }
-                }"
+                }",
         };
 
         results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
@@ -724,7 +724,7 @@ public class MutationTests
                 @"mutation Mutate($var: [InputObject!]) {
                     taskWithList(inputs: $var)
                 }",
-            Variables = new QueryVariables { { "var", "[{name: \"Bill\"}, {name: \"Bob\"}]" } }
+            Variables = new QueryVariables { { "var", "[{name: \"Bill\"}, {name: \"Bob\"}]" } },
         };
 
         var testSchema = new TestDataContext();
@@ -982,7 +982,7 @@ public class MutationTests
                 @"mutation Mutate($ids: [ID]) {
                     listOfGuidArgs(ids: $ids)
                 }",
-            Variables = new QueryVariables { { "ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } } }
+            Variables = new QueryVariables { { "ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } } },
         };
 
         var testSchema = new TestDataContext();
@@ -1004,7 +1004,7 @@ public class MutationTests
                 @"mutation Mutate($ids: [ID!]!) {
                     listOfGuidArgs(ids: $ids)
                 }",
-            Variables = new QueryVariables { { "ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } } }
+            Variables = new QueryVariables { { "ids", new string[] { "cc3e20f9-9dbb-4ded-8072-6ab3cf0c94da" } } },
         };
 
         var testSchema = new TestDataContext();
@@ -1025,7 +1025,7 @@ public class MutationTests
                 @"mutation Mutate($x: Int!) {
                      descriptionArgs(x: $x)
                  }",
-            Variables = new QueryVariables { { "x", 3 } }
+            Variables = new QueryVariables { { "x", 3 } },
         };
 
         var testSchema = new TestDataContext();
@@ -1087,7 +1087,7 @@ public class MutationTests
             {
                 Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name,
                 Id = 555,
-                Projects = new List<Project>()
+                Projects = [],
             };
         }
     }
@@ -1138,7 +1138,7 @@ public class MutationTests
             Query =
                 @"mutation getValue() {
                     getValue()
-                }"
+                }",
         };
 
         var testSchema = new TestDataContext();

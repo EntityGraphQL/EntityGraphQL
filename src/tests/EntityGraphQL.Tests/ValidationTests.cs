@@ -119,7 +119,7 @@ public class ValidationTests
                 @"mutation Mutate($arg: CastMemberArg) {
                 updateCastMemberWithGraphQLValidator(arg: $arg)
             }",
-            Variables = new QueryVariables() { { "arg", new { Actor = "Neil", Character = "Barn" } } }
+            Variables = new QueryVariables() { { "arg", new { Actor = "Neil", Character = "Barn" } } },
         };
 
         var serviceCollection = new ServiceCollection();
@@ -479,7 +479,7 @@ internal class ValidationTestsMutations
     [GraphQLMutation]
     public static Expression<Func<ValidationTestsContext, Movie?>> AddMovie(MovieArg movie)
     {
-        var newMovie = new Movie { Id = new Random().Next(), Title = movie.Title, };
+        var newMovie = new Movie { Id = new Random().Next(), Title = movie.Title };
         return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
     }
 
@@ -490,7 +490,7 @@ internal class ValidationTestsMutations
         [StringLength(5, ErrorMessage = "Rating must be less than 5 characters")] string rating
     )
     {
-        var newMovie = new Movie { Id = new Random().Next(), Title = title, };
+        var newMovie = new Movie { Id = new Random().Next(), Title = title };
         return c => c.Movies.SingleOrDefault(m => m.Id == newMovie.Id);
     }
 

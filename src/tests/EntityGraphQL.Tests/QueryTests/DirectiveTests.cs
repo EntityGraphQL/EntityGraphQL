@@ -25,7 +25,7 @@ public class DirectiveTests
                         id
                         name @include(if: true)
                     }
-                }"
+                }",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         dynamic person = ((dynamic)result.Data!["people"]!)[0];
@@ -45,7 +45,7 @@ public class DirectiveTests
                         id
                         name @include(if: false)
                     }
-                }"
+                }",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Null(result.Errors);
@@ -66,7 +66,7 @@ public class DirectiveTests
                         id
                         name 
                     }
-                }"
+                }",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Null(result.Errors);
@@ -86,7 +86,7 @@ public class DirectiveTests
                         id
                         name 
                     }
-                }"
+                }",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Null(result.Errors);
@@ -107,7 +107,7 @@ public class DirectiveTests
         name @include(if: $include)
     }
 }",
-            Variables = new QueryVariables { { "include", true } }
+            Variables = new QueryVariables { { "include", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         dynamic person = ((dynamic)result.Data!["people"]!)[0];
@@ -127,7 +127,7 @@ public class DirectiveTests
         id
         name @skip(if: true)
     }
-}"
+}",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         dynamic person = ((dynamic)result.Data!["people"]!)[0];
@@ -147,7 +147,7 @@ public class DirectiveTests
         id
         name @skip(if: false)
     }
-}"
+}",
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         dynamic person = ((dynamic)result.Data!["people"]!)[0];
@@ -168,7 +168,7 @@ public class DirectiveTests
         name @skip(if: $skip)
     }
 }",
-            Variables = new QueryVariables { { "skip", true } }
+            Variables = new QueryVariables { { "skip", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         dynamic person = ((dynamic)result.Data!["people"]!)[0];
@@ -189,7 +189,7 @@ public class DirectiveTests
                         name 
                     }
                 }",
-            Variables = new QueryVariables { { "skip", true } }
+            Variables = new QueryVariables { { "skip", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Null(result.Errors);
@@ -213,7 +213,7 @@ public class DirectiveTests
         }
     }
 }",
-            Variables = new QueryVariables { { "skip", true } }
+            Variables = new QueryVariables { { "skip", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         var person = ((dynamic)result.Data!["people"]!)[0];
@@ -238,7 +238,7 @@ public class DirectiveTests
         }
     }
 }",
-            Variables = new QueryVariables { { "skip", true } }
+            Variables = new QueryVariables { { "skip", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         var person = ((dynamic)result.Data!["people"]!)[0];
@@ -263,7 +263,7 @@ public class DirectiveTests
                     {
                         Name = string.IsNullOrEmpty(args.Name) ? "Default" : args.Name,
                         Id = 555,
-                        Projects = new List<Project>()
+                        Projects = [],
                     };
                 },
                 new SchemaBuilderOptions { AutoCreateInputTypes = true }
@@ -277,7 +277,7 @@ public class DirectiveTests
                         name 
                     }
                 }",
-            Variables = new QueryVariables { { "skip", true } }
+            Variables = new QueryVariables { { "skip", true } },
         };
         var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.False(mutationCalled);
@@ -339,14 +339,14 @@ internal class ExampleDirective : DirectiveProcessor<object>
 
     public override string Description => "Actually does nothing";
 
-    public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD };
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD];
 }
 
 internal class FormatDirective : DirectiveProcessor<FormatDirectiveArgs>
 {
     public override string Name => "format";
     public override string Description => "Formats DateTime scalar values";
-    public override List<ExecutableDirectiveLocation> Location => new() { ExecutableDirectiveLocation.FIELD };
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD];
 
     public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {

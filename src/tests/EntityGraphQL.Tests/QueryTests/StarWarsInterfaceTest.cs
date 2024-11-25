@@ -2,62 +2,61 @@
 using EntityGraphQL.Schema;
 using Xunit;
 
-namespace EntityGraphQL.Tests
+namespace EntityGraphQL.Tests;
+
+public class StarWarsInterfaceTest
 {
-    public class StarWarsInterfaceTest
+    public abstract class Character
     {
-        public abstract class Character
-        {
-            public int Id { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public IEnumerable<Character> Friends { get; set; } = [];
-        }
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public IEnumerable<Character> Friends { get; set; } = [];
+    }
 
-        public class Human : Character
-        {
-            public int TotalCredits { get; set; }
-        }
+    public class Human : Character
+    {
+        public int TotalCredits { get; set; }
+    }
 
-        public class Droid : Character
-        {
-            public string PrimaryFunction { get; set; } = string.Empty;
-        }
+    public class Droid : Character
+    {
+        public string PrimaryFunction { get; set; } = string.Empty;
+    }
 
-        public class StarWarsContext
-        {
-            public IList<Character> Characters { get; set; } = [];
-        }
+    public class StarWarsContext
+    {
+        public IList<Character> Characters { get; set; } = [];
+    }
 
-        [Fact]
-        public void StarWarsInterfaceTest_ManualCreation()
-        {
-            var schema = new SchemaProvider<StarWarsContext>();
+    [Fact]
+    public void StarWarsInterfaceTest_ManualCreation()
+    {
+        var schema = new SchemaProvider<StarWarsContext>();
 
-            schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy").AddAllFields();
+        schema.AddInterface<Character>(name: "Character", description: "represents any character in the Star Wars trilogy").AddAllFields();
 
-            schema.AddType<Human>("").AddAllFields().Implements<Character>();
+        schema.AddType<Human>("").AddAllFields().Implements<Character>();
 
-            schema.AddType<Droid>("").Implements<Character>();
+        schema.AddType<Droid>("").Implements<Character>();
 
-            var sdl = schema.ToGraphQLSchemaString();
+        var sdl = schema.ToGraphQLSchemaString();
 
-            Assert.Contains("interface Character", sdl);
-            Assert.Contains("type Human implements Character", sdl);
-            Assert.Contains("type Droid implements Character", sdl);
-        }
+        Assert.Contains("interface Character", sdl);
+        Assert.Contains("type Human implements Character", sdl);
+        Assert.Contains("type Droid implements Character", sdl);
+    }
 
-        [Fact]
-        public void StarWarsInterfaceTest_AutoCreation()
-        {
-            var schema = SchemaBuilder.FromObject<StarWarsContext>();
-            schema.AddType<Human>("Human").AddAllFields().ImplementAllBaseTypes();
-            schema.AddType<Droid>("Droid").AddAllFields().ImplementAllBaseTypes();
+    [Fact]
+    public void StarWarsInterfaceTest_AutoCreation()
+    {
+        var schema = SchemaBuilder.FromObject<StarWarsContext>();
+        schema.AddType<Human>("Human").AddAllFields().ImplementAllBaseTypes();
+        schema.AddType<Droid>("Droid").AddAllFields().ImplementAllBaseTypes();
 
-            var sdl = schema.ToGraphQLSchemaString();
+        var sdl = schema.ToGraphQLSchemaString();
 
-            Assert.Contains("interface Character", sdl);
-            Assert.Contains("type Human implements Character", sdl);
-            Assert.Contains("type Droid implements Character", sdl);
-        }
+        Assert.Contains("interface Character", sdl);
+        Assert.Contains("type Human implements Character", sdl);
+        Assert.Contains("type Droid implements Character", sdl);
     }
 }

@@ -11,5 +11,5 @@ public class SortInput<T>
 public enum SortDirection
 {
     ASC,
-    DESC
+    DESC,
 }

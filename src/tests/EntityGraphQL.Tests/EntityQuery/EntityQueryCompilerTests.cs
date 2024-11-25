@@ -208,7 +208,7 @@ public class EntityQueryCompilerTests
         {
             new TestEntity("bob") { Relation = new Person { Id = 1 } },
             new TestEntity("mary") { Relation = new Person { Id = 2 } },
-            new TestEntity("Jake") { Relation = new Person { Id = 5 } }
+            new TestEntity("Jake") { Relation = new Person { Id = 5 } },
         };
         Assert.Equal(3, list.Count);
         var results = list.Where((Func<TestEntity, bool>)compiledResult.LambdaExpression.Compile());
@@ -231,7 +231,7 @@ public class EntityQueryCompilerTests
         {
             new("First") { When = new DateTime(2020, 08, 10) },
             new("Second") { When = new DateTime(2020, 08, 11) },
-            new("Third") { When = new DateTime(2020, 08, 12) }
+            new("Third") { When = new DateTime(2020, 08, 12) },
         };
         Assert.Equal(3, list.Count());
         var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
@@ -251,7 +251,7 @@ public class EntityQueryCompilerTests
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
         schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
         var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, executionOptions);
-        var list = new List<Entry> { new Entry("First") { When = new DateTime(2020, 08, 10) }, };
+        var list = new List<Entry> { new Entry("First") { When = new DateTime(2020, 08, 10) } };
         Assert.Single(list);
         var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
 
@@ -294,7 +294,7 @@ public class EntityQueryCompilerTests
         {
             new("First") { WhenOffset = new DateTimeOffset(2020, 08, 10, 0, 0, 0, TimeSpan.FromTicks(0)) },
             new("Second") { WhenOffset = new DateTimeOffset(2020, 08, 11, 13, 21, 11, TimeSpan.FromTicks(0)) },
-            new("Third") { WhenOffset = new DateTimeOffset(2020, 08, 12, 13, 22, 11, TimeSpan.FromTicks(0)) }
+            new("Third") { WhenOffset = new DateTimeOffset(2020, 08, 12, 13, 22, 11, TimeSpan.FromTicks(0)) },
         };
         Assert.Equal(3, list.Count);
         var filter = (Func<Entry, bool>)compiledResult.LambdaExpression.Compile();
@@ -344,8 +344,8 @@ public class EntityQueryCompilerTests
                     People = new List<Person>
                     {
                         new() { Gender = Gender.Female },
-                        new() { Gender = Gender.Other }
-                    }
+                        new() { Gender = Gender.Other },
+                    },
                 }
             );
         Assert.NotNull(res);
@@ -365,8 +365,8 @@ public class EntityQueryCompilerTests
                     People = new List<Person>
                     {
                         new Person { Gender = Gender.Female },
-                        new Person { Gender = Gender.Other }
-                    }
+                        new Person { Gender = Gender.Other },
+                    },
                 }
             );
         Assert.NotNull(res);
@@ -408,14 +408,14 @@ public class EntityQueryCompilerTests
     {
         Female,
         Male,
-        Other
+        Other,
     }
 
     public enum Size
     {
         Small,
         Large,
-        Other
+        Other,
     }
 
     private class Entry
@@ -433,19 +433,10 @@ public class EntityQueryCompilerTests
     // This would be your Entity/Object graph you use with EntityFramework
     private class TestSchema
     {
-        public string Hello
-        {
-            get { return "returned value"; }
-        }
-        public int Num
-        {
-            get { return 33; }
-        }
+        public string Hello => "returned value";
+        public int Num => 33;
 
-        public TestEntity SomeRelation
-        {
-            get { return new TestEntity("bob"); }
-        }
+        public TestEntity SomeRelation => new TestEntity("bob");
         public IEnumerable<Person> People { get; set; } = new List<Person>();
     }
 
@@ -457,22 +448,10 @@ public class EntityQueryCompilerTests
             Relation = new Person();
         }
 
-        public int Id
-        {
-            get { return 100; }
-        }
-        public int Field1
-        {
-            get { return 2; }
-        }
-        public uint UnisgnedInt
-        {
-            get { return 2; }
-        }
-        public int? NullableInt
-        {
-            get { return 8; }
-        }
+        public int Id => 100;
+        public int Field1 => 2;
+        public uint UnisgnedInt => 2;
+        public int? NullableInt => 8;
         public string Name { get; set; }
         public Person Relation { get; set; }
     }
@@ -485,10 +464,7 @@ public class EntityQueryCompilerTests
         }
 
         public int Id { get; set; }
-        public string Name
-        {
-            get { return "Luke"; }
-        }
+        public string Name => "Luke";
         public Gender Gender { get; set; }
     }
 }

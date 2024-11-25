@@ -41,9 +41,9 @@ public class TestDataContext
 
 public class TestDataContext2
 {
-    public List<Task> Tasks { get; set; } = new();
-    public List<Person> People { get; set; } = new();
-    public List<User> Users { get; set; } = new();
+    public List<Task> Tasks { get; set; } = [];
+    public List<Person> People { get; set; } = [];
+    public List<User> Users { get; set; } = [];
 }
 
 public class ProjectOld { }
@@ -53,13 +53,13 @@ public enum Gender
 {
     Female,
     Male,
-    NotSpecified
+    NotSpecified,
 }
 
 public enum UserType
 {
     Admin,
-    User
+    User,
 }
 
 public class User
@@ -115,10 +115,7 @@ public class Person
         get => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
         set => throw new AggregateException(Enumerable.Range(0, 2).Select(_ => new Exception("You should not see this message outside of Development")));
     }
-    public string Error_Allowed
-    {
-        get => throw new TestException();
-    }
+    public string Error_Allowed => throw new TestException();
 
     public double GetHeight(HeightUnit unit)
     {
@@ -186,7 +183,7 @@ public enum HeightUnit
 {
     Cm,
     Meter,
-    Feet
+    Feet,
 }
 
 internal static class DataFiller
@@ -200,7 +197,7 @@ internal static class DataFiller
             Field1 = 2,
             Field2 = "2",
             Relation = new Person(),
-            NestedRelation = new Task()
+            NestedRelation = new Task(),
         };
         context.Users = [user];
 
@@ -229,7 +226,7 @@ internal static class DataFiller
             User = user,
             Height = 183,
             Gender = Gender.Male,
-            Projects = project != null ? new List<Project> { project } : new List<Project>(),
+            Projects = project != null ? [project] : [],
         };
     }
 }

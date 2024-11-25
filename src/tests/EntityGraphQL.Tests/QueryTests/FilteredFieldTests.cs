@@ -17,7 +17,7 @@ public class FilteredFieldTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("projects", new { search = (string?)null }, (ctx, args) => ctx.Projects.OrderBy(p => p.Id), "List of projects");
 
-        Func<Task, bool> TaskFilter = t => t.IsActive == true;
+        Func<Task, bool> TaskFilter = t => t.IsActive;
         schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.Where(TaskFilter), "Active tasks");
 
         var gql = new QueryRequest
@@ -27,10 +27,10 @@ public class FilteredFieldTests
                     projects {
                         tasks { id }
                     }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project> { new Project { Tasks = new List<Task> { new Task() }, } }, };
+        var context = new TestDataContext { Projects = [new Project { Tasks = new List<Task> { new Task() } }] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
@@ -61,13 +61,13 @@ public class FilteredFieldTests
                     projects {
                         tasks(like: ""h"") { name }
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
+            Projects =
+            [
                 new Project
                 {
                     Tasks = new List<Task>
@@ -75,9 +75,9 @@ public class FilteredFieldTests
                         new Task { Name = "hello" },
                         new Task { Name = "world" },
                     },
-                    Description = "Hello"
-                }
-            },
+                    Description = "Hello",
+                },
+            ],
         };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
@@ -99,7 +99,7 @@ public class FilteredFieldTests
                 Id = 1,
                 Name = "Jill",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(22)
+                Birthday = DateTime.Now.AddYears(22),
             }
         );
         data.People.Add(
@@ -108,7 +108,7 @@ public class FilteredFieldTests
                 Id = 2,
                 Name = "Cheryl",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(10)
+                Birthday = DateTime.Now.AddYears(10),
             }
         );
 
@@ -151,7 +151,7 @@ public class FilteredFieldTests
                 Id = 1,
                 Name = "Jill",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(-22)
+                Birthday = DateTime.Now.AddYears(-22),
             }
         );
         data.People.Add(
@@ -160,12 +160,12 @@ public class FilteredFieldTests
                 Id = 2,
                 Name = "Cheryl",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(-10)
+                Birthday = DateTime.Now.AddYears(-10),
             }
         );
 
         schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people").UseFilter();
-        schema.Type<Person>().AddField("age", "Persons age").ResolveWithService<AgeService>((person, ager) => ager.GetAge(person.Birthday));
+        schema.Type<Person>().AddField("age", "Persons age").Resolve<AgeService>((person, ager) => ager.GetAge(person.Birthday));
         var gql = new QueryRequest
         {
             Query =

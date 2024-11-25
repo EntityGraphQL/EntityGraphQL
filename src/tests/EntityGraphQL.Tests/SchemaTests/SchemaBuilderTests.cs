@@ -18,7 +18,7 @@ public class SchemaBuilderTests
                 people {
                     name
                 }
-            }"
+            }",
         };
         var context = new TestDataContext().FillWithTestData();
         // we have not added Person type before trying to execute
@@ -40,7 +40,7 @@ public class SchemaBuilderTests
                 people {
                     tasks { name }
                 }
-            }"
+            }",
         };
         var context = new TestDataContext().FillWithTestData();
         context.People[0].Tasks = [];

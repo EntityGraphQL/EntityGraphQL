@@ -24,7 +24,7 @@ public class InputTypeTests
                                 name
                             }
                         }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -49,7 +49,7 @@ public class InputTypeTests
                                 name
                             }
                         }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -83,7 +83,7 @@ public class InputTypeTests
                                 name
                             }
                         }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -117,7 +117,7 @@ public class InputTypeTests
                                 name
                             }
                         }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -221,7 +221,7 @@ public class InputTypeTests
                                 type { name ofType { kind name } }
                             }
                         }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
@@ -270,7 +270,7 @@ public class InputTypeTests
     [GraphQLArguments]
     internal class TestMutationArgs
     {
-        public List<PeopleArgs> People { get; set; } = new();
+        public List<PeopleArgs> People { get; set; } = [];
     }
 
     internal class PeopleArgs

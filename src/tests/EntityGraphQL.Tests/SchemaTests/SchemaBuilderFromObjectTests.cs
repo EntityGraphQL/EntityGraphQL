@@ -141,7 +141,7 @@ public class SchemaBuilderFromObjectTests
                         name
                         kind
                     }
-                }"
+                }",
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
@@ -172,7 +172,7 @@ public class SchemaBuilderFromObjectTests
                             kind
                         }
                       }
-                    }"
+                    }",
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema3(), null, null);
@@ -199,7 +199,7 @@ public class SchemaBuilderFromObjectTests
             name
             kind
           }
-        }"
+        }",
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema2(), null, null);
@@ -270,7 +270,7 @@ public class SchemaBuilderFromObjectTests
             name
             kind
           }
-        }"
+        }",
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
@@ -296,7 +296,7 @@ public class SchemaBuilderFromObjectTests
             kind
             possibleTypes { name }
           }
-        }"
+        }",
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema4(), null, null);
@@ -317,7 +317,7 @@ public class SchemaBuilderFromObjectTests
     [Fact]
     public void TestIgnoreReferencedTypes()
     {
-        var schemaBuilderOptions = new SchemaBuilderOptions { IgnoreTypes = new HashSet<Type> { typeof(C) } };
+        var schemaBuilderOptions = new SchemaBuilderOptions { IgnoreTypes = [typeof(C)] };
 
         var schemaProvider = new SchemaProvider<TestIgnoreTypesSchema>();
         schemaProvider.AddType<B>(typeof(B).Name, null).AddAllFields(schemaBuilderOptions);
@@ -347,7 +347,7 @@ public class SchemaBuilderFromObjectTests
                     }
                   }
                 }
-                """
+                """,
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestSchema5(), null, null);
@@ -363,7 +363,7 @@ public class SchemaBuilderFromObjectTests
     {
         var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
         // Add a argument field with a require parameter
-        var gql = new QueryRequest { Query = @"query Test { movies { id } }", };
+        var gql = new QueryRequest { Query = @"query Test { movies { id } }" };
         dynamic results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null).Errors!;
         var err = Enumerable.First(results);
         Assert.Equal("Field 'movies' not found on type 'Query'", err.Message);
@@ -374,7 +374,7 @@ public class SchemaBuilderFromObjectTests
     {
         var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
         // Add a argument field with a require parameter
-        var gql = new QueryRequest { Query = @"query Test { albums { id } }", };
+        var gql = new QueryRequest { Query = @"query Test { albums { id } }" };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         Assert.Empty((IEnumerable)results.Data!["albums"]!);
     }
@@ -393,7 +393,7 @@ public class SchemaBuilderFromObjectTests
                         id
                     }
                 }",
-            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenInputField", "yeh" }, }
+            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenInputField", "yeh" } },
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         var error = results.Errors!.First();
@@ -414,7 +414,7 @@ public class SchemaBuilderFromObjectTests
                         id name hiddenInputField
                     }
                 }",
-            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, }
+            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" } },
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         Assert.Null(results.Errors);
@@ -438,7 +438,7 @@ public class SchemaBuilderFromObjectTests
                         id
                     }
                 }",
-            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenField", "yeh" }, }
+            Variables = new QueryVariables { { "name", "Balance, Not Symmetry" }, { "hiddenField", "yeh" } },
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         var error = results.Errors!.First();
@@ -458,7 +458,7 @@ public class SchemaBuilderFromObjectTests
                         id hiddenInputField hiddenField
                     }
                 }",
-            Variables = new QueryVariables { }
+            Variables = [],
         };
         var results = schemaProvider.ExecuteRequestWithContext(gql, new IgnoreTestSchema(), null, null);
         Assert.NotNull(results.Errors);
@@ -469,7 +469,7 @@ public class SchemaBuilderFromObjectTests
     [Fact]
     public void TestIgnoreDataAnnotations()
     {
-        var options = new SchemaBuilderOptions { IgnoreAttributes = new HashSet<Type> { typeof(CustomIgnoreAttribute) } };
+        var options = new SchemaBuilderOptions { IgnoreAttributes = [typeof(CustomIgnoreAttribute)] };
         var schema = SchemaBuilder.FromObject<TestClassWithIgnoredAnnotation>(options);
 
         Assert.True(schema.Type<TestClassWithIgnoredAnnotation>().HasField("normalField", null));

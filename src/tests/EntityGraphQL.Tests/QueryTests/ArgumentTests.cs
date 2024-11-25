@@ -78,7 +78,7 @@ public class ArgumentTests
             Query =
                 @"query {
                     user { id }
-                }"
+                }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
@@ -104,7 +104,7 @@ public class ArgumentTests
             Query =
                 @"query {
                         user { id }
-                    }"
+                    }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
@@ -192,7 +192,7 @@ public class ArgumentTests
                 @"query People($unitType: HeightUnit) {
                     people { height(unit: $unitType) }
                 }",
-            Variables = new QueryVariables { { "unitType", "Meter" } }
+            Variables = new QueryVariables { { "unitType", "Meter" } },
         };
         var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables, null);
 
@@ -236,7 +236,7 @@ public class ArgumentTests
                 @"query Guid($id: ID!) {
                         person(id: $id) { id projects { id name } }
                     }",
-            Variables = new QueryVariables { { "id", "cccccccc-bbbb-4444-1111-ccddeeff0033" } }
+            Variables = new QueryVariables { { "id", "cccccccc-bbbb-4444-1111-ccddeeff0033" } },
         };
         var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables);
 
@@ -292,7 +292,7 @@ public class ArgumentTests
     public void FloatArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("users", new { f = (float?)null, }, (db, p) => db.Users, "Testing float");
+        schema.Query().ReplaceField("users", new { f = (float?)null }, (db, p) => db.Users, "Testing float");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -311,7 +311,7 @@ public class ArgumentTests
     public void StringArg()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().ReplaceField("users", new { str = (string?)null, }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str!), !string.IsNullOrEmpty(p.str)), "Testing string");
+        schema.Query().ReplaceField("users", new { str = (string?)null }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str!), !string.IsNullOrEmpty(p.str)), "Testing string");
 
         var gql = new GraphQLCompiler(schema).Compile(
             @"
@@ -399,7 +399,7 @@ public class ArgumentTests
                 new
                 {
                     // EntityGraphQL will automatically use a List<string>
-                    names = (IEnumerable<string>?)null
+                    names = (IEnumerable<string>?)null,
                 },
                 (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null),
                 "Testing list"
@@ -483,16 +483,8 @@ public class ArgumentTests
             {
                 Id = 99,
                 Name = "jill",
-                Projects = new List<Project>
-                {
-                    new Project { Id = 1, Name = "Project 1" },
-                    new Project { Id = 2, Name = "Project 2" }
-                },
-                Tasks = new List<Task>
-                {
-                    new Task { Id = 1, Name = "Task 1" },
-                    new Task { Id = 2, Name = "Task 2" }
-                }
+                Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" },],
+                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" },],
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
@@ -521,16 +513,12 @@ public class ArgumentTests
         );
         var context = new TestDataContext
         {
-            Projects = new List<Project>
-            {
-                new Project { Id = 1, Name = "Project 1" },
-                new Project { Id = 2, Name = "Project 2" }
-            },
+            Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" },],
             Tasks = new List<Task>
             {
                 new Task { Id = 1, Name = "Task 1" },
-                new Task { Id = 2, Name = "Task 2" }
-            }
+                new Task { Id = 2, Name = "Task 2" },
+            },
         };
         var qr = gql.ExecuteQuery(context, null, null);
         Assert.Null(qr.Errors);
@@ -564,11 +552,7 @@ public class ArgumentTests
             {
                 Id = 99,
                 Name = "jill",
-                Tasks = new List<Task>
-                {
-                    new Task { Id = 1, Name = "Task 1" },
-                    new Task { Id = 2, Name = "Task 2" }
-                }
+                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" },],
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);

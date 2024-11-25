@@ -117,9 +117,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
             throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");
 
         // result == IObservable<T>
-        var returnType = result.GetType().GetGenericArgument(typeof(IObservable<>));
-        if (returnType == null)
-            throw new EntityGraphQLExecutionException($"Subscription {node.Name} return type does not implement IObservable<T>");
+        var returnType =
+            result.GetType().GetGenericArgument(typeof(IObservable<>)) ?? throw new EntityGraphQLExecutionException($"Subscription {node.Name} return type does not implement IObservable<T>");
         return new GraphQLSubscribeResult(returnType, result, this, node);
     }
 

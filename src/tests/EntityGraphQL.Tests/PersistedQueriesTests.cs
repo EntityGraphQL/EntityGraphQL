@@ -33,8 +33,8 @@ public class PersistedQueriesTests
                 {
                     "persistedQuery",
                     new PersistedQueryExtension { Sha256Hash = hash }
-                }
-            }
+                },
+            },
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
@@ -80,8 +80,8 @@ public class PersistedQueriesTests
                 {
                     "persistedQuery",
                     new PersistedQueryExtension { Sha256Hash = hash }
-                }
-            }
+                },
+            },
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
@@ -117,8 +117,8 @@ public class PersistedQueriesTests
                 {
                     "persistedQuery",
                     new PersistedQueryExtension { Sha256Hash = hash }
-                }
-            }
+                },
+            },
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = false });
@@ -154,8 +154,8 @@ public class PersistedQueriesTests
                 {
                     "persistedQuery",
                     new PersistedQueryExtension { Sha256Hash = hash, Version = 2 }
-                }
-            }
+                },
+            },
         };
 
         var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { EnablePersistedQueries = true });
@@ -167,8 +167,8 @@ public class PersistedQueriesTests
 
     private static void FillProjectData(TestDataContext data)
     {
-        data.Projects = new List<Project>
-        {
+        data.Projects =
+        [
             new Project
             {
                 Id = 99,
@@ -180,8 +180,8 @@ public class PersistedQueriesTests
                     new Task { Id = 2, Name = "Task 3" },
                     new Task { Id = 3, Name = "Task 4" },
                     new Task { Id = 4, Name = "Task 5" },
-                }
-            }
-        };
+                },
+            },
+        ];
     }
 }

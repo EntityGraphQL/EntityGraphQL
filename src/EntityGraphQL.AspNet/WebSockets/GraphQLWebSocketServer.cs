@@ -23,11 +23,11 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
     /// <summary>
     /// These are the subscriptions/clients that are currently active with this server.
     /// </summary>
-    private readonly Dictionary<string, IDisposable> subscriptions = new();
+    private readonly Dictionary<string, IDisposable> subscriptions = [];
     private readonly WebSocket webSocket;
     private readonly ExecutionOptions options;
     private bool initialised;
-    private readonly JsonSerializerOptions jsonOptions = new() { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+    private readonly JsonSerializerOptions jsonOptions = new() { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public HttpContext Context { get; }
 
@@ -164,7 +164,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                         await SendNextAsync(graphQLWSMessage.Id, result);
                     }
                     // send complete after next or error above
-                    await SendAsync(new BaseWithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id, });
+                    await SendAsync(new BaseWithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id });
                 }
             }
         }
@@ -172,7 +172,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
 
     public async Task SendErrorAsync(string id, Exception exception)
     {
-        await SendErrorAsync(id, new List<GraphQLError> { new GraphQLError(exception.Message, null) });
+        await SendErrorAsync(id, new List<GraphQLError> { new(exception.Message, null) });
     }
 
     public Task SendErrorAsync(string id, IEnumerable<GraphQLError> errors)

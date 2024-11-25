@@ -27,7 +27,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
         }
 
         // Leave as much as we can to JsonSerializer.Serialize
-        var isNotString = value is string == false;
+        var isNotString = value is not string;
         if (value is IDictionary<string, object> dictionary)
         {
             WriteDictionary(writer, dictionary, ref options);

@@ -161,7 +161,7 @@ internal class ChatService
 
     public Message PostMessage(string message)
     {
-        var msg = new Message { Id = 2, Text = message, };
+        var msg = new Message { Id = 2, Text = message };
 
         broadcaster.OnNext(msg);
 

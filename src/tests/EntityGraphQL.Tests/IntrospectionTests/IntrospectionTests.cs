@@ -113,10 +113,10 @@ public class IntrospectionTests
                       }
                     }
                   }
-                }"
+                }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
@@ -149,10 +149,10 @@ public class IntrospectionTests
 
         fragment TypeRef on __Type {
           name
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
@@ -180,10 +180,10 @@ public class IntrospectionTests
               deprecationReason
             }
           }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
@@ -212,10 +212,10 @@ public class IntrospectionTests
               deprecationReason
             }
           }
-        }"
+        }",
         };
 
-        var context = new TestDataContext { Projects = new List<Project>() };
+        var context = new TestDataContext { Projects = [] };
 
         var res = schema.ExecuteRequestWithContext(gql, context, null, null);
         Assert.Null(res.Errors);
@@ -254,7 +254,7 @@ public class IntrospectionTests
                         name
                         description
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();

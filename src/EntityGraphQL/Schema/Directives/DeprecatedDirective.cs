@@ -43,7 +43,7 @@ namespace EntityGraphQL.Schema.Directives
                 TypeSystemDirectiveLocation.FieldDefinition,
                 TypeSystemDirectiveLocation.ArgumentDefinition,
                 TypeSystemDirectiveLocation.InputFieldDefinition,
-                TypeSystemDirectiveLocation.EnumValue
+                TypeSystemDirectiveLocation.EnumValue,
             };
 
         public void ProcessField(Models.Field field)

@@ -66,7 +66,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
                     continue;
 
                 var enumName = Enum.Parse(TypeDotnet, field.Name).ToString()!;
-                var description = (field.GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute)?.Description;
+                var description = field.GetCustomAttribute<DescriptionAttribute>()?.Description;
                 var nullability = field.GetNullabilityInfo();
                 var gqlTypeInfo = new GqlTypeInfo(() => Schema.GetSchemaType(TypeDotnet, GqlType == GqlTypes.InputObject, null), TypeDotnet, nullability);
                 var schemaField = new Field(Schema, this, enumName, null, description, null, gqlTypeInfo, Schema.AuthorizationService.GetRequiredAuthFromMember(field));
@@ -314,8 +314,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="roles"></param>
     public SchemaType<TBaseType> RequiresAllRoles(params string[] roles)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAllRoles(roles);
         return this;
     }
@@ -326,8 +325,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="roles"></param>
     public SchemaType<TBaseType> RequiresAnyRole(params string[] roles)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAnyRole(roles);
         return this;
     }
@@ -338,8 +336,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="policies"></param>
     public SchemaType<TBaseType> RequiresAllPolicies(params string[] policies)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAllPolicies(policies);
         return this;
     }
@@ -350,8 +347,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="policies"></param>
     public SchemaType<TBaseType> RequiresAnyPolicy(params string[] policies)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAnyPolicy(policies);
         return this;
     }

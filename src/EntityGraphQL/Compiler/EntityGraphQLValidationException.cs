@@ -15,6 +15,6 @@ public class EntityGraphQLValidationException : Exception
 
     public EntityGraphQLValidationException(string validationError)
     {
-        ValidationErrors = new List<string> { validationError };
+        ValidationErrors = [validationError];
     }
 }

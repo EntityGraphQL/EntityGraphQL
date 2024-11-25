@@ -1,3 +1,10 @@
+# 5.6.0
+
+## Changes
+
+- Added additional framework target `net9.0`
+- `ResolveWithService` and `ResolveWithServices` methods are now obsolete. Please just use `Resolve` in the same way
+
 # 5.5.3
 
 ## Fixes

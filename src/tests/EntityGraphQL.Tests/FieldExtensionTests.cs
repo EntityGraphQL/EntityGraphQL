@@ -250,7 +250,7 @@ public class FieldExtensionTests
 
     private static void FillData(TestDataContext data)
     {
-        data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Frank"), MakePerson("Jill", "Frank"), MakePerson("Jack", "Snider"), };
+        data.People = [MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Frank"), MakePerson("Jill", "Frank"), MakePerson("Jack", "Snider")];
     }
 
     private static Person MakePerson(string fname, string lname)
@@ -259,7 +259,7 @@ public class FieldExtensionTests
         {
             Id = peopleCnt++,
             Name = fname,
-            LastName = lname
+            LastName = lname,
         };
     }
 }

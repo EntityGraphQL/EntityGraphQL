@@ -8,15 +8,13 @@ namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 public class IdentityExpression(string name, CompileContext compileContext) : IExpression
 {
-    private readonly string name = name;
-
     public Type Type => throw new NotImplementedException();
 
-    public string Name => name;
+    public string Name { get; } = name;
 
     public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
-        return MakePropertyCall(context!, schema, name, requestContext, compileContext);
+        return MakePropertyCall(context!, schema, Name, requestContext, compileContext);
     }
 
     internal static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, CompileContext compileContext)

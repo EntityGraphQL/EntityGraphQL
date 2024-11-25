@@ -28,10 +28,7 @@ public class GraphQLCompiler
     /// The returned DataQueryNode is a root node, it's Fields are the top level data queries
     public GraphQLDocument Compile(string query, QueryVariables? variables = null)
     {
-        if (variables == null)
-        {
-            variables = new QueryVariables();
-        }
+        variables ??= [];
         return Compile(new QueryRequest { Query = query, Variables = variables });
     }
 

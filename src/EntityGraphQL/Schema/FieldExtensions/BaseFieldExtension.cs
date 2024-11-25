@@ -43,7 +43,6 @@ public abstract class BaseFieldExtension : IFieldExtension
     /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
     /// Not called for GraphQLFieldType.Scalar
     /// </summary>
-    /// <param name="fieldType">Type of field being built. ListSelection or ObjectProjection</param>
     /// <param name="baseExpression">Scalar: the expression. ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
     /// <param name="selectionExpressions">Scalar: null. ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
     /// <returns></returns>

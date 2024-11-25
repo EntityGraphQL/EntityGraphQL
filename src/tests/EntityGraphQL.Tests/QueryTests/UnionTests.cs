@@ -260,14 +260,14 @@ public class UnionTests
             new()
             {
                 Id = 1,
-                FavoritePet = new Dog() { Name = "steve", HasBone = true }
+                FavoritePet = new Dog() { Name = "steve", HasBone = true },
             }
         );
         context.PetOwners.Add(
             new()
             {
                 Id = 2,
-                FavoritePet = new Cat() { Name = "george", Lives = 9 }
+                FavoritePet = new Cat() { Name = "george", Lives = 9 },
             }
         );
 
@@ -315,14 +315,14 @@ public class UnionTests
             new()
             {
                 Id = 1,
-                FavoritePet = new Dog() { Name = "steve", HasBone = true }
+                FavoritePet = new Dog() { Name = "steve", HasBone = true },
             }
         );
         context.PetOwners.Add(
             new()
             {
                 Id = 2,
-                FavoritePet = new Cat() { Name = "george", Lives = 9 }
+                FavoritePet = new Cat() { Name = "george", Lives = 9 },
             }
         );
 

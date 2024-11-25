@@ -26,6 +26,14 @@ namespace Benchmarks;
 /// |                PlainDbSet |    20.73 us | 0.079 us | 0.066 us |   7.9346 |     16 KB |
 /// | SetOfBasicWhereStatements |   158.70 us | 0.547 us | 0.511 us |  41.5039 |     85 KB |
 /// |     LargerSetOfWhereWhens | 2,515.82 us | 5.926 us | 5.543 us | 457.0313 |    934 KB |
+///
+/// 5.6.0 with net9.0
+///
+/// | Method                    | Mean        | Error    | StdDev   | Gen0     | Gen1    | Allocated |
+/// |-------------------------- |------------:|---------:|---------:|---------:|--------:|----------:|
+/// | PlainDbSet                |    18.98 us | 0.091 us | 0.200 us |   3.2959 |       - |  20.83 KB |
+/// | SetOfBasicWhereStatements |    70.65 us | 0.208 us | 0.194 us |  11.9629 |  0.3662 |  73.73 KB |
+/// | LargerSetOfWhereWhens     | 1,055.51 us | 1.878 us | 1.757 us | 123.0469 | 23.4375 | 765.25 KB |
 /// </summary>
 [MemoryDiagnoser]
 public class CompileFiltersBenchmarks : BaseBenchmark

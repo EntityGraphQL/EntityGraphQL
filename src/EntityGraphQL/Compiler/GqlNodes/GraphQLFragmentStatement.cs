@@ -12,16 +12,13 @@ public class GraphQLFragmentStatement : IGraphQLNode
     public ParameterExpression? RootParameter { get; }
 
     public IField? Field { get; }
-    public bool HasServices
-    {
-        get => Field?.Services.Count > 0;
-    }
+    public bool HasServices => Field?.Services.Count > 0;
 
     public IReadOnlyDictionary<string, object> Arguments { get; }
 
     public string Name { get; }
 
-    public List<BaseGraphQLField> QueryFields { get; } = new List<BaseGraphQLField>();
+    public List<BaseGraphQLField> QueryFields { get; } = [];
 
     public ISchemaProvider Schema { get; }
     public bool IsRootField => false;

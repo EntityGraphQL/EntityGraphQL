@@ -38,10 +38,7 @@ app.UseFileServer();
 app.UseRouting();
 app.UseGraphQLWebSockets<ChatContext>();
 
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapGraphQL<ChatContext>();
-});
+app.MapGraphQL<ChatContext>();
 
 using (var scope = app.Services.CreateScope())
 {

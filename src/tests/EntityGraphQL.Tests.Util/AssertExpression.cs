@@ -9,7 +9,7 @@ public enum AssertExpressionType
     MemberInit,
     Any,
     MemberBinding,
-    Constant
+    Constant,
 }
 
 public class AssertExpression(AssertExpressionType type, params object?[] arguments)

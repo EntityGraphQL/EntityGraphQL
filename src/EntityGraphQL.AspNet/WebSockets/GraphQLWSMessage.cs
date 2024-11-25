@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace EntityGraphQL.AspNet.WebSockets;

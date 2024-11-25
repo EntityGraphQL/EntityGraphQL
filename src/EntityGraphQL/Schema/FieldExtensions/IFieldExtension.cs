@@ -118,7 +118,6 @@ public interface IFieldExtension
     ///
     /// This should be thread safe
     /// </summary>
-    /// <param name="fieldType"></param>
     /// <param name="expression">The final expression for the field</param>
     /// <returns></returns>
     Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer);

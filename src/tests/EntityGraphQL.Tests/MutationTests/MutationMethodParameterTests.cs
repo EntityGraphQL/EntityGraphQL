@@ -27,8 +27,8 @@ public class MutationMethodParameterTests
                 { "name", "Frank" },
                 { "birthday", DateTime.Today },
                 { "weight", 45.5 },
-                { "gender", Gender.Male }
-            }
+                { "gender", Gender.Male },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -52,8 +52,8 @@ public class MutationMethodParameterTests
             {
                 { "birthday", DateTime.Today },
                 { "weight", 45.5 },
-                { "gender", Gender.Male }
-            }
+                { "gender", Gender.Male },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -77,8 +77,8 @@ public class MutationMethodParameterTests
                 { "name", "Frank" },
                 { "names", new[] { "Frank" } },
                 { "nameInput", null },
-                { "gender", Gender.Female }
-            }
+                { "gender", Gender.Female },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -103,7 +103,7 @@ public class MutationMethodParameterTests
                     "nameInput",
                     new InputObject() { Name = "Frank" }
                 },
-            }
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -128,7 +128,7 @@ public class MutationMethodParameterTests
                     "differentName",
                     new InputObject() { Name = "Frank" }
                 },
-            }
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -153,7 +153,7 @@ public class MutationMethodParameterTests
                     "nameInput",
                     new InputObject() { Name = "Frank" }
                 },
-            }
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -187,8 +187,8 @@ public class MutationMethodParameterTests
                 { "name", "Frank" },
                 { "names", new[] { "Frank" } },
                 { "nameInput", null },
-                { "gender", Gender.Female }
-            }
+                { "gender", Gender.Female },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -206,7 +206,7 @@ public class MutationMethodParameterTests
 
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-        Assert.Empty(schemaProvider.GetSchemaType(nameof(ListOfObjectsWithIds), null).GetFields().Where(x => x.Arguments.Any()));
+        Assert.DoesNotContain(schemaProvider.GetSchemaType(nameof(ListOfObjectsWithIds), null).GetFields(), x => x.Arguments.Any());
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class MutationMethodParameterTests
                     "nameInput",
                     new NestedInputObject() { Name = "Frank" }
                 },
-            }
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -251,8 +251,8 @@ public class MutationMethodParameterTests
                 { "name", "Frank" },
                 { "names", new[] { "Frank" } },
                 { "nameInput", null },
-                { "gender", Gender.Female }
-            }
+                { "gender", Gender.Female },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);
@@ -276,8 +276,8 @@ public class MutationMethodParameterTests
                 { "name", "Frank" },
                 { "names", new[] { "Frank" } },
                 { "nameInput", null },
-                { "gender", Gender.Female }
-            }
+                { "gender", Gender.Female },
+            },
         };
         var res = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(res.Errors);

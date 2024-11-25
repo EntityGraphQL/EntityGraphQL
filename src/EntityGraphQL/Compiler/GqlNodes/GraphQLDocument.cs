@@ -47,21 +47,15 @@ public class GraphQLDocument : IGraphQLNode
     public GraphQLDocument(ISchemaProvider schema)
     {
         Schema = schema;
-        Operations = new List<ExecutableGraphQLStatement>();
-        Fragments = new List<GraphQLFragmentStatement>();
+        Operations = [];
+        Fragments = [];
         Arguments = new Dictionary<string, object>();
     }
 
-    public string Name
-    {
-        get => "Query Request Root";
-    }
+    public string Name => "Query Request Root";
 
     public IField? Field { get; }
-    public bool HasServices
-    {
-        get => Field?.Services.Count > 0;
-    }
+    public bool HasServices => Field?.Services.Count > 0;
 
     public IReadOnlyDictionary<string, object> Arguments { get; }
 

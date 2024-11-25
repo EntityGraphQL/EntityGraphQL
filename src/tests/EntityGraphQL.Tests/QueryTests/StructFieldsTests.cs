@@ -28,12 +28,12 @@ public class StructFieldsTests
                     name
                     age
                 }
-            }"
+            }",
         };
 
         var data = new TestData
         {
-            StructField = new TestStruct { Name = "Test", Age = 10 }
+            StructField = new TestStruct { Name = "Test", Age = 10 },
         };
 
         var res = schema.ExecuteRequestWithContext(query, data, null, null);
@@ -68,12 +68,12 @@ public class StructFieldsTests
                     name
                     age
                 }
-            }"
+            }",
         };
 
         var data = new TestData
         {
-            NullableStructField = new TestStruct { Name = "Test", Age = 10 }
+            NullableStructField = new TestStruct { Name = "Test", Age = 10 },
         };
 
         var res = schema.ExecuteRequestWithContext(query, data, null, null);

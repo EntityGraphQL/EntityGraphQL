@@ -179,8 +179,7 @@ public abstract class BaseField : IField
     /// <param name="roles"></param>
     public IField RequiresAllRoles(params string[] roles)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAllRoles(roles);
         return this;
     }
@@ -191,8 +190,7 @@ public abstract class BaseField : IField
     /// <param name="roles"></param>
     public IField RequiresAnyRole(params string[] roles)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAnyRole(roles);
         return this;
     }
@@ -203,8 +201,7 @@ public abstract class BaseField : IField
     /// <param name="policies"></param>
     public IField RequiresAllPolicies(params string[] policies)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAllPolicies(policies);
         return this;
     }
@@ -215,8 +212,7 @@ public abstract class BaseField : IField
     /// <param name="policies"></param>
     public IField RequiresAnyPolicy(params string[] policies)
     {
-        if (RequiredAuthorization == null)
-            RequiredAuthorization = new RequiredAuthorization();
+        RequiredAuthorization ??= new RequiredAuthorization();
         RequiredAuthorization.RequiresAnyPolicy(policies);
         return this;
     }

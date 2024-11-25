@@ -2,3 +2,34 @@
 indent_style = space
 indent_size = 4
 max_line_length = 180
+
+# csharpier doesn't indent
+csharp_indent_case_contents_when_block = false
+
+# adopt net9 defaults but soften to none for IDE0007/IDE0008
+csharp_style_var_for_built_in_types = false:none
+csharp_style_var_when_type_is_apparent = false:none
+csharp_style_var_elsewhere = false:none
+
+csharp_style_namespace_declarations = file_scoped
+
+# silent will remove the warnings but still show the suggestions in IDE
+
+# prefer braces on all if statements
+csharp_prefer_braces = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+csharp_style_prefer_primary_constructors = true:silent
+csharp_style_expression_bodied_methods = false:silent
+dotnet_style_prefer_collection_expression = true:silent
+csharp_style_prefer_pattern_matching = true:silent
+csharp_style_pattern_matching_over_as_with_null_check = true:silent
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_namespace_match_folder = true:silent
+
+# We enable EnforceCodeStyleInBuild = true to enable IDE0005 (Remove unnecessary usings/imports) 
+# warnings but we dont' want the warnings on XML comments
+# Should work on cleaning this up in the future
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.CS1570.severity = none
+dotnet_diagnostic.CS1573.severity = none
+dotnet_diagnostic.CS1587.severity = none

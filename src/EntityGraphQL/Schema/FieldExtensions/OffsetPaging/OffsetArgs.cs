@@ -1,8 +1,7 @@
-namespace EntityGraphQL.Schema.FieldExtensions
+namespace EntityGraphQL.Schema.FieldExtensions;
+
+public class OffsetArgs
 {
-    public class OffsetArgs
-    {
-        public int? Skip { get; set; }
-        public int? Take { get; set; }
-    }
+    public int? Skip { get; set; }
+    public int? Take { get; set; }
 }

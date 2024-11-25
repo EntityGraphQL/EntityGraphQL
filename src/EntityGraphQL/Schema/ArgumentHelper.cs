@@ -78,10 +78,7 @@ public class EntityQueryType<TType> : BaseEntityQueryType
     /// </summary>
     /// <value></value>
     public Expression<Func<TType, bool>>? Query { get; set; }
-    public override bool HasValue
-    {
-        get => Query != null;
-    }
+    public override bool HasValue => Query != null;
 
     public EntityQueryType()
         : base(typeof(TType)) { }

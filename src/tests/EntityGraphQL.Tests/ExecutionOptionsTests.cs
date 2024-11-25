@@ -68,7 +68,7 @@ public class ExecutionOptionsTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var gql = new QueryRequest { Query = query, };
+        var gql = new QueryRequest { Query = query };
 
         var calledInExp = 0;
         var beforeExpressionBuildCalled = 0;
@@ -85,7 +85,7 @@ public class ExecutionOptionsTests
                     beforeExpressionBuildCalled++;
                     Action onCalled = () => calledInExp++;
                     return Expression.Call(typeof(TestTagWith), nameof(TestTagWith.TagWith), [e.Type], e, Expression.Constant(onCalled));
-                }
+                },
             }
         );
         Assert.Null(result.Errors);
@@ -124,7 +124,7 @@ public class ExecutionOptionsTests
                                     AssertExpression.Any()
                                 )
                             )
-                        )
+                        ),
                     ]
                 )
             ),
@@ -169,7 +169,7 @@ public class ExecutionOptionsTests
                                     AssertExpression.Any()
                                 )
                             )
-                        )
+                        ),
                     ]
                 )
             ),
@@ -185,7 +185,7 @@ public class ExecutionOptionsTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var gql = new QueryRequest { Query = query, };
+        var gql = new QueryRequest { Query = query };
 
         var calledInExp = 0;
         var beforeExpressionBuildCalled = 0;
@@ -208,7 +208,7 @@ public class ExecutionOptionsTests
                 {
                     AssertExpression.Matches(expectedExpression, e);
                     return e;
-                }
+                },
             }
         );
         Assert.Null(result.Errors);
@@ -221,7 +221,7 @@ public class ExecutionOptionsTests
         var data = new TestDataContext();
         FillProjectData(data);
 
-        var gql = new QueryRequest { Query = @"{ projects { name tasks { name id } } }", };
+        var gql = new QueryRequest { Query = @"{ projects { name tasks { name id } } }" };
 
         var result = schema.ExecuteRequestWithContext(
             gql,
@@ -234,7 +234,7 @@ public class ExecutionOptionsTests
                 {
                     // we changed the return type
                     return Expression.Constant(7);
-                }
+                },
             }
         );
         Assert.NotNull(result.Errors);
@@ -256,8 +256,8 @@ public class ExecutionOptionsTests
                     new Task { Id = 2, Name = "Task 3" },
                     new Task { Id = 3, Name = "Task 4" },
                     new Task { Id = 4, Name = "Task 5" },
-                ]
-            }
+                ],
+            },
         ];
     }
 }

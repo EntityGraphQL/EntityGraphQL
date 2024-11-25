@@ -44,7 +44,7 @@ public class QueryCacheTests
         var gql = new QueryRequest
         {
             Query = query,
-            Variables = new QueryVariables { { "project", 99 } }
+            Variables = new QueryVariables { { "project", 99 } },
         };
 
         // cache the query
@@ -111,7 +111,7 @@ public class QueryCacheTests
         var gql = new QueryRequest
         {
             Query = query,
-            Variables = new QueryVariables { { "project", 99 } }
+            Variables = new QueryVariables { { "project", 99 } },
         };
 
         var total = 1000;
@@ -174,20 +174,20 @@ public class QueryCacheTests
             new Task { Id = 3, Name = "Task 4" },
             new Task { Id = 4, Name = "Task 5" },
         };
-        data.Projects = new List<Project>
-        {
+        data.Projects =
+        [
             new Project
             {
                 Id = 99,
                 Name = "Project 1",
-                Tasks = tasks
+                Tasks = tasks,
             },
             new Project
             {
                 Id = 1,
                 Name = "Project 1",
-                Tasks = tasks
-            }
-        };
+                Tasks = tasks,
+            },
+        ];
     }
 }

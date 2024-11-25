@@ -483,7 +483,7 @@ public class OffsetPagingTests
 
     private static void FillData(TestDataContext data)
     {
-        data.People = new() { MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider"), };
+        data.People = [MakePerson("Bill", "Murray"), MakePerson("John", "Frank"), MakePerson("Cheryl", "Crow"), MakePerson("Jill", "Castle"), MakePerson("Jack", "Snider")];
     }
 
     private static void FillProjectData(TestDataContext data)
@@ -501,8 +501,8 @@ public class OffsetPagingTests
                     new Task { Id = 2, Name = "Task 3" },
                     new Task { Id = 3, Name = "Task 4" },
                     new Task { Id = 4, Name = "Task 5" },
-                ]
-            }
+                ],
+            },
         ];
     }
 
@@ -512,7 +512,7 @@ public class OffsetPagingTests
         {
             Id = peopleCnt++,
             Name = fname,
-            LastName = lname
+            LastName = lname,
         };
     }
 
@@ -520,6 +520,6 @@ public class OffsetPagingTests
     public void IdPropertyStillGenerated()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext2>();
-        Assert.NotEmpty(schema.Query().GetFields().Where(x => x.Name == "person"));
+        Assert.Contains(schema.Query().GetFields(), x => x.Name == "person");
     }
 }

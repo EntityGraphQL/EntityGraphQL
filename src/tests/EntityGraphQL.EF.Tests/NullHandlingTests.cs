@@ -41,7 +41,7 @@ public class NullHandlingTests
                     );
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
-                }
+                },
             }
         );
 
@@ -83,7 +83,7 @@ public class NullHandlingTests
                     );
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
-                }
+                },
             }
         );
 
@@ -139,7 +139,7 @@ public class NullHandlingTests
                         );
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
-                }
+                },
             }
         );
 

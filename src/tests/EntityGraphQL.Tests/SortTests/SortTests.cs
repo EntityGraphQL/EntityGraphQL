@@ -19,7 +19,7 @@ public class SortTests
                 @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { lastName = SortDirection.DESC } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { lastName = SortDirection.DESC } } } },
         };
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(new Person { LastName = "Zoo" });
@@ -42,7 +42,7 @@ public class SortTests
                 @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { lastName = "DESC" } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { lastName = "DESC" } } } },
         };
         TestDataContext2 context = new();
         context.FillWithTestData();
@@ -76,7 +76,7 @@ public class SortTests
                 @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { height = "ASC" } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { height = "ASC" } } } },
         };
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(new Person { LastName = "Zoo", Height = 1 });
@@ -105,7 +105,7 @@ public class SortTests
                 @"query($sort: [QueryPeopleSortInput]) {
                     people(sort: $sort) { lastName }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { managerName = "ASC" } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { managerName = "ASC" } } } },
         };
         var context = new TestDataContext().FillWithTestData();
         foreach (var p in context.People)
@@ -116,7 +116,7 @@ public class SortTests
             new Person
             {
                 LastName = "Zoo",
-                Manager = new Person { Name = "Abe" }
+                Manager = new Person { Name = "Abe" },
             }
         );
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
@@ -230,7 +230,7 @@ public class SortTests
                         tasks(sort: $sort) { id }
                     }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { id = "DESC" } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { id = "DESC" } } } },
         };
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
@@ -263,8 +263,8 @@ public class SortTests
                 {
                     "sort",
                     new List<IdSort> { new IdSort { Id = SortDirection.DESC } }
-                }
-            }
+                },
+            },
         };
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
@@ -292,7 +292,7 @@ public class SortTests
                         tasks(sort: $sort) { id }
                     }
                 }",
-            Variables = new QueryVariables { { "sort", new[] { new { id = "DESC" } } } }
+            Variables = new QueryVariables { { "sort", new[] { new { id = "DESC" } } } },
         };
         var context = new TestDataContext().FillWithTestData();
         var tree = schema.ExecuteRequestWithContext(gql, context, null, null);

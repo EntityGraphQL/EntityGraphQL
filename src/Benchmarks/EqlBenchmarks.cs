@@ -22,6 +22,17 @@ namespace Benchmarks;
 /// |                SimpleExpression |        Default |              3 |           1 |           3 |  6.380 us | 0.2524 us | 0.0138 us |
 /// |               ComplexExpression |        Default |              3 |           1 |           3 | 24.810 us | 2.7608 us | 0.1513 us |
 /// | ComplexWithMethodCallExpression |        Default |              3 |           1 |           3 | 45.103 us | 5.0855 us | 0.2788 us |
+///
+/// 5.6.0 with net9.0 Parlot 1.1.0
+///
+/// | Method                          | Toolchain              | IterationCount | LaunchCount | WarmupCount | Mean     | Error     | StdDev   |
+/// |-------------------------------- |----------------------- |--------------- |------------ |------------ |---------:|----------:|---------:|
+/// | SimpleExpression                | InProcessEmitToolchain | Default        | Default     | Default     | 11.09 us |  0.075 us | 0.070 us |
+/// | ComplexExpression               | InProcessEmitToolchain | Default        | Default     | Default     | 32.07 us |  0.233 us | 0.218 us |
+/// | ComplexWithMethodCallExpression | InProcessEmitToolchain | Default        | Default     | Default     | 54.36 us |  0.181 us | 0.160 us |
+/// | SimpleExpression                | Default                | 3              | 1           | 3           | 10.62 us |  3.848 us | 0.211 us |
+/// | ComplexExpression               | Default                | 3              | 1           | 3           | 32.84 us | 23.009 us | 1.261 us |
+/// | ComplexWithMethodCallExpression | Default                | 3              | 1           | 3           | 53.69 us |  9.651 us | 0.529 us |
 /// </summary>
 [ShortRunJob]
 public class EqlBenchmarks : BaseBenchmark

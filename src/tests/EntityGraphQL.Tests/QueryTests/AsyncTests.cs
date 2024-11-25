@@ -23,7 +23,7 @@ public class AsyncTests
                     people {
                         age
                     }
-                }"
+                }",
         };
 
         var context = new TestDataContext();

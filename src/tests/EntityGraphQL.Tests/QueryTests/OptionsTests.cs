@@ -21,7 +21,7 @@ public class OptionsTests
                             id    
                         }
                     }
-                }"
+                }",
         };
         var contextData = new OptionsContext().AddCustomerWithOrder("Lisa", 4);
         var res = schema.ExecuteRequestWithContext(gql, contextData, null, null);
@@ -48,7 +48,7 @@ public class OptionsTests
                             id    
                         }
                     }
-                }"
+                }",
         };
         var contextData = new OptionsContext().AddCustomerWithOrder("Lisa", 4);
 
@@ -67,11 +67,11 @@ public class OptionsTests
 
 internal class OptionsContext
 {
-    public IList<Customer> Customers { get; set; } = new List<Customer>();
+    public IList<Customer> Customers { get; set; } = [];
 
     internal OptionsContext AddCustomerWithOrder(string customerName, int orderId)
     {
-        var customer = new Customer { Name = customerName, };
+        var customer = new Customer { Name = customerName };
         customer.Orders.Add(new Order { Id = orderId });
         Customers.Add(customer);
         return this;
@@ -81,7 +81,7 @@ internal class OptionsContext
 internal class Customer
 {
     public string Name { get; set; } = string.Empty;
-    public List<Order> Orders { get; set; } = new List<Order>();
+    public List<Order> Orders { get; set; } = [];
 }
 
 internal class Order

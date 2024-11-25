@@ -39,7 +39,7 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
             return Field.ExtractedFieldsFromServices.ToList();
 
         // we do not want to return the fragment field
-        return withoutServiceFields && HasServices ? new List<BaseGraphQLField>() : (field != null ? new List<BaseGraphQLField> { field } : new List<BaseGraphQLField>());
+        return withoutServiceFields && HasServices ? [] : (field != null ? [field] : []);
     }
 
     private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)

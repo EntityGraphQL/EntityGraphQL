@@ -22,7 +22,7 @@ public class DirectiveOnVisitTests
                 people @myDirective {
                     id
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -41,7 +41,7 @@ public class DirectiveOnVisitTests
                 person(id: 1) @myDirective {
                     id
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -58,7 +58,7 @@ public class DirectiveOnVisitTests
             Query =
                 @"query {
                 totalPeople @myDirective
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -80,7 +80,7 @@ public class DirectiveOnVisitTests
                         id
                     }
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -102,7 +102,7 @@ public class DirectiveOnVisitTests
                         id
                     }
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -122,7 +122,7 @@ public class DirectiveOnVisitTests
                     id
                     name @myDirective
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -144,7 +144,7 @@ public class DirectiveOnVisitTests
             }
             fragment myFragment on Person @myDirective {
                 id
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, directive.WasVisited);
@@ -166,7 +166,7 @@ public class DirectiveOnVisitTests
             }
             fragment myFragment on Person {
                 id
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
@@ -227,7 +227,7 @@ public class DirectiveOnVisitTests
                 doStuff @myDirective {
                     id
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -255,7 +255,7 @@ public class DirectiveOnVisitTests
                 doStuff {
                     id @myDirective
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -283,7 +283,7 @@ public class DirectiveOnVisitTests
                 doStuff {
                     id
                 }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.MUTATION, directive.WasVisited);
@@ -300,7 +300,7 @@ public class DirectiveOnVisitTests
             Query =
                 @"query @myDirective {
                 people { id }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.QUERY, directive.WasVisited);
@@ -319,7 +319,7 @@ public class DirectiveOnVisitTests
             Query =
                 @"subscription @myDirective {
                 onMessage { id }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.SUBSCRIPTION, directive.WasVisited);
@@ -338,7 +338,7 @@ public class DirectiveOnVisitTests
             Query =
                 @"subscription {
                 onMessage @myDirective { id }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
@@ -355,7 +355,7 @@ public class DirectiveOnVisitTests
             Query =
                 @"query Q($id: Int @myDirective) {
                 people { id }
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.VARIABLE_DEFINITION, directive.WasVisited);
@@ -378,7 +378,7 @@ public class DirectiveOnVisitTests
             }
             fragment myFragment on Person {
                 id
-            }"
+            }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
         Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
@@ -390,15 +390,9 @@ internal class MyDirecitive : DirectiveProcessor<object>
 {
     private readonly ExecutableDirectiveLocation location;
 
-    public override string Name
-    {
-        get => "myDirective";
-    }
-    public override string Description
-    {
-        get => "My directive";
-    }
-    public override List<ExecutableDirectiveLocation> Location => new() { location };
+    public override string Name => "myDirective";
+    public override string Description => "My directive";
+    public override List<ExecutableDirectiveLocation> Location => [location];
 
     public ExecutableDirectiveLocation? WasVisited { get; private set; }
     public int Calls { get; private set; }

@@ -31,7 +31,7 @@ public class ServiceLifetimeTests
                 movies {
                     title
                 }
-            }"
+            }",
         };
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
@@ -68,7 +68,7 @@ public class ServiceLifetimeTests
                     title
                     directorAgeOnRelease
                 }
-            }"
+            }",
         };
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
@@ -113,7 +113,7 @@ public class ServiceLifetimeTests
                     directorAgeOnRelease
                     hoursOld
                 }
-            }"
+            }",
         };
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
@@ -161,7 +161,7 @@ public class ServiceLifetimeTests
                     directorAgeOnRelease
                     hoursOld
                 }
-            }"
+            }",
         };
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
@@ -203,7 +203,7 @@ public class ServiceLifetimeTests
                     directorAgeOnRelease
                     hoursOld
                 }
-            }"
+            }",
         };
 
         var result = schema.ExecuteRequest(gql, provider, null, null);
@@ -216,26 +216,24 @@ internal class MyDataContext
 {
     public string Name { get; set; } = "Test";
     public List<MyMovie> Movies { get; set; } =
-        new List<MyMovie>
-        {
+        [
             new MyMovie
             {
                 Id = 1,
                 Title = "Movie 1",
                 DirectorId = 11,
-                Released = new DateTime(1999, 6, 19)
-            }
-        };
+                Released = new DateTime(1999, 6, 19),
+            },
+        ];
     public List<MyDirector> Directors { get; set; } =
-        new List<MyDirector>
-        {
+        [
             new MyDirector
             {
                 Id = 11,
                 Name = "Director 1",
-                Dob = new DateTime(1978, 4, 6)
-            }
-        };
+                Dob = new DateTime(1978, 4, 6),
+            },
+        ];
 }
 
 internal class MyDirector

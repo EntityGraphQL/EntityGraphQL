@@ -23,28 +23,16 @@ namespace EntityGraphQL.Schema;
 /// <typeparam name="TContextType">Base Query object context. Ex. DbContext</typeparam>
 public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 {
-    public Type QueryContextType
-    {
-        get { return queryType.TypeDotnet; }
-    }
-    public Type MutationType
-    {
-        get { return mutationType.SchemaType.TypeDotnet; }
-    }
-    public Type SubscriptionType
-    {
-        get { return subscriptionType.SchemaType.TypeDotnet; }
-    }
+    public Type QueryContextType => queryType.TypeDotnet;
+    public Type MutationType => mutationType.SchemaType.TypeDotnet;
+    public Type SubscriptionType => subscriptionType.SchemaType.TypeDotnet;
     public Func<string, string> SchemaFieldNamer { get; }
     public IGqlAuthorizationService AuthorizationService { get; set; }
     private readonly Dictionary<string, ISchemaType> schemaTypes = [];
     private readonly Dictionary<string, IDirectiveProcessor> directives = [];
     private readonly QueryCache queryCache;
 
-    public string QueryContextName
-    {
-        get => queryType.Name;
-    }
+    public string QueryContextName => queryType.Name;
 
     private readonly SchemaType<TContextType> queryType;
     private readonly ILogger<SchemaProvider<TContextType>>? logger;
@@ -53,11 +41,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly bool isDevelopment;
     private readonly MutationType mutationType;
     private readonly SubscriptionType subscriptionType;
-    private readonly Dictionary<Type, IExtensionAttributeHandler> attributeHandlers = new Dictionary<Type, IExtensionAttributeHandler>();
+    private readonly Dictionary<Type, IExtensionAttributeHandler> attributeHandlers = [];
 
     public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
 
-    public List<AllowedException> AllowedExceptions { get; } = new();
+    public List<AllowedException> AllowedExceptions { get; } = [];
 
     // map some types to scalar types
     private readonly Dictionary<Type, GqlTypeInfo> customTypeMappings;
@@ -230,7 +218,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
     /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
     /// <param name="options"></param>
-    /// <typeparam name="TContextType"></typeparam>
     /// <returns></returns>
     public QueryResult ExecuteRequestWithContext(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
     {
@@ -245,7 +232,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
     /// <param name="user">Optional user/ClaimsPrincipal to check access for queries</param>
     /// <param name="options"></param>
-    /// <typeparam name="TContextType"></typeparam>
     /// <returns></returns>
     public async Task<QueryResult> ExecuteRequestWithContextAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
     {
@@ -389,11 +375,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public SchemaType<TBaseType> AddType<TBaseType>(string name, string? description)
     {
         var gqlType =
-            typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface
-                ? GqlTypes.Interface
-                : typeof(TBaseType).IsEnum
-                    ? GqlTypes.Enum
-                    : GqlTypes.QueryObject;
+            typeof(TBaseType).IsAbstract || typeof(TBaseType).IsInterface ? GqlTypes.Interface
+            : typeof(TBaseType).IsEnum ? GqlTypes.Enum
+            : GqlTypes.QueryObject;
         var schemaType = new SchemaType<TBaseType>(this, name, description, null, gqlType);
         FinishAddingType(typeof(TBaseType), schemaType);
         return schemaType;
@@ -520,7 +504,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <summary>
     /// Adds a new scalar type defined to the schema. Dotnet types of TType will be treated as gqlTypeName
     /// </summary>
-    /// <param name="clrType">Dotnet type to mapp to a scalar</param>
     /// <param name="gqlTypeName">GraphQL scalar type name</param>
     /// <param name="description">Description of the scalar type</param>
     /// <returns>The added type for further changes via chaining</returns>
@@ -802,7 +785,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <summary>
     /// Add an interface type to the schema
     /// </summary>
-    /// <param name="type"></param>
     /// <param name="name"></param>
     /// <param name="description"></param>
     /// <returns></returns>
@@ -830,7 +812,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <summary>
     /// Add an union type to the schema
     /// </summary>
-    /// <param name="type"></param>
     /// <param name="name"></param>
     /// <param name="description"></param>
     /// <returns></returns>

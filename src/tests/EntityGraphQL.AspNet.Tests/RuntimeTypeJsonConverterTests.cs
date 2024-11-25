@@ -13,7 +13,7 @@ public class RuntimeTypeJsonConverterTests
     public enum Enum
     {
         First,
-        Second
+        Second,
     }
 
     public class BaseClass
@@ -35,7 +35,7 @@ public class RuntimeTypeJsonConverterTests
         {
             Id = 1,
             Name = "Fred",
-            NameField = "Included"
+            NameField = "Included",
         };
         var result = JsonSerializer.Serialize(item);
         Assert.Equal("{\"Id\":1,\"E\":0}", result);
@@ -94,7 +94,7 @@ public class RuntimeTypeJsonConverterTests
     [Fact]
     public void SerializeStruct()
     {
-        dynamic item = new Test { items = new List<SubClass>(), hasNextPage = false };
+        dynamic item = new Test { items = [], hasNextPage = false };
 
         var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
         var memoryStream = new MemoryStream();
@@ -111,8 +111,8 @@ public class RuntimeTypeJsonConverterTests
         {
             {
                 "test",
-                new Test { items = new List<SubClass>(), hasNextPage = false }
-            }
+                new Test { items = [], hasNextPage = false }
+            },
         };
 
         var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
@@ -128,7 +128,7 @@ public class RuntimeTypeJsonConverterTests
     {
         var item = new { value = false };
 
-        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         options.Converters.Add(new JsonStringEnumConverter());
         options.Converters.Add(new RuntimeTypeJsonConverter());
 
@@ -145,7 +145,7 @@ public class RuntimeTypeJsonConverterTests
         {
             IncludeFields = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
         options.Converters.Add(new JsonStringEnumConverter());
         options.Converters.Add(new RuntimeTypeJsonConverter());
@@ -159,7 +159,7 @@ public class RuntimeTypeJsonConverterTests
     {
         var item = new { value = "Nick's coffee" };
 
-        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         options.Converters.Add(new JsonStringEnumConverter());
         options.Converters.Add(new RuntimeTypeJsonConverter());
 
@@ -172,7 +172,7 @@ public class RuntimeTypeJsonConverterTests
     {
         var item = new { child = new { value = 3.4 } };
 
-        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, };
+        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         options.Converters.Add(new JsonStringEnumConverter());
         options.Converters.Add(new RuntimeTypeJsonConverter());
         options.IncludeFields = true;
@@ -196,17 +196,17 @@ public class RuntimeTypeJsonConverterTests
                         {
                             Id = 1,
                             Name = "Fred",
-                            NameField = "Included"
+                            NameField = "Included",
                         },
                         new SubClass()
                         {
                             Id = 2,
                             Name = "Wilma",
                             NameField = null,
-                            E = Enum.Second
-                        }
+                            E = Enum.Second,
+                        },
                     }
-                }
+                },
             }
         );
 

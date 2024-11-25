@@ -202,35 +202,29 @@ public class DefaultMethodProviderTests
     // This would be your Entity/Object graph you use with EntityFramework
     private class TestSchema
     {
-        public IEnumerable<Person> People
-        {
-            get
-            {
-                return
-                [
-                    new Person
-                    {
-                        Id = 9,
-                        Name = "Bob",
-                        Guid = Guid.NewGuid()
-                    },
-                    new Person(),
-                    new Person
-                    {
-                        Id = 9,
-                        Name = "Boba",
-                        Guid = Guid.NewGuid()
-                    },
-                    new Person
-                    {
-                        Id = 9,
-                        Name = "Robin",
-                        Guid = Guid.NewGuid(),
-                        Age = 44
-                    },
-                ];
-            }
-        }
+        public IEnumerable<Person> People =>
+            [
+                new Person
+                {
+                    Id = 9,
+                    Name = "Bob",
+                    Guid = Guid.NewGuid(),
+                },
+                new Person(),
+                new Person
+                {
+                    Id = 9,
+                    Name = "Boba",
+                    Guid = Guid.NewGuid(),
+                },
+                new Person
+                {
+                    Id = 9,
+                    Name = "Robin",
+                    Guid = Guid.NewGuid(),
+                    Age = 44,
+                },
+            ];
     }
 
     private class Person

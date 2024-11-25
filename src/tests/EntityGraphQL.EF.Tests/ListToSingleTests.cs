@@ -71,7 +71,7 @@ public class ListToSingleTests
             new List<Actor>
             {
                 new("Alec Guinness") { Id = 1 },
-                new("Mark Hamill") { Id = 2 }
+                new("Mark Hamill") { Id = 2 },
             }
         );
         data.SaveChanges();

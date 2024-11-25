@@ -97,7 +97,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     /// </summary>
     /// <param name="node">The mutation field to execute</param>
     /// <param name="context">The context instance that will be used</param>
-    /// <param name="validator">Error validator, passed to mutations</param>
     /// <param name="serviceProvider">A service provider to look up any dependencies</param>
     /// <param name="fragments"></param>
     /// <param name="options">Execution options</param>

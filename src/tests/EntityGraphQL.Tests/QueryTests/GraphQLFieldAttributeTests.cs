@@ -30,7 +30,7 @@ public class GraphQLFieldAttributeTests
                 fields {
                     methodField
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -63,7 +63,7 @@ public class GraphQLFieldAttributeTests
                     methodFieldWithArgs(value: $value)
                 }
             }",
-            Variables = new QueryVariables { { "value", 13 } }
+            Variables = new QueryVariables { { "value", 13 } },
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -95,7 +95,7 @@ public class GraphQLFieldAttributeTests
                 fields {
                     methodFieldWithOptionalArgs
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -128,7 +128,7 @@ public class GraphQLFieldAttributeTests
                     methodFieldWithTwoArgs(value: $value, value2: $value2)
                 }
             }",
-            Variables = new QueryVariables { { "value", 6 }, { "value2", 7 }, }
+            Variables = new QueryVariables { { "value", 6 }, { "value2", 7 } },
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -160,7 +160,7 @@ public class GraphQLFieldAttributeTests
                 fields {
                     methodFieldWithDefaultArgs
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -194,7 +194,7 @@ public class GraphQLFieldAttributeTests
                     renamedMethod(value: $value)
                 }
             }",
-            Variables = new QueryVariables { { "value", 33 }, }
+            Variables = new QueryVariables { { "value", 33 } },
         };
 
         var context = new ContextFieldWithMethod { Fields = [new TypeWithMethod()] };
@@ -221,7 +221,7 @@ public class GraphQLFieldAttributeTests
             Query =
                 @"query TypeWithMethod {
                 testMethod
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -251,7 +251,7 @@ public class GraphQLFieldAttributeTests
                 fields {
                     staticMethodField(value: 88)
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod>() { new TypeWithMethod() } };
@@ -278,7 +278,7 @@ public class GraphQLFieldAttributeTests
             Query =
                 @"query TypeWithMethod {
                 methodFieldWithService(value: 88)
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethodService();
@@ -307,7 +307,7 @@ public class GraphQLFieldAttributeTests
             Query =
                 @"query TypeWithMethod {
                 methodFieldWithServiceStatic(value: 88)
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethodService();
@@ -336,7 +336,7 @@ public class GraphQLFieldAttributeTests
                 complex {
                     methodFieldWithArgs(name: ""Superman"")
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod2 { Complex = new List<TypeWithMethodArgs> { new TypeWithMethodArgs() } };
@@ -363,7 +363,7 @@ public class GraphQLFieldAttributeTests
                 complex {
                     methodFieldWithInput(props: { name: ""Superman"" })
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod3 { Complex = new List<TypeWithMethodInput> { new TypeWithMethodInput() } };
@@ -392,7 +392,7 @@ public class GraphQLFieldAttributeTests
                 getMyTask(id: 8) {
                     id  
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod();
@@ -424,7 +424,7 @@ public class GraphQLFieldAttributeTests
                         id name
                     }
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod
@@ -438,10 +438,10 @@ public class GraphQLFieldAttributeTests
                     Tasks = new List<Task>
                     {
                         new Task { Id = 1, Name = "abba" },
-                        new Task { Id = 2, Name = "b" }
-                    }
-                }
-            }
+                        new Task { Id = 2, Name = "b" },
+                    },
+                },
+            },
         };
 
         var res = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
@@ -470,7 +470,7 @@ public class GraphQLFieldAttributeTests
                     id
                     fieldWithService(value: 88)
                 }
-            }"
+            }",
         };
 
         var context = new ContextFieldWithMethod { Fields = new List<TypeWithMethod> { new TypeWithMethod() } };
