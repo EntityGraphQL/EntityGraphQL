@@ -221,14 +221,18 @@ public class DefaultMethodProvider : IMethodProvider
         ExpectArgsCount(1, args, methodName);
         var array = args.First();
         var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
-
+        var isQueryable = typeof(IQueryable).IsAssignableFrom(array.Type);
         if (context.Type.IsNullableType())
         {
-            var call = ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType));
+            var call = isQueryable ?
+                ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType)) :
+                ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType));
             return Expression.Condition(Expression.Equal(context, Expression.Constant(null, context.Type)), Expression.Constant(false), call);
         }
 
-        return ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, context);
+        return isQueryable ?
+            ExpressionUtil.MakeCallOnQueryable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType)) :
+            ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Contains), [arrayType], array, Expression.Convert(context, arrayType));
     }
 
     private static Expression MakeStringContainsMethod(Expression context, Expression argContext, string methodName, Expression[] args) =>
