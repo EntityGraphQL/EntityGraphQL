@@ -233,6 +233,30 @@ public class FilterExtensionTests
     }
 
     [Fact]
+    public void SupportUseFilterWithAnyStatement()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+	users(filter: ""id.isAny([1,5])"") { id field2 }
+}",
+        };
+        var context = new TestDataContext().FillWithTestData();
+        context.Users.Add(new User { Id = 1 });
+        context.Users.Add(new User { Id = 5 });
+        context.Users.Add(new User { Id = 10 });
+        var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
+        Assert.Equal(2, Enumerable.Count(users));
+        var user = Enumerable.First(users);
+        Assert.Equal(1, user.id);
+    }
+
+    [Fact]
     public void SupportUseFilterOnNonRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
