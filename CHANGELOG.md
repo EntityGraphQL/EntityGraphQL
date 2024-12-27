@@ -1,16 +1,13 @@
-# 5.6.1
-
-## Fixes
-
-- #435 - fix `isAny()` in `filter`
-
 # 5.6.0
 
 ## Changes
 
 - Added additional framework target `net9.0`
 - `ResolveWithService` and `ResolveWithServices` methods are now obsolete. Please just use `Resolve` in the same way
-- Bump dependency `HotChocolate.Language` to `14.1.0` - use to parse GraphQL documents only
+
+## Fixes
+
+- #435 - fix `isAny()` in `filter`
 
 # 5.5.3
 
