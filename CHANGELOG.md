@@ -3,11 +3,18 @@
 ## Changes
 
 - Added additional framework target `net9.0`
-- `ResolveWithService` and `ResolveWithServices` methods are now obsolete. Please just use `Resolve` in the same way
+- `ResolveWithService` and `ResolveWithServices` methods are now marked obsolete. Please just use `Resolve` in the same way
 
 ## Fixes
 
 - #435 - fix `isAny()` in `filter`
+- Fix issue selecting fields from an object a service field returns where the GraphQL field name differs from the dotnet property name.
+
+Example a field that returns a `User` type using a service and you are changing the field names in the schema like below
+
+```cs
+schema.Type<User>().AddField("username", u => u.Name, "Username")
+```
 
 # 5.5.3
 

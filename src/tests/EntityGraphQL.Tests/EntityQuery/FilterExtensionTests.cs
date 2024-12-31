@@ -233,7 +233,7 @@ public class FilterExtensionTests
     }
 
     [Fact]
-    public void SupportUseFilterWithAnyStatement()
+    public void SupportUseFilterWithIsAnyStatementInts()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
@@ -254,6 +254,30 @@ public class FilterExtensionTests
         Assert.Equal(2, Enumerable.Count(users));
         var user = Enumerable.First(users);
         Assert.Equal(1, user.id);
+    }
+
+    [Fact]
+    public void SupportUseFilterWithIsAnyStatementNullableInts()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", (ctx) => ctx.Users, "Return filtered users").UseFilter();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+	users(filter: ""relationId.isAny([1,5])"") { id field2 relationId }
+}",
+        };
+        var context = new TestDataContext().FillWithTestData();
+        context.Users.Add(new User { Id = 1 });
+        context.Users.Add(new User { Id = 5, RelationId = 5 });
+        context.Users.Add(new User { Id = 10 });
+        var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
+        Assert.Equal(1, Enumerable.Count(users));
+        var user = Enumerable.First(users);
+        Assert.Equal(5, user.id);
     }
 
     [Fact]
@@ -294,7 +318,7 @@ public class FilterExtensionTests
                         tasks(filter: $filter) { id name }
                     }
                 }",
-            Variables = new QueryVariables { { "filter", "(name == \"task 2\") || (name == \"task not there\")" } }
+            Variables = new QueryVariables { { "filter", "(name == \"task 2\") || (name == \"task not there\")" } },
         };
         var tree = schema.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
         Assert.Null(tree.Errors);

@@ -180,12 +180,21 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
 
         if (contextChanged)
         {
+            HashSet<string> propsOrFields = [.. nullWrapParam.Type.GetProperties().Select(i => i.Name), .. nullWrapParam.Type.GetFields().Select(i => i.Name)];
             foreach (var item in selectionFields)
             {
                 if (item.Value.Field.HasServices || item.Key.Name == "__typename")
                     item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
                 else
-                    item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);
+                {
+                    // if we can just use Expression.PropertyOrField that is faster
+                    if (propsOrFields.Contains(item.Key.Name, StringComparer.OrdinalIgnoreCase))
+                        item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);
+                    else
+                        // selecting from a dotnet type (not a anonymous result type) we need to replace the base call not use the field name (item.Key.Name)
+                        // e.g. if we have renamed the field schema.Type<User>().AddField("username", u => u.Name)
+                        item.Value.Expression = replacer.Replace(item.Value.Expression, nextFieldContext, nullWrapParam);
+                }
             }
         }
         else

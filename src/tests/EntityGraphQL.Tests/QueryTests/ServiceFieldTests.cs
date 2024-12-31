@@ -1323,10 +1323,56 @@ public class ServiceFieldTests
         var context = new TestDataContext();
         context.FillWithTestData();
 
-        var doc = new GraphQLCompiler(schema).Compile(gql);
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, service.CallCount);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal(1, people[0].GetType().GetFields().Length);
+        Assert.Equal("resolvedSettings", Enumerable.ElementAt(people[0].GetType().GetFields(), 0).Name);
+    }
 
-        Assert.Single(doc.Operations);
-        Assert.Single(doc.Operations[0].QueryFields);
+    [Fact]
+    public void TestCollectionWithServiceUsingNewInExpression()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.AddType<TestThing>("TestThing").AddAllFields();
+        schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+        schema
+            .Query()
+            .ReplaceField(
+                "people",
+                new { height = (int?)null },
+                (ctx, args) => ctx.People.WhereWhen(p => p.Height > args.height, args.height.HasValue).OrderBy(p => p.Height),
+                "Get people with height > {height}"
+            );
+        schema.Type<Person>().AddField("resolvedSettings", "Return resolved settings").Resolve<ConfigService>((f, b) => new TestThing(f.Id, b.Get(f.Id))).IsNullable(false);
+
+        var serviceCollection = new ServiceCollection();
+        ConfigService service = new();
+        serviceCollection.AddSingleton(service);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query OpName {
+                    people {
+                        resolvedSettings {
+                            id
+                        }
+                    }
+                }",
+        };
+
+        var context = new TestDataContext();
+        context.FillWithTestData();
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, service.CallCount);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal(1, people[0].GetType().GetFields().Length);
+        Assert.Equal("resolvedSettings", Enumerable.ElementAt(people[0].GetType().GetFields(), 0).Name);
     }
 
     [Fact]
@@ -1831,6 +1877,57 @@ public class ServiceFieldTests
         Assert.Equal(1, srv.CallCount);
     }
 
+    [Fact]
+    public void TestServiceFieldsNotNamedSameAsDotnetProperties()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.Type<User>().RemoveField("name");
+        schema.Type<User>().AddField("username", u => u.Name, "Get username");
+
+        schema.Type<Project>().ReplaceField("createdBy", "Get user that created the project").Resolve<UserService>((p, users) => users.GetUserById(p.CreatedBy));
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                    project(id: 1) {
+                        name
+                        createdBy { 
+                            username
+                        }
+                    }
+                }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    Name = "Project 1",
+                    CreatedBy = 1,
+                },
+            ],
+            People = [new Person { Projects = [] }],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        dynamic project = res.Data!["project"]!;
+        Assert.Equal(2, project.GetType().GetFields().Length);
+        Assert.Equal("name", Enumerable.ElementAt(project.GetType().GetFields(), 0).Name);
+        Assert.Equal("createdBy", Enumerable.ElementAt(project.GetType().GetFields(), 1).Name);
+        Assert.Equal("username", project.createdBy.GetType().GetFields()[0].Name);
+    }
+
     public class ConfigService
     {
         public ConfigService()
@@ -1965,6 +2062,18 @@ public class ServiceFieldTests
 
         [GraphQLNotNull]
         public int PageCount { get; set; }
+    }
+}
+
+internal class TestThing
+{
+    public int Id { get; set; }
+    private ProjectConfig projectConfig;
+
+    public TestThing(int id, ProjectConfig projectConfig)
+    {
+        this.Id = id;
+        this.projectConfig = projectConfig;
     }
 }
 
