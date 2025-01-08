@@ -27,7 +27,7 @@ dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 dotnet_style_namespace_match_folder = true:silent
 
 # We enable EnforceCodeStyleInBuild = true to enable IDE0005 (Remove unnecessary usings/imports) 
-# warnings but we dont' want the warnings on XML comments
+# warnings but we don't want the warnings on XML comments
 # Should work on cleaning this up in the future
 dotnet_diagnostic.CS1591.severity = none
 dotnet_diagnostic.CS1570.severity = none

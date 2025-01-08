@@ -11,7 +11,7 @@
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityGraphQL</RepositoryUrl>
     <PackageTags>GraphQL;EntityGraphQL;asp.net</PackageTags>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Nullable>enable</Nullable>

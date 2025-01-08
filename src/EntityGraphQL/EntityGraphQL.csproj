@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lukemurray/EntityGraphQL</RepositoryUrl>
     <PackageTags>GraphQL;data query;expression;language</PackageTags>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
