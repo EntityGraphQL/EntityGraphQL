@@ -67,9 +67,6 @@ public sealed class EntityQueryParser
         .And(dot)
         .And(Terms.Integer(NumberOptions.None))
         .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
-    private static readonly Parser<IExpression> nullExp = Terms.Text("null").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
-    private static readonly Parser<IExpression> trueExp = Terms.Text("true").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
-    private static readonly Parser<IExpression> falseExp = Terms.Text("false").Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
     private readonly Expression? context;
@@ -98,6 +95,10 @@ public sealed class EntityQueryParser
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
 
         var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
+
+        var nullExp = Terms.Text("null").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
+        var trueExp = Terms.Text("true").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
+        var falseExp = Terms.Text("false").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
 
         // primary => NUMBER | "(" expression ")";
         var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);

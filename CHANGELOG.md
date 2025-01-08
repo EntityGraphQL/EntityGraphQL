@@ -16,6 +16,8 @@ Example a field that returns a `User` type using a service and you are changing 
 schema.Type<User>().AddField("username", u => u.Name, "Username")
 ```
 
+- #439 - Fix using fields / properties with key words (`null`, `true`, `false`) at the start of the name in the filter expressions
+
 # 5.5.3
 
 ## Fixes

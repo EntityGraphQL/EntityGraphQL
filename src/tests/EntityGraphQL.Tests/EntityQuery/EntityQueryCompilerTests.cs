@@ -44,6 +44,20 @@ public class EntityQueryCompilerTests
     }
 
     [Fact]
+    public void CompilesTrueConstant()
+    {
+        var exp = EntityQueryCompiler.Compile("true", executionOptions);
+        Assert.True((bool)exp.Execute()!);
+    }
+
+    [Fact]
+    public void CompilesFalseConstant()
+    {
+        var exp = EntityQueryCompiler.Compile("false", executionOptions);
+        Assert.False((bool)exp.Execute()!);
+    }
+
+    [Fact]
     public void CompilesStringConstant()
     {
         var exp = EntityQueryCompiler.Compile("\"Hello there_987-%#&	;;s\"", executionOptions);
@@ -69,6 +83,14 @@ public class EntityQueryCompilerTests
     {
         var exp = EntityQueryCompiler.Compile("hello", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
         Assert.Equal("returned value", exp.Execute(new TestSchema()));
+    }
+
+    [Fact]
+    public void CompilesIdentityCallWithKeyWord()
+    {
+        // null is the keyword
+        var exp = EntityQueryCompiler.Compile("nullableInt", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        Assert.Equal(55, exp.Execute(new TestSchema()));
     }
 
     [Fact]
@@ -435,6 +457,7 @@ public class EntityQueryCompilerTests
     {
         public string Hello => "returned value";
         public int Num => 33;
+        public int? NullableInt => 55;
 
         public TestEntity SomeRelation => new TestEntity("bob");
         public IEnumerable<Person> People { get; set; } = new List<Person>();
