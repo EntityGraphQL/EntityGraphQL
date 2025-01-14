@@ -29,11 +29,11 @@ public class AddPersonArgs
 }
 ```
 
-If any of those validations fail, the graph QL result will have errors for each one that failed. If your model validation fails your mutation method _will not be called_.
+If any of those validations fail, the GraphQL result will have errors for each one that failed. If your model validation fails your mutation method _will not be called_.
 
 Throwing an exception in your mutation will cause the the error to be reported in the GraphQL response. You can also collect multiple error messages instead of throwing an exception on the first error using the `GraphQLValidator` service.
 
-This service needs to be registered in your service provider. You can always implement you own `GraphQLValidator` by implementing the `IGraphQLValidator` interface.
+This service needs to be registered in your service provider. You can implement you own `GraphQLValidator` by implementing the `IGraphQLValidator` interface or use the default with `AddGraphQLValidator`.
 
 ```cs
 
@@ -69,7 +69,7 @@ public class MovieMutations
 
 ## Query Field Validation
 
-If a query field has arguments - like an Id to search for or a filter string etc. - you may also want to perform validation on the input. You can use the same `[Required]`, `[Range]` & `[StringLength]` attributes on your argument object if you are using typed field arguments.
+If a query field has arguments - like an `Id` to search for or a filter string etc. - you may also want to perform validation on the input. You can use the same `[Required]`, `[Range]` & `[StringLength]` attributes on your argument object if you are using typed field arguments.
 
 ```cs
 schema.Query().AddField(

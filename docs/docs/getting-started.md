@@ -85,28 +85,28 @@ You will need to install [EntityGraphQL.AspNet](https://www.nuget.org/packages/E
 ```cs
 using EntityGraphQL.AspNet;
 
-public class Startup {
-  public void ConfigureServices(IServiceCollection services)
-  {
-      // Again, just an example using EF but you do not have to
-      services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("Demo"));
-      // This registers a SchemaProvider<DemoContext> and uses reflection to build the schema with default options
-      services.AddGraphQLSchema<DemoContext>();
-  }
+var builder = WebApplication.CreateBuilder(args);
 
-  public void Configure(IApplicationBuilder app, DemoContext db)
-  {
-      app.UseRouting();
-      app.UseEndpoints(endpoints =>
-      {
-          // defaults to /graphql endpoint
-          endpoints.MapGraphQL<DemoContext>();
-      });
-  }
-}
+builder.Services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("Demo"));
+builder.Services.AddGraphQLSchema<DemoContext>();
+
+var app = builder.Build();
+
+app.MapGraphQL<DemoContext>();
+
+app.Run();
 ```
 
 This sets up a `HTTP` `POST` end point at `/graphql` where the body of the post is expected to be a GraphQL query. You can change the path with the `path` argument in `MapGraphQL<T>()`
+
+:::tip
+Version 5.6 introduced an argument to `MapGraphQL` called `followSpec`. When set to true it will follow [this GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md). This will be the default behavior in version 6 so if you are starting a new project we suggest setting it to `true` now.
+
+```cs
+app.MapGraphQL<DemoContext>(followSpec: true);
+```
+
+:::
 
 _You can authorize the route how ever you wish using ASP.NET. See the Authorization section for more details._
 
@@ -116,7 +116,7 @@ You can also expose any endpoint over any protocol you'd like. We'll use HTTP/S 
 
 When using `MapGraphQL()`, the route is added with the `IEndpointRouteBuilder.MapPost` method. The `.MapPost()` method can be chained with `.RequireAuthorization()` where an array of Policy Names can be passed. The policy names are ANDed together with `.RequireAuthorization()`.
 
-To add one or more security policies when using `MapGraphQL()` you can pass an a configure function that has access to the `IEndpointConventionBuilder` from the created `.MapPost()`.
+To add one or more security policies when using `MapGraphQL()` you can pass a configure function that has access to the `IEndpointConventionBuilder` from the created `.MapPost()`.
 
 ```cs
 //in ConfigureServices

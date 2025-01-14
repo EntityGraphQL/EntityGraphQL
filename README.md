@@ -16,7 +16,7 @@ _Please explore, give feedback or join the development._
 
 ## Installation
 
-The [EntityGraphQL.AspNet ![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet) package will get you easily set up with ASP.NET. 
+The [EntityGraphQL.AspNet ![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet) package will get you easily set up with ASP.NET.
 
 However the core [EntityGraphQL ![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL)](https://www.nuget.org/packages/EntityGraphQL) package has no ASP.NET dependency.
 
@@ -59,25 +59,18 @@ Here is an example for a ASP.NET. You will also need to install EntityGraphQL.As
 [![Nuget](https://img.shields.io/nuget/dt/EntityGraphQL.AspNet)](https://www.nuget.org/packages/EntityGraphQL.AspNet)
 
 ```c#
-public class Startup {
-  public void ConfigureServices(IServiceCollection services)
-  {
-      services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase());
-      // This registers a SchemaProvider<DemoContext>
-      services.AddGraphQLSchema<DemoContext>();
-  }
+using EntityGraphQL.AspNet;
 
-  public void Configure(IApplicationBuilder app, DemoContext db)
-  {
-      app.UseRouting();
-      app.UseEndpoints(endpoints =>
-      {
-          // default to /graphql endpoint
-          endpoints.MapGraphQL<DemoContext>();
-      });
-  }
-}
+var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContext<DemoContext>(opt => opt.UseInMemoryDatabase("Demo"));
+builder.Services.AddGraphQLSchema<DemoContext>();
+
+var app = builder.Build();
+
+app.MapGraphQL<DemoContext>();
+
+app.Run();
 ```
 
 This sets up 1 end point:
