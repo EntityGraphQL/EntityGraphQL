@@ -110,6 +110,11 @@ public static class EntityGraphQLEndpointRouteExtensions
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
                         return;
                     }
+                    else
+                    {
+                        // keep the old behavior
+                        throw;
+                    }
                 }
             }
         );
