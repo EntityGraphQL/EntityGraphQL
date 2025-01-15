@@ -103,7 +103,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                 }
                 catch (Exception)
                 {
-                    // only exceptions we should get are ones that mean the request is invalid
+                    // only exceptions we should get are ones that mean the request is invalid, e.g. deserialization errors
                     // all other graphql specific errors should be in the response data
                     if (followSpec)
                     {
