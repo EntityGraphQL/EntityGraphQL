@@ -17,7 +17,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db, AddPer
     return (ctx) => ctx.People.First(p => p.Id == person.Id);
 }
 
-[MutationArguments]
+[GraphQLArguments]
 public class AddPersonArgs
 {
   [Required(AllowEmptyStrings = false, ErrorMessage = "Actor Name is required")]
@@ -184,7 +184,7 @@ You can use the `ArgumentValidator` attribute to register validator on input arg
 
 ```cs
 // On mutation arguments directly
-[MutationArguments]
+[GraphQLArguments]
 [ArgumentValidator(typeof(PersonValidator))]
 public class PersonArgs
 {

@@ -299,7 +299,7 @@ public Expression<Func<DemoContext, Person>> AddNewPerson(DemoContext db,
 }
 ```
 
-You may also have mutations where you want to have the same or similar arguments. EntityGraphQL lets you use a MutationArguments class. If a parameter in the method has the `GraphQLArgumentsAttribute` that type will be expanded. The above could be changed to the following.
+You may also have mutations where you want to have the same or similar arguments. EntityGraphQL lets you use a class. If a parameter in the method has the `GraphQLArgumentsAttribute` that type will be expanded. The above could be changed to the following.
 
 ```cs
 [GraphQLMutation("Add a new person to the system.")]

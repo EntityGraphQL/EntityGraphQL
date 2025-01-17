@@ -28,7 +28,7 @@ public class PeopleMutations
     }
 }
 
-[MutationArguments]
+[GraphQLArguments]
 public class AddPersonArgs
 {
     public PersonInput PersonInput { get; set; }
@@ -60,7 +60,7 @@ public class PeopleMutations
     }
 }
 
-[MutationArguments]
+[GraphQLArguments]
 public class AddPersonArgs
 {
     public Person PersonInput { get; set; }
