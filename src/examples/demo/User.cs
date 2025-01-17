@@ -6,8 +6,8 @@ namespace demo;
 public class User
 {
     public uint Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
+    public required string Name { get; set; }
+    public required string Email { get; set; }
 }
 
 // This could fetch users from some external API or other system
@@ -38,7 +38,7 @@ public class UserService
         };
     }
 
-    public User GetUser(uint createdBy)
+    public User? GetUser(uint createdBy)
     {
         return GetUsers().FirstOrDefault(u => u.Id == createdBy);
     }

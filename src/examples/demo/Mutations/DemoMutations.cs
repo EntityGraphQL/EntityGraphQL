@@ -14,17 +14,23 @@ public class DemoMutations
     public Expression<Func<DemoContext, Movie>> ExampleNoArgs(DemoContext db)
     {
         // do something smart here with db
-        db.Movies.Add(new Movie());
+        db.Movies.Add(
+            new Movie
+            {
+                Name = "Example Movie",
+                Director = new Person { FirstName = "Example", LastName = "Director" },
+            }
+        );
 
         return ctx => ctx.Movies.First();
     }
 
-    [GraphQLMutation("Example of a mutation that does not use the context or argments but does use registered services")]
+    [GraphQLMutation("Example of a mutation that does not use the context or arguments but does use registered services")]
     public int ExampleNoArgsWithService(AgeService ageService)
     {
         // we returning a scalar, you do not require the Expression<>
         // AgeService registered in DI. Use it here
-        return ageService.Calc(new Person().Dob);
+        return ageService.Calc(new Person { FirstName = "Example", LastName = "Bob" }.Dob);
     }
 
     /// <summary>
@@ -49,6 +55,7 @@ public class DemoMutations
             Name = args.Name,
             Released = args.Released,
             Rating = args.Rating,
+            Director = new Person { FirstName = "Example", LastName = "Director" },
         };
         db.Movies.Add(movie);
         db.SaveChanges();
@@ -56,7 +63,7 @@ public class DemoMutations
     }
 
     [GraphQLMutation]
-    public Expression<Func<DemoContext, Person>> AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, IGraphQLValidator validator)
+    public Expression<Func<DemoContext, Person>>? AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, IGraphQLValidator validator)
     {
         if (string.IsNullOrEmpty(args.FirstName))
             validator.AddError("Name argument is required");
@@ -75,7 +82,12 @@ public class DemoMutations
             LastName = args.LastName,
         };
         db.People.Add(person);
-        var actor = new Actor { MovieId = args.MovieId, Person = person };
+        var actor = new Actor
+        {
+            MovieId = args.MovieId,
+            Movie = new Movie { Name = "Movie 3", Director = person },
+            Person = person,
+        };
         db.Actors.Add(actor);
         db.SaveChanges();
 
@@ -98,7 +110,12 @@ public class DemoMutations
             LastName = args.LastName,
         };
         db.People.Add(person);
-        var actor = new Actor { MovieId = args.MovieId, Person = person };
+        var actor = new Actor
+        {
+            MovieId = args.MovieId,
+            Movie = new Movie { Name = "Movie 4", Director = person },
+            Person = person,
+        };
         db.Actors.Add(actor);
         db.SaveChanges();
 
@@ -115,7 +132,12 @@ public class DemoMutations
             LastName = args.Names.Last(),
         };
         db.People.Add(person);
-        var actor = new Actor { MovieId = args.MovieId, Person = person };
+        var actor = new Actor
+        {
+            MovieId = args.MovieId,
+            Movie = new Movie { Name = "Movie 4", Director = person },
+            Person = person,
+        };
         db.Actors.Add(actor);
         db.SaveChanges();
 
@@ -132,26 +154,26 @@ public class AddMovieArgs
     public Genre Genre;
 
     [Required(AllowEmptyStrings = false, ErrorMessage = "Movie Name is required")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public double Rating { get; set; }
     public DateTime Released;
-    public Detail Details { get; set; }
+    public Detail? Details { get; set; }
 }
 
 public class Detail
 {
-    public string Description { get; set; }
+    public required string Description { get; set; }
 }
 
 public class AddActorArgs
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
     public uint MovieId { get; set; }
 }
 
 public class AddActor3Args
 {
-    public List<string> Names { get; set; }
+    public required List<string> Names { get; set; }
     public uint MovieId { get; set; }
 }

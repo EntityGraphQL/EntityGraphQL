@@ -55,7 +55,7 @@ type Query {
 	actors(filter: String, sort: [QueryDirectorsSortInput!], first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Actors with offset paging"""
 	actorsOffset(skip: Int, take: Int): PersonPage
-	attributes: [StringKeyValuePair!]
+	attributes: [StringKeyValuePair!]!
 	"""List of directors"""
 	directors(sort: [QueryDirectorsSortInput!] = [{ lastName: ASC }]): [Person!]
 	"""Return a Movie by its Id"""
@@ -63,7 +63,7 @@ type Query {
 	"""Collection of Movies"""
 	movies(filter: String, sort: [QueryMoviesSortInput!], first: Int, after: String, last: Int, before: String): MovieConnection
 	"""Collection of Peoples"""
-	people: [Person!]
+	people: [Person!]!
 	"""Return a Person by its Id"""
 	person(id: Int!): Person
 	"""List of users"""
@@ -73,9 +73,9 @@ type Query {
 }
 
 type Actor {
-	movie: Movie
+	movie: Movie!
 	movieId: Int!
-	person: Person
+	person: Person!
 	personId: Int!
 }
 
@@ -88,23 +88,23 @@ type ConnectionEdgePerson {
 
 """Detail item"""
 input Detail {
-	description: String
+	description: String!
 }
 
 type Movie {
 	"""Actors in the movie"""
 	actors: [Person!]
-	agesOfActorsAtRelease: [Int!]
+	agesOfActorsAtRelease: [Int!]!
 	"""User who added this movie"""
 	contributedBy: User
 	createdBy: Int!
-	director: Person
+	director: Person!
 	directorAgeAtRelease: Int!
 	directorId: Int
 	"""Enum of Genre"""
 	genre: Genre!
 	id: Int!
-	name: String
+	name: String!
 	rating: Float!
 	released: Date!
 	"""Writers in the movie"""
@@ -147,7 +147,7 @@ type Person {
 	"""Show the person's age"""
 	age: Int!
 	died: Date
-	directorOf: [Movie!]
+	directorOf: [Movie!]!
 	dob: Date!
 	"""Get Director of based on filter"""
 	filteredDirectorOf(filter: String): [Movie!]
@@ -209,29 +209,29 @@ input QueryMoviesSortInput {
 
 """A user of the system"""
 type User {
-	email: String
+	email: String!
 	id: Int!
 	"""Movies this user added"""
 	moviesContributed: [Movie!]
-	name: String
+	name: String!
 }
 
 type Writer {
-	movie: Movie
+	movie: Movie!
 	movieId: Int!
-	person: Person
+	person: Person!
 	personId: Int!
 }
 
 type Mutation {
-	addActor(firstName: String, lastName: String, movieId: Int!): Person
-	addActor2(firstName: String, lastName: String, movieId: Int!): [Person!]
-	addActor3(names: [String!], movieId: Int!): [Person!]
+	addActor(firstName: String!, lastName: String!, movieId: Int!): Person!
+	addActor2(firstName: String!, lastName: String!, movieId: Int!): [Person!]!
+	addActor3(names: [String!]!, movieId: Int!): [Person!]!
 	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie
+	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie!
 	"""Example of a mutation that takes 0 arguments"""
-	exampleNoArgs: Movie
-	"""Example of a mutation that does not use the context or argments but does use registered services"""
+	exampleNoArgs: Movie!
+	"""Example of a mutation that does not use the context or arguments but does use registered services"""
 	exampleNoArgsWithService: Int!
 }
 

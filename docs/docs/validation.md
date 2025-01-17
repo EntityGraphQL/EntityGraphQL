@@ -47,7 +47,7 @@ services.AddScoped<IGraphQLValidator, MyGraphQLValidator>();
 public class MovieMutations
 {
   [GraphQLMutation]
-  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
+  public Expression<Func<MyDbContext, Movie>>? AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
   {
     if (string.IsNullOrEmpty(args.Name))
       validator.AddError("Name argument is required");
@@ -223,7 +223,7 @@ Errors often can be useful for end users. Other times they are for the developer
 public class MovieMutations
 {
   [GraphQLMutation]
-  public Expression<Func<MyDbContext, Movie>> AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
+  public Expression<Func<MyDbContext, Movie>>? AddActor(MyDbContext db, ActorArgs args, IGraphQLValidator validator)
   {
     if (string.IsNullOrEmpty(args.Name))
       validator.AddError("Name argument is required", new Dictionary<string, object> {{"type", 1}});

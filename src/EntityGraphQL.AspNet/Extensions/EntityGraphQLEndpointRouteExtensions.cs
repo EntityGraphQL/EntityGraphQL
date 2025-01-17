@@ -73,7 +73,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                         ?? throw new InvalidOperationException(
                             "No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
                         );
-                    var data = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options);
+                    var gqlResult = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options);
 
                     if (followSpec)
                     {
@@ -87,11 +87,11 @@ public static class EntityGraphQLEndpointRouteExtensions
                         context.Response.ContentType = $"{APP_JSON_TYPE_START}; charset=utf-8";
                     }
 
-                    if (data.Errors?.Count > 0)
+                    if (gqlResult.Errors?.Count > 0)
                     {
                         // TODO: change with 6.0. This is here as changing how errors are thrown would be a breaking change
                         // But following the spec this is not a valid request and should be a 400
-                        if (followSpec && data.Errors.Count == 1 && data.Errors[0].Message == "Please provide a persisted query hash or a query string")
+                        if (followSpec && gqlResult.Errors.Count == 1 && gqlResult.Errors[0].Message == "Please provide a persisted query hash or a query string")
                         {
                             context.Response.StatusCode = StatusCodes.Status400BadRequest;
                             return;
@@ -99,7 +99,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                         context.Response.StatusCode = followSpec ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest;
                     }
                     var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
-                    await serializer.SerializeAsync(context.Response.Body, data);
+                    await serializer.SerializeAsync(context.Response.Body, gqlResult);
                 }
                 catch (Exception)
                 {
@@ -112,7 +112,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                     }
                     else
                     {
-                        // keep the old behavior
+                        // keep the old behavior for v 5.x
                         throw;
                     }
                 }

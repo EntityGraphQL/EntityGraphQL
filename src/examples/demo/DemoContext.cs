@@ -50,14 +50,14 @@ public class DemoContext : DbContext
 public class Movie
 {
     public uint Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     [Description("Enum of Genre")]
     public virtual Genre Genre { get; set; }
     public virtual DateTime Released { get; set; }
-    public virtual List<Actor> Actors { get; set; }
-    public virtual List<Writer> Writers { get; set; }
-    public virtual Person Director { get; set; }
+    public virtual List<Actor> Actors { get; set; } = [];
+    public virtual List<Writer> Writers { get; set; } = [];
+    public virtual required Person Director { get; set; }
     public uint? DirectorId { get; set; }
     public double Rating { get; set; }
     public uint CreatedBy { get; set; }
@@ -81,17 +81,17 @@ public class Movie
 public class Actor
 {
     public uint PersonId { get; set; }
-    public virtual Person Person { get; set; }
+    public virtual required Person Person { get; set; }
     public uint MovieId { get; set; }
-    public virtual Movie Movie { get; set; }
+    public virtual required Movie Movie { get; set; }
 }
 
 public class Writer
 {
     public uint PersonId { get; set; }
-    public virtual Person Person { get; set; }
+    public virtual required Person Person { get; set; }
     public uint MovieId { get; set; }
-    public virtual Movie Movie { get; set; }
+    public virtual required Movie Movie { get; set; }
 }
 
 public enum Genre
@@ -117,14 +117,14 @@ public class Person
     public uint Id { get; set; }
 
     [GraphQLNotNull]
-    public string FirstName { get; set; }
+    public required string FirstName { get; set; }
 
     [GraphQLNotNull]
-    public string LastName { get; set; }
+    public required string LastName { get; set; }
     public DateTime Dob { get; set; }
-    public virtual List<Actor> ActorIn { get; set; }
-    public virtual List<Writer> WriterOf { get; set; }
-    public virtual List<Movie> DirectorOf { get; set; }
+    public virtual List<Actor> ActorIn { get; set; } = [];
+    public virtual List<Writer> WriterOf { get; set; } = [];
+    public virtual List<Movie> DirectorOf { get; set; } = [];
     public DateTime? Died { get; set; }
     public bool IsDeleted { get; set; }
 }

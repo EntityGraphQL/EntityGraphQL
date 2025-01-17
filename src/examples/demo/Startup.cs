@@ -137,19 +137,21 @@ public class Startup
                 LastName = "Darabont",
                 Dob = new DateTime(1959, 1, 28),
             },
-            Actors =
-            [
-                new Actor
-                {
-                    Person = new Person
-                    {
-                        Dob = new DateTime(1958, 10, 16),
-                        FirstName = "Tim",
-                        LastName = "Robbins",
-                    },
-                },
-            ],
         };
+        shawshank.Actors =
+        [
+            new Actor
+            {
+                Person = new Person
+                {
+                    Dob = new DateTime(1958, 10, 16),
+                    FirstName = "Tim",
+                    LastName = "Robbins",
+                },
+                Movie = shawshank,
+            },
+        ];
+
         db.Movies.Add(shawshank);
         var francis = new Person
         {
@@ -176,6 +178,7 @@ public class Startup
                     FirstName = "Marlon",
                     LastName = "Brando",
                 },
+                Movie = godfather,
             },
             new Actor
             {
@@ -185,9 +188,10 @@ public class Startup
                     FirstName = "Al",
                     LastName = "Pacino",
                 },
+                Movie = godfather,
             },
         ];
-        godfather.Writers = [new Writer { Person = francis }];
+        godfather.Writers = [new Writer { Person = francis, Movie = godfather }];
 
         db.Movies.Add(godfather);
 
