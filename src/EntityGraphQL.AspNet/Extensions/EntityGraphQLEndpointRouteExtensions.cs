@@ -42,8 +42,10 @@ public static class EntityGraphQLEndpointRouteExtensions
                 if (followSpec)
                 {
                     // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
+                    // "May reply with error if not supplied" choosing not to
                     if (
-                        !acceptedContentType.Any(h => h?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
+                        acceptedContentType.Count > 0
+                        && !acceptedContentType.Any(h => h?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
                         && !acceptedContentType.Any(h => h?.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
                     )
                     {
