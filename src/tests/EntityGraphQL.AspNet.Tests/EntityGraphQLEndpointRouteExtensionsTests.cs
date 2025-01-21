@@ -20,13 +20,14 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
     }
 
     [Fact]
-    public async Task GraphQL_Endpoint_No_Accept_Errors()
+    public async Task GraphQL_Endpoint_No_Accept_Header_Ok()
     {
         var graphqlRequest = new { query = "{ hello }" };
         var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/graphql", requestBody);
 
-        Assert.Equal(HttpStatusCode.NotAcceptable, response.StatusCode);
+        // will default to JSON
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
