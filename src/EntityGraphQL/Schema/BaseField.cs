@@ -255,4 +255,16 @@ public abstract class BaseField : IField
         Directives.Add(directive);
         return this;
     }
+
+    /// <summary>
+    /// Defines if the return type of this field is nullable or not.
+    /// </summary>
+    /// <param name="nullable"></param>
+    /// <returns></returns>
+    public IField IsNullable(bool nullable)
+    {
+        ReturnType.TypeNotNullable = !nullable;
+
+        return this;
+    }
 }

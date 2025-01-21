@@ -77,6 +77,12 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                         result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 #endif
+
+                    // often use return null if mutation failed and added errors to validation
+                    // don't include it if it is not a nullable field
+                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
+                        continue;
+
                     result[node.Name] = data;
                 }
             }

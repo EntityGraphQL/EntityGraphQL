@@ -5,6 +5,7 @@
 - Added additional framework target `net9.0`
 - `ResolveWithService` and `ResolveWithServices` methods are now marked obsolete. Please use `Resolve` in the same way
 - #430 - `MapGraphQL` has new parameter `followSpec` which changes the behavior to follow https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md and is `false` by default in v5.x. If set to `true` it will follow the spec, the major change being that if the HTTP request was valid you'll get a `200` status code even if there may be GraphQL errors in the response. _Note this will be the default behavior in version v6._
+- Add `IsNullable` to the `IField` interface to control setting the nullability of the field return type in the schema
 
 ## Fixes
 
@@ -18,6 +19,7 @@ schema.Type<User>().AddField("username", u => u.Name, "Username")
 ```
 
 - #439 - Fix using fields / properties with key words (`null`, `true`, `false`) at the start of the name in the filter expressions
+- Related to #430 - Make sure if the schema says a field is not nullable, that it is not returned as `null` when using `null` to exit a mutation or field on error.
 
 # 5.5.3
 

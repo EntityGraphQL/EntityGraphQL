@@ -64,7 +64,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 #endif
 
                     var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
-
                     var data = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
@@ -73,6 +72,10 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                         result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 #endif
+                    // often use return null if mutation failed and added errors to validation
+                    // don't include it if it is not a nullable field
+                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
+                        continue;
                     result[node.Name] = data;
                 }
             }

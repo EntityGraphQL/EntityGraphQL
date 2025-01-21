@@ -143,4 +143,6 @@ public interface IField
     /// </summary>
     /// <param name="policies"></param>
     IField RequiresAnyPolicy(params string[] policies);
+
+    IField IsNullable(bool nullable);
 }

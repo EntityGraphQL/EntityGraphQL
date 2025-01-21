@@ -106,6 +106,11 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 }
 #endif
 
+                // often use return null if mutation failed and added errors to validation
+                // don't include it if it is not a nullable field
+                if (data == null && fieldNode.Field?.ReturnType.TypeNotNullable == true)
+                    continue;
+
                 if (didExecute)
                     result[fieldNode.Name] = data;
             }

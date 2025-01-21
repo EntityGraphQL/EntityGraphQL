@@ -132,7 +132,7 @@ public class Field : BaseField
     /// </summary>
     /// <param name="nullable"></param>
     /// <returns></returns>
-    public Field IsNullable(bool nullable)
+    public new Field IsNullable(bool nullable)
     {
         ReturnType.TypeNotNullable = !nullable;
 

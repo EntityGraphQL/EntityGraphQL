@@ -58,4 +58,14 @@ public class QueryResult : Dictionary<string, object>
     {
         this[DataKey] = data.ToDictionary(d => d.Key, d => d.Value);
     }
+
+    public void RemoveDataKey()
+    {
+        Remove(DataKey);
+    }
+
+    public bool HasErrorKey()
+    {
+        return ContainsKey(ErrorsKey);
+    }
 }

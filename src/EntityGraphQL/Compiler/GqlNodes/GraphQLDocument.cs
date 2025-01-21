@@ -119,6 +119,9 @@ public class GraphQLDocument : IGraphQLNode
         if (validator?.Errors.Count > 0)
             result.AddErrors(validator.Errors);
 
+        if (result.Data?.Count == 0 && result.HasErrorKey())
+            result.RemoveDataKey();
+
         return result;
     }
 
