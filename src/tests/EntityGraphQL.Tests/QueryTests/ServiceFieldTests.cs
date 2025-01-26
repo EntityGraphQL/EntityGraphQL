@@ -1928,6 +1928,55 @@ public class ServiceFieldTests
         Assert.Equal("username", project.createdBy.GetType().GetFields()[0].Name);
     }
 
+    [Fact]
+    public void TestGeneratedNamesDoNotCollide()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.UpdateType<Project>(p =>
+        {
+            // Here the expression project is extracted and the expression is used for a field name, which is a duplicate of the project field
+            p.AddField("getProjectId", "Something").Resolve<UserService>((project, us) => us.GetProjectId(project).GetAwaiter().GetResult());
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                    project(id: 1) {
+                        name
+                        getProjectId
+                    }
+                }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    Name = "Project 1",
+                    CreatedBy = 1,
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+
+        var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        Assert.NotNull(res.Data);
+        dynamic project = res.Data["project"]!;
+        Assert.Equal(2, project.GetType().GetFields().Length);
+        Assert.Equal("name", Enumerable.ElementAt(project.GetType().GetFields(), 0).Name);
+        Assert.Equal("getProjectId", Enumerable.ElementAt(project.GetType().GetFields(), 1).Name);
+    }
+
     public class ConfigService
     {
         public ConfigService()
@@ -2202,6 +2251,12 @@ public class UserService
         Calls.Add(nameof(GetUserByIdForProjectId));
         // "load" users from IDs and return them
         return ids.ToDictionary(id => id, i => i != id ? null : new User { Id = i, Name = $"Name_{i}" });
+    }
+
+    internal async Task<int> GetProjectId(Project project)
+    {
+        CallCount += 1;
+        return await System.Threading.Tasks.Task.FromResult(project.Id);
     }
 }
 

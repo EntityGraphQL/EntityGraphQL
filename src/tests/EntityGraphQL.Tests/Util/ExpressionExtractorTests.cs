@@ -17,7 +17,7 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
-        Assert.Equal("x_TotalPeople", extracted.First().Key);
+        Assert.Equal("egql__x_TotalPeople", extracted.First().Key);
         Assert.Equal(expression.Body, extracted.First().Value.First());
     }
 
@@ -30,7 +30,7 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
-        Assert.Equal("person_Birthday", extracted.First().Key);
+        Assert.Equal("egql__person_Birthday", extracted.First().Key);
         Assert.Equal(((MethodCallExpression)expression.Body).Arguments[0], extracted.First().Value.First());
     }
 
@@ -43,9 +43,9 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Equal(2, extracted.Count);
-        Assert.Equal("p_Name", extracted.First().Key);
+        Assert.Equal("egql__p_Name", extracted.First().Key);
         Assert.Equal(((MethodCallExpression)expression.Body).Arguments[0], extracted.First().Value.First());
-        Assert.Equal("p_Children_First___Name", extracted.ElementAt(1).Key);
+        Assert.Equal("egql__p_Children_First___Name", extracted.ElementAt(1).Key);
         Assert.Equal(((MethodCallExpression)expression.Body).Arguments[1], extracted.ElementAt(1).Value.First());
     }
 
@@ -58,7 +58,7 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
-        Assert.Equal("ctx_Birthday", extracted.First().Key);
+        Assert.Equal("egql__ctx_Birthday", extracted.First().Key);
         Assert.Equal(((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression.Body).Object!).Object!).Arguments[0], extracted.First().Value.First());
     }
 
@@ -71,7 +71,7 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
-        Assert.Equal("project_Updated", extracted.First().Key);
+        Assert.Equal("egql__project_Updated", extracted.First().Key);
         Assert.Equal(2, extracted.First().Value.Count);
         Assert.Equal(((BinaryExpression)((ConditionalExpression)expression.Body).Test).Left, extracted.First().Value.First());
         Assert.Equal(
@@ -89,7 +89,7 @@ public class ExpressionExtractorTests
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
-        Assert.Equal("user_RelationId", extracted.First().Key);
+        Assert.Equal("egql__user_RelationId", extracted.First().Key);
         Assert.Equal(2, extracted.First().Value.Count);
         Assert.Equal(((MemberExpression)((ConditionalExpression)expression.Body).Test).Expression, extracted.First().Value.First());
         Assert.Equal(

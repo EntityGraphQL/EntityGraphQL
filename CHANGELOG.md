@@ -20,6 +20,7 @@ schema.Type<User>().AddField("username", u => u.Name, "Username")
 
 - #439 - Fix using fields / properties with key words (`null`, `true`, `false`) at the start of the name in the filter expressions
 - Related to #430 - Make sure if the schema says a field is not nullable, that it is not returned as `null` when using `null` to exit a mutation or field on error.
+- Fix issue where an expression extracted from a service field may clash with a existing field name
 
 # 5.5.3
 

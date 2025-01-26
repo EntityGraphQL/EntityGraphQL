@@ -49,7 +49,7 @@ public class ExpressionExtractor : ExpressionVisitor
         {
             var expressionItem = currentExpression.Peek();
             // use the expression as the extracted field name as it will be unique
-            var name = pattern.Replace(expressionItem.ToString(), "_");
+            var name = "egql__" + pattern.Replace(expressionItem.ToString(), "_");
             if (extractedExpressions!.TryGetValue(name, out var existing))
             {
                 existing.Add(expressionItem);
