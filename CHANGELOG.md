@@ -1,3 +1,9 @@
+# 5.6.1
+
+## Fixes
+
+- #443 - Allow `*/*` `Accept` header in `followSpec` option for `MapGraphQL`
+
 # 5.6.0
 
 ## Changes

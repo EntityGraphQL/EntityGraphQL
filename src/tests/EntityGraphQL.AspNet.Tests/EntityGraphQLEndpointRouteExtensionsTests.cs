@@ -181,6 +181,85 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         Assert.Equal("This is a test error", json["errors"]!.AsArray()[0]!["message"]!.GetValue<string>());
     }
 
+    [Fact]
+    public async Task GraphQL_Endpoint_FollowSpec_Supports_Wildcard()
+    {
+        var graphqlRequest = new { query = "{ hello }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentType?.MediaType == "application/graphql-response+json", "Content-Type is not application/graphql-response+json.");
+
+        await CheckResponseIsValid(response);
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_FollowSpec_Takes_Order()
+    {
+        var graphqlRequest = new { query = "{ hello }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/graphql-response+json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentType?.MediaType == "application/graphql-response+json", "Content-Type is not application/graphql-response+json.");
+
+        await CheckResponseIsValid(response);
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_FollowSpec_Takes_Order2()
+    {
+        var graphqlRequest = new { query = "{ hello }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/graphql-response+json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentType?.MediaType == "application/json", "Content-Type is not application/json.");
+
+        await CheckResponseIsValid(response);
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_FollowSpec_Supports_Multiple_SingleLine()
+    {
+        var graphqlRequest = new { query = "{ hello }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Add("Accept", "application/graphql-response+json, application/json, text/event-stream");
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentType?.MediaType == "application/graphql-response+json", "Content-Type is not application/graphql-response+json.");
+
+        await CheckResponseIsValid(response);
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_FollowSpec_Supports_Multiple_SingleLine_Order()
+    {
+        var graphqlRequest = new { query = "{ hello }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Add("Accept", "application/json, application/graphql-response+json, text/event-stream");
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentType?.MediaType == "application/json", "Content-Type is not application/json.");
+
+        await CheckResponseIsValid(response);
+    }
+
     private static async Task CheckResponseIsValid(HttpResponseMessage response)
     {
         var responseString = await response.Content.ReadAsStringAsync();
