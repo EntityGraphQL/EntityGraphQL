@@ -47,7 +47,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                         acceptedContentType.Count > 0
                         && !acceptedContentType.Any(h => h?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
                         && !acceptedContentType.Any(h => h?.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
-                        && !acceptedContentType.Any(ct => ct == "*/*")
+                        && !acceptedContentType.Any(h => h?.StartsWith("*/*", StringComparison.InvariantCulture) == true)
                     )
                     {
                         context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
