@@ -80,9 +80,10 @@ public static class EntityGraphQLEndpointRouteExtensions
 
                     if (followSpec)
                     {
-                        var requestedType = acceptedContentType.FirstOrDefault(t =>
-                            t?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true || t?.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true
-                        );
+                        var requestedType = acceptedContentType
+                            .Where(t => t != null)
+                            .SelectMany(t => t!.Split(","))
+                            .FirstOrDefault(t => t!.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t!.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture));
                         context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
                     }
                     else
