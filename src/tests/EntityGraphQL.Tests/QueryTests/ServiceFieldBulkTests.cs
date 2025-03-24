@@ -851,4 +851,129 @@ public class ServiceFieldBulkTests
         Assert.Equal(1, userService.CallCount);
         Assert.Equal(nameof(UserService.GetAllUsers), userService.Calls.First());
     }
+
+    [Fact(Skip = "Not implemented yet")]
+    public void TestServicesBulkResolverInRenamedField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.AddField("projectTasks", p => p.Tasks, "Tasks");
+        });
+        schema.UpdateType<Task>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((task, users) => users.GetUserById(task.Id))
+                .ResolveBulk<UserService, int, User>(task => task.Id, (ids, srv) => srv.GetUsersByProjectId(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                projects { 
+                    id
+                    projectTasks {
+                        name createdBy { id field2 } 
+                    }
+                } 
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks = [new() { Id = 1, Name = "Task 1" }, new() { Id = 2, Name = "Task 2" }],
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2",
+                    Tasks = [new() { Id = 3, Name = "Task 3" }, new() { Id = 4, Name = "Task 4" }],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // called once not for each project
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(2, projects.Count);
+        var project = projects[0];
+        Assert.Equal(2, project.tasks.Count);
+    }
+
+    [Fact(Skip = "Not implemented yet")]
+    public void TestBulkServiceInAnotherServiceField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Task>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it").Resolve<UserService>((task, userSrv1) => userSrv1.GetUserById(task.Id));
+        });
+        schema.UpdateType<User>(type =>
+        {
+            // just need something to resolve to fit the pattern
+            type.AddField("userData", "Get user data")
+                .Resolve<UserService>((user, userSrv2) => userSrv2.GetUserById(user.Id))
+                .ResolveBulk<UserService, int, User>(user => user.Id, (ids, bulkSrv) => bulkSrv.GetAllUsers(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                projects { 
+                    tasks { # service
+                        createdBy { 
+                            # service with bulk which can't be used because the parent field isn't a list - still should work though with Resolve()
+                            userData { id } 
+                        } 
+                    }
+                } 
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks = [new() { Id = 1, Name = "Task 1" }, new() { Id = 2, Name = "Task 2" }, new() { Id = 3, Name = "Task 3" }],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // service should be called twice for all task - createdBy and userData
+        Assert.Equal(2, userService.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Single(projects);
+        var project = projects[0];
+        Assert.Equal(2, project.tasks.Count);
+        Assert.Equal(1, project.tasks[0].createdBy.userData.id);
+    }
 }
