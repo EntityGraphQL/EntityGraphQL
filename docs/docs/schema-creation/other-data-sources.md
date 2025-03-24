@@ -152,7 +152,7 @@ You'll see none of the other fields are in the expression and therefore the meth
 
 ## Bulk data loading
 
-You'll notice that a service may be used to resolve a field (that field may return a complex object), what happens if that field in on a type that is in a list result? For example let's assume our user data comes from an external service
+You'll notice that a service field (that may return a complex object) selected within a list field will trigger the service to be called for each item in the list to resolve the service field. For example let's assume our user data comes from an external service
 
 ```cs
 schema.UpdateType<Project>(type => {
@@ -187,7 +187,7 @@ EntityGraphQL will create an expression similar to this.
 });
 ```
 
-Note this is just to demonstrate concepts, EntityGraphQL will wrap the call to `userService.GetUserById(project.Id)` to avoid multiple calls if you select other fields on the `createdBy` field. However it will be called for each `Project` result. If there are 1,000 projects, `GetUserById` will be called 1,000 times with the ID for that project.
+Note this is just to demonstrate concepts, EntityGraphQL will wrap the call to `userService.GetUserById(project.Id)` to avoid multiple calls if you select other fields on the `createdBy` field. However it will be called for each `Project` in the results. If there are 1,000 projects, `GetUserById` will be called 1,000 times with the ID for that project.
 
 Depending on what `GetUserById` does this may not be an issue. You can also build your services to include a short-timed cache for results to speed things up. However, you may want to actually load all the user data for all projects at once. To do this you can use `ResolveBulk`.
 
