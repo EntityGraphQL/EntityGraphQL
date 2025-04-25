@@ -932,14 +932,16 @@ public class ServiceFieldBulkTests
                 .ResolveBulk<UserService, int, User>(user => user.Id, (ids, bulkSrv) => bulkSrv.GetAllUsers(ids));
         });
 
+        // basically in this case, userData can not be resolved with the bulk resolver until createdBy is resolved
         var gql = new QueryRequest
         {
             Query =
                 @"{ 
                 projects { 
-                    tasks { # service
+                    tasks { 
+                        # service
                         createdBy { 
-                            # service with bulk which can't be used because the parent field isn't a list - still should work though with Resolve()
+                            # service with bulk resolve
                             userData { id } 
                         } 
                     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using EntityFrameworkCore.Projectables;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -25,6 +26,7 @@ public class DemoContext : DbContext
         builder.Entity<Movie>().HasOne(d => d.Director).WithMany(p => p.DirectorOf).HasForeignKey(d => d.DirectorId);
         builder.Entity<Person>().HasMany(p => p.ActorIn).WithOne(a => a.Person);
         builder.Entity<Person>().HasMany(p => p.WriterOf).WithOne(a => a.Person);
+        builder.Entity<Person>().HasMany(p => p.Children).WithOne(a => a.Parent);
     }
 
     [Description("Collection of Movies")]
@@ -127,4 +129,9 @@ public class Person
     public virtual List<Movie> DirectorOf { get; set; } = [];
     public DateTime? Died { get; set; }
     public bool IsDeleted { get; set; }
+
+    [JsonIgnore]
+    public Person? Parent { get; set; }
+
+    public List<Person> Children { get; set; } = [];
 }

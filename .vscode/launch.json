@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/examples/demo/bin/Debug/net8.0/demo.dll",
+            "program": "${workspaceFolder}/src/examples/demo/bin/Debug/net9.0/demo.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/examples/demo",
             "stopAtEntry": false,

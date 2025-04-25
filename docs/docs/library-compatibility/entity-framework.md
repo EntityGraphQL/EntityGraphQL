@@ -84,11 +84,11 @@ Other ORMs built on top of `LinqProvider` and `IQueryable` should also work alth
 
 ## How EntityGraphQL handles services / Resolve&lt;TService&gt;()
 
-Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `Resolve<TService>()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF core 3.1+ will throw an error by default if it can't translate an expression to SQL. It can't translate the services used in `Resolve<TService>()` to SQL. To support EF 3.1+ performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
+Since using EntityGraphQL against an Entity Framework Core `DbContext` is supported we handle `Resolve<TService>()` in a way that will work with EF Core (and possibly other IQueryable based ORMs) which allows EF to build an optimal SQL statement. EF Core will throw an error by default if it can't translate an expression to SQL. It can't translate the expressions used in `Resolve<TService>()` to SQL. To support EF Core performing optimal queries (and selecting only the fields you request) EntityGraphQL builds and executes the expressions in 2 parts.
 
 _This can be disabled by setting the argument `ExecuteServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
 
-If you encounter any issues when using `Resolve<TService>()` on fields and EF Core 3.1+ please raise an issue.
+If you encounter any issues when using `Resolve<TService>()` on fields and EF Core please raise an issue.
 
 Example of how EntityGraphQL handles `Resolve<TService>()`, which can help inform how you build/use other services.
 
@@ -139,7 +139,7 @@ This allows EF Core to make its optimizations and prevent over-fetching of data 
 
 As seen above EntityGraphQL will execute 2 expressions. The first with all data on the main query context (in this case the `DbContext`) without the service fields and the second against the result of that query including the service fields.
 
-To do this EntityGraphQL needs to update the service field expressions. It does that by first extracting all the expressions form a service that relate to the main query context. For example
+To do this EntityGraphQL needs to update the service field expressions. It does that by first extracting all the expressions from a service that relate to the main query context. For example
 
 ```cs
 schema.UpdateType<Floor>(type => {

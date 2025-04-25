@@ -62,8 +62,8 @@ type Query {
 	movie(id: Int!): Movie
 	"""Collection of Movies"""
 	movies(filter: String, sort: [QueryMoviesSortInput!], first: Int, after: String, last: Int, before: String): MovieConnection
-	"""Collection of Peoples"""
-	people: [Person!]!
+	"""Get a page of people"""
+	people(first: Int, after: String, last: Int, before: String): PersonConnection
 	"""Return a Person by its Id"""
 	person(id: Int!): Person
 	"""List of users"""
@@ -146,6 +146,7 @@ type Person {
 	actorIn: [Movie!]
 	"""Show the person's age"""
 	age: Int!
+	children: [Person!]!
 	died: Date
 	directorOf: [Movie!]!
 	dob: Date!
@@ -157,6 +158,7 @@ type Person {
 	lastName: String!
 	"""Person's name"""
 	name: String
+	parent: Person
 	"""Movies they wrote"""
 	writerOf: [Movie!]
 }

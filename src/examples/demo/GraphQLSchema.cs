@@ -62,6 +62,8 @@ public class GraphQLSchema
         );
         demoSchema.Query().AddField("users", "List of users").Resolve<UserService>((_, users) => users.GetUsers());
 
+        demoSchema.Query().ReplaceField("people", db => db.People.OrderBy(e => e.Id), "Get a page of people").UseConnectionPaging();
+
         // add some mutations
         demoSchema.AddInputType<Detail>("Detail", "Detail item").AddAllFields();
         demoSchema.Mutation().AddFrom<DemoMutations>();

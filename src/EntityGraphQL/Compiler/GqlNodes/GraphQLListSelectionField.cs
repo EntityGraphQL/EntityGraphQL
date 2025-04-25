@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -172,7 +173,8 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         return resultExpression;
     }
 
-    protected override ParameterExpression? HandleBulkResolverForField(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected override void HandleBulkResolverForField(
         CompileContext compileContext,
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
@@ -181,6 +183,6 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         ParameterReplacer replacer
     )
     {
-        return DefaultHandleBulkResolverForField(compileContext, field, bulkResolver, docParam, docVariables, replacer);
+        DefaultHandleBulkResolverForField(compileContext, field, bulkResolver, docParam, docVariables, replacer);
     }
 }

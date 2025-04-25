@@ -33,7 +33,7 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddDbContext<DemoContext>(opt =>
-            opt.UseLazyLoadingProxies().UseSqlite("Filename=demo.db")
+            opt.UseSqlite("Filename=demo.db")
         // .UseProjectables()
         );
 

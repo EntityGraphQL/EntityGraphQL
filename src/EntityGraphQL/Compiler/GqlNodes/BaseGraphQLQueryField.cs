@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -64,7 +65,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                 if (withoutServiceFields)
                 {
                     // This is where we have the information to build the bulk resolver data loading expression
-                    var newArgParam = HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
+                    HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
                 }
             }
             // Might be a fragment that expands into many fields hence the Expand
@@ -126,7 +127,8 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         return selectionFields;
     }
 
-    protected virtual ParameterExpression? HandleBulkResolverForField(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected virtual void HandleBulkResolverForField(
         CompileContext compileContext,
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
@@ -136,13 +138,12 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     )
     {
         // default do nothing
-        return field.Field?.ArgumentsParameter;
     }
 
     /// <summary>
     /// Default shared implementation for handling bulk resolvers
     /// </summary>
-    protected ParameterExpression? DefaultHandleBulkResolverForField(
+    protected void DefaultHandleBulkResolverForField(
         CompileContext compileContext,
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
@@ -217,6 +218,5 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         }
         compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, listExpression, bulkResolver.ExtractedFields);
         compileContext.AddServices(field.Field!.Services);
-        return newArgParam;
     }
 }
