@@ -11,9 +11,7 @@ public class GraphQLAuthorizePolicyAttribute : Attribute
     /// Initializes a new instance of the GraphQLAuthorizeAttribute class
     /// </summary>
     public GraphQLAuthorizePolicyAttribute()
-    {
-        Policies = [];
-    }
+        : this([]) { }
 
     /// <summary>
     /// Initializes a new instance of the GraphQLAuthorizePolicyAttribute class with the specified policies.

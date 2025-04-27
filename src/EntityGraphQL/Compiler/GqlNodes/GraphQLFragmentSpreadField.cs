@@ -84,6 +84,6 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         ParameterReplacer replacer
     )
     {
-        throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
+        throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non-fragment fields");
     }
 }

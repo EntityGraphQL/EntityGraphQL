@@ -203,7 +203,7 @@ public abstract class MethodField : BaseField
     {
         var result = fieldExpression;
 
-        if (schemaContext != null && result != null)
+        if (schemaContext != null)
         {
             result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
         }

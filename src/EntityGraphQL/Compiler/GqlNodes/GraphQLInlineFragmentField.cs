@@ -68,6 +68,6 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
         ParameterReplacer replacer
     )
     {
-        throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non fragment fields");
+        throw new EntityGraphQLCompilerException($"Inline fragment should have expanded out into non-fragment fields");
     }
 }
