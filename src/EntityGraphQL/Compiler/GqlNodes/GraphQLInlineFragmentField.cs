@@ -33,27 +33,6 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
         return QueryFields.SelectMany(x => x.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
     }
 
-    internal override IEnumerable<BaseGraphQLField> ExpandFromServices(bool withoutServiceFields, BaseGraphQLField? field)
-    {
-        if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
-            return Field.ExtractedFieldsFromServices.ToList();
-
-        // we do not want to return the fragment field
-        return withoutServiceFields && HasServices ? [] : (field != null ? [field] : []);
-    }
-
-    private static void GetServices(CompileContext compileContext, BaseGraphQLField gqlField)
-    {
-        if (gqlField.Field != null && gqlField.Field.Services.Count > 0)
-        {
-            compileContext.AddServices(gqlField.Field.Services);
-        }
-        foreach (var subField in gqlField.QueryFields)
-        {
-            GetServices(compileContext, subField);
-        }
-    }
-
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,

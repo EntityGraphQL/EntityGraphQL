@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -206,4 +208,56 @@ fragment info on Person {
         Assert.Equal("Int", field.type.ofType.name);
         Assert.Equal("SCALAR", field.type.ofType.kind);
     }
+
+    [Fact]
+    public void Test_InlineFragment_With_Service()
+    {
+        var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
+        Assert.True(schema.HasType(typeof(IAnimal)));
+        Assert.Equal(GqlTypes.Union, schema.GetSchemaType(typeof(IAnimal), false, null).GqlType);
+
+        schema.Type<IAnimal>().AddPossibleType<Dog>();
+        schema.Type<IAnimal>().AddPossibleType<Cat>();
+        Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), false, null).GqlType);
+        Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), false, null).GqlType);
+        schema.UpdateType<Cat>(catType =>
+        {
+            catType.AddField("isAngry", "Is the cat angry").Resolve<CatAngerService>((cat, service) => service.IsAngry(cat.Id));
+        });
+
+        var gql = new GraphQLCompiler(schema).Compile(
+            @"
+            query {
+                animals {
+                    ... on Cat {
+                        name
+                        isAngry
+                    }
+                }
+            }"
+        );
+        var context = new TestUnionDataContext();
+        context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
+        context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
+
+        var services = new ServiceCollection().AddSingleton<CatAngerService>();
+
+        var qr = gql.ExecuteQuery(context, services.BuildServiceProvider(), null);
+        dynamic animals = qr.Data!["animals"]!;
+        // we only have the fields requested
+        Assert.Equal(2, animals.Count);
+
+        // Dogs are not null but have 0 fields
+        Assert.NotNull(animals[0]);
+        Assert.Empty(animals[0].GetType().GetFields());
+
+        Assert.Equal("george", animals[1].name);
+        Assert.True(animals[1].isAngry);
+    }
+}
+
+internal class CatAngerService
+{
+    // When is a cat not angry?
+    internal bool IsAngry(int id) => true;
 }

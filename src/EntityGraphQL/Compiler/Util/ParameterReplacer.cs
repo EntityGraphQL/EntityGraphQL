@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.Util;
@@ -17,6 +18,7 @@ public class ParameterReplacer : ExpressionVisitor
     private Expression? toReplace;
     private bool finished;
     private bool replaceWholeExpression;
+    private List<Type>? possibleNextContextTypes;
     private string? newFieldNameForType;
     private Dictionary<object, Expression> cache = [];
     private bool hasNewFieldNameForType;
@@ -30,17 +32,18 @@ public class ParameterReplacer : ExpressionVisitor
     /// <param name="newParam">New expression to be used in the expression tree</param>
     /// <param name="replaceWholeExpression"></param>
     /// <returns></returns>
-    public Expression Replace(Expression node, Expression toReplace, Expression newParam, bool replaceWholeExpression = false)
+    public Expression Replace(Expression node, Expression toReplace, Expression newParam, bool replaceWholeExpression = false, List<Type>? possibleNextContextTypes = null)
     {
         if (node == toReplace)
             return newParam;
 
         this.newParam = newParam;
         this.toReplace = toReplace;
-        this.toReplaceType = null;
-        this.newFieldNameForType = null;
+        toReplaceType = null;
+        newFieldNameForType = null;
         finished = false;
         this.replaceWholeExpression = replaceWholeExpression;
+        this.possibleNextContextTypes = possibleNextContextTypes;
         cache = [];
         return Visit(node);
     }
@@ -58,11 +61,12 @@ public class ParameterReplacer : ExpressionVisitor
     {
         this.newParam = newParam;
         this.toReplaceType = toReplaceType;
-        this.toReplace = null;
+        toReplace = null;
         finished = false;
-        this.newFieldNameForType = newContextFieldName;
+        newFieldNameForType = newContextFieldName;
         hasNewFieldNameForType = newFieldNameForType != null;
         replaceWholeExpression = false;
+        possibleNextContextTypes = null;
         cache = [];
         return Visit(node);
     }
@@ -150,7 +154,31 @@ public class ParameterReplacer : ExpressionVisitor
                         if (nodeExp.Type.IsValueType && nodeExp.Type.IsNullableType())
                             nodeExp = Expression.PropertyOrField(nodeExp, nameof(Nullable<int>.Value));
                         // extracted fields get flatten as they are selected in the first pass. The new expression can be built
-                        nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                        // also need to deal with union types
+                        if (
+                            nodeExp.Type.GetProperty(node.Member.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) != null
+                            || nodeExp.Type.GetField(node.Member.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) != null
+                        )
+                        {
+                            nodeExp = Expression.PropertyOrField(nodeExp, node.Member.Name);
+                        }
+                        else if (possibleNextContextTypes != null)
+                        {
+                            // if we have a union type then we need to check the possible types
+                            foreach (var possibleType in possibleNextContextTypes)
+                            {
+                                if (possibleType.GetProperty(fieldName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) is PropertyInfo caseInsensitiveProp)
+                                {
+                                    nodeExp = Expression.Property(Expression.Convert(nodeExp, possibleType), caseInsensitiveProp);
+                                    break;
+                                }
+                                if (possibleType.GetField(fieldName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) is FieldInfo caseInsensitiveField)
+                                {
+                                    nodeExp = Expression.Field(Expression.Convert(nodeExp, possibleType), caseInsensitiveField);
+                                    break;
+                                }
+                            }
+                        }
                     }
                     catch (ArgumentException)
                     {

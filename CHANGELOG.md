@@ -919,6 +919,7 @@ app.UseEndpoints(endpoints =>
 - Fix issue using Connection/Offset paging on collection fields that were not on the query root
 - Fix issue using Connection/Offset paging on collection fields that have service fields
 - Option to add default sort when using `UseSort()` field extension
+- Fix service fields in an inline fragment selection
 
 # 0.70.0
 

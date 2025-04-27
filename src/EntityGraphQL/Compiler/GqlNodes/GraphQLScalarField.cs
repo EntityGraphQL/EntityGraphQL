@@ -51,7 +51,7 @@ public class GraphQLScalarField : BaseGraphQLField
         // See test InheritanceTestUsingResolveWithServiceUsingArgs
         if (contextChanged && replacementNextFieldContext != null)
         {
-            nextFieldContext = ReplaceContext(replacementNextFieldContext!, replacer, nextFieldContext!, possibleNextContextTypes);
+            nextFieldContext = ReplaceContext(replacementNextFieldContext, replacer, nextFieldContext!, possibleNextContextTypes);
         }
 
         HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);

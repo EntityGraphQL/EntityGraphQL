@@ -318,7 +318,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             // may need to replace the field's original parameter
             if (Field?.FieldParam != null)
             {
-                nextFieldContext = replacer.Replace(nextFieldContext, Field.FieldParam, replacementNextFieldContext);
+                nextFieldContext = replacer.Replace(nextFieldContext, Field.FieldParam, replacementNextFieldContext, false, possibleNextContextTypes);
             }
         }
 
