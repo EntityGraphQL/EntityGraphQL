@@ -169,7 +169,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         var anonType = anonNewExpression.Type;
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(anonType);
         var edgeParam = Expression.Parameter(edgeType, "newEdgeParam");
-        var newNodeExpression = parameterReplacer.ReplaceByType(anonNewExpression, firstSelectParam.Type, firstSelectParam);
+        var newNodeExpression = parameterReplacer.Replace(anonNewExpression, selectContextParam!, firstSelectParam);
 
         baseExpression = Expression.Call(
             isQueryable ? typeof(Queryable) : typeof(Enumerable),
