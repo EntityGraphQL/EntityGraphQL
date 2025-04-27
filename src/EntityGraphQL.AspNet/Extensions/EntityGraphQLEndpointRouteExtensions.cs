@@ -38,16 +38,18 @@ public static class EntityGraphQLEndpointRouteExtensions
             path,
             async context =>
             {
-                var acceptedContentType = context.Request.Headers.Accept;
+                var acceptValues = context.Request.GetTypedHeaders().Accept;
+                var sorted = acceptValues.OrderByDescending(h => h.Quality ?? 1.0).ToList();
                 if (followSpec)
                 {
                     // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
                     // "May reply with error if not supplied" choosing not to
                     if (
-                        acceptedContentType.Count > 0
-                        && !acceptedContentType.Any(h => h?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
-                        && !acceptedContentType.Any(h => h?.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
-                        && !acceptedContentType.Any(h => h?.StartsWith("*/*", StringComparison.InvariantCulture) == true)
+                        acceptValues.Count != 0
+                        && !sorted.Any(h => h.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
+                        && !sorted.Any(h => h.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
+                        && !sorted.Any(h => h.MediaType.StartsWith("*/*", StringComparison.InvariantCulture) == true)
+                        && !sorted.Any(h => h.MediaType.StartsWith("application/*", StringComparison.InvariantCulture) == true)
                     )
                     {
                         context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
@@ -80,10 +82,12 @@ public static class EntityGraphQLEndpointRouteExtensions
 
                     if (followSpec)
                     {
-                        var requestedType = acceptedContentType
+                        var requestedType = sorted
                             .Where(t => t != null)
-                            .SelectMany(t => t!.Split(","))
-                            .FirstOrDefault(t => t!.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t!.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture));
+                            .FirstOrDefault(t =>
+                                t.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture)
+                            )
+                            ?.MediaType.ToString();
                         context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
                     }
                     else

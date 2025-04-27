@@ -2,7 +2,8 @@
 
 ## Fixes
 
-- #443 - Allow `*/*` `Accept` header in `followSpec` option for `MapGraphQL`
+- #443 - Allow `*/*` & `application/*` `Accept` headers in `followSpec` option for `MapGraphQL`
+- #443 - Allow expected headers to not be listed first when using `followSpec` option for `MapGraphQL`
 - Better support for multiple items in a single `Accept` header when using `followSpec` option for `MapGraphQL`
 - #449 - Fix issues with self referencing query and connection paging
 
