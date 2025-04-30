@@ -50,9 +50,15 @@ public class CompileContext
         return null;
     }
 
-    public void AddBulkResolver(string name, LambdaExpression dataSelection, LambdaExpression fieldExpression, Expression listExpression, IEnumerable<GraphQLExtractedField> extractedFields)
+    public void AddBulkResolver(
+        string name,
+        LambdaExpression dataSelection,
+        LambdaExpression fieldExpression,
+        IEnumerable<GraphQLExtractedField> extractedFields,
+        List<IGraphQLNode> listExpressionPath
+    )
     {
-        BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, listExpression, extractedFields));
+        BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, extractedFields, listExpressionPath));
     }
 
     public void AddArgsToCompileContext(
@@ -73,23 +79,5 @@ public class CompileContext
             if (argumentValue != null)
                 AddConstant(field, newArgParam!, argumentValue);
         }
-    }
-}
-
-public class CompiledBulkFieldResolver
-{
-    public string Name { get; private set; }
-    public LambdaExpression DataSelection { get; private set; }
-    public LambdaExpression FieldExpression { get; private set; }
-    public Expression ListExpression { get; }
-    public IEnumerable<GraphQLExtractedField> ExtractedFields { get; }
-
-    public CompiledBulkFieldResolver(string name, LambdaExpression dataSelection, LambdaExpression fieldExpression, Expression listExpression, IEnumerable<GraphQLExtractedField> extractedFields)
-    {
-        this.Name = name;
-        this.DataSelection = dataSelection;
-        this.FieldExpression = fieldExpression;
-        ListExpression = listExpression;
-        ExtractedFields = extractedFields;
     }
 }

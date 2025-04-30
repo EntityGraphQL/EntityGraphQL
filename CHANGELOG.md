@@ -1,3 +1,9 @@
+# 5.6.2
+
+## Fixes
+
+- #442 - Fix issue when a service field with a bulk resolver is on a parent field named differently to the dotnet underlying object property
+
 # 5.6.1
 
 ## Fixes

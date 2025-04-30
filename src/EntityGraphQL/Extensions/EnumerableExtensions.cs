@@ -64,10 +64,17 @@ public static class EnumerableExtensions
         return source.Select(selector);
     }
 
-    public static IEnumerable<TResult>? SelectManyWithNullCheck<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+    public static IEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, TResult> selector, bool returnEmptyList)
     {
         if (source == null)
-            return [];
+            return returnEmptyList ? [] : null;
+        return source.Select(selector);
+    }
+
+    public static IEnumerable<TResult?>? SelectManyWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, IEnumerable<TResult?>> selector, bool returnEmptyList)
+    {
+        if (source == null)
+            return returnEmptyList ? [] : null;
         return source.SelectMany(selector);
     }
 }

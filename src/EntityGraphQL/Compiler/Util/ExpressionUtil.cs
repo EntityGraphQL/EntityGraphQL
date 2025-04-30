@@ -553,17 +553,8 @@ public static class ExpressionUtil
         return rt != null && (rt == currentContextParam.Type || typeof(ISchemaType).IsAssignableFrom(rt));
     }
 
-    public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressions, Type type, bool includeProperties = false)
+    public static Expression? CreateNewExpression(IDictionary<string, Expression> fieldExpressionsByName, Type type, bool includeProperties = false)
     {
-        var fieldExpressionsByName = new Dictionary<string, Expression>();
-
-        foreach (var item in fieldExpressions)
-        {
-            // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
-            if (item.Value != null)
-                fieldExpressionsByName[item.Key] = item.Value;
-        }
-
         var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>().ToList();
         if (includeProperties)
             bindings.AddRange(type.GetProperties().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>());
@@ -573,17 +564,8 @@ public static class ExpressionUtil
         return mi;
     }
 
-    public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressions, out Type dynamicType, Type? parentType = null)
+    public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressionsByName, out Type dynamicType, Type? parentType = null)
     {
-        var fieldExpressionsByName = new Dictionary<string, Expression>();
-
-        foreach (var item in fieldExpressions)
-        {
-            // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
-            if (item.Value != null)
-                fieldExpressionsByName[item.Key] = item.Value;
-        }
-
         dynamicType = typeof(object);
         if (fieldExpressionsByName.Count == 0)
             return null;

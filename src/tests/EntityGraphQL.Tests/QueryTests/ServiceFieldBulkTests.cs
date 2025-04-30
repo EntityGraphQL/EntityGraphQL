@@ -591,7 +591,7 @@ public class ServiceFieldBulkTests
                 project(id: 1) { 
                     id
                     tasks {
-                        assignee {
+                        assignee { # null
                             projects {
                                 createdBy { id field2 } 
                             }
@@ -852,12 +852,13 @@ public class ServiceFieldBulkTests
         Assert.Equal(nameof(UserService.GetAllUsers), userService.Calls.First());
     }
 
-    [Fact(Skip = "Not implemented yet")]
+    [Fact]
     public void TestServicesBulkResolverInRenamedField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.UpdateType<Project>(type =>
         {
+            // key here is projectTasks doesn't match p.Tasks
             type.AddField("projectTasks", p => p.Tasks, "Tasks");
         });
         schema.UpdateType<Task>(type =>
@@ -913,7 +914,7 @@ public class ServiceFieldBulkTests
         dynamic projects = res.Data!["projects"]!;
         Assert.Equal(2, projects.Count);
         var project = projects[0];
-        Assert.Equal(2, project.tasks.Count);
+        Assert.Equal(2, project.projectTasks.Count);
     }
 
     [Fact(Skip = "Not implemented yet")]

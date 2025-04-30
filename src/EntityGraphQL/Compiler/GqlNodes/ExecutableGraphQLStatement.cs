@@ -251,9 +251,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
         BaseGraphQLField node,
-        object? runningContext,
+        object runningContext,
         ParameterReplacer replacer,
-        ParameterExpression newContextType
+        ParameterExpression newContextParam
     )
     {
         var bulkData = new Dictionary<string, object>();
@@ -263,15 +263,25 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             {
                 // rebuild list expression on new context
                 var toReplace = node.Field!.ResolveExpression!;
-                var listExpression = replacer.Replace(bulkResolver.ListExpression, toReplace, newContextType);
+                var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
+                // var listExpression = replacer.Replace(bulkResolver.GetListExpression(runningContext, newContextParam, replacer), toReplace, newContextParam);
                 var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
                 // replace the data selection expression with the new context
                 var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
                 var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
                 var selectionLambda = Expression.Lambda(selection, newParam);
-                selection = ExpressionUtil.MakeCallOnEnumerable(nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
+                listExpression = Expression.Call(
+                    typeof(Enumerable),
+                    nameof(Enumerable.Where),
+                    [newParam.Type],
+                    listExpression,
+                    Expression.Lambda(Expression.NotEqual(newParam, Expression.Constant(null)), newParam)
+                );
+                listExpression = Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
+                // listExpression = Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [listExpression.Type.GetEnumerableOrArrayType()!], listExpression);
 
-                var bulkDataArgs = Expression.Lambda(selection, newContextType).Compile().DynamicInvoke([runningContext]);
+                // the selected IDs to load the bulk data
+                var bulkDataArgs = Expression.Lambda(listExpression, newContextParam).Compile().DynamicInvoke([runningContext]);
                 var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                 var allArgs = new List<object?> { bulkDataArgs };
                 var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
