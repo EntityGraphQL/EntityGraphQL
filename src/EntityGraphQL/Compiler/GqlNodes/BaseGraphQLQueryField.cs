@@ -28,7 +28,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         Expression? nextFieldContext,
         ParameterExpression? rootParameter,
         IGraphQLNode? parentNode,
-        IReadOnlyDictionary<string, object>? arguments
+        IReadOnlyDictionary<string, object?>? arguments
     )
         : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments) { }
 

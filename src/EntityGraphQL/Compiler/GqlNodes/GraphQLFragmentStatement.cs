@@ -14,7 +14,7 @@ public class GraphQLFragmentStatement : IGraphQLNode
     public IField? Field { get; }
     public bool HasServices => Field?.Services.Count > 0;
 
-    public IReadOnlyDictionary<string, object> Arguments { get; }
+    public IReadOnlyDictionary<string, object?> Arguments { get; }
 
     public string Name { get; }
 
@@ -28,7 +28,7 @@ public class GraphQLFragmentStatement : IGraphQLNode
         Name = name;
         NextFieldContext = selectContext;
         RootParameter = rootParameter;
-        Arguments = new Dictionary<string, object>();
+        Arguments = new Dictionary<string, object?>();
         Schema = schema;
     }
 

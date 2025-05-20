@@ -62,6 +62,56 @@ public class DemoMutations
         return ctx => ctx.Movies.First(m => m.Id == movie.Id);
     }
 
+
+    [GraphQLMutation("Add a new Movie object")]
+    public Expression<Func<DemoContext, Movie>>? UpdateMovie(DemoContext db, UpdateMovieArgs args, IGraphQLValidator validator)
+    {
+        var movie = db.Movies.FirstOrDefault(x => x.Id == args.Id);
+        if(movie is null)
+        {
+            validator.AddError("Movie not found");
+            return null;
+        }
+
+        if (args.IsSet(nameof(args.Name)))
+        {
+            if (!string.IsNullOrEmpty(args.Name))
+            {
+                movie.Name = args.Name;
+            }
+        }
+        if (args.IsSet(nameof(args.Genre)))
+        {
+            if (args.Genre.HasValue)
+            {
+                movie.Genre = args.Genre.Value;
+            }
+        }
+        if (args.IsSet(nameof(args.Released)))
+        {
+            if (args.Released.HasValue)
+            {
+                movie.Released = args.Released.Value;
+            }
+        }
+        if (args.IsSet(nameof(args.Rating)))
+        {
+            if (args.Rating.HasValue)
+            {
+                movie.Rating = args.Rating.Value;
+            }
+        }
+        // Cannot be null if not set
+        if (args.IsSet(nameof(args.DirectorId)))
+        {
+            movie.DirectorId = args.DirectorId;
+        }
+
+        db.Movies.Update(movie);
+        db.SaveChanges();
+        return ctx => ctx.Movies.First(m => m.Id == movie.Id);
+    }
+
     [GraphQLMutation]
     public Expression<Func<DemoContext, Person>>? AddActor(DemoContext db, [GraphQLArguments] AddActorArgs args, IGraphQLValidator validator)
     {
@@ -157,13 +207,29 @@ public class AddMovieArgs
     public required string Name { get; set; }
     public double Rating { get; set; }
     public DateTime Released;
-    public Detail? Details { get; set; }
 }
 
 public class Detail
 {
     public required string Description { get; set; }
 }
+
+[GraphQLArguments]
+public class UpdateMovieArgs : PropertySetTrackingDto
+{
+    public required long Id { get; set; }
+    public Genre? Genre;
+    public string? Name { get; set; }
+    public double? Rating { get; set; }
+    public DateTime? Released;
+    public uint? DirectorId { get; set; }
+}
+
+public class MovideDirector
+{
+    public long Id { get; set; }
+}
+
 
 public class AddActorArgs
 {

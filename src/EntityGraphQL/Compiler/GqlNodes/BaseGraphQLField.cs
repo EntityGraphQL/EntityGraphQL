@@ -63,7 +63,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <summary>
     /// Arguments from inline in the query - not $ variables
     /// </summary>
-    public IReadOnlyDictionary<string, object> Arguments { get; }
+    public IReadOnlyDictionary<string, object?> Arguments { get; }
 
     /// <summary>
     /// True if this field directly has services
@@ -77,14 +77,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         Expression? nextFieldContext,
         ParameterExpression? rootParameter,
         IGraphQLNode? parentNode,
-        IReadOnlyDictionary<string, object>? arguments
+        IReadOnlyDictionary<string, object?>? arguments
     )
     {
         Name = name;
         NextFieldContext = nextFieldContext;
         RootParameter = rootParameter;
         ParentNode = parentNode;
-        this.Arguments = arguments ?? new Dictionary<string, object>();
+        this.Arguments = arguments ?? new Dictionary<string, object?>();
         this.Schema = schema;
         Field = field;
     }
