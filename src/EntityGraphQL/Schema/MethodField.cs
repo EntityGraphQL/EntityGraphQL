@@ -108,17 +108,7 @@ public abstract class MethodField : BaseField
                 }
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
-            {
-                //Dictionary<string, object> nonNullGqlRequestArgs = new();
-                //foreach (var arg in gqlRequestArgs)
-                //{
-                //    if (arg.Value is null)
-                //    {
-                //        continue;
-                //    }
-                //    nonNullGqlRequestArgs.Add(arg.Key, arg.Value);
-                //}
-                
+            {               
                 var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {

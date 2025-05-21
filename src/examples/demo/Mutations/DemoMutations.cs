@@ -73,39 +73,23 @@ public class DemoMutations
             return null;
         }
 
-        if (args.IsSet(nameof(args.Name)))
-        {
-            if (!string.IsNullOrEmpty(args.Name))
-            {
-                movie.Name = args.Name;
-            }
-        }
-        if (args.IsSet(nameof(args.Genre)))
-        {
-            if (args.Genre.HasValue)
-            {
-                movie.Genre = args.Genre.Value;
-            }
-        }
-        if (args.IsSet(nameof(args.Released)))
-        {
-            if (args.Released.HasValue)
-            {
-                movie.Released = args.Released.Value;
-            }
-        }
-        if (args.IsSet(nameof(args.Rating)))
-        {
-            if (args.Rating.HasValue)
-            {
-                movie.Rating = args.Rating.Value;
-            }
-        }
         // Cannot be null if not set
         if (args.IsSet(nameof(args.DirectorId)))
-        {
             movie.DirectorId = args.DirectorId;
-        }
+
+        if (!string.IsNullOrEmpty(args.Name))
+            movie.Name = args.Name;    
+   
+        if (args.Genre.HasValue)
+            movie.Genre = args.Genre.Value;
+        
+   
+        if (args.Released.HasValue)
+            movie.Released = args.Released.Value;
+        
+
+        if (args.Rating.HasValue)
+            movie.Rating = args.Rating.Value;
 
         db.Movies.Update(movie);
         db.SaveChanges();
@@ -224,12 +208,6 @@ public class UpdateMovieArgs : PropertySetTrackingDto
     public DateTime? Released;
     public uint? DirectorId { get; set; }
 }
-
-public class MovideDirector
-{
-    public long Id { get; set; }
-}
-
 
 public class AddActorArgs
 {
