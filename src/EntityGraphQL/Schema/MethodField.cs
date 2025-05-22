@@ -102,9 +102,9 @@ public abstract class MethodField : BaseField
                 )!;
                 allArgs.Add(argInstance);
 
-                if (p.ParameterType.BaseType == typeof(PropertySetTrackingDto))
+                if (typeof(IPropertySetTrackingDto).IsAssignableFrom(p.ParameterType))
                 {
-                    ((PropertySetTrackingDto)argInstance).MarkAsSet(gqlRequestArgs?.Keys ?? []);
+                    ((IPropertySetTrackingDto)argInstance).MarkAsSet((gqlRequestArgs ?? new Dictionary<string, object?>()).Keys);
                 }
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))

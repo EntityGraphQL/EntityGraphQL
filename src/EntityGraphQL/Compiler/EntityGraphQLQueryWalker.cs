@@ -372,9 +372,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             {
                 throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
             }
-            var r = ParseArgument(argName, field, arg);
-            //if (r != null)
-                args.Add(argName, r);
+            args.Add(argName, ParseArgument(argName, field, arg));
         }
         return args;
     }
