@@ -14,7 +14,7 @@ public static class ArgumentUtil
         ISchemaProvider schema,
         string fieldName,
         IField? field,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         IEnumerable<ArgType> argumentDefinitions,
         Type? argumentsType,
         ParameterExpression? docParam,
@@ -122,7 +122,7 @@ public static class ArgumentUtil
 
     internal static object? BuildArgumentFromMember(
         ISchemaProvider schema,
-        IReadOnlyDictionary<string, object>? args,
+        IReadOnlyDictionary<string, object?>? args,
         string memberName,
         Type memberType,
         object? defaultValue,
@@ -139,6 +139,10 @@ public static class ArgumentUtil
                 return null;
             }
             var item = args[argName];
+            if(item is null)
+            {
+                return null;
+            }
             var constructor = memberType.GetConstructor(new[] { item.GetType() });
             if (constructor == null)
             {

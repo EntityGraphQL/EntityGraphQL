@@ -93,7 +93,7 @@ public interface IField
         IGraphQLNode? parentNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
         object? docVariables,
         IEnumerable<GraphQLDirective> directives,

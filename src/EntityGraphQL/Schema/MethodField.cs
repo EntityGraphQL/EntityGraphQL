@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -65,7 +66,7 @@ public abstract class MethodField : BaseField
 
     public virtual async Task<object?> CallAsync(
         object? context,
-        IReadOnlyDictionary<string, object>? gqlRequestArgs,
+        IReadOnlyDictionary<string, object?>? gqlRequestArgs,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
         object? docVariables,
@@ -80,6 +81,7 @@ public abstract class MethodField : BaseField
         var argsToValidate = new Dictionary<string, object>();
         object? argInstance = null;
         var validationErrors = new List<string>();
+        var setProperties = new List<string>();
 
         // add parameters and any DI services
         foreach (var p in Method.GetParameters())
@@ -91,7 +93,7 @@ public abstract class MethodField : BaseField
                     Schema,
                     Name,
                     this,
-                    gqlRequestArgs ?? new Dictionary<string, object>(),
+                    gqlRequestArgs ?? new Dictionary<string, object?>(),
                     Arguments.Values,
                     p.ParameterType,
                     variableParameter,
@@ -99,9 +101,14 @@ public abstract class MethodField : BaseField
                     validationErrors
                 )!;
                 allArgs.Add(argInstance);
+
+                if (typeof(IPropertySetTrackingDto).IsAssignableFrom(p.ParameterType))
+                {
+                    ((IPropertySetTrackingDto)argInstance).MarkAsSet((gqlRequestArgs ?? new Dictionary<string, object?>()).Keys);
+                }
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
-            {
+            {               
                 var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {
@@ -193,7 +200,7 @@ public abstract class MethodField : BaseField
         IGraphQLNode? parentNode,
         ParameterExpression? schemaContext,
         CompileContext? compileContext,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
         object? docVariables,
         IEnumerable<GraphQLDirective> directives,

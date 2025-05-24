@@ -28,7 +28,7 @@ public interface IGraphQLNode
     void AddField(BaseGraphQLField field);
     IField? Field { get; }
     bool HasServices { get; }
-    IReadOnlyDictionary<string, object> Arguments { get; }
+    IReadOnlyDictionary<string, object?> Arguments { get; }
     void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives);
 
     /// <summary>

@@ -132,7 +132,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
                 var directives = ProcessFieldDirectives(ExecutableDirectiveLocation.VARIABLE_DEFINITION, item.Directives);
                 foreach (var directive in directives)
                 {
-                    directive.VisitNode(ExecutableDirectiveLocation.VARIABLE_DEFINITION, schemaProvider, null, new Dictionary<string, object>(), null, null);
+                    directive.VisitNode(ExecutableDirectiveLocation.VARIABLE_DEFINITION, schemaProvider, null, new Dictionary<string, object?>(), null, null);
                 }
             }
 
@@ -282,7 +282,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         }
     }
 
-    public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object>? arguments)
+    public BaseGraphQLQueryField ParseFieldSelect(Expression fieldExp, IField fieldContext, string name, IGraphQLNode context, SelectionSetNode selection, Dictionary<string, object?>? arguments)
     {
         if (fieldContext.ReturnType.IsList)
         {
@@ -317,7 +317,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         string resultName,
         IGraphQLNode context,
         SelectionSetNode selection,
-        Dictionary<string, object>? arguments
+        Dictionary<string, object?>? arguments
     )
     {
         if (context == null)
@@ -346,7 +346,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         IGraphQLNode context,
         string name,
         SelectionSetNode selection,
-        Dictionary<string, object>? arguments
+        Dictionary<string, object?>? arguments
     )
     {
         if (context == null)
@@ -362,9 +362,9 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         return graphQLNode;
     }
 
-    private Dictionary<string, object> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
+    private Dictionary<string, object?> ProcessArguments(IField field, IEnumerable<ArgumentNode> queryArguments)
     {
-        var args = new Dictionary<string, object>();
+        var args = new Dictionary<string, object?>();
         foreach (var arg in queryArguments)
         {
             var argName = arg.Name.Value;
@@ -372,9 +372,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             {
                 throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
             }
-            var r = ParseArgument(argName, field, arg);
-            if (r != null)
-                args.Add(argName, r);
+            args.Add(argName, ParseArgument(argName, field, arg));
         }
         return args;
     }
@@ -415,7 +413,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             if (!processor.Location.Contains(location))
                 throw new EntityGraphQLCompilerException($"Directive '{directive.Name.Value}' can not be used on '{location}'");
             var argTypes = processor.GetArguments(schemaProvider);
-            var args = new Dictionary<string, object>();
+            var args = new Dictionary<string, object?>();
             foreach (var arg in directive.Arguments)
             {
                 var argVal = ProcessArgumentOrVariable(arg.Name.Value, schemaProvider, arg, argTypes[arg.Name.Value].RawType);
@@ -441,7 +439,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         {
             foreach (var directive in ProcessFieldDirectives(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, node.Directives))
             {
-                directive.VisitNode(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, schemaProvider, fragDef, new Dictionary<string, object>(), null, null);
+                directive.VisitNode(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, schemaProvider, fragDef, new Dictionary<string, object?>(), null, null);
             }
         }
 
