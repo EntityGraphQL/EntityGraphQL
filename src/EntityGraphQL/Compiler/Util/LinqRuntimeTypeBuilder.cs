@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace EntityGraphQL.Compiler.Util;
 
@@ -17,6 +18,12 @@ public static class LinqRuntimeTypeBuilder
     private static readonly AssemblyName assemblyName = new() { Name = DynamicAssemblyName };
     private static readonly ModuleBuilder moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(assemblyName.Name);
     private static readonly Dictionary<string, Type> builtTypes = [];
+
+#if NET9_0_OR_GREATER
+    private static readonly Lock lockObj = new();
+#else
+    private static readonly object lockObj = new();
+#endif
 
     // We build a class name based on all the selected fields so we can cache the anonymous types we built
     // Names can't be > 1024 length, so we store them against a shorter Guid string
@@ -44,7 +51,7 @@ public static class LinqRuntimeTypeBuilder
 #endif
 
         string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
-        lock (typesByFullName)
+        lock (lockObj)
         {
             if (!typesByFullName.TryGetValue(classFullName, out var classId))
             {

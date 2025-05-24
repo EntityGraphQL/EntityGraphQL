@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace EntityGraphQL.Subscriptions;
 
@@ -31,6 +32,12 @@ namespace EntityGraphQL.Subscriptions;
 /// <typeparam name="TType"></typeparam>
 public class Broadcaster<TType> : IObservable<TType>, IDisposable
 {
+#if NET9_0_OR_GREATER
+    private static readonly Lock subscribersLock = new();
+#else
+    private readonly object subscribersLock = new();
+#endif
+
     public List<IObserver<TType>> Subscribers { get; } = [];
     public Action<IObserver<TType>>? OnUnsubscribe { get; set; }
 
@@ -41,7 +48,7 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
     /// <returns></returns>
     public virtual IDisposable Subscribe(IObserver<TType> observer)
     {
-        lock (Subscribers)
+        lock (subscribersLock)
         {
             Subscribers.Add(observer);
         }
@@ -50,7 +57,7 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
 
     public virtual void Unsubscribe(IObserver<TType> observer)
     {
-        lock (Subscribers)
+        lock (subscribersLock)
         {
             Subscribers.Remove(observer);
         }
@@ -63,7 +70,7 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
     /// <param name="value"></param>
     public virtual void OnNext(TType value)
     {
-        lock (Subscribers)
+        lock (subscribersLock)
         {
             foreach (var observer in Subscribers)
             {
@@ -74,7 +81,7 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
 
     public virtual void OnError(Exception ex)
     {
-        lock (Subscribers)
+        lock (subscribersLock)
         {
             foreach (var observer in Subscribers)
             {
@@ -86,7 +93,7 @@ public class Broadcaster<TType> : IObservable<TType>, IDisposable
     public virtual void Dispose()
     {
         GC.SuppressFinalize(this);
-        lock (Subscribers)
+        lock (subscribersLock)
         {
             foreach (var observer in Subscribers)
             {
