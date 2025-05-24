@@ -136,7 +136,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
@@ -175,7 +175,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
@@ -190,7 +190,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         IGraphQLNode? fieldNode = ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables);
@@ -207,7 +207,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         return ExpandFromServices(withoutServiceFields, this);
@@ -282,7 +282,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         Directives.AddRange(graphQLDirectives);
     }
 
-    protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, object? docVariables)
+    protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, IPropertySetTrackingDto? docVariables)
     {
         IGraphQLNode? result = field;
         foreach (var directive in Directives)

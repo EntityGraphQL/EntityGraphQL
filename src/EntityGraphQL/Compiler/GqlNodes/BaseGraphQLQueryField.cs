@@ -46,7 +46,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         bool withoutServiceFields,
         Expression nextFieldContext,
         ParameterExpression schemaContext,
@@ -132,7 +132,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterReplacer replacer
     )
     {
@@ -147,7 +147,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterReplacer replacer
     )
     {

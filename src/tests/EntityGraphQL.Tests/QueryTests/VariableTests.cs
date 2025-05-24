@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -160,9 +162,168 @@ public class VariableTests
         Assert.Null(results.Errors);
     }
 
-    private static void MakePersonIdGuid(SchemaProvider<TestDataContext> schema)
+    [Fact]
+    public void TestPropertySetTrackingDto_IsSet()
     {
-        schema.Query().ReplaceField("person", new { id = ArgumentHelper.Required<Guid>() }, (ctx, args) => ctx.People.FirstOrDefault(p => p.Guid == args.id), "Get person by ID");
-        schema.Type<Person>().ReplaceField("id", Person => Person.Guid, "ID");
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query ($ids: [ID]) {
+                    test(ids: $ids) { guid }
+                }",
+            // assume JSON deserialiser created a List<> but we need an array []
+            Variables = new QueryVariables { { "ids", new[] { "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6" } } },
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Single(testData);
+        Assert.Equal(Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"), testData[0].guid);
     }
+
+    [Fact]
+    public void TestPropertySetTrackingDto_NotSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query ($ids: [ID]) {
+                    test(ids: $ids) { guid }
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Equal(2, testData.Count);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDto_IsSet_Inline()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    test(ids: [""03d539f8-6bbc-4b62-8f7f-b55c7eb242e6""]) { guid }
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Single(testData);
+        Assert.Equal(Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"), testData[0].guid);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDto_IsSet_Default()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query ($ids: [ID] = [""03d539f8-6bbc-4b62-8f7f-b55c7eb242e6""]) {
+                    test(ids: $ids) { guid }
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Single(testData);
+        Assert.Equal(Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"), testData[0].guid);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDtoMutation_IsSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                ([GraphQLArguments] TestArgsTracking args) =>
+                {
+                    return args.IsSet("Ids");
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation M ($ids: [ID]) {
+                    doTest(ids: $ids)
+                }",
+            Variables = new QueryVariables { { "ids", new[] { "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6" } } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (dynamic)results.Data!["doTest"]!;
+        Assert.True(testData);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDtoMutation_NotSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                ([GraphQLArguments] TestArgsTracking args) =>
+                {
+                    return args.IsSet("Ids");
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation M ($ids: [ID]) {
+                    doTest(ids: $ids)
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (dynamic)results.Data!["doTest"]!;
+        Assert.False(testData);
+    }
+}
+
+internal class TestArgsTracking : PropertySetTrackingDto
+{
+    public List<Guid>? Ids { get; set; }
 }

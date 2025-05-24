@@ -55,7 +55,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         Arguments = new Dictionary<string, object?>();
         if (OpDefinedVariables.Count > 0)
         {
-            var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");
+            // this type if all the variables defined in the GraphQL document
+            // use PropertySetTrackingDto to track is they are set or not (either by a default value or by the user in variables passed in)
+            var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars", typeof(PropertySetTrackingDto));
             OpVariableParameter = Expression.Parameter(variableType, "docVars");
         }
     }
@@ -81,7 +83,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // people & movies will be the 2 fields that will be 2 separate expressions
         var result = new ConcurrentDictionary<string, object?>();
 
-        object? docVariables = BuildDocumentVariables(ref variables);
+        IPropertySetTrackingDto? docVariables = BuildDocumentVariables(ref variables);
 
         foreach (var fieldNode in QueryFields)
         {
@@ -138,20 +140,25 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return context;
     }
 
-    protected object? BuildDocumentVariables(ref QueryVariables? variables)
+    protected IPropertySetTrackingDto? BuildDocumentVariables(ref QueryVariables? variables)
     {
         // inject document level variables - letting the query be cached and passing in different variables
-        object? variablesToUse = null;
+        IPropertySetTrackingDto? variablesToUse = null;
 
         if (OpDefinedVariables.Count > 0 && OpVariableParameter != null)
         {
             variables ??= [];
-            variablesToUse = Activator.CreateInstance(OpVariableParameter.Type);
+            variablesToUse = (IPropertySetTrackingDto)Activator.CreateInstance(OpVariableParameter.Type)!;
             foreach (var (name, argType) in OpDefinedVariables)
             {
                 try
                 {
-                    var argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema, null);
+                    object? argValue = null;
+                    if (variables.ContainsKey(name) || argType.DefaultValue != null)
+                    {
+                        argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema, null);
+                        variablesToUse!.MarkAsSet(name);
+                    }
                     if (argValue == null && argType.IsRequired)
                         throw new EntityGraphQLCompilerException(
                             $"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value."
@@ -178,7 +185,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         BaseGraphQLField node,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         object? runningContext = context;

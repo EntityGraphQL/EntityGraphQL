@@ -18,7 +18,7 @@ public static class ArgumentUtil
         IEnumerable<ArgType> argumentDefinitions,
         Type? argumentsType,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         List<string> validationErrors
     )
     {
@@ -29,6 +29,8 @@ public static class ArgumentUtil
 
         // get the values for the argument anonymous type object constructor
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        // if a variable was set or is just the default dotnet value
+        var setValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // if they used AddField("field", new { id = Required<int>() }) the compiler makes properties and a constructor with the values passed in
         foreach (var argField in argumentDefinitions)
@@ -40,9 +42,17 @@ public static class ArgumentUtil
                 {
                     // this value comes from the variables from the query document
                     if (docVariables != null)
-                        val = Expression.Lambda(argExpression, docParam!).Compile().DynamicInvoke(new[] { docVariables });
+                    {
+                        val = Expression.Lambda(argExpression, docParam!).Compile().DynamicInvoke([docVariables]);
+                        // leave it out if it was not set - will default to dotnet default but the `IsSet will not carry through
+                        if (docVariables.IsSet(((MemberExpression)argExpression).Member.Name))
+                            setValues.Add(argField.Name);
+                    }
                     else
+                    {
                         val = argExpression;
+                        setValues.Add(argField.Name);
+                    }
                     values.Add(argField.Name, ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null));
                 }
                 else
@@ -52,6 +62,7 @@ public static class ArgumentUtil
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null);
                     values.Add(argField.Name, val);
+                    setValues.Add(argField.Name);
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }
@@ -67,13 +78,15 @@ public static class ArgumentUtil
 
         // Build our object
         var con = argumentsType!.GetConstructors()?.FirstOrDefault() ?? throw new EntityGraphQLCompilerException($"Could not find constructor for arguments type {argumentsType.Name}");
-        var parameters = con.GetParameters().Select(x => values[x.Name!]).ToArray();
+        var parameters = con.GetParameters().Select(x => values!.GetValueOrDefault(x.Name)).ToArray();
 
-        // anonymous objects will have a contructor with taking the properties as arguments
+        // anonymous objects will have a constructor with taking the properties as arguments
         var argumentValues = con.Invoke(parameters);
 
         // regardless of the constructor, we make sure the values are set on the object
         var argMembers = argumentValues.GetType().GetMembers();
+        bool isPropTracking = typeof(IPropertySetTrackingDto).IsAssignableFrom(argumentValues.GetType());
+
         foreach (var item in argMembers)
         {
             if (item.MemberType != MemberTypes.Property && item.MemberType != MemberTypes.Field)
@@ -84,6 +97,11 @@ public static class ArgumentUtil
                 continue;
 
             SetArgumentValues(values, argumentValues, item);
+
+            if (isPropTracking && setValues.Contains(item.Name))
+            {
+                ((IPropertySetTrackingDto)argumentValues).MarkAsSet(item.Name);
+            }
         }
 
         if (field != null)
@@ -105,7 +123,7 @@ public static class ArgumentUtil
         return argumentValues;
     }
 
-    private static void SetArgumentValues(Dictionary<string, object?> values, object? argumentValues, MemberInfo? item)
+    private static void SetArgumentValues(Dictionary<string, object?> values, object argumentValues, MemberInfo item)
     {
         if (item is FieldInfo fieldInfo)
         {
@@ -139,7 +157,7 @@ public static class ArgumentUtil
                 return null;
             }
             var item = args[argName];
-            if(item is null)
+            if (item is null)
             {
                 return null;
             }

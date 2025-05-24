@@ -27,7 +27,7 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         return QueryFields.SelectMany(x => x.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
@@ -38,7 +38,7 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,

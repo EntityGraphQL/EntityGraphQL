@@ -5,9 +5,10 @@ namespace EntityGraphQL.Schema;
 
 public class PropertySetTrackingDto : IPropertySetTrackingDto
 {
-    private HashSet<string> setProperties = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> setProperties = new(StringComparer.OrdinalIgnoreCase);
 
     public void MarkAsSet(string propertyName) => setProperties.Add(propertyName);
+
     public void MarkAsSet(IEnumerable<string> propertiesName)
     {
         foreach (var prop in propertiesName)

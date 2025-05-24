@@ -20,7 +20,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
 {
     private List<GraphQLFragmentStatement>? fragments;
     private ExecutionOptions? options;
-    private object? docVariables;
+    private IPropertySetTrackingDto? docVariables;
 
     public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, rootParameter, rootParameter, variables) { }
@@ -106,7 +106,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         GraphQLSubscriptionField node,
         TContext context,
         IServiceProvider? serviceProvider,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ExecutionOptions executionOptions,
         QueryRequestContext requestContext
     )

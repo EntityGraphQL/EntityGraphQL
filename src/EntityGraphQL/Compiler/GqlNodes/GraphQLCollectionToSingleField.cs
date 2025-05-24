@@ -73,7 +73,7 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
@@ -125,7 +125,7 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         ParameterExpression schemaContext,
         bool contextChanged,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         List<Type>? possibleNextContextTypes,
         ParameterReplacer replacer
     )

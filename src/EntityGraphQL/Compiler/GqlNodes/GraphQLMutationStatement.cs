@@ -51,7 +51,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         {
             try
             {
-                object? docVariables = BuildDocumentVariables(ref variables);
+                IPropertySetTrackingDto? docVariables = BuildDocumentVariables(ref variables);
                 foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
                 {
 #if DEBUG
@@ -113,7 +113,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ExecutionOptions options,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
@@ -138,7 +138,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         TContext context,
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         object? result
     )
     {

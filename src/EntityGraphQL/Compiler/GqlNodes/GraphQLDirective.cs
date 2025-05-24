@@ -25,7 +25,7 @@ public class GraphQLDirective
         IGraphQLNode? node,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        object? docVariables
+        IPropertySetTrackingDto? docVariables
     )
     {
         var validationErrors = new List<string>();

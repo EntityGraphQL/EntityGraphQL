@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -69,7 +68,7 @@ public abstract class MethodField : BaseField
         IReadOnlyDictionary<string, object?>? gqlRequestArgs,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ExecutionOptions executionOptions
     )
     {
@@ -102,13 +101,13 @@ public abstract class MethodField : BaseField
                 )!;
                 allArgs.Add(argInstance);
 
-                if (typeof(IPropertySetTrackingDto).IsAssignableFrom(p.ParameterType))
-                {
-                    ((IPropertySetTrackingDto)argInstance).MarkAsSet((gqlRequestArgs ?? new Dictionary<string, object?>()).Keys);
-                }
+                // if (typeof(IPropertySetTrackingDto).IsAssignableFrom(p.ParameterType))
+                // {
+                //     ((IPropertySetTrackingDto)argInstance).MarkAsSet((gqlRequestArgs ?? new Dictionary<string, object?>()).Keys);
+                // }
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
-            {               
+            {
                 var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {
@@ -202,7 +201,7 @@ public abstract class MethodField : BaseField
         CompileContext? compileContext,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
         ParameterReplacer replacer

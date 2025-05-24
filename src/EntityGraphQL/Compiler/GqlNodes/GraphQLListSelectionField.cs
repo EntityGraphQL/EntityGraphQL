@@ -67,7 +67,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
@@ -179,7 +179,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         ParameterReplacer replacer
     )
     {

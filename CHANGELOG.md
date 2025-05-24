@@ -1,4 +1,8 @@
-# 5.6.2
+# 5.7.0
+
+## Changes
+
+- Fix #441 (PR #455) - Have your arguments class inherit `PropertySetTrackingDto` or implement `IPropertySetTrackingDto` to be able to tell if a variable is just the dotnet default value or is set from the query with `IsSet`
 
 ## Fixes
 

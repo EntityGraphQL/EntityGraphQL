@@ -169,7 +169,7 @@ public class Field : BaseField
         CompileContext compileContext,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
         ParameterReplacer replacer
@@ -202,7 +202,7 @@ public class Field : BaseField
         Expression context,
         IGraphQLNode? parentNode,
         ParameterExpression? docParam,
-        object? docVariables,
+        IPropertySetTrackingDto? docVariables,
         bool servicesPass,
         CompileContext compileContext
     )
