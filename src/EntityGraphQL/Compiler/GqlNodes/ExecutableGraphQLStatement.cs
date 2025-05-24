@@ -33,7 +33,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public IField? Field { get; }
     public bool HasServices => Field?.Services.Count > 0;
 
-    public IReadOnlyDictionary<string, object> Arguments { get; }
+    public IReadOnlyDictionary<string, object?> Arguments { get; }
 
     public string? Name { get; }
 
@@ -52,7 +52,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         RootParameter = rootParameter;
         OpDefinedVariables = opVariables;
         this.Schema = schema;
-        Arguments = new Dictionary<string, object>();
+        Arguments = new Dictionary<string, object?>();
         if (OpDefinedVariables.Count > 0)
         {
             var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars");

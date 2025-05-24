@@ -230,10 +230,12 @@ type Mutation {
 	addActor2(firstName: String!, lastName: String!, movieId: Int!): [Person!]!
 	addActor3(names: [String!]!, movieId: Int!): [Person!]!
 	"""Add a new Movie object"""
-	addMovie(name: String!, rating: Float!, details: Detail, genre: Genre!, released: Date!): Movie!
+	addMovie(name: String!, rating: Float!, genre: Genre!, released: Date!): Movie!
 	"""Example of a mutation that takes 0 arguments"""
 	exampleNoArgs: Movie!
 	"""Example of a mutation that does not use the context or arguments but does use registered services"""
 	exampleNoArgsWithService: Int!
+	"""Add a new Movie object"""
+	updateMovie(id: Int!, name: String, rating: Float, directorId: Int, genre: Genre, released: Date): Movie!
 }
 

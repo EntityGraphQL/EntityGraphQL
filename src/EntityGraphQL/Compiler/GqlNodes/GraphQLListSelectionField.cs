@@ -42,7 +42,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         ParameterExpression? rootParameter,
         Expression nodeExpression,
         IGraphQLNode context,
-        Dictionary<string, object>? arguments
+        Dictionary<string, object?>? arguments
     )
         : base(schema, field, name, nextFieldContext, rootParameter, context, arguments)
     {

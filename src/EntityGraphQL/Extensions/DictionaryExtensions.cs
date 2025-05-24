@@ -15,4 +15,15 @@ public static class DictionaryExtensions
 
         return result;
     }
+
+    public static Dictionary<TKey, TElement?> MergeNewNullable<TKey, TElement>(this IDictionary<TKey, TElement?> source, IReadOnlyDictionary<TKey, TElement?>? other)
+        where TKey : notnull
+    {
+        var result = source != null ? source.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) : [];
+        if (other != null)
+            foreach (var kvp in other)
+                result[kvp.Key] = kvp.Value;
+
+        return result;
+    }
 }

@@ -17,7 +17,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         ISchemaProvider schema,
         string name,
         MutationField mutationField,
-        Dictionary<string, object>? args,
+        Dictionary<string, object?>? args,
         Expression nextFieldContext,
         ParameterExpression rootParameter,
         IGraphQLNode parentNode

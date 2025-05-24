@@ -63,7 +63,7 @@ public class CompileContext
 
     public void AddArgsToCompileContext(
         IField field,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
         object? docVariables,
         ref object? argumentValue,

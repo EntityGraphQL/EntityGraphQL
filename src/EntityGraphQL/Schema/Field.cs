@@ -167,7 +167,7 @@ public class Field : BaseField
         IGraphQLNode? parentNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
         object? docVariables,
         IEnumerable<GraphQLDirective> directives,
@@ -196,7 +196,7 @@ public class Field : BaseField
     }
 
     private (Expression? fieldExpression, ParameterExpression? argumentParam) PrepareFieldExpression(
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         Expression fieldExpression,
         ParameterReplacer replacer,
         Expression context,

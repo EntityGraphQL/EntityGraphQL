@@ -49,7 +49,7 @@ public class GraphQLDocument : IGraphQLNode
         Schema = schema;
         Operations = [];
         Fragments = [];
-        Arguments = new Dictionary<string, object>();
+        Arguments = new Dictionary<string, object?>();
     }
 
     public string Name => "Query Request Root";
@@ -57,7 +57,7 @@ public class GraphQLDocument : IGraphQLNode
     public IField? Field { get; }
     public bool HasServices => Field?.Services.Count > 0;
 
-    public IReadOnlyDictionary<string, object> Arguments { get; }
+    public IReadOnlyDictionary<string, object?> Arguments { get; }
 
     public ISchemaProvider Schema { get; }
 

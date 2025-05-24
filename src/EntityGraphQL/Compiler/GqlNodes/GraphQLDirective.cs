@@ -9,10 +9,10 @@ namespace EntityGraphQL.Compiler;
 public class GraphQLDirective
 {
     private readonly IDirectiveProcessor processor;
-    private readonly Dictionary<string, object> inlineArgValues;
+    private readonly Dictionary<string, object?> inlineArgValues;
     private readonly string name;
 
-    public GraphQLDirective(string name, IDirectiveProcessor processor, Dictionary<string, object> inlineArgValues)
+    public GraphQLDirective(string name, IDirectiveProcessor processor, Dictionary<string, object?> inlineArgValues)
     {
         this.processor = processor;
         this.inlineArgValues = inlineArgValues;
@@ -23,7 +23,7 @@ public class GraphQLDirective
         ExecutableDirectiveLocation location,
         ISchemaProvider schema,
         IGraphQLNode? node,
-        IReadOnlyDictionary<string, object> args,
+        IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
         object? docVariables
     )
@@ -33,7 +33,7 @@ public class GraphQLDirective
             schema,
             name,
             null,
-            inlineArgValues.MergeNew(args),
+            inlineArgValues.MergeNewNullable(args),
             processor.GetArguments(schema).Values,
             processor.GetArgumentsType(),
             docParam,
