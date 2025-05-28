@@ -104,6 +104,7 @@ public static class QueryWalkerHelper
         }
 
         var obj = Activator.CreateInstance(argType)!;
+        var propTracker = obj is IPropertySetTrackingDto p ? p : null;
 
         object argValue;
         var schemaType = schema.GetSchemaType(argType, true, null);
@@ -123,10 +124,12 @@ public static class QueryWalkerHelper
             {
                 var field = argType.GetField(nameFromType) ?? throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found on object argument");
                 field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
+                propTracker?.MarkAsSet(field.Name);
             }
             else
             {
                 prop.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, prop.PropertyType));
+                propTracker?.MarkAsSet(prop.Name);
             }
         }
         argValue = obj;
