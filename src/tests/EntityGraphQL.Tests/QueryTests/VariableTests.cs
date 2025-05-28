@@ -338,12 +338,11 @@ public class VariableTests
         {
             Query =
                 """
-                mutation M () {
-                    doTest(input : {
-                        id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6" 
-                    })
+                mutation M ($input: TestInputTracking) {
+                    doTest(input : $input)
                 }
                 """,
+            Variables = new QueryVariables() { {"input", new Dictionary<string, object?>() {{"id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"}} } }
         };
 
         var testSchema = new TestDataContext();
@@ -426,6 +425,54 @@ public class VariableTests
         Assert.Equal(setParent, testData.IsSet(nameof(NestedTestInputTracking.Id)));
         Assert.Equal(setChild, testData.Child.IsSet(nameof(TestInputTracking.Id)));
     }
+    
+    [Fact]
+    public void TestPersistedInputTypePropertySetTrackingDtoMutation_IsSet()
+    {
+        var testSchema = new TestDataContext();
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking))
+            .AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) => input
+            );
+
+        var query = """
+                    mutation M ($input: TestInputTracking) {
+                        doTest(input : $input)
+                    }
+                    """;
+        var hash = QueryCache.ComputeHash(query);
+        
+        var gql = new QueryRequest
+        {
+            Query = query,
+            Variables = new QueryVariables() { {"input", new Dictionary<string, object?>() {{"id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"}} } },
+            Extensions = new QueryExtensions
+            {
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash }
+                }
+            }
+        };
+        
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.False(testData.IsSet(nameof(TestInputTracking.Name)));
+
+        gql.Query = null;
+        gql.Variables = new QueryVariables() { { "input", new Dictionary<string, object?>() { { "name", "Cool Cat" } } } };
+        
+        results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Name)));
+    }
 }
 
 internal class TestArgsTracking : PropertySetTrackingDto
@@ -436,6 +483,7 @@ internal class TestArgsTracking : PropertySetTrackingDto
 internal class TestInputTracking : PropertySetTrackingDto
 {
     public Guid? Id { get; set; }
+    public string? Name { get; set; }
 }
 
 internal class NestedTestInputTracking : PropertySetTrackingDto

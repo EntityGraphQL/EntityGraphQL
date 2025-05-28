@@ -182,15 +182,23 @@ public static class ExpressionUtil
                 throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
             var newValue = Activator.CreateInstance(toType);
+            var prop = newValue is IPropertySetTrackingDto p ? p : null;
             foreach (string key in ((IDictionary<string, object>)value).Keys)
             {
                 var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                 if (toProp != null)
+                {
                     toProp.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toProp.PropertyType, schema, executionOptions));
+                    prop?.MarkAsSet(toProp.Name);
+                }
                 else
                 {
                     var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
-                    toField?.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
+                    if (toField is not null)
+                    {
+                        toField.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
+                        prop?.MarkAsSet(toField.Name);
+                    }
                 }
             }
             return newValue;
