@@ -321,9 +321,171 @@ public class VariableTests
         var testData = (dynamic)results.Data!["doTest"]!;
         Assert.False(testData);
     }
+
+    [Fact]
+    public void TestInputTypePropertySetTrackingDtoMutation_IsSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking))
+            .AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) => input
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                """
+                mutation M ($input: TestInputTracking) {
+                    doTest(input : $input)
+                }
+                """,
+            Variables = new QueryVariables() { {"input", new Dictionary<string, object?>() {{"id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"}} } }
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+    }
+
+    [Fact]
+    public void TestInputTypePropertySetTrackingDtoMutation_NotSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking))
+            .AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) => input
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                """
+                mutation M () {
+                    doTest(input : {})
+                }
+                """
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void TestNestedInputTypePropertySetTrackingDtoMutation_IsSet(bool setParent, bool setChild)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking))
+            .AddAllFields();
+        schema.AddInputType<NestedTestInputTracking>(nameof(NestedTestInputTracking))
+            .AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (NestedTestInputTracking input) => input
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                $$"""
+                mutation M () {
+                doTest(input : {
+                        {{(setParent ? "id: \"03d539f8-6bbc-4b62-8f7f-b55c7eb242e6\"" : "")}}
+                        child: {
+                            {{(setChild ? "id: \"03d539f8-6bbc-4b62-8f7f-b55c7eb242e7\"" : "")}}
+                        } 
+                    })
+                }
+                """
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (NestedTestInputTracking)results.Data!["doTest"]!;
+        Assert.NotNull(testData.Child);
+        Assert.Equal(setParent, testData.IsSet(nameof(NestedTestInputTracking.Id)));
+        Assert.Equal(setChild, testData.Child.IsSet(nameof(TestInputTracking.Id)));
+    }
+    
+    [Fact]
+    public void TestPersistedInputTypePropertySetTrackingDtoMutation_IsSet()
+    {
+        var testSchema = new TestDataContext();
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking))
+            .AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) => input
+            );
+
+        var query = """
+                    mutation M ($input: TestInputTracking) {
+                        doTest(input : $input)
+                    }
+                    """;
+        var hash = QueryCache.ComputeHash(query);
+        
+        var gql = new QueryRequest
+        {
+            Query = query,
+            Variables = new QueryVariables() { {"input", new Dictionary<string, object?>() {{"id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"}} } },
+            Extensions = new QueryExtensions
+            {
+                {
+                    "persistedQuery",
+                    new PersistedQueryExtension { Sha256Hash = hash }
+                }
+            }
+        };
+        
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+
+        gql.Query = null;
+        gql.Variables = new QueryVariables() { { "input", new Dictionary<string, object?>() { { "id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e7" } } } };
+        
+        results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+    }
 }
 
 internal class TestArgsTracking : PropertySetTrackingDto
 {
     public List<Guid>? Ids { get; set; }
+}
+
+internal class TestInputTracking : PropertySetTrackingDto
+{
+    public Guid? Id { get; set; }
+    public string? Name { get; set; }
+}
+
+internal class NestedTestInputTracking : PropertySetTrackingDto
+{
+    public Guid? Id { get; set; }
+    public TestInputTracking? Child { get; set; }
 }
