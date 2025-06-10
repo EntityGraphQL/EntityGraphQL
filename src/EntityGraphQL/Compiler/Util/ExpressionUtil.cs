@@ -103,15 +103,20 @@ public static class ExpressionUtil
             if (jsonEle.ValueKind == JsonValueKind.Object)
             {
                 value = Activator.CreateInstance(toType);
+                var propSet = value is IPropertySetTrackingDto propertySet ? propertySet : null; 
                 foreach (var item in jsonEle.EnumerateObject())
                 {
                     var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                     if (prop != null)
+                    {
                         prop.SetValue(value, ConvertObjectType(item.Value, prop.PropertyType, schema, executionOptions));
+                        propSet?.MarkAsSet(item.Name);
+                    }
                     else
                     {
                         var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                         field?.SetValue(value, ConvertObjectType(item.Value, field.FieldType, schema, executionOptions));
+                        propSet?.MarkAsSet(item.Name);
                     }
                 }
                 return value;
