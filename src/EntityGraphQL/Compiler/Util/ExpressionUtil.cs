@@ -103,15 +103,20 @@ public static class ExpressionUtil
             if (jsonEle.ValueKind == JsonValueKind.Object)
             {
                 value = Activator.CreateInstance(toType);
+                var propSet = value is IPropertySetTrackingDto propertySet ? propertySet : null; 
                 foreach (var item in jsonEle.EnumerateObject())
                 {
                     var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                     if (prop != null)
+                    {
                         prop.SetValue(value, ConvertObjectType(item.Value, prop.PropertyType, schema, executionOptions));
+                        propSet?.MarkAsSet(item.Name);
+                    }
                     else
                     {
                         var field = toType.GetFields().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                         field?.SetValue(value, ConvertObjectType(item.Value, field.FieldType, schema, executionOptions));
+                        propSet?.MarkAsSet(item.Name);
                     }
                 }
                 return value;
@@ -182,15 +187,23 @@ public static class ExpressionUtil
                 throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
             var newValue = Activator.CreateInstance(toType);
+            var prop = newValue is IPropertySetTrackingDto p ? p : null;
             foreach (string key in ((IDictionary<string, object>)value).Keys)
             {
                 var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
                 if (toProp != null)
+                {
                     toProp.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toProp.PropertyType, schema, executionOptions));
+                    prop?.MarkAsSet(toProp.Name);
+                }
                 else
                 {
                     var toField = toType.GetFields().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
-                    toField?.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
+                    if (toField is not null)
+                    {
+                        toField.SetValue(newValue, ConvertObjectType(((IDictionary)value)[key], toField.FieldType, schema, executionOptions));
+                        prop?.MarkAsSet(toField.Name);
+                    }
                 }
             }
             return newValue;
