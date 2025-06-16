@@ -294,19 +294,21 @@ public class ArgumentsIsSetTests
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
         Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.False(testData.IsSet(nameof(TestInputTracking.Name)));
 
         gql.Query = null;
         gql.Variables = new QueryVariables()
         {
             {
                 "input",
-                new Dictionary<string, object?>() { { "id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e7" } }
+                new Dictionary<string, object?>() { { "name", "set this not the id for this run" } }
             },
         };
 
         results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
-        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.True(testData.IsSet(nameof(TestInputTracking.Name)));
+        Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
     }
 
     private class TestArgsTracking : PropertySetTrackingDto
