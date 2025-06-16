@@ -62,12 +62,11 @@ public class DemoMutations
         return ctx => ctx.Movies.First(m => m.Id == movie.Id);
     }
 
-
     [GraphQLMutation("Add a new Movie object")]
     public Expression<Func<DemoContext, Movie>>? UpdateMovie(DemoContext db, UpdateMovieArgs args, IGraphQLValidator validator)
     {
         var movie = db.Movies.FirstOrDefault(x => x.Id == args.Id);
-        if(movie is null)
+        if (movie is null)
         {
             validator.AddError("Movie not found");
             return null;
@@ -78,15 +77,13 @@ public class DemoMutations
             movie.DirectorId = args.DirectorId;
 
         if (!string.IsNullOrEmpty(args.Name))
-            movie.Name = args.Name;    
-   
+            movie.Name = args.Name;
+
         if (args.Genre.HasValue)
             movie.Genre = args.Genre.Value;
-        
-   
+
         if (args.Released.HasValue)
             movie.Released = args.Released.Value;
-        
 
         if (args.Rating.HasValue)
             movie.Rating = args.Rating.Value;
