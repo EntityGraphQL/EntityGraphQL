@@ -122,7 +122,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
                     varTypeInSchema
                 )
                 {
-                    DefaultValue = defaultValue,
+                    DefaultValue = new DefaultArgValue(item.DefaultValue != null, defaultValue),
                     IsRequired = isRequired,
                 }
             );

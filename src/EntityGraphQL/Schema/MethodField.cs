@@ -76,7 +76,7 @@ public abstract class MethodField : BaseField
             return null;
 
         // args in the mutation method - may be arguments in the graphql schema, services injected
-        var allArgs = new List<object>();
+        var allArgs = new List<object?>();
         var argsToValidate = new Dictionary<string, object>();
         object? argInstance = null;
         var validationErrors = new List<string>();
@@ -100,11 +100,6 @@ public abstract class MethodField : BaseField
                     validationErrors
                 )!;
                 allArgs.Add(argInstance);
-
-                // if (typeof(IPropertySetTrackingDto).IsAssignableFrom(p.ParameterType))
-                // {
-                //     ((IPropertySetTrackingDto)argInstance).MarkAsSet((gqlRequestArgs ?? new Dictionary<string, object?>()).Keys);
-                // }
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
@@ -141,9 +136,9 @@ public abstract class MethodField : BaseField
             else
             {
                 argField = Arguments[p.Name!];
-                if (argField.DefaultValue != null)
+                if (argField.DefaultValue.IsSet)
                 {
-                    allArgs.Add(argField.DefaultValue);
+                    allArgs.Add(argField.DefaultValue.Value);
                 }
             }
         }

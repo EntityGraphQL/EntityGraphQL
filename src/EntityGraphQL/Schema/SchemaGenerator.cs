@@ -156,42 +156,47 @@ public class SchemaGenerator
         return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
     }
 
-    public static string? GetArgDefaultValue(object? value, Func<string, string> fieldNamer)
+    public static string? GetArgDefaultValue(DefaultArgValue defaultArgValue, Func<string, string> fieldNamer, bool nullAsValue = true)
     {
-        if (value == null || value == DBNull.Value)
+        if (!defaultArgValue.IsSet)
         {
             return string.Empty;
+        }
+
+        if (defaultArgValue.Value == null || defaultArgValue.Value == DBNull.Value)
+        {
+            return nullAsValue ? "null" : string.Empty;
         }
 
         var ret = string.Empty;
-        var valueType = value.GetType();
+        var valueType = defaultArgValue.Value.GetType();
 
         if (valueType == typeof(string))
         {
-            return $"\"{(((string)value == string.Empty) ? string.Empty : value)}\"";
+            return $"\"{(((string)defaultArgValue.Value == string.Empty) ? string.Empty : defaultArgValue.Value)}\"";
         }
         if (valueType == typeof(bool))
         {
-            return value?.ToString()?.ToLower(CultureInfo.InvariantCulture);
+            return defaultArgValue.Value.ToString()?.ToLower(CultureInfo.InvariantCulture);
         }
         else if (valueType.IsValueType)
         {
-            return value?.ToString();
+            return defaultArgValue.Value.ToString();
         }
-        else if (value is IEnumerable e)
+        else if (defaultArgValue.Value is IEnumerable e)
         {
-            return $"[{string.Join(", ", e.Cast<object>().Select(item => GetArgDefaultValue(item, fieldNamer)).Where(item => item != null))}]";
+            return $"[{string.Join(", ", e.Cast<object>().Select(item => GetArgDefaultValue(new DefaultArgValue(true, item), fieldNamer)).Where(item => item != null))}]";
         }
         else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
-            if (((BaseEntityQueryType)value).HasValue)
+            if (((BaseEntityQueryType)defaultArgValue.Value).HasValue)
             {
                 var property = valueType.GetProperty("Query");
-                return $"\"{property!.GetValue(value)}\"";
+                return $"\"{property!.GetValue(defaultArgValue.Value)}\"";
             }
             return string.Empty;
         }
-        else if (value is object o)
+        else if (defaultArgValue.Value is object o)
         {
             ret += "{ ";
             ret += string.Join(
@@ -201,7 +206,7 @@ public class SchemaGenerator
                     .Select(property =>
                     {
                         var propValue = property.GetValue(o);
-                        var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
+                        var propertyValue = GetArgDefaultValue(new DefaultArgValue(true, propValue), fieldNamer, false);
                         if (string.IsNullOrEmpty(propertyValue))
                             return null;
 
@@ -216,7 +221,7 @@ public class SchemaGenerator
                     .Select(property =>
                     {
                         var propValue = property.GetValue(o);
-                        var propertyValue = GetArgDefaultValue(propValue, fieldNamer);
+                        var propertyValue = GetArgDefaultValue(new DefaultArgValue(true, propValue), fieldNamer, false);
                         if (string.IsNullOrEmpty(propertyValue))
                             return null;
 

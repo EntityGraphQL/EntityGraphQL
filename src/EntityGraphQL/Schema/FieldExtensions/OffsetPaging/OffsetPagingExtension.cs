@@ -65,7 +65,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         // Update field arguments
         field.AddArguments(new OffsetArgs());
         if (defaultPageSize.HasValue)
-            field.Arguments["take"].DefaultValue = defaultPageSize.Value;
+            field.Arguments["take"].DefaultValue = new DefaultArgValue(true, defaultPageSize.Value);
 
         isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
 

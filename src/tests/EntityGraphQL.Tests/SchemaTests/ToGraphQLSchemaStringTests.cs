@@ -280,69 +280,75 @@ public class ToGraphQLSchemaStringTests
     }
 
     [Fact]
+    public void TestGetArgDefaultValue_Null_NotSet()
+    {
+        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(false, null), (e) => e));
+    }
+
+    [Fact]
     public void TestGetArgDefaultValue_Null()
     {
-        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(null, (e) => e));
+        Assert.Equal("null", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, null), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_DbNull()
     {
-        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(DBNull.Value, (e) => e));
+        Assert.Equal("null", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, DBNull.Value), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_Int()
     {
-        Assert.Equal("3", SchemaGenerator.GetArgDefaultValue(3, (e) => e));
+        Assert.Equal("3", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 3), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_Decimal()
     {
-        Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(3.14, (e) => e));
+        Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 3.14), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_String()
     {
-        Assert.Equal("\"stringValue\"", SchemaGenerator.GetArgDefaultValue("stringValue", (e) => e));
+        Assert.Equal("\"stringValue\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, "stringValue"), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_String_Empty()
     {
-        Assert.Equal("\"\"", SchemaGenerator.GetArgDefaultValue("", (e) => e));
+        Assert.Equal("\"\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, ""), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_IntArray()
     {
-        Assert.Equal("[1, 2, 3]", SchemaGenerator.GetArgDefaultValue(new[] { 1, 2, 3 }, (e) => e));
+        Assert.Equal("[1, 2, 3]", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new[] { 1, 2, 3 }), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_StringArray()
     {
-        Assert.Equal("[\"one\", \"two\", \"three\"]", SchemaGenerator.GetArgDefaultValue(new[] { "one", "two", "three" }, (e) => e));
+        Assert.Equal("[\"one\", \"two\", \"three\"]", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new[] { "one", "two", "three" }), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_Enum()
     {
-        Assert.Equal("Alternitive", SchemaGenerator.GetArgDefaultValue(Genre.Alternitive, (e) => e));
+        Assert.Equal("Alternitive", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, Genre.Alternitive), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_Filter()
     {
-        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(new EntityQueryType<Task>(), (e) => e));
+        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new EntityQueryType<Task>()), (e) => e));
     }
 
     [Fact]
     public void TestGetArgDefaultValue_Object()
     {
-        Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new Album { Id = 5, Name = "Test" }, (e) => e));
+        Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new Album { Id = 5, Name = "Test" }), (e) => e));
     }
 }
 

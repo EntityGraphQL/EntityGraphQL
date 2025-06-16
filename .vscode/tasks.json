@@ -9,7 +9,11 @@
                 "build",
                 "${workspaceFolder}"
             ],
-            "problemMatcher": "$tsc"
+            "problemMatcher": "$tsc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

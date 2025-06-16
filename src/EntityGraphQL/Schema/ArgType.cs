@@ -10,6 +10,24 @@ using Nullability;
 namespace EntityGraphQL.Schema;
 
 /// <summary>
+/// Holds if a arg has a default value set, which may be null
+/// </summary>
+public record DefaultArgValue
+{
+    /// <summary>
+    /// True is the argument definition has a default value set.
+    /// </summary>
+    public bool IsSet { get; set; }
+    public object? Value { get; set; }
+
+    public DefaultArgValue(bool isSet, object? value)
+    {
+        Value = value;
+        IsSet = isSet;
+    }
+}
+
+/// <summary>
 /// Holds information about arguments for fields
 /// </summary>
 public class ArgType
@@ -18,7 +36,7 @@ public class ArgType
     public string DotnetName { get; private set; }
     public string Description { get; set; }
     public GqlTypeInfo Type { get; private set; }
-    public object? DefaultValue { get; set; }
+    public DefaultArgValue DefaultValue { get; set; }
     public MemberInfo? MemberInfo { get; internal set; }
 
     private RequiredAttribute? requiredAttribute;
@@ -33,11 +51,11 @@ public class ArgType
         Type = type;
         MemberInfo = memberInfo;
         RawType = rawType;
-        DefaultValue = null;
+        DefaultValue = new DefaultArgValue(false, null);
         IsRequired = false;
     }
 
-    public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, object? defaultValue)
+    public static ArgType FromProperty(ISchemaProvider schema, PropertyInfo prop, DefaultArgValue defaultValue)
     {
         var nullability = prop.GetNullabilityInfo();
         var arg = MakeArgType(schema, prop.Name, prop, prop.GetCustomAttributes(), prop.PropertyType, defaultValue, nullability);
@@ -45,21 +63,29 @@ public class ArgType
         return arg;
     }
 
-    public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo parameter, object? defaultValue)
+    public static ArgType FromParameter(ISchemaProvider schema, ParameterInfo parameter, DefaultArgValue defaultValue)
     {
         var nullability = parameter.GetNullabilityInfo();
         var arg = MakeArgType(schema, parameter.Name!, null, parameter.GetCustomAttributes(), parameter.ParameterType, defaultValue, nullability);
         return arg;
     }
 
-    public static ArgType FromField(ISchemaProvider schema, FieldInfo field, object? defaultValue)
+    public static ArgType FromField(ISchemaProvider schema, FieldInfo field, DefaultArgValue defaultValue)
     {
         var nullability = field.GetNullabilityInfo();
         var arg = MakeArgType(schema, field.Name, field, field.GetCustomAttributes(), field.FieldType, defaultValue, nullability);
         return arg;
     }
 
-    private static ArgType MakeArgType(ISchemaProvider schema, string name, MemberInfo? memberInfo, IEnumerable<Attribute> attributes, Type type, object? defaultValue, NullabilityInfo nullability)
+    private static ArgType MakeArgType(
+        ISchemaProvider schema,
+        string name,
+        MemberInfo? memberInfo,
+        IEnumerable<Attribute> attributes,
+        Type type,
+        DefaultArgValue defaultValue,
+        NullabilityInfo nullability
+    )
     {
         var markedRequired = false;
         var gqlLookupType = type;
@@ -70,7 +96,8 @@ public class ArgType
             argType = gqlLookupType = gqlLookupType.GetGenericArguments()[0];
             // default value will often be the default value of the non-null type (e.g. 0 for int).
             // We are saying here it must be provided by the query
-            defaultValue = null;
+            defaultValue.Value = null;
+            defaultValue.IsSet = false;
         }
         if (gqlLookupType.IsConstructedGenericType && gqlLookupType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
@@ -132,7 +159,7 @@ public class ArgType
             val = valType.GetProperty("Value")!.GetValue(val);
         if (requiredAttribute != null && !requiredAttribute.IsValid(val))
             validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
-        else if (IsRequired && val == null && DefaultValue == null)
+        else if (IsRequired && val == null && !DefaultValue.IsSet)
             validationErrors.Add($"Field '{fieldName}' - missing required argument '{Name}'");
 
         Type.SchemaType.Validate(val);

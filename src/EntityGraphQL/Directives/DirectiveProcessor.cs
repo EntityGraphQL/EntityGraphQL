@@ -28,7 +28,7 @@ public abstract class DirectiveProcessor<TArguments> : IDirectiveProcessor
 
     public IDictionary<string, ArgType> GetArguments(ISchemaProvider schema)
     {
-        arguments ??= typeof(TArguments).GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, null)).ToDictionary(i => i.Name, i => i);
+        arguments ??= typeof(TArguments).GetProperties().ToList().Select(prop => ArgType.FromProperty(schema, prop, new DefaultArgValue(false, null))).ToDictionary(i => i.Name, i => i);
         return arguments;
     }
 }

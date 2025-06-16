@@ -154,9 +154,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 try
                 {
                     object? argValue = null;
-                    if (variables.ContainsKey(name) || argType.DefaultValue != null)
+                    if (variables.ContainsKey(name) || argType.DefaultValue.IsSet)
                     {
-                        argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue, argType.RawType, Schema, null);
+                        argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue.Value, argType.RawType, Schema, null);
                         variablesToUse!.MarkAsSet(name);
                     }
                     if (argValue == null && argType.IsRequired)

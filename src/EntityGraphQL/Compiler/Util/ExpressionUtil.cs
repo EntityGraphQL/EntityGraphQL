@@ -103,7 +103,7 @@ public static class ExpressionUtil
             if (jsonEle.ValueKind == JsonValueKind.Object)
             {
                 value = Activator.CreateInstance(toType);
-                var propSet = value is IPropertySetTrackingDto propertySet ? propertySet : null; 
+                var propSet = value is IPropertySetTrackingDto propertySet ? propertySet : null;
                 foreach (var item in jsonEle.EnumerateObject())
                 {
                     var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
@@ -303,13 +303,24 @@ public static class ExpressionUtil
             .GetType()
             .GetProperties()
             .Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p))
-            .ToDictionary(k => schema.SchemaFieldNamer(k.Name), p => ArgType.FromProperty(schema, p, p.GetValue(argTypes)));
+            .ToDictionary(
+                k => schema.SchemaFieldNamer(k.Name),
+                p =>
+                {
+                    var value = p.GetValue(argTypes);
+                    return ArgType.FromProperty(schema, p, new DefaultArgValue(value != null, value));
+                }
+            );
         argTypes
             .GetType()
             .GetFields()
             .Where(p => !GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(p))
             .ToList()
-            .ForEach(p => args.Add(schema.SchemaFieldNamer(p.Name), ArgType.FromField(schema, p, p.GetValue(argTypes))));
+            .ForEach(p =>
+            {
+                var value = p.GetValue(argTypes);
+                args.Add(schema.SchemaFieldNamer(p.Name), ArgType.FromField(schema, p, new DefaultArgValue(value != null, value)));
+            });
         return args;
     }
 

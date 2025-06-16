@@ -559,7 +559,7 @@ public static class SchemaBuilder
             }
             else
             {
-                arguments.Add(new FieldArgInfo(schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, item.HasDefaultValue ? item.DefaultValue : null)));
+                arguments.Add(new FieldArgInfo(schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, new DefaultArgValue(item.HasDefaultValue, item.DefaultValue))));
 
                 if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                 {
@@ -578,7 +578,7 @@ public static class SchemaBuilder
             if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                 continue;
 
-            yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, null));
+            yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromProperty(schema, item, new DefaultArgValue(false, null)));
             var inputType =
                 item.PropertyType.IsEnumerableOrArray() ? item.PropertyType.GetEnumerableOrArrayType()!
                 : item.PropertyType.IsNullableType() ? item.PropertyType.GetGenericArguments()[0]
@@ -592,7 +592,7 @@ public static class SchemaBuilder
         {
             if (GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(item))
                 continue;
-            yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, null));
+            yield return new FieldArgInfo(schema.SchemaFieldNamer(item.Name), ArgType.FromField(schema, item, new DefaultArgValue(false, null)));
             var inputType =
                 item.FieldType.IsEnumerableOrArray() ? item.FieldType.GetEnumerableOrArrayType()!
                 : item.FieldType.IsNullableType() ? item.FieldType.GetGenericArguments()[0]

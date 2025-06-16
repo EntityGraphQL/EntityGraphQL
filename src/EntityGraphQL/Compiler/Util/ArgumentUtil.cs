@@ -62,7 +62,8 @@ public static class ArgumentUtil
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null);
                     values.Add(argField.Name, val);
-                    setValues.Add(argField.Name);
+                    if (val != null || argField.DefaultValue.IsSet)
+                        setValues.Add(argField.Name);
                 }
                 argField.Validate(val, fieldName, validationErrors);
             }
@@ -143,7 +144,7 @@ public static class ArgumentUtil
         IReadOnlyDictionary<string, object?>? args,
         string memberName,
         Type memberType,
-        object? defaultValue,
+        DefaultArgValue defaultValue,
         IList<string> validationErrors
     )
     {
@@ -186,7 +187,7 @@ public static class ArgumentUtil
             var typedVal = constructor.Invoke(new[] { item });
             return typedVal;
         }
-        else if (defaultValue != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+        else if (defaultValue.IsSet && defaultValue.Value != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
             return args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType);
         }
@@ -197,7 +198,7 @@ public static class ArgumentUtil
         else
         {
             // set the default value
-            return defaultValue;
+            return defaultValue.Value;
         }
     }
 }

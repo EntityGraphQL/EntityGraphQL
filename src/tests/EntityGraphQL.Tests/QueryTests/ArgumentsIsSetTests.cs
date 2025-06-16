@@ -13,7 +13,7 @@ public class ArgumentsIsSetTests
     public void TestPropertySetTrackingDto_IsSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
         var gql = new QueryRequest
         {
             Query =
@@ -40,12 +40,63 @@ public class ArgumentsIsSetTests
     public void TestPropertySetTrackingDto_NotSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
         var gql = new QueryRequest
         {
             Query =
                 @"query ($ids: [ID]) {
                     test(ids: $ids) { guid }
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Equal(2, testData.Count);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDto_IsSet_NoVars()
+    {
+        // don't use variables, use inline values
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    test(ids: [""03d539f8-6bbc-4b62-8f7f-b55c7eb242e6""]) { guid }
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") });
+        testSchema.People.Add(new Person { Guid = Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e7") });
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+        Assert.NotNull(results.Data!["test"]);
+        var testData = (dynamic)results.Data!["test"]!;
+        Assert.Single(testData);
+        Assert.Equal(Guid.Parse("03d539f8-6bbc-4b62-8f7f-b55c7eb242e6"), testData[0].guid);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDto_NotSet_NoVars()
+    {
+        // don't use variables, use inline values or not
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    test { guid }
                 }",
         };
 
@@ -158,6 +209,64 @@ public class ArgumentsIsSetTests
             Query =
                 @"mutation M ($ids: [ID]) {
                     doTest(ids: $ids)
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (dynamic)results.Data!["doTest"]!;
+        Assert.False(testData);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDtoMutation_IsSet_NoVars()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                ([GraphQLArguments] TestArgsTracking args) =>
+                {
+                    return args.IsSet("Ids");
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation M {
+                    doTest(ids: [""03d539f8-6bbc-4b62-8f7f-b55c7eb242e6""])
+                }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (dynamic)results.Data!["doTest"]!;
+        Assert.True(testData);
+    }
+
+    [Fact]
+    public void TestPropertySetTrackingDtoMutation_NotSet_NoVars()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                ([GraphQLArguments] TestArgsTracking args) =>
+                {
+                    return args.IsSet("Ids");
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation M {
+                    doTest
                 }",
         };
 
