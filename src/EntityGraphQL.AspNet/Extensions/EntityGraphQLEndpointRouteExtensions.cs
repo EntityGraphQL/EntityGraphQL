@@ -62,7 +62,11 @@ public static class EntityGraphQLEndpointRouteExtensions
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
                 }
-                if (context.Request.ContentLength == null || context.Request.ContentLength == 0)
+                var isChunked = context.Request.Headers.TransferEncoding
+                    .Any(h => h is not null && h.Equals("chunked", StringComparison.OrdinalIgnoreCase));
+
+                if (!isChunked && (context.Request.ContentLength == null ||
+                                   context.Request.ContentLength == 0))
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
