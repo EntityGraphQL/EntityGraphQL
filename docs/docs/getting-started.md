@@ -376,3 +376,50 @@ See the serialization tests for [an example with Newtonsoft.Json](https://github
 `EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
 
 Since a GraphQL request is processed with a single thread, database contexts can be scoped services like they do for ordinary web services. Likewise, queries (and mutations) that call external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
+
+## Tracking Argument Values: IArgumentsTracker
+
+EntityGraphQL provides a way to help you determine if an argument or input property was explicitly set by the user in a query or mutation, or if it is just the default .NET value. This is useful for distinguishing between "not provided" and "provided as null/default".
+
+### IArgumentsTracker
+
+If your argument or input class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
+
+```csharp
+public class MyInput : ArgumentsTracker {
+    public string? Name { get; set; }
+    public int? Age { get; set; }
+}
+
+// For a field
+schema.Query().AddField("test", new MyInput(), (db, args) => db.People.WhereWhen(p => args.Name == p.Name, args.IsSet(nameof(MyInput.Name))), "test field");
+
+// In your mutation or subscriptions
+public string MyMutation(MyInput input) {
+    if (input.IsSet(nameof(MyInput.Name))) {
+        // Name was provided in the query
+    }
+    if (!input.IsSet(nameof(MyInput.Age))) {
+        // Age was not provided
+    }
+    ...
+}
+```
+
+This works for both inline arguments and variables.
+
+For simple argument lists (e.g. method parameters), you can add an `IArgumentsTracker` parameter to your mutation or query method. This allows you to check if a specific argument was set:
+
+```csharp
+public string MyMutation(Guid? id, string? name, IArgumentsTracker argsTracker) {
+    if (argsTracker.IsSet(nameof(id))) {
+        // id was provided
+    }
+    if (!argsTracker.IsSet(nameof(name))) {
+        // name was not provided
+    }
+    ...
+}
+```
+
+This is especially useful for distinguishing between omitted arguments and those set to null/default.

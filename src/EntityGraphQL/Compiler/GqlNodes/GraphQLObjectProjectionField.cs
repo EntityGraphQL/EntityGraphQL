@@ -57,7 +57,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
@@ -223,7 +223,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         BaseGraphQLField field,
         IBulkFieldResolver bulkResolver,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ParameterReplacer replacer
     )
     {

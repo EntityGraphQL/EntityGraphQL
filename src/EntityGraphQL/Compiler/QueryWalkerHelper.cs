@@ -104,7 +104,7 @@ public static class QueryWalkerHelper
         }
 
         var obj = Activator.CreateInstance(argType)!;
-        var propTracker = obj is IPropertySetTrackingDto p ? p : null;
+        var propTracker = obj is IArgumentsTracker p ? p : null;
 
         object argValue;
         var schemaType = schema.GetSchemaType(argType, true, null);

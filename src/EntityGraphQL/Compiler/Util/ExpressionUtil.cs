@@ -103,7 +103,7 @@ public static class ExpressionUtil
             if (jsonEle.ValueKind == JsonValueKind.Object)
             {
                 value = Activator.CreateInstance(toType);
-                var propSet = value is IPropertySetTrackingDto propertySet ? propertySet : null;
+                var propSet = value is IArgumentsTracker propertySet ? propertySet : null;
                 foreach (var item in jsonEle.EnumerateObject())
                 {
                     var prop = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
@@ -187,7 +187,7 @@ public static class ExpressionUtil
                 throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
             var newValue = Activator.CreateInstance(toType);
-            var prop = newValue is IPropertySetTrackingDto p ? p : null;
+            var prop = newValue is IArgumentsTracker p ? p : null;
             foreach (string key in ((IDictionary<string, object>)value).Keys)
             {
                 var toProp = toType.GetProperties().FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));

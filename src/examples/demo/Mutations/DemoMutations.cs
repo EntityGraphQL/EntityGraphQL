@@ -196,7 +196,7 @@ public class Detail
 }
 
 [GraphQLArguments]
-public class UpdateMovieArgs : PropertySetTrackingDto
+public class UpdateMovieArgs : ArgumentsTracker
 {
     public required long Id { get; set; }
     public Genre? Genre;

@@ -31,7 +31,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         TContext context,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
-        IPropertySetTrackingDto? variablesToUse,
+        IArgumentsTracker? variablesToUse,
         ExecutionOptions executionOptions
     )
     {
@@ -50,7 +50,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,

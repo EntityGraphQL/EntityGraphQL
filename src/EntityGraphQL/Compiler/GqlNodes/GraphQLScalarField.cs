@@ -29,7 +29,7 @@ public class GraphQLScalarField : BaseGraphQLField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,

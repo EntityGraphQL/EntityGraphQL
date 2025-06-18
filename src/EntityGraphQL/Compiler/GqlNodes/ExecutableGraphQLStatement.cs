@@ -56,8 +56,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (OpDefinedVariables.Count > 0)
         {
             // this type if all the variables defined in the GraphQL document
-            // use PropertySetTrackingDto to track is they are set or not (either by a default value or by the user in variables passed in)
-            var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars", typeof(PropertySetTrackingDto));
+            // use PropertySetTracking to track is they are set or not (either by a default value or by the user in variables passed in)
+            var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars", typeof(ArgumentsTracker));
             OpVariableParameter = Expression.Parameter(variableType, "docVars");
         }
     }
@@ -83,7 +83,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // people & movies will be the 2 fields that will be 2 separate expressions
         var result = new ConcurrentDictionary<string, object?>();
 
-        IPropertySetTrackingDto? docVariables = BuildDocumentVariables(ref variables);
+        IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
 
         foreach (var fieldNode in QueryFields)
         {
@@ -140,15 +140,15 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return context;
     }
 
-    protected IPropertySetTrackingDto? BuildDocumentVariables(ref QueryVariables? variables)
+    protected IArgumentsTracker? BuildDocumentVariables(ref QueryVariables? variables)
     {
         // inject document level variables - letting the query be cached and passing in different variables
-        IPropertySetTrackingDto? variablesToUse = null;
+        IArgumentsTracker? variablesToUse = null;
 
         if (OpDefinedVariables.Count > 0 && OpVariableParameter != null)
         {
             variables ??= [];
-            variablesToUse = (IPropertySetTrackingDto)Activator.CreateInstance(OpVariableParameter.Type)!;
+            variablesToUse = (IArgumentsTracker)Activator.CreateInstance(OpVariableParameter.Type)!;
             foreach (var (name, argType) in OpDefinedVariables)
             {
                 try
@@ -185,7 +185,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         BaseGraphQLField node,
-        IPropertySetTrackingDto? docVariables
+        IArgumentsTracker? docVariables
     )
     {
         object? runningContext = context;

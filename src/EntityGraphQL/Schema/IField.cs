@@ -95,7 +95,7 @@ public interface IField
         CompileContext compileContext,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
         ParameterReplacer replacer

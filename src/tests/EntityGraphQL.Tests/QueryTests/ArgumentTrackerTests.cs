@@ -7,10 +7,10 @@ using Xunit;
 
 namespace EntityGraphQL.Tests;
 
-public class ArgumentsIsSetTests
+public class ArgumentTrackerTests
 {
     [Fact]
-    public void TestPropertySetTrackingDto_IsSet()
+    public void TestPropertySetTracking_IsSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
@@ -37,7 +37,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDto_NotSet()
+    public void TestPropertySetTracking_NotSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet(nameof(TestArgsTracking.Ids))), "test field");
@@ -61,7 +61,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDto_IsSet_NoVars()
+    public void TestPropertySetTracking_IsSet_NoVars()
     {
         // don't use variables, use inline values
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -87,7 +87,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDto_NotSet_NoVars()
+    public void TestPropertySetTracking_NotSet_NoVars()
     {
         // don't use variables, use inline values or not
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -112,7 +112,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDto_IsSet_Inline()
+    public void TestPropertySetTracking_IsSet_Inline()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
@@ -137,7 +137,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDto_IsSet_Default()
+    public void TestPropertySetTracking_IsSet_Default()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("test", new TestArgsTracking(), (db, args) => db.People.WhereWhen(p => args.Ids!.Any(a => a == p.Guid), args.IsSet("Ids")), "test field");
@@ -162,7 +162,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDtoMutation_IsSet()
+    public void TestPropertySetTrackingMutation_IsSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema
@@ -192,7 +192,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDtoMutation_NotSet()
+    public void TestPropertySetTrackingMutation_NotSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema
@@ -221,7 +221,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDtoMutation_IsSet_NoVars()
+    public void TestPropertySetTrackingMutation_IsSet_NoVars()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema
@@ -250,7 +250,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPropertySetTrackingDtoMutation_NotSet_NoVars()
+    public void TestPropertySetTrackingMutation_NotSet_NoVars()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema
@@ -279,7 +279,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestInputTypePropertySetTrackingDtoMutation_IsSet()
+    public void TestInputTypePropertySetTrackingMutation_IsSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
@@ -304,12 +304,12 @@ public class ArgumentsIsSetTests
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
         Assert.NotNull(results.Data!["doTest"]);
-        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
         Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
     }
 
     [Fact]
-    public void TestInputTypePropertySetTrackingDtoMutation_NotSet()
+    public void TestInputTypePropertySetTrackingMutation_NotSet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
@@ -327,7 +327,7 @@ public class ArgumentsIsSetTests
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
         Assert.NotNull(results.Data!["doTest"]);
-        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
         Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
     }
 
@@ -336,7 +336,7 @@ public class ArgumentsIsSetTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void TestNestedInputTypePropertySetTrackingDtoMutation_IsSet(bool setParent, bool setChild)
+    public void TestNestedInputTypePropertySetTrackingMutation_IsSet(bool setParent, bool setChild)
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
@@ -367,7 +367,7 @@ public class ArgumentsIsSetTests
     }
 
     [Fact]
-    public void TestPersistedInputTypePropertySetTrackingDtoMutation_IsSet()
+    public void TestPersistedInputTypePropertySetTrackingMutation_IsSet()
     {
         var testSchema = new TestDataContext();
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -401,7 +401,7 @@ public class ArgumentsIsSetTests
         };
 
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-        var testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
         Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
         Assert.False(testData.IsSet(nameof(TestInputTracking.Name)));
 
@@ -415,7 +415,7 @@ public class ArgumentsIsSetTests
         };
 
         results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-        testData = (IPropertySetTrackingDto)results.Data!["doTest"]!;
+        testData = (IArgumentsTracker)results.Data!["doTest"]!;
         Assert.True(testData.IsSet(nameof(TestInputTracking.Name)));
         Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
     }
@@ -429,7 +429,7 @@ public class ArgumentsIsSetTests
             .Mutation()
             .Add(
                 "doTest",
-                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                (Guid? id, string? name, IArgumentsTracker argsSet) =>
                 {
                     Assert.True(argsSet.IsSet(nameof(id)));
                     Assert.False(argsSet.IsSet(nameof(name)));
@@ -461,7 +461,7 @@ public class ArgumentsIsSetTests
             .Mutation()
             .Add(
                 "doTest",
-                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                (Guid? id, string? name, IArgumentsTracker argsSet) =>
                 {
                     Assert.False(argsSet.IsSet(nameof(id)));
                     Assert.False(argsSet.IsSet(nameof(name)));
@@ -492,7 +492,7 @@ public class ArgumentsIsSetTests
             .Mutation()
             .Add(
                 "doTest",
-                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                (Guid? id, string? name, IArgumentsTracker argsSet) =>
                 {
                     Assert.True(argsSet.IsSet(nameof(id)));
                     Assert.False(argsSet.IsSet(nameof(name)));
@@ -523,7 +523,7 @@ public class ArgumentsIsSetTests
             .Mutation()
             .Add(
                 "doTest",
-                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                (Guid? id, string? name, IArgumentsTracker argsSet) =>
                 {
                     Assert.False(argsSet.IsSet(nameof(id)));
                     Assert.False(argsSet.IsSet(nameof(name)));
@@ -545,18 +545,18 @@ public class ArgumentsIsSetTests
         Assert.NotNull(results.Data!["doTest"]);
     }
 
-    private class TestArgsTracking : PropertySetTrackingDto
+    private class TestArgsTracking : ArgumentsTracker
     {
         public List<Guid>? Ids { get; set; }
     }
 
-    private class TestInputTracking : PropertySetTrackingDto
+    private class TestInputTracking : ArgumentsTracker
     {
         public Guid? Id { get; set; }
         public string? Name { get; set; }
     }
 
-    private class NestedTestInputTracking : PropertySetTrackingDto
+    private class NestedTestInputTracking : ArgumentsTracker
     {
         public Guid? Id { get; set; }
         public TestInputTracking? Child { get; set; }

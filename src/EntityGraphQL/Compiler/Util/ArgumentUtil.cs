@@ -18,7 +18,7 @@ public static class ArgumentUtil
         IEnumerable<ArgType> argumentDefinitions,
         Type? argumentsType,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         List<string> validationErrors
     )
     {
@@ -86,7 +86,7 @@ public static class ArgumentUtil
 
         // regardless of the constructor, we make sure the values are set on the object
         var argMembers = argumentValues.GetType().GetMembers();
-        bool isPropTracking = typeof(IPropertySetTrackingDto).IsAssignableFrom(argumentValues.GetType());
+        bool isPropTracking = typeof(IArgumentsTracker).IsAssignableFrom(argumentValues.GetType());
 
         foreach (var item in argMembers)
         {
@@ -101,7 +101,7 @@ public static class ArgumentUtil
 
             if (isPropTracking && setValues.Contains(item.Name))
             {
-                ((IPropertySetTrackingDto)argumentValues).MarkAsSet(item.Name);
+                ((IArgumentsTracker)argumentValues).MarkAsSet(item.Name);
             }
         }
 

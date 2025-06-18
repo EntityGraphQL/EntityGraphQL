@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace EntityGraphQL.Schema;
 
-public class PropertySetTrackingDto : IPropertySetTrackingDto
+public class ArgumentsTracker : IArgumentsTracker
 {
     private readonly HashSet<string> setProperties = new(StringComparer.OrdinalIgnoreCase);
 

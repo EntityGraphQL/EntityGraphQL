@@ -65,7 +65,7 @@ public class CompileContext
         IField field,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ref object? argumentValue,
         List<string> validationErrors,
         ParameterExpression? newArgParam

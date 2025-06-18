@@ -30,7 +30,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables
+        IArgumentsTracker? docVariables
     )
     {
         var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
@@ -75,7 +75,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         IServiceProvider? serviceProvider,
         List<GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,

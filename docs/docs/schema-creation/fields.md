@@ -215,3 +215,21 @@ Only apply the `Take()` method if the argument has a value.
 ```cs
 schema.Query().AddField("Field", new { limit = (int?)null }, (db, p) => db.Entity.Take(p.limit), "description");
 ```
+
+## Tracking Argument Values: IArgumentsTracker
+
+EntityGraphQL provides a way to help you determine if an argument or input property was explicitly set by the user in a query or mutation, or if it is just the default .NET value. This is useful for distinguishing between "not provided" and "provided as null/default".
+
+### IArgumentsTracker
+
+If your argument or input class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
+
+```csharp
+public class MyInput : ArgumentsTracker {
+    public string? Name { get; set; }
+    public int? Age { get; set; }
+}
+
+// In your field
+schema.Query().AddField("test", new MyInput(), (db, args) => db.People.WhereWhen(p => args.Name == p.Name, args.IsSet(nameof(MyInput.Name))), "test field");
+```

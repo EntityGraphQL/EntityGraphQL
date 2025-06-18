@@ -68,7 +68,7 @@ public abstract class MethodField : BaseField
         IReadOnlyDictionary<string, object?>? gqlRequestArgs,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         ExecutionOptions executionOptions
     )
     {
@@ -82,7 +82,7 @@ public abstract class MethodField : BaseField
         var validationErrors = new List<string>();
         var setProperties = new List<string>();
 
-        var graphQLArgumentsSet = new GraphQLArgumentsSet();
+        var graphQLArgumentsSet = new ArgumentsTracker();
 
         // add parameters and any DI services
         foreach (var p in Method.GetParameters())
@@ -102,7 +102,7 @@ public abstract class MethodField : BaseField
                     validationErrors
                 )!;
                 allArgs.Add(argInstance);
-                graphQLArgumentsSet.AddSetArgument(p.Name!, argInstance);
+                graphQLArgumentsSet.MarkAsSet(p.Name!);
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
@@ -126,7 +126,7 @@ public abstract class MethodField : BaseField
                 allArgs.Add(value!);
                 argsToValidate.Add(p.Name!, value!);
                 if (isSet)
-                    graphQLArgumentsSet.AddSetArgument(p.Name!, value);
+                    graphQLArgumentsSet.MarkAsSet(p.Name!);
             }
             else if (p.ParameterType == context.GetType())
             {
@@ -139,7 +139,7 @@ public abstract class MethodField : BaseField
                     ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                 allArgs.Add(service);
             }
-            else if (typeof(IGraphQLArgumentsSet) == p.ParameterType)
+            else if (typeof(IArgumentsTracker) == p.ParameterType)
             {
                 allArgs.Add(graphQLArgumentsSet);
             }
@@ -206,7 +206,7 @@ public abstract class MethodField : BaseField
         CompileContext? compileContext,
         IReadOnlyDictionary<string, object?> args,
         ParameterExpression? docParam,
-        IPropertySetTrackingDto? docVariables,
+        IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
         ParameterReplacer replacer

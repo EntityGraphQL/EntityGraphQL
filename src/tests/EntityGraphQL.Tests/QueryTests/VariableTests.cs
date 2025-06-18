@@ -163,7 +163,7 @@ public class VariableTests
     }
 }
 
-internal class TestArgsTracking : PropertySetTrackingDto
+internal class TestArgsTracking : ArgumentsTracker
 {
     public List<Guid>? Ids { get; set; }
 }

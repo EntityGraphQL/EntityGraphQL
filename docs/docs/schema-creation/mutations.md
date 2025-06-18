@@ -382,3 +382,47 @@ Using the `Expression<Func<>>` as a return type allows EntityGraphQL to build an
 ```
 
 This means we have access to the full schema graph from the core context of the schema and if you are using an ORM like Entity Framework it will load the requested data for you.
+
+## Tracking Argument Values: IArgumentsTracker
+
+EntityGraphQL provides a way to help you determine if an argument or input property was explicitly set by the user in a query or mutation, or if it is just the default .NET value. This is useful for distinguishing between "not provided" and "provided as null/default".
+
+### IArgumentsTracker
+
+If your argument or input class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
+
+```csharp
+public class MyInput : ArgumentsTracker {
+    public string? Name { get; set; }
+    public int? Age { get; set; }
+}
+
+// In your mutation or query
+public string MyMutation(MyInput input) {
+    if (input.IsSet(nameof(MyInput.Name))) {
+        // Name was provided in the query
+    }
+    if (!input.IsSet(nameof(MyInput.Age))) {
+        // Age was not provided
+    }
+    ...
+}
+```
+
+This works for both inline arguments and variables.
+
+For simple argument lists (e.g. method parameters), you can add an `IArgumentsTracker` parameter to your mutation or query method. This allows you to check if a specific argument was set:
+
+```csharp
+public string MyMutation(Guid? id, string? name, IArgumentsTracker argsTracker) {
+    if (argsTracker.IsSet(nameof(id))) {
+        // id was provided
+    }
+    if (!argsTracker.IsSet(nameof(name))) {
+        // name was not provided
+    }
+    ...
+}
+```
+
+This is especially useful for distinguishing between omitted arguments and those set to null/default.

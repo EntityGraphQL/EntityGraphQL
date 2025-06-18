@@ -2,7 +2,7 @@
 
 namespace EntityGraphQL.Schema;
 
-public interface IPropertySetTrackingDto
+public interface IArgumentsTracker
 {
     /// <summary>
     /// True if the property was set by the user. Let's you know if the property is just a default dotnet property or
