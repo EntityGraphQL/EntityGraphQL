@@ -559,7 +559,12 @@ public static class SchemaBuilder
             }
             else
             {
-                arguments.Add(new FieldArgInfo(schema.SchemaFieldNamer(item.Name!), ArgType.FromParameter(schema, item, new DefaultArgValue(item.HasDefaultValue, item.DefaultValue))));
+                arguments.Add(
+                    new FieldArgInfo(
+                        schema.SchemaFieldNamer(item.Name!),
+                        ArgType.FromParameter(schema, item, new DefaultArgValue(item.HasDefaultValue, item.HasDefaultValue ? item.DefaultValue : null))
+                    )
+                );
 
                 if (!schema.HasType(inputType) && options.AutoCreateInputTypes)
                 {

@@ -82,6 +82,8 @@ public abstract class MethodField : BaseField
         var validationErrors = new List<string>();
         var setProperties = new List<string>();
 
+        var graphQLArgumentsSet = new GraphQLArgumentsSet();
+
         // add parameters and any DI services
         foreach (var p in Method.GetParameters())
         {
@@ -100,14 +102,16 @@ public abstract class MethodField : BaseField
                     validationErrors
                 )!;
                 allArgs.Add(argInstance);
+                graphQLArgumentsSet.AddSetArgument(p.Name!, argInstance);
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
-                var value = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                var (isSet, value) = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {
                     if (value is Expression and not null)
                     {
+                        isSet = docVariables.IsSet(((MemberExpression)value!).Member.Name);
                         value = Expression.Lambda((Expression)value, variableParameter!).Compile().DynamicInvoke(new[] { docVariables });
                     }
                 }
@@ -121,6 +125,8 @@ public abstract class MethodField : BaseField
 
                 allArgs.Add(value!);
                 argsToValidate.Add(p.Name!, value!);
+                if (isSet)
+                    graphQLArgumentsSet.AddSetArgument(p.Name!, value);
             }
             else if (p.ParameterType == context.GetType())
             {
@@ -132,6 +138,10 @@ public abstract class MethodField : BaseField
                     serviceProvider.GetService(p.ParameterType)
                     ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                 allArgs.Add(service);
+            }
+            else if (typeof(IGraphQLArgumentsSet) == p.ParameterType)
+            {
+                allArgs.Add(graphQLArgumentsSet);
             }
             else
             {

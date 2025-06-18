@@ -420,6 +420,131 @@ public class ArgumentsIsSetTests
         Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
     }
 
+    [Fact]
+    public void TestMutationBasicParams_Vars()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                {
+                    Assert.True(argsSet.IsSet(nameof(id)));
+                    Assert.False(argsSet.IsSet(nameof(name)));
+                    return (id?.ToString() ?? name) ?? "blah";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M ($id: ID) {
+                    doTest(id : $id)
+                }
+                """,
+            Variables = new QueryVariables() { { "id", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+    }
+
+    [Fact]
+    public void TestMutationBasicParams_Vars_NotSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                {
+                    Assert.False(argsSet.IsSet(nameof(id)));
+                    Assert.False(argsSet.IsSet(nameof(name)));
+                    return (id?.ToString() ?? name) ?? "blah";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M ($id: ID) {
+                    doTest(id : $id)
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+    }
+
+    [Fact]
+    public void TestMutationBasicParams_NoVars_Set()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                {
+                    Assert.True(argsSet.IsSet(nameof(id)));
+                    Assert.False(argsSet.IsSet(nameof(name)));
+                    return (id?.ToString() ?? name) ?? "blah";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6")
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+    }
+
+    [Fact]
+    public void TestMutationBasicParams_NoVars_NotSet()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, IGraphQLArgumentsSet argsSet) =>
+                {
+                    Assert.False(argsSet.IsSet(nameof(id)));
+                    Assert.False(argsSet.IsSet(nameof(name)));
+                    return (id?.ToString() ?? name) ?? "blah";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+    }
+
     private class TestArgsTracking : PropertySetTrackingDto
     {
         public List<Guid>? Ids { get; set; }

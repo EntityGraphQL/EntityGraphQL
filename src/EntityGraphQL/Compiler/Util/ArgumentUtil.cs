@@ -57,7 +57,7 @@ public static class ArgumentUtil
                 }
                 else
                 {
-                    val = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    (var isSet, val) = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null);
@@ -139,7 +139,7 @@ public static class ArgumentUtil
         }
     }
 
-    internal static object? BuildArgumentFromMember(
+    internal static (bool isSet, object? value) BuildArgumentFromMember(
         ISchemaProvider schema,
         IReadOnlyDictionary<string, object?>? args,
         string memberName,
@@ -155,14 +155,14 @@ public static class ArgumentUtil
             // Error is created by caller on arg validation
             if (args == null || !args.ContainsKey(argName))
             {
-                return null;
+                return (false, null);
             }
             var item = args[argName];
             if (item is null)
             {
-                return null;
+                return (false, null);
             }
-            var constructor = memberType.GetConstructor(new[] { item.GetType() });
+            var constructor = memberType.GetConstructor([item.GetType()]);
             if (constructor == null)
             {
                 // we might need to change the type
@@ -181,24 +181,24 @@ public static class ArgumentUtil
             if (constructor == null)
             {
                 validationErrors.Add($"Could not find a constructor for type {memberType.Name} that takes value '{item}'");
-                return null;
+                return (false, null);
             }
 
-            var typedVal = constructor.Invoke(new[] { item });
-            return typedVal;
+            var typedVal = constructor.Invoke([item]);
+            return (true, typedVal);
         }
         else if (defaultValue.IsSet && defaultValue.Value != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
         {
-            return args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType);
+            return (true, args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType));
         }
         else if (args != null && args.ContainsKey(argName))
         {
-            return args[argName];
+            return (true, args[argName]);
         }
         else
         {
             // set the default value
-            return defaultValue.Value;
+            return (defaultValue.IsSet, defaultValue.Value);
         }
     }
 }
