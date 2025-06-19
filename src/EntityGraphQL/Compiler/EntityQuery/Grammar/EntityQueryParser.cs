@@ -59,14 +59,17 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowLeadingSign).Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
+    private static readonly Parser<IExpression> numberExp = Terms.Number<decimal>(NumberOptions.AllowLeadingSign).Then<IExpression>(static d =>
+    {
+        // Create a long or decimal constant depending on the presence of a decimal part in the number
+        var bits = decimal.GetBits(value);
+        
+        // Get the number of decimals, e.g. 1.23 -> 2
+        var scale = (int)((bits[3] >> 16) & 0x7F);
 
-    // decimal point is required otherwise we want a long
-    private static readonly Parser<IExpression> decimalExp = Terms
-        .Integer(NumberOptions.AllowLeadingSign)
-        .And(dot)
-        .And(Terms.Integer(NumberOptions.None))
-        .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
+        return new EqlExpression(Expression.Constant(scale == 0 ? (long)d : d))
+    });
+
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
     private readonly Expression? context;
@@ -101,7 +104,7 @@ public sealed class EntityQueryParser
         var falseExp = Terms.Text("false").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
 
         // primary => NUMBER | "(" expression ")";
-        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
+        var primary = numberExp.Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
