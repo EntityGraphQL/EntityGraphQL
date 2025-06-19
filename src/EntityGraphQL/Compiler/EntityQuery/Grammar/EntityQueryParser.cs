@@ -59,16 +59,9 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<IExpression> numberExp = Terms.Number<decimal>(NumberOptions.AllowLeadingSign).Then<IExpression>(static d =>
-    {
-        // Create a long or decimal constant depending on the presence of a decimal part in the number
-        var bits = decimal.GetBits(value);
-        
-        // Get the number of decimals, e.g. 1.23 -> 2
-        var scale = (int)((bits[3] >> 16) & 0x7F);
-
-        return new EqlExpression(Expression.Constant(scale == 0 ? (long)d : d))
-    });
+    private static readonly Parser<IExpression> numberExp = Terms
+        .Number<decimal>(NumberOptions.AllowLeadingSign)
+        .Then<IExpression>(static d => new EqlExpression(d.Scale == 0 ? Expression.Constant((long)d) : Expression.Constant(d)));
 
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
