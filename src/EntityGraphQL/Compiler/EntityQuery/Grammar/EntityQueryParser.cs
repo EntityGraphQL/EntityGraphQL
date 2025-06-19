@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
@@ -59,14 +58,18 @@ public sealed class EntityQueryParser
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
 
-    private static readonly Parser<IExpression> longExp = Terms.Integer(NumberOptions.AllowLeadingSign).Then<IExpression>(static d => new EqlExpression(Expression.Constant(d)));
-
-    // decimal point is required otherwise we want a long
-    private static readonly Parser<IExpression> decimalExp = Terms
-        .Integer(NumberOptions.AllowLeadingSign)
-        .And(dot)
-        .And(Terms.Integer(NumberOptions.None))
-        .Then<IExpression>(static d => new EqlExpression(Expression.Constant(decimal.Parse($"{d.Item1}.{d.Item3}", NumberStyles.Number, CultureInfo.InvariantCulture))));
+    private static readonly Parser<IExpression> numberExp = Terms
+        .Number<decimal>(NumberOptions.AllowLeadingSign | NumberOptions.Float)
+        .Then<IExpression>(static d =>
+        {
+#if NET7_0_OR_GREATER
+            var scale = d.Scale;
+#else
+            var bits = decimal.GetBits(d);
+            var scale = (int)((bits[3] >> 16) & 0x7F);
+#endif
+            return new EqlExpression(scale == 0 ? Expression.Constant((long)d) : Expression.Constant(d));
+        });
 
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
@@ -102,7 +105,7 @@ public sealed class EntityQueryParser
         var falseExp = Terms.Text("false").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
 
         // primary => NUMBER | "(" expression ")";
-        var primary = decimalExp.Or(longExp).Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
+        var primary = numberExp.Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
