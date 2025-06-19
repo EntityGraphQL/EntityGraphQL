@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -527,5 +528,35 @@ public class RawTcpTest : IClassFixture<CustomWebApplicationFactory<Program>>
                 || responseText.Contains("Content-Type: text/event-stream\r\n", StringComparison.OrdinalIgnoreCase),
             "Response text did not contain an expected Content-Type header. Received: " + responseText
         );
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_200_On_Chunked_Data_Query()
+    {
+        // The second, real Kestrel-based WebApplication
+        WebApplication realApp = _factory.RealApp ?? throw new InvalidOperationException("RealApp is null.");
+
+        // Get the real ephemeral port
+        IServer server = realApp.Services.GetRequiredService<IServer>();
+        IServerAddressesFeature addresses = server.Features.Get<IServerAddressesFeature>()!;
+        string address = addresses.Addresses.First(); // e.g. http://127.0.0.1:12345
+        Uri uri = new(address);
+
+        HttpClient client = new();
+        client.BaseAddress = new Uri($"http://{uri.Host}:{uri.Port}");
+        client.DefaultRequestHeaders.Add("Accept", "*/*");
+        // PostAsJsonAsync adds the following header:
+        // Transfer-Encoding = chunked
+        // but ContentLength isn't forwarded, hence it's null or zero
+        // if PostAsJsonAsync is used with WebApplicationFactory,
+        // i.e. the in-memory test server, with no network involved,
+        // it works fine and the ContentLength is set correctly.
+		// hence, the CustomWebApplicationFactory is used to ensure
+		// network communication is used, and the ContentLength is not set.
+        HttpResponseMessage resp = await client.PostAsJsonAsync("/graphql", new { query = "{ hello }" });
+        resp.EnsureSuccessStatusCode();
+
+        string json = await resp.Content.ReadAsStringAsync();
+        Assert.Contains("\"hello\":\"world\"", json);
     }
 }
