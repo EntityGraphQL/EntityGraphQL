@@ -1,14 +1,14 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const {themes} = require('prism-react-renderer');
+const { themes } = require('prism-react-renderer');
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Entity GraphQL',
-  tagline: 'A modern .NET Core GraphQL library',
+  tagline: 'A modern .NET GraphQL library',
   url: 'https://entitygraphql.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -114,10 +114,10 @@ const config = {
         apiKey: '1382a55cce60fc56fb5c6f05fb12443e',
         indexName: 'entitygraphql',
         contextualSearch: true,
-  
+
         // Optional: Algolia search parameters
         searchParameters: {},
-  
+
         // Optional: path for search page that enabled by default (`false` to disable it)
         searchPagePath: 'search',
         //... other Algolia params
