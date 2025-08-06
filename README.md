@@ -78,8 +78,6 @@ This sets up 1 end point:
 - `POST` at `/graphql` where the body of the post is a GraphQL query
 - You can authorize that route how you would any ASP.NET route. See Authorization below for details on having parts of the schema requiring Authorization/Claims
 
-_Note - As of version 1.1+ the EntityGraphQL.AspNet extension helper uses System.Text.Json. Previous versions used JSON.NET._
-
 ## 3. Build awesome applications
 
 You can now make a request to your API. For example
