@@ -387,42 +387,96 @@ This means we have access to the full schema graph from the core context of the 
 
 EntityGraphQL provides a way to help you determine if an argument or input property was explicitly set by the user in a query or mutation, or if it is just the default .NET value. This is useful for distinguishing between "not provided" and "provided as null/default".
 
-### IArgumentsTracker
+### Using IArgumentsTracker with Input Types
 
 If your argument or input class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
 
 ```csharp
-public class MyInput : ArgumentsTracker {
+public class UpdatePersonInput : ArgumentsTracker {
     public string? Name { get; set; }
     public int? Age { get; set; }
+    public string? Email { get; set; }
 }
 
-// In your mutation or query
-public string MyMutation(MyInput input) {
-    if (input.IsSet(nameof(MyInput.Name))) {
-        // Name was provided in the query
+// In your mutation
+public Person UpdatePerson(UpdatePersonInput input) {
+    var person = GetPersonById(input.Id);
+
+    if (input.IsSet(nameof(UpdatePersonInput.Name))) {
+        person.Name = input.Name; // Update only if provided
     }
-    if (!input.IsSet(nameof(MyInput.Age))) {
-        // Age was not provided
+    if (input.IsSet(nameof(UpdatePersonInput.Age))) {
+        person.Age = input.Age; // Update only if provided
     }
-    ...
+    if (input.IsSet(nameof(UpdatePersonInput.Email))) {
+        person.Email = input.Email; // This could be null if explicitly set to null
+    }
+
+    SaveChanges();
+    return person;
 }
 ```
 
-This works for both inline arguments and variables.
+This works for both inline arguments and variables:
+
+```graphql
+# Using variables
+mutation UpdatePerson($input: UpdatePersonInput) {
+  updatePerson(input: $input) {
+    id
+    name
+    age
+  }
+}
+# Variables: { "input": { "name": "John", "email": null } }
+
+# Using inline arguments
+mutation {
+  updatePerson(input: { name: "John", email: null }) {
+    id
+    name
+    age
+  }
+}
+```
+
+### Using IArgumentsTracker with Simple Parameters
 
 For simple argument lists (e.g. method parameters), you can add an `IArgumentsTracker` parameter to your mutation or query method. This allows you to check if a specific argument was set:
 
 ```csharp
-public string MyMutation(Guid? id, string? name, IArgumentsTracker argsTracker) {
-    if (argsTracker.IsSet(nameof(id))) {
-        // id was provided
+public Person UpdatePersonSimple(Guid id, string? name, int? age, string? email, IArgumentsTracker argsTracker) {
+    var person = GetPersonById(id);
+
+    if (argsTracker.IsSet(nameof(name))) {
+        person.Name = name;
     }
-    if (!argsTracker.IsSet(nameof(name))) {
-        // name was not provided
+    if (argsTracker.IsSet(nameof(age))) {
+        person.Age = age;
     }
-    ...
+    if (argsTracker.IsSet(nameof(email))) {
+        person.Email = email; // Could be null if explicitly set to null
+    }
+
+    SaveChanges();
+    return person;
 }
 ```
 
-This is especially useful for distinguishing between omitted arguments and those set to null/default.
+This works seamlessly with inline arguments:
+
+```graphql
+# Only name and email are provided - age will not be updated
+mutation {
+  updatePersonSimple(
+    id: "123e4567-e89b-12d3-a456-426614174000"
+    name: "John Doe"
+    email: null
+  ) {
+    id
+    name
+    age
+    email
+  }
+}
+```

@@ -545,6 +545,167 @@ public class ArgumentTrackerTests
         Assert.NotNull(results.Data!["doTest"]);
     }
 
+    [Fact]
+    public void TestMutationIArgumentsTracker_InlineArguments_SingleParam()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, IArgumentsTracker argsSet) =>
+                {
+                    return argsSet.IsSet(nameof(id));
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6")
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (bool)results.Data!["doTest"]!;
+        Assert.True(testData);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_InlineArguments_MultipleParams()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, int? count, IArgumentsTracker argsSet) =>
+                {
+                    return $"id:{argsSet.IsSet(nameof(id))},name:{argsSet.IsSet(nameof(name))},count:{argsSet.IsSet(nameof(count))}";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(
+                        id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6",
+                        name: "Test Name",
+                        count: 42
+                    )
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (string)results.Data!["doTest"]!;
+        Assert.Equal("id:True,name:True,count:True", testData);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_InlineArguments_PartialParams()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, int? count, IArgumentsTracker argsSet) =>
+                {
+                    return $"id:{argsSet.IsSet(nameof(id))},name:{argsSet.IsSet(nameof(name))},count:{argsSet.IsSet(nameof(count))}";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(name: "Only Name Set")
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (string)results.Data!["doTest"]!;
+        Assert.Equal("id:False,name:True,count:False", testData);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_InlineArguments_ComplexTypes()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (List<Guid>? ids, DateTime? date, bool? active, IArgumentsTracker argsSet) =>
+                {
+                    return $"ids:{argsSet.IsSet(nameof(ids))},date:{argsSet.IsSet(nameof(date))},active:{argsSet.IsSet(nameof(active))}";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(
+                        ids: ["03d539f8-6bbc-4b62-8f7f-b55c7eb242e6", "03d539f8-6bbc-4b62-8f7f-b55c7eb242e7"],
+                        active: true
+                    )
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (string)results.Data!["doTest"]!;
+        Assert.Equal("ids:True,date:False,active:True", testData);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_InlineArguments_NullValues()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, IArgumentsTracker argsSet) =>
+                {
+                    return $"id:{argsSet.IsSet(nameof(id))},name:{argsSet.IsSet(nameof(name))},idValue:{id},nameValue:{name ?? "null"}";
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query = """
+                mutation M {
+                    doTest(
+                        id: null,
+                        name: null
+                    )
+                }
+                """,
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data!["doTest"]);
+        var testData = (string)results.Data!["doTest"]!;
+        // null values are still "set" - they were explicitly provided
+        Assert.Equal("id:True,name:True,idValue:,nameValue:null", testData);
+    }
+
     private class TestArgsTracking : ArgumentsTracker
     {
         public List<Guid>? Ids { get; set; }

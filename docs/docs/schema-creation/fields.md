@@ -220,16 +220,44 @@ schema.Query().AddField("Field", new { limit = (int?)null }, (db, p) => db.Entit
 
 EntityGraphQL provides a way to help you determine if an argument or input property was explicitly set by the user in a query or mutation, or if it is just the default .NET value. This is useful for distinguishing between "not provided" and "provided as null/default".
 
-### IArgumentsTracker
+### Using IArgumentsTracker with Query Fields
 
-If your argument or input class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
+#### With Argument Classes
+
+If your argument class implements the `IArgumentsTracker` interface (or inherits from the provided `ArgumentsTracker` base class), you can check if a property was set by the user:
 
 ```csharp
-public class MyInput : ArgumentsTracker {
+public class PersonFilter : ArgumentsTracker {
     public string? Name { get; set; }
-    public int? Age { get; set; }
+    public int? MinAge { get; set; }
+    public string? City { get; set; }
 }
 
-// In your field
-schema.Query().AddField("test", new MyInput(), (db, args) => db.People.WhereWhen(p => args.Name == p.Name, args.IsSet(nameof(MyInput.Name))), "test field");
+// In your field - only filter by fields that were provided
+schema.Query().AddField(
+    "people",
+    new PersonFilter(),
+    (db, args) => db.People
+        .WhereWhen(p => p.Name.Contains(args.Name), args.IsSet(nameof(PersonFilter.Name)))
+        .WhereWhen(p => p.Age >= args.MinAge, args.IsSet(nameof(PersonFilter.MinAge)))
+        .WhereWhen(p => p.City == args.City, args.IsSet(nameof(PersonFilter.City))),
+    "Get people with optional filtering"
+);
 ```
+
+This works consistently with both inline arguments and variables:
+
+```graphql
+# Using variables
+query GetPeople($filter: PersonFilter) {
+    people(name: $filter.name, city: $filter.city) { id name age city }
+}
+# Variables: { "filter": { "name": "John", "city": null } }
+
+# Using inline arguments
+query {
+    people(name: "John", city: null) { id name age city }
+}
+```
+
+In both cases, only the `name` and `city` filters will be applied, even though `city` is explicitly set to `null`.
