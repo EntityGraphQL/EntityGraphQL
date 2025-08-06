@@ -27,7 +27,7 @@ public abstract class BaseField : IField
     public ISchemaType FromType { get; }
     public GqlTypeInfo ReturnType { get; protected set; }
     public List<IFieldExtension> Extensions { get; set; }
-    public RequiredAuthorization? RequiredAuthorization { get; protected set; }
+    public RequiredAuthorization? RequiredAuthorization { get; set; }
     public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
     public bool ArgumentsAreInternal { get; internal set; }
     public List<ParameterExpression> Services { get; set; } = [];

@@ -58,7 +58,7 @@ public interface IField
     /// </summary>
     GqlTypeInfo ReturnType { get; }
     List<IFieldExtension> Extensions { get; set; }
-    RequiredAuthorization? RequiredAuthorization { get; }
+    RequiredAuthorization? RequiredAuthorization { get; set; }
 
     IList<ISchemaDirective> DirectivesReadOnly { get; }
     IField AddDirective(ISchemaDirective directive);

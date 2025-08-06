@@ -4,6 +4,7 @@
 
 - Fix #441 (PR #455) - Have your argument class (including an `InputType`) class inherit `ArgumentsTracker` or implement `IArgumentsTracker` to be able to tell if a variable is just the dotnet default value or is set from the query (variable or inline) with `args.IsSet`. You can also include `IArgumentsTracker` as an argument in your mutations etc. This is useful if you method usings simple arguments e.g. `MyMutation(Guid id, string name)` vs. a `[GraphQLArguments]` object.
 - #461 - `EntityGraphQLEndpointRouteExtensions.MapGraphQL` now supports chunked requests
+- `RequiredAuthorization` is not settable allowing you to change or overwrite it after creation. Also now has `Clear()` methods to remove authentication
 
 ## Fixes
 

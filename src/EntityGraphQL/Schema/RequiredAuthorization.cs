@@ -59,6 +59,22 @@ public class RequiredAuthorization
         requiredPolicies.AddRange(policies.Select(s => new List<string> { s }));
     }
 
+    public void ClearRoles()
+    {
+        requiredRoles.Clear();
+    }
+
+    public void ClearPolicies()
+    {
+        requiredPolicies.Clear();
+    }
+
+    public void Clear()
+    {
+        ClearRoles();
+        ClearPolicies();
+    }
+
     public RequiredAuthorization Concat(RequiredAuthorization requiredAuthorization)
     {
         var newRequiredAuthorization = new RequiredAuthorization();
