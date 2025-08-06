@@ -186,7 +186,7 @@ public class QueryInfoTests
         Assert.True(info.TotalFieldsQueried > 0);
 
         // Verify specific types and fields were queried (same as first test since fragments expand to same fields)
-        var typesQueried = (Dictionary<string, List<string>>)info.TypesQueried;
+        var typesQueried = (Dictionary<string, HashSet<string>>)info.TypesQueried;
         Assert.True(typesQueried.ContainsKey("Person"));
         Assert.True(typesQueried.ContainsKey("Project"));
         Assert.True(typesQueried.ContainsKey("Query"));

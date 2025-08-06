@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema;
@@ -12,16 +11,16 @@ internal static class QueryInfoCollector
     /// <summary>
     /// Collect query information from an executed operation
     /// </summary>
-    public static QueryInfo CollectQueryInfo(ExecutableGraphQLStatement operation, List<GraphQLFragmentStatement> fragments)
+    public static QueryInfo CollectQueryInfo(ExecutableGraphQLStatement operation, IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         var queryInfo = new QueryInfo { OperationType = GetOperationType(operation), OperationName = operation.Name };
+        var totalFieldCount = 0;
 
         // Collect field information from the operation
-        CollectFieldsFromOperation(operation, fragments, queryInfo.TypesQueried);
+        CollectFieldsFromOperation(operation, fragments, queryInfo.TypesQueried, ref totalFieldCount);
 
-        // Set totals
         queryInfo.TotalTypesQueried = queryInfo.TypesQueried.Count;
-        queryInfo.TotalFieldsQueried = queryInfo.TypesQueried.Values.Sum(fields => fields.Count);
+        queryInfo.TotalFieldsQueried = totalFieldCount;
 
         return queryInfo;
     }
@@ -37,25 +36,34 @@ internal static class QueryInfoCollector
         };
     }
 
-    private static void CollectFieldsFromOperation(ExecutableGraphQLStatement operation, List<GraphQLFragmentStatement> fragments, Dictionary<string, List<string>> typesQueried)
+    private static void CollectFieldsFromOperation(
+        ExecutableGraphQLStatement operation,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragmentLookup,
+        Dictionary<string, HashSet<string>> typesQueried,
+        ref int totalFieldCount
+    )
     {
         foreach (var field in operation.QueryFields)
         {
-            CollectFieldsFromField(field, fragments, typesQueried);
+            CollectFieldsFromField(field, fragmentLookup, typesQueried, ref totalFieldCount);
         }
     }
 
-    private static void CollectFieldsFromField(BaseGraphQLField field, List<GraphQLFragmentStatement> fragments, Dictionary<string, List<string>> typesQueried)
+    private static void CollectFieldsFromField(
+        BaseGraphQLField field,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragmentLookup,
+        Dictionary<string, HashSet<string>> typesQueried,
+        ref int totalFieldCount
+    )
     {
         // Handle fragment spreads - don't count the fragment spread itself as a field, just expand its fields
         if (field is GraphQLFragmentSpreadField fragmentSpread)
         {
-            var fragment = fragments.FirstOrDefault(f => f.Name == fragmentSpread.Name);
-            if (fragment != null)
+            if (fragmentLookup.TryGetValue(fragmentSpread.Name, out var fragment))
             {
                 foreach (var fragmentField in fragment.QueryFields)
                 {
-                    CollectFieldsFromField(fragmentField, fragments, typesQueried);
+                    CollectFieldsFromField(fragmentField, fragmentLookup, typesQueried, ref totalFieldCount);
                 }
             }
         }
@@ -65,11 +73,18 @@ internal static class QueryInfoCollector
             var typeName = GetFieldTypeName(field);
             if (typeName != null)
             {
-                if (!typesQueried.ContainsKey(typeName))
-                    typesQueried[typeName] = new List<string>();
+                // Use HashSet for O(1) duplicate checking instead of O(n) Contains on List
+                if (!typesQueried.TryGetValue(typeName, out var fieldSet))
+                {
+                    fieldSet = new HashSet<string>();
+                    typesQueried[typeName] = fieldSet;
+                }
 
-                if (!typesQueried[typeName].Contains(field.Name))
-                    typesQueried[typeName].Add(field.Name);
+                // Only increment count if it's a new field
+                if (fieldSet.Add(field.Name))
+                {
+                    totalFieldCount++;
+                }
             }
 
             // Recursively collect fields from nested selections
@@ -92,7 +107,7 @@ internal static class QueryInfoCollector
             }
             foreach (var subField in queryFields)
             {
-                CollectFieldsFromField(subField, fragments, typesQueried);
+                CollectFieldsFromField(subField, fragmentLookup, typesQueried, ref totalFieldCount);
             }
         }
     }
@@ -109,30 +124,9 @@ internal static class QueryInfoCollector
         // Fallback: try to get from schema context types
         if (field.Schema != null)
         {
-            // For root fields, try to determine the root type based on field type
-            // if (field.IsRootField)
-            // {
-            //     // Check if this is a mutation field
-            //     if (field is GraphQLMutationField)
-            //     {
-            //         return "Mutation";
-            //     }
-
-            //     // Check if this is a subscription field
-            //     if (field is GraphQLSubscriptionField)
-            //     {
-            //         return "Subscription";
-            //     }
-
-            //     // Default to Query for query fields
-            //     return "Query";
-            // }
-            // else
-            {
-                // For non-root fields, try to get the GraphQL type name
-                var contextType = field.Schema.GetSchemaType(field.Schema.QueryContextType, false, null);
-                return contextType?.Name ?? field.Schema.QueryContextType.Name;
-            }
+            // For non-root fields, try to get the GraphQL type name
+            var contextType = field.Schema.GetSchemaType(field.Schema.QueryContextType, false, null);
+            return contextType?.Name ?? field.Schema.QueryContextType.Name;
         }
 
         return null;

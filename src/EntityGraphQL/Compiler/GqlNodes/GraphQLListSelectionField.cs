@@ -65,7 +65,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,

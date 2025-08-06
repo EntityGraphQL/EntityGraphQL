@@ -60,18 +60,17 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         CombineExpression = combineExpression;
     }
 
-    public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
+    public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
-        var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-        return CollectionSelectionNode.HasServicesAtOrBelow(graphQlFragmentStatements)
-            || ObjectProjectionNode.HasServicesAtOrBelow(graphQlFragmentStatements)
-            || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements)) == true;
+        return CollectionSelectionNode.HasServicesAtOrBelow(fragments)
+            || ObjectProjectionNode.HasServicesAtOrBelow(fragments)
+            || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
     }
 
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
@@ -119,7 +118,7 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
     private Expression? GetCollectionToSingleExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         bool withoutServiceFields,
         Expression? replacementNextFieldContext,
         ParameterExpression schemaContext,

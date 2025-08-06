@@ -30,7 +30,7 @@ public class QueryInfo
     /// <summary>
     /// Types queried and their selected fields
     /// </summary>
-    public Dictionary<string, List<string>> TypesQueried { get; set; } = new();
+    public Dictionary<string, HashSet<string>> TypesQueried { get; set; } = new();
 
     /// <summary>
     /// Total number of fields queried across all types

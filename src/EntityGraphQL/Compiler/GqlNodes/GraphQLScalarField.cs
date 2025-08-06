@@ -19,7 +19,7 @@ public class GraphQLScalarField : BaseGraphQLField
     )
         : base(schema, field, name, nextFieldContext, rootParameter, parentNode, arguments) { }
 
-    public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
+    public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         return Field?.Services.Count > 0;
     }
@@ -27,7 +27,7 @@ public class GraphQLScalarField : BaseGraphQLField
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,

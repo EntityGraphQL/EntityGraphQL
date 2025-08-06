@@ -16,24 +16,23 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         LocationForDirectives = ExecutableDirectiveLocation.FRAGMENT_SPREAD;
     }
 
-    public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
+    public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
-        var graphQlFragmentStatements = fragments as GraphQLFragmentStatement[] ?? fragments.ToArray();
-        var fragment = graphQlFragmentStatements.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
 
-        return fragment.QueryFields.Any(f => f.HasServicesAtOrBelow(graphQlFragmentStatements));
+        return fragment.QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
     }
 
     protected override IEnumerable<BaseGraphQLField> ExpandField(
         CompileContext compileContext,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables
     )
     {
-        var fragment = fragments.FirstOrDefault(f => f.Name == Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
         var fields = fragment.QueryFields.SelectMany(f => f.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
         // the current op did not know about services in the fragment as the fragment definition may be after the operation in the query
         // we now know  if there are services we need to know about for executing
@@ -73,7 +72,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,

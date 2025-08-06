@@ -44,7 +44,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     protected virtual Dictionary<IFieldKey, CompiledField> GetSelectionFields(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         bool withoutServiceFields,

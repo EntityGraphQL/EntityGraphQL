@@ -65,7 +65,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
@@ -183,7 +183,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         CompileContext compileContext,
         object context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         BaseGraphQLField node,
         IArgumentsTracker? docVariables
     )

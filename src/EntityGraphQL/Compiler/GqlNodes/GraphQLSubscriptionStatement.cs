@@ -18,7 +18,7 @@ namespace EntityGraphQL.Compiler;
 /// </summary>
 public class GraphQLSubscriptionStatement : GraphQLMutationStatement
 {
-    private List<GraphQLFragmentStatement>? fragments;
+    private Dictionary<string, GraphQLFragmentStatement>? fragments;
     private ExecutionOptions? options;
     private IArgumentsTracker? docVariables;
 
@@ -28,7 +28,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
@@ -41,7 +41,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
 
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.SubscriptionType, false, null), requestContext);
 
-        this.fragments = fragments;
+        this.fragments = fragments.ToDictionary(f => f.Key, f => f.Value);
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);
 
