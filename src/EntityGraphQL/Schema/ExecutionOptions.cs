@@ -51,6 +51,14 @@ public class ExecutionOptions
     /// </summary>
     public Func<Expression, string?, string, Expression>? BeforeRootFieldExpressionBuild { get; set; }
 
+    /// <summary>
+    /// Include information on the executed operation in the result extensions. This includes:
+    /// - operation type (query, mutation, subscription)
+    /// - types queried and fields selected on each type
+    /// Useful for debugging or audit logs.
+    /// </summary>
+    public bool IncludeQueryInfo { get; set; }
+
 #if DEBUG
     /// <summary>
     /// Include timing information about query execution

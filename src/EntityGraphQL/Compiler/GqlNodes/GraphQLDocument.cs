@@ -116,6 +116,13 @@ public class GraphQLDocument : IGraphQLNode
             )
         );
 
+        // Add query information if requested
+        if (options.IncludeQueryInfo)
+        {
+            var queryInfo = QueryInfoCollector.CollectQueryInfo(op, Fragments);
+            result.SetQueryInfo(queryInfo);
+        }
+
         if (validator?.Errors.Count > 0)
             result.AddErrors(validator.Errors);
 

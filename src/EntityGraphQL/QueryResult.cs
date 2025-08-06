@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL;
 
@@ -67,5 +68,19 @@ public class QueryResult : Dictionary<string, object>
     public bool HasErrorKey()
     {
         return ContainsKey(ErrorsKey);
+    }
+
+    /// <summary>
+    /// Add query information to the result extensions
+    /// </summary>
+    internal void SetQueryInfo(QueryInfo queryInfo)
+    {
+        if (!ContainsKey(ExtensionsKey))
+        {
+            this[ExtensionsKey] = new Dictionary<string, object>();
+        }
+
+        var extensions = (Dictionary<string, object>)this[ExtensionsKey];
+        extensions["queryInfo"] = queryInfo;
     }
 }
