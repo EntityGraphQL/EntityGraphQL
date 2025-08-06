@@ -13,7 +13,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitListFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -32,7 +32,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitObjectFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -51,7 +51,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitScalarFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -68,7 +68,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitListField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -90,7 +90,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitObjectField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -112,7 +112,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitScalarField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -132,7 +132,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitFragmentDef()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FRAGMENT_DEFINITION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_DEFINITION);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -154,7 +154,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitFragmentSpread()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -176,7 +176,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitInlineFragment()
     {
         var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.INLINE_FRAGMENT);
+        var directive = new MyDirective(ExecutableDirectiveLocation.INLINE_FRAGMENT);
         schema.AddDirective(directive);
 
         schema.Type<IAnimal>().AddPossibleType<Dog>();
@@ -209,7 +209,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitMutationField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -237,7 +237,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitMutationInnerField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -265,7 +265,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitMutationStatement()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.MUTATION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.MUTATION);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -293,7 +293,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitQueryStatement()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.QUERY);
+        var directive = new MyDirective(ExecutableDirectiveLocation.QUERY);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -312,7 +312,7 @@ public class DirectiveOnVisitTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.SUBSCRIPTION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.SUBSCRIPTION);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -331,7 +331,7 @@ public class DirectiveOnVisitTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -348,7 +348,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitVariableDef()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.VARIABLE_DEFINITION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.VARIABLE_DEFINITION);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -365,7 +365,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitCalledOnce()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirecitive(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -386,7 +386,7 @@ public class DirectiveOnVisitTests
     }
 }
 
-internal class MyDirecitive : DirectiveProcessor<object>
+internal class MyDirective : DirectiveProcessor<object>
 {
     private readonly ExecutableDirectiveLocation location;
 
@@ -397,7 +397,7 @@ internal class MyDirecitive : DirectiveProcessor<object>
     public ExecutableDirectiveLocation? WasVisited { get; private set; }
     public int Calls { get; private set; }
 
-    public MyDirecitive(ExecutableDirectiveLocation location)
+    public MyDirective(ExecutableDirectiveLocation location)
     {
         this.location = location;
     }

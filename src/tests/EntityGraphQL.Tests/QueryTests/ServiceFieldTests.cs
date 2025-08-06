@@ -1410,7 +1410,7 @@ public class ServiceFieldTests
         var expression = node.GetNodeExpression(
             new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)),
             serviceCollection.BuildServiceProvider(),
-            [],
+            new Dictionary<string, GraphQLFragmentStatement>(),
             query.OpVariableParameter,
             null,
             Expression.Parameter(typeof(TestDataContext)),

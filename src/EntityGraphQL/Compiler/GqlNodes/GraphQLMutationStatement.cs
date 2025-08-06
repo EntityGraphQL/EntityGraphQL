@@ -23,7 +23,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
@@ -111,7 +111,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         GraphQLMutationField node,
         TContext context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ExecutionOptions options,
         IArgumentsTracker? docVariables
     )
@@ -137,7 +137,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         BaseGraphQLQueryField selection,
         TContext context,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         IArgumentsTracker? docVariables,
         object? result
     )

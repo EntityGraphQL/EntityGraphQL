@@ -37,7 +37,7 @@ public class GraphQLDocument : IGraphQLNode
     /// </summary>
     /// <value></value>
     public List<ExecutableGraphQLStatement> Operations { get; }
-    public List<GraphQLFragmentStatement> Fragments { get; set; }
+    public Dictionary<string, GraphQLFragmentStatement> Fragments { get; set; }
 
     /// <summary>
     /// This is the top level document node. Not a root field
@@ -115,6 +115,13 @@ public class GraphQLDocument : IGraphQLNode
                 requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
             )
         );
+
+        // Add query information if requested
+        if (options.IncludeQueryInfo)
+        {
+            var queryInfo = QueryInfoCollector.CollectQueryInfo(op, Fragments);
+            result.SetQueryInfo(queryInfo);
+        }
 
         if (validator?.Errors.Count > 0)
             result.AddErrors(validator.Errors);

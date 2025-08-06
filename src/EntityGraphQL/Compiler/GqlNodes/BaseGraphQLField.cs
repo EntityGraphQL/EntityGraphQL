@@ -110,7 +110,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// We wrap this is a function that does a null check and avoid duplicate calls on the method/service
     /// </summary>
     /// <value></value>
-    public virtual bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
+    public virtual bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
     }
@@ -134,7 +134,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     public Expression? GetNodeExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
@@ -173,7 +173,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     protected abstract Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
@@ -186,7 +186,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
 
     public IEnumerable<BaseGraphQLField> Expand(
         CompileContext compileContext,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
@@ -203,7 +203,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
 
     protected virtual IEnumerable<BaseGraphQLField> ExpandField(
         CompileContext compileContext,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,

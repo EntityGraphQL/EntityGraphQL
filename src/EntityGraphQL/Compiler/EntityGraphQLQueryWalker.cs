@@ -446,7 +446,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             }
         }
 
-        Document.Fragments.Add(fragDef);
+        Document.Fragments.Add(fragDef.Name, fragDef);
 
         base.VisitFragmentDefinition(node, fragDef);
     }
@@ -510,7 +510,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
 
         // Build dependency graph with optimized allocation
         var fragmentDependencies = new Dictionary<string, HashSet<string>>(Document.Fragments.Count);
-        foreach (var fragment in Document.Fragments)
+        foreach (var fragment in Document.Fragments.Values)
         {
             var dependencies = new HashSet<string>();
             CollectFragmentDependencies(fragment, dependencies);

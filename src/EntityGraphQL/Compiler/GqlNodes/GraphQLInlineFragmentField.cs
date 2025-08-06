@@ -16,14 +16,14 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
         LocationForDirectives = ExecutableDirectiveLocation.INLINE_FRAGMENT;
     }
 
-    public override bool HasServicesAtOrBelow(IEnumerable<GraphQLFragmentStatement> fragments)
+    public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         return QueryFields.Any(x => x.HasServices);
     }
 
     protected override IEnumerable<BaseGraphQLField> ExpandField(
         CompileContext compileContext,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         bool withoutServiceFields,
         Expression fieldContext,
         ParameterExpression? docParam,
@@ -36,7 +36,7 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
-        List<GraphQLFragmentStatement> fragments,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterExpression schemaContext,
