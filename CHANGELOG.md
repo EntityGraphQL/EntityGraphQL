@@ -6,6 +6,7 @@
 
 ## Fixes
 
+- Throw error on a query that has fragments with a cycle as per the GraphQL spec and to prevent infinite loops.
 - #442 - Fix issue when a service field with a bulk resolver is on a parent field named differently to the dotnet underlying object property
 
 # 5.6.1

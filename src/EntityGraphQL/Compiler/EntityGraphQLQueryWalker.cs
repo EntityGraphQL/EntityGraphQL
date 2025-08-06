@@ -44,6 +44,9 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
 
         Document = new GraphQLDocument(schemaProvider);
         base.VisitDocument(node, context);
+
+        // Validate fragment spreads must not form cycles
+        ValidateFragmentCycles();
     }
 
     protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode? context)
@@ -495,5 +498,103 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             base.VisitFragmentSpread(node, fragField);
             context.AddField(fragField);
         }
+    }
+
+    /// <summary>
+    /// Validates that fragment spreads do not form cycles according to GraphQL spec
+    /// </summary>
+    private void ValidateFragmentCycles()
+    {
+        if (Document?.Fragments == null || Document.Fragments.Count == 0)
+            return;
+
+        // Build dependency graph with optimized allocation
+        var fragmentDependencies = new Dictionary<string, HashSet<string>>(Document.Fragments.Count);
+        foreach (var fragment in Document.Fragments)
+        {
+            var dependencies = new HashSet<string>();
+            CollectFragmentDependencies(fragment, dependencies);
+            if (dependencies.Count > 0) // Only store if there are dependencies
+            {
+                fragmentDependencies[fragment.Name] = dependencies;
+            }
+        }
+
+        // Early exit if no dependencies found
+        if (fragmentDependencies.Count == 0)
+            return;
+
+        // Single-pass DFS cycle detection with reused data structures
+        var visited = new HashSet<string>(fragmentDependencies.Count);
+        var recursionStack = new HashSet<string>();
+
+        foreach (var fragmentName in fragmentDependencies.Keys)
+        {
+            if (!visited.Contains(fragmentName))
+            {
+                if (HasCycleOptimized(fragmentName, fragmentDependencies, visited, recursionStack))
+                {
+                    throw new EntityGraphQLCompilerException($"Fragment spreads must not form cycles. Fragment '{fragmentName}' creates a cycle.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Collects all fragment spread dependencies for a given fragment
+    /// </summary>
+    private static void CollectFragmentDependencies(GraphQLFragmentStatement fragment, HashSet<string> dependencies)
+    {
+        foreach (var field in fragment.QueryFields)
+        {
+            CollectFragmentDependenciesFromField(field, dependencies);
+        }
+    }
+
+    /// <summary>
+    /// Recursively collects fragment dependencies from fields
+    /// </summary>
+    private static void CollectFragmentDependenciesFromField(BaseGraphQLField field, HashSet<string> dependencies)
+    {
+        if (field is GraphQLFragmentSpreadField fragmentSpread)
+        {
+            dependencies.Add(fragmentSpread.Name);
+        }
+
+        // Recursively check nested fields
+        foreach (var subField in field.QueryFields)
+        {
+            CollectFragmentDependenciesFromField(subField, dependencies);
+        }
+    }
+
+    /// <summary>
+    /// Uses optimized DFS to detect cycles in the fragment dependency graph
+    /// Reuses visited and recursion stack across multiple fragment traversals
+    /// </summary>
+    private static bool HasCycleOptimized(string fragmentName, Dictionary<string, HashSet<string>> dependencies, HashSet<string> visited, HashSet<string> recursionStack)
+    {
+        visited.Add(fragmentName);
+        recursionStack.Add(fragmentName);
+
+        if (dependencies.TryGetValue(fragmentName, out var fragmentDeps))
+        {
+            foreach (var dependency in fragmentDeps)
+            {
+                if (recursionStack.Contains(dependency))
+                {
+                    return true; // Back edge found - cycle detected (check this first for early exit)
+                }
+
+                if (!visited.Contains(dependency))
+                {
+                    if (HasCycleOptimized(dependency, dependencies, visited, recursionStack))
+                        return true;
+                }
+            }
+        }
+
+        recursionStack.Remove(fragmentName);
+        return false;
     }
 }

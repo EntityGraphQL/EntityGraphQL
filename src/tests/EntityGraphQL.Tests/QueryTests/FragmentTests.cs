@@ -254,6 +254,150 @@ fragment info on Person {
         Assert.Equal("george", animals[1].name);
         Assert.True(animals[1].isAngry);
     }
+
+    [Fact]
+    public void TestFragmentSpreadMustNotFormCycles_DirectCycle()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var compiler = new GraphQLCompiler(schemaProvider);
+
+        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+            compiler.Compile(
+                @"
+                query {
+                    people { ...PersonInfo }
+                }
+                fragment PersonInfo on Person {
+                    name
+                    ...PersonInfo
+                } 
+            "
+            )
+        );
+
+        Assert.Contains("Fragment spreads must not form cycles", exception.Message);
+    }
+
+    [Fact]
+    public void TestFragmentSpreadMustNotFormCycles_IndirectCycle()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var compiler = new GraphQLCompiler(schemaProvider);
+
+        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+            compiler.Compile(
+                @"
+                query {
+                    people { ...PersonInfo }
+                }
+                fragment PersonInfo on Person {
+                    name
+                    ...ProjectInfo
+                }
+                fragment ProjectInfo on Project {
+                    name
+                    ...PersonInfo
+                }
+            "
+            )
+        );
+
+        Assert.Contains("Fragment spreads must not form cycles", exception.Message);
+    }
+
+    [Fact]
+    public void TestFragmentSpreadMustNotFormCycles_ComplexCycle()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var compiler = new GraphQLCompiler(schemaProvider);
+
+        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+            compiler.Compile(
+                @"
+                query {
+                    people { ...A }
+                }
+                fragment A on Person {
+                    name
+                    ...B
+                }
+                fragment B on Person {
+                    id
+                    ...C
+                }
+                fragment C on Person {
+                    lastName
+                    ...A
+                }
+            "
+            )
+        );
+
+        Assert.Contains("Fragment spreads must not form cycles", exception.Message);
+    }
+
+    [Fact]
+    public void TestFragmentSpreadMustNotFormCycles_ValidNoCycle()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var compiler = new GraphQLCompiler(schemaProvider);
+
+        var tree = compiler.Compile(
+            @"
+            query {
+                people { 
+                    ...PersonInfo 
+                    projects { ...ProjectInfo }
+                }
+            }
+            fragment PersonInfo on Person {
+                name
+                id
+            }
+            fragment ProjectInfo on Project {
+                name
+                id
+            }
+        "
+        );
+
+        Assert.NotNull(tree);
+        var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+        Assert.NotNull(qr.Data);
+    }
+
+    [Fact]
+    public void TestFragmentSpreadMustNotFormCycles_ValidReusedFragment()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var compiler = new GraphQLCompiler(schemaProvider);
+
+        var tree = compiler.Compile(
+            @"
+            query {
+                people { 
+                    ...PersonBasics
+                    projects { 
+                        ...ProjectBasics
+                        owner { ...PersonBasics }
+                    }
+                }
+            }
+            fragment PersonBasics on Person {
+                name
+                id
+            }
+            fragment ProjectBasics on Project {
+                name
+                id
+            }
+        "
+        );
+
+        Assert.NotNull(tree);
+        var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+        Assert.NotNull(qr.Data);
+    }
 }
 
 internal class CatAngerService
