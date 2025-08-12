@@ -7,7 +7,6 @@ using EntityGraphQL.Schema.Models;
 using EntityGraphQL.Directives;
 #endif
 
-
 namespace EntityGraphQL.Schema;
 
 public static class SchemaIntrospection
@@ -115,10 +114,6 @@ public static class SchemaIntrospection
 
                 // Skipping custom fields added to schema
                 if (field.ResolveExpression?.NodeType == System.Linq.Expressions.ExpressionType.Call)
-                    continue;
-
-                // Skipping ENUM type
-                if (field.ReturnType.TypeDotnet.IsEnum)
                     continue;
 
                 inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true)) { Description = field.Description });
