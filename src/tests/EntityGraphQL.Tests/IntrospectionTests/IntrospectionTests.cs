@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
@@ -7,6 +8,45 @@ namespace EntityGraphQL.Tests;
 
 public class IntrospectionTests
 {
+    [Fact]
+    public void IncludeEnumInputField_Introspection()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.AddInputType<EnumInputArgs>("EnumInputArgs", "args with enums").AddAllFields();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                        __type(name: ""EnumInputArgs"") {
+                            name
+                            inputFields {
+                                name
+                                type { kind name ofType { kind name } }
+                            }
+                        }
+                    }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.Null(result.Errors);
+
+        var fields = (IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields;
+        Assert.Contains(fields, f => f.name == "unit");
+
+        var unitField = fields.First(f => f.name == "unit");
+        Assert.Equal("NON_NULL", unitField.type.kind);
+        Assert.Equal("ENUM", unitField.type.ofType.kind);
+        Assert.Equal("HeightUnit", unitField.type.ofType.name);
+    }
+
+    private class EnumInputArgs
+    {
+        public HeightUnit Unit { get; set; }
+        public DayOfWeek Day { get; set; }
+    }
+
     [Fact]
     public void TestGraphiQLIntrospection()
     {
