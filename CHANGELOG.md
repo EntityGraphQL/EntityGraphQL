@@ -1,3 +1,9 @@
+# 5.7.1
+
+## Fixes
+
+- #466 Include enum-typed input fields in introspection per GraphQL spec
+
 # 5.7.0
 
 ## Changes
