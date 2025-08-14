@@ -1129,7 +1129,7 @@ public class ServiceFieldTests
             .Type<Project>()
             .AddField("arrayField", "Get project config")
             // p.Updated.HasValue is the important bit here
-            .Resolve<ConfigService>((p, x) => x.GetArrayFieldAsync(p.Id, p.Updated.HasValue).GetAwaiter().GetResult())
+            .Resolve<ConfigService>((p, x) => x.GetArrayFieldAsync(p.Id, p.Updated.HasValue))
             .IsNullable(false);
 
         var serviceCollection = new ServiceCollection();
@@ -1173,7 +1173,7 @@ public class ServiceFieldTests
             .Type<Project>()
             .AddField("serviceField", "Get project config")
             // p.Updated.HasValue is the important bit here
-            .Resolve<ConfigService>((p, x) => x.GetFieldAsync(p.Id, p.Tasks.Where(t => t.Name != "Task").Select(t => t.Id)).GetAwaiter().GetResult());
+            .Resolve<ConfigService>((p, x) => x.GetFieldAsync(p.Id, p.Tasks.Where(t => t.Name != "Task").Select(t => t.Id)));
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddScoped<ConfigService, ConfigService>();
@@ -1602,7 +1602,7 @@ public class ServiceFieldTests
                 new Project
                 {
                     Id = 0,
-                    Tasks = new List<Task> { new Task { Id = 1 } },
+                    Tasks = new List<Task> { new() { Id = 1 } },
                 },
             ],
         };
@@ -1936,7 +1936,7 @@ public class ServiceFieldTests
         schema.UpdateType<Project>(p =>
         {
             // Here the expression project is extracted and the expression is used for a field name, which is a duplicate of the project field
-            p.AddField("getProjectId", "Something").Resolve<UserService>((project, us) => us.GetProjectId(project).GetAwaiter().GetResult());
+            p.AddField("getProjectId", "Something").Resolve<UserService>((project, us) => us.GetProjectId(project));
         });
 
         var gql = new QueryRequest

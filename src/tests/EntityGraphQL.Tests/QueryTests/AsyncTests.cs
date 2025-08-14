@@ -1,5 +1,4 @@
 using System;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -12,9 +11,7 @@ public class AsyncTests
     public void TestAsyncServiceField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        // Expression have no concept of async/await as it is a compiler feature so you need to use
-        // .GetAwaiter().GetResult() on your async methods
-        schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday).GetAwaiter().GetResult());
+        schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
 
         var gql = new QueryRequest
         {
@@ -37,15 +34,19 @@ public class AsyncTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
 
         Assert.NotNull(res.Data);
-        Assert.Equal(2, ((dynamic)res.Data!["people"]!)[0].age);
+        var age = ((dynamic)res.Data!["people"]!)[0].age;
+        Assert.Equal(2, age);
     }
 
     [Fact]
-    public void TestNonResolvedAsyncServiceFieldErrors()
+    public void TestAsyncServiceFieldNowSupported()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        // Error as we return a Task<>
-        Assert.Throws<EntityGraphQLCompilerException>(() => schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday)));
+        // Task<> returns are now supported with automatic async resolution
+        var field = schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
+        Assert.NotNull(field);
+        Assert.Equal("age", field.Name);
+        Assert.Equal(typeof(int), field.ReturnType.TypeDotnet);
     }
 
     [Fact]

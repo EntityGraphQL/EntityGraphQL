@@ -33,6 +33,11 @@ public abstract class BaseField : IField
     public List<ParameterExpression> Services { get; set; } = [];
     public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators => ArgumentValidators;
 
+    /// <summary>
+    /// Indicates if this field returns a Task and requires async resolution
+    /// </summary>
+    public bool IsAsync { get; protected set; }
+
     [Obsolete(
         "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
     )]

@@ -21,7 +21,7 @@ public abstract class MethodField : BaseField
 {
     public override GraphQLQueryFieldType FieldType { get; }
     protected MethodInfo Method { get; set; }
-    public bool IsAsync { get; protected set; }
+    public new bool IsAsync { get; protected set; }
 
     public MethodField(
         ISchemaProvider schema,

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using Xunit;
 using static EntityGraphQL.Tests.ServiceFieldTests;
@@ -53,13 +54,13 @@ public class ExpressionExtractorTests
     public void ExtractExpressionInAsync()
     {
         // Calling a service using EF fields
-        Expression<Func<Person, AgeService, int>> expression = (ctx, srv) => srv.GetAgeAsync(ctx.Birthday).GetAwaiter().GetResult();
+        Expression<Func<Person, AgeService, Task<int>>> expression = (ctx, srv) => srv.GetAgeAsync(ctx.Birthday);
         var extractor = new ExpressionExtractor();
         var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
         Assert.NotNull(extracted);
         Assert.Single(extracted);
         Assert.Equal("egql__ctx_Birthday", extracted.First().Key);
-        Assert.Equal(((MethodCallExpression)((MethodCallExpression)((MethodCallExpression)expression.Body).Object!).Object!).Arguments[0], extracted.First().Value.First());
+        Assert.Equal(((MethodCallExpression)expression.Body).Arguments[0], extracted.First().Value.First());
     }
 
     [Fact]

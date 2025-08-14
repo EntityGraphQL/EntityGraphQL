@@ -76,6 +76,12 @@ public interface IField
     /// Services required to be injected for this fields selection
     /// </summary>
     List<ParameterExpression> Services { get; }
+
+    /// <summary>
+    /// Indicates if this field returns a Task and requires async resolution
+    /// </summary>
+    bool IsAsync { get; }
+
     IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
 
     [Obsolete(
