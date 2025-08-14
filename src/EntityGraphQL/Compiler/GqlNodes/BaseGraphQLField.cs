@@ -116,6 +116,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     }
 
     /// <summary>
+    /// Checks if this field or any of its child fields are async (return Task<T>)
+    /// </summary>
+    public virtual bool HasAsyncFieldsAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
+    {
+        return Field?.IsAsync == true || QueryFields.Any(f => f.HasAsyncFieldsAtOrBelow(fragments));
+    }
+
+    /// <summary>
     /// The dotnet Expression for this node. Could be as simple as (Person p) => p.Name
     /// Or as complex as (DbContext ctx) => ctx.People.Where(...).Select(p => new {...}).First()
     /// If there is a object selection (new {} in a Select() or not) we will build the NodeExpression on

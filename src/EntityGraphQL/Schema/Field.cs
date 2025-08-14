@@ -274,8 +274,12 @@ public class Field : BaseField
         if (fieldExpression.Body.NodeType == ExpressionType.Call)
             returnType = ((MethodCallExpression)fieldExpression.Body).Type;
 
-        if (typeof(Task).IsAssignableFrom(returnType))
-            throw new EntityGraphQLCompilerException($"Field '{Name}' is returning a Task please resolve your async method with .GetAwaiter().GetResult()");
+        // For Task<T> returns, extract T for schema building and mark as async
+        if (typeof(Task).IsAssignableFrom(returnType) && returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            IsAsync = true;
+            returnType = returnType.GetGenericArguments()[0];
+        }
 
         ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
     }

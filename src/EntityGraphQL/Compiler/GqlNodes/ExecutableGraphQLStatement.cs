@@ -1,9 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -210,7 +212,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             {
                 // execute expression now and get a result that we will then perform a full select over
                 // This part is happening via EntityFramework if you use it
-                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false);
+                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments);
                 if (runningContext == null)
                     return (null, true);
 
@@ -250,7 +252,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 #pragma warning restore IDE0074 // Use compound assignment
 
-        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true);
+        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments);
         return data;
     }
 
@@ -314,7 +316,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         ParameterReplacer replacer,
         CompileContext compileContext,
         BaseGraphQLField node,
-        bool isFinal
+        bool isFinal,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments
     )
     {
         // they had a query with a directive that was skipped, resulting in an empty query?
@@ -361,6 +364,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         else
             res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
 
+        // Resolve any nested async results in the returned object graph if the query contains async fields
+        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments))
+            res = await ResolveAsyncResultsRecursive(res);
+
         return (res, true);
     }
 
@@ -373,5 +380,259 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
     {
         Directives.AddRange(graphQLDirectives);
+    }
+
+    /// <summary>
+    /// Recursively walks the object graph and awaits any Task properties
+    /// </summary>
+    private static async Task<object?> ResolveAsyncResultsRecursive(object obj)
+    {
+        // Handle Task<T> and internal async state machines - await it and recursively resolve the result
+        if (obj is Task task)
+        {
+            await task;
+
+            // Get the result from Task<T>
+            var taskType = task.GetType();
+            if (taskType.IsGenericType && taskType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+                var taskResult = resultProperty?.GetValue(task);
+                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+            }
+
+            // Try to get Result property for other task types
+            var resultProp = taskType.GetProperty(nameof(Task<object>.Result));
+            if (resultProp != null)
+            {
+                var taskResult = resultProp.GetValue(task);
+                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+            }
+
+            return null; // Task (not Task<T>)
+        }
+
+        // Handle internal async state machine types that implement Task behavior
+        if (typeof(Task).IsAssignableFrom(obj.GetType()))
+        {
+            var taskObj = (Task)obj;
+            await taskObj;
+
+            // Try to get the Result property for Task<T> types
+            var resultProperty = obj.GetType().GetProperty(nameof(Task<object>.Result));
+            if (resultProperty != null)
+            {
+                var taskResult = resultProperty.GetValue(obj);
+                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+            }
+            return null;
+        }
+
+        // Handle collections (but not strings)
+        if (obj is IEnumerable enumerable and not string)
+        {
+            var resolvedItems = new List<object?>();
+            foreach (var item in enumerable)
+            {
+                resolvedItems.Add(await ResolveAsyncResultsRecursive(item));
+            }
+
+            // Try to preserve the original collection type if possible
+            var originalType = obj.GetType();
+            if (originalType.IsArray && resolvedItems.Count > 0)
+            {
+                var elementType = originalType.GetElementType()!;
+                var array = Array.CreateInstance(elementType, resolvedItems.Count);
+                for (int i = 0; i < resolvedItems.Count; i++)
+                {
+                    array.SetValue(resolvedItems[i], i);
+                }
+                return array;
+            }
+
+            return resolvedItems;
+        }
+
+        // Handle complex objects (including anonymous types and dynamic types)
+        var type = obj.GetType();
+        if (type.IsClass && type != typeof(string) && !type.IsPrimitive)
+        {
+            return await ResolveComplexObject(obj, type);
+        }
+
+        return obj;
+    }
+
+    /// <summary>
+    /// Handles complex objects including anonymous types, dynamic types, and regular classes
+    /// </summary>
+    private static async Task<object?> ResolveComplexObject(object obj, Type type)
+    {
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+        // Check if any properties or fields contain Tasks
+        var hasAsyncMembers = properties.Any(p => p.CanRead && ContainsAsyncValue(p.GetValue(obj))) || fields.Any(f => ContainsAsyncValue(f.GetValue(obj)));
+
+        if (!hasAsyncMembers)
+            return obj;
+
+        // For anonymous types and dynamically generated types, try to reconstruct the object
+        if (IsAnonymousOrDynamicType(type))
+        {
+            return await ReconstructAnonymousObject(obj, type, properties, fields);
+        }
+
+        // For regular mutable objects, we can modify in place
+        foreach (var prop in properties.Where(p => p.CanRead && p.CanWrite))
+        {
+            var value = prop.GetValue(obj);
+            if (value != null && ContainsAsyncValue(value))
+            {
+                var resolvedValue = await ResolveAsyncResultsRecursive(value);
+                prop.SetValue(obj, resolvedValue);
+            }
+        }
+
+        // Fields are typically readonly, but let's try anyway
+        foreach (var field in fields.Where(f => !f.IsInitOnly))
+        {
+            var value = field.GetValue(obj);
+            if (value != null && ContainsAsyncValue(value))
+            {
+                var resolvedValue = await ResolveAsyncResultsRecursive(value);
+                field.SetValue(obj, resolvedValue);
+            }
+        }
+
+        return obj;
+    }
+
+    /// <summary>
+    /// Checks if a value is or contains async operations
+    /// </summary>
+    private static bool ContainsAsyncValue(object? value)
+    {
+        return value is Task || (value != null && typeof(Task).IsAssignableFrom(value.GetType()));
+    }
+
+    /// <summary>
+    /// Determines if a type is anonymous or dynamically generated (like those created by EntityGraphQL)
+    /// </summary>
+    private static bool IsAnonymousOrDynamicType(Type type)
+    {
+        return type.Namespace?.StartsWith("EntityGraphQL", StringComparison.Ordinal) == true || type.Assembly.IsDynamic;
+    }
+
+    /// <summary>
+    /// Reconstructs anonymous or dynamic objects with resolved async values
+    /// </summary>
+    private static async Task<object?> ReconstructAnonymousObject(object obj, Type type, PropertyInfo[] properties, FieldInfo[] fields)
+    {
+        // For constructor-based reconstruction (anonymous types)
+        var constructors = type.GetConstructors();
+
+        if (constructors.Length == 1)
+        {
+            var constructor = constructors[0];
+            var parameters = constructor.GetParameters();
+
+            // For anonymous types with constructor parameters, use constructor-based approach
+            if (parameters.Length > 0)
+            {
+                var args = new object?[parameters.Length];
+
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    var param = parameters[i];
+                    var paramName = param.Name!;
+
+                    // Find matching property or field
+                    var prop = properties.FirstOrDefault(p => string.Equals(p.Name, paramName, StringComparison.OrdinalIgnoreCase));
+                    var field = fields.FirstOrDefault(f => string.Equals(f.Name, paramName, StringComparison.OrdinalIgnoreCase));
+
+                    object? value = null;
+                    if (prop != null)
+                        value = prop.GetValue(obj);
+                    else if (field != null)
+                        value = field.GetValue(obj);
+
+                    args[i] = value != null ? await ResolveAsyncResultsRecursive(value) : null;
+                }
+
+                return Activator.CreateInstance(type, args);
+            }
+        }
+
+        // For types without constructor parameters (like EntityGraphQL dynamic types),
+        // we need to rebuild the type with resolved field types using LinqRuntimeTypeBuilder
+        return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields);
+    }
+
+    /// <summary>
+    /// Rebuilds a dynamic type with resolved field types (converting Task<T> fields to T fields)
+    /// </summary>
+    private static async Task<object?> RebuildDynamicTypeWithResolvedFields(object obj, Type originalType, PropertyInfo[] properties, FieldInfo[] fields)
+    {
+        var fieldTypeMap = new Dictionary<string, Type>();
+        var fieldValues = new Dictionary<string, object?>();
+
+        // Process properties
+        foreach (var prop in properties.Where(p => p.CanRead))
+        {
+            var value = prop.GetValue(obj);
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value) : null;
+
+            fieldValues[prop.Name] = resolvedValue;
+            // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
+            fieldTypeMap[prop.Name] = GetResolvedFieldType(prop.PropertyType, resolvedValue);
+        }
+
+        // Process fields
+        foreach (var field in fields)
+        {
+            var value = field.GetValue(obj);
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value) : null;
+
+            fieldValues[field.Name] = resolvedValue;
+            // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
+            fieldTypeMap[field.Name] = GetResolvedFieldType(field.FieldType, resolvedValue);
+        }
+
+        // Create new dynamic type with resolved field types
+        var newType = LinqRuntimeTypeBuilder.GetDynamicType(fieldTypeMap, originalType.Name);
+        var newInstance = Activator.CreateInstance(newType);
+
+        if (newInstance != null)
+        {
+            // Set field values on the new instance
+            foreach (var kvp in fieldValues)
+            {
+                var newField = newType.GetField(kvp.Key);
+                if (newField != null)
+                {
+                    newField.SetValue(newInstance, kvp.Value);
+                }
+            }
+        }
+
+        return newInstance;
+    }
+
+    /// <summary>
+    /// Gets the resolved field type - if the original type was Task<T>, returns T, otherwise returns the resolved value type
+    /// </summary>
+    private static Type GetResolvedFieldType(Type originalType, object? resolvedValue)
+    {
+        // If the original type was Task<T>, extract T
+        if (typeof(Task).IsAssignableFrom(originalType) && originalType.IsGenericType)
+        {
+            var taskGenericType = originalType.GetGenericArguments().FirstOrDefault();
+            if (taskGenericType != null)
+                return taskGenericType;
+        }
+
+        // Otherwise use the resolved value's type, or fall back to original type
+        return resolvedValue?.GetType() ?? originalType;
     }
 }
