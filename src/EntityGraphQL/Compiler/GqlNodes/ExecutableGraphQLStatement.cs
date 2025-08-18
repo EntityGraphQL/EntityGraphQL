@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -202,6 +203,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         Expression? expression = null;
         var contextParam = node.RootParameter;
+        bool isSecondExec = false;
 
         if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
         {
@@ -212,7 +214,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             {
                 // execute expression now and get a result that we will then perform a full select over
                 // This part is happening via EntityFramework if you use it
-                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments);
+                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments, false);
                 if (runningContext == null)
                     return (null, true);
 
@@ -241,6 +243,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     replacer
                 );
                 contextParam = newContextType;
+                isSecondExec = true;
             }
         }
 
@@ -252,7 +255,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 #pragma warning restore IDE0074 // Use compound assignment
 
-        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments);
+        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments, isSecondExec);
         return data;
     }
 
@@ -317,7 +320,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         CompileContext compileContext,
         BaseGraphQLField node,
         bool isFinal,
-        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        bool isSecondExec
     )
     {
         // they had a query with a directive that was skipped, resulting in an empty query?
@@ -365,7 +369,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
 
         // Resolve any nested async results in the returned object graph if the query contains async fields
-        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments))
+        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))
             res = await ResolveAsyncResultsRecursive(res);
 
         return (res, true);
@@ -383,10 +387,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     }
 
     /// <summary>
-    /// Recursively walks the object graph and awaits any Task properties
+    /// Recursively walks the object graph and awaits any async values (Task, ValueTask, IAsyncEnumerable)
     /// </summary>
     private static async Task<object?> ResolveAsyncResultsRecursive(object obj)
     {
+        var type = obj.GetType();
+
         // Handle Task<T> and internal async state machines - await it and recursively resolve the result
         if (obj is Task task)
         {
@@ -412,20 +418,28 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return null; // Task (not Task<T>)
         }
 
-        // Handle internal async state machine types that implement Task behavior
-        if (typeof(Task).IsAssignableFrom(obj.GetType()))
+        // ValueTask<T>
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
-            var taskObj = (Task)obj;
-            await taskObj;
-
-            // Try to get the Result property for Task<T> types
-            var resultProperty = obj.GetType().GetProperty(nameof(Task<object>.Result));
-            if (resultProperty != null)
+            var asTaskMethod = type.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
+            if (asTaskMethod != null)
             {
-                var taskResult = resultProperty.GetValue(obj);
-                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+                var valueTaskAsTask = (Task?)asTaskMethod.Invoke(obj, null);
+                if (valueTaskAsTask != null)
+                {
+                    await valueTaskAsTask;
+                    var resultProperty = valueTaskAsTask.GetType().GetProperty(nameof(Task<object>.Result));
+                    var taskResult = resultProperty?.GetValue(valueTaskAsTask);
+                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+                }
             }
             return null;
+        }
+
+        // IAsyncEnumerable<T> - buffer to a list
+        if (ImplementsIAsyncEnumerable(type))
+        {
+            return await BufferAsyncEnumerable(obj);
         }
 
         // Handle collections (but not strings)
@@ -437,9 +451,11 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 resolvedItems.Add(await ResolveAsyncResultsRecursive(item));
             }
 
-            // Try to preserve the original collection type if possible
+            // Try to preserve the original collection type
             var originalType = obj.GetType();
-            if (originalType.IsArray && resolvedItems.Count > 0)
+
+            // Handle arrays
+            if (originalType.IsArray)
             {
                 var elementType = originalType.GetElementType()!;
                 var array = Array.CreateInstance(elementType, resolvedItems.Count);
@@ -454,7 +470,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         // Handle complex objects (including anonymous types and dynamic types)
-        var type = obj.GetType();
         if (type.IsClass && type != typeof(string) && !type.IsPrimitive)
         {
             return await ResolveComplexObject(obj, type);
@@ -471,16 +486,11 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
 
-        // Check if any properties or fields contain Tasks
-        var hasAsyncMembers = properties.Any(p => p.CanRead && ContainsAsyncValue(p.GetValue(obj))) || fields.Any(f => ContainsAsyncValue(f.GetValue(obj)));
-
-        if (!hasAsyncMembers)
-            return obj;
-
         // For anonymous types and dynamically generated types, try to reconstruct the object
         if (IsAnonymousOrDynamicType(type))
         {
-            return await ReconstructAnonymousObject(obj, type, properties, fields);
+            // all types should be anonymous types built by LinqRuntimeTypeBuilder
+            return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields);
         }
 
         // For regular mutable objects, we can modify in place
@@ -513,7 +523,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// </summary>
     private static bool ContainsAsyncValue(object? value)
     {
-        return value is Task || (value != null && typeof(Task).IsAssignableFrom(value.GetType()));
+        if (value == null)
+            return false;
+        var t = value.GetType();
+        if (typeof(Task).IsAssignableFrom(t))
+            return true;
+        if (t == typeof(ValueTask) || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+            return true;
+        if (ImplementsIAsyncEnumerable(t))
+            return true;
+        return false;
     }
 
     /// <summary>
@@ -522,51 +541,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     private static bool IsAnonymousOrDynamicType(Type type)
     {
         return type.Namespace?.StartsWith("EntityGraphQL", StringComparison.Ordinal) == true || type.Assembly.IsDynamic;
-    }
-
-    /// <summary>
-    /// Reconstructs anonymous or dynamic objects with resolved async values
-    /// </summary>
-    private static async Task<object?> ReconstructAnonymousObject(object obj, Type type, PropertyInfo[] properties, FieldInfo[] fields)
-    {
-        // For constructor-based reconstruction (anonymous types)
-        var constructors = type.GetConstructors();
-
-        if (constructors.Length == 1)
-        {
-            var constructor = constructors[0];
-            var parameters = constructor.GetParameters();
-
-            // For anonymous types with constructor parameters, use constructor-based approach
-            if (parameters.Length > 0)
-            {
-                var args = new object?[parameters.Length];
-
-                for (int i = 0; i < parameters.Length; i++)
-                {
-                    var param = parameters[i];
-                    var paramName = param.Name!;
-
-                    // Find matching property or field
-                    var prop = properties.FirstOrDefault(p => string.Equals(p.Name, paramName, StringComparison.OrdinalIgnoreCase));
-                    var field = fields.FirstOrDefault(f => string.Equals(f.Name, paramName, StringComparison.OrdinalIgnoreCase));
-
-                    object? value = null;
-                    if (prop != null)
-                        value = prop.GetValue(obj);
-                    else if (field != null)
-                        value = field.GetValue(obj);
-
-                    args[i] = value != null ? await ResolveAsyncResultsRecursive(value) : null;
-                }
-
-                return Activator.CreateInstance(type, args);
-            }
-        }
-
-        // For types without constructor parameters (like EntityGraphQL dynamic types),
-        // we need to rebuild the type with resolved field types using LinqRuntimeTypeBuilder
-        return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields);
     }
 
     /// <summary>
@@ -631,8 +605,134 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (taskGenericType != null)
                 return taskGenericType;
         }
+        // If the original type was ValueTask<T>, extract T
+        if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            var vtGeneric = originalType.GetGenericArguments().FirstOrDefault();
+            if (vtGeneric != null)
+                return vtGeneric;
+        }
+        // If the original type was IAsyncEnumerable<T>, convert to IEnumerable<T>
+        if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+        {
+            var t = originalType.GetGenericArguments()[0];
+            return typeof(IEnumerable<>).MakeGenericType(t);
+        }
 
         // Otherwise use the resolved value's type, or fall back to original type
         return resolvedValue?.GetType() ?? originalType;
+    }
+
+    private static bool ImplementsIAsyncEnumerable(Type type)
+    {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+            return true;
+        return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+    }
+
+    internal static async Task<object> BufferAsyncEnumerable(object asyncEnumerableObj)
+    {
+        // Use reflection to get the GetAsyncEnumerator method since we don't know the generic type at compile time
+        var asyncEnumerableType = asyncEnumerableObj.GetType();
+
+        // Get the element type from the original IAsyncEnumerable<T> first
+        var elementType = typeof(object);
+        var asyncEnumerableInterface = asyncEnumerableType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+
+        if (asyncEnumerableInterface != null)
+        {
+            elementType = asyncEnumerableInterface.GetGenericArguments()[0];
+        }
+
+        // Create the properly typed list upfront
+        var listType = typeof(List<>).MakeGenericType(elementType);
+        var typedList = Activator.CreateInstance(listType)!;
+        var addMethod = listType.GetMethod("Add")!;
+
+        var getEnumeratorMethod = asyncEnumerableType.GetMethod("GetAsyncEnumerator", BindingFlags.Public | BindingFlags.Instance);
+
+        if (getEnumeratorMethod == null)
+        {
+            // Try to find it on interfaces
+            var interfaces = asyncEnumerableType.GetInterfaces();
+            foreach (var iface in interfaces)
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+                {
+                    getEnumeratorMethod = iface.GetMethod("GetAsyncEnumerator");
+                    break;
+                }
+            }
+        }
+
+        if (getEnumeratorMethod != null)
+        {
+            var enumerator = getEnumeratorMethod.Invoke(asyncEnumerableObj, [CancellationToken.None]);
+            if (enumerator != null)
+            {
+                var enumeratorType = enumerator.GetType();
+
+                // Find the IAsyncEnumerator<T> interface on the enumerator
+                var asyncEnumeratorInterface = enumeratorType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerator<>));
+
+                MethodInfo? moveNextMethod = null;
+                PropertyInfo? currentProperty = null;
+                MethodInfo? disposeMethod = null;
+
+                if (asyncEnumeratorInterface != null)
+                {
+                    // Get methods from the interface
+                    moveNextMethod = asyncEnumeratorInterface.GetMethod("MoveNextAsync");
+                    currentProperty = asyncEnumeratorInterface.GetProperty("Current");
+                    disposeMethod = asyncEnumeratorInterface.GetMethod("DisposeAsync");
+                }
+                else
+                {
+                    // Fallback: try to get methods directly from the type
+                    moveNextMethod = enumeratorType.GetMethod("MoveNextAsync");
+                    currentProperty = enumeratorType.GetProperty("Current");
+                    disposeMethod = enumeratorType.GetMethod("DisposeAsync");
+                }
+
+                if (moveNextMethod != null && currentProperty != null)
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            var moveNextTask = moveNextMethod.Invoke(enumerator, null);
+                            if (moveNextTask is ValueTask<bool> valueTask)
+                            {
+                                var result = await valueTask;
+                                if (!result)
+                                    break;
+
+                                var current = currentProperty.GetValue(enumerator);
+                                if (current != null)
+                                {
+                                    var resolvedCurrent = await ResolveAsyncResultsRecursive(current);
+                                    addMethod.Invoke(typedList, [resolvedCurrent]);
+                                }
+                            }
+                            else
+                            {
+                                break; // Unexpected return type
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeMethod != null)
+                        {
+                            var disposeTask = disposeMethod.Invoke(enumerator, null);
+                            if (disposeTask is ValueTask disposeValueTask)
+                                await disposeValueTask;
+                        }
+                    }
+                }
+            }
+        }
+
+        return typedList;
     }
 }

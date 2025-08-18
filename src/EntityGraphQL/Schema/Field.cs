@@ -274,11 +274,22 @@ public class Field : BaseField
         if (fieldExpression.Body.NodeType == ExpressionType.Call)
             returnType = ((MethodCallExpression)fieldExpression.Body).Type;
 
-        // For Task<T> returns, extract T for schema building and mark as async
-        if (typeof(Task).IsAssignableFrom(returnType) && returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+        // For async-returning shapes, extract underlying T for schema building and mark as async
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
         {
             IsAsync = true;
             returnType = returnType.GetGenericArguments()[0];
+        }
+        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            IsAsync = true;
+            returnType = returnType.GetGenericArguments()[0];
+        }
+        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+        {
+            IsAsync = true;
+            var t = returnType.GetGenericArguments()[0];
+            returnType = typeof(IEnumerable<>).MakeGenericType(t);
         }
 
         ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
