@@ -20,6 +20,8 @@ public class BenchmarkContext : DbContext
         builder.Entity<MovieGenre>().HasKey(d => d.Name);
         builder.Entity<Movie>().HasKey(d => d.Id);
         builder.Entity<Movie>().HasOne(d => d.Director);
+        builder.Entity<Movie>().HasMany(d => d.Actors);
+        builder.Entity<Person>().HasMany(d => d.Movies);
         builder.Entity<Person>().HasMany(d => d.DirectorOf);
     }
 }

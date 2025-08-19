@@ -400,14 +400,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
             // Get the result from Task<T>
             var taskType = task.GetType();
-            if (taskType.IsGenericType && taskType.GetGenericTypeDefinition() == typeof(Task<>))
-            {
-                var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
-                var taskResult = resultProperty?.GetValue(task);
-                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
-            }
-
-            // Try to get Result property for other task types
+            // Try to get Result property
             var resultProp = taskType.GetProperty(nameof(Task<object>.Result));
             if (resultProp != null)
             {
@@ -445,11 +438,17 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // Handle collections (but not strings)
         if (obj is IEnumerable enumerable and not string)
         {
-            var resolvedItems = new List<object?>();
-            foreach (var item in enumerable)
+            var items = enumerable.Cast<object?>().ToArray();
+            var resolvedItems = new List<object?>(items.Length);
+
+            // Process items concurrently
+            var tasks = items.Select(async item =>
             {
-                resolvedItems.Add(await ResolveAsyncResultsRecursive(item));
-            }
+                return item != null ? await ResolveAsyncResultsRecursive(item) : null;
+            });
+
+            var results = await Task.WhenAll(tasks);
+            resolvedItems.AddRange(results);
 
             // Try to preserve the original collection type
             var originalType = obj.GetType();
