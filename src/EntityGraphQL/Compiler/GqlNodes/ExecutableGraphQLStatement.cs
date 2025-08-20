@@ -354,26 +354,24 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     args.Where(a => a != null).ToArray()!
                 ) ?? new object();
         }
-        else
+
+        // No concurrency limiting, execute directly
+        var result = lambdaExpression.Compile().DynamicInvoke(args);
+
+        if (result is Task task)
         {
-            // No concurrency limiting, execute directly
-            var result = lambdaExpression.Compile().DynamicInvoke(args);
+            await task;
 
-            if (result is Task task)
+            // Get result from Task<T>
+            var taskType = task.GetType();
+            var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+            if (resultProperty != null)
             {
-                await task;
-
-                // Get result from Task<T>
-                var taskType = task.GetType();
-                var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
-                if (resultProperty != null)
-                {
-                    return resultProperty.GetValue(task)!;
-                }
+                return resultProperty.GetValue(task)!;
             }
-
-            return result!;
         }
+
+        return result!;
     }
 
     private static List<(string scopeKey, int maxConcurrency)> GetBulkResolverSemaphoreConfigs(CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)

@@ -168,22 +168,19 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                 }
                 return null;
             }
-            else
+            // Handle ValueTask<T>
+            var type = asyncOperation.GetType();
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
             {
-                // Handle ValueTask<T>
-                var type = asyncOperation.GetType();
-                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                var asTaskMethod = type.GetMethod(nameof(ValueTask<object>.AsTask));
+                if (asTaskMethod != null)
                 {
-                    var asTaskMethod = type.GetMethod(nameof(ValueTask<object>.AsTask));
-                    if (asTaskMethod != null)
+                    var taskToAwait = (Task?)asTaskMethod.Invoke(asyncOperation, null);
+                    if (taskToAwait != null)
                     {
-                        var taskToAwait = (Task?)asTaskMethod.Invoke(asyncOperation, null);
-                        if (taskToAwait != null)
-                        {
-                            await taskToAwait;
-                            var resultProperty = taskToAwait.GetType().GetProperty(nameof(ValueTask<object>.Result));
-                            return resultProperty?.GetValue(taskToAwait);
-                        }
+                        await taskToAwait;
+                        var resultProperty = taskToAwait.GetType().GetProperty(nameof(ValueTask<object>.Result));
+                        return resultProperty?.GetValue(taskToAwait);
                     }
                 }
             }
