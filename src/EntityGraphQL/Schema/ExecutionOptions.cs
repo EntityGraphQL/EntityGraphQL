@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema;
@@ -58,6 +59,21 @@ public class ExecutionOptions
     /// Useful for debugging or audit logs.
     /// </summary>
     public bool IncludeQueryInfo { get; set; }
+
+    /// <summary>
+    /// Service-level concurrency limits. Key is the service type, value is the max concurrent operations.
+    /// This provides centralized control over concurrency for all fields using specific services.
+    /// Useful to help rate limiting or throttling.
+    /// Example: { [typeof(TmdbService)] = 5, [typeof(DatabaseService)] = 10 }
+    /// </summary>
+    public Dictionary<Type, int> ServiceConcurrencyLimits { get; set; } = [];
+
+    /// <summary>
+    /// Global query-level concurrency limit. If set, no more than this many async operations
+    /// will run concurrently across the entire query execution, regardless of service type.
+    /// This overrides any individual field or service limits.
+    /// </summary>
+    public int? MaxQueryConcurrency { get; set; }
 
 #if DEBUG
     /// <summary>

@@ -170,7 +170,16 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
             listExpressionPath.Insert(0, parentNode);
             parentNode = parentNode.ParentNode;
         }
-        compileContext.AddBulkResolver(bulkResolver.Name, bulkResolver.DataSelector, (LambdaExpression)bulkFieldExpr, bulkResolver.ExtractedFields, listExpressionPath);
+        compileContext.AddBulkResolver(
+            bulkResolver.Name,
+            bulkResolver.DataSelector,
+            (LambdaExpression)bulkFieldExpr,
+            bulkResolver.ExtractedFields,
+            listExpressionPath,
+            bulkResolver.FieldExpression.Parameters.First().Type,
+            bulkResolver.IsAsync,
+            bulkResolver.MaxConcurrency
+        );
         compileContext.AddServices(field.Field!.Services);
     }
 }

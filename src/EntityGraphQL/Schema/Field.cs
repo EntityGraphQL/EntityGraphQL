@@ -181,7 +181,8 @@ public class Field : BaseField
         if (result == null)
             return (null, null);
         // the expressions we collect have a different starting parameter. We need to change that
-        if (FieldParam != null && !contextChanged)
+        // if (FieldParam != null)
+        if (FieldParam != null && (!contextChanged || IsAsync))
         {
             if (fieldContext != null)
                 result = replacer.Replace(result, FieldParam, fieldContext);
@@ -260,7 +261,7 @@ public class Field : BaseField
         return (result, newArgParam);
     }
 
-    protected void SetUpField(LambdaExpression fieldExpression, bool withServices, bool hasArguments)
+    protected void SetUpField(LambdaExpression fieldExpression, bool withServices, bool hasArguments, bool isAsync)
     {
         ProcessResolveExpression(fieldExpression, withServices, hasArguments);
         // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
@@ -291,6 +292,9 @@ public class Field : BaseField
             var t = returnType.GetGenericArguments()[0];
             returnType = typeof(IEnumerable<>).MakeGenericType(t);
         }
+
+        if (!isAsync && IsAsync)
+            throw new EntityGraphQLCompilerException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");
 
         ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
     }

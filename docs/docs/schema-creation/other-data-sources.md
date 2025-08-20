@@ -278,6 +278,67 @@ var result = data.Select(p => new {
 });
 ```
 
+## Async Bulk Data Loading
+
+For scenarios where your bulk data loading operations are asynchronous (e.g., making HTTP calls to external APIs, async database operations), you can use `ResolveBulkAsync`. This works similarly to `ResolveBulk` but supports `Task<T>` return types and includes concurrency limiting.
+
+```cs
+schema.UpdateType<Project>(type =>
+{
+    type.AddField("createdBy", "Get the user details of user that created this project")
+      // normal async service to fetch the User object for creator of the Project type
+      .ResolveAsync<UserService>((proj, users) => users.GetUserByIdAsync(proj.CreatedById))
+      // Async bulk service used to fetch many User objects
+      .ResolveBulkAsync<UserService, int, User>(proj => proj.CreatedById, (ids, srv) => srv.GetAllUsersAsync(ids));
+});
+```
+
+The async bulk loader method signature needs to match the following:
+
+```cs
+public Task<IDictionary<TKey, TResult>> MethodName(IEnumerable<TKey> data) {}
+
+// Example of this above
+public async Task<IDictionary<int, User>> GetAllUsersAsync(IEnumerable<int> data)
+{
+    // Make async calls to external API, database, etc.
+    var users = await externalApiClient.GetUsersAsync(data);
+    return users.ToDictionary(u => u.Id, u => u);
+}
+```
+
+### Concurrency Limiting
+
+`ResolveBulkAsync` supports concurrency limiting to prevent overwhelming external services or hitting rate limits. You can specify the maximum number of concurrent bulk operations:
+
+```cs
+schema.UpdateType<Project>(type =>
+{
+    type.AddField("createdBy", "Get the user details of user that created this project")
+      .ResolveAsync<UserService>((proj, users) => users.GetUserByIdAsync(proj.CreatedById))
+      // Limit to 5 concurrent bulk operations
+      .ResolveBulkAsync<UserService, int, User>(
+          proj => proj.CreatedById,
+          (ids, srv) => srv.GetAllUsersAsync(ids),
+          maxConcurrency: 5
+      );
+});
+```
+
+Concurrency can also be configured at different levels:
+
+1. **Field level**: Using the `maxConcurrency` parameter as shown above
+2. **Query level**: Set `ExecutionOptions.MaxConcurrency` when executing the query
+3. **Service level**: Configure in your dependency injection container
+
+When multiple concurrency limits are specified, all will be applied.
+
+:::info
+
+The concurrency limiting applies to how many bulk loader operations can run simultaneously, not to individual items within a single bulk operation. This helps prevent overwhelming external services while still allowing efficient batching of requests.
+
+:::
+
 ## Limitation using services with `[GraphQLField]` method fields
 
 Because EntityGraphQL handles service fields by executing an expression without those fields and _rewriting_ the expressions to work with the resulting type - see [How EntityGraphQL handles services](../library-compatibility/entity-framework) section for more details - you cannot use services with a method as EntityGraphQL cannot rewrite and data may be missing.

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler;
@@ -222,7 +223,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
 
                 // core context data is fetched. Now fetch all the bulk resolvers
-                var bulkData = ResolveBulkLoaders(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
+                var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                 // new context
                 compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext);
@@ -259,7 +260,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return data;
     }
 
-    private static Dictionary<string, object> ResolveBulkLoaders(
+    private static async Task<Dictionary<string, object>> ResolveBulkLoadersAsync(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
         BaseGraphQLField node,
@@ -271,6 +272,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         var bulkData = new Dictionary<string, object>();
         if (compileContext.BulkResolvers?.Count > 0)
         {
+            var bulkTasks = new List<Task>();
+            var bulkResults = new Dictionary<string, Task<object>>();
+
             foreach (var bulkResolver in compileContext.BulkResolvers)
             {
                 // rebuild list expression on new context
@@ -303,12 +307,96 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     allArgs.AddRange(compileContext.ConstantParameters.Values);
                 }
 
-                var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke([.. allArgs])!;
-                bulkData[bulkResolver.Name] = dataLoaded;
+                var lambdaExpression = Expression.Lambda(bulkLoader, parameters);
+
+                // Handle async bulk resolvers with concurrency control
+                if (bulkResolver.IsAsync)
+                {
+                    var bulkTask = ExecuteBulkResolverWithConcurrencyAsync(lambdaExpression, [.. allArgs], bulkResolver, compileContext);
+                    bulkResults[bulkResolver.Name] = bulkTask!;
+                    bulkTasks.Add(bulkTask);
+                }
+                else
+                {
+                    var dataLoaded = lambdaExpression.Compile().DynamicInvoke([.. allArgs])!;
+                    bulkData[bulkResolver.Name] = dataLoaded;
+                }
+            }
+
+            // Wait for all async bulk resolvers to complete
+            if (bulkTasks.Count > 0)
+            {
+                await Task.WhenAll(bulkTasks);
+
+                // Collect results from async operations
+                foreach (var kvp in bulkResults)
+                {
+                    bulkData[kvp.Key] = await kvp.Value;
+                }
             }
         }
 
         return bulkData;
+    }
+
+    private static async Task<object> ExecuteBulkResolverWithConcurrencyAsync(LambdaExpression lambdaExpression, object?[] args, CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
+    {
+        // Generate semaphore configurations for bulk resolver concurrency limiting
+        var semaphoreConfigs = GetBulkResolverSemaphoreConfigs(bulkResolver, compileContext);
+
+        if (semaphoreConfigs.Count > 0)
+        {
+            // Use the existing ExecuteWithConcurrencyLimitAsync method
+            return await ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync(
+                    lambdaExpression,
+                    semaphoreConfigs,
+                    compileContext.ConcurrencyLimiterRegistry,
+                    args.Where(a => a != null).ToArray()!
+                ) ?? new object();
+        }
+        else
+        {
+            // No concurrency limiting, execute directly
+            var result = lambdaExpression.Compile().DynamicInvoke(args);
+
+            if (result is Task task)
+            {
+                await task;
+
+                // Get result from Task<T>
+                var taskType = task.GetType();
+                var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+                if (resultProperty != null)
+                {
+                    return resultProperty.GetValue(task)!;
+                }
+            }
+
+            return result!;
+        }
+    }
+
+    private static List<(string scopeKey, int maxConcurrency)> GetBulkResolverSemaphoreConfigs(CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
+    {
+        var configs = new List<(string scopeKey, int maxConcurrency)>();
+
+        // Query-level limit
+        if (compileContext.ExecutionOptions.MaxQueryConcurrency.HasValue)
+        {
+            configs.Add(("query_global", compileContext.ExecutionOptions.MaxQueryConcurrency.Value));
+        }
+
+        var serviceMax = compileContext.ExecutionOptions.ServiceConcurrencyLimits.GetValueOrDefault(bulkResolver.ServiceType);
+        if (serviceMax > 0)
+            configs.Add(($"service_{bulkResolver.ServiceType.Name}", serviceMax));
+
+        // Bulk resolver-specific limit
+        if (bulkResolver.MaxConcurrency.HasValue)
+        {
+            configs.Add(($"bulk_{bulkResolver.Name}", bulkResolver.MaxConcurrency.Value));
+        }
+
+        return configs;
     }
 
     private static async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(

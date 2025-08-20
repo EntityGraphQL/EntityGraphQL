@@ -13,26 +13,20 @@ namespace Benchmarks;
 /// Benchmarks for testing different async field resolution strategies
 /// Tests the performance impact of concurrent vs sequential async processing
 ///
-/// Was testing a MaxDegreeOfParallelism but it didn't really make a difference so removed it.
+/// Was testing a MaxDegreeOfParallelism at the resolving Task<T> level but it didn't really make a difference so removed it.
 /// Although it is not the best test as we're not hitting resources like HTTP requests or DB connections.
-/// Users can control better with Lazy<T>.
+///
+/// Have introduced limiting to control how many async tasks start
 ///
 /// BenchmarkDotNet v0.15.2, macOS 26.0 (25A5338b) [Darwin 25.0.0]
 /// Apple M1 Max, 1 CPU, 10 logical and 10 physical cores
 /// .NET SDK 9.0.301
 ///
-/// | Method                          | MaxDegreeOfParallelism | Mean        | Error     | StdDev    | Gen0      | Gen1     | Allocated  |
-/// |-------------------------------- |----------------------- |------------:|----------:|----------:|----------:|---------:|-----------:|
-/// | SmallCollection_WithAsyncFields | -1                     |    306.1 us |   2.79 us |   2.74 us |   18.5547 |   3.9063 |  116.33 KB |
-/// | SmallCollection_WithAsyncFields | 1                      |    309.1 us |   2.89 us |   2.70 us |   18.5547 |   0.4883 |  116.33 KB |
-/// | SmallCollection_WithAsyncFields | 4                      |    316.8 us |   6.28 us |  10.31 us |   18.5547 |   0.4883 |  116.34 KB |
-/// | SmallCollection_WithAsyncFields | 8                      |    316.9 us |   6.22 us |   7.40 us |   18.5547 |   0.4883 |  116.34 KB |
-/// | SmallCollection_WithAsyncFields | 32                     |    304.7 us |   1.70 us |   1.42 us |   18.5547 |   0.4883 |  116.34 KB |
-/// | LargeCollection_WithAsyncFields | -1                     | 13,851.8 us |  73.07 us |  68.35 us | 1015.6250 |        - | 6249.55 KB |
-/// | LargeCollection_WithAsyncFields | 1                      | 13,879.4 us |  88.79 us |  83.06 us | 1015.6250 |  15.6250 | 6249.58 KB |
-/// | LargeCollection_WithAsyncFields | 4                      | 13,870.4 us | 265.47 us | 248.32 us | 1015.6250 | 421.8750 | 6249.56 KB |
-/// | LargeCollection_WithAsyncFields | 8                      | 13,883.8 us | 239.14 us | 223.69 us | 1015.6250 |  15.6250 | 6249.58 KB |
-/// | LargeCollection_WithAsyncFields | 32                     | 13,710.5 us |  63.32 us |  59.23 us | 1015.6250 |  15.6250 | 6249.57 KB |
+/// | Method                                  | Mean        | Error    | StdDev   | Gen0      | Gen1    | Allocated  |
+/// |---------------------------------------- |------------:|---------:|---------:|----------:|--------:|-----------:|
+/// | SmallCollection_WithAsyncFields         |    296.1 us |  2.26 us |  2.22 us |   18.5547 |  3.9063 |  118.81 KB |
+/// | LargeCollection_WithAsyncFields         | 13,304.9 us | 35.31 us | 31.30 us | 1015.6250 |       - | 6251.58 KB |
+/// | LargeCollection_WithAsyncFields_Limited | 13,305.3 us | 38.34 us | 33.98 us | 1015.6250 | 15.6250 |  6264.8 KB |
 ///
 /// </summary>
 [MemoryDiagnoser]
@@ -64,14 +58,32 @@ public class AsyncResolutionBenchmarks : BaseBenchmark
             }
         }";
 
+    private readonly string largeCollectionQueryLimited =
+        @"{
+            moviesBig {
+                id 
+                name
+                asyncRatingLimit
+                asyncDescriptionLimit
+                actors {
+                    id
+                    firstName
+                    asyncBioLimit
+                    asyncAwardsLimit
+                }
+            }
+        }";
+
     private readonly QueryRequest smallGql;
     private readonly QueryRequest largeGql;
+    private readonly QueryRequest largeGqlLimit;
     private readonly BenchmarkContext context;
 
     public AsyncResolutionBenchmarks()
     {
         smallGql = new QueryRequest { Query = smallCollectionQuery };
         largeGql = new QueryRequest { Query = largeCollectionQuery };
+        largeGqlLimit = new QueryRequest { Query = largeCollectionQueryLimited };
         context = GetContext();
     }
 
@@ -79,12 +91,16 @@ public class AsyncResolutionBenchmarks : BaseBenchmark
     public void Setup()
     {
         // Add async fields to Movie
-        Schema.Type<Movie>().AddField("asyncRating", "Async rating").Resolve<FakeServices>((movie, srv) => srv.GetAsyncRatingAsync(movie.Id));
-        Schema.Type<Movie>().AddField("asyncDescription", "Async description").Resolve<FakeServices>((movie, srv) => srv.GetAsyncDescriptionAsync(movie.Id));
+        Schema.Type<Movie>().AddField("asyncRating", "Async rating").ResolveAsync<FakeServices>((movie, srv) => srv.GetAsyncRatingAsync(movie.Id));
+        Schema.Type<Movie>().AddField("asyncDescription", "Async description").ResolveAsync<FakeServices>((movie, srv) => srv.GetAsyncDescriptionAsync(movie.Id));
+        Schema.Type<Movie>().AddField("asyncRatingLimit", "Async rating").ResolveAsync<FakeServices>((movie, srv) => srv.GetAsyncRatingAsync(movie.Id), 5);
+        Schema.Type<Movie>().AddField("asyncDescriptionLimit", "Async description").ResolveAsync<FakeServices>((movie, srv) => srv.GetAsyncDescriptionAsync(movie.Id), 5);
 
         // Add async fields to Person (actors)
-        Schema.Type<Person>().AddField("asyncBio", "Async bio").Resolve<FakeServices>((person, srv) => srv.GetAsyncBioAsync(person.Id));
-        Schema.Type<Person>().AddField("asyncAwards", "Async awards").Resolve<FakeServices>((person, srv) => srv.GetAsyncAwardsAsync(person.Id));
+        Schema.Type<Person>().AddField("asyncBio", "Async bio").ResolveAsync<FakeServices>((person, srv) => srv.GetAsyncBioAsync(person.Id));
+        Schema.Type<Person>().AddField("asyncAwards", "Async awards").ResolveAsync<FakeServices>((person, srv) => srv.GetAsyncAwardsAsync(person.Id));
+        Schema.Type<Person>().AddField("asyncBioLimit", "Async bio").ResolveAsync<FakeServices>((person, srv) => srv.GetAsyncBioAsync(person.Id), 5);
+        Schema.Type<Person>().AddField("asyncAwardsLimit", "Async awards").ResolveAsync<FakeServices>((person, srv) => srv.GetAsyncAwardsAsync(person.Id), 5);
 
         // Replace movies field to return a controlled set
         Schema
@@ -115,6 +131,14 @@ public class AsyncResolutionBenchmarks : BaseBenchmark
     public async Task<object> LargeCollection_WithAsyncFields()
     {
         var result = await Schema.ExecuteRequestWithContextAsync(largeGql, context, null, null, new ExecutionOptions { EnableQueryCache = false });
+        return result;
+    }
+
+    [Benchmark]
+    public async Task<object> LargeCollection_WithAsyncFields_Limited()
+    {
+        // Test with concurrency limit
+        var result = await Schema.ExecuteRequestWithContextAsync(largeGqlLimit, context, null, null, new ExecutionOptions { EnableQueryCache = false });
         return result;
     }
 

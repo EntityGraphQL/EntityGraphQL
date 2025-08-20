@@ -373,9 +373,32 @@ See the serialization tests for [an example with Newtonsoft.Json](https://github
 
 ## Threading and async execution
 
-`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
+`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations are executed individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, `EntityGraphQL` executes each query in the order it appears in the document sequentially. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
 
 Since a GraphQL request is processed with a single thread, database contexts can be scoped services like they do for ordinary web services. Likewise, queries (and mutations) that call external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
+
+### Async Fields
+
+EntityGraphQL provides comprehensive support for asynchronous field resolution using the `ResolveAsync` method. This allows you to integrate with external services, APIs, and perform long-running operations while maintaining control over concurrency and performance.
+
+```csharp
+// Basic async field with service injection
+schema.Type<Person>()
+    .AddField("weather", "Current weather data")
+    .ResolveAsync<WeatherService>((person, weatherService) =>
+        weatherService.GetWeatherAsync(person.Location));
+
+// With concurrency control
+schema.Type<Person>()
+    .AddField("profile", "External profile data")
+    .ResolveAsync<ProfileService>((person, service) =>
+        service.GetProfileAsync(person.Id),
+        maxConcurrency: 5); // Limit to 5 concurrent operations
+```
+
+EntityGraphQL supports hierarchical concurrency control at field, service, and query levels to help you manage resource usage effectively.
+
+For comprehensive information about async fields, concurrency control, error handling, and best practices, see [Async Fields](./schema-creation/async-fields).
 
 ## Tracking Argument Values: IArgumentsTracker
 

@@ -1,3 +1,9 @@
+# 5.8.0
+
+## Changes
+
+- #467 - New implementation for handling `async` fields. See updated docs and use the `.ResolveAsync<>()` methods.
+
 # 5.7.1
 
 ## Fixes

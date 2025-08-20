@@ -14,10 +14,10 @@ public class AsyncAdvancedTests
     {
         // Schema with async service field on Person
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Type<Person>().AddField("ageAsync", "Async age").Resolve<AgeService>((p, srv) => srv.GetAgeAsync(p.Birthday));
+        schema.Type<Person>().AddField("ageAsync", "Async age").ResolveAsync<AgeService>((p, srv) => srv.GetAgeAsync(p.Birthday));
 
         // Also add another async service field to exercise multiple Task<T> in the same anonymous/dynamic object
-        schema.Type<Person>().AddField("nicknameAsync", "Async nickname").Resolve<NickService>((p, srv) => srv.GetNicknameAsync(p.Name));
+        schema.Type<Person>().AddField("nicknameAsync", "Async nickname").ResolveAsync<NickService>((p, srv) => srv.GetNicknameAsync(p.Name));
 
         // Build nested data: Project -> Task -> Assignee(Person)
         var context = new TestDataContext
@@ -81,7 +81,7 @@ public class AsyncAdvancedTests
 
         // Counter async service to track calls
         var counter = new CounterService();
-        schema.Type<Person>().AddField("counter", "Async counter test").Resolve<CounterService>((p, srv) => srv.GetValueAsync(p.Id));
+        schema.Type<Person>().AddField("counter", "Async counter test").ResolveAsync<CounterService>((p, srv) => srv.GetValueAsync(p.Id));
 
         // Populate data
         var ctx = new TestDataContext { People = Enumerable.Range(1, N).Select(i => new Person { Id = i }).ToList() };
@@ -100,13 +100,6 @@ public class AsyncAdvancedTests
         Assert.IsType<int>(people[0].counter);
         // Ensure each item resolved exactly once (no double invocation)
         Assert.Equal(N, counter.CallCount);
-    }
-
-    [Fact(Skip = "CancellationToken is not currently propagated through ExecutionOptions/QueryRequestContext in core APIs.")]
-    public async System.Threading.Tasks.Task Cancellation_Propagation_Not_Available_Yet()
-    {
-        // Placeholder to add once cancellation is supported in execution APIs
-        await System.Threading.Tasks.Task.CompletedTask;
     }
 }
 

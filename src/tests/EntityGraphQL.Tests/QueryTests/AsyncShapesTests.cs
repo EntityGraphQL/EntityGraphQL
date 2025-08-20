@@ -14,7 +14,7 @@ public class AsyncShapesTests
     public void ValueTask_Generic_Field_Is_Resolved()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Type<Person>().AddField("ageVt", "Age via ValueTask").Resolve<VtAgeService>((p, s) => s.GetAgeAsync(p.Birthday));
+        schema.Type<Person>().AddField("ageVt", "Age via ValueTask").ResolveAsync<VtAgeService, int>((p, s) => s.GetAgeAsync(p.Birthday));
 
         var ctx = new TestDataContext { People = new List<Person> { new Person { Birthday = DateTime.UtcNow.AddYears(-3) } } };
         var services = new ServiceCollection().AddSingleton(new VtAgeService()).BuildServiceProvider();
@@ -31,7 +31,7 @@ public class AsyncShapesTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Add the field that returns IAsyncEnumerable directly (no service dependency)
-        schema.Type<Person>().AddField("tickets", "Async stream of ints").Resolve<StreamService>((p, s) => s.GetStreamAsync(p.Id));
+        schema.Type<Person>().AddField("tickets", "Async stream of ints").ResolveAsync<StreamService, int>((p, s) => s.GetStreamAsync(p.Id));
 
         var ctx = new TestDataContext { People = new List<Person> { new() { Id = 5 } } };
         var services = new ServiceCollection().AddSingleton(new StreamService()).BuildServiceProvider();

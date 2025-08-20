@@ -1,4 +1,5 @@
 using System;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -11,7 +12,7 @@ public class AsyncTests
     public void TestAsyncServiceField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
+        schema.Type<Person>().AddField("age", "Returns persons age").ResolveAsync<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
 
         var gql = new QueryRequest
         {
@@ -43,7 +44,7 @@ public class AsyncTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Task<> returns are now supported with automatic async resolution
-        var field = schema.Type<Person>().AddField("age", "Returns persons age").Resolve<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
+        var field = schema.Type<Person>().AddField("age", "Returns persons age").ResolveAsync<AgeService>((ctx, srv) => srv.GetAgeAsync(ctx.Birthday));
         Assert.NotNull(field);
         Assert.Equal("age", field.Name);
         Assert.Equal(typeof(int), field.ReturnType.TypeDotnet);
@@ -56,6 +57,17 @@ public class AsyncTests
         schema.Mutation().Add(TestAddPersonAsync);
         Assert.Equal("Person", schema.Mutation().SchemaType.GetField("testAddPersonAsync", null).ReturnType.SchemaType.Name);
         Assert.Equal(typeof(Person), schema.Mutation().SchemaType.GetField("testAddPersonAsync", null).ReturnType.TypeDotnet);
+    }
+
+    [Fact]
+    public void TestFieldRequiresGenericTask()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        // Task<> returns are now supported with automatic async resolution
+        Assert.Throws<EntityGraphQLCompilerException>(() =>
+        {
+            schema.Type<Person>().AddField("age", "Returns persons age").ResolveAsync<AgeService>((ctx, srv) => srv.GetAgeAsyncNoResult(ctx.Birthday));
+        });
     }
 
     private System.Threading.Tasks.Task<Person> TestAddPersonAsync()
