@@ -71,14 +71,30 @@ public class QueryVariables : Dictionary<string, object?>
 public class GraphQLError : Dictionary<string, object>
 {
     private static readonly string MessageKey = "message";
+    private static readonly string PathKey = "path";
 
     public string Message => (string)this[MessageKey];
+
+    public string[] Path
+    {
+        get => (string[])this[PathKey];
+        set => this[PathKey] = value;
+    }
 
     public Dictionary<string, object>? Extensions => (Dictionary<string, object>?)this.GetValueOrDefault(QueryResult.ExtensionsKey);
 
     public GraphQLError(string message, IDictionary<string, object>? extensions)
     {
         this[MessageKey] = message;
+        this[PathKey] = (string[])[];
+        if (extensions != null)
+            this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
+    }
+
+    public GraphQLError(string message, string[] path, IDictionary<string, object>? extensions)
+    {
+        this[MessageKey] = message;
+        this[PathKey] = path;
         if (extensions != null)
             this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
     }

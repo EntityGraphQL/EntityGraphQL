@@ -319,6 +319,10 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         return result;
     }
 
+    // Provide the BaseGraphQLField field on EntityGraphQLFieldException (instead of just name), storting path
+    // Passing into GenerateMessage, returning (string errorMessage, string[] path, IDictionary<string, object>? extensions)
+    // and pass into anew AddError to new GraphQLError(string message, string[] path, IDictionary<string, object>? extensions)
+
     private IEnumerable<(string errorMessage, IDictionary<string, object>? extensions)> GenerateMessage(Exception exception)
     {
         switch (exception)

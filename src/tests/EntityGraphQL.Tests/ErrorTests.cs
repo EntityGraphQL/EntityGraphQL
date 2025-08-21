@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using EntityGraphQL.Schema;
 using Xunit;
 
@@ -335,5 +336,32 @@ public class ErrorTests
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal("Field 'people' - This error is allowed", results.Errors[0].Message);
+    }
+
+    [Fact]
+    public void MutationReportsError_ContainsAliasPath()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+        // Add a argument field with a require parameter
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPerson($name: String) {
+                    a: addPersonError(name: $name)
+                    b: addPersonError(name: $name)
+                }",
+            Variables = new QueryVariables { { "name", "Bill" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+        Assert.NotNull(results.Errors);
+        // error from execution that prevented a valid response, the data entry in the response should be null
+        Assert.Null(results.Data);
+        Assert.Equal("Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors[0].Message);
+        var paths = results.Errors.SelectMany(e => e.Path);
+        Assert.Contains("a", paths);
+        Assert.Contains("b", paths);
     }
 }
