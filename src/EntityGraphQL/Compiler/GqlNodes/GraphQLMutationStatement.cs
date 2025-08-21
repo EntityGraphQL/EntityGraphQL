@@ -9,6 +9,7 @@ using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler;
 
@@ -44,11 +45,15 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                 return result;
         }
 
+        IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
+        var validatorErrorsCount = 0;
+
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
         // When we are building/executing the selection on the mutation result services are handled
         CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
+            validatorErrorsCount = validator?.Errors.Count ?? 0; // TODO -- better way to find new values since last run (list isn't guarenteed added in order)
             try
             {
                 IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
@@ -72,6 +77,15 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                         result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 #endif
+
+                    if (validator != null && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase)) // If we've got a validator in services, and this is an aliased root field
+                    {
+                        var validatorErrorsCurrent = validator?.Errors.Count;
+                        if (validator != null && validatorErrorsCurrent > validatorErrorsCount)
+                            for (var i = validatorErrorsCount; i < validatorErrorsCurrent; i++)
+                                validator.Errors[i].Path = [node.Name];
+                    }
+
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
                     if (data == null && node.Field!.ReturnType.TypeNotNullable)
