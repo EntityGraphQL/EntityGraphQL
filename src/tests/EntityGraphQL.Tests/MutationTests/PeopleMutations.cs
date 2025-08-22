@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 
@@ -311,6 +312,23 @@ public class PeopleMutations : IMutations
     public static int DescriptionArgs(DescriptionArgs args)
     {
         return args.X;
+    }
+
+    [GraphQLMutation]
+    public async Task<Person> AddPersonWithDelayAsync(TestDataContext db, PeopleMutationsArgs args)
+    {
+        // Simulate async work that can be cancelled
+        await System.Threading.Tasks.Task.Delay(50);
+        
+        var person = new Person
+        {
+            Id = 999,
+            Name = args.Name ?? "Test Person",
+            LastName = "Delayed"
+        };
+        
+        db.People.Add(person);
+        return person;
     }
 }
 

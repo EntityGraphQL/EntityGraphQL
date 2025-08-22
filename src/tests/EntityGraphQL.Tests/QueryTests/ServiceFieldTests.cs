@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Extensions;
@@ -2283,6 +2284,20 @@ public class AgeService
     {
         CallCount += 1;
         // you could do smarter things here like use other services
+        return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
+    }
+}
+
+public class CancellationTestService
+{
+    public async Task<int> GetAgeWithDelayAsync(DateTime? birthday, CancellationToken cancellationToken)
+    {
+        // Simulate some async work
+        await System.Threading.Tasks.Task.Delay(10, cancellationToken);
+
+        // Check for cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+
         return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
     }
 }

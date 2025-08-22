@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -14,12 +15,13 @@ public class CompileContext
     private readonly Dictionary<ParameterExpression, object?> constantParameters = [];
     private readonly Dictionary<IField, ParameterExpression> constantParametersForField = [];
 
-    public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData, QueryRequestContext requestContext)
+    public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData, QueryRequestContext requestContext, CancellationToken cancellationToken = default)
     {
         BulkData = bulkData;
         BulkParameter = bulkData != null ? Expression.Parameter(bulkData.GetType(), "bulkData") : null;
         ExecutionOptions = options;
         RequestContext = requestContext;
+        CancellationToken = cancellationToken;
     }
 
     public List<ParameterExpression> Services { get; } = [];
@@ -29,6 +31,7 @@ public class CompileContext
     public ParameterExpression? BulkParameter { get; }
     public ExecutionOptions ExecutionOptions { get; }
     public QueryRequestContext RequestContext { get; }
+    public CancellationToken CancellationToken { get; }
     public ConcurrencyLimiterRegistry ConcurrencyLimiterRegistry { get; } = new ConcurrencyLimiterRegistry();
 
     public void AddServices(IEnumerable<ParameterExpression> services)

@@ -137,7 +137,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
             {
                 var request = graphQLWSMessage.Payload;
                 // executing this sets up the observers etc. We don't return any data until we have an event
-                var result = await schema.ExecuteRequestAsync(request, Context.RequestServices, Context.User, options)!;
+                var result = await schema.ExecuteRequestAsync(request, Context.RequestServices, Context.User, options, Context.RequestAborted)!;
                 if (result.Errors != null)
                 {
                     await SendErrorAsync(graphQLWSMessage.Id, result.Errors);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -1076,7 +1077,7 @@ public class MutationTests
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-        Assert.Equal(33, schemaProvider.Mutation().SchemaType.GetFields().Count());
+        Assert.Equal(34, schemaProvider.Mutation().SchemaType.GetFields().Count());
     }
 
     public class NonAttributeMarkedMethod
@@ -1155,5 +1156,48 @@ public class MutationTests
 
         var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<InputObject>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
         Assert.Equal($"Field 'invalid' on type 'InputObject' has arguments but is a GraphQL '{nameof(GqlTypes.InputObject)}' type and can not have arguments.", ex.Message);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TestMutationCancellationTokenSupport()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPersonWithDelay($name: String) {
+                addPersonWithDelayAsync(name: $name) {
+                    id
+                    name
+                    lastName
+                }
+            }",
+            Variables = new QueryVariables { { "name", "TestPerson" } },
+        };
+
+        var context = new TestDataContext();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(context);
+
+        // Test 1: Normal execution (should work)
+        var result1 = await schema.ExecuteRequestAsync(gql, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(result1.Errors);
+        Assert.NotNull(result1.Data);
+        dynamic addPersonResult = result1.Data!["addPersonWithDelayAsync"]!;
+        Assert.Equal(999, addPersonResult.id);
+        Assert.Equal("TestPerson", addPersonResult.name);
+        Assert.Equal("Delayed", addPersonResult.lastName);
+
+        // Test 2: With cancelled token should throw OperationCanceledException
+        var cts = new CancellationTokenSource();
+        cts.Cancel(); // Cancel immediately
+
+        var result2 = await schema.ExecuteRequestAsync(gql, serviceCollection.BuildServiceProvider(), null, null, cts.Token);
+        Assert.NotNull(result2.Errors);
+        Assert.Single(result2.Errors);
+        Assert.Equal("The operation was canceled.", result2.Errors[0].Message);
+        Assert.Null(result2.Data);
     }
 }

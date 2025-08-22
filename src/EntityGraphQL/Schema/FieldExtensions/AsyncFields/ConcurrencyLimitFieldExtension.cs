@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -57,7 +58,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         }
 
         // Wrap the async expression with hierarchical concurrency control
-        var newExp = WrapAsyncExpressionWithConcurrencyLimit(field, expression, semaphoreConfigs, compileContext.ConcurrencyLimiterRegistry);
+        var newExp = WrapAsyncExpressionWithConcurrencyLimit(field, expression, semaphoreConfigs, compileContext.ConcurrencyLimiterRegistry, compileContext.CancellationToken);
         return (newExp, originalArgParam, argumentParam, arguments);
     }
 
@@ -76,7 +77,8 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         IField field,
         Expression asyncExpression,
         List<(string scopeKey, int maxConcurrency)> semaphoreConfigs,
-        ConcurrencyLimiterRegistry concurrencyLimiterRegistry
+        ConcurrencyLimiterRegistry concurrencyLimiterRegistry,
+        CancellationToken cancellationToken
     )
     {
         List<ParameterExpression> expArgs = [field.FieldParam!, .. field.Services];
@@ -88,7 +90,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         // Convert semaphore configs to a constant expression
         var semaphoreConfigsConstant = Expression.Constant(semaphoreConfigs);
 
-        Expression[] arguments = [asyncExpressionExp, semaphoreConfigsConstant, Expression.Constant(concurrencyLimiterRegistry), expArgsArray];
+        Expression[] arguments = [asyncExpressionExp, semaphoreConfigsConstant, Expression.Constant(concurrencyLimiterRegistry), expArgsArray, Expression.Constant(cancellationToken)];
 
         var call = Expression.Call(typeof(ConcurrencyLimitFieldExtension), nameof(ExecuteWithConcurrencyLimitAsync), null, arguments);
         return call;
@@ -113,7 +115,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                 var serviceLimit = executionOptions.ServiceConcurrencyLimits.GetValueOrDefault(serviceType);
                 if (serviceLimit > 0)
                 {
-                    configs.Add(($"service_{serviceType.Name}", serviceLimit));
+                    configs.Add(($"service_{serviceType.FullName}", serviceLimit));
                 }
             }
         }
@@ -135,7 +137,8 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         LambdaExpression asyncOperationExp,
         List<(string scopeKey, int maxConcurrency)> semaphoreConfigs,
         ConcurrencyLimiterRegistry concurrencyLimiterRegistry,
-        object[] expArgs
+        object[] expArgs,
+        CancellationToken cancellationToken
     )
     {
         // Get all semaphores for hierarchical limiting
@@ -144,7 +147,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         // Acquire all semaphores in order (query -> service -> field)
         foreach (var semaphore in semaphores)
         {
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(cancellationToken);
         }
 
         try

@@ -73,7 +73,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
     {
         if (context == null && serviceProvider == null)
@@ -91,6 +92,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         foreach (var fieldNode in QueryFields)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
 #if DEBUG
@@ -103,7 +106,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #endif
                 var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(options, null, requestContext), contextToUse, serviceProvider, fragments, fieldNode, docVariables);
+                (var data, var didExecute) = await CompileAndExecuteNodeAsync(
+                    new CompileContext(options, null, requestContext, cancellationToken),
+                    contextToUse,
+                    serviceProvider,
+                    fragments,
+                    fieldNode,
+                    docVariables
+                );
 #if DEBUG
                 if (options.IncludeDebugInfo)
                 {
@@ -226,7 +236,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                 // new context
-                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext);
+                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, compileContext.CancellationToken);
 
                 // we now know the selection type without services and need to build the full select on that type
                 // need to rebuild the full query
@@ -277,6 +287,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
             foreach (var bulkResolver in compileContext.BulkResolvers)
             {
+                compileContext.CancellationToken.ThrowIfCancellationRequested();
+
                 // rebuild list expression on new context
                 var toReplace = node.Field!.ResolveExpression!;
                 var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
@@ -300,7 +312,15 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var bulkDataArgs = Expression.Lambda(listExpression, newContextParam).Compile().DynamicInvoke([runningContext]);
                 var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                 var allArgs = new List<object?> { bulkDataArgs };
-                var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
+                var bulkLoader = GraphQLHelper.InjectServices(
+                    serviceProvider!,
+                    compileContext.Services,
+                    allArgs,
+                    bulkResolver.FieldExpression.Body,
+                    parameters,
+                    replacer,
+                    compileContext.CancellationToken
+                );
                 if (compileContext.ConstantParameters.Any())
                 {
                     parameters.AddRange(compileContext.ConstantParameters.Keys);
@@ -351,7 +371,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     lambdaExpression,
                     semaphoreConfigs,
                     compileContext.ConcurrencyLimiterRegistry,
-                    args.Where(a => a != null).ToArray()!
+                    args.Where(a => a != null).ToArray()!,
+                    compileContext.CancellationToken
                 ) ?? new object();
         }
 
@@ -386,7 +407,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var serviceMax = compileContext.ExecutionOptions.ServiceConcurrencyLimits.GetValueOrDefault(bulkResolver.ServiceType);
         if (serviceMax > 0)
-            configs.Add(($"service_{bulkResolver.ServiceType.Name}", serviceMax));
+            configs.Add(($"service_{bulkResolver.ServiceType.FullName}", serviceMax));
 
         // Bulk resolver-specific limit
         if (bulkResolver.MaxConcurrency.HasValue)
@@ -422,7 +443,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // inject dependencies into the fullSelection
         if (serviceProvider != null)
         {
-            expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer);
+            expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer, compileContext.CancellationToken);
         }
 
         if (compileContext.ConstantParameters.Any())
@@ -456,7 +477,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         // Resolve any nested async results in the returned object graph if the query contains async fields
         if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))
-            res = await ResolveAsyncResultsRecursive(res);
+            res = await ResolveAsyncResultsRecursive(res, compileContext.CancellationToken);
 
         return (res, true);
     }
@@ -475,8 +496,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// Recursively walks the object graph and awaits any async values (Task, ValueTask, IAsyncEnumerable)
     /// </summary>
-    private static async Task<object?> ResolveAsyncResultsRecursive(object obj)
+    private static async Task<object?> ResolveAsyncResultsRecursive(object obj, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var type = obj.GetType();
 
         // Handle Task<T> and internal async state machines - await it and recursively resolve the result
@@ -491,7 +514,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (resultProp != null)
             {
                 var taskResult = resultProp.GetValue(task);
-                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
             }
 
             return null; // Task (not Task<T>)
@@ -509,7 +532,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     await valueTaskAsTask;
                     var resultProperty = valueTaskAsTask.GetType().GetProperty(nameof(Task<object>.Result));
                     var taskResult = resultProperty?.GetValue(valueTaskAsTask);
-                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult) : null;
+                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
                 }
             }
             return null;
@@ -518,7 +541,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // IAsyncEnumerable<T> - buffer to a list
         if (ImplementsIAsyncEnumerable(type))
         {
-            return await BufferAsyncEnumerable(obj);
+            return await BufferAsyncEnumerable(obj, cancellationToken);
         }
 
         // Handle collections (but not strings)
@@ -530,7 +553,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             // Process items concurrently
             var tasks = items.Select(async item =>
             {
-                return item != null ? await ResolveAsyncResultsRecursive(item) : null;
+                cancellationToken.ThrowIfCancellationRequested();
+                return item != null ? await ResolveAsyncResultsRecursive(item, cancellationToken) : null;
             });
 
             var results = await Task.WhenAll(tasks);
@@ -557,7 +581,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // Handle complex objects (including anonymous types and dynamic types)
         if (type.IsClass && type != typeof(string) && !type.IsPrimitive)
         {
-            return await ResolveComplexObject(obj, type);
+            return await ResolveComplexObject(obj, type, cancellationToken);
         }
 
         return obj;
@@ -566,7 +590,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// Handles complex objects including anonymous types, dynamic types, and regular classes
     /// </summary>
-    private static async Task<object?> ResolveComplexObject(object obj, Type type)
+    private static async Task<object?> ResolveComplexObject(object obj, Type type, CancellationToken cancellationToken = default)
     {
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -575,7 +599,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (IsAnonymousOrDynamicType(type))
         {
             // all types should be anonymous types built by LinqRuntimeTypeBuilder
-            return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields);
+            return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields, cancellationToken);
         }
 
         // For regular mutable objects, we can modify in place
@@ -584,7 +608,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             var value = prop.GetValue(obj);
             if (value != null && ContainsAsyncValue(value))
             {
-                var resolvedValue = await ResolveAsyncResultsRecursive(value);
+                var resolvedValue = await ResolveAsyncResultsRecursive(value, cancellationToken);
                 prop.SetValue(obj, resolvedValue);
             }
         }
@@ -595,7 +619,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             var value = field.GetValue(obj);
             if (value != null && ContainsAsyncValue(value))
             {
-                var resolvedValue = await ResolveAsyncResultsRecursive(value);
+                var resolvedValue = await ResolveAsyncResultsRecursive(value, cancellationToken);
                 field.SetValue(obj, resolvedValue);
             }
         }
@@ -631,7 +655,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// Rebuilds a dynamic type with resolved field types (converting Task<T> fields to T fields)
     /// </summary>
-    private static async Task<object?> RebuildDynamicTypeWithResolvedFields(object obj, Type originalType, PropertyInfo[] properties, FieldInfo[] fields)
+    private static async Task<object?> RebuildDynamicTypeWithResolvedFields(object obj, Type originalType, PropertyInfo[] properties, FieldInfo[] fields, CancellationToken cancellationToken = default)
     {
         var fieldTypeMap = new Dictionary<string, Type>();
         var fieldValues = new Dictionary<string, object?>();
@@ -640,7 +664,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         foreach (var prop in properties.Where(p => p.CanRead))
         {
             var value = prop.GetValue(obj);
-            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value) : null;
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
 
             fieldValues[prop.Name] = resolvedValue;
             // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
@@ -651,7 +675,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         foreach (var field in fields)
         {
             var value = field.GetValue(obj);
-            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value) : null;
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
 
             fieldValues[field.Name] = resolvedValue;
             // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
@@ -715,7 +739,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
     }
 
-    internal static async Task<object> BufferAsyncEnumerable(object asyncEnumerableObj)
+    internal static async Task<object> BufferAsyncEnumerable(object asyncEnumerableObj, CancellationToken cancellationToken = default)
     {
         // Use reflection to get the GetAsyncEnumerator method since we don't know the generic type at compile time
         var asyncEnumerableType = asyncEnumerableObj.GetType();
@@ -752,7 +776,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         if (getEnumeratorMethod != null)
         {
-            var enumerator = getEnumeratorMethod.Invoke(asyncEnumerableObj, [CancellationToken.None]);
+            var enumerator = getEnumeratorMethod.Invoke(asyncEnumerableObj, [cancellationToken]);
             if (enumerator != null)
             {
                 var enumeratorType = enumerator.GetType();
@@ -795,7 +819,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                                 var current = currentProperty.GetValue(enumerator);
                                 if (current != null)
                                 {
-                                    var resolvedCurrent = await ResolveAsyncResultsRecursive(current);
+                                    var resolvedCurrent = await ResolveAsyncResultsRecursive(current, cancellationToken);
                                     addMethod.Invoke(typedList, [resolvedCurrent]);
                                 }
                             }

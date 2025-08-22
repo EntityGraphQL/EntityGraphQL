@@ -136,3 +136,99 @@ You can view the implementation in `ConcurrencyLimitFieldExtension` and `Concurr
 This controls when the async method _starts_. Taking the `GetWeatherAsync` example above, if we are resolving `weather` within a list of 100 people `GetWeatherAsync` will only be started/called 3 at a time.
 
 If you have no limits set up (the default) all `async` fields will start at the same time.
+
+## Cancellation Support
+
+EntityGraphQL provides comprehensive support for `CancellationToken` to enable cooperative cancellation of long-running operations. This allows you to gracefully handle request timeouts, client disconnections, and manual cancellation.
+
+### Basic CancellationToken Usage
+
+#### In Service Methods
+
+Your service methods can accept a `CancellationToken` parameter, which EntityGraphQL will automatically provide:
+
+```csharp
+public class WeatherService
+{
+    private readonly HttpClient httpClient;
+
+    public WeatherService(HttpClient httpClient)
+    {
+        this.httpClient = httpClient;
+    }
+
+    public async Task<WeatherData> GetWeatherAsync(string location, CancellationToken cancellationToken = default)
+    {
+        // Pass cancellationToken to async operations
+        var response = await httpClient.GetAsync($"/weather?location={location}", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<WeatherData>(cancellationToken: cancellationToken);
+    }
+}
+```
+
+#### In ResolveAsync Methods
+
+Use the `ResolveAsync` overload that accepts a `CancellationToken` parameter:
+
+```csharp
+schema.Type<Person>()
+    .AddField("weather", "Current weather for this person's location")
+    .ResolveAsync<WeatherService, CancellationToken>((person, weatherService, cancellationToken) =>
+        weatherService.GetWeatherAsync(person.Location, cancellationToken));
+```
+
+### ASP.NET Core Integration
+
+When using EntityGraphQL with ASP.NET Core, the framework automatically uses `HttpContext.RequestAborted` as the cancellation token. This means operations are cancelled when:
+
+- The client disconnects
+- The request times out
+- The server is shutting down
+
+```csharp
+// In your controller or minimal API
+app.MapPost("/graphql", async (HttpContext context, GraphQLRequest request) =>
+{
+    var result = await schema.ExecuteRequestAsync(
+        request.Query,
+        myContext,
+        context.RequestServices,
+        cancellationToken: context.RequestAborted); // Automatically handled by EntityGraphQL.AspNet
+
+    return result;
+});
+```
+
+### Manual Cancellation
+
+You can also provide your own `CancellationToken` for scenarios like:
+
+- Custom timeout policies
+- Manual cancellation based on business logic
+- Testing scenarios
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30-second timeout
+
+var result = await schema.ExecuteRequestAsync(
+    query,
+    context,
+    serviceProvider,
+    cancellationToken: cts.Token);
+```
+
+### Concurrency and Cancellation
+
+Cancellation works seamlessly with EntityGraphQL's concurrency control features. When a cancellation is requested:
+
+1. All pending async operations receive the cancellation signal
+2. Operations waiting for semaphore slots are cancelled immediately
+3. Currently executing operations can respond to cancellation cooperatively
+
+```csharp
+schema.Type<Person>()
+    .AddField("expensiveOperation", "Resource-intensive operation")
+    .ResolveAsync<ExpensiveService, CancellationToken>((person, service, cancellationToken) =>
+        service.DoExpensiveWorkAsync(person.Id, cancellationToken),
+        maxConcurrency: 5); // Concurrency limits + cancellation support
+```
