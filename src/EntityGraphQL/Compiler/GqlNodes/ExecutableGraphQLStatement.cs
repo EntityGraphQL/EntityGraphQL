@@ -407,7 +407,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var serviceMax = compileContext.ExecutionOptions.ServiceConcurrencyLimits.GetValueOrDefault(bulkResolver.ServiceType);
         if (serviceMax > 0)
-            configs.Add(($"service_{bulkResolver.ServiceType.FullName}", serviceMax));
+            configs.Add(($"service_{bulkResolver.ServiceType.AssemblyQualifiedName}", serviceMax));
 
         // Bulk resolver-specific limit
         if (bulkResolver.MaxConcurrency.HasValue)

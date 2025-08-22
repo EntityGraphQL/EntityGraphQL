@@ -115,7 +115,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                 var serviceLimit = executionOptions.ServiceConcurrencyLimits.GetValueOrDefault(serviceType);
                 if (serviceLimit > 0)
                 {
-                    configs.Add(($"service_{serviceType.FullName}", serviceLimit));
+                    configs.Add(($"service_{serviceType.AssemblyQualifiedName}", serviceLimit));
                 }
             }
         }
