@@ -86,16 +86,16 @@ public sealed class EntityQueryParser
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
         var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>() as IReadOnlyList<IExpression>);
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>((c, x) => new IdentityExpression(x.Item1.ToString()!, ((EntityQueryParseContext)c).CompileContext));
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(static (c, x) => new IdentityExpression(x.Item1.ToString()!, ((EntityQueryParseContext)c).CompileContext));
 
         var constArray = openArray
             .And(Separated(comma, expression))
             .And(closeArray)
-            .Then<IExpression>((c, x) => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))));
+            .Then<IExpression>(static (c, x) => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))));
 
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
 
-        var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>((c, p) => new CallPath(p, ((EntityQueryParseContext)c).CompileContext));
+        var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>(static (c, p) => new CallPath(p, ((EntityQueryParseContext)c).CompileContext));
 
         var nullExp = Terms.Text("null").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
         var trueExp = Terms.Text("true").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
@@ -107,7 +107,7 @@ public sealed class EntityQueryParser
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
         var unary = Recursive<IExpression>(
-            (u) => minus.And(u).Then<IExpression>((c, x) => new EqlExpression(Expression.Negate(x.Item2.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))).Or(primary)
+            (u) => minus.And(u).Then<IExpression>(static (c, x) => new EqlExpression(Expression.Negate(x.Item2.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))).Or(primary)
         );
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
