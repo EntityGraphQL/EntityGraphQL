@@ -10,6 +10,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 public sealed class EntityQueryParser
 {
+    public static readonly EntityQueryParser Instance;
     private const string MultiplyChar = "*";
     private const string DivideChar = "/";
     private const string ModChar = "%";
@@ -73,12 +74,8 @@ public sealed class EntityQueryParser
 
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
-    private readonly Expression? context;
-    private readonly ISchemaProvider? schema;
-    private readonly QueryRequestContext requestContext;
-    private readonly IMethodProvider methodProvider;
 
-    public EntityQueryParser(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext)
+    private EntityQueryParser()
     {
         // The Deferred helper creates a parser that can be referenced by others before it is defined
         var expression = Deferred<IExpression>();
@@ -89,16 +86,16 @@ public sealed class EntityQueryParser
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
         var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>() as IReadOnlyList<IExpression>);
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(x => new IdentityExpression(x.Item1.ToString()!, compileContext));
+        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>((c, x) => new IdentityExpression(x.Item1.ToString()!, ((EntityQueryParseContext)c).CompileContext));
 
         var constArray = openArray
             .And(Separated(comma, expression))
             .And(closeArray)
-            .Then<IExpression>(x => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(context, schema, requestContext, methodProvider)))));
+            .Then<IExpression>((c, x) => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))));
 
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
 
-        var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>(p => new CallPath(p, compileContext));
+        var callPath = Separated(dot, OneOf(call, constArray, identifier)).Then<IExpression>((c, p) => new CallPath(p, ((EntityQueryParseContext)c).CompileContext));
 
         var nullExp = Terms.Text("null").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(null)));
         var trueExp = Terms.Text("true").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(true)));
@@ -110,7 +107,7 @@ public sealed class EntityQueryParser
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
         var unary = Recursive<IExpression>(
-            (u) => minus.And(u).Then<IExpression>(x => new EqlExpression(Expression.Negate(x.Item2.Compile(context, schema, requestContext, methodProvider)))).Or(primary)
+            (u) => minus.And(u).Then<IExpression>((c, x) => new EqlExpression(Expression.Negate(x.Item2.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))).Or(primary)
         );
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
@@ -155,10 +152,11 @@ public sealed class EntityQueryParser
         expression.Parser = conditional.Or(logicalBinary);
 
         grammar = expression;
-        this.context = context;
-        this.schema = schema;
-        this.requestContext = requestContext;
-        this.methodProvider = methodProvider;
+    }
+
+    static EntityQueryParser()
+    {
+        Instance = new EntityQueryParser();
     }
 
     private static IExpression HandleBinary((IExpression, IReadOnlyList<(string, IExpression)>) x)
@@ -198,9 +196,29 @@ public sealed class EntityQueryParser
         return binaryExp;
     }
 
-    public Expression Parse(string query)
+    private sealed class EntityQueryParseContext : ParseContext
     {
-        var result = grammar.Parse(query) ?? throw new EntityGraphQLCompilerException("Failed to parse query");
-        return result.Compile(context, schema, requestContext, methodProvider);
+        public EntityQueryParseContext(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext) : base(new Parlot.Scanner(query))
+        {
+            Context = context;
+            Schema = schema;
+            RequestContext = requestContext;
+            MethodProvider = methodProvider;
+            CompileContext = compileContext;
+        }
+
+        public Expression? Context { get; }
+        public ISchemaProvider? Schema { get; }
+        public QueryRequestContext RequestContext { get; }
+        public IMethodProvider MethodProvider { get; }
+        public CompileContext CompileContext { get; }
+    }
+
+    public Expression Parse(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext)
+    {
+        var parseContext = new EntityQueryParseContext(query, context, schema, requestContext, methodProvider, compileContext);
+
+        var result = grammar.Parse(parseContext) ?? throw new EntityGraphQLCompilerException("Failed to parse query");
+        return result.Compile(parseContext.Context, parseContext.Schema, parseContext.RequestContext, parseContext.MethodProvider);
     }
 }

@@ -331,14 +331,15 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var param = Expression.Parameter(typeof(Person));
-        var expressionParser = new EntityQueryParser(
+        
+        var exp = EntityQueryParser.Instance.Parse("gender == Female",
             param,
             schema,
             new QueryRequestContext(null, null),
             new DefaultMethodProvider(),
             new CompileContext(executionOptions, null, new QueryRequestContext(null, null))
-        );
-        var exp = expressionParser.Parse("gender == Female");
+            );
+
         var res = (bool?)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
         Assert.NotNull(res);
         Assert.True(res);
