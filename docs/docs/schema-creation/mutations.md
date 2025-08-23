@@ -480,3 +480,64 @@ mutation {
   }
 }
 ```
+
+## Async Mutations
+
+EntityGraphQL supports asynchronous mutations by returning `Task<T>` from your mutation methods. This is useful for operations that call external services, perform database operations, or other async work.
+
+```csharp
+public class PeopleMutations
+{
+    [GraphQLMutation("Add a new person asynchronously")]
+    public async Task<Expression<Func<DemoContext, Person>>> AddPersonAsync(
+        DemoContext db,
+        string firstName,
+        string lastName,
+        EmailService emailService)
+    {
+        var person = new Person
+        {
+            FirstName = firstName,
+            LastName = lastName,
+        };
+
+        db.People.Add(person);
+        await db.SaveChangesAsync();
+
+        // Send welcome email asynchronously
+        await emailService.SendWelcomeEmailAsync(person);
+
+        return (ctx) => ctx.People.First(p => p.Id == person.Id);
+    }
+
+    [GraphQLMutation("Update person with external validation")]
+    public async Task<bool> UpdatePersonWithValidationAsync(
+        int personId,
+        string newEmail,
+        ValidationService validator,
+        DemoContext db)
+    {
+        // Validate email with external service
+        var isValid = await validator.ValidateEmailAsync(newEmail);
+        if (!isValid)
+        {
+            throw new InvalidOperationException("Email validation failed");
+        }
+
+        var person = await db.People.FindAsync(personId);
+        if (person == null)
+        {
+            return false;
+        }
+
+        person.Email = newEmail;
+        await db.SaveChangesAsync();
+        return true;
+    }
+}
+```
+
+### Mutations vs. Async Fields
+
+- **Mutations**: Use `[GraphQLMutation]` on methods in mutation controller classes. Return `Task<T>` for async operations. No concurrency control as each mutation field executes in order sequently as per the spec.
+- **Async Fields**: Use `.ResolveAsync<Service>()` when adding fields to types. Supports concurrency control and hierarchical limiting.

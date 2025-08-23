@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
 
@@ -15,7 +16,8 @@ public static class GraphQLHelper
         List<object?> allArgs,
         Expression expression,
         List<ParameterExpression> parameters,
-        ParameterReplacer replacer
+        ParameterReplacer replacer,
+        CancellationToken cancellationToken = default
     )
     {
         foreach (var serviceParam in services)
@@ -24,13 +26,19 @@ public static class GraphQLHelper
             // serviceProvider.GetService is used and the rules registered with the service provider are used
             // e.g. a new instance or a singleton etc.
             var srvParam = Expression.Parameter(serviceParam.Type, $"exec_{serviceParam.Name}");
-            parameters.Add(srvParam);
-            var service = serviceProvider.GetService(serviceParam.Type) ?? throw new EntityGraphQLExecutionException($"Service {serviceParam.Type.Name} not found in service provider");
-            allArgs.Add(service);
-
             expression = replacer.Replace(expression, serviceParam, srvParam);
-        }
 
+            parameters.Add(srvParam);
+            if (serviceParam.Type == typeof(CancellationToken))
+            {
+                allArgs.Add(cancellationToken);
+            }
+            else
+            {
+                var service = serviceProvider.GetService(serviceParam.Type) ?? throw new EntityGraphQLExecutionException($"Service {serviceParam.Type.Name} not found in service provider");
+                allArgs.Add(service);
+            }
+        }
         return expression;
     }
 

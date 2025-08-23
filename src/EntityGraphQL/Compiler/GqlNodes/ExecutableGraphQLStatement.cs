@@ -1,13 +1,17 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler;
@@ -69,7 +73,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
     {
         if (context == null && serviceProvider == null)
@@ -87,6 +92,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         foreach (var fieldNode in QueryFields)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
 #if DEBUG
@@ -99,7 +106,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #endif
                 var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                (var data, var didExecute) = await CompileAndExecuteNodeAsync(new CompileContext(options, null, requestContext), contextToUse, serviceProvider, fragments, fieldNode, docVariables);
+                (var data, var didExecute) = await CompileAndExecuteNodeAsync(
+                    new CompileContext(options, null, requestContext, cancellationToken),
+                    contextToUse,
+                    serviceProvider,
+                    fragments,
+                    fieldNode,
+                    docVariables
+                );
 #if DEBUG
                 if (options.IncludeDebugInfo)
                 {
@@ -200,6 +214,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         Expression? expression = null;
         var contextParam = node.RootParameter;
+        bool isSecondExec = false;
 
         if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
         {
@@ -210,7 +225,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             {
                 // execute expression now and get a result that we will then perform a full select over
                 // This part is happening via EntityFramework if you use it
-                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false);
+                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments, false);
                 if (runningContext == null)
                     return (null, true);
 
@@ -218,10 +233,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
 
                 // core context data is fetched. Now fetch all the bulk resolvers
-                var bulkData = ResolveBulkLoaders(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
+                var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                 // new context
-                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext);
+                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, compileContext.CancellationToken);
 
                 // we now know the selection type without services and need to build the full select on that type
                 // need to rebuild the full query
@@ -239,6 +254,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     replacer
                 );
                 contextParam = newContextType;
+                isSecondExec = true;
             }
         }
 
@@ -250,11 +266,11 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 #pragma warning restore IDE0074 // Use compound assignment
 
-        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true);
+        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments, isSecondExec);
         return data;
     }
 
-    private static Dictionary<string, object> ResolveBulkLoaders(
+    private static async Task<Dictionary<string, object>> ResolveBulkLoadersAsync(
         CompileContext compileContext,
         IServiceProvider? serviceProvider,
         BaseGraphQLField node,
@@ -266,8 +282,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         var bulkData = new Dictionary<string, object>();
         if (compileContext.BulkResolvers?.Count > 0)
         {
+            var bulkTasks = new List<Task>();
+            var bulkResults = new Dictionary<string, Task<object>>();
+
             foreach (var bulkResolver in compileContext.BulkResolvers)
             {
+                compileContext.CancellationToken.ThrowIfCancellationRequested();
+
                 // rebuild list expression on new context
                 var toReplace = node.Field!.ResolveExpression!;
                 var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
@@ -291,19 +312,110 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var bulkDataArgs = Expression.Lambda(listExpression, newContextParam).Compile().DynamicInvoke([runningContext]);
                 var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                 var allArgs = new List<object?> { bulkDataArgs };
-                var bulkLoader = GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, allArgs, bulkResolver.FieldExpression.Body, parameters, replacer);
+                var bulkLoader = GraphQLHelper.InjectServices(
+                    serviceProvider!,
+                    compileContext.Services,
+                    allArgs,
+                    bulkResolver.FieldExpression.Body,
+                    parameters,
+                    replacer,
+                    compileContext.CancellationToken
+                );
                 if (compileContext.ConstantParameters.Any())
                 {
                     parameters.AddRange(compileContext.ConstantParameters.Keys);
                     allArgs.AddRange(compileContext.ConstantParameters.Values);
                 }
 
-                var dataLoaded = Expression.Lambda(bulkLoader, parameters).Compile().DynamicInvoke([.. allArgs])!;
-                bulkData[bulkResolver.Name] = dataLoaded;
+                var lambdaExpression = Expression.Lambda(bulkLoader, parameters);
+
+                // Handle async bulk resolvers with concurrency control
+                if (bulkResolver.IsAsync)
+                {
+                    var bulkTask = ExecuteBulkResolverWithConcurrencyAsync(lambdaExpression, [.. allArgs], bulkResolver, compileContext);
+                    bulkResults[bulkResolver.Name] = bulkTask!;
+                    bulkTasks.Add(bulkTask);
+                }
+                else
+                {
+                    var dataLoaded = lambdaExpression.Compile().DynamicInvoke([.. allArgs])!;
+                    bulkData[bulkResolver.Name] = dataLoaded;
+                }
+            }
+
+            // Wait for all async bulk resolvers to complete
+            if (bulkTasks.Count > 0)
+            {
+                await Task.WhenAll(bulkTasks);
+
+                // Collect results from async operations
+                foreach (var kvp in bulkResults)
+                {
+                    bulkData[kvp.Key] = await kvp.Value;
+                }
             }
         }
 
         return bulkData;
+    }
+
+    private static async Task<object> ExecuteBulkResolverWithConcurrencyAsync(LambdaExpression lambdaExpression, object?[] args, CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
+    {
+        // Generate semaphore configurations for bulk resolver concurrency limiting
+        var semaphoreConfigs = GetBulkResolverSemaphoreConfigs(bulkResolver, compileContext);
+
+        if (semaphoreConfigs.Count > 0)
+        {
+            // Use the existing ExecuteWithConcurrencyLimitAsync method
+            return await ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync(
+                    lambdaExpression,
+                    semaphoreConfigs,
+                    compileContext.ConcurrencyLimiterRegistry,
+                    args.Where(a => a != null).ToArray()!,
+                    compileContext.CancellationToken
+                ) ?? new object();
+        }
+
+        // No concurrency limiting, execute directly
+        var result = lambdaExpression.Compile().DynamicInvoke(args);
+
+        if (result is Task task)
+        {
+            await task;
+
+            // Get result from Task<T>
+            var taskType = task.GetType();
+            var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+            if (resultProperty != null)
+            {
+                return resultProperty.GetValue(task)!;
+            }
+        }
+
+        return result!;
+    }
+
+    private static List<(string scopeKey, int maxConcurrency)> GetBulkResolverSemaphoreConfigs(CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
+    {
+        var configs = new List<(string scopeKey, int maxConcurrency)>();
+
+        // Query-level limit
+        if (compileContext.ExecutionOptions.MaxQueryConcurrency.HasValue)
+        {
+            configs.Add(("query_global", compileContext.ExecutionOptions.MaxQueryConcurrency.Value));
+        }
+
+        var serviceMax = compileContext.ExecutionOptions.ServiceConcurrencyLimits.GetValueOrDefault(bulkResolver.ServiceType);
+        if (serviceMax > 0)
+            configs.Add(($"service_{bulkResolver.ServiceType.AssemblyQualifiedName}", serviceMax));
+
+        // Bulk resolver-specific limit
+        if (bulkResolver.MaxConcurrency.HasValue)
+        {
+            configs.Add(($"bulk_{bulkResolver.Name}", bulkResolver.MaxConcurrency.Value));
+        }
+
+        return configs;
     }
 
     private static async Task<(object? result, bool didExecute)> ExecuteExpressionAsync(
@@ -314,7 +426,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         ParameterReplacer replacer,
         CompileContext compileContext,
         BaseGraphQLField node,
-        bool isFinal
+        bool isFinal,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        bool isSecondExec
     )
     {
         // they had a query with a directive that was skipped, resulting in an empty query?
@@ -329,7 +443,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // inject dependencies into the fullSelection
         if (serviceProvider != null)
         {
-            expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer);
+            expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer, compileContext.CancellationToken);
         }
 
         if (compileContext.ConstantParameters.Any())
@@ -361,6 +475,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         else
             res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
 
+        // Resolve any nested async results in the returned object graph if the query contains async fields
+        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))
+            res = await ResolveAsyncResultsRecursive(res, compileContext.CancellationToken);
+
         return (res, true);
     }
 
@@ -373,5 +491,357 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
     {
         Directives.AddRange(graphQLDirectives);
+    }
+
+    /// <summary>
+    /// Recursively walks the object graph and awaits any async values (Task, ValueTask, IAsyncEnumerable)
+    /// </summary>
+    private static async Task<object?> ResolveAsyncResultsRecursive(object obj, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var type = obj.GetType();
+
+        // Handle Task<T> and internal async state machines - await it and recursively resolve the result
+        if (obj is Task task)
+        {
+            await task;
+
+            // Get the result from Task<T>
+            var taskType = task.GetType();
+            // Try to get Result property
+            var resultProp = taskType.GetProperty(nameof(Task<object>.Result));
+            if (resultProp != null)
+            {
+                var taskResult = resultProp.GetValue(task);
+                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
+            }
+
+            return null; // Task (not Task<T>)
+        }
+
+        // ValueTask<T>
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            var asTaskMethod = type.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
+            if (asTaskMethod != null)
+            {
+                var valueTaskAsTask = (Task?)asTaskMethod.Invoke(obj, null);
+                if (valueTaskAsTask != null)
+                {
+                    await valueTaskAsTask;
+                    var resultProperty = valueTaskAsTask.GetType().GetProperty(nameof(Task<object>.Result));
+                    var taskResult = resultProperty?.GetValue(valueTaskAsTask);
+                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
+                }
+            }
+            return null;
+        }
+
+        // IAsyncEnumerable<T> - buffer to a list
+        if (ImplementsIAsyncEnumerable(type))
+        {
+            return await BufferAsyncEnumerable(obj, cancellationToken);
+        }
+
+        // Handle collections (but not strings)
+        if (obj is IEnumerable enumerable and not string)
+        {
+            var items = enumerable.Cast<object?>().ToArray();
+            var resolvedItems = new List<object?>(items.Length);
+
+            // Process items concurrently
+            var tasks = items.Select(async item =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return item != null ? await ResolveAsyncResultsRecursive(item, cancellationToken) : null;
+            });
+
+            var results = await Task.WhenAll(tasks);
+            resolvedItems.AddRange(results);
+
+            // Try to preserve the original collection type
+            var originalType = obj.GetType();
+
+            // Handle arrays
+            if (originalType.IsArray)
+            {
+                var elementType = originalType.GetElementType()!;
+                var array = Array.CreateInstance(elementType, resolvedItems.Count);
+                for (int i = 0; i < resolvedItems.Count; i++)
+                {
+                    array.SetValue(resolvedItems[i], i);
+                }
+                return array;
+            }
+
+            return resolvedItems;
+        }
+
+        // Handle complex objects (including anonymous types and dynamic types)
+        if (type.IsClass && type != typeof(string) && !type.IsPrimitive)
+        {
+            return await ResolveComplexObject(obj, type, cancellationToken);
+        }
+
+        return obj;
+    }
+
+    /// <summary>
+    /// Handles complex objects including anonymous types, dynamic types, and regular classes
+    /// </summary>
+    private static async Task<object?> ResolveComplexObject(object obj, Type type, CancellationToken cancellationToken = default)
+    {
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+        // For anonymous types and dynamically generated types, try to reconstruct the object
+        if (IsAnonymousOrDynamicType(type))
+        {
+            // all types should be anonymous types built by LinqRuntimeTypeBuilder
+            return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields, cancellationToken);
+        }
+
+        // For regular mutable objects, we can modify in place
+        foreach (var prop in properties.Where(p => p.CanRead && p.CanWrite))
+        {
+            var value = prop.GetValue(obj);
+            if (value != null && ContainsAsyncValue(value))
+            {
+                var resolvedValue = await ResolveAsyncResultsRecursive(value, cancellationToken);
+                prop.SetValue(obj, resolvedValue);
+            }
+        }
+
+        // Fields are typically readonly, but let's try anyway
+        foreach (var field in fields.Where(f => !f.IsInitOnly))
+        {
+            var value = field.GetValue(obj);
+            if (value != null && ContainsAsyncValue(value))
+            {
+                var resolvedValue = await ResolveAsyncResultsRecursive(value, cancellationToken);
+                field.SetValue(obj, resolvedValue);
+            }
+        }
+
+        return obj;
+    }
+
+    /// <summary>
+    /// Checks if a value is or contains async operations
+    /// </summary>
+    private static bool ContainsAsyncValue(object? value)
+    {
+        if (value == null)
+            return false;
+        var t = value.GetType();
+        if (typeof(Task).IsAssignableFrom(t))
+            return true;
+        if (t == typeof(ValueTask) || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+            return true;
+        if (ImplementsIAsyncEnumerable(t))
+            return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if a type is anonymous or dynamically generated (like those created by EntityGraphQL)
+    /// </summary>
+    private static bool IsAnonymousOrDynamicType(Type type)
+    {
+        return type.Namespace?.StartsWith("EntityGraphQL", StringComparison.Ordinal) == true || type.Assembly.IsDynamic;
+    }
+
+    /// <summary>
+    /// Rebuilds a dynamic type with resolved field types (converting Task<T> fields to T fields)
+    /// </summary>
+    private static async Task<object?> RebuildDynamicTypeWithResolvedFields(object obj, Type originalType, PropertyInfo[] properties, FieldInfo[] fields, CancellationToken cancellationToken = default)
+    {
+        var fieldTypeMap = new Dictionary<string, Type>();
+        var fieldValues = new Dictionary<string, object?>();
+
+        // Process properties
+        foreach (var prop in properties.Where(p => p.CanRead))
+        {
+            var value = prop.GetValue(obj);
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
+
+            fieldValues[prop.Name] = resolvedValue;
+            // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
+            fieldTypeMap[prop.Name] = GetResolvedFieldType(prop.PropertyType, resolvedValue);
+        }
+
+        // Process fields
+        foreach (var field in fields)
+        {
+            var value = field.GetValue(obj);
+            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
+
+            fieldValues[field.Name] = resolvedValue;
+            // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
+            fieldTypeMap[field.Name] = GetResolvedFieldType(field.FieldType, resolvedValue);
+        }
+
+        // Create new dynamic type with resolved field types
+        var newType = LinqRuntimeTypeBuilder.GetDynamicType(fieldTypeMap, originalType.Name);
+        var newInstance = Activator.CreateInstance(newType);
+
+        if (newInstance != null)
+        {
+            // Set field values on the new instance
+            foreach (var kvp in fieldValues)
+            {
+                var newField = newType.GetField(kvp.Key);
+                if (newField != null)
+                {
+                    newField.SetValue(newInstance, kvp.Value);
+                }
+            }
+        }
+
+        return newInstance;
+    }
+
+    /// <summary>
+    /// Gets the resolved field type - if the original type was Task<T>, returns T, otherwise returns the resolved value type
+    /// </summary>
+    private static Type GetResolvedFieldType(Type originalType, object? resolvedValue)
+    {
+        // If the original type was Task<T>, extract T
+        if (typeof(Task).IsAssignableFrom(originalType) && originalType.IsGenericType)
+        {
+            var taskGenericType = originalType.GetGenericArguments().FirstOrDefault();
+            if (taskGenericType != null)
+                return taskGenericType;
+        }
+        // If the original type was ValueTask<T>, extract T
+        if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            var vtGeneric = originalType.GetGenericArguments().FirstOrDefault();
+            if (vtGeneric != null)
+                return vtGeneric;
+        }
+        // If the original type was IAsyncEnumerable<T>, convert to IEnumerable<T>
+        if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+        {
+            var t = originalType.GetGenericArguments()[0];
+            return typeof(IEnumerable<>).MakeGenericType(t);
+        }
+
+        // Otherwise use the resolved value's type, or fall back to original type
+        return resolvedValue?.GetType() ?? originalType;
+    }
+
+    private static bool ImplementsIAsyncEnumerable(Type type)
+    {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+            return true;
+        return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+    }
+
+    internal static async Task<object> BufferAsyncEnumerable(object asyncEnumerableObj, CancellationToken cancellationToken = default)
+    {
+        // Use reflection to get the GetAsyncEnumerator method since we don't know the generic type at compile time
+        var asyncEnumerableType = asyncEnumerableObj.GetType();
+
+        // Get the element type from the original IAsyncEnumerable<T> first
+        var elementType = typeof(object);
+        var asyncEnumerableInterface = asyncEnumerableType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+
+        if (asyncEnumerableInterface != null)
+        {
+            elementType = asyncEnumerableInterface.GetGenericArguments()[0];
+        }
+
+        // Create the properly typed list upfront
+        var listType = typeof(List<>).MakeGenericType(elementType);
+        var typedList = Activator.CreateInstance(listType)!;
+        var addMethod = listType.GetMethod("Add")!;
+
+        var getEnumeratorMethod = asyncEnumerableType.GetMethod("GetAsyncEnumerator", BindingFlags.Public | BindingFlags.Instance);
+
+        if (getEnumeratorMethod == null)
+        {
+            // Try to find it on interfaces
+            var interfaces = asyncEnumerableType.GetInterfaces();
+            foreach (var iface in interfaces)
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+                {
+                    getEnumeratorMethod = iface.GetMethod("GetAsyncEnumerator");
+                    break;
+                }
+            }
+        }
+
+        if (getEnumeratorMethod != null)
+        {
+            var enumerator = getEnumeratorMethod.Invoke(asyncEnumerableObj, [cancellationToken]);
+            if (enumerator != null)
+            {
+                var enumeratorType = enumerator.GetType();
+
+                // Find the IAsyncEnumerator<T> interface on the enumerator
+                var asyncEnumeratorInterface = enumeratorType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerator<>));
+
+                MethodInfo? moveNextMethod = null;
+                PropertyInfo? currentProperty = null;
+                MethodInfo? disposeMethod = null;
+
+                if (asyncEnumeratorInterface != null)
+                {
+                    // Get methods from the interface
+                    moveNextMethod = asyncEnumeratorInterface.GetMethod("MoveNextAsync");
+                    currentProperty = asyncEnumeratorInterface.GetProperty("Current");
+                    disposeMethod = asyncEnumeratorInterface.GetMethod("DisposeAsync");
+                }
+                else
+                {
+                    // Fallback: try to get methods directly from the type
+                    moveNextMethod = enumeratorType.GetMethod("MoveNextAsync");
+                    currentProperty = enumeratorType.GetProperty("Current");
+                    disposeMethod = enumeratorType.GetMethod("DisposeAsync");
+                }
+
+                if (moveNextMethod != null && currentProperty != null)
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            var moveNextTask = moveNextMethod.Invoke(enumerator, null);
+                            if (moveNextTask is ValueTask<bool> valueTask)
+                            {
+                                var result = await valueTask;
+                                if (!result)
+                                    break;
+
+                                var current = currentProperty.GetValue(enumerator);
+                                if (current != null)
+                                {
+                                    var resolvedCurrent = await ResolveAsyncResultsRecursive(current, cancellationToken);
+                                    addMethod.Invoke(typedList, [resolvedCurrent]);
+                                }
+                            }
+                            else
+                            {
+                                break; // Unexpected return type
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeMethod != null)
+                        {
+                            var disposeTask = disposeMethod.Invoke(enumerator, null);
+                            if (disposeTask is ValueTask disposeValueTask)
+                                await disposeValueTask;
+                        }
+                    }
+                }
+            }
+        }
+
+        return typedList;
     }
 }

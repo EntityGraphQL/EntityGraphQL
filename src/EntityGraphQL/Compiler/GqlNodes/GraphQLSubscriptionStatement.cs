@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
@@ -32,7 +33,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
         where TContext : default
     {
@@ -56,6 +58,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
@@ -69,7 +73,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                     }
 #endif
                     var contextToUse = GetContextToUse(context, serviceProvider!, node)!;
-                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options, requestContext);
+                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options, requestContext, cancellationToken);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -108,7 +112,8 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         IServiceProvider? serviceProvider,
         IArgumentsTracker? docVariables,
         ExecutionOptions executionOptions,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
     {
         if (context == null)

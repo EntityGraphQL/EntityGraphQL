@@ -25,4 +25,5 @@ public class Person
     public string LastName { get; set; }
     public DateTime Dob { get; set; }
     public IEnumerable<Movie> DirectorOf { get; set; } = [];
+    public IEnumerable<Movie> Movies { get; set; } = [];
 }

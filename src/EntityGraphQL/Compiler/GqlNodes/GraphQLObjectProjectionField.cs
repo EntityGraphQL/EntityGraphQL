@@ -210,7 +210,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         // we need to make sure the wrap can resolve any services in the select
         var selectionExpressions = selectionFields.ToDictionary(
             f => f.Key.Name,
-            f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer)
+            f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer, compileContext.CancellationToken)
         );
 
         updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
@@ -27,7 +28,8 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
         where TContext : default
     {
@@ -46,9 +48,11 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
         // When we are building/executing the selection on the mutation result services are handled
-        CompileContext compileContext = new(options, null, requestContext);
+        CompileContext compileContext = new(options, null, requestContext, cancellationToken);
         foreach (var field in QueryFields)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
@@ -10,7 +11,10 @@ public class CompiledBulkFieldResolver(
     LambdaExpression dataSelection,
     LambdaExpression fieldExpression,
     IEnumerable<GraphQLExtractedField> extractedFields,
-    List<IGraphQLNode> listExpressionPath
+    List<IGraphQLNode> listExpressionPath,
+    Type serviceType,
+    bool isAsync = false,
+    int? maxConcurrency = null
 )
 {
     public string Name { get; private set; } = name;
@@ -18,6 +22,9 @@ public class CompiledBulkFieldResolver(
     public LambdaExpression FieldExpression { get; private set; } = fieldExpression;
     public IEnumerable<GraphQLExtractedField> ExtractedFields { get; } = extractedFields;
     public List<IGraphQLNode> ListExpressionPath { get; } = listExpressionPath;
+    public bool IsAsync { get; } = isAsync;
+    public int? MaxConcurrency { get; } = maxConcurrency;
+    public Type ServiceType { get; } = serviceType;
 
     public Expression GetBulkSelectionExpression(Expression newContextParam, List<IGraphQLNode> listExpressionPath, ParameterReplacer replacer, bool isRoot = true)
     {

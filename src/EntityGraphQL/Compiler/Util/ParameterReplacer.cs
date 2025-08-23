@@ -330,4 +330,27 @@ public class ParameterReplacer : ExpressionVisitor
 
         return Expression.Call(callOn, node.Method, node.Arguments.Select(base.Visit).ToArray()!);
     }
+
+    protected override Expression VisitConstant(ConstantExpression node)
+    {
+        if (node.Type == toReplaceType)
+            return newParam!;
+
+        if (node.Value is Expression exp)
+        {
+            if (exp == toReplace)
+                return newParam!;
+
+            var newExp = base.Visit(node.Value as Expression);
+            return Expression.Constant(newExp);
+        }
+
+        if (node.Value is List<ParameterExpression> enumerable)
+        {
+            var newValues = enumerable.Select(item => (ParameterExpression)base.Visit(item)).ToList();
+            return Expression.Constant(newValues);
+        }
+
+        return base.VisitConstant(node);
+    }
 }
