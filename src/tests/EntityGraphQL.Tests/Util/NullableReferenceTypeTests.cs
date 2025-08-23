@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using EntityGraphQL.Schema;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace EntityGraphQL.Tests.Util;
@@ -8,6 +9,14 @@ namespace EntityGraphQL.Tests.Util;
 public class NullableReferenceTypeTests
 {
     public class Test { }
+
+    // Helper method to compare JSON objects semantically (ignoring property order)
+    private static void AssertJsonEqual(string expectedJson, object actual)
+    {
+        var expectedToken = JToken.Parse(expectedJson);
+        var actualToken = JToken.Parse(JsonConvert.SerializeObject(actual));
+        Assert.True(JToken.DeepEquals(expectedToken, actualToken), $"Expected: {expectedToken}\nActual: {actualToken}");
+    }
 
     public class WithoutNullableRefEnabled
     {
@@ -112,20 +121,14 @@ public class NullableReferenceTypeTests
 
         var type = (dynamic)res.Data!["__type"]!;
 
-        Assert.Equal(
-            @"{""name"":""nonNullableInt"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""Int"",""kind"":""SCALAR""}},""args"":[]}",
-            JsonConvert.SerializeObject(type.fields[0])
-        );
-        Assert.Equal(@"{""name"":""nullableInt"",""type"":{""name"":""Int"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", JsonConvert.SerializeObject(type.fields[1]));
-        Assert.Equal(@"{""name"":""nullable"",""type"":{""name"":""String"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", JsonConvert.SerializeObject(type.fields[3]));
-        Assert.Equal(
-            @"{""name"":""nonNullable"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""String"",""kind"":""SCALAR""}},""args"":[]}",
-            JsonConvert.SerializeObject(type.fields[2])
-        );
+        AssertJsonEqual(@"{""name"":""nonNullableInt"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""Int"",""kind"":""SCALAR""}},""args"":[]}", type.fields[0]);
+        AssertJsonEqual(@"{""name"":""nullableInt"",""type"":{""name"":""Int"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", type.fields[1]);
+        AssertJsonEqual(@"{""name"":""nullable"",""type"":{""name"":""String"",""kind"":""SCALAR"",""ofType"":null},""args"":[]}", type.fields[3]);
+        AssertJsonEqual(@"{""name"":""nonNullable"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":""String"",""kind"":""SCALAR""}},""args"":[]}", type.fields[2]);
 
-        Assert.Equal(@"{""name"":""tests"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":null,""kind"":""LIST""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[4]));
-        Assert.Equal(@"{""name"":""tests2"",""type"":{""name"":null,""kind"":""LIST"",""ofType"":{""name"":""Test"",""kind"":""OBJECT""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[5]));
-        Assert.Equal(@"{""name"":""tests3"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":null,""kind"":""LIST""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[6]));
-        Assert.Equal(@"{""name"":""tests4"",""type"":{""name"":null,""kind"":""LIST"",""ofType"":{""name"":""Test"",""kind"":""OBJECT""}},""args"":[]}", JsonConvert.SerializeObject(type.fields[7]));
+        AssertJsonEqual(@"{""name"":""tests"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":null,""kind"":""LIST""}},""args"":[]}", type.fields[4]);
+        AssertJsonEqual(@"{""name"":""tests2"",""type"":{""name"":null,""kind"":""LIST"",""ofType"":{""name"":""Test"",""kind"":""OBJECT""}},""args"":[]}", type.fields[5]);
+        AssertJsonEqual(@"{""name"":""tests3"",""type"":{""name"":null,""kind"":""NON_NULL"",""ofType"":{""name"":null,""kind"":""LIST""}},""args"":[]}", type.fields[6]);
+        AssertJsonEqual(@"{""name"":""tests4"",""type"":{""name"":null,""kind"":""LIST"",""ofType"":{""name"":""Test"",""kind"":""OBJECT""}},""args"":[]}", type.fields[7]);
     }
 }
