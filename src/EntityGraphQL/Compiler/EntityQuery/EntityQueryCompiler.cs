@@ -79,8 +79,7 @@ public static class EntityQueryCompiler
     )
     {
         var compileContext = new CompileContext(executionOptions, null, requestContext);
-        var expressionParser = new EntityQueryParser(context, schemaProvider, requestContext, methodProvider, compileContext);
-        var expression = expressionParser.Parse(query);
+        var expression = EntityQueryParser.Instance.Parse(query, context, schemaProvider, requestContext, methodProvider, compileContext);
         return expression;
     }
 }
