@@ -153,8 +153,8 @@ public class EntityQueryCompilerTests
     public void FailsIfThenElseInlineNoBrackets()
     {
         // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
-            () => EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions)
+        var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
+            EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions)
         );
         Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
     }
@@ -331,14 +331,15 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var param = Expression.Parameter(typeof(Person));
-        
-        var exp = EntityQueryParser.Instance.Parse("gender == Female",
+
+        var exp = EntityQueryParser.Instance.Parse(
+            "gender == Female",
             param,
             schema,
             new QueryRequestContext(null, null),
-            new DefaultMethodProvider(),
+            new EqlMethodProvider(),
             new CompileContext(executionOptions, null, new QueryRequestContext(null, null))
-            );
+        );
 
         var res = (bool?)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
         Assert.NotNull(res);

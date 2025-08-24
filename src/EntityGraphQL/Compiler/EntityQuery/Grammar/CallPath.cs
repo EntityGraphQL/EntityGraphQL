@@ -17,6 +17,14 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, CompileContext 
     {
         if (parts.Count == 1)
         {
+            if (parts[0] is CallExpression ce)
+            {
+                return MakeMethodCall(schema, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext);
+            }
+            if (parts[0] is IdentityExpression ie)
+            {
+                return IdentityExpression.MakePropertyCall(context!, schema, ie.Name, requestContext, compileContext);
+            }
             return parts[0].Compile(context, schema, requestContext, methodProvider);
         }
         var exp = parts.Aggregate(
