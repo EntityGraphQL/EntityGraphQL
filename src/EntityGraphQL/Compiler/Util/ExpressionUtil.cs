@@ -770,7 +770,9 @@ public static class ExpressionUtil
     {
         var contextParam = Expression.Parameter(queryType, $"q_{queryType.Name}");
         // TODO we should have the execution options here
-        Expression expression = EntityQueryCompiler.CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null), new ExecutionOptions()).ExpressionResult;
+        Expression expression = EntityQueryCompiler
+            .CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null), new ExecutionOptions(), schemaProvider.MethodProvider)
+            .ExpressionResult;
         expression = Expression.Lambda(expression, contextParam);
         return expression;
     }

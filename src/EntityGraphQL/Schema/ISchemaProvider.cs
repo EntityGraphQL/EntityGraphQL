@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema;
@@ -21,7 +22,7 @@ public interface ISchemaProvider
     IGqlAuthorizationService AuthorizationService { get; set; }
     string QueryContextName { get; }
     IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }
-
+    EqlMethodProvider MethodProvider { get; }
     void AddDirective(IDirectiveProcessor directive);
     ISchemaType AddEnum(string name, Type type, string description);
     SchemaType<TEnum> AddEnum<TEnum>(string name, string description);
