@@ -149,7 +149,7 @@ public class ValidationTests
         };
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IGraphQLValidator, GraphQLValidator>();
+        serviceCollection.AddTransient<IGraphQLValidator, GraphQLValidator>();
         var testContext = new ValidationTestsContext();
         var results = schema.ExecuteRequestWithContext(gql, testContext, serviceCollection.BuildServiceProvider(), null);
         Assert.NotNull(results.Errors);

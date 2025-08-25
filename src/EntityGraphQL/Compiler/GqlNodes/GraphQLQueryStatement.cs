@@ -13,7 +13,7 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
     public GraphQLQueryStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public override Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -26,7 +26,7 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
     {
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.QueryContextType, false, null), requestContext);
 
-        var result = new ConcurrentDictionary<string, object?>();
+        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
         // pass to directives
         foreach (var directive in Directives)
         {

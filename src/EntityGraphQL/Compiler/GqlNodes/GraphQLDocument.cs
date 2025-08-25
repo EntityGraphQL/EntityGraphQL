@@ -98,23 +98,30 @@ public class GraphQLDocument : IGraphQLNode
             throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
 
         var result = new QueryResult();
-        IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
         var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
         // execute the selected operation
         options ??= new ExecutionOptions(); // defaults
 
-        result.SetData(
-            await op.ExecuteAsync(
-                overwriteContext,
-                serviceProvider,
-                Fragments,
-                Schema.SchemaFieldNamer,
-                options,
-                variables,
-                requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
-            )
+        var executionResults = await op.ExecuteAsync(
+            overwriteContext,
+            serviceProvider,
+            Fragments,
+            Schema.SchemaFieldNamer,
+            options,
+            variables,
+            requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
         );
+
+        var dataByQueryName = new Dictionary<string, object?>();
+        var validatorErrors = new List<GraphQLError>();
+        foreach (var executionResult in executionResults)
+        {
+            dataByQueryName[executionResult.Key] = executionResult.Value.data;
+            if (executionResult.Value.methodValidator?.HasErrors == true)
+                validatorErrors.AddRange(executionResult.Value.methodValidator.Errors);
+        }
+        result.SetData(dataByQueryName);
 
         // Add query information if requested
         if (options.IncludeQueryInfo)
@@ -123,8 +130,8 @@ public class GraphQLDocument : IGraphQLNode
             result.SetQueryInfo(queryInfo);
         }
 
-        if (validator?.Errors.Count > 0)
-            result.AddErrors(validator.Errors);
+        if (validatorErrors.Count > 0)
+            result.AddErrors(validatorErrors);
 
         if (result.Data?.Count == 0 && result.HasErrorKey())
             result.RemoveDataKey();

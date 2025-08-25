@@ -21,7 +21,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public override async Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -37,7 +37,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
 
-        var result = new ConcurrentDictionary<string, object?>();
+        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
         // pass to directives
         foreach (var directive in Directives)
         {
@@ -45,15 +45,15 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                 return result;
         }
 
-        IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
-        var validatorErrorsCount = 0;
+        // IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
+        // var validatorErrorsCount = 0;
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
         // When we are building/executing the selection on the mutation result services are handled
         CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
-            validatorErrorsCount = validator?.Errors.Count ?? 0; // TODO -- better way to find new values since last run (list isn't guarenteed added in order)
+            // validatorErrorsCount = validator?.Errors.Count ?? 0; // TODO -- better way to find new values since last run (list isn't guarenteed added in order)
             try
             {
                 IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
@@ -69,28 +69,25 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 #endif
 
                     var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
-                    var data = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
+                    var (data, methodValidator) = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
                         timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                        result[$"__{node.Name}_timeMs"] = (timer?.ElapsedMilliseconds, null);
                     }
 #endif
 
-                    if (validator != null && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase)) // If we've got a validator in services, and this is an aliased root field
-                    {
-                        var validatorErrorsCurrent = validator?.Errors.Count;
-                        if (validator != null && validatorErrorsCurrent > validatorErrorsCount)
-                            for (var i = validatorErrorsCount; i < validatorErrorsCurrent; i++)
-                                validator.Errors[i].Path = [node.Name];
-                    }
+                    if (methodValidator?.HasErrors == true && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase)) // If we've got a validator in services, and this is an aliased root field
+                        foreach (var error in methodValidator.Errors)
+                            error.Path = [node.Name]; // This is the name of the node alias
 
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
-                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
-                        continue;
-                    result[node.Name] = data;
+                    // if (data == null && node.Field!.ReturnType.TypeNotNullable)
+                    //     continue;
+
+                    result[node.Name] = (data, methodValidator); // This could return null for a non-null (comment above)
                 }
             }
             catch (EntityGraphQLValidationException)
@@ -120,7 +117,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     /// <param name="docVariables">Resolved values of variables pass in request</param>
     /// <typeparam name="TContext"></typeparam>
     /// <returns></returns>
-    private async Task<object?> ExecuteAsync<TContext>(
+    private async Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteAsync<TContext>(
         CompileContext compileContext,
         GraphQLMutationField node,
         TContext context,
@@ -132,17 +129,17 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
         BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
         if (context == null)
-            return null;
+            return (null, null);
         // run the mutation to get the context for the query select
-        var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
+        var (data, validatorErrors) = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
 
         if (
-            result == null
+            data == null
             || // result is null and don't need to do anything more
             node.ResultSelection == null
         ) // mutation must return a scalar type
-            return result;
-        return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, result);
+            return (data, validatorErrors);
+        return (await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, data), validatorErrors);
     }
 
     protected async Task<object?> MakeSelectionFromResultAsync<TContext>(

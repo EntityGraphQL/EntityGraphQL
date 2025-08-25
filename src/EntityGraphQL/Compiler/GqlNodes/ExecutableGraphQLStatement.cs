@@ -62,7 +62,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
-    public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public virtual async Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -81,7 +81,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         //      movies { released name }
         // }
         // people & movies will be the 2 fields that will be 2 separate expressions
-        var result = new ConcurrentDictionary<string, object?>();
+        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
 
         IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
 
@@ -104,7 +104,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 if (options.IncludeDebugInfo)
                 {
                     timer?.Stop();
-                    result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                    result[$"__{fieldNode.Name}_timeMs"] = (timer?.ElapsedMilliseconds, null);
                 }
 #endif
 
@@ -114,7 +114,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     continue;
 
                 if (didExecute)
-                    result[fieldNode.Name] = data;
+                    result[fieldNode.Name] = (data, null);
             }
             catch (EntityGraphQLValidationException)
             {
