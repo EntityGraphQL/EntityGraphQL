@@ -77,7 +77,7 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection AddGraphQLValidator(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddScoped<IGraphQLValidator, GraphQLValidator>();
+        serviceCollection.TryAddTransient<IGraphQLValidator, GraphQLValidator>();
         return serviceCollection;
     }
 }
