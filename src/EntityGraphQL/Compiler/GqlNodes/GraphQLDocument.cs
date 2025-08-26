@@ -105,7 +105,7 @@ public class GraphQLDocument : IGraphQLNode
         // execute the selected operation
         options ??= new ExecutionOptions(); // defaults
 
-        var (data, validator) = await op.ExecuteAsync(
+        var (data, errors) = await op.ExecuteAsync(
             overwriteContext,
             serviceProvider,
             Fragments,
@@ -124,8 +124,8 @@ public class GraphQLDocument : IGraphQLNode
             result.SetQueryInfo(queryInfo);
         }
 
-        if (validator.HasErrors)
-            result.AddErrors(validator.Errors);
+        if (errors.Count > 0)
+            result.AddErrors(errors);
 
         if (result.Data?.Count == 0 && result.HasErrorKey())
             result.RemoveDataKey();

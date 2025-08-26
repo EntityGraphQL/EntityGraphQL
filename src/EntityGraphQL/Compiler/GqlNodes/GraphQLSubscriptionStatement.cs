@@ -26,7 +26,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, rootParameter, rootParameter, variables) { }
 
-    public override async Task<(ConcurrentDictionary<string, object?> data, IGraphQLValidator validator)> ExecuteAsync<TContext>(
+    public override async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -48,12 +48,13 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         this.docVariables = BuildDocumentVariables(ref variables);
 
         var result = new ConcurrentDictionary<string, object?>();
-        var validator = new GraphQLValidator();
+        var errors = new List<GraphQLError>();
+
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
-                return (result, validator);
+                return (result, errors);
         }
 
         CompileContext compileContext = new(options, null, requestContext);
@@ -104,7 +105,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                 throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return (result, validator);
+        return (result, errors);
     }
 
     private async Task<object?> ExecuteAsync<TContext>(

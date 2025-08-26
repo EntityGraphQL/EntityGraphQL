@@ -22,7 +22,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override async Task<(ConcurrentDictionary<string, object?> data, IGraphQLValidator validator)> ExecuteAsync<TContext>(
+    public override async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -40,12 +40,13 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
 
         var result = new ConcurrentDictionary<string, object?>();
-        var validator = new GraphQLValidator();
+        var errors = new List<GraphQLError>();
+
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
-                return (result, validator);
+                return (result, errors);
         }
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
@@ -104,7 +105,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 
                     // Aggregate erros
                     if (methodValidator?.HasErrors == true)
-                        validator.Errors.AddRange(methodValidator.Errors);
+                        errors.AddRange(methodValidator.Errors);
 
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
@@ -127,7 +128,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                 throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return (result, validator);
+        return (result, errors);
     }
 
     private static bool IsRootAliasedNode(GraphQLMutationField? node) => node != null && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase);
