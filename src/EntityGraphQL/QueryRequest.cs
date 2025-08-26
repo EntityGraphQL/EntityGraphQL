@@ -91,10 +91,10 @@ public class GraphQLError : Dictionary<string, object>
             this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
     }
 
-    public GraphQLError(string message, string[] path, IDictionary<string, object>? extensions)
+    public GraphQLError(string message, string[]? path, IDictionary<string, object>? extensions)
     {
         this[MessageKey] = message;
-        this[PathKey] = path;
+        this[PathKey] = path ?? [];
         if (extensions != null)
             this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
     }

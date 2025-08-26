@@ -62,7 +62,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
-    public virtual async Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
+    public virtual async Task<(ConcurrentDictionary<string, object?> data, IGraphQLValidator validator)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -81,7 +81,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         //      movies { released name }
         // }
         // people & movies will be the 2 fields that will be 2 separate expressions
-        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
+        var result = new ConcurrentDictionary<string, object?>();
+        var validator = new GraphQLValidator();
 
         IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
 
@@ -104,7 +105,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 if (options.IncludeDebugInfo)
                 {
                     timer?.Stop();
-                    result[$"__{fieldNode.Name}_timeMs"] = (timer?.ElapsedMilliseconds, null);
+                    result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                 }
 #endif
 
@@ -114,7 +115,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     continue;
 
                 if (didExecute)
-                    result[fieldNode.Name] = (data, null);
+                    result[fieldNode.Name] = data;
             }
             catch (EntityGraphQLValidationException)
             {
@@ -126,10 +127,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLFieldException(fieldNode.Name, ex);
+                throw new EntityGraphQLFieldException(fieldNode.Name, null, ex);
             }
         }
-        return result;
+        return (result, validator);
     }
 
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)

@@ -103,7 +103,7 @@ public class GraphQLDocument : IGraphQLNode
         // execute the selected operation
         options ??= new ExecutionOptions(); // defaults
 
-        var executionResults = await op.ExecuteAsync(
+        var (data, validator) = await op.ExecuteAsync(
             overwriteContext,
             serviceProvider,
             Fragments,
@@ -112,16 +112,7 @@ public class GraphQLDocument : IGraphQLNode
             variables,
             requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
         );
-
-        var dataByQueryName = new Dictionary<string, object?>();
-        var validatorErrors = new List<GraphQLError>();
-        foreach (var executionResult in executionResults)
-        {
-            dataByQueryName[executionResult.Key] = executionResult.Value.data;
-            if (executionResult.Value.methodValidator?.HasErrors == true)
-                validatorErrors.AddRange(executionResult.Value.methodValidator.Errors);
-        }
-        result.SetData(dataByQueryName);
+        result.SetData(data);
 
         // Add query information if requested
         if (options.IncludeQueryInfo)
@@ -130,8 +121,8 @@ public class GraphQLDocument : IGraphQLNode
             result.SetQueryInfo(queryInfo);
         }
 
-        if (validatorErrors.Count > 0)
-            result.AddErrors(validatorErrors);
+        if (validator.HasErrors)
+            result.AddErrors(validator.Errors);
 
         if (result.Data?.Count == 0 && result.HasErrorKey())
             result.RemoveDataKey();

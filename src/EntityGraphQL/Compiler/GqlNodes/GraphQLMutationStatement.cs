@@ -21,7 +21,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
+    public override async Task<(ConcurrentDictionary<string, object?> data, IGraphQLValidator validator)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -37,57 +37,77 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
 
-        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
+        var result = new ConcurrentDictionary<string, object?>();
+        var validator = new GraphQLValidator();
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
-                return result;
+                return (result, validator);
         }
-
-        // IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
-        // var validatorErrorsCount = 0;
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
         // When we are building/executing the selection on the mutation result services are handled
         CompileContext compileContext = new(options, null, requestContext);
         foreach (var field in QueryFields)
         {
-            // validatorErrorsCount = validator?.Errors.Count ?? 0; // TODO -- better way to find new values since last run (list isn't guarenteed added in order)
             try
             {
                 IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
                 foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
                 {
-#if DEBUG
-                    Stopwatch? timer = null;
-                    if (options.IncludeDebugInfo)
+                    object? data = null;
+                    IGraphQLValidator? methodValidator = null;
+                    try
                     {
-                        timer = new Stopwatch();
-                        timer.Start();
-                    }
+#if DEBUG
+                        Stopwatch? timer = null;
+                        if (options.IncludeDebugInfo)
+                        {
+                            timer = new Stopwatch();
+                            timer.Start();
+                        }
 #endif
 
-                    var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
-                    var (data, methodValidator) = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
+                        var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
+                        (data, methodValidator) = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
 #if DEBUG
-                    if (options.IncludeDebugInfo)
-                    {
-                        timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = (timer?.ElapsedMilliseconds, null);
-                    }
+                        if (options.IncludeDebugInfo)
+                        {
+                            timer?.Stop();
+                            result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                        }
 #endif
 
-                    if (methodValidator?.HasErrors == true && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase)) // If we've got a validator in services, and this is an aliased root field
-                        foreach (var error in methodValidator.Errors)
-                            error.Path = [node.Name]; // This is the name of the node alias
+                        if (methodValidator?.HasErrors == true && IsRootAliasedNode(node))
+                            foreach (var error in methodValidator.Errors)
+                                error.Path = [node.Name];
+                    }
+                    // Catch and pass exceptions (except schema validation) back in a validator so we can process the remaining fields.
+                    catch (EntityGraphQLValidationException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        // If it's just a single row, we can throw the error and let it get caught normally
+                        if (QueryFields.Count == 1 && node.Field!.ReturnType.TypeNotNullable)
+                            throw;
+                        (methodValidator ??= new GraphQLValidator()).Errors.AddRange(
+                            Schema.GenerateErrors(new EntityGraphQLFieldException(node.Name, IsRootAliasedNode(node) ? [node.Name] : null, ex))
+                        );
+                    }
+
+                    // Aggregate erros
+                    if (methodValidator?.HasErrors == true)
+                        validator.Errors.AddRange(methodValidator.Errors);
 
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
-                    // if (data == null && node.Field!.ReturnType.TypeNotNullable)
-                    //     continue;
+                    if (QueryFields.Count == 1 && data == null && node.Field!.ReturnType.TypeNotNullable)
+                        continue;
 
-                    result[node.Name] = (data, methodValidator); // This could return null for a non-null (comment above)
+                    result[node.Name] = data;
                 }
             }
             catch (EntityGraphQLValidationException)
@@ -100,11 +120,13 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLFieldException(field.Name, ex);
+                throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return result;
+        return (result, validator);
     }
+
+    private static bool IsRootAliasedNode(GraphQLMutationField? node) => node != null && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Execute the current mutation

@@ -80,4 +80,5 @@ public interface ISchemaProvider
     /// </summary>
     void Validate();
     ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext);
+    IEnumerable<GraphQLError> GenerateErrors(Exception exception);
 }

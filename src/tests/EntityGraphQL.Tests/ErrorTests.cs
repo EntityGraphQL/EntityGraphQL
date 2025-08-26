@@ -341,6 +341,8 @@ public class ErrorTests
     [Fact]
     public void MutationReportsError_ContainsAliasPath()
     {
+        var aliasA = "a";
+        var aliasB = "b";
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
         // Add a argument field with a require parameter
@@ -356,12 +358,16 @@ public class ErrorTests
 
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+        var data = results.Data?.Values;
+        Assert.NotNull(data);
+        Assert.Equal(2, data.Count);
+        Assert.All(data, Assert.Null);
+
         Assert.NotNull(results.Errors);
-        // error from execution that prevented a valid response, the data entry in the response should be null
-        Assert.Null(results.Data);
-        Assert.Equal("Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors[0].Message);
+        Assert.Equal($"Field '{aliasA}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path.Contains(aliasA)).Message);
+        Assert.Equal($"Field '{aliasB}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path.Contains(aliasB)).Message);
         var paths = results.Errors.SelectMany(e => e.Path);
-        Assert.Contains("a", paths);
-        Assert.Contains("b", paths);
+        Assert.Contains(aliasA, paths);
+        Assert.Contains(aliasB, paths);
     }
 }

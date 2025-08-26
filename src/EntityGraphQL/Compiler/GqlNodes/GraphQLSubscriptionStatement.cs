@@ -25,7 +25,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, rootParameter, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>> ExecuteAsync<TContext>(
+    public override async Task<(ConcurrentDictionary<string, object?> data, IGraphQLValidator validator)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -45,12 +45,13 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);
 
-        var result = new ConcurrentDictionary<string, (object? data, IGraphQLValidator? methodValidator)>();
+        var result = new ConcurrentDictionary<string, object?>();
+        var validator = new GraphQLValidator();
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
-                return result;
+                return (result, validator);
         }
 
         CompileContext compileContext = new(options, null, requestContext);
@@ -74,7 +75,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                     if (options.IncludeDebugInfo)
                     {
                         timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = (timer?.ElapsedMilliseconds, null);
+                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 #endif
 
@@ -83,7 +84,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                     if (data == null && node.Field!.ReturnType.TypeNotNullable)
                         continue;
 
-                    result[node.Name] = (data, null);
+                    result[node.Name] = data;
                 }
             }
             catch (EntityGraphQLValidationException)
@@ -96,10 +97,10 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLFieldException(field.Name, ex);
+                throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return result;
+        return (result, validator);
     }
 
     private async Task<object?> ExecuteAsync<TContext>(
