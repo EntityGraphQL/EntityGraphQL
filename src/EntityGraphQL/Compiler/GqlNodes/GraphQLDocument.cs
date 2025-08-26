@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,7 +71,7 @@ public class GraphQLDocument : IGraphQLNode
         ExecutionOptions? options = null
     )
     {
-        return ExecuteQueryAsync(context, services, variables, operationName, requestContext, options).GetAwaiter().GetResult();
+        return ExecuteQueryAsync(context, services, variables, operationName, requestContext, options, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -90,7 +91,8 @@ public class GraphQLDocument : IGraphQLNode
         QueryVariables? variables,
         string? operationName,
         QueryRequestContext? requestContext,
-        ExecutionOptions? options = null
+        ExecutionOptions? options = null,
+        CancellationToken cancellationToken = default
     )
     {
         // check operation names
@@ -110,7 +112,8 @@ public class GraphQLDocument : IGraphQLNode
             Schema.SchemaFieldNamer,
             options,
             variables,
-            requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null)
+            requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null),
+            cancellationToken
         );
         result.SetData(data);
 

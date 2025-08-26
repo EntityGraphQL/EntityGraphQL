@@ -13,20 +13,6 @@ namespace Benchmarks;
 /// Command: `dotnet run -c Debug`
 /// To not actually execute and skip EF
 ///
-/// 4.2.0
-/// |                    Method |        Mean |     Error |    StdDev |    Gen 0 | Allocated |
-/// |-------------------------- |------------:|----------:|----------:|---------:|----------:|
-/// |                PlainDbSet |    41.61 us |  0.326 us |  0.305 us |   9.5825 |     20 KB |
-/// | SetOfBasicWhereStatements |   434.38 us |  3.326 us |  2.777 us |  77.6367 |    159 KB |
-/// |     LargerSetOfWhereWhens | 4,982.14 us | 17.287 us | 14.435 us | 664.0625 |  1,377 KB |
-///
-/// 5.3.0
-/// |                    Method |     Mean |     Error |    StdDev |    Gen 0 | Allocated |
-/// |-------------------------- |------------:|---------:|---------:|---------:|----------:|
-/// |                PlainDbSet |    20.73 us | 0.079 us | 0.066 us |   7.9346 |     16 KB |
-/// | SetOfBasicWhereStatements |   158.70 us | 0.547 us | 0.511 us |  41.5039 |     85 KB |
-/// |     LargerSetOfWhereWhens | 2,515.82 us | 5.926 us | 5.543 us | 457.0313 |    934 KB |
-///
 /// 5.6.0 with net9.0
 ///
 /// | Method                    | Mean        | Error    | StdDev   | Gen0     | Gen1    | Allocated |
@@ -34,6 +20,18 @@ namespace Benchmarks;
 /// | PlainDbSet                |    18.98 us | 0.091 us | 0.200 us |   3.2959 |       - |  20.83 KB |
 /// | SetOfBasicWhereStatements |    70.65 us | 0.208 us | 0.194 us |  11.9629 |  0.3662 |  73.73 KB |
 /// | LargerSetOfWhereWhens     | 1,055.51 us | 1.878 us | 1.757 us | 123.0469 | 23.4375 | 765.25 KB |
+///
+/// 5.8.0
+/// BenchmarkDotNet v0.15.2, macOS 26.0 (25A5338b) [Darwin 25.0.0]
+/// Apple M1 Max, 1 CPU, 10 logical and 10 physical cores
+/// .NET SDK 9.0.301
+///
+/// | Method                    | Mean       | Error    | StdDev    | Gen0     | Gen1    | Allocated  |
+/// |-------------------------- |-----------:|---------:|----------:|---------:|--------:|-----------:|
+/// | PlainDbSet                |   972.5 us |  9.54 us |  12.74 us | 109.3750 | 15.6250 |  671.66 KB |
+/// | SetOfBasicWhereStatements | 1,462.2 us | 27.33 us |  51.99 us | 117.1875 | 15.6250 |  740.14 KB |
+/// | LargerSetOfWhereWhens     | 3,910.9 us | 65.65 us | 109.69 us | 234.3750 | 62.5000 | 1489.08 KB |
+///
 /// </summary>
 [MemoryDiagnoser]
 public class CompileFiltersBenchmarks : BaseBenchmark

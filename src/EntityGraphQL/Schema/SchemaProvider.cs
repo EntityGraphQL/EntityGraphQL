@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -207,7 +208,21 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns></returns>
     public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
     {
-        return await DoExecuteRequestAsync(gql, default, serviceProvider, user, options);
+        return await DoExecuteRequestAsync(gql, default, serviceProvider, user, options, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Execute a query using this schema with cancellation support.
+    /// </summary>
+    /// <param name="gql">The query</param>
+    /// <param name="serviceProvider">A service provider used for looking up dependencies of field selections and mutations</param>
+    /// <param name="user">ClaimsPrincipal user to check access against</param>
+    /// <param name="options">Execution options</param>
+    /// <param name="cancellationToken">Cancellation token for async operations</param>
+    /// <returns></returns>
+    public async Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options, CancellationToken cancellationToken)
+    {
+        return await DoExecuteRequestAsync(gql, default, serviceProvider, user, options, cancellationToken);
     }
 
     /// <summary>
@@ -235,10 +250,17 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns></returns>
     public async Task<QueryResult> ExecuteRequestWithContextAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null)
     {
-        return await DoExecuteRequestAsync(gql, context, serviceProvider, user, options);
+        return await DoExecuteRequestAsync(gql, context, serviceProvider, user, options, CancellationToken.None);
     }
 
-    private async Task<QueryResult> DoExecuteRequestAsync(QueryRequest gql, TContextType? overwriteContext, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options)
+    private async Task<QueryResult> DoExecuteRequestAsync(
+        QueryRequest gql,
+        TContextType? overwriteContext,
+        IServiceProvider? serviceProvider,
+        ClaimsPrincipal? user,
+        ExecutionOptions? options,
+        CancellationToken cancellationToken = default
+    )
     {
         QueryResult result;
         try
@@ -298,7 +320,15 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 compiledQuery = graphQLCompiler.Compile(gql);
             }
 
-            result = await compiledQuery.ExecuteQueryAsync(overwriteContext, serviceProvider, gql.Variables, gql.OperationName, new QueryRequestContext(AuthorizationService, user), options);
+            result = await compiledQuery.ExecuteQueryAsync(
+                overwriteContext,
+                serviceProvider,
+                gql.Variables,
+                gql.OperationName,
+                new QueryRequestContext(AuthorizationService, user),
+                options,
+                cancellationToken
+            );
         }
         catch (Exception ex)
         {

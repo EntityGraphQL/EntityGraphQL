@@ -261,3 +261,24 @@ query {
 ```
 
 In both cases, only the `name` and `city` filters will be applied, even though `city` is explicitly set to `null`.
+
+## Async Fields
+
+For fields that need to perform asynchronous operations, EntityGraphQL provides the `ResolveAsync` method with comprehensive concurrency control.
+
+```csharp
+// Basic async field
+schema.Type<Person>()
+    .AddField("externalData", "Data from external API")
+    .ResolveAsync<ExternalService>((person, service) =>
+        service.GetDataAsync(person.Id));
+
+// With concurrency limiting
+schema.Type<Person>()
+    .AddField("weatherData", "Current weather")
+    .ResolveAsync<WeatherService>((person, service) =>
+        service.GetWeatherAsync(person.Location),
+        maxConcurrency: 5);
+```
+
+For comprehensive documentation on async fields, concurrency control, best practices, and integration patterns, see [Async Fields](./async-fields).

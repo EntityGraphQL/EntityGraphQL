@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
@@ -20,7 +21,8 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        CancellationToken cancellationToken = default
     )
         where TContext : default
     {
@@ -34,6 +36,6 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
             if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)
                 return Task.FromResult<(ConcurrentDictionary<string, object?>, IGraphQLValidator)>((result, validator));
         }
-        return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext);
+        return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext, cancellationToken);
     }
 }

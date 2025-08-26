@@ -415,7 +415,22 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
         if (GqlType != GqlTypes.Union)
             throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
 
-        var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes()).Where(p => TypeDotnet.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
+        var types = AppDomain
+            .CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic) // Skip dynamic assemblies to avoid race conditions with runtime type generation and we shouldn't need them
+            .SelectMany(s =>
+            {
+                try
+                {
+                    return s.GetTypes();
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    // Return the types that loaded successfully, filtering out nulls
+                    return ex.Types.OfType<Type>();
+                }
+            })
+            .Where(p => TypeDotnet.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
 
         foreach (var type in types)
         {

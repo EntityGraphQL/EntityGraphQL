@@ -1,3 +1,11 @@
+# 5.8.0
+
+## Changes
+
+- #467 - New implementation for handling `async` fields. See updated docs and use the `.ResolveAsync<>()` methods when adding fields.
+- New support for `CancellationToken`. A `CancellationToken` can be passed into the `ExecuteRequestAsync` method. The token will be checked throughout execution and passed to other async operations. You can use it in `.ResolveAsync<MyService, CancellationToken>((context, service, ct) => service.DoSomethingAsync(context.Field, ct))` to pass it to your `async` fields. If you use `MapGraphQL()` for ASP.NET it will use the `context.RequestAborted` as the cancellation token.
+- #469 - Make filter grammar immutable as it should be
+
 # 5.7.1
 
 ## Fixes

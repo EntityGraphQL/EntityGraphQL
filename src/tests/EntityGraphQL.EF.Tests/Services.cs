@@ -54,3 +54,17 @@ public class ConfigService
         return configs.ToArray();
     }
 }
+
+public class CancellationTestService
+{
+    public async Task<int> GetAgeWithDelayAsync(DateTime? birthday, CancellationToken cancellationToken)
+    {
+        // Simulate some async work
+        await Task.Delay(10, cancellationToken);
+
+        // Check for cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
+    }
+}

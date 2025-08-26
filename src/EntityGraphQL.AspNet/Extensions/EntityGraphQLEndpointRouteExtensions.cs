@@ -62,11 +62,9 @@ public static class EntityGraphQLEndpointRouteExtensions
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
                 }
-                var isChunked = context.Request.Headers.TransferEncoding
-                    .Any(h => h is not null && h.Equals("chunked", StringComparison.OrdinalIgnoreCase));
+                var isChunked = context.Request.Headers.TransferEncoding.Any(h => h is not null && h.Equals("chunked", StringComparison.OrdinalIgnoreCase));
 
-                if (!isChunked && (context.Request.ContentLength == null ||
-                                   context.Request.ContentLength == 0))
+                if (!isChunked && (context.Request.ContentLength == null || context.Request.ContentLength == 0))
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
@@ -82,7 +80,7 @@ public static class EntityGraphQLEndpointRouteExtensions
                         ?? throw new InvalidOperationException(
                             "No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
                         );
-                    var gqlResult = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options);
+                    var gqlResult = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options, context.RequestAborted);
 
                     if (followSpec)
                     {

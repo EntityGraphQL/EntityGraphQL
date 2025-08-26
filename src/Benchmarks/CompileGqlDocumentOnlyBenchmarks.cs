@@ -10,26 +10,20 @@ namespace Benchmarks;
 /// Benchmarks to test just the string graphql document to EntityGraphQL IGraphQLNode compilation.
 /// Not to the expression that will be executed
 ///
-/// BenchmarkDotNet v0.14.0, macOS Sequoia 15.1 (24B83) [Darwin 24.1.0]
+/// BenchmarkDotNet v0.15.2, macOS 26.0 (25A5338b) [Darwin 25.0.0]
 /// Apple M1 Max, 1 CPU, 10 logical and 10 physical cores
-/// .NET SDK 9.0.100
+/// .NET SDK 9.0.301
+/// 5.7.1
+/// | Method                                            | Mean     | Error     | StdDev    | Gen0   | Gen1   | Allocated |
+/// |-------------------------------------------------- |---------:|----------:|----------:|-------:|-------:|----------:|
+/// | Query_SingleObjectWithArg                         | 4.899 us | 0.0515 us | 0.0481 us | 1.5564 |      - |   9.54 KB |
+/// | Query_SingleObjectWithArg_IncludeSubObject        | 6.261 us | 0.0081 us | 0.0072 us | 2.0905 | 0.0534 |  12.82 KB |
+/// | Query_SingleObjectWithArg_IncludeSubObjectAndList | 7.780 us | 0.0166 us | 0.0139 us | 2.6855 | 0.0916 |  16.47 KB |
+/// | Query_List                                        | 2.431 us | 0.0055 us | 0.0046 us | 0.9117 | 0.0076 |   5.59 KB |
+/// | Query_ListWithTakeArg                             | 8.482 us | 0.1298 us | 0.1151 us | 2.5177 | 0.0305 |  15.49 KB |
 ///
-/// 5.6.0 - HotChocolate.Language 13.9.11
-///
-/// | Method                                            | Job        | Toolchain              | IterationCount | LaunchCount | WarmupCount | Mean     | Error     | StdDev    |
-/// |-------------------------------------------------- |----------- |----------------------- |--------------- |------------ |------------ |---------:|----------:|----------:|
-/// | Query_SingleObjectWithArg                         | Job-KXSWTB | InProcessEmitToolchain | Default        | Default     | Default     | 5.065 us | 0.0098 us | 0.0092 us |
-/// | Query_SingleObjectWithArg_IncludeSubObject        | Job-KXSWTB | InProcessEmitToolchain | Default        | Default     | Default     | 6.470 us | 0.0129 us | 0.0108 us |
-/// | Query_SingleObjectWithArg_IncludeSubObjectAndList | Job-KXSWTB | InProcessEmitToolchain | Default        | Default     | Default     | 7.895 us | 0.0152 us | 0.0127 us |
-/// | Query_List                                        | Job-KXSWTB | InProcessEmitToolchain | Default        | Default     | Default     | 2.462 us | 0.0069 us | 0.0061 us |
-/// | Query_ListWithTakeArg                             | Job-KXSWTB | InProcessEmitToolchain | Default        | Default     | Default     | 8.604 us | 0.0080 us | 0.0075 us |
-/// | Query_SingleObjectWithArg                         | ShortRun   | Default                | 3              | 1           | 3           | 4.910 us | 0.3644 us | 0.0200 us |
-/// | Query_SingleObjectWithArg_IncludeSubObject        | ShortRun   | Default                | 3              | 1           | 3           | 6.357 us | 0.2872 us | 0.0157 us |
-/// | Query_SingleObjectWithArg_IncludeSubObjectAndList | ShortRun   | Default                | 3              | 1           | 3           | 7.760 us | 0.0774 us | 0.0042 us |
-/// | Query_List                                        | ShortRun   | Default                | 3              | 1           | 3           | 2.547 us | 0.0216 us | 0.0012 us |
-/// | Query_ListWithTakeArg                             | ShortRun   | Default                | 3              | 1           | 3           | 8.600 us | 1.3116 us | 0.0719 us |
 /// </summary>
-[ShortRunJob]
+[MemoryDiagnoser]
 public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
 {
     [Benchmark]
