@@ -14,7 +14,7 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
     public GraphQLQueryStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public override Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -29,11 +29,12 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.QueryContextType, false, null), requestContext);
 
         var result = new ConcurrentDictionary<string, object?>();
+
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)
-                return Task.FromResult(result);
+                return Task.FromResult<(ConcurrentDictionary<string, object?>, List<GraphQLError>)>((result, []));
         }
         return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext, cancellationToken);
     }

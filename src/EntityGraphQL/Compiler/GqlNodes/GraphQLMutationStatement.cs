@@ -10,6 +10,7 @@ using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler;
 
@@ -21,7 +22,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public override async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -39,11 +40,13 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
 
         var result = new ConcurrentDictionary<string, object?>();
+        var errors = new List<GraphQLError>();
+
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
-                return result;
+                return (result, errors);
         }
 
         // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
@@ -58,6 +61,9 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                 IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
                 foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
                 {
+                    object? data = null;
+                    IGraphQLValidator? methodValidator = null;
+
 #if DEBUG
                     Stopwatch? timer = null;
                     if (options.IncludeDebugInfo)
@@ -68,7 +74,14 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
 #endif
 
                     var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
-                    var data = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
+                    try
+                    {
+                        (data, methodValidator) = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.AddRange(Schema.GenerateErrors(new EntityGraphQLFieldException(node.Name, [node.Name], ex)));
+                    }
 #if DEBUG
                     if (options.IncludeDebugInfo)
                     {
@@ -76,10 +89,19 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                         result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
                     }
 #endif
+
+                    if (methodValidator?.HasErrors == true)
+                    {
+                        foreach (var error in methodValidator.Errors)
+                            error.Path = [node.Name];
+                        errors.AddRange(methodValidator.Errors);
+                    }
+
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
                     if (data == null && node.Field!.ReturnType.TypeNotNullable)
                         continue;
+
                     result[node.Name] = data;
                 }
             }
@@ -93,10 +115,10 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLFieldException(field.Name, ex);
+                throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return result;
+        return (result, errors);
     }
 
     /// <summary>
@@ -110,7 +132,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     /// <param name="docVariables">Resolved values of variables pass in request</param>
     /// <typeparam name="TContext"></typeparam>
     /// <returns></returns>
-    private async Task<object?> ExecuteAsync<TContext>(
+    private async Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteAsync<TContext>(
         CompileContext compileContext,
         GraphQLMutationField node,
         TContext context,
@@ -122,17 +144,17 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
         BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
         if (context == null)
-            return null;
+            return (null, null);
         // run the mutation to get the context for the query select
-        var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
+        var (data, validatorErrors) = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
 
         if (
-            result == null
+            data == null
             || // result is null and don't need to do anything more
             node.ResultSelection == null
         ) // mutation must return a scalar type
-            return result;
-        return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, result);
+            return (data, validatorErrors);
+        return (await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, data), validatorErrors);
     }
 
     protected async Task<object?> MakeSelectionFromResultAsync<TContext>(

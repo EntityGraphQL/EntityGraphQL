@@ -66,7 +66,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
-    public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    public virtual async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -140,10 +140,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             }
             catch (Exception ex)
             {
-                throw new EntityGraphQLFieldException(fieldNode.Name, ex);
+                throw new EntityGraphQLFieldException(fieldNode.Name, null, ex);
             }
         }
-        return result;
+        return (result, []);
     }
 
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)

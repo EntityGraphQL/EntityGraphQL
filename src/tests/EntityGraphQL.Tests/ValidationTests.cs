@@ -132,6 +132,35 @@ public class ValidationTests
     }
 
     [Fact]
+    public void TestErrorContainsAliasPath_WithGraphQLValidator()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation Mutate($arg: CastMemberArg) {
+                a: updateCastMemberWithGraphQLValidator(arg: $arg)
+                b: updateCastMemberWithGraphQLValidator(arg: $arg)
+            }",
+            Variables = new QueryVariables() { { "arg", new { Actor = "Neil", Character = "Barn" } } },
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddTransient<IGraphQLValidator, GraphQLValidator>();
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequestWithContext(gql, testContext, serviceCollection.BuildServiceProvider(), null);
+        Assert.NotNull(results.Errors);
+        Assert.Equal(2, results.Errors.Count);
+        Assert.Equal("Test Error", results.Errors[0].Message);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Contains("a", paths);
+        Assert.Contains("b", paths);
+    }
+
+    [Fact]
     public void TestCustomValidationDelegateOnMutation()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();

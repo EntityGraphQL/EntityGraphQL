@@ -27,7 +27,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         this.MutationField = mutationField;
     }
 
-    public Task<object?> ExecuteMutationAsync<TContext>(
+    public Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteMutationAsync<TContext>(
         TContext context,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,

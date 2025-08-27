@@ -63,7 +63,7 @@ public abstract class MethodField : BaseField
         ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
     }
 
-    public virtual async Task<object?> CallAsync(
+    public virtual async Task<(object? data, IGraphQLValidator? methodValidator)> CallAsync(
         object? context,
         IReadOnlyDictionary<string, object?>? gqlRequestArgs,
         IServiceProvider? serviceProvider,
@@ -73,7 +73,7 @@ public abstract class MethodField : BaseField
     )
     {
         if (context == null)
-            return null;
+            return (null, null);
 
         // args in the mutation method - may be arguments in the graphql schema, services injected
         var allArgs = new List<object?>();
@@ -83,6 +83,9 @@ public abstract class MethodField : BaseField
         var setProperties = new List<string>();
 
         var graphQLArgumentsSet = new ArgumentsTracker();
+
+        IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
+        validator?.Errors.Clear(); // If the validator isn't registered as transient, we may have errors related to a different root field.
 
         // add parameters and any DI services
         foreach (var p in Method.GetParameters())
@@ -134,10 +137,15 @@ public abstract class MethodField : BaseField
             }
             else if (serviceProvider != null)
             {
-                var service =
-                    serviceProvider.GetService(p.ParameterType)
-                    ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
-                allArgs.Add(service);
+                if (p.ParameterType == typeof(IGraphQLValidator) && validator != null)
+                    allArgs.Add(validator);
+                else
+                {
+                    var service =
+                        serviceProvider.GetService(p.ParameterType)
+                        ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
+                    allArgs.Add(service);
+                }
             }
             else if (typeof(IArgumentsTracker) == p.ParameterType)
             {
@@ -195,7 +203,8 @@ public abstract class MethodField : BaseField
                 throw;
             }
         }
-        return result;
+
+        return (result, validator);
     }
 
     public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(

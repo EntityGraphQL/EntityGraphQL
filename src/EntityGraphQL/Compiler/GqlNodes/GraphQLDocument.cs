@@ -100,24 +100,22 @@ public class GraphQLDocument : IGraphQLNode
             throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
 
         var result = new QueryResult();
-        IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
         var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
 
         // execute the selected operation
         options ??= new ExecutionOptions(); // defaults
 
-        result.SetData(
-            await op.ExecuteAsync(
-                overwriteContext,
-                serviceProvider,
-                Fragments,
-                Schema.SchemaFieldNamer,
-                options,
-                variables,
-                requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null),
-                cancellationToken
-            )
+        var (data, errors) = await op.ExecuteAsync(
+            overwriteContext,
+            serviceProvider,
+            Fragments,
+            Schema.SchemaFieldNamer,
+            options,
+            variables,
+            requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null),
+            cancellationToken
         );
+        result.SetData(data);
 
         // Add query information if requested
         if (options.IncludeQueryInfo)
@@ -126,10 +124,11 @@ public class GraphQLDocument : IGraphQLNode
             result.SetQueryInfo(queryInfo);
         }
 
-        if (validator?.Errors.Count > 0)
-            result.AddErrors(validator.Errors);
+        if (errors.Count > 0)
+            result.AddErrors(errors);
 
-        if (result.Data?.Count == 0 && result.HasErrorKey())
+        // If we have no data keys & no have execution errors, we must have a request error and remove the data key.
+        if (result.Data?.Count == 0 && result.HasErrorKey() && !errors.Where(e => e.IsExecutionError).Any())
             result.RemoveDataKey();
 
         return result;
