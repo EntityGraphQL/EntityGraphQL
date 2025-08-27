@@ -29,13 +29,12 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.QueryContextType, false, null), requestContext);
 
         var result = new ConcurrentDictionary<string, object?>();
-        var errors = new List<GraphQLError>();
 
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.QUERY, Schema, this, Arguments, null, null) == null)
-                return Task.FromResult<(ConcurrentDictionary<string, object?>, List<GraphQLError>)>((result, errors));
+                return Task.FromResult<(ConcurrentDictionary<string, object?>, List<GraphQLError>)>((result, []));
         }
         return base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext, cancellationToken);
     }

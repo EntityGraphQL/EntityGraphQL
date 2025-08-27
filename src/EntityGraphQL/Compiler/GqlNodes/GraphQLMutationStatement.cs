@@ -63,53 +63,43 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
                 {
                     object? data = null;
                     IGraphQLValidator? methodValidator = null;
+
+#if DEBUG
+                    Stopwatch? timer = null;
+                    if (options.IncludeDebugInfo)
+                    {
+                        timer = new Stopwatch();
+                        timer.Start();
+                    }
+#endif
+
+                    var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
                     try
                     {
-#if DEBUG
-                        Stopwatch? timer = null;
-                        if (options.IncludeDebugInfo)
-                        {
-                            timer = new Stopwatch();
-                            timer.Start();
-                        }
-#endif
-
-                        var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
                         (data, methodValidator) = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
-#if DEBUG
-                        if (options.IncludeDebugInfo)
-                        {
-                            timer?.Stop();
-                            result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
-                        }
-#endif
-
-                        if (methodValidator?.HasErrors == true && IsRootAliasedNode(node))
-                            foreach (var error in methodValidator.Errors)
-                                error.Path = [node.Name];
-                    }
-                    // Catch and pass exceptions (except schema validation) back in a validator so we can process the remaining fields.
-                    catch (EntityGraphQLValidationException)
-                    {
-                        throw;
                     }
                     catch (Exception ex)
                     {
-                        // If it's just a single row, we can throw the error and let it get caught normally
-                        if (QueryFields.Count == 1 && node.Field!.ReturnType.TypeNotNullable)
-                            throw;
-                        (methodValidator ??= new GraphQLValidator()).Errors.AddRange(
-                            Schema.GenerateErrors(new EntityGraphQLFieldException(node.Name, IsRootAliasedNode(node) ? [node.Name] : null, ex))
-                        );
+                        errors.AddRange(Schema.GenerateErrors(new EntityGraphQLFieldException(node.Name, [node.Name], ex)));
                     }
+#if DEBUG
+                    if (options.IncludeDebugInfo)
+                    {
+                        timer?.Stop();
+                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                    }
+#endif
 
-                    // Aggregate erros
                     if (methodValidator?.HasErrors == true)
+                    {
+                        foreach (var error in methodValidator.Errors)
+                            error.Path = [node.Name];
                         errors.AddRange(methodValidator.Errors);
+                    }
 
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
-                    if (QueryFields.Count == 1 && data == null && node.Field!.ReturnType.TypeNotNullable)
+                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
                         continue;
 
                     result[node.Name] = data;
@@ -130,8 +120,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         }
         return (result, errors);
     }
-
-    private static bool IsRootAliasedNode(GraphQLMutationField? node) => node != null && node.IsRootField && !string.Equals(node.Name, node.MutationField.Name, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Execute the current mutation

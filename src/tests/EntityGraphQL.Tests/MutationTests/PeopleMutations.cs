@@ -210,6 +210,12 @@ public class PeopleMutations : IMutations
     }
 
     [GraphQLMutation]
+    public Person? AddPersonNullableError(PeopleMutationsArgs args)
+    {
+        throw new EntityGraphQLArgumentException("name", "Name can not be null");
+    }
+
+    [GraphQLMutation]
     public int AddPersonErrorUnexposedException(PeopleMutationsArgs args)
     {
         throw new Exception("You should not see this message outside of Development");
@@ -319,14 +325,14 @@ public class PeopleMutations : IMutations
     {
         // Simulate async work that can be cancelled
         await System.Threading.Tasks.Task.Delay(50);
-        
+
         var person = new Person
         {
             Id = 999,
             Name = args.Name ?? "Test Person",
-            LastName = "Delayed"
+            LastName = "Delayed",
         };
-        
+
         db.People.Add(person);
         return person;
     }

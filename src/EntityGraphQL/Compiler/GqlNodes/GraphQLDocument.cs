@@ -127,7 +127,8 @@ public class GraphQLDocument : IGraphQLNode
         if (errors.Count > 0)
             result.AddErrors(errors);
 
-        if (result.Data?.Count == 0 && result.HasErrorKey())
+        // If we have no data keys & no have execution errors, we must have a request error and remove the data key.
+        if (result.Data?.Count == 0 && result.HasErrorKey() && !errors.Where(e => e.IsExecutionError).Any())
             result.RemoveDataKey();
 
         return result;

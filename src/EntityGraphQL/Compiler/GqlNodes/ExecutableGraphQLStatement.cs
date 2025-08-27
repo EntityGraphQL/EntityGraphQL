@@ -87,7 +87,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // }
         // people & movies will be the 2 fields that will be 2 separate expressions
         var result = new ConcurrentDictionary<string, object?>();
-        var errors = new List<GraphQLError>();
 
         IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
 
@@ -144,7 +143,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 throw new EntityGraphQLFieldException(fieldNode.Name, null, ex);
             }
         }
-        return (result, errors);
+        return (result, []);
     }
 
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)

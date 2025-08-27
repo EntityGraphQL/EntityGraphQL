@@ -339,7 +339,35 @@ public class ErrorTests
     }
 
     [Fact]
-    public void MutationReportsError_ContainsAliasPath()
+    public void MutationExecutionError_SingleField_NonNull()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+        // Add a argument field with a require parameter
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPerson($name: String) {
+                    addPersonError(name: $name)
+                }",
+            Variables = new QueryVariables { { "name", "Bill" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        // contains key 'data'
+        Assert.True(results.ContainsKey("data"));
+        var data = results.Data?.Values;
+        Assert.NotNull(data);
+        Assert.Empty(data);
+
+        Assert.NotNull(results.Errors);
+        Assert.Equal($"Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors[0].Message);
+    }
+
+    [Fact]
+    public void MutationExecutionError_MultipleFields_NonNull_AliasPath()
     {
         var aliasA = "a";
         var aliasB = "b";
@@ -358,16 +386,115 @@ public class ErrorTests
 
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        Assert.True(results.ContainsKey("data"));
+        var data = results.Data?.Values;
+        Assert.NotNull(data);
+        Assert.Empty(data);
+
+        Assert.NotNull(results.Errors);
+        Assert.Equal($"Field '{aliasA}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasA)).Message);
+        Assert.Equal($"Field '{aliasB}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasB)).Message);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Contains(aliasA, paths);
+        Assert.Contains(aliasB, paths);
+    }
+
+    [Fact]
+    public void MutationExecutionError_SingleField_Nullable()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+        // Add a argument field with a require parameter
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPerson($name: String) {
+                    addPersonNullableError(name: $name)
+                }",
+            Variables = new QueryVariables { { "name", "Bill" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        Assert.True(results.ContainsKey("data"));
+        var data = results.Data?.Values;
+        Assert.NotNull(data);
+        Assert.Single(data);
+        Assert.All(data, Assert.Null);
+
+        Assert.NotNull(results.Errors);
+        var error = results.Errors[0];
+        Assert.Equal($"Field 'addPersonNullableError' - Name can not be null (Parameter 'name')", error.Message);
+        Assert.Contains("addPersonNullableError", error.Path ?? []);
+    }
+
+    [Fact]
+    public void MutationExecutionError_MultipleFields_Nullable_AliasPath()
+    {
+        var aliasA = "a";
+        var aliasB = "b";
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+        // Add a argument field with a require parameter
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPerson($name: String) {
+                    a: addPersonNullableError(name: $name)
+                    b: addPersonNullableError(name: $name)
+                }",
+            Variables = new QueryVariables { { "name", "Bill" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        Assert.True(results.ContainsKey("data"));
         var data = results.Data?.Values;
         Assert.NotNull(data);
         Assert.Equal(2, data.Count);
         Assert.All(data, Assert.Null);
 
         Assert.NotNull(results.Errors);
-        Assert.Equal($"Field '{aliasA}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path.Contains(aliasA)).Message);
-        Assert.Equal($"Field '{aliasB}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path.Contains(aliasB)).Message);
-        var paths = results.Errors.SelectMany(e => e.Path);
+        Assert.Equal($"Field '{aliasA}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasA)).Message);
+        Assert.Equal($"Field '{aliasB}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasB)).Message);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
         Assert.Contains(aliasA, paths);
         Assert.Contains(aliasB, paths);
+    }
+
+    [Fact]
+    public void MutationExecutionError_MultipleFields_NonAliasPath()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
+        // Add a argument field with a require parameter
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation AddPerson($name: String) {
+                    addPersonError(name: $name)
+                    addPersonNullableError(name: $name)
+                }",
+            Variables = new QueryVariables { { "name", "Bill" } },
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        Assert.True(results.ContainsKey("data"));
+        var data = results.Data?.Values;
+        Assert.NotNull(data);
+        Assert.Single(data);
+        Assert.Null(data.First());
+
+        Assert.NotNull(results.Errors);
+        Assert.Equal($"Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains("addPersonError")).Message);
+        Assert.Equal($"Field 'addPersonNullableError' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains("addPersonNullableError")).Message);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Contains("addPersonError", paths);
+        Assert.Contains("addPersonNullableError", paths);
     }
 }

@@ -48,13 +48,12 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         this.docVariables = BuildDocumentVariables(ref variables);
 
         var result = new ConcurrentDictionary<string, object?>();
-        var errors = new List<GraphQLError>();
 
         // pass to directives
         foreach (var directive in Directives)
         {
             if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
-                return (result, errors);
+                return (result, []);
         }
 
         CompileContext compileContext = new(options, null, requestContext);
@@ -105,7 +104,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                 throw new EntityGraphQLFieldException(field.Name, null, ex);
             }
         }
-        return (result, errors);
+        return (result, []);
     }
 
     private async Task<object?> ExecuteAsync<TContext>(
