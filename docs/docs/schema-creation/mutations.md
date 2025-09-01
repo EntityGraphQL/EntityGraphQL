@@ -541,3 +541,63 @@ public class PeopleMutations
 
 - **Mutations**: Use `[GraphQLMutation]` on methods in mutation controller classes. Return `Task<T>` for async operations. No concurrency control as each mutation field executes in order sequently as per the spec.
 - **Async Fields**: Use `.ResolveAsync<Service>()` when adding fields to types. Supports concurrency control and hierarchical limiting.
+
+## Partial Results and Error Handling
+
+EntityGraphQL supports **partial results** according to the GraphQL specification. This means that when executing operations with multiple fields, if some fields succeed and others fail, you'll receive the successful results along with error information about the failed ones.
+
+### How Partial Results Work
+
+EntityGraphQL executes each top-level field in an operation separately. If any field fails during execution, the operation doesn't completely fail - instead, you get:
+
+1. **Partial data**: Results from fields that executed successfully
+2. **Error information**: Detailed errors with paths pointing to the failed fields
+3. **Proper null handling**: Failed nullable fields become `null`, while non-nullable field failures may bubble up
+
+### Example with Multiple Mutations
+
+```graphql
+mutation MultipleOperations {
+  # This mutation succeeds
+  addPerson(name: "Alice", age: 30) {
+    id
+    name
+  }
+
+  # This mutation fails
+  addPersonError(name: "Bob") {
+    id
+    name
+  }
+
+  # This mutation also succeeds
+  addPerson2: addPerson(name: "Charlie", age: 25) {
+    id
+    name
+  }
+}
+```
+
+**Response with partial results:**
+
+```json
+{
+  "data": {
+    "addPerson": {
+      "id": "1",
+      "name": "Alice"
+    },
+    "addPersonError": null,
+    "addPerson2": {
+      "id": "2",
+      "name": "Charlie"
+    }
+  },
+  "errors": [
+    {
+      "message": "Name can not be null (Parameter 'name')",
+      "path": ["addPersonError"]
+    }
+  ]
+}
+```

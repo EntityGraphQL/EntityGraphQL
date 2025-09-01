@@ -502,4 +502,144 @@ public class ErrorTests
         Assert.Contains("addPersonError", paths);
         Assert.Contains("addPersonNullableError", paths);
     }
+
+    private static string ThrowFieldError() => throw new Exception("This field failed");
+
+    private static string ThrowErrorOccurred() => throw new Exception("Error occurred");
+
+    private static string ThrowNonNullError() => throw new Exception("Non-null field failed");
+
+    [Fact]
+    public void QueryExecutionPartialResults_MultipleFields()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Add a field that will succeed
+        schemaProvider.Query().AddField("successField", ctx => "Success!", "A field that succeeds");
+
+        // Add a field that will fail
+        schemaProvider.Query().AddField("failField", ctx => ThrowFieldError(), "A field that fails");
+
+        // Add another field that will succeed
+        schemaProvider.Query().AddField("anotherSuccessField", ctx => 42, "Another field that succeeds");
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+            {
+                successField
+                failField 
+                anotherSuccessField
+            }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        // Should have partial data - the successful fields
+        Assert.NotNull(results.Data);
+        Assert.True(results.Data.ContainsKey("successField"));
+        Assert.Equal("Success!", results.Data["successField"]);
+        Assert.True(results.Data.ContainsKey("anotherSuccessField"));
+        Assert.Equal(42, results.Data["anotherSuccessField"]);
+
+        // Failed field should be null
+        Assert.True(results.Data.ContainsKey("failField"));
+        Assert.Null(results.Data["failField"]);
+
+        // Should have errors for the failed field
+        Assert.NotNull(results.Errors);
+        Assert.Single(results.Errors);
+
+        var error = results.Errors[0];
+        // The error message will be wrapped by EntityGraphQL
+        Assert.NotNull(error.Message);
+        Assert.NotNull(error.Path);
+        Assert.Single(error.Path);
+        Assert.Equal("failField", error.Path[0]);
+    }
+
+    [Fact]
+    public void QueryExecutionPartialResults_WithAliases()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Add fields
+        schemaProvider.Query().AddField("dataField", ctx => "Some data", "A field that returns data");
+        schemaProvider.Query().AddField("errorField", ctx => ThrowErrorOccurred(), "A field that throws an error");
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+            {
+                firstData: dataField
+                problemField: errorField
+                secondData: dataField  
+            }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        // Should have partial data with aliases
+        Assert.NotNull(results.Data);
+        Assert.Equal("Some data", results.Data["firstData"]);
+        Assert.Equal("Some data", results.Data["secondData"]);
+        Assert.Null(results.Data["problemField"]);
+
+        // Error path should use the alias name
+        Assert.NotNull(results.Errors);
+        Assert.Single(results.Errors);
+
+        var error = results.Errors[0];
+        Assert.NotNull(error.Path);
+        Assert.Equal("problemField", error.Path[0]); // Uses alias, not original field name
+    }
+
+    [Fact]
+    public void QueryExecutionPartialResults_NonNullableField()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Add a nullable field that succeeds
+        schemaProvider.Query().AddField("nullableSuccess", ctx => "Success", "A nullable field that succeeds");
+
+        // Add a non-nullable field that fails
+        schemaProvider.Query().AddField("nonNullableFail", ctx => ThrowNonNullError(), "A non-nullable field that fails").IsNullable(false);
+
+        // Add another nullable field that succeeds
+        schemaProvider.Query().AddField("anotherNullableSuccess", ctx => "Also success", "Another nullable field that succeeds");
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+            {
+                nullableSuccess
+                nonNullableFail
+                anotherNullableSuccess
+            }",
+        };
+
+        var testSchema = new TestDataContext();
+        var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
+
+        // The non-nullable field failure should bubble up and make data null
+        // as per GraphQL spec - non-null field errors bubble to the nearest nullable parent
+        // However, if other fields are nullable, they may still be included
+        // Let's check that we have errors for the non-nullable field
+        Assert.True(results.HasErrors());
+
+        // Should still have the error
+        Assert.NotNull(results.Errors);
+        Assert.Single(results.Errors);
+
+        var error = results.Errors[0];
+        // The error message will be wrapped by EntityGraphQL
+        Assert.NotNull(error.Message);
+        Assert.NotNull(error.Path);
+        Assert.Equal("nonNullableFail", error.Path[0]);
+    }
 }

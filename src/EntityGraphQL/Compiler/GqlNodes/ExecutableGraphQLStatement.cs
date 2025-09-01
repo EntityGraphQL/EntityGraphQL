@@ -201,7 +201,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLFieldException(fieldNode.Name, null, ex);
+                    throw new EntityGraphQLFieldException(fieldNode.Name, [fieldNode.Name], ex);
                 }
             }
         }
