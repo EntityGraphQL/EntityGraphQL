@@ -85,6 +85,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
 
                     // often use return null if mutation failed and added errors to validation
                     // don't include it if it is not a nullable field
+                    // spec states non nullable should not be null - we should see errors
                     if (data == null && node.Field!.ReturnType.TypeNotNullable)
                         continue;
 

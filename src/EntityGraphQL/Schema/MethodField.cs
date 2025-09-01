@@ -84,8 +84,8 @@ public abstract class MethodField : BaseField
 
         var graphQLArgumentsSet = new ArgumentsTracker();
 
+        // we get the validator so we can get errors from it
         IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();
-        validator?.Errors.Clear(); // If the validator isn't registered as transient, we may have errors related to a different root field.
 
         // add parameters and any DI services
         foreach (var p in Method.GetParameters())
