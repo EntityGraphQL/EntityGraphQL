@@ -116,10 +116,8 @@ public class VariableTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.NotNull(results.Errors);
-        Assert.Equal(
-            "Field 'nullableGuidArgs' - Supplied variable 'id' is null while the variable definition is non-null. Please update query document or supply a non-null value.",
-            results.Errors[0].Message
-        );
+        Assert.Null(results.Data);
+        Assert.Equal("Supplied variable 'id' is null while the variable definition is non-null. Please update query document or supply a non-null value.", results.Errors[0].Message);
     }
 
     [Fact]

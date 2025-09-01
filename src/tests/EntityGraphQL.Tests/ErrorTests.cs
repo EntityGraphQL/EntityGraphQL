@@ -86,12 +86,15 @@ public class ErrorTests
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.True(results.HasErrors());
         Assert.NotNull(results.Errors);
+        // from spec errors "bubble up" to nullable field so we expect data to be null people is non-nullable
+        Assert.True(results.HasDataKey);
+        Assert.Null(results.Data);
         var error = results.Errors[0];
         Assert.NotNull(error.Extensions);
         Assert.Equal(1, error.Extensions["code"]);
         var result = System.Text.Json.JsonSerializer.Serialize(results);
         Assert.Contains("errors", result);
-        Assert.DoesNotContain("data", result);
+        Assert.Contains("data", result);
     }
 
     [Fact]
@@ -315,8 +318,9 @@ public class ErrorTests
         var testSchema = new TestDataContext().FillWithTestData();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.NotNull(results.Errors);
-        Assert.Single(results.Errors);
+        Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Field 'people' - Error occurred", results.Errors[0].Message);
+        Assert.Equal("Field 'people' - Error occurred", results.Errors[1].Message);
     }
 
     [Fact]
@@ -356,11 +360,10 @@ public class ErrorTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
 
-        // contains key 'data'
-        Assert.True(results.ContainsKey("data"));
-        var data = results.Data?.Values;
-        Assert.NotNull(data);
-        Assert.Empty(data);
+        // contains key 'data' as per spec
+        // as addPersonError result is not nullable it rolls up to data
+        Assert.True(results.HasDataKey);
+        Assert.Null(results.Data);
 
         Assert.NotNull(results.Errors);
         Assert.Equal($"Field 'addPersonError' - Name can not be null (Parameter 'name')", results.Errors[0].Message);
@@ -389,8 +392,11 @@ public class ErrorTests
 
         Assert.True(results.ContainsKey("data"));
         var data = results.Data?.Values;
-        Assert.NotNull(data);
-        Assert.Empty(data);
+        // from spec
+        // If an error was raised during the execution that prevented a valid response, the "data" entry
+        // in the response should be null.
+        // both fields are non nullable so no valid response can be returned, hence null
+        Assert.Null(data);
 
         Assert.NotNull(results.Errors);
         Assert.Equal($"Field '{aliasA}' - Name can not be null (Parameter 'name')", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasA)).Message);
@@ -418,11 +424,10 @@ public class ErrorTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
 
-        Assert.True(results.ContainsKey("data"));
-        var data = results.Data?.Values;
-        Assert.NotNull(data);
-        Assert.Single(data);
-        Assert.All(data, Assert.Null);
+        Assert.True(results.HasDataKey);
+        Assert.NotNull(results.Data);
+        Assert.Single(results.Data);
+        Assert.All(results.Data.Values, Assert.Null);
 
         Assert.NotNull(results.Errors);
         var error = results.Errors[0];

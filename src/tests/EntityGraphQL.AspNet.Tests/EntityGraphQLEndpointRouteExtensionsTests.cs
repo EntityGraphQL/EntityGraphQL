@@ -183,7 +183,8 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         var json = JsonNode.Parse(responseString);
 
         Assert.NotNull(json);
-        Assert.False(json.AsObject().ContainsKey("data"), "Expected 'data' field to be absent, but it exists in the JSON response.");
+        Assert.True(json.AsObject().ContainsKey("data"), "Expected 'data' field to be absent, but it exists in the JSON response.");
+        Assert.Null(json["data"]);
         Assert.NotNull(json["errors"]);
         Assert.Equal("This is a test error", json["errors"]!.AsArray()[0]!["message"]!.GetValue<string>());
     }
@@ -551,8 +552,8 @@ public class RawTcpTest : IClassFixture<CustomWebApplicationFactory<Program>>
         // if PostAsJsonAsync is used with WebApplicationFactory,
         // i.e. the in-memory test server, with no network involved,
         // it works fine and the ContentLength is set correctly.
-		// hence, the CustomWebApplicationFactory is used to ensure
-		// network communication is used, and the ContentLength is not set.
+        // hence, the CustomWebApplicationFactory is used to ensure
+        // network communication is used, and the ContentLength is not set.
         HttpResponseMessage resp = await client.PostAsJsonAsync("/graphql", new { query = "{ hello }" });
         resp.EnsureSuccessStatusCode();
 
