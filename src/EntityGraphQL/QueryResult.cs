@@ -60,6 +60,8 @@ public class QueryResult : Dictionary<string, object>
         this[DataKey] = data.ToDictionary(d => d.Key, d => d.Value);
     }
 
+    public bool HasDataKey => ContainsKey(DataKey);
+
     public void RemoveDataKey()
     {
         Remove(DataKey);
