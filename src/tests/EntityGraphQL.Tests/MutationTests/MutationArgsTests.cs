@@ -31,6 +31,28 @@ public class MutationArgsTests
     }
 
     [Fact]
+    public void RequiredModifierOnInputMakesArgRequired()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Mutation().Add("addPersonReq", ([GraphQLArguments] RequiredInputArgs args) => args.Age, new SchemaBuilderOptions { AutoCreateInputTypes = true });
+
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("addPersonReq(name: String!, age: Int!): Int!", sdl);
+
+        // Missing required arg should error
+        var gqlMissing = new QueryRequest { Query = @"mutation AddPersonReq { addPersonReq(age: 22) }" };
+        var resMissing = schema.ExecuteRequestWithContext(gqlMissing, new TestDataContext(), null, null);
+        Assert.NotNull(resMissing.Errors);
+        Assert.Equal("Field 'addPersonReq' - missing required argument 'name'", resMissing.Errors![0].Message);
+
+        // Providing all args should succeed
+        var gql = new QueryRequest { Query = @"mutation AddPersonReq { addPersonReq(name: ""Herb"", age: 22) }" };
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(22, res.Data!["addPersonReq"]!);
+    }
+
+    [Fact]
     public void SupportsGenericClassArgAsInputType()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -180,6 +202,12 @@ internal class InputArgs
 internal class InputExtraArgs
 {
     public string? Token { get; set; }
+}
+
+internal class RequiredInputArgs
+{
+    public required string Name { get; init; }
+    public required int Age { get; init; }
 }
 
 internal class Human

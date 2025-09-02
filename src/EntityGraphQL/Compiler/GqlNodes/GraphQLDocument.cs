@@ -109,7 +109,6 @@ public class GraphQLDocument : IGraphQLNode
             overwriteContext,
             serviceProvider,
             Fragments,
-            Schema.SchemaFieldNamer,
             options,
             variables,
             requestContext ?? new QueryRequestContext(Schema.AuthorizationService, null),

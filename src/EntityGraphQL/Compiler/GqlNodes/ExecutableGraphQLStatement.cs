@@ -94,7 +94,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
         QueryRequestContext requestContext,

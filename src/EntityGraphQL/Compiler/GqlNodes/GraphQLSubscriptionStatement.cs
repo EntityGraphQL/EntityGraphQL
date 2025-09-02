@@ -32,7 +32,6 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        Func<string, string> fieldNamer,
         ExecutionOptions options,
         QueryVariables? variables,
         QueryRequestContext requestContext,
@@ -45,7 +44,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);
 
-        return await base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext, cancellationToken);
+        return await base.ExecuteAsync(context, serviceProvider, fragments, options, variables, requestContext, cancellationToken);
     }
 
     protected override async Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
