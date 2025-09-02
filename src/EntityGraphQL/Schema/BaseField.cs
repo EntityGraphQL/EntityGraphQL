@@ -38,10 +38,6 @@ public abstract class BaseField : IField
     /// </summary>
     public bool IsAsync { get; protected set; }
 
-    [Obsolete(
-        "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
-    )]
-    public IField? UseArgumentsFromField { get; set; }
     public Expression? ResolveExpression { get; protected set; }
 
     #endregion IField properties
@@ -162,20 +158,6 @@ public abstract class BaseField : IField
     {
         ReturnType = gqlTypeInfo;
         return this;
-    }
-
-    [Obsolete(
-        "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
-    )]
-    public void UseArgumentsFrom(IField field)
-    {
-        // Move the arguments definition to the new field as it needs them for processing
-        // don't push field.FieldParam over
-        ExpressionArgumentType = field.ExpressionArgumentType;
-        ArgumentsParameter = field.ArgumentsParameter;
-        Arguments = field.Arguments;
-        ArgumentsAreInternal = true;
-        UseArgumentsFromField = field;
     }
 
     /// <summary>

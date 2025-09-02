@@ -34,7 +34,7 @@ public class FilterExpressionExtension : BaseFieldExtension
         isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
     }
 
-    public override Expression? GetExpression(
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
         Expression expression,
         ParameterExpression? argumentParam,
@@ -42,12 +42,14 @@ public class FilterExpressionExtension : BaseFieldExtension
         Expression context,
         IGraphQLNode? parentNode,
         bool servicesPass,
-        ParameterReplacer parameterReplacer
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
     )
     {
         // data is already filtered
         if (servicesPass)
-            return expression;
+            return (expression, originalArgParam, argumentParam, arguments);
 
         // we have current context update Items field
         if (arguments != null && arguments?.Filter != null && arguments?.Filter.HasValue)
@@ -55,6 +57,6 @@ public class FilterExpressionExtension : BaseFieldExtension
             expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", new Type[] { listType! }, expression, arguments!.Filter.Query);
         }
 
-        return expression;
+        return (expression, originalArgParam, argumentParam, arguments);
     }
 }

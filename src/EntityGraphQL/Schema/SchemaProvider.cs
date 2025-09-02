@@ -574,10 +574,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
     }
 
-    public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext)
-    {
-        return GetSchemaType(dotnetType, false, requestContext);
-    }
+    public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext) => GetSchemaType(dotnetType, false, requestContext);
 
     /// <summary>
     /// Search for a GraphQL type with the given name. Lookup is done by DotNet type first.
@@ -585,26 +582,21 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     ///
     /// Use the Type<T>() methods for returning typed SchemaType<T>
     /// </summary>
-    /// <param name="dotnetType"></param>
-    /// <param name="typeFilter">Used the filter the search as dotnet type may be shared across Input type and query
-    /// type with different names in the schema</param>
-    /// <returns></returns>
-    /// <exception cref="EntityGraphQLCompilerException"></exception>
-    public ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext)
+    public ISchemaType GetSchemaType(Type dotnetType, bool inputTypesOnly, QueryRequestContext? requestContext)
     {
-        if (TryGetSchemaType(dotnetType, inputTypeScope, out var schemaType, requestContext))
+        if (TryGetSchemaType(dotnetType, inputTypesOnly, out var schemaType, requestContext))
             return schemaType!;
         throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{dotnetType.Name}'. Make sure you add it or add a type mapping.");
     }
 
-    public bool TryGetSchemaType(Type dotnetType, bool inputTypeScope, out ISchemaType? schemaType, QueryRequestContext? requestContext)
+    public bool TryGetSchemaType(Type dotnetType, bool inputTypesOnly, out ISchemaType? schemaType, QueryRequestContext? requestContext)
     {
         // look up by the actual type not the name
         schemaType =
             schemaTypes
-                .Values.WhereWhen(t => t.GqlType == GqlTypes.Scalar || t.GqlType == GqlTypes.Enum || t.GqlType == GqlTypes.InputObject, inputTypeScope)
+                .Values.WhereWhen(t => t.GqlType == GqlTypes.Scalar || t.GqlType == GqlTypes.Enum || t.GqlType == GqlTypes.InputObject, inputTypesOnly)
                 .FirstOrDefault(t => t.TypeDotnet == dotnetType) ?? schemaTypes.GetValueOrDefault(dotnetType.Name);
-        if (inputTypeScope && schemaType?.GqlType.IsNotValidForInput() == true)
+        if (inputTypesOnly && schemaType?.GqlType.IsNotValidForInput() == true)
         {
             // chance the Type has an input type that inherits from it
             schemaType = schemaTypes.Values.Where(t => dotnetType.IsAssignableFrom(t.TypeDotnet) && t.GqlType == GqlTypes.InputObject).FirstOrDefault();

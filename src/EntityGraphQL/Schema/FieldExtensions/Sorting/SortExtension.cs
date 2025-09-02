@@ -125,7 +125,7 @@ public class SortExtension : BaseFieldExtension
         return type.IsEnumerableOrArray() || (type.IsClass && type != typeof(string));
     }
 
-    public override Expression? GetExpression(
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
         Expression expression,
         ParameterExpression? argumentParam,
@@ -133,12 +133,14 @@ public class SortExtension : BaseFieldExtension
         Expression context,
         IGraphQLNode? parentNode,
         bool servicesPass,
-        ParameterReplacer parameterReplacer
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
     )
     {
         // things are sorted already and the field shape has changed
         if (servicesPass)
-            return expression;
+            return (expression, originalArgParam, argumentParam, arguments);
 
         // default sort gets put in arguments
         if (arguments != null && arguments!.Sort != null && arguments!.Sort.Count > 0)
@@ -196,6 +198,6 @@ public class SortExtension : BaseFieldExtension
                 thenBy = true;
             }
         }
-        return expression;
+        return (expression, originalArgParam, argumentParam, arguments);
     }
 }

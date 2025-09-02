@@ -17,32 +17,6 @@ public interface IFieldExtension
     void Configure(ISchemaProvider schema, IField field);
 
     /// <summary>
-    /// Called when the field is used in a query. This is at the compiling of the query stage, it is before the
-    /// field expression is joined with a Select() or built into a new {}.
-    /// Use this as a chance to make any expression changes based on arguments or do rules/error checks on arguments.
-    ///
-    /// This should be thread safe
-    /// </summary>
-    /// <param name="field"></param>
-    /// <param name="expression">The current expression for the field</param>
-    /// <param name="argumentParam">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
-    /// <param name="arguments">The value of the arguments. Null if field have no arguments</param>
-    /// <param name="context">The context of the schema</param>
-    /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
-    /// <returns></returns>
-    [Obsolete("Use GetExpressionAndArguments")]
-    Expression? GetExpression(
-        IField field,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        IGraphQLNode? parentNode,
-        bool servicesPass,
-        ParameterReplacer parameterReplacer
-    );
-
-    /// <summary>
     /// Get the list expression for the bulk resolve. Useful if your extension rebuilt the the graph like ConnectionPaging
     /// </summary>
     /// <param name="listExpression"></param>

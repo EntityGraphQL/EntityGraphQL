@@ -84,11 +84,6 @@ public interface IField
 
     IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
 
-    [Obsolete(
-        "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
-    )]
-    IField? UseArgumentsFromField { get; }
-
     /// <summary>
     /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field.
     /// Note this will change fieldExpression if the expression references arguments
@@ -118,10 +113,6 @@ public interface IField
     void AddArguments(object args);
     IField Returns(GqlTypeInfo gqlTypeInfo);
 
-    [Obsolete(
-        "Avoid using this method, it creates issues if the field's type is used on multiple fields with different arguments. It will be removed in future versions. See updated OffsetPagingExtension for a better way using GetExpressionAndArguments"
-    )]
-    void UseArgumentsFrom(IField field);
     IField AddValidator<TValidator>()
         where TValidator : IArgumentValidator;
     IField AddValidator(Action<ArgumentValidatorContext> callback);

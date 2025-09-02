@@ -58,9 +58,6 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         {
             var res = extension.GetExpressionAndArguments(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
-#pragma warning disable CS0618 // Type or member is obsolete
-            expression = extension.GetExpression(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         if (servicesPass)

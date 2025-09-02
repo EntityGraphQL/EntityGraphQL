@@ -115,7 +115,6 @@ public class AsyncTests
         Assert.Equal(25, age1);
 
         // Test 2: With cancelled token should work for now since we're using sync method
-        // TODO: Add async test when proper CancellationToken support is exposed in public API
         var cts = new CancellationTokenSource();
         cts.Cancel(); // Cancel immediately
 

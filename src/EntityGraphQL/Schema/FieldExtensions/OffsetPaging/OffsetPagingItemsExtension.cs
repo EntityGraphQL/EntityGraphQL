@@ -54,9 +54,6 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         {
             var res = extension.GetExpressionAndArguments(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
-#pragma warning disable CS0618 // Type or member is obsolete
-            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         if (servicesPass)

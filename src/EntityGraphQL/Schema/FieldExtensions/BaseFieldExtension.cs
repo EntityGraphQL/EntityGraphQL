@@ -15,20 +15,6 @@ public abstract class BaseFieldExtension : IFieldExtension
     /// <param name="field"></param>
     public virtual void Configure(ISchemaProvider schema, IField field) { }
 
-    public virtual Expression? GetExpression(
-        IField field,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        IGraphQLNode? parentNode,
-        bool servicesPass,
-        ParameterReplacer parameterReplacer
-    )
-    {
-        return expression;
-    }
-
     public virtual (Expression, ParameterExpression?) ProcessExpressionPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
     {
         return (baseExpression, listTypeParam);

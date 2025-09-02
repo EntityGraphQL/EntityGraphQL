@@ -360,7 +360,7 @@ public class CustomWebApplicationFactory<TEntry> : WebApplicationFactory<TEntry>
         WebApplication realApp = realBuilder.Build();
 
         // Same mapping as Program.cs
-        realApp.MapGraphQL<TestQueryType>(followSpec: true);
+        realApp.MapGraphQL<TestQueryType>();
 
         // Force ephemeral port
         realApp.Urls.Add("http://127.0.0.1:0");

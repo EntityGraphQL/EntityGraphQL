@@ -220,17 +220,6 @@ public class Field : BaseField
             newArgParam = Expression.Parameter(originalArgParam.Type, $"{originalArgParam.Name}_exec");
             compileContext.AddArgsToCompileContext(this, args, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);
         }
-
-        // check if we are taking args from elsewhere (extensions do this)
-#pragma warning disable CS0618 // Type or member is obsolete
-        // TODO remove in 6.0
-        if (UseArgumentsFromField != null)
-        {
-            newArgParam =
-                compileContext.GetConstantParameterForField(UseArgumentsFromField)
-                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{UseArgumentsFromField.Name}' in compile context.");
-            argumentValue = compileContext.ConstantParameters[newArgParam];
-        }
         if (Extensions.Count > 0)
         {
             foreach (var extension in Extensions)
@@ -250,11 +239,9 @@ public class Field : BaseField
                         originalArgParam,
                         compileContext
                     );
-                    result = extension.GetExpression(this, result!, newArgParam, argumentValue, context, parentNode, servicesPass, replacer);
                 }
             }
         }
-#pragma warning restore CS0618 // Type or member is obsolete
 
         GraphQLHelper.ValidateAndReplaceFieldArgs(this, originalArgParam, replacer, ref argumentValue, ref result!, validationErrors, newArgParam);
 

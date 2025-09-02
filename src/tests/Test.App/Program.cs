@@ -29,7 +29,7 @@ builder.Services.AddScoped<TestQueryType>();
 
 var app = builder.Build();
 
-app.MapGraphQL<TestQueryType>(followSpec: true);
+app.MapGraphQL<TestQueryType>();
 
 app.Run();
 

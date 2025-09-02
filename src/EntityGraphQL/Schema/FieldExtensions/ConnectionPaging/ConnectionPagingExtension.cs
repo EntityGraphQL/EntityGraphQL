@@ -139,7 +139,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         field.UpdateExpression(fieldExpression);
     }
 
-    public override Expression? GetExpression(
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
         Expression expression,
         ParameterExpression? argumentParam,
@@ -147,12 +147,14 @@ public class ConnectionPagingExtension : BaseFieldExtension
         Expression context,
         IGraphQLNode? parentNode,
         bool servicesPass,
-        ParameterReplacer parameterReplacer
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
     )
     {
         // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
         if (servicesPass)
-            return expression;
+            return (expression, originalArgParam, argumentParam, arguments);
 
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(argumentParam, nameof(argumentParam));
@@ -169,12 +171,13 @@ public class ConnectionPagingExtension : BaseFieldExtension
             // if we have other extensions (filter etc) we need to apply them to the totalCount
             foreach (var extension in ExtensionsBeforePaging)
             {
-                edgeExpression = extension.GetExpression(field, edgeExpression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer)!;
+                var res = extension.GetExpressionAndArguments(field, edgeExpression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
+                (edgeExpression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
             }
         }
         var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], edgeExpression!);
         expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor([totalCountExp.Type, argumentParam.Type])!, totalCountExp, argumentParam));
 
-        return expression;
+        return (expression, originalArgParam, argumentParam, arguments);
     }
 }

@@ -50,11 +50,9 @@ public interface ISchemaProvider
     IExtensionAttributeHandler? GetAttributeHandlerFor(Type attributeType);
     ISchemaProvider AddAttributeHandler(IExtensionAttributeHandler handler);
     ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext);
-
-    [Obsolete("Use GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext) instead")]
     ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext);
-    ISchemaType GetSchemaType(Type dotnetType, bool inputTypeScope, QueryRequestContext? requestContext);
-    bool TryGetSchemaType(Type dotnetType, bool inputTypeScope, out ISchemaType? schemaType, QueryRequestContext? requestContext);
+    ISchemaType GetSchemaType(Type dotnetType, bool inputTypesOnly, QueryRequestContext? requestContext);
+    bool TryGetSchemaType(Type dotnetType, bool inputTypesOnly, out ISchemaType? schemaType, QueryRequestContext? requestContext);
     bool HasType(string typeName);
     bool HasType(Type type);
     void PopulateFromContext(SchemaBuilderOptions? options = null);

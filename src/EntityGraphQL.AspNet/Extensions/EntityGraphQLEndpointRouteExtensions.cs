@@ -21,16 +21,13 @@ public static class EntityGraphQLEndpointRouteExtensions
     /// <param name="path">The path to create the route at. Defaults to `graphql`</param>
     /// <param name="options">ExecutionOptions to use when executing queries</param>
     /// <param name="configureEndpoint">Callback to continue modifying the endpoint via the IEndpointConventionBuilder interface</param>
-    /// <param name="followSpec">Defaults to false. If true it will return status code 200 for queries with
-    /// errors as per https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     public static IEndpointRouteBuilder MapGraphQL<TQueryType>(
         this IEndpointRouteBuilder builder,
         string path = "graphql",
         ExecutionOptions? options = null,
-        Action<IEndpointConventionBuilder>? configureEndpoint = null,
-        bool followSpec = false
+        Action<IEndpointConventionBuilder>? configureEndpoint = null
     )
     {
         path = path.TrimEnd('/');
@@ -40,24 +37,22 @@ public static class EntityGraphQLEndpointRouteExtensions
             {
                 var acceptValues = context.Request.GetTypedHeaders().Accept;
                 var sorted = acceptValues.OrderByDescending(h => h.Quality ?? 1.0).ToList();
-                if (followSpec)
+
+                // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
+                // "May reply with error if not supplied" choosing not to
+                if (
+                    acceptValues.Count != 0
+                    && !sorted.Any(h => h.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
+                    && !sorted.Any(h => h.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
+                    && !sorted.Any(h => h.MediaType.StartsWith("*/*", StringComparison.InvariantCulture) == true)
+                    && !sorted.Any(h => h.MediaType.StartsWith("application/*", StringComparison.InvariantCulture) == true)
+                )
                 {
-                    // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
-                    // "May reply with error if not supplied" choosing not to
-                    if (
-                        acceptValues.Count != 0
-                        && !sorted.Any(h => h.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == true)
-                        && !sorted.Any(h => h.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture) == true)
-                        && !sorted.Any(h => h.MediaType.StartsWith("*/*", StringComparison.InvariantCulture) == true)
-                        && !sorted.Any(h => h.MediaType.StartsWith("application/*", StringComparison.InvariantCulture) == true)
-                    )
-                    {
-                        context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
-                        return;
-                    }
+                    context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
+                    return;
                 }
                 // checking for ContentType == null is technically a breaking change so only do it for the followSpec case until 6.0
-                if ((followSpec && context.Request.ContentType == null) || context.Request.ContentType?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == false)
+                if (context.Request.ContentType == null || context.Request.ContentType?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == false)
                 {
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
@@ -82,31 +77,22 @@ public static class EntityGraphQLEndpointRouteExtensions
                         );
                     var gqlResult = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options, context.RequestAborted);
 
-                    if (followSpec)
-                    {
-                        var requestedType = sorted
-                            .Where(t => t != null)
-                            .FirstOrDefault(t =>
-                                t.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture)
-                            )
-                            ?.MediaType.ToString();
-                        context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
-                    }
-                    else
-                    {
-                        context.Response.ContentType = $"{APP_JSON_TYPE_START}; charset=utf-8";
-                    }
+                    var requestedType = sorted
+                        .Where(t => t != null)
+                        .FirstOrDefault(t =>
+                            t.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture)
+                        )
+                        ?.MediaType.ToString();
+                    context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
 
                     if (gqlResult.Errors?.Count > 0)
                     {
-                        // TODO: change with 6.0. This is here as changing how errors are thrown would be a breaking change
-                        // But following the spec this is not a valid request and should be a 400
-                        if (followSpec && gqlResult.Errors.Count == 1 && gqlResult.Errors[0].Message == "Please provide a persisted query hash or a query string")
+                        if (gqlResult.Errors.Count == 1 && gqlResult.Errors[0].Message == "Please provide a persisted query hash or a query string")
                         {
                             context.Response.StatusCode = StatusCodes.Status400BadRequest;
                             return;
                         }
-                        context.Response.StatusCode = followSpec ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest;
+                        context.Response.StatusCode = StatusCodes.Status200OK;
                     }
                     var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                     await serializer.SerializeAsync(context.Response.Body, gqlResult);
@@ -115,16 +101,8 @@ public static class EntityGraphQLEndpointRouteExtensions
                 {
                     // only exceptions we should get are ones that mean the request is invalid, e.g. deserialization errors
                     // all other graphql specific errors should be in the response data
-                    if (followSpec)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        return;
-                    }
-                    else
-                    {
-                        // keep the old behavior for v 5.x
-                        throw;
-                    }
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
                 }
             }
         );

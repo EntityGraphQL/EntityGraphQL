@@ -101,7 +101,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         return expression;
     }
 
-    public override Expression? GetExpression(
+    public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
         Expression expression,
         ParameterExpression? argumentParam,
@@ -109,11 +109,13 @@ public class OffsetPagingExtension : BaseFieldExtension
         Expression context,
         IGraphQLNode? parentNode,
         bool servicesPass,
-        ParameterReplacer parameterReplacer
+        ParameterReplacer parameterReplacer,
+        ParameterExpression? originalArgParam,
+        CompileContext compileContext
     )
     {
         if (servicesPass)
-            return expression; // we don't need to do anything. items field is there to handle it now
+            return (expression, originalArgParam, argumentParam, arguments);
 
         if (argumentParam == null)
             throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires argumentParams to be set");
@@ -126,11 +128,12 @@ public class OffsetPagingExtension : BaseFieldExtension
         // update the context
         foreach (var extension in Extensions)
         {
-            newItemsExp = extension.GetExpression(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer);
+            var res = extension.GetExpressionAndArguments(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
+            (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 
         // Build our field expression and hold it for use in the next step
         var fieldExpression = BuildTotalCountExpression(returnType!, newItemsExp, argumentParam);
-        return fieldExpression;
+        return (fieldExpression, originalArgParam, argumentParam, arguments);
     }
 }
