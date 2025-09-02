@@ -124,7 +124,7 @@ public abstract class MethodField : BaseField
                     value = ExpressionUtil.ConvertObjectType(value, argField.RawType, Schema, executionOptions);
                 }
 
-                argField.Validate(value, Name, validationErrors);
+                await argField.ValidateAsync(value, this, validationErrors);
 
                 allArgs.Add(value!);
                 argsToValidate.Add(p.Name!, value!);

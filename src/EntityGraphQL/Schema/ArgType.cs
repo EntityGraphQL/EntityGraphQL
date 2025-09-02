@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.Validators;
 using Nullability;
 
 namespace EntityGraphQL.Schema;
@@ -37,19 +39,16 @@ public class ArgType
     public string Description { get; set; }
     public GqlTypeInfo Type { get; private set; }
     public DefaultArgValue DefaultValue { get; set; }
-    public MemberInfo? MemberInfo { get; internal set; }
-
     private RequiredAttribute? requiredAttribute;
     public bool IsRequired { get; set; }
     public Type RawType { get; private set; }
 
-    public ArgType(string name, string dotnetName, GqlTypeInfo type, MemberInfo? memberInfo, Type rawType)
+    public ArgType(string name, string dotnetName, GqlTypeInfo type, Type rawType)
     {
         Name = name;
         DotnetName = dotnetName;
         Description = string.Empty;
         Type = type;
-        MemberInfo = memberInfo;
         RawType = rawType;
         DefaultValue = new DefaultArgValue(false, null);
         IsRequired = false;
@@ -113,7 +112,7 @@ public class ArgType
         }
 
         var gqlTypeInfo = new GqlTypeInfo(() => schema.GetSchemaType(gqlLookupType, true, null), argType, nullability);
-        var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, memberInfo, type)
+        var arg = new ArgType(schema.SchemaFieldNamer(name), name, gqlTypeInfo, type)
         {
             DefaultValue = defaultValue,
             IsRequired = markedRequired,
@@ -150,17 +149,28 @@ public class ArgType
     /// Validate that the value for the argument meets the requirements of the argument
     /// </summary>
     /// <param name="val"></param>
-    /// <param name="fieldName"></param>
+    /// <param name="field"></param>
     /// <param name="validationErrors"></param>
-    public void Validate(object? val, string fieldName, IList<string> validationErrors)
+    public async Task ValidateAsync(object? val, IField field, List<string> validationErrors)
     {
         var valType = val?.GetType();
         if (valType != null && valType.IsGenericType && valType.GetGenericTypeDefinition() == typeof(RequiredField<>))
             val = valType.GetProperty("Value")!.GetValue(val);
         if (requiredAttribute != null && !requiredAttribute.IsValid(val))
-            validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{fieldName}' - {requiredAttribute.ErrorMessage}" : $"Field '{fieldName}' - missing required argument '{Name}'");
+            validationErrors.Add(requiredAttribute.ErrorMessage != null ? $"Field '{field.Name}' - {requiredAttribute.ErrorMessage}" : $"Field '{field.Name}' - missing required argument '{Name}'");
         else if (IsRequired && val == null && !DefaultValue.IsSet)
-            validationErrors.Add($"Field '{fieldName}' - missing required argument '{Name}'");
+            validationErrors.Add($"Field '{field.Name}' - missing required argument '{Name}'");
+
+        // Validate using all DataAnnotations validation attributes on the member
+        if (Type.SchemaType.IsInput)
+        {
+            // For input types, validate the entire object and its properties recursively
+            var validator = new DataAnnotationsValidator();
+            var context = new ArgumentValidatorContext(field, val);
+
+            await validator.ValidateAsync(context);
+            validationErrors.AddRange(context.Errors);
+        }
 
         Type.SchemaType.Validate(val);
     }

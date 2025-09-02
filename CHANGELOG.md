@@ -8,12 +8,12 @@
   - `AddGraphQLValidator` now registers `IGraphQLValidator` as `Transient`. This _was_ the original intent as the docs have examples of bailing early by checking if the validator has any errors. The intent was errors for that field. This change helps enable partial results. If you want the old behavior, remove the use of `AddGraphQLValidator` and just add `IGraphQLValidator` yourself as `Scoped`
   - As per spec [If an error was raised during the execution that prevented a valid response, the "data" entry in the response should be null](https://spec.graphql.org/draft/#sec-Data). This was not always the case
 
-- Cleaned up previous methods/properties marked as obsolete
+- Removed methods/properties marked as obsolete
   - `IField.UseArgumentsFromField` use `GetExpressionAndArguments`
   - `IField.UseArgumentsFrom` use `GetExpressionAndArguments`
   - `IField.ResolveWithService` use `Resolve`
   - `IFieldExtension.GetExpression` use the new `GetExpressionAndArguments`
-  - `MapGraphQL` `followSpec = true` is now the default behavior it follows https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
+  - `MapGraphQL` `followSpec = true` is now the default behavior, it follows https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
 
 ## Changes
 
@@ -21,6 +21,10 @@
 - #467 - New implementation for handling `async` fields. See updated docs and use the `.ResolveAsync<>()` methods when adding fields.
 - New support for `CancellationToken`. A `CancellationToken` can be passed into the `ExecuteRequestAsync` method. The token will be checked throughout execution and passed to other async operations. You can use it in `.ResolveAsync<MyService, CancellationToken>((context, service, ct) => service.DoSomethingAsync(context.Field, ct))` to pass it to your `async` fields. If you use `MapGraphQL()` for ASP.NET it will use the `context.RequestAborted` as the cancellation token.
 - #469 - Make filter grammar immutable as it should be
+
+# Fixes
+
+- #429 Validation attributes now work with `[GraphQLInputType]`
 
 # 5.7.1
 

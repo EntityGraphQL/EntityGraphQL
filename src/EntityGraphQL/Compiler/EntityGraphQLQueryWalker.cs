@@ -121,7 +121,6 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
                     gqlTypeName,
                     schemaType.TypeDotnet.Name,
                     new GqlTypeInfo(() => schemaType, varTypeInSchema) { TypeNotNullable = isRequired, ElementTypeNullable = !isRequired },
-                    null,
                     varTypeInSchema
                 )
                 {

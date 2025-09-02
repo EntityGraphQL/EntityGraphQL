@@ -30,13 +30,13 @@ public class ValidationTests
         var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
         Assert.NotNull(results.Errors);
         Assert.Equal(7, results.Errors.Count);
-        Assert.Equal("Field 'addMovie' - Title is required", results.Errors[0].Message);
-        Assert.Equal("Field 'addMovie' - Date is required", results.Errors[1].Message);
-        Assert.Equal("Field 'addMovie' - Genre must be specified", results.Errors[2].Message);
-        Assert.Equal("Field 'addMovie' - Price must be between $1 and $100", results.Errors[3].Message);
-        Assert.Equal("Field 'addMovie' - Rating must be less than 5 characters", results.Errors[4].Message);
-        Assert.Equal("Field 'addMovie' - Actor is required", results.Errors[5].Message);
-        Assert.Equal("Field 'addMovie' - Character must be less than 5 characters", results.Errors[6].Message);
+        Assert.Contains("Field 'addMovie' - Title is required", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Date is required", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Genre must be specified", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Price must be between $1 and $100", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Rating must be less than 5 characters", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Actor is required", results.Errors.Select(e => e.Message));
+        Assert.Contains("Field 'addMovie' - Character must be less than 5 characters", results.Errors.Select(e => e.Message));
     }
 
     [Fact]
@@ -415,6 +415,94 @@ public class ValidationTests
         Assert.Equal("Field 'movies' - Empty or null Title is an invalid search term", results.Errors[1].Message);
     }
 
+    [Fact]
+    public void TestValidationAttributesOnGraphQLInputType()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation {
+                addPersonWithGraphQLInputType(person: { 
+                    personName: ""ThisNameIsTooLong"", 
+                    age: 150 
+                }) {
+                    id
+                }
+            }",
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
+
+        Assert.NotNull(results.Errors);
+        Assert.True(results.Errors.Count >= 1, $"Expected at least 1 error but got {results.Errors.Count}. Errors: {string.Join(", ", results.Errors.Select(e => e.Message))}");
+        Assert.Contains(results.Errors, e => e.Message.Contains("Person name must be less than 5 characters"));
+        Assert.Contains(results.Errors, e => e.Message.Contains("Age must be between 0 and 100"));
+    }
+
+    [Fact]
+    public void TestValidationAttributesOnGraphQLInputTypePassValidData()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation {
+                addPersonWithGraphQLInputType(person: { 
+                    personName: ""John"", 
+                    age: 25 
+                }) {
+                    id
+                }
+            }",
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
+
+        // Debug info in case of unexpected errors
+        if (results.Errors != null)
+        {
+            Assert.Fail($"Unexpected errors: {string.Join(", ", results.Errors.Select(e => e.Message))}");
+        }
+
+        Assert.Null(results.Errors);
+        Assert.NotNull(results.Data);
+    }
+
+    [Fact]
+    public void TestNestedValidationAttributesOnGraphQLInputType()
+    {
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.AddMutationsFrom<ValidationTestsMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation {
+                addPersonWithNestedGraphQLInputType(person: { 
+                    personName: ""John"",
+                    age: 25,
+                    address: {
+                        street: ""ThisStreetNameIsWayTooLong"",
+                        zipCode: ""12""
+                    }
+                }) {
+                    id
+                }
+            }",
+        };
+
+        var testContext = new ValidationTestsContext();
+        var results = schema.ExecuteRequestWithContext(gql, testContext, null, null);
+        Assert.NotNull(results.Errors);
+        Assert.Equal(2, results.Errors.Count);
+        Assert.Contains(results.Errors, e => e.Message.Contains("Street must be less than 20 characters"));
+        Assert.Contains(results.Errors, e => e.Message.Contains("Zip code must be exactly 5 characters"));
+    }
+
     private static bool AddPerson(PersonArgs args)
     {
         return true;
@@ -501,6 +589,7 @@ internal class MovieQueryArgsWithValidator
 internal class ValidationTestsContext
 {
     public List<Movie> Movies { get; set; } = [];
+    public List<Person> People { get; set; } = [];
 }
 
 internal class ValidationTestsMutations
@@ -535,6 +624,20 @@ internal class ValidationTestsMutations
     {
         validator.AddError("Test Error");
         return true;
+    }
+
+    [GraphQLMutation]
+    public static Expression<Func<ValidationTestsContext, Person?>> AddPersonWithGraphQLInputType([GraphQLInputType] PersonMutationArgs person)
+    {
+        var newPerson = new Person { Id = new Random().Next(), Name = person.PersonName };
+        return c => c.People.SingleOrDefault(p => p.Id == newPerson.Id);
+    }
+
+    [GraphQLMutation]
+    public static Expression<Func<ValidationTestsContext, Person?>> AddPersonWithNestedGraphQLInputType([GraphQLInputType] PersonWithAddressMutationArgs person)
+    {
+        var newPerson = new Person { Id = new Random().Next(), Name = person.PersonName };
+        return c => c.People.SingleOrDefault(p => p.Id == newPerson.Id);
     }
 }
 
@@ -580,4 +683,35 @@ internal class PersonArgs
 internal class PersonArgsWithValidator
 {
     public string Name { get; set; } = string.Empty;
+}
+
+[GraphQLInputType]
+internal class PersonMutationArgs
+{
+    [StringLength(5, ErrorMessage = "Person name must be less than 5 characters")]
+    public string PersonName { get; set; } = default!;
+
+    [Range(0, 100, ErrorMessage = "Age must be between 0 and 100")]
+    public int Age { get; set; }
+}
+
+[GraphQLInputType]
+internal class PersonWithAddressMutationArgs
+{
+    [StringLength(5, ErrorMessage = "Person name must be less than 5 characters")]
+    public string PersonName { get; set; } = default!;
+
+    [Range(0, 100, ErrorMessage = "Age must be between 0 and 100")]
+    public int Age { get; set; }
+
+    public AddressInput Address { get; set; } = default!;
+}
+
+internal class AddressInput
+{
+    [StringLength(20, ErrorMessage = "Street must be less than 20 characters")]
+    public string Street { get; set; } = default!;
+
+    [StringLength(5, MinimumLength = 5, ErrorMessage = "Zip code must be exactly 5 characters")]
+    public string ZipCode { get; set; } = default!;
 }

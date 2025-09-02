@@ -139,11 +139,6 @@ public abstract class BaseField : IField
         // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
         newArgs.ToList().ForEach(k => Arguments.Add(k.Key, k.Value));
 
-        // now we need to update the MemberInfo
-        foreach (var item in Arguments)
-        {
-            item.Value.MemberInfo = (MemberInfo?)newArgType.GetProperty(item.Value.DotnetName) ?? newArgType.GetField(item.Value.DotnetName);
-        }
         var parameterReplacer = new ParameterReplacer();
 
         var argParam = Expression.Parameter(newArgType, $"arg_{newArgType.Name}");

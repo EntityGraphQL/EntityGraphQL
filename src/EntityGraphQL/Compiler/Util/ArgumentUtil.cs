@@ -65,7 +65,8 @@ public static class ArgumentUtil
                     if (val != null || argField.DefaultValue.IsSet)
                         setValues.Add(argField.Name);
                 }
-                argField.Validate(val, fieldName, validationErrors);
+                if (field != null)
+                    argField.ValidateAsync(val, field, validationErrors).GetAwaiter().GetResult();
             }
             catch (EntityGraphQLValidationException)
             {
