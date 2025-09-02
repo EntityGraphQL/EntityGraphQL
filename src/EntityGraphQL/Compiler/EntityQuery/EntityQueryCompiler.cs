@@ -20,7 +20,7 @@ public static class EntityQueryCompiler
 {
     public static CompiledQueryResult Compile(string query, ExecutionOptions executionOptions)
     {
-        return Compile(query, null, executionOptions, new DefaultMethodProvider());
+        return Compile(query, null, executionOptions, null);
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public static class EntityQueryCompiler
 
         ParameterExpression? contextParam = null;
 
-        methodProvider ??= new DefaultMethodProvider();
+        methodProvider ??= new EqlMethodProvider();
 
         if (schemaProvider != null)
             contextParam = Expression.Parameter(schemaProvider.QueryContextType, $"cxt_{schemaProvider.QueryContextType.Name}");
@@ -63,7 +63,7 @@ public static class EntityQueryCompiler
         IMethodProvider? methodProvider = null
     )
     {
-        methodProvider ??= new DefaultMethodProvider();
+        methodProvider ??= new EqlMethodProvider();
         var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider, executionOptions) ?? throw new EntityGraphQLCompilerException("Failed to compile expression");
         var parameters = expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression).Parameters.ToList() : [];
         return new CompiledQueryResult(expression, parameters);

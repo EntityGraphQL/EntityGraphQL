@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
+using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
@@ -29,6 +30,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public Type SubscriptionType => subscriptionType.SchemaType.TypeDotnet;
     public Func<string, string> SchemaFieldNamer { get; }
     public IGqlAuthorizationService AuthorizationService { get; set; }
+    public EqlMethodProvider MethodProvider { get; set; }
     private readonly Dictionary<string, ISchemaType> schemaTypes = [];
     private readonly Dictionary<string, IDirectiveProcessor> directives = [];
     private readonly QueryCache queryCache;
@@ -69,6 +71,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     {
         AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
         SchemaFieldNamer = fieldNamer ?? SchemaBuilderSchemaOptions.DefaultFieldNamer;
+        MethodProvider = new EqlMethodProvider();
         this.logger = logger;
         this.graphQLCompiler = new GraphQLCompiler(this);
         this.introspectionEnabled = introspectionEnabled;
